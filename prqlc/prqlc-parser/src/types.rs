@@ -35,7 +35,6 @@ pub fn type_expr() -> impl Parser<TokenKind, Ty, Error = PError> {
                     .map(|(params, return_ty)| TyFunc {
                         params,
                         return_ty,
-                        name_hint: None,
                         generic_type_params: vec![],
                     })
                     .or_not(),

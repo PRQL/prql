@@ -72,9 +72,6 @@ pub enum PrimitiveSet {
 // Type of a function
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct TyFunc {
-    // TODO: this should probably be removed
-    pub name_hint: Option<Ident>,
-
     pub params: Vec<Option<Ty>>,
 
     pub return_ty: Box<Option<Ty>>,

@@ -342,7 +342,6 @@ pub fn fold_ty_func<F: ?Sized + PlFold>(fold: &mut F, f: TyFunc) -> Result<TyFun
             .map(|a| fold_type_opt(fold, a))
             .try_collect()?,
         return_ty: Box::new(fold_type_opt(fold, *f.return_ty)?),
-        name_hint: f.name_hint,
         generic_type_params: f.generic_type_params,
     })
 }

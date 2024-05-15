@@ -109,22 +109,22 @@ impl Resolver<'_> {
             }
         };
 
-        // TODO: names params
         // named
-        // for mut param in func_app.func.named_params.drain(..) {
+        // let fn_ty = fn_app.func.ty.as_ref().unwrap();
+        // let fn_ty = fn_ty.kind.as_function().unwrap();
+        // let fn_ty = fn_ty.as_ref().unwrap().clone();
+        // for mut param in fn_ty.named_params.drain(..) {
         //     let param_name = param.name.split('.').last().unwrap_or(&param.name);
         //     let default = param.default_value.take().unwrap();
-
         //     let arg = named_args.remove(param_name).unwrap_or(*default);
-
-        //     func_app.args.push(arg);
-        //     func_app.func.params.insert(func_app.args.len() - 1, param);
+        //     fn_app.args.push(arg);
+        //     fn_app.func.params.insert(fn_app.args.len() - 1, param);
         // }
         // if let Some((name, _)) = named_args.into_iter().next() {
         //     // TODO: report all remaining named_args as separate errors
         //     return Err(Error::new_simple(format!(
         //         "unknown named argument `{name}` to closure {:?}",
-        //         func_app.func.name_hint
+        //         fn_app.func.name_hint
         //     )));
         // }
 
@@ -548,7 +548,6 @@ pub fn expr_of_func_application(
         Some(Ty::new(TyFunc {
             params: ty_func_params,
             return_ty: Box::new(body_ty),
-            name_hint: None,
             generic_type_params: vec![],
         }))
     };

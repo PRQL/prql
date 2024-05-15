@@ -187,7 +187,6 @@ impl Resolver<'_> {
             }
 
             ExprKind::Func(func) => TyKind::Function(Some(TyFunc {
-                name_hint: None,
                 params: func.params.iter().map(|p| p.ty.clone()).collect_vec(),
                 return_ty: Box::new(func.return_ty.clone().or_else(|| func.body.ty.clone())),
                 generic_type_params: func.generic_type_params.clone(),
@@ -444,7 +443,7 @@ pub fn ty_tuple_exclusion_mask(base: &Ty, except: &Ty) -> Result<Option<Vec<bool
         TyKind::Ident(_) => return Ok(None),
 
         _ => {
-            return Err(Error::new_simple("expected excluding fields to be a tuple")
+            return Err(Error::new_simple("expected excluded fields to be a tuple")
                 .push_hint(format!("got {}", write_ty_kind(&except.kind)))
                 .with_span(except.span));
         }
@@ -453,7 +452,7 @@ pub fn ty_tuple_exclusion_mask(base: &Ty, except: &Ty) -> Result<Option<Vec<bool
         .iter()
         .map(|field| match field {
             TyTupleField::Single(Some(name), _) => Ok(name),
-            _ => Err(Error::new_simple("excluding fields must be named")),
+            _ => Err(Error::new_simple("excluded fields must be named")),
         })
         .collect::<Result<_>>()
         .with_span(except.span)?;
@@ -514,15 +513,7 @@ where
     });
 
     if found_ty.kind.is_function() && !expected.kind.is_function() {
-        let found = found_ty.kind.as_function().unwrap();
-        let func_name = if let Some(func) = found {
-            func.name_hint.as_ref()
-        } else {
-            None
-        };
-        let to_what = func_name
-            .map(|n| format!("to function {n}"))
-            .unwrap_or_else(|| "in this function call?".to_string());
+        let to_what = "in this function call?";
 
         e = e.push_hint(format!("Have you forgotten an argument {to_what}?"));
     }
