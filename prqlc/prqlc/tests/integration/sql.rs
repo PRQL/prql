@@ -4015,6 +4015,7 @@ fn test_exclude_columns_02() {
 #[test]
 #[ignore]
 fn test_exclude_columns_03() {
+    // needs to change behavior: table names don't make it into tuples 
     assert_snapshot!(compile(r#"
     from db.artists
     derive nick = name
@@ -4030,7 +4031,6 @@ fn test_exclude_columns_03() {
 }
 
 #[test]
-#[ignore]
 fn test_exclude_columns_04() {
     assert_snapshot!(compile(r#"
     prql target:sql.bigquery
@@ -4049,7 +4049,6 @@ fn test_exclude_columns_04() {
 }
 
 #[test]
-#[ignore]
 fn test_exclude_columns_05() {
     assert_snapshot!(compile(r#"
     prql target:sql.snowflake
@@ -4066,7 +4065,6 @@ fn test_exclude_columns_05() {
 }
 
 #[test]
-#[ignore]
 fn test_exclude_columns_06() {
     assert_snapshot!(compile(r#"
     prql target:sql.duckdb

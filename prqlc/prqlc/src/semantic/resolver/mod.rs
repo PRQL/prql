@@ -11,8 +11,6 @@ mod stmt;
 mod types;
 mod tuple;
 
-pub use types::ty_tuple_exclusion_mask;
-
 /// Can fold (walk) over AST and for each function call or variable find what they are referencing.
 pub struct Resolver<'a> {
     root_mod: &'a mut RootModule,

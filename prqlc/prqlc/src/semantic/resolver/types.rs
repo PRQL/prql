@@ -88,7 +88,7 @@ impl Resolver<'_> {
                 let except = self.fold_type(*except)?;
 
                 Ty {
-                    kind: ty_tuple_exclusion(base, except)?,
+                    kind: self.ty_tuple_exclusion(base, except)?,
                     ..ty
                 }
             }
@@ -167,7 +167,7 @@ impl Resolver<'_> {
                 let Some(except_ty) = self.infer_type(except)? else {
                     return Ok(None);
                 };
-                ty_tuple_exclusion(within_ty, except_ty)?
+                self.ty_tuple_exclusion(within_ty, except_ty)?
             }
 
             ExprKind::Case(cases) => {
@@ -395,76 +395,89 @@ impl Resolver<'_> {
 
         TypeReplacer::on_ty(ty, ident_mapping)
     }
-}
 
-pub fn ty_tuple_exclusion(base: Ty, except: Ty) -> Result<TyKind> {
-    let mask = ty_tuple_exclusion_mask(&base, &except)?;
+    pub fn ty_tuple_exclusion(&self, base: Ty, except: Ty) -> Result<TyKind> {
+        let mask = self.ty_tuple_exclusion_mask(&base, &except)?;
 
-    if let Some(mask) = mask {
-        let new_fields = itertools::zip_eq(base.kind.as_tuple().unwrap(), mask)
-            .filter(|(_, p)| *p)
-            .map(|(x, _)| x.clone())
-            .collect();
+        if let Some(mask) = mask {
+            let new_fields = itertools::zip_eq(base.kind.as_tuple().unwrap(), mask)
+                .filter(|(_, p)| *p)
+                .map(|(x, _)| x.clone())
+                .collect();
 
-        Ok(TyKind::Tuple(new_fields))
-    } else {
-        Ok(TyKind::Exclude {
-            base: Box::new(base),
-            except: Box::new(except),
-        })
-    }
-}
-
-/// Computes the "field mask", which is a vector of booleans indicating if a field of
-/// base tuple type should appear in the resulting type.
-///
-/// Returns `None` if:
-/// - base or exclude is a generic type argument, or
-/// - either of the types contains Unpack.
-pub fn ty_tuple_exclusion_mask(base: &Ty, except: &Ty) -> Result<Option<Vec<bool>>> {
-    let within_fields = match &base.kind {
-        TyKind::Tuple(f) => f,
-
-        // this is a generic, exclusion cannot be inlined
-        TyKind::Ident(_) => return Ok(None),
-
-        _ => {
-            return Err(
-                Error::new_simple("fields can only be excluded from a tuple")
-                    .push_hint(format!("got {}", write_ty_kind(&base.kind)))
-                    .with_span(base.span),
-            )
+            Ok(TyKind::Tuple(new_fields))
+        } else {
+            Ok(TyKind::Exclude {
+                base: Box::new(base),
+                except: Box::new(except),
+            })
         }
-    };
-    let except_fields = match &except.kind {
-        TyKind::Tuple(f) => f,
-
-        // this is a generic, exclusion cannot be inlined
-        TyKind::Ident(_) => return Ok(None),
-
-        _ => {
-            return Err(Error::new_simple("expected excluded fields to be a tuple")
-                .push_hint(format!("got {}", write_ty_kind(&except.kind)))
-                .with_span(except.span));
-        }
-    };
-    let except_fields: HashSet<&String> = except_fields
-        .iter()
-        .map(|field| match field {
-            TyTupleField::Single(Some(name), _) => Ok(name),
-            _ => Err(Error::new_simple("excluded fields must be named")),
-        })
-        .collect::<Result<_>>()
-        .with_span(except.span)?;
-
-    let mut mask = Vec::new();
-    for field in within_fields {
-        mask.push(match &field {
-            TyTupleField::Single(Some(name), _) => !except_fields.contains(&name),
-            _ => true,
-        });
     }
-    Ok(Some(mask))
+
+    /// Computes the "field mask", which is a vector of booleans indicating if a field of
+    /// base tuple type should appear in the resulting type.
+    ///
+    /// Returns `None` if:
+    /// - base or exclude is a generic type argument, or
+    /// - either of the types contains Unpack.
+    pub fn ty_tuple_exclusion_mask(&self, base: &Ty, except: &Ty) -> Result<Option<Vec<bool>>> {
+        let within_fields = match &base.kind {
+            TyKind::Tuple(f) => f,
+
+            // this is a generic, exclusion cannot be inlined
+            TyKind::Ident(_) => return Ok(None),
+
+            _ => {
+                return Err(
+                    Error::new_simple("fields can only be excluded from a tuple")
+                        .push_hint(format!("got {}", write_ty_kind(&base.kind)))
+                        .with_span(base.span),
+                )
+            }
+        };
+        if within_fields.last().map_or(false, |f| f.is_unpack()) {
+            return Ok(None);
+        }
+
+        let except_fields = match &except.kind {
+            TyKind::Tuple(f) => f,
+
+            // this is a generic, exclusion cannot be inlined
+            TyKind::Ident(_) => return Ok(None),
+
+            _ => {
+                return Err(Error::new_simple("expected excluded fields to be a tuple")
+                    .push_hint(format!("got {}", write_ty_kind(&except.kind)))
+                    .with_span(except.span));
+            }
+        };
+        if except_fields.last().map_or(false, |f| f.is_unpack()) {
+            return Ok(None);
+        }
+
+        let except_fields: HashSet<&String> = except_fields
+            .iter()
+            .map(|field| match field {
+                TyTupleField::Single(Some(name), _) => Ok(name),
+                TyTupleField::Single(None, _) => {
+                    Err(Error::new_simple("excluded fields must be named"))
+                }
+                _ => unreachable!(),
+            })
+            .collect::<Result<_>>()
+            .with_span(except.span)?;
+
+        let mut mask = Vec::new();
+        for field in within_fields {
+            mask.push(match &field {
+                TyTupleField::Single(Some(name), _) => !except_fields.contains(&name),
+                TyTupleField::Single(None, _) => true,
+
+                TyTupleField::Unpack(_) => unreachable!(),
+            });
+        }
+        Ok(Some(mask))
+    }
 }
 
 pub fn ty_tuple_kind(fields: Vec<TyTupleField>) -> TyKind {

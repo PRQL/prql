@@ -3,13 +3,13 @@ mod inline;
 mod special_functions;
 
 use std::collections::hash_map::RandomState;
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 
 use enum_as_inner::EnumAsInner;
 use itertools::Itertools;
 
 use crate::ast::generic::{InterpolateItem, Range, SwitchCase};
-use crate::ast::{TyKind, TyTupleField};
+use crate::ast::{Ty, TyKind, TyTupleField};
 use crate::ir::decl::{DeclKind, Module, RootModule};
 use crate::ir::generic::{ColumnSort, WindowFrame};
 use crate::ir::pl::{self, FuncApplication, Ident, PlFold, QueryDef};
@@ -417,9 +417,11 @@ impl Lowerer {
                     }
 
                     if ty.as_ref().map_or(false, |t| t.kind.is_tuple()) {
+                        // flatten tuples
                         let inner = ty.unwrap().kind.into_tuple().unwrap();
                         new_fields.extend(self.ty_tuple_to_relation_columns(inner, name)?);
                     } else {
+                        // base case:
                         new_fields.push(RelationColumn::Single(name));
                     }
                 }
@@ -723,9 +725,7 @@ impl Lowerer {
                 // this should never fail since it succeeded during resolution
                 let base_ty = within.ty.as_ref().unwrap();
                 let except_ty = except.ty.as_ref().unwrap();
-                let field_mask = super::resolver::ty_tuple_exclusion_mask(base_ty, except_ty)
-                    .unwrap() // result (these two surely are tuples)
-                    .unwrap(); // option (these two don't contain generic type args)
+                let field_mask = self.ty_tuple_exclusion_mask(base_ty, except_ty);
 
                 // lower within
                 let within_id = within.id.unwrap();
@@ -957,6 +957,60 @@ impl Lowerer {
             expr.id = Some(id);
         }
         expr.id.unwrap()
+    }
+
+    /// Computes the "field mask", which is a vector of booleans indicating if a field of
+    /// base tuple type should appear in the resulting type.
+    fn ty_tuple_exclusion_mask(&self, base: &Ty, except: &Ty) -> Vec<bool> {
+        let within_fields = self.get_fields_of_ty(base);
+        let except_fields = self.get_fields_of_ty(except);
+
+        let except_fields: HashSet<&String> = except_fields
+            .iter()
+            .filter_map(|field| match field {
+                TyTupleField::Single(Some(name), _) => Some(name),
+                _ => None,
+            })
+            .collect();
+
+        let mut mask = Vec::new();
+        for field in within_fields {
+            mask.push(match &field {
+                TyTupleField::Single(Some(name), _) => !except_fields.contains(&name),
+                TyTupleField::Single(None, _) => true,
+                TyTupleField::Unpack(_) => true,
+            });
+        }
+        mask
+    }
+
+    fn get_fields_of_ty<'a>(&'a self, ty: &'a Ty) -> Vec<&TyTupleField> {
+        match &ty.kind {
+            TyKind::Tuple(f) => f
+                .iter()
+                .flat_map(|f| match f {
+                    TyTupleField::Single(_, _) => vec![f],
+                    TyTupleField::Unpack(Some(unpack_ty)) => {
+                        let mut r = self.get_fields_of_ty(unpack_ty);
+                        if unpack_ty.kind.is_ident() {
+                            r.push(f); // the wildcard created from the generic
+                        }
+                        r
+                    }
+                    TyTupleField::Unpack(None) => todo!(),
+                })
+                .collect(),
+
+            TyKind::Ident(ident) => {
+                let decl = self.root_mod.module.get(ident).unwrap();
+                let DeclKind::GenericParam(Some(candidate)) = &decl.kind else {
+                    return vec![];
+                };
+
+                self.get_fields_of_ty(&candidate.0)
+            }
+            _ => unreachable!(),
+        }
     }
 }
 

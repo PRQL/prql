@@ -60,6 +60,8 @@ impl PlFold for super::Resolver<'_> {
 
                     let mut expr = Expr {
                         kind: ExprKind::Ident(ident),
+                        flatten: false,
+                        alias: None,
                         ..node
                     };
                     for indirection in indirections {
@@ -69,6 +71,7 @@ impl PlFold for super::Resolver<'_> {
                         });
                     }
                     expr.flatten = node.flatten;
+                    expr.alias = node.alias;
                     self.fold_expr(expr)?
                 } else {
                     let decl = self.get_ident(&ident, false).unwrap();
