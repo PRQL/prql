@@ -31,11 +31,14 @@ pub trait WriteSource: std::fmt::Debug {
         Some(r)
     }
 
+    /// Attempts to write the current item, expanding the maximum width where necessary.
     fn write_or_expand(&self, mut opt: WriteOpt) -> String {
         loop {
             if let Some(s) = self.write(opt.clone()) {
                 return s;
             } else {
+                // TODO: could we just set the max width rather than increasing
+                // it in a loop?
                 opt.max_width += opt.max_width / 2;
                 opt.reset_line();
             }
@@ -113,6 +116,8 @@ impl WriteOpt {
         Some(())
     }
 
+    /// Sets [WriteOpt::rem_width] to (max_width - indent_width), returning
+    /// `Some(())`, or `None` if there's not enough space.
     fn reset_line(&mut self) -> Option<()> {
         let ident = self.tab.len() as u16 * self.indent;
         self.rem_width = self.max_width.checked_sub(ident)?;
