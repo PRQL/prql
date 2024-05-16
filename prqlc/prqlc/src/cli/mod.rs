@@ -42,10 +42,6 @@ pub fn main() -> color_eyre::eyre::Result<()> {
     color_eyre::install()?;
     cli.color.write_global();
 
-    if Some(log::Level::Trace) == cli.verbose.log_level() {
-        env::set_var("RUST_BACKTRACE", "1");
-    }
-
     if let Err(error) = cli.command.run() {
         eprintln!("{error}");
         // Copied from
