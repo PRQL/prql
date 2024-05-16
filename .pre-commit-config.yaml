@@ -37,15 +37,6 @@ repos:
     hooks:
       - id: clang-format
         types_or: [c, c++]
-  - repo: https://github.com/m-span/pre-commit-rust
-    rev: v1.1.0
-    hooks:
-      - id: fmt
-  - repo: https://github.com/r0x0d/pre-commit-rust
-    rev: v1.0.1
-    hooks:
-      - id: clippy
-        stages: [manual]
   - repo: https://github.com/rhysd/actionlint
     rev: v1.7.0
     hooks:
@@ -81,6 +72,25 @@ repos:
         language: pygrep
         entry: "```prql$"
         files: 'CHANGELOG\.md$'
+  - repo: local
+    hooks:
+      - id: fmt
+        name: fmt
+        description: Format files with cargo fmt.
+        entry: rustfmt
+        language: system
+        types: [rust]
+        args: ["--"]
+  - repo: local
+    hooks:
+      - id: clippy
+        name: clippy
+        description: Lint rust sources
+        entry: cargo clippy
+        language: system
+        args: ["--", "-D", "warnings"]
+        types: [rust]
+        pass_filenames: false
 
   # This is quite strict, and doesn't fix a large enough share of the issues it
   # finds, so we don't include it. But it's reasonable to run every now & again
@@ -96,5 +106,5 @@ repos:
 
 ci:
   # Currently network access isn't supported in the CI product.
-  skip: [fmt, markdown-link-check]
+  skip: [markdown-link-check]
   autoupdate_commit_msg: "chore: pre-commit autoupdate"
