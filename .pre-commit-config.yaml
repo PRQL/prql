@@ -91,6 +91,7 @@ repos:
         args: ["--", "-D", "warnings"]
         types: [rust]
         pass_filenames: false
+        stages: [manual]
 
   # This is quite strict, and doesn't fix a large enough share of the issues it
   # finds, so we don't include it. But it's reasonable to run every now & again
