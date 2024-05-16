@@ -1,8 +1,0 @@
-- id: fmt
-  name: Check for formatting with cargo fmt
-  description: Format files with cargo fmt.
-  entry: rustfmt
-  language: rust
-  types: [rust]
-  files: \.rs$
-  args: ["--"]

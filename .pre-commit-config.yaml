@@ -37,10 +37,10 @@ repos:
     hooks:
       - id: clang-format
         types_or: [c, c++]
-  #  - repo: https://github.com/r0x0d/pre-commit-rust
-  #    rev: v1.0.1
-  #    hooks:
-  #      - id: fmt
+  - repo: https://github.com/m-span/pre-commit-rust
+    rev: v1.1.0
+    hooks:
+      - id: fmt
   - repo: https://github.com/r0x0d/pre-commit-rust
     rev: v1.0.1
     hooks:

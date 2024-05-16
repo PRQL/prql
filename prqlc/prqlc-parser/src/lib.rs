@@ -30,6 +30,14 @@ pub fn parse_source(source: &str, source_id: u16) -> Result<Vec<Stmt>, Vec<Error
             .map(|e| convert_lexer_error(source, e, source_id)),
     );
 
+    
+    
+    
+    
+    
+    
+    
+    
     // We don't want comments in the AST (but we do intend to use them as part of
     // formatting)
     let semantic_tokens: Option<_> = tokens.map(|tokens| {
