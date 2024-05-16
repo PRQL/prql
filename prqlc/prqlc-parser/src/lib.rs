@@ -30,24 +30,17 @@ pub fn parse_source(source: &str, source_id: u16) -> Result<Vec<Stmt>, Vec<Error
             .map(|e| convert_lexer_error(source, e, source_id)),
     );
 
-    
-    
-    
-    
-    
-    
-    
-    
     // We don't want comments in the AST (but we do intend to use them as part of
     // formatting)
-    let semantic_tokens: Option<_> = tokens.map(|tokens| {
-        tokens.into_iter().filter(|token| {
-            !matches!(
-                token.kind,
-                TokenKind::Comment(_) | TokenKind::LineWrap(_) | TokenKind::DocComment(_)
-            )
-        })
-    });
+    let semantic_tokens: Option<_> =
+        tokens.map(|tokens| {
+            tokens.into_iter().filter(|token| {
+                !matches!(
+                    token.kind,
+                    TokenKind::Comment(_) | TokenKind::LineWrap(_) | TokenKind::DocComment(_)
+                )
+            })
+        });
 
     let ast = if let Some(semantic_tokens) = semantic_tokens {
         let stream = prepare_stream(semantic_tokens, source, source_id);
@@ -200,13 +193,13 @@ fn construct_parser_error(e: Simple<TokenKind, ParserSpan>) -> Error {
     let is_all_whitespace = e
         .expected()
         .all(|t| matches!(t, None | Some(TokenKind::NewLine)));
-    let expected: Vec<String> = e
-        .expected()
-        // Only include whitespace if we're _only_ expecting whitespace
-        .filter(|t| is_all_whitespace || !matches!(t, None | Some(TokenKind::NewLine)))
-        .cloned()
-        .map(token_to_string)
-        .collect();
+    let expected: Vec<String> =
+        e.expected()
+            // Only include whitespace if we're _only_ expecting whitespace
+            .filter(|t| is_all_whitespace || !matches!(t, None | Some(TokenKind::NewLine)))
+            .cloned()
+            .map(token_to_string)
+            .collect();
 
     let while_parsing = e
         .label()
@@ -221,14 +214,15 @@ fn construct_parser_error(e: Simple<TokenKind, ParserSpan>) -> Error {
     let mut expected = expected;
     expected.sort();
 
-    let expected = match expected.len() {
-        1 => expected.remove(0),
-        2 => expected.join(" or "),
-        _ => {
-            let last = expected.pop().unwrap();
-            format!("one of {} or {last}", expected.join(", "))
-        }
-    };
+    let expected =
+        match expected.len() {
+            1 => expected.remove(0),
+            2 => expected.join(" or "),
+            _ => {
+                let last = expected.pop().unwrap();
+                format!("one of {} or {last}", expected.join(", "))
+            }
+        };
 
     match e.found() {
         Some(found) => Error::new(Reason::Expected {
@@ -237,9 +231,9 @@ fn construct_parser_error(e: Simple<TokenKind, ParserSpan>) -> Error {
             found: found.to_string(),
         }),
         // We want a friendlier message than "found end of input"...
-        None => Error::new(Reason::Simple(format!(
-            "Expected {expected}, but didn't find anything before the end."
-        ))),
+        None => Error::new(
+            Reason::Simple(format!("Expected {expected}, but didn't find anything before the end."))
+        ),
     }
 }
 

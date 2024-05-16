@@ -113,10 +113,11 @@ fn diff_code_after_start(old: &str, new: &str) -> String {
 fn diff_code(prqlc_ast_code: &str, pl_ast_code: &str) -> String {
     let mut diff = String::new();
 
-    for hunk in TextDiff::from_lines(prqlc_ast_code, pl_ast_code)
-        .unified_diff()
-        .context_radius(0)
-        .iter_hunks()
+    for hunk in
+        TextDiff::from_lines(prqlc_ast_code, pl_ast_code)
+            .unified_diff()
+            .context_radius(0)
+            .iter_hunks()
     {
         if hunk
             .iter_changes()

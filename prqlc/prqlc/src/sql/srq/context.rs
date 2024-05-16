@@ -128,14 +128,15 @@ impl AnchorContext {
     pub fn of(query: RelationalQuery) -> (Self, Relation) {
         let (cid, tid, query) = IdGenerator::load(query);
 
-        let context = AnchorContext {
-            cid,
-            tid,
-            riid: IdGenerator::new(),
-            col_name: NameGenerator::new("_expr_"),
-            table_name: NameGenerator::new("table_"),
-            ..Default::default()
-        };
+        let context =
+            AnchorContext {
+                cid,
+                tid,
+                riid: IdGenerator::new(),
+                col_name: NameGenerator::new("_expr_"),
+                table_name: NameGenerator::new("table_"),
+                ..Default::default()
+            };
         QueryLoader::load(context, query)
     }
 

@@ -120,9 +120,9 @@ fn replace_examples(text: &str) -> Result<String> {
                 table_of_comparison(
                     &prql,
                     result
-                        .map_err(|e| {
-                            anyhow::anyhow!("Query raised an error:\n\n {prql}\n\n{e}\n\n")
-                        })?
+                        .map_err(
+                            |e| anyhow::anyhow!("Query raised an error:\n\n {prql}\n\n{e}\n\n")
+                        )?
                         .as_str(),
                 )
                 .into(),

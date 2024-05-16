@@ -416,11 +416,12 @@ impl SourceTree {
     where
         I: IntoIterator<Item = (PathBuf, String)>,
     {
-        let mut res = SourceTree {
-            sources: HashMap::new(),
-            source_ids: HashMap::new(),
-            root,
-        };
+        let mut res =
+            SourceTree {
+                sources: HashMap::new(),
+                source_ids: HashMap::new(),
+                root,
+            };
 
         for (index, (path, content)) in iter.into_iter().enumerate() {
             res.sources.insert(path.clone(), content);

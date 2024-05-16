@@ -181,13 +181,14 @@ impl PlFold for Resolver<'_> {
                 let exprs = self.fold_exprs(exprs)?;
 
                 // flatten
-                let exprs = exprs
-                    .into_iter()
-                    .flat_map(|e| match e.kind {
-                        ExprKind::Tuple(items) if e.flatten => items,
-                        _ => vec![e],
-                    })
-                    .collect_vec();
+                let exprs =
+                    exprs
+                        .into_iter()
+                        .flat_map(|e| match e.kind {
+                            ExprKind::Tuple(items) if e.flatten => items,
+                            _ => vec![e],
+                        })
+                        .collect_vec();
 
                 Expr {
                     kind: ExprKind::Tuple(exprs),

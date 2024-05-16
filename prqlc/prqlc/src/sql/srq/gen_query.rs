@@ -44,10 +44,11 @@ pub(in super::super) fn compile_query(
     // attach CTEs
     let ctes = ctx.ctes.drain(..).collect_vec();
 
-    let query = SqlQuery {
-        main_relation,
-        ctes,
-    };
+    let query =
+        SqlQuery {
+            main_relation,
+            ctes,
+        };
 
     let query = postprocess::postprocess(query, &mut ctx);
 

@@ -10,12 +10,13 @@ use tokio_util::compat::{Compat, TokioAsyncWriteCompatExt};
 use super::DbProtocolHandler;
 use crate::dbs::Row;
 
-static RUNTIME: Lazy<runtime::Runtime> = Lazy::new(|| {
-    runtime::Builder::new_current_thread()
-        .enable_all()
-        .build()
-        .unwrap()
-});
+static RUNTIME: Lazy<runtime::Runtime> =
+    Lazy::new(|| {
+        runtime::Builder::new_current_thread()
+            .enable_all()
+            .build()
+            .unwrap()
+    });
 
 pub fn init() -> Box<dyn DbProtocolHandler> {
     let mut config = Config::new();

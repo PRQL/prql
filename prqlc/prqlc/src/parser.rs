@@ -66,9 +66,7 @@ fn linearize_tree(tree: &SourceTree) -> Result<Vec<SourceFile>> {
             // TODO: should we allow non `.prql` files? We could require `.prql`
             // for modules but then allow any file if a single file is passed
             // (python allows this, for example)
-            return Err(Error::new_simple(
-                "No `.prql` files found in the source tree",
-            ));
+            return Err(Error::new_simple("No `.prql` files found in the source tree"));
         }
 
         let file_names = tree
@@ -78,9 +76,9 @@ fn linearize_tree(tree: &SourceTree) -> Result<Vec<SourceFile>> {
             .sorted()
             .join("\n");
 
-        return Err(Error::new_simple(format!(
-            "Cannot find the root module within the following files:\n{file_names}"
-        ))
+        return Err(Error::new_simple(
+            format!("Cannot find the root module within the following files:\n{file_names}")
+        )
         .push_hint("add a file that starts with uppercase letter to the root directory")
         .with_code("E0002"));
     }

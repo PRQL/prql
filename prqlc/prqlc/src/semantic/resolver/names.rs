@@ -138,9 +138,7 @@ impl Resolver<'_> {
             Ok(inferred_ident) => Ok(inferred_ident),
 
             // Was not able to infer.
-            Err(None) => Err(Error::new_simple(
-                format!("Unknown name `{}`", &ident).to_string(),
-            )),
+            Err(None) => Err(Error::new_simple(format!("Unknown name `{}`", &ident).to_string())),
             Err(Some(msg)) => Err(msg),
         }
     }

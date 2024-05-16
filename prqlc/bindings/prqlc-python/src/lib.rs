@@ -7,9 +7,7 @@ use pyo3::{exceptions, prelude::*};
 #[pyfunction]
 pub fn compile(prql_query: &str, options: Option<CompileOptions>) -> PyResult<String> {
     let Ok(options) = options.map(convert_options).transpose() else {
-        return Err(PyErr::new::<exceptions::PyValueError, _>(
-            "Invalid options".to_string(),
-        ));
+        return Err(PyErr::new::<exceptions::PyValueError, _>("Invalid options".to_string()));
     };
 
     Ok(prql_query)

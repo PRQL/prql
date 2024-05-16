@@ -22,15 +22,16 @@ pub(super) fn extract_atomic(
 
     let (preceding, atomic) = split_off_back(pipeline, output.clone(), ctx);
 
-    let atomic = if let Some(preceding) = preceding {
-        log::debug!(
-            "pipeline split after {}",
-            preceding.last().unwrap().as_str()
-        );
-        anchor_split(ctx, preceding, atomic)
-    } else {
-        atomic
-    };
+    let atomic =
+        if let Some(preceding) = preceding {
+            log::debug!(
+                "pipeline split after {}",
+                preceding.last().unwrap().as_str()
+            );
+            anchor_split(ctx, preceding, atomic)
+        } else {
+            atomic
+        };
 
     // sometimes, additional columns will be added into select, because they are needed for
     // other clauses. To filter them out, we use an additional limiting SELECT.
@@ -266,22 +267,23 @@ pub(super) fn anchor_split(
         SqlTableDecl {
             id: new_tid,
             name: None,
-            relation: RelationStatus::NotYetDefined(RelationAdapter::Preprocessed(
-                preceding, columns,
-            )),
+            relation: RelationStatus::NotYetDefined(
+                RelationAdapter::Preprocessed(preceding, columns)
+            ),
             redirect_to: None,
         },
     );
 
     // define instance of that table
-    let riid = ctx.create_relation_instance(
-        TableRef {
-            source: new_tid,
-            name: None,
-            columns: new_columns,
-        },
-        cid_redirects,
-    );
+    let riid =
+        ctx.create_relation_instance(
+            TableRef {
+                source: new_tid,
+                name: None,
+                columns: new_columns,
+            },
+            cid_redirects,
+        );
 
     // adjust second part: prepend from and rewrite expressions to use new columns
     let mut second = atomic;
@@ -344,19 +346,21 @@ fn is_split_required(transform: &SqlTransform, following: &mut HashSet<String>) 
             following,
             ["From", "Join", "Compute", "Filter", "Aggregate", "Sort"],
         ),
-        SqlTransform::DistinctOn(_) => contains_any(
-            following,
-            [
-                "From",
-                "Join",
-                "Compute",
-                "Filter",
-                "Aggregate",
-                "Sort",
-                "Take",
-                "DistinctOn",
-            ],
-        ),
+        SqlTransform::DistinctOn(_) => {
+            contains_any(
+                following,
+                [
+                    "From",
+                    "Join",
+                    "Compute",
+                    "Filter",
+                    "Aggregate",
+                    "Sort",
+                    "Take",
+                    "DistinctOn",
+                ],
+            )
+        }
         SqlTransform::Distinct => contains_any(
             following,
             [
@@ -371,19 +375,21 @@ fn is_split_required(transform: &SqlTransform, following: &mut HashSet<String>) 
         ),
         SqlTransform::Union { .. }
         | SqlTransform::Except { .. }
-        | SqlTransform::Intersect { .. } => contains_any(
-            following,
-            [
-                "From",
-                "Join",
-                "Compute",
-                "Filter",
-                "Aggregate",
-                "Sort",
-                "Take",
-                "Distinct",
-            ],
-        ),
+        | SqlTransform::Intersect { .. } => {
+            contains_any(
+                following,
+                [
+                    "From",
+                    "Join",
+                    "Compute",
+                    "Filter",
+                    "Aggregate",
+                    "Sort",
+                    "Take",
+                    "Distinct",
+                ],
+            )
+        }
         Super(Loop(_)) => !following.is_empty(),
         _ => false,
     };
@@ -504,14 +510,16 @@ pub(super) fn get_requirements(
 
     // general case: determine complexity
     let (max_complexity, selected) = match transform {
-        Super(Filter(_)) => (
-            if !following.contains("Aggregate") {
-                Complexity::Aggregation
-            } else {
-                Complexity::Plain
-            },
-            false,
-        ),
+        Super(Filter(_)) => {
+            (
+                if !following.contains("Aggregate") {
+                    Complexity::Aggregation
+                } else {
+                    Complexity::Plain
+                },
+                false,
+            )
+        }
         // we only use SELECTed columns in ORDER BY, so the columns can have high complexity
         Super(Sort(_)) => (Complexity::Aggregation, true),
 

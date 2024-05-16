@@ -142,10 +142,7 @@ fn desugar_pipeline(mut pipeline: ast::Pipeline) -> Result<pl::Expr> {
         let expr = expand_expr(expr)?;
         let span = expr.span;
 
-        value = pl::Expr::new(pl::ExprKind::FuncCall(pl::FuncCall::new_simple(
-            expr,
-            vec![value],
-        )));
+        value = pl::Expr::new(pl::ExprKind::FuncCall(pl::FuncCall::new_simple(expr, vec![value])));
         value.span = span;
     }
 
@@ -164,9 +161,9 @@ fn expand_unary(ast::UnaryExpr { op, expr }: ast::UnaryExpr) -> Result<pl::ExprK
         Add => return Ok(expr.kind),
         EqSelf => {
             let pl::ExprKind::Ident(ident) = expr.kind else {
-                return Err(Error::new_simple(
-                    "you can only use column names with self-equality operator",
-                ));
+                return Err(
+                    Error::new_simple("you can only use column names with self-equality operator")
+                );
             };
             if !ident.path.is_empty() {
                 return Err(Error::new_simple(
@@ -318,15 +315,17 @@ fn restrict_expr_kind(value: pl::ExprKind) -> ast::ExprKind {
         pl::ExprKind::Literal(v) => ast::ExprKind::Literal(v),
         pl::ExprKind::Tuple(v) => ast::ExprKind::Tuple(restrict_exprs(v)),
         pl::ExprKind::Array(v) => ast::ExprKind::Array(restrict_exprs(v)),
-        pl::ExprKind::FuncCall(v) => ast::ExprKind::FuncCall(ast::FuncCall {
-            name: restrict_expr_box(v.name),
-            args: restrict_exprs(v.args),
-            named_args: v
-                .named_args
-                .into_iter()
-                .map(|(k, v)| (k, restrict_expr(v)))
-                .collect(),
-        }),
+        pl::ExprKind::FuncCall(v) => {
+            ast::ExprKind::FuncCall(ast::FuncCall {
+                name: restrict_expr_box(v.name),
+                args: restrict_exprs(v.args),
+                named_args: v
+                    .named_args
+                    .into_iter()
+                    .map(|(k, v)| (k, restrict_expr(v)))
+                    .collect(),
+            })
+        }
         pl::ExprKind::Func(v) => {
             let func = ast::ExprKind::Func(
                 ast::Func {
@@ -477,57 +476,60 @@ pub fn restrict_module(value: decl::Module) -> ast::ModuleDef {
 }
 
 fn restrict_decl(name: String, value: decl::Decl) -> Option<ast::Stmt> {
-    let kind = match value.kind {
-        decl::DeclKind::Module(module) => ast::StmtKind::ModuleDef(ast::ModuleDef {
-            name,
-            stmts: restrict_module(module).stmts,
-        }),
-        decl::DeclKind::LayeredModules(mut stack) => {
-            let module = stack.pop()?;
-
-            ast::StmtKind::ModuleDef(ast::ModuleDef {
+    let kind =
+        match value.kind {
+            decl::DeclKind::Module(module) => ast::StmtKind::ModuleDef(ast::ModuleDef {
                 name,
                 stmts: restrict_module(module).stmts,
-            })
-        }
-        decl::DeclKind::TableDecl(table_decl) => ast::StmtKind::VarDef(ast::VarDef {
-            kind: ast::VarDefKind::Let,
-            name: name.clone(),
-            value: Some(Box::new(match table_decl.expr {
-                decl::TableExpr::RelationVar(expr) => restrict_expr(*expr),
-                decl::TableExpr::LocalTable => {
-                    ast::Expr::new(ast::ExprKind::Internal("local_table".into()))
-                }
-                decl::TableExpr::None => {
-                    ast::Expr::new(ast::ExprKind::Internal("literal_tracker".to_string()))
-                }
-                decl::TableExpr::Param(id) => ast::Expr::new(ast::ExprKind::Param(id)),
-            })),
-            ty: table_decl.ty,
-        }),
+            }),
+            decl::DeclKind::LayeredModules(mut stack) => {
+                let module = stack.pop()?;
 
-        decl::DeclKind::InstanceOf(ident, _) => {
-            new_internal_stmt(name, format!("instance_of.{ident}"))
-        }
-        decl::DeclKind::Column(id) => new_internal_stmt(name, format!("column.{id}")),
-        decl::DeclKind::Infer(_) => new_internal_stmt(name, "infer".to_string()),
+                ast::StmtKind::ModuleDef(ast::ModuleDef {
+                    name,
+                    stmts: restrict_module(module).stmts,
+                })
+            }
+            decl::DeclKind::TableDecl(table_decl) => ast::StmtKind::VarDef(ast::VarDef {
+                kind: ast::VarDefKind::Let,
+                name: name.clone(),
+                value: Some(Box::new(match table_decl.expr {
+                    decl::TableExpr::RelationVar(expr) => restrict_expr(*expr),
+                    decl::TableExpr::LocalTable => {
+                        ast::Expr::new(ast::ExprKind::Internal("local_table".into()))
+                    }
+                    decl::TableExpr::None => {
+                        ast::Expr::new(ast::ExprKind::Internal("literal_tracker".to_string()))
+                    }
+                    decl::TableExpr::Param(id) => ast::Expr::new(ast::ExprKind::Param(id)),
+                })),
+                ty: table_decl.ty,
+            }),
 
-        decl::DeclKind::Expr(mut expr) => ast::StmtKind::VarDef(ast::VarDef {
-            kind: ast::VarDefKind::Let,
-            name,
-            ty: expr.ty.take(),
-            value: Some(restrict_expr_box(expr)),
-        }),
-        decl::DeclKind::Ty(ty) => ast::StmtKind::TypeDef(ast::TypeDef {
-            name,
-            value: Some(ty),
-        }),
-        decl::DeclKind::QueryDef(query_def) => ast::StmtKind::QueryDef(Box::new(query_def)),
-        decl::DeclKind::Import(ident) => ast::StmtKind::ImportDef(ast::ImportDef {
-            alias: Some(name),
-            name: ident,
-        }),
-    };
+            decl::DeclKind::InstanceOf(ident, _) => {
+                new_internal_stmt(name, format!("instance_of.{ident}"))
+            }
+            decl::DeclKind::Column(id) => new_internal_stmt(name, format!("column.{id}")),
+            decl::DeclKind::Infer(_) => new_internal_stmt(name, "infer".to_string()),
+
+            decl::DeclKind::Expr(mut expr) => ast::StmtKind::VarDef(ast::VarDef {
+                kind: ast::VarDefKind::Let,
+                name,
+                ty: expr.ty.take(),
+                value: Some(restrict_expr_box(expr)),
+            }),
+            decl::DeclKind::Ty(ty) => ast::StmtKind::TypeDef(ast::TypeDef {
+                name,
+                value: Some(ty),
+            }),
+            decl::DeclKind::QueryDef(query_def) => ast::StmtKind::QueryDef(Box::new(query_def)),
+            decl::DeclKind::Import(ident) => {
+                ast::StmtKind::ImportDef(ast::ImportDef {
+                    alias: Some(name),
+                    name: ident,
+                })
+            }
+        };
     Some(ast::Stmt::new(kind))
 }
 

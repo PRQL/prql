@@ -160,9 +160,7 @@ pub(super) fn translate_select_items(
     if res.is_empty() {
         // in some cases, no columns will appear in the projection
         // for SQL to parse correctly, we inject a `NULL`.
-        res.push(SelectItem::UnnamedExpr(sql_ast::Expr::Value(
-            sql_ast::Value::Null,
-        )));
+        res.push(SelectItem::UnnamedExpr(sql_ast::Expr::Value(sql_ast::Value::Null)));
     }
     Ok(res)
 }

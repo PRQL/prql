@@ -100,10 +100,7 @@ fn lookup(base: Option<&Expr>, name: &str) -> Result<Expr> {
     if name == "std" {
         return Ok(std_module());
     }
-    Err(Error::new_simple(format!(
-        "cannot find `{}` in {:?}",
-        name, base
-    )))
+    Err(Error::new_simple(format!("cannot find `{}` in {:?}", name, base)))
 }
 
 impl Evaluator {
@@ -275,9 +272,8 @@ impl Evaluator {
             }
 
             _ => {
-                return Err(
-                    Error::new_simple(format!("unknown function {func_name}")).with_span(span)
-                )
+                return Err(Error::new_simple(format!("unknown function {func_name}"))
+                    .with_span(span))
             }
         })
     }
@@ -402,14 +398,15 @@ fn std_module() -> Expr {
 }
 
 fn new_func(name: &str, params: &[&str]) -> Expr {
-    let params = params
-        .iter()
-        .map(|name| FuncParam {
-            name: name.to_string(),
-            default_value: None,
-            ty: None,
-        })
-        .collect();
+    let params =
+        params
+            .iter()
+            .map(|name| FuncParam {
+                name: name.to_string(),
+                default_value: None,
+                ty: None,
+            })
+            .collect();
 
     let kind = ExprKind::Func(Box::new(Func {
         name_hint: Some(Ident {

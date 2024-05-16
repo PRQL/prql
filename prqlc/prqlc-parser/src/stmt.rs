@@ -115,29 +115,31 @@ fn query_def() -> impl Parser<TokenKind, Stmt, Error = PError> {
 }
 
 fn var_def() -> impl Parser<TokenKind, StmtKind, Error = PError> {
-    let let_ = keyword("let")
-        .ignore_then(ident_part())
-        .then(type_expr().delimited_by(ctrl('<'), ctrl('>')).or_not())
-        .then(ctrl('=').ignore_then(expr_call()).map(Box::new).or_not())
-        .map(|((name, ty), value)| {
-            StmtKind::VarDef(VarDef {
-                name,
-                value,
-                ty,
-                kind: VarDefKind::Let,
+    let let_ =
+        keyword("let")
+            .ignore_then(ident_part())
+            .then(type_expr().delimited_by(ctrl('<'), ctrl('>')).or_not())
+            .then(ctrl('=').ignore_then(expr_call()).map(Box::new).or_not())
+            .map(|((name, ty), value)| {
+                StmtKind::VarDef(VarDef {
+                    name,
+                    value,
+                    ty,
+                    kind: VarDefKind::Let,
+                })
             })
-        })
-        .labelled("variable definition");
+            .labelled("variable definition");
 
     let main_or_into = pipeline(expr_call())
         .map(Box::new)
         .then(keyword("into").ignore_then(ident_part()).or_not())
         .map(|(value, name)| {
-            let kind = if name.is_none() {
-                VarDefKind::Main
-            } else {
-                VarDefKind::Into
-            };
+            let kind =
+                if name.is_none() {
+                    VarDefKind::Main
+                } else {
+                    VarDefKind::Into
+                };
             let name = name.unwrap_or_else(|| "main".to_string());
 
             StmtKind::VarDef(VarDef {

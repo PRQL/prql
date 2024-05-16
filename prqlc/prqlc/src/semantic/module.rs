@@ -78,9 +78,7 @@ impl Module {
             if let DeclKind::Module(inner) = &mut entry.kind {
                 inner.insert(remaining.unwrap(), decl)
             } else {
-                Err(Error::new_simple(
-                    "path does not resolve to a module or a table",
-                ))
+                Err(Error::new_simple("path does not resolve to a module or a table"))
             }
         }
     }
@@ -167,10 +165,7 @@ impl Module {
             } else if let Some(decl) = module.names.get(&prefix) {
                 if let DeclKind::Module(inner) = &decl.kind {
                     if inner.names.contains_key(NS_SELF) {
-                        return HashSet::from([Ident::from_path(vec![
-                            prefix,
-                            NS_SELF.to_string(),
-                        ])]);
+                        return HashSet::from([Ident::from_path(vec![prefix, NS_SELF.to_string()])]);
                     }
                 }
 
@@ -229,9 +224,7 @@ impl Module {
                             .flat_map(|x| x.into_single())
                             .find(|(name, _)| name.as_ref() == Some(input_name))
                             .and_then(|(_, ty)| ty)
-                            .or(Some(Ty::new(TyKind::Tuple(vec![TyTupleField::Wildcard(
-                                None,
-                            )]))));
+                            .or(Some(Ty::new(TyKind::Tuple(vec![TyTupleField::Wildcard(None)]))));
 
                         let self_decl = Decl {
                             declared_at: Some(input.id),
@@ -434,17 +427,16 @@ impl RootModule {
     ) -> Result<()> {
         let existing = self.module.get(&ident);
         if existing.is_some() {
-            return Err(Error::new_simple(format!(
-                "duplicate declarations of {ident}"
-            )));
+            return Err(Error::new_simple(format!("duplicate declarations of {ident}")));
         }
 
-        let decl = Decl {
-            kind: decl,
-            declared_at: id,
-            order: 0,
-            annotations,
-        };
+        let decl =
+            Decl {
+                kind: decl,
+                declared_at: id,
+                order: 0,
+                annotations,
+            };
         self.module.insert(ident, decl).unwrap();
         Ok(())
     }
@@ -495,10 +487,7 @@ impl RootModule {
             }
         }
 
-        Err(Some(format!(
-            "Expected a declaration at {}",
-            tried_idents.join(" or ")
-        )))
+        Err(Some(format!("Expected a declaration at {}", tried_idents.join(" or "))))
     }
 
     pub fn find_query_def(&self, main: &Ident) -> Option<&QueryDef> {

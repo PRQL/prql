@@ -179,16 +179,16 @@ impl Resolver<'_> {
             self.root_mod.module.insert(ident, decl).unwrap();
         }
 
-        func.params = func
-            .params
-            .into_iter()
-            .map(|p| -> Result<_> {
-                Ok(FuncParam {
-                    ty: fold_type_opt(self, p.ty)?,
-                    ..p
+        func.params =
+            func.params
+                .into_iter()
+                .map(|p| -> Result<_> {
+                    Ok(FuncParam {
+                        ty: fold_type_opt(self, p.ty)?,
+                        ..p
+                    })
                 })
-            })
-            .try_collect()?;
+                .try_collect()?;
         func.return_ty = fold_type_opt(self, func.return_ty)?;
 
         self.root_mod.module.names.remove(NS_GENERIC);
@@ -231,10 +231,11 @@ impl Resolver<'_> {
         &mut self,
         #[allow(clippy::boxed_local)] to_resolve: Box<Func>,
     ) -> Result<Result<Box<Func>, Box<Func>>> {
-        let mut closure = Box::new(Func {
-            args: vec![Expr::new(Literal::Null); to_resolve.args.len()],
-            ..*to_resolve
-        });
+        let mut closure =
+            Box::new(Func {
+                args: vec![Expr::new(Literal::Null); to_resolve.args.len()],
+                ..*to_resolve
+            });
         let mut partial_application_position = None;
 
         let func_name = &closure.name_hint;
@@ -432,10 +433,8 @@ fn extract_partial_application(mut func: Box<Func>, position: usize) -> Box<Func
     let arg_func = arg.kind.as_func_mut().unwrap();
 
     let param_name = format!("_partial_{}", arg.id.unwrap());
-    let substitute_arg = Expr::new(Ident::from_path(vec![
-        NS_PARAM.to_string(),
-        param_name.clone(),
-    ]));
+    let substitute_arg =
+        Expr::new(Ident::from_path(vec![NS_PARAM.to_string(), param_name.clone()]));
     arg_func.args.push(substitute_arg);
 
     // set the arg func body to the parent func

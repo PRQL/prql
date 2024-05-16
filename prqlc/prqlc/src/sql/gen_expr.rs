@@ -220,13 +220,14 @@ fn process_concat(expr: &Expr, ctx: &mut Context) -> Result<sql_ast::Expr> {
     if ctx.dialect.has_concat_function() {
         let concat_args = collect_concat_args(expr);
 
-        let args_list = concat_args
-            .iter()
-            .map(|a| {
-                translate_expr((*a).clone(), ctx)
-                    .map(|x| FunctionArg::Unnamed(FunctionArgExpr::Expr(x.into_ast())))
-            })
-            .try_collect()?;
+        let args_list =
+            concat_args
+                .iter()
+                .map(|a| {
+                    translate_expr((*a).clone(), ctx)
+                        .map(|x| FunctionArg::Unnamed(FunctionArgExpr::Expr(x.into_ast())))
+                })
+                .try_collect()?;
 
         let args = sql_ast::FunctionArguments::List(FunctionArgumentList {
             args: args_list,
@@ -392,9 +393,7 @@ pub(super) fn translate_literal(l: Literal, ctx: &Context) -> Result<sql_ast::Ex
                 }
             };
             let value = if ctx.dialect.requires_quotes_intervals() {
-                Box::new(sql_ast::Expr::Value(Value::SingleQuotedString(
-                    vau.n.to_string(),
-                )))
+                Box::new(sql_ast::Expr::Value(Value::SingleQuotedString(vau.n.to_string())))
             } else {
                 Box::new(translate_literal(Literal::Integer(vau.n), ctx)?)
             };
@@ -435,26 +434,28 @@ fn translate_datetime_literal_with_sqlite_function(
     // TODO: promote parsing timezone handling to the parser; we should be storing
     // structured data rather than strings in the AST
     let timezone_indicator_regex = Regex::new(r"([+-]\d{2}):?(\d{2})$").unwrap();
-    let time_value = if let Some(groups) = timezone_indicator_regex.captures(value.as_str()) {
-        // formalize the timezone indicator to be [+-]HH:MM
-        // ref: https://www.sqlite.org/lang_datefunc.html
-        timezone_indicator_regex
-            .replace(&value, format!("{}:{}", &groups[1], &groups[2]).as_str())
-            .to_string()
-    } else {
-        value
-    };
+    let time_value =
+        if let Some(groups) = timezone_indicator_regex.captures(value.as_str()) {
+            // formalize the timezone indicator to be [+-]HH:MM
+            // ref: https://www.sqlite.org/lang_datefunc.html
+            timezone_indicator_regex
+                .replace(&value, format!("{}:{}", &groups[1], &groups[2]).as_str())
+                .to_string()
+        } else {
+            value
+        };
 
-    let arg = FunctionArg::Unnamed(FunctionArgExpr::Expr(sql_ast::Expr::Value(
-        Value::SingleQuotedString(time_value),
-    )));
+    let arg = FunctionArg::Unnamed(
+        FunctionArgExpr::Expr(sql_ast::Expr::Value(Value::SingleQuotedString(time_value)))
+    );
 
-    let func_name = match data_type {
-        sql_ast::DataType::Date => data_type.to_string(),
-        sql_ast::DataType::Time(..) => data_type.to_string(),
-        sql_ast::DataType::Timestamp(..) => "DATETIME".to_string(),
-        _ => unreachable!(),
-    };
+    let func_name =
+        match data_type {
+            sql_ast::DataType::Date => data_type.to_string(),
+            sql_ast::DataType::Time(..) => data_type.to_string(),
+            sql_ast::DataType::Timestamp(..) => "DATETIME".to_string(),
+            _ => unreachable!(),
+        };
 
     let args = sql_ast::FunctionArguments::List(FunctionArgumentList {
         args: vec![arg],
@@ -516,16 +517,17 @@ pub(super) fn translate_cid(cid: CId, ctx: &mut Context) -> Result<ExprOrSource>
             None
         };
 
-        let column = match &column_decl {
-            ColumnDecl::RelationColumn(_, _, RelationColumn::Wildcard) => {
-                translate_star(ctx, None)?
-            }
+        let column =
+            match &column_decl {
+                ColumnDecl::RelationColumn(_, _, RelationColumn::Wildcard) => {
+                    translate_star(ctx, None)?
+                }
 
-            _ => {
-                let name = ctx.anchor.column_names.get(&cid).cloned();
-                name.expect("name of this column has not been to be set before generating SQL")
-            }
-        };
+                _ => {
+                    let name = ctx.anchor.column_names.get(&cid).cloned();
+                    name.expect("name of this column has not been to be set before generating SQL")
+                }
+            };
 
         let ident = translate_ident(table_name.map(Ident::from_name), Some(column), ctx);
 
@@ -606,10 +608,7 @@ fn try_range_into_int(range: Range<Expr>) -> Result<Range<i64>> {
 }
 
 pub(super) fn expr_of_i64(number: i64) -> sql_ast::Expr {
-    sql_ast::Expr::Value(Value::Number(
-        number.to_string(),
-        number.leading_zeros() < 32,
-    ))
+    sql_ast::Expr::Value(Value::Number(number.to_string(), number.leading_zeros() < 32))
 }
 
 pub(super) fn fetch_of_i64(take: i64, ctx: &mut Context) -> Fetch {
@@ -710,12 +709,12 @@ fn try_into_window_frame(frame: WindowFrame<Expr>) -> Result<sql_ast::WindowFram
         let as_int = unpack_as_int_literal(bound)?;
         Ok(match as_int {
             0 => WindowFrameBound::CurrentRow,
-            1.. => WindowFrameBound::Following(Some(Box::new(sql_ast::Expr::Value(
-                sql_ast::Value::Number(as_int.to_string(), false),
-            )))),
-            _ => WindowFrameBound::Preceding(Some(Box::new(sql_ast::Expr::Value(
-                sql_ast::Value::Number((-as_int).to_string(), false),
-            )))),
+            1.. => WindowFrameBound::Following(Some(
+                Box::new(sql_ast::Expr::Value(sql_ast::Value::Number(as_int.to_string(), false)))
+            )),
+            _ => WindowFrameBound::Preceding(Some(Box::new(
+                sql_ast::Expr::Value(sql_ast::Value::Number((-as_int).to_string(), false))
+            ))),
         })
     }
 
@@ -1021,14 +1020,16 @@ mod test {
     #[test]
     fn test_range_of_ranges() -> Result<()> {
         fn from_ints(start: Option<i64>, end: Option<i64>) -> Range<Expr> {
-            let start = start.map(|x| Expr {
-                kind: ExprKind::Literal(Literal::Integer(x)),
-                span: None,
-            });
-            let end = end.map(|x| Expr {
-                kind: ExprKind::Literal(Literal::Integer(x)),
-                span: None,
-            });
+            let start =
+                start.map(|x| Expr {
+                    kind: ExprKind::Literal(Literal::Integer(x)),
+                    span: None,
+                });
+            let end =
+                end.map(|x| Expr {
+                    kind: ExprKind::Literal(Literal::Integer(x)),
+                    span: None,
+                });
             Range { start, end }
         }
 

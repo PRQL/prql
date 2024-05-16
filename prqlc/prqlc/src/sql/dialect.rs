@@ -191,9 +191,7 @@ pub(super) trait DialectHandler: Any + Debug {
     }
 
     fn translate_chrono_item(&self, _item: Item) -> Result<String> {
-        Err(Error::new_simple(
-            "Date formatting is not yet supported for this dialect",
-        ))
+        Err(Error::new_simple("Date formatting is not yet supported for this dialect"))
     }
 }
 
@@ -253,11 +251,7 @@ impl DialectHandler for PostgresDialect {
                 }
             }
             Item::Space(spaces) => spaces.to_string(),
-            _ => {
-                return Err(Error::new_simple(
-                    "PRQL doesn't support this format specifier",
-                ))
-            }
+            _ => return Err(Error::new_simple("PRQL doesn't support this format specifier")),
         })
     }
 }
@@ -337,11 +331,7 @@ impl DialectHandler for MsSqlDialect {
                 }
             }
             Item::Space(spaces) => spaces.to_string(),
-            _ => {
-                return Err(Error::new_simple(
-                    "PRQL doesn't support this format specifier",
-                ))
-            }
+            _ => return Err(Error::new_simple("PRQL doesn't support this format specifier")),
         })
     }
 }
@@ -379,11 +369,7 @@ impl DialectHandler for MySqlDialect {
             Item::Fixed(Fixed::RFC3339) => "%Y-%m-%dT%H:%i:%S.%fZ".to_string(),
             Item::Literal(literal) => literal.replace('\'', "''").replace('%', "%%"),
             Item::Space(spaces) => spaces.to_string(),
-            _ => {
-                return Err(Error::new_simple(
-                    "PRQL doesn't support this format specifier",
-                ))
-            }
+            _ => return Err(Error::new_simple("PRQL doesn't support this format specifier")),
         })
     }
 }
@@ -430,11 +416,7 @@ impl DialectHandler for ClickHouseDialect {
                 }
             }
             Item::Space(spaces) => spaces.to_string(),
-            _ => {
-                return Err(Error::new_simple(
-                    "PRQL doesn't support this format specifier",
-                ))
-            }
+            _ => return Err(Error::new_simple("PRQL doesn't support this format specifier")),
         })
     }
 }
@@ -504,11 +486,7 @@ impl DialectHandler for DuckDbDialect {
             Item::Fixed(Fixed::RFC3339) => "%Y-%m-%dT%H:%M:%S.%fZ".to_string(),
             Item::Literal(literal) => literal.replace('\'', "''").replace('%', "%%"),
             Item::Space(spaces) => spaces.to_string(),
-            _ => {
-                return Err(Error::new_simple(
-                    "PRQL doesn't support this format specifier",
-                ))
-            }
+            _ => return Err(Error::new_simple("PRQL doesn't support this format specifier")),
         })
     }
 }

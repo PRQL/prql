@@ -87,9 +87,7 @@ impl super::Resolver<'_> {
             };
 
             if def.name == "main" {
-                def.ty = Some(Ty::new(TyKind::Ident(Ident::from_path(vec![
-                    "std", "relation",
-                ]))));
+                def.ty = Some(Ty::new(TyKind::Ident(Ident::from_path(vec!["std", "relation"]))));
             }
 
             if let Some(ExprKind::Func(closure)) = def.value.as_mut().map(|x| &mut x.kind) {
@@ -100,36 +98,37 @@ impl super::Resolver<'_> {
 
             let expected_ty = fold_type_opt(self, def.ty)?;
 
-            let decl = match def.value {
-                Some(mut def_value) => {
-                    // var value is provided
+            let decl =
+                match def.value {
+                    Some(mut def_value) => {
+                        // var value is provided
 
-                    // validate type
-                    if expected_ty.is_some() {
-                        let who = || Some(def.name.clone());
-                        self.validate_expr_type(&mut def_value, expected_ty.as_ref(), &who)?;
+                        // validate type
+                        if expected_ty.is_some() {
+                            let who = || Some(def.name.clone());
+                            self.validate_expr_type(&mut def_value, expected_ty.as_ref(), &who)?;
+                        }
+
+                        prepare_expr_decl(def_value)
                     }
+                    None => {
+                        // var value is not provided
 
-                    prepare_expr_decl(def_value)
-                }
-                None => {
-                    // var value is not provided
-
-                    // is this a relation?
-                    if expected_ty.as_ref().map_or(false, |t| t.is_relation()) {
-                        // treat this var as a TableDecl
-                        DeclKind::TableDecl(TableDecl {
-                            ty: expected_ty,
-                            expr: TableExpr::LocalTable,
-                        })
-                    } else {
-                        // treat this var as a param
-                        let mut expr = Box::new(Expr::new(ExprKind::Param(def.name)));
-                        expr.ty = expected_ty;
-                        DeclKind::Expr(expr)
+                        // is this a relation?
+                        if expected_ty.as_ref().map_or(false, |t| t.is_relation()) {
+                            // treat this var as a TableDecl
+                            DeclKind::TableDecl(TableDecl {
+                                ty: expected_ty,
+                                expr: TableExpr::LocalTable,
+                            })
+                        } else {
+                            // treat this var as a param
+                            let mut expr = Box::new(Expr::new(ExprKind::Param(def.name)));
+                            expr.ty = expected_ty;
+                            DeclKind::Expr(expr)
+                        }
                     }
-                }
-            };
+                };
             self.root_mod
                 .declare(ident, decl, stmt.id, stmt.annotations)
                 .with_span(stmt.span)?;

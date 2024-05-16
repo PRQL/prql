@@ -493,9 +493,7 @@ mod test {
     #[test]
     fn test_pipeline() {
         let short = Expr::new(ExprKind::Ident("short".to_string()));
-        let long = Expr::new(ExprKind::Ident(
-            "some_really_long_and_really_long_name".to_string(),
-        ));
+        let long = Expr::new(ExprKind::Ident("some_really_long_and_really_long_name".to_string()));
 
         let mut opt = WriteOpt {
             indent: 1,

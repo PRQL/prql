@@ -26,17 +26,18 @@ pub fn compile(query: RelationalQuery, options: &Options) -> Result<String> {
     let sql = sql_ast.to_string();
 
     // formatting
-    let sql = if options.format {
-        let formatted = sqlformat::format(
-            &sql,
-            &sqlformat::QueryParams::default(),
-            sqlformat::FormatOptions::default(),
-        );
+    let sql =
+        if options.format {
+            let formatted = sqlformat::format(
+                &sql,
+                &sqlformat::QueryParams::default(),
+                sqlformat::FormatOptions::default(),
+            );
 
-        formatted + "\n"
-    } else {
-        sql
-    };
+            formatted + "\n"
+        } else {
+            sql
+        };
 
     // signature
     let sql = if options.signature_comment {

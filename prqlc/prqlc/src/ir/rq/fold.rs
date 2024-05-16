@@ -180,11 +180,13 @@ pub fn fold_transform<T: ?Sized + RqFold>(
             sort: fold_column_sorts(fold, take.sort)?,
             range: take.range,
         }),
-        Join { side, with, filter } => Join {
-            side,
-            with: fold.fold_table_ref(with)?,
-            filter: fold.fold_expr(filter)?,
-        },
+        Join { side, with, filter } => {
+            Join {
+                side,
+                with: fold.fold_table_ref(with)?,
+                filter: fold.fold_expr(filter)?,
+            }
+        }
         Append(bottom) => Append(fold.fold_table_ref(bottom)?),
         Loop(transforms) => Loop(fold_transforms(fold, transforms)?),
     };

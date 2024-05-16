@@ -181,9 +181,9 @@ impl Resolver<'_> {
                 .partition(|possible_type| is_super_type_of(possible_type, found));
 
             if new_domain.is_empty() {
-                return Err(Error::new_simple(
-                    "this argument does not match any of the generic types",
-                ));
+                return Err(
+                    Error::new_simple("this argument does not match any of the generic types")
+                );
             }
 
             // infer the new constraint
@@ -220,55 +220,54 @@ impl Resolver<'_> {
     }
 
     pub fn resolve_generic_args(&mut self, mut ty: Ty) -> Result<Ty, Error> {
-        ty.kind = match ty.kind {
-            // the meaningful part
-            TyKind::GenericArg(id) => {
-                let domain = self.generics.remove(&id).unwrap();
+        ty.kind =
+            match ty.kind {
+                // the meaningful part
+                TyKind::GenericArg(id) => {
+                    let domain = self.generics.remove(&id).unwrap();
 
-                if domain.len() > 1 {
-                    return Err(Error::new_simple(
-                        "cannot determine the type of generic arg",
-                    ));
+                    if domain.len() > 1 {
+                        return Err(Error::new_simple("cannot determine the type of generic arg"));
+                    }
+                    // there will always be at least one, since we will never restrict to an empty domain
+                    return Ok(domain.into_iter().next().unwrap());
                 }
-                // there will always be at least one, since we will never restrict to an empty domain
-                return Ok(domain.into_iter().next().unwrap());
-            }
 
-            // recurse into container types
-            // this could probably be implemented with folding, but I don't want another full fold impl
-            TyKind::Tuple(fields) => TyKind::Tuple(
-                fields
-                    .into_iter()
-                    .map(|field| -> Result<_, Error> {
-                        Ok(match field {
-                            TyTupleField::Single(name, ty) => {
-                                TyTupleField::Single(name, self.resolve_generic_args_opt(ty)?)
-                            }
-                            TyTupleField::Wildcard(ty) => {
-                                TyTupleField::Wildcard(self.resolve_generic_args_opt(ty)?)
-                            }
+                // recurse into container types
+                // this could probably be implemented with folding, but I don't want another full fold impl
+                TyKind::Tuple(fields) => TyKind::Tuple(
+                    fields
+                        .into_iter()
+                        .map(|field| -> Result<_, Error> {
+                            Ok(match field {
+                                TyTupleField::Single(name, ty) => {
+                                    TyTupleField::Single(name, self.resolve_generic_args_opt(ty)?)
+                                }
+                                TyTupleField::Wildcard(ty) => {
+                                    TyTupleField::Wildcard(self.resolve_generic_args_opt(ty)?)
+                                }
+                            })
+                        })
+                        .try_collect()?,
+                ),
+                TyKind::Array(ty) => TyKind::Array(Box::new(self.resolve_generic_args(*ty)?)),
+                TyKind::Function(func) => TyKind::Function(
+                    func.map(|f| -> Result<_, Error> {
+                        Ok(TyFunc {
+                            args: f
+                                .args
+                                .into_iter()
+                                .map(|a| self.resolve_generic_args_opt(a))
+                                .try_collect()?,
+                            return_ty: Box::new(self.resolve_generic_args_opt(*f.return_ty)?),
+                            name_hint: f.name_hint,
                         })
                     })
-                    .try_collect()?,
-            ),
-            TyKind::Array(ty) => TyKind::Array(Box::new(self.resolve_generic_args(*ty)?)),
-            TyKind::Function(func) => TyKind::Function(
-                func.map(|f| -> Result<_, Error> {
-                    Ok(TyFunc {
-                        args: f
-                            .args
-                            .into_iter()
-                            .map(|a| self.resolve_generic_args_opt(a))
-                            .try_collect()?,
-                        return_ty: Box::new(self.resolve_generic_args_opt(*f.return_ty)?),
-                        name_hint: f.name_hint,
-                    })
-                })
-                .transpose()?,
-            ),
+                    .transpose()?,
+                ),
 
-            _ => ty.kind,
-        };
+                _ => ty.kind,
+            };
         Ok(ty)
     }
 
@@ -595,10 +594,11 @@ fn union_of_tuples(tuple_variants: Vec<Vec<TyTupleField>>) -> Ty {
             match field {
                 TyTupleField::Single(Some(name), ty) => {
                     // find by name
-                    let existing = fields.iter_mut().find_map(|f| match f {
-                        TyTupleField::Single(n, t) if n.as_ref() == Some(&name) => Some(t),
-                        _ => None,
-                    });
+                    let existing =
+                        fields.iter_mut().find_map(|f| match f {
+                            TyTupleField::Single(n, t) if n.as_ref() == Some(&name) => Some(t),
+                            _ => None,
+                        });
                     if let Some(existing) = existing {
                         // union with the existing
                         *existing = maybe_union(existing.take(), ty);
@@ -948,14 +948,15 @@ pub fn type_intersection(a: Ty, b: Ty) -> Ty {
     }
 }
 fn type_intersection_with_union(variants: Vec<(Option<String>, Ty)>, b: Ty) -> Ty {
-    let variants = variants
-        .into_iter()
-        .map(|(name, variant)| {
-            let inter = type_intersection(variant, b.clone());
+    let variants =
+        variants
+            .into_iter()
+            .map(|(name, variant)| {
+                let inter = type_intersection(variant, b.clone());
 
-            (name, inter)
-        })
-        .collect_vec();
+                (name, inter)
+            })
+            .collect_vec();
 
     Ty::new(TyKind::Union(variants))
 }

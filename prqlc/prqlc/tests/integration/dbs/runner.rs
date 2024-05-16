@@ -18,9 +18,7 @@ pub struct DuckDbTestRunner;
 impl DbTestRunner for DuckDbTestRunner {
     fn import_csv(&self, protocol: &mut dyn DbProtocolHandler, csv_path: &str, table_name: &str) {
         protocol
-            .query(&format!(
-                "COPY {table_name} FROM '{csv_path}' (AUTO_DETECT TRUE);"
-            ))
+            .query(&format!("COPY {table_name} FROM '{csv_path}' (AUTO_DETECT TRUE);"))
             .unwrap();
     }
 
@@ -70,9 +68,7 @@ pub struct PostgresTestRunner;
 impl DbTestRunner for PostgresTestRunner {
     fn import_csv(&self, protocol: &mut dyn DbProtocolHandler, csv_path: &str, table_name: &str) {
         protocol
-            .query(&format!(
-                "COPY {table_name} FROM '{csv_path}' DELIMITER ',' CSV HEADER;"
-            ))
+            .query(&format!("COPY {table_name} FROM '{csv_path}' DELIMITER ',' CSV HEADER;"))
             .unwrap();
     }
 
@@ -86,9 +82,7 @@ pub struct GlareDbTestRunner;
 impl DbTestRunner for GlareDbTestRunner {
     fn import_csv(&self, protocol: &mut dyn DbProtocolHandler, csv_path: &str, table_name: &str) {
         protocol
-            .query(&format!(
-                "INSERT INTO {table_name} SELECT * FROM '{csv_path}'"
-            ))
+            .query(&format!("INSERT INTO {table_name} SELECT * FROM '{csv_path}'"))
             .unwrap();
     }
 
@@ -138,9 +132,7 @@ pub struct ClickHouseTestRunner;
 impl DbTestRunner for ClickHouseTestRunner {
     fn import_csv(&self, protocol: &mut dyn DbProtocolHandler, csv_path: &str, table_name: &str) {
         protocol
-            .query(&format!(
-                "INSERT INTO {table_name} SELECT * FROM file('{csv_path}')"
-            ))
+            .query(&format!("INSERT INTO {table_name} SELECT * FROM file('{csv_path}')"))
             .unwrap();
     }
 

@@ -208,47 +208,50 @@ pub fn ident_part() -> impl Parser<char, String, Error = Cheap<char>> + Clone {
 }
 
 fn literal() -> impl Parser<char, Literal, Error = Cheap<char>> {
-    let binary_notation = just("0b")
-        .then_ignore(just("_").or_not())
-        .ignore_then(
-            filter(|c: &char| *c == '0' || *c == '1')
-                .repeated()
-                .at_least(1)
-                .at_most(32)
-                .collect::<String>()
-                .try_map(|digits, _| {
-                    Ok(Literal::Integer(i64::from_str_radix(&digits, 2).unwrap()))
-                }),
-        )
-        .labelled("number");
+    let binary_notation =
+        just("0b")
+            .then_ignore(just("_").or_not())
+            .ignore_then(
+                filter(|c: &char| *c == '0' || *c == '1')
+                    .repeated()
+                    .at_least(1)
+                    .at_most(32)
+                    .collect::<String>()
+                    .try_map(
+                        |digits, _| Ok(Literal::Integer(i64::from_str_radix(&digits, 2).unwrap()))
+                    ),
+            )
+            .labelled("number");
 
-    let hexadecimal_notation = just("0x")
-        .then_ignore(just("_").or_not())
-        .ignore_then(
-            filter(|c: &char| c.is_ascii_hexdigit())
-                .repeated()
-                .at_least(1)
-                .at_most(12)
-                .collect::<String>()
-                .try_map(|digits, _| {
-                    Ok(Literal::Integer(i64::from_str_radix(&digits, 16).unwrap()))
-                }),
-        )
-        .labelled("number");
+    let hexadecimal_notation =
+        just("0x")
+            .then_ignore(just("_").or_not())
+            .ignore_then(
+                filter(|c: &char| c.is_ascii_hexdigit())
+                    .repeated()
+                    .at_least(1)
+                    .at_most(12)
+                    .collect::<String>()
+                    .try_map(
+                        |digits, _| Ok(Literal::Integer(i64::from_str_radix(&digits, 16).unwrap()))
+                    ),
+            )
+            .labelled("number");
 
-    let octal_notation = just("0o")
-        .then_ignore(just("_").or_not())
-        .ignore_then(
-            filter(|&c| ('0'..='7').contains(&c))
-                .repeated()
-                .at_least(1)
-                .at_most(12)
-                .collect::<String>()
-                .try_map(|digits, _| {
-                    Ok(Literal::Integer(i64::from_str_radix(&digits, 8).unwrap()))
-                }),
-        )
-        .labelled("number");
+    let octal_notation =
+        just("0o")
+            .then_ignore(just("_").or_not())
+            .ignore_then(
+                filter(|&c| ('0'..='7').contains(&c))
+                    .repeated()
+                    .at_least(1)
+                    .at_most(12)
+                    .collect::<String>()
+                    .try_map(
+                        |digits, _| Ok(Literal::Integer(i64::from_str_radix(&digits, 8).unwrap()))
+                    ),
+            )
+            .labelled("number");
 
     let exp = one_of("eE").chain(one_of("+-").or_not().chain::<char, _, _>(text::digits(10)));
 
@@ -260,21 +263,22 @@ fn literal() -> impl Parser<char, Literal, Error = Cheap<char>> {
         .chain::<char, _, _>(filter(|c: &char| c.is_ascii_digit()))
         .chain::<char, _, _>(filter(|c: &char| c.is_ascii_digit() || *c == '_').repeated());
 
-    let number = integer
-        .chain::<char, _, _>(frac.or_not().flatten())
-        .chain::<char, _, _>(exp.or_not().flatten())
-        .try_map(|chars, span| {
-            let str = chars.into_iter().filter(|c| *c != '_').collect::<String>();
+    let number =
+        integer
+            .chain::<char, _, _>(frac.or_not().flatten())
+            .chain::<char, _, _>(exp.or_not().flatten())
+            .try_map(|chars, span| {
+                let str = chars.into_iter().filter(|c| *c != '_').collect::<String>();
 
-            if let Ok(i) = str.parse::<i64>() {
-                Ok(Literal::Integer(i))
-            } else if let Ok(f) = str.parse::<f64>() {
-                Ok(Literal::Float(f))
-            } else {
-                Err(Cheap::expected_input_found(span, None, None))
-            }
-        })
-        .labelled("number");
+                if let Ok(i) = str.parse::<i64>() {
+                    Ok(Literal::Integer(i))
+                } else if let Ok(f) = str.parse::<f64>() {
+                    Ok(Literal::Float(f))
+                } else {
+                    Err(Cheap::expected_input_found(span, None, None))
+                }
+            })
+            .labelled("number");
 
     let string = quoted_string(true).map(Literal::String);
 

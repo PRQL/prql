@@ -196,11 +196,13 @@ pub fn fold_sql_transform<
             compute: fold.fold_cids(compute)?,
         },
         SqlTransform::Sort(v) => SqlTransform::Sort(fold_column_sorts(fold, v)?),
-        SqlTransform::Take(take) => SqlTransform::Take(rq::Take {
-            partition: fold.fold_cids(take.partition)?,
-            sort: fold_column_sorts(fold, take.sort)?,
-            range: take.range,
-        }),
+        SqlTransform::Take(take) => {
+            SqlTransform::Take(rq::Take {
+                partition: fold.fold_cids(take.partition)?,
+                sort: fold_column_sorts(fold, take.sort)?,
+                range: take.range,
+            })
+        }
     })
 }
 

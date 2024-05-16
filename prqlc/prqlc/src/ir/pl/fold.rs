@@ -246,12 +246,16 @@ pub fn fold_transform_kind<T: ?Sized + PlFold>(
         Aggregate { assigns } => Aggregate {
             assigns: Box::new(fold.fold_expr(*assigns)?),
         },
-        Sort { by } => Sort {
-            by: fold_column_sorts(fold, by)?,
-        },
-        Take { range } => Take {
-            range: fold_range(fold, range)?,
-        },
+        Sort { by } => {
+            Sort {
+                by: fold_column_sorts(fold, by)?,
+            }
+        }
+        Take { range } => {
+            Take {
+                range: fold_range(fold, range)?,
+            }
+        }
         Join { side, with, filter } => Join {
             side,
             with: Box::new(fold.fold_expr(*with)?),

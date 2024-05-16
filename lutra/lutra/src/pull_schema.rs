@@ -29,28 +29,27 @@ pub fn pull_schema(project: &ProjectCompiled, _params: PullSchemaParams) -> Resu
 }
 
 fn convert_arrow_schema_to_table_def(table_name: String, schema: SchemaRef) -> Result<Stmt> {
-    let fields = schema
-        .fields()
-        .into_iter()
-        .map(|field| -> Result<_> {
-            let name = field.name();
+    let fields =
+        schema
+            .fields()
+            .into_iter()
+            .map(|field| -> Result<_> {
+                let name = field.name();
 
-            let ty = convert_arrow_type(field.data_type())
-                .push_hint(format!("Found on table `{table_name}`, column `{name}`",))?;
+                let ty = convert_arrow_type(field.data_type())
+                    .push_hint(format!("Found on table `{table_name}`, column `{name}`",))?;
 
-            // TODO: handle field.is_nullable()
+                // TODO: handle field.is_nullable()
 
-            Ok(TyTupleField::Single(Some(name.clone()), Some(Ty::new(ty))))
-        })
-        .try_collect()?;
+                Ok(TyTupleField::Single(Some(name.clone()), Some(Ty::new(ty))))
+            })
+            .try_collect()?;
 
     let def = VarDef {
         kind: prqlc::ast::VarDefKind::Let,
         name: table_name,
         value: None,
-        ty: Some(Ty::new(TyKind::Array(Box::new(Ty::new(TyKind::Tuple(
-            fields,
-        )))))),
+        ty: Some(Ty::new(TyKind::Array(Box::new(Ty::new(TyKind::Tuple(fields)))))),
     };
 
     let stmt = Stmt::new(prqlc::ast::StmtKind::VarDef(def));
@@ -96,9 +95,7 @@ fn convert_arrow_type(ty: &DataType) -> Result<TyKind, Error> {
         | DataType::Decimal256(_, _)
         | DataType::Map(_, _)
         | DataType::RunEndEncoded(_, _) => {
-            return Err(Error::new_simple(format!(
-                "cannot convert arrow type {ty:?} a PRQL type"
-            )))
+            return Err(Error::new_simple(format!("cannot convert arrow type {ty:?} a PRQL type")))
         }
     })
 }

@@ -117,8 +117,9 @@ fn test_prql_examples_display_then_compile() -> Result<()> {
         let should_succeed = !tags.contains(&LangTag::NoFmt);
 
         match (should_succeed, result) {
-            (true, Err(e)) => errs.push(format!(
-                "
+            (true, Err(e)) => {
+                errs.push(format!(
+                    "
 ---- {name} ---- ERROR formatting & compiling
 Use `prql no-fmt` as the language label to assert an error from formatting & compiling.
 
@@ -132,7 +133,8 @@ Use `prql no-fmt` as the language label to assert an error from formatting & com
 {e}
 ```
 "
-            )),
+                ))
+            }
 
             (false, Ok(output)) => errs.push(format!(
                 "

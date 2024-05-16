@@ -14,10 +14,9 @@ pub fn edit_source_file(
     let span = project.root_module.span_map.get(&decl_id);
     let Some(span) = span else {
         // TODO: bad error message, we should not mention decl ids
-        return Err(Error::new_simple(format!(
-            "cannot find where declaration {decl_id} came from"
-        ))
-        .into());
+        return Err(
+            Error::new_simple(format!("cannot find where declaration {decl_id} came from")).into(),
+        );
     };
 
     // retrieve file path, relative to project root

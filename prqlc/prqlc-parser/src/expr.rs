@@ -353,15 +353,16 @@ where
         .map(ExprKind::Internal)
         .map_with_span(into_expr);
 
-    let generic_args = ident_part()
-        .then_ignore(ctrl(':'))
-        .then(type_expr().separated_by(ctrl('|')))
-        .map(|(name, domain)| GenericTypeParam { name, domain })
-        .separated_by(ctrl(','))
-        .at_least(1)
-        .delimited_by(ctrl('<'), ctrl('>'))
-        .or_not()
-        .map(|x| x.unwrap_or_default());
+    let generic_args =
+        ident_part()
+            .then_ignore(ctrl(':'))
+            .then(type_expr().separated_by(ctrl('|')))
+            .map(|(name, domain)| GenericTypeParam { name, domain })
+            .separated_by(ctrl(','))
+            .at_least(1)
+            .delimited_by(ctrl('<'), ctrl('>'))
+            .or_not()
+            .map(|x| x.unwrap_or_default());
 
     choice((
         // func

@@ -214,10 +214,11 @@ fn create_filter_by_row_number(
     ctx: &mut Context,
 ) -> Vec<SqlTransform> {
     // declare new column
-    let expr = Expr {
-        kind: ExprKind::SString(vec![InterpolateItem::String("ROW_NUMBER()".to_string())]),
-        span: None,
-    };
+    let expr =
+        Expr {
+            kind: ExprKind::SString(vec![InterpolateItem::String("ROW_NUMBER()".to_string())]),
+            span: None,
+        };
 
     let is_unsorted = sort.is_empty();
     let window = Window {

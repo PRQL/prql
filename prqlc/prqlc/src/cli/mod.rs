@@ -239,9 +239,9 @@ impl Command {
                     let path_buf = root
                         .as_ref()
                         .map_or_else(|| path.clone(), |root| root.join(&path));
-                    let path_str = path_buf.to_str().ok_or_else(|| {
-                        anyhow!("Path `{}` is not valid UTF-8", path_buf.display())
-                    })?;
+                    let path_str = path_buf.to_str().ok_or_else(
+                        || anyhow!("Path `{}` is not valid UTF-8", path_buf.display())
+                    )?;
                     let mut output: Output = Output::new(path_str)?;
 
                     output.write_all(&pl_to_prql(&ast)?.into_bytes())?;
@@ -261,10 +261,11 @@ impl Command {
     }
 
     fn list_targets(&self) -> std::result::Result<(), anyhow::Error> {
-        let res: Result<std::string::String, anyhow::Error> = Ok(match self {
-            Command::ListTargets => Target::names().join("\n"),
-            _ => unreachable!(),
-        });
+        let res: Result<std::string::String, anyhow::Error> =
+            Ok(match self {
+                Command::ListTargets => Target::names().join("\n"),
+                _ => unreachable!(),
+            });
 
         match res {
             Ok(s) => println!("{s}"),
@@ -572,13 +573,14 @@ fn combine_prql_and_frames(source: &str, frames: Vec<(Span, Lineage)>) -> String
         if printed_lines_count >= lines.len() {
             break;
         }
-        let chars: String = source
-            .get_line_text(source.line(printed_lines_count).unwrap())
-            .unwrap()
-            // Ariadne 0.4.1 added a line break at the end of the line, so we
-            // trim it.
-            .trim_end()
-            .to_string();
+        let chars: String =
+            source
+                .get_line_text(source.line(printed_lines_count).unwrap())
+                .unwrap()
+                // Ariadne 0.4.1 added a line break at the end of the line, so we
+                // trim it.
+                .trim_end()
+                .to_string();
         printed_lines_count += 1;
 
         result.push(format!("{chars:width$} # {frame}"));
@@ -630,16 +632,17 @@ sort full
     fn compile() {
         anstream::ColorChoice::Never.write_global();
 
-        let result = Command::execute(
-            &Command::SQLCompile {
-                io_args: IoArgs::default(),
-                signature_comment: false,
-                format: true,
-                target: "sql.any".to_string(),
-            },
-            &mut "asdf".into(),
-            "",
-        );
+        let result =
+            Command::execute(
+                &Command::SQLCompile {
+                    io_args: IoArgs::default(),
+                    signature_comment: false,
+                    format: true,
+                    target: "sql.any".to_string(),
+                },
+                &mut "asdf".into(),
+                "",
+            );
 
         assert_snapshot!(&result.unwrap_err().to_string(), @r###"
         Error:
@@ -654,26 +657,27 @@ sort full
 
     #[test]
     fn compile_multiple() {
-        let result = Command::execute(
-            &Command::SQLCompile {
-                io_args: IoArgs::default(),
-                signature_comment: false,
-                format: true,
-                target: "sql.any".to_string(),
-            },
-            &mut SourceTree::new(
-                [
-                    ("Project.prql".into(), "orders.x | select y".to_string()),
-                    (
-                        "orders.prql".into(),
-                        "let x = (from z | select {y, u})".to_string(),
-                    ),
-                ],
-                None,
-            ),
-            "main",
-        )
-        .unwrap();
+        let result =
+            Command::execute(
+                &Command::SQLCompile {
+                    io_args: IoArgs::default(),
+                    signature_comment: false,
+                    format: true,
+                    target: "sql.any".to_string(),
+                },
+                &mut SourceTree::new(
+                    [
+                        ("Project.prql".into(), "orders.x | select y".to_string()),
+                        (
+                            "orders.prql".into(),
+                            "let x = (from z | select {y, u})".to_string(),
+                        ),
+                    ],
+                    None,
+                ),
+                "main",
+            )
+            .unwrap();
         assert_snapshot!(String::from_utf8(result).unwrap().trim(), @r###"
         WITH x AS (
           SELECT
@@ -691,15 +695,16 @@ sort full
 
     #[test]
     fn parse() {
-        let output = Command::execute(
-            &Command::Parse {
-                io_args: IoArgs::default(),
-                format: Format::Yaml,
-            },
-            &mut "from x | select y".into(),
-            "",
-        )
-        .unwrap();
+        let output =
+            Command::execute(
+                &Command::Parse {
+                    io_args: IoArgs::default(),
+                    format: Format::Yaml,
+                },
+                &mut "from x | select y".into(),
+                "",
+            )
+            .unwrap();
 
         assert_snapshot!(String::from_utf8(output).unwrap().trim(), @r###"
         name: Project
@@ -725,15 +730,16 @@ sort full
     }
     #[test]
     fn resolve() {
-        let output = Command::execute(
-            &Command::Resolve {
-                io_args: IoArgs::default(),
-                format: Format::Yaml,
-            },
-            &mut "from x | select y".into(),
-            "",
-        )
-        .unwrap();
+        let output =
+            Command::execute(
+                &Command::Resolve {
+                    io_args: IoArgs::default(),
+                    format: Format::Yaml,
+                },
+                &mut "from x | select y".into(),
+                "",
+            )
+            .unwrap();
 
         assert_snapshot!(String::from_utf8(output).unwrap().trim(), @r###"
         def:
@@ -837,15 +843,16 @@ sort full
 
     #[test]
     fn lex() {
-        let output = Command::execute(
-            &Command::Lex {
-                io_args: IoArgs::default(),
-                format: Format::Yaml,
-            },
-            &mut "from x | select y".into(),
-            "",
-        )
-        .unwrap();
+        let output =
+            Command::execute(
+                &Command::Lex {
+                    io_args: IoArgs::default(),
+                    format: Format::Yaml,
+                },
+                &mut "from x | select y".into(),
+                "",
+            )
+            .unwrap();
 
         // TODO: terser output; maybe serialize span as `0..4`? Remove the
         // `!Ident` complication?

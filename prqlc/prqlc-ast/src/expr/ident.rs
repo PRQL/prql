@@ -99,10 +99,11 @@ impl std::fmt::Display for Ident {
 
 impl IntoIterator for Ident {
     type Item = String;
-    type IntoIter = std::iter::Chain<
-        std::vec::IntoIter<std::string::String>,
-        std::option::IntoIter<std::string::String>,
-    >;
+    type IntoIter =
+        std::iter::Chain<
+            std::vec::IntoIter<std::string::String>,
+            std::option::IntoIter<std::string::String>,
+        >;
 
     fn into_iter(self) -> Self::IntoIter {
         self.path.into_iter().chain(Some(self.name))

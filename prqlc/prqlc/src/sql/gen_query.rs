@@ -78,16 +78,17 @@ fn translate_select_pipeline(
     ctx.query.omit_ident_prefix = table_count == 1;
     ctx.query.pre_projection = true;
 
-    let mut from: Vec<_> = pipeline
-        .pluck(|t| t.into_from())
-        .into_iter()
-        .map(|source| -> Result<TableWithJoins> {
-            Ok(TableWithJoins {
-                relation: translate_relation_expr(source, ctx)?,
-                joins: vec![],
+    let mut from: Vec<_> =
+        pipeline
+            .pluck(|t| t.into_from())
+            .into_iter()
+            .map(|source| -> Result<TableWithJoins> {
+                Ok(TableWithJoins {
+                    relation: translate_relation_expr(source, ctx)?,
+                    joins: vec![],
+                })
             })
-        })
-        .try_collect()?;
+            .try_collect()?;
 
     let joins = pipeline
         .pluck(|t| t.into_join())
@@ -259,9 +260,9 @@ fn translate_set_ops_pipeline(
         top = default_query(SetExpr::SetOperation {
             left,
             right: Box::new(SetExpr::Select(Box::new(sql_ast::Select {
-                projection: vec![SelectItem::Wildcard(
-                    sql_ast::WildcardAdditionalOptions::default(),
-                )],
+                projection: vec![
+                    SelectItem::Wildcard(sql_ast::WildcardAdditionalOptions::default())
+                ],
                 from: vec![TableWithJoins {
                     relation: translate_relation_expr(bottom, context)?,
                     joins: vec![],
@@ -482,9 +483,9 @@ pub(super) fn translate_query_sstring(
         if let Some(string) = string.trim().strip_prefix(prefix) {
             return Ok(default_query(sql_ast::SetExpr::Select(Box::new(
                 sql_ast::Select {
-                    projection: vec![sql_ast::SelectItem::UnnamedExpr(sql_ast::Expr::Identifier(
-                        sql_ast::Ident::new(string),
-                    ))],
+                    projection: vec![sql_ast::SelectItem::UnnamedExpr(
+                        sql_ast::Expr::Identifier(sql_ast::Ident::new(string))
+                    )],
                     ..default_select()
                 },
             ))));
@@ -508,9 +509,9 @@ pub(super) fn translate_query_operator(
 
     Ok(default_query(sql_ast::SetExpr::Select(Box::new(
         sql_ast::Select {
-            projection: vec![sql_ast::SelectItem::UnnamedExpr(sql_ast::Expr::Identifier(
-                sql_ast::Ident::new(s_string),
-            ))],
+            projection: vec![sql_ast::SelectItem::UnnamedExpr(
+                sql_ast::Expr::Identifier(sql_ast::Ident::new(s_string))
+            )],
             ..default_select()
         },
     ))))
@@ -527,13 +528,14 @@ fn filter_of_conditions(exprs: Vec<Expr>, context: &mut Context) -> Result<Optio
 fn all(mut exprs: Vec<Expr>) -> Option<Expr> {
     let mut condition = exprs.pop()?;
     while let Some(expr) = exprs.pop() {
-        condition = Expr {
-            kind: ExprKind::Operator {
-                name: "std.and".to_string(),
-                args: vec![expr, condition],
-            },
-            span: None,
-        };
+        condition =
+            Expr {
+                kind: ExprKind::Operator {
+                    name: "std.and".to_string(),
+                    args: vec![expr, condition],
+                },
+                span: None,
+            };
     }
     Some(condition)
 }
@@ -596,16 +598,14 @@ fn query_to_set_expr(query: sql_ast::Query, context: &mut Context) -> Box<SetExp
     // query is not simple, so we need to wrap it into
     // `SELECT * FROM (query)`
     Box::new(SetExpr::Select(Box::new(Select {
-        projection: vec![SelectItem::Wildcard(
-            sql_ast::WildcardAdditionalOptions::default(),
-        )],
+        projection: vec![SelectItem::Wildcard(sql_ast::WildcardAdditionalOptions::default())],
         from: vec![TableWithJoins {
             relation: TableFactor::Derived {
                 lateral: false,
                 subquery: Box::new(query),
-                alias: Some(simple_table_alias(sql_ast::Ident::new(
-                    context.anchor.table_name.gen(),
-                ))),
+                alias: Some(
+                    simple_table_alias(sql_ast::Ident::new(context.anchor.table_name.gen()))
+                ),
             },
             joins: vec![],
         }],

@@ -25,10 +25,11 @@ pub fn compile(mut project: ProjectDiscovered, _: CompileParams) -> Result<Proje
 }
 
 fn parse_and_compile(source_tree: &SourceTree) -> Result<ProjectCompiled, ErrorMessages> {
-    let options = Options::default()
-        .with_target(Target::Sql(Some(Dialect::SQLite)))
-        .no_format()
-        .no_signature();
+    let options =
+        Options::default()
+            .with_target(Target::Sql(Some(Dialect::SQLite)))
+            .no_format()
+            .no_signature();
 
     // parse and resolve
     let ast_tree = prqlc::prql_to_pl_tree(source_tree)?;

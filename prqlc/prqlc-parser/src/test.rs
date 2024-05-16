@@ -763,12 +763,13 @@ fn test_filter() {
 
 #[test]
 fn test_aggregate() {
-    let aggregate = parse_single(
-        r"group {title} (
+    let aggregate =
+        parse_single(
+            r"group {title} (
                 aggregate {sum salary, count}
               )",
-    )
-    .unwrap();
+        )
+        .unwrap();
     assert_yaml_snapshot!(
             aggregate, @r###"
     ---
@@ -795,12 +796,13 @@ fn test_aggregate() {
                         - Ident: count
       span: "0:0-77"
     "###);
-    let aggregate = parse_single(
-        r"group {title} (
+    let aggregate =
+        parse_single(
+            r"group {title} (
                 aggregate {sum salary}
               )",
-    )
-    .unwrap();
+        )
+        .unwrap();
     assert_yaml_snapshot!(
             aggregate, @r###"
     ---

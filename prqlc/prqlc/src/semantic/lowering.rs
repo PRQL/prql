@@ -83,17 +83,18 @@ fn extern_ref_to_relation(
     fq_ident: &Ident,
     database_module_path: &[String],
 ) -> Result<(rq::Relation, Option<String>), Error> {
-    let extern_name = if fq_ident.starts_with_path(database_module_path) {
-        let relative_to_database: Vec<&String> =
-            fq_ident.iter().skip(database_module_path.len()).collect();
-        if relative_to_database.is_empty() {
-            None
+    let extern_name =
+        if fq_ident.starts_with_path(database_module_path) {
+            let relative_to_database: Vec<&String> =
+                fq_ident.iter().skip(database_module_path.len()).collect();
+            if relative_to_database.is_empty() {
+                None
+            } else {
+                Some(Ident::from_path(relative_to_database))
+            }
         } else {
-            Some(Ident::from_path(relative_to_database))
-        }
-    } else {
-        None
-    };
+            None
+        };
 
     let Some(extern_name) = extern_name else {
         let database_module = Ident::from_path(database_module_path.to_vec());
@@ -374,10 +375,11 @@ impl Lowerer {
                 };
 
                 log::debug!("lowering literal relation table, columns = {columns:?}");
-                let relation = rq::Relation {
-                    kind: rq::RelationKind::Literal(lit),
-                    columns,
-                };
+                let relation =
+                    rq::Relation {
+                        kind: rq::RelationKind::Literal(lit),
+                        columns,
+                    };
 
                 self.table_buffer.push(TableDecl {
                     id: tid,
@@ -762,11 +764,12 @@ impl Lowerer {
         let has_alias = alias.is_some();
         let needs_window = expr_ast.needs_window;
         expr_ast.needs_window = false;
-        let alias_for = if has_alias {
-            expr_ast.kind.as_ident().map(|x| x.name.clone())
-        } else {
-            None
-        };
+        let alias_for =
+            if has_alias {
+                expr_ast.kind.as_ident().map(|x| x.name.clone())
+            } else {
+                None
+            };
         let id = expr_ast.id.unwrap();
 
         // lower
@@ -789,12 +792,13 @@ impl Lowerer {
 
         // construct ColumnDef
         let cid = self.cid.gen();
-        let compute = rq::Compute {
-            id: cid,
-            expr,
-            window,
-            is_aggregation,
-        };
+        let compute =
+            rq::Compute {
+                id: cid,
+                expr,
+                window,
+                is_aggregation,
+            };
         self.node_mapping.insert(id, LoweredTarget::Compute(cid));
 
         self.pipeline.push(Transform::Compute(compute));
@@ -818,10 +822,11 @@ impl Lowerer {
 
                 if expr.ty.as_ref().map_or(false, |x| x.kind.is_tuple()) {
                     // special case: tuple ref
-                    let expr = pl::Expr {
-                        kind: pl::ExprKind::Ident(ident),
-                        ..expr
-                    };
+                    let expr =
+                        pl::Expr {
+                            kind: pl::ExprKind::Ident(ident),
+                            ..expr
+                        };
                     let selected = self.find_selected_all(expr, None)?;
 
                     if selected.len() == 1 {
@@ -916,10 +921,7 @@ impl Lowerer {
             }
 
             pl::ExprKind::Internal(_) => {
-                return Err(Error::new_assert(format!(
-                    "Unresolved lowering: {}",
-                    write_pl(expr)
-                )))
+                return Err(Error::new_assert(format!("Unresolved lowering: {}", write_pl(expr))))
             }
         };
 

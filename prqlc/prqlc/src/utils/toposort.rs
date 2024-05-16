@@ -31,10 +31,11 @@ pub fn toposort<'a, Key: Eq + std::hash::Hash + Clone>(
         .collect();
 
     // init toposort
-    let empty = Node {
-        visiting: false,
-        done: false,
-    };
+    let empty =
+        Node {
+            visiting: false,
+            done: false,
+        };
     let mut toposort = Toposort {
         nodes: vec![empty; index.len()],
         order: Vec::with_capacity(index.len()),
