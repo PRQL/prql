@@ -48,33 +48,22 @@ impl PlFold for super::Resolver<'_> {
             ExprKind::Ident(ident) => {
                 log::debug!("resolving ident {ident:?}...");
 
-                let result = self.lookup_ident(&ident, false).with_span(node.span)?;
+                let result = self.lookup_ident(&ident).with_span(node.span)?;
 
-                if let LookupResult::Indirect {
-                    real_name,
-                    indirections,
-                } = result
-                {
-                    let mut ident = ident;
-                    ident.name = real_name;
-
-                    let mut expr = Expr {
-                        kind: ExprKind::Ident(ident),
-                        flatten: false,
-                        alias: None,
-                        ..node
-                    };
-                    for indirection in indirections {
-                        expr = Expr::new(ExprKind::Indirection {
-                            base: Box::new(expr),
-                            field: indirection,
-                        });
+                let (ident, indirections) = match result {
+                    LookupResult::Direct => (ident, vec![]),
+                    LookupResult::Indirect {
+                        real_name,
+                        indirections,
+                    } => {
+                        let mut ident = ident;
+                        ident.name = real_name;
+                        (ident, indirections)
                     }
-                    expr.flatten = node.flatten;
-                    expr.alias = node.alias;
-                    self.fold_expr(expr)?
-                } else {
-                    let decl = self.get_ident(&ident, false).unwrap();
+                };
+
+                let mut expr = {
+                    let decl = self.get_ident(&ident).unwrap();
 
                     let log_debug = !ident.starts_with_part(NS_STD);
                     if log_debug {
@@ -127,7 +116,18 @@ impl PlFold for super::Resolver<'_> {
                             ..node
                         },
                     }
-                }
+                };
+
+                expr.id = expr.id.or(Some(id));
+                let flatten = expr.flatten;
+                expr.flatten = false;
+                let alias = expr.alias.take();
+
+                let mut expr = self.apply_indirections(expr, indirections);
+
+                expr.flatten = flatten;
+                expr.alias = alias;
+                expr
             }
 
             ExprKind::Indirection { base, field } => {
@@ -276,7 +276,9 @@ impl super::Resolver<'_> {
         indirection: &IndirectionKind,
     ) -> Result<Vec<StepOwned>> {
         match indirection {
-            IndirectionKind::Name(name) => self.lookup_name_in_tuple(base, name),
+            IndirectionKind::Name(name) => self.lookup_name_in_tuple(base, name).and_then(|res| {
+                res.ok_or_else(|| Error::new_simple(format!("Unknown name {name}")))
+            }),
             IndirectionKind::Position(pos) => {
                 let step = super::tuple::lookup_position_in_tuple(base, *pos as usize)?
                     .ok_or_else(|| Error::new_simple("Out of bounds"))?;

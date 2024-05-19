@@ -4,7 +4,6 @@ use crate::utils::IdGenerator;
 mod expr;
 mod functions;
 mod inference;
-mod names;
 mod scope;
 mod static_eval;
 mod stmt;

@@ -9,7 +9,7 @@ use crate::ir::pl::*;
 use crate::semantic::{write_pl, NS_GENERIC, NS_LOCAL, NS_THAT, NS_THIS};
 use crate::{Error, Result, Span, WithErrorInfo};
 
-use super::scope::{self, Scope};
+use super::scope::Scope;
 use super::types::TypeReplacer;
 use super::Resolver;
 
@@ -17,7 +17,7 @@ impl Resolver<'_> {
     /// Folds function types, so they are resolved to material types, ready for type checking.
     /// Requires id of the function call node, so it can be used to generic type arguments.
     pub fn resolve_func(&mut self, mut func: Box<Func>) -> Result<Box<Func>> {
-        let mut scope = scope::Scope::new();
+        let mut scope = Scope::new();
 
         // prepare generic arguments
         for generic_param in &func.generic_type_params {
@@ -29,7 +29,7 @@ impl Resolver<'_> {
 
             // register the generic type param in the resolver
             let generic = Decl::from(DeclKind::GenericParam(bound.map(|b| (b, None))));
-            scope.generics.insert(generic_param.name.clone(), generic);
+            scope.types.insert(generic_param.name.clone(), generic);
         }
         self.scopes.push(scope);
 
@@ -62,7 +62,7 @@ impl Resolver<'_> {
             let mut new_generic_type_params = Vec::new();
             let mut finalized_args = HashMap::new();
             for gtp in func.generic_type_params {
-                let inferred_generic = scope.generics.swap_remove(&gtp.name).unwrap();
+                let inferred_generic = scope.types.swap_remove(&gtp.name).unwrap();
                 let inferred_type = inferred_generic.kind.into_generic_param().unwrap();
 
                 match inferred_type {
@@ -342,7 +342,7 @@ impl Resolver<'_> {
 
             if partial_application_position.is_none() {
                 if impl_cl_pos.map_or(false, |pos| pos == index) {
-                    let mut scope = scope::Scope::new();
+                    let mut scope = Scope::new();
                     if let Some(pos) = this_pos {
                         let arg = &app.args[pos as usize];
                         self.prepare_scope_of_implicit_closure_arg(&mut scope, NS_THIS, arg)?;
@@ -468,7 +468,7 @@ impl Resolver<'_> {
                 );
             }
         };
-        scope.params.insert(
+        scope.values.insert(
             namespace.to_string(),
             Decl::from(DeclKind::Variable(Some(tuple_ty))),
         );
@@ -553,7 +553,7 @@ fn prepare_scope_of_func(scope: &mut Scope, func: &Func) {
             ..Default::default()
         };
         let param_name = param.name.split('.').last().unwrap();
-        scope.params.insert(param_name.to_string(), v);
+        scope.values.insert(param_name.to_string(), v);
     }
 }
 

@@ -36,7 +36,7 @@ impl Resolver<'_> {
 
         log::debug!("inferring that {ident_of_generic:?} is {}", write_ty(&ty));
 
-        let Some(decl) = self.get_ident_mut(ident_of_generic, true) else {
+        let Some(decl) = self.get_ident_mut(ident_of_generic) else {
             return Err(Error::new_assert("type not found"));
         };
         let DeclKind::GenericParam(inferred_type) = &mut decl.kind else {

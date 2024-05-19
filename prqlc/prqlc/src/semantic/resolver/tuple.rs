@@ -54,7 +54,7 @@ impl super::Resolver<'_> {
         &'a mut self,
         ty: &'a Ty,
         name: &str,
-    ) -> Result<Vec<StepOwned>> {
+    ) -> Result<Option<Vec<StepOwned>>> {
         log::debug!("looking up `.{name}` in {}", write_ty(ty));
 
         // find existing field
@@ -66,7 +66,9 @@ impl super::Resolver<'_> {
             // single match, great!
             1 => {
                 let found = found.into_iter().next().unwrap();
-                return Ok(found.into_iter().map(|s| s.into_owned()).collect_vec());
+                return Ok(Some(
+                    found.into_iter().map(|s| s.into_owned()).collect_vec(),
+                ));
             }
 
             // ambiguous
@@ -74,7 +76,7 @@ impl super::Resolver<'_> {
         }
 
         // field was not found, find a generic where it could be added
-        let generics = find_tuple_generic(ty);
+        let generics = self.find_tuple_generic(ty, false);
         match generics.len() {
             // no match: pass though
             0 => {}
@@ -99,7 +101,7 @@ impl super::Resolver<'_> {
                     position: pos_gen + pos_within,
                     target_ty,
                 });
-                return Ok(steps);
+                return Ok(Some(steps));
             }
 
             // ambiguous
@@ -121,14 +123,14 @@ impl super::Resolver<'_> {
             }
         }
 
-        Err(Error::new_simple(format!("Unknown name `{name}`")))
+        Ok(None)
     }
 
     fn get_tuple_or_generic_candidate<'a>(&'a self, ty: &'a Ty) -> &'a Ty {
         let TyKind::Ident(ident) = &ty.kind else {
             return ty;
         };
-        let decl = self.get_ident(ident, true).unwrap();
+        let decl = self.get_ident(ident).unwrap();
         let DeclKind::GenericParam(Some((candidate, _))) = &decl.kind else {
             return ty;
         };
@@ -226,54 +228,66 @@ impl super::Resolver<'_> {
         }
         base
     }
-}
 
-/// Find identifier of the generic that must receive a new field,
-/// if we push a new name into this tuple.
-fn find_tuple_generic(ty: &Ty) -> Vec<LocationOfGeneric<'_>> {
-    if let TyKind::Ident(ident_of_generic) = &ty.kind {
-        return vec![LocationOfGeneric {
-            ident_of_generic,
-            position: 0,
-            steps_to_base: vec![],
-        }];
-    };
-
-    let TyKind::Tuple(fields) = &ty.kind else {
-        return vec![];
-    };
-
-    if let Some(TyTupleField::Unpack(Some(unpack_ty))) = fields.last() {
-        let mut found = find_tuple_generic(unpack_ty);
-        if !found.is_empty() {
-            for x in &mut found {
-                if x.steps_to_base.is_empty() {
-                    x.position += fields.len() - 1;
-                } else {
-                    x.steps_to_base.first_mut().unwrap().position += fields.len() - 1;
+    /// Find identifier of the generic that must receive a new field,
+    /// if we push a new name into this tuple.
+    fn find_tuple_generic<'a>(&self, ty: &'a Ty, require_tuple: bool) -> Vec<LocationOfGeneric<'a>> {
+        if let TyKind::Ident(ident_of_generic) = &ty.kind {
+            if require_tuple {
+                let Some(decl) = self.get_ident(ident_of_generic) else {
+                    return vec![];
+                };
+                let Some((cand, _)) = decl.kind.as_generic_param().and_then(|p| p.as_ref()) else {
+                    return vec![];
+                };
+                if !cand.kind.is_tuple() {
+                    return vec![];
                 }
             }
-            return found;
-        }
-    }
 
-    let mut res = vec![];
-    for (position, field) in fields.iter().enumerate() {
-        if let TyTupleField::Single(n, Some(ty)) = field {
-            for mut x in find_tuple_generic(ty) {
-                x.steps_to_base.insert(
-                    0,
-                    Step {
-                        position,
-                        name: n.as_ref(),
-                        target_ty: Cow::Borrowed(ty),
-                    },
-                );
-                res.push(x);
+            return vec![LocationOfGeneric {
+                ident_of_generic,
+                position: 0,
+                steps_to_base: vec![],
+            }];
+        };
+
+        let TyKind::Tuple(fields) = &ty.kind else {
+            return vec![];
+        };
+
+        if let Some(TyTupleField::Unpack(Some(unpack_ty))) = fields.last() {
+            let mut found = self.find_tuple_generic(unpack_ty, require_tuple);
+            if !found.is_empty() {
+                for x in &mut found {
+                    if x.steps_to_base.is_empty() {
+                        x.position += fields.len() - 1;
+                    } else {
+                        x.steps_to_base.first_mut().unwrap().position += fields.len() - 1;
+                    }
+                }
+                return found;
             }
         }
+
+        let mut res = vec![];
+        for (position, field) in fields.iter().enumerate() {
+            if let TyTupleField::Single(n, Some(ty)) = field {
+                for mut x in self.find_tuple_generic(ty, true) {
+                    x.steps_to_base.insert(
+                        0,
+                        Step {
+                            position,
+                            name: n.as_ref(),
+                            target_ty: Cow::Borrowed(ty),
+                        },
+                    );
+                    res.push(x);
+                }
+            }
+        }
+        res
     }
-    res
 }
 
 #[derive(Debug, Clone)]
@@ -354,7 +368,7 @@ mod test {
     use crate::parser::parse;
     use crate::semantic::resolver::tuple::StepOwned;
     use crate::semantic::resolver::Resolver;
-    use crate::{Result, SourceTree};
+    use crate::{Error, Result, SourceTree};
 
     fn parse_ty(source: &str) -> Ty {
         let s = SourceTree::from(format!("type X = {source}"));
@@ -370,6 +384,10 @@ mod test {
         let mut r = Resolver::new(&mut root_module, Default::default());
 
         r.lookup_name_in_tuple(&parse_ty(tuple), name)
+            .and_then(|x| match x {
+                Some(x) => Ok(x),
+                None => Err(Error::new_simple("unknown name")),
+            })
     }
 
     fn tuple_lookup_with_generic(tuple: &str, name: &str) -> Result<(Vec<StepOwned>, Ty)> {
@@ -381,10 +399,10 @@ mod test {
         assert_eq!(ident.to_string(), "_generic.X1");
 
         // do the lookup
-        let res = r.lookup_name_in_tuple(&parse_ty(tuple), name)?;
+        let res = r.lookup_name_in_tuple(&parse_ty(tuple), name)?.unwrap();
 
         // get the generic candidate that was inferred
-        let decl = r.get_ident(&ident, true).unwrap();
+        let decl = r.get_ident(&ident).unwrap();
         let generic = decl.kind.as_generic_param().unwrap();
         let generic_candidate = generic.clone().unwrap().0;
         Ok((res, generic_candidate))
