@@ -542,7 +542,6 @@ fn extract_partial_application(mut func: FuncApplication, position: usize) -> Re
         }],
         named_params: Default::default(),
         generic_type_params: Default::default(),
-        initial_id: None,
     }))
 }
 

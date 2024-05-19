@@ -289,7 +289,6 @@ pub fn fold_func<T: ?Sized + PlFold>(fold: &mut T, func: Func) -> Result<Func> {
         return_ty: fold_type_opt(fold, func.return_ty)?,
         params: fold_func_param(fold, func.params)?,
         named_params: fold_func_param(fold, func.named_params)?,
-        initial_id: func.initial_id,
         generic_type_params: func.generic_type_params, // recurse into this too?
     })
 }

@@ -7,8 +7,8 @@ mod inference;
 mod scope;
 mod static_eval;
 mod stmt;
-mod types;
 mod tuple;
+mod types;
 
 /// Can fold (walk) over AST and for each function call or variable find what they are referencing.
 pub struct Resolver<'a> {

@@ -115,8 +115,6 @@ pub struct Func {
 
     /// Generic type arguments within this function.
     pub generic_type_params: Vec<GenericTypeParam>,
-
-    pub initial_id: Option<usize>,
 }
 #[derive(Debug, PartialEq, Clone, Serialize, Deserialize)]
 pub struct FuncParam {

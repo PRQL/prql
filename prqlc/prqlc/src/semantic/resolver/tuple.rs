@@ -231,7 +231,11 @@ impl super::Resolver<'_> {
 
     /// Find identifier of the generic that must receive a new field,
     /// if we push a new name into this tuple.
-    fn find_tuple_generic<'a>(&self, ty: &'a Ty, require_tuple: bool) -> Vec<LocationOfGeneric<'a>> {
+    fn find_tuple_generic<'a>(
+        &self,
+        ty: &'a Ty,
+        require_tuple: bool,
+    ) -> Vec<LocationOfGeneric<'a>> {
         if let TyKind::Ident(ident_of_generic) = &ty.kind {
             if require_tuple {
                 let Some(decl) = self.get_ident(ident_of_generic) else {

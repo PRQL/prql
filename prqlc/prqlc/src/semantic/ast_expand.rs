@@ -82,7 +82,6 @@ pub fn expand_expr(expr: Expr) -> Result<pl::Expr> {
                 params: expand_func_params(v.params)?,
                 named_params: expand_func_params(v.named_params)?,
                 generic_type_params: v.generic_type_params,
-                initial_id: None,
             }
             .into(),
         ),
