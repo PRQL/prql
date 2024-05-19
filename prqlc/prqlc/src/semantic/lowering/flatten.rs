@@ -1,8 +1,8 @@
 use std::collections::HashMap;
 
+use crate::ir::pl::{fold_column_sorts, fold_transform_kind};
 use crate::ir::pl::{
-    fold_column_sorts, fold_transform_kind, ColumnSort, Expr, ExprKind, PlFold, TransformCall,
-    TransformKind, WindowFrame,
+    ColumnSort, Expr, ExprKind, PlFold, TransformCall, TransformKind, WindowFrame,
 };
 use crate::semantic::NS_LOCAL;
 use crate::Result;

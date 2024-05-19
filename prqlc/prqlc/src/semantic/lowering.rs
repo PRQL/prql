@@ -114,7 +114,7 @@ struct Lowerer {
     pipeline: Vec<Transform>,
 
     /// current window for any new column defs
-    window: Option<rq::Window>,
+    window: Option<(Vec<usize>, rq::Window)>,
 
     local_this_id: Option<usize>,
     local_that_id: Option<usize>,
@@ -183,8 +183,9 @@ impl Lowerer {
         Ok(())
     }
 
-    fn lower_relation(&mut self, expr: pl::Expr) -> Result<rq::Relation> {
-        let id = expr.id.unwrap();
+    fn lower_relation(&mut self, mut expr: pl::Expr) -> Result<rq::Relation> {
+        let id = self.get_id(&mut expr);
+        let expr = expr;
 
         // look at the type of the expr and determine what will be the columns of the output relation
         let relation_fields = expr.ty.as_ref().and_then(|t| t.as_relation()).unwrap();
@@ -517,21 +518,25 @@ impl Lowerer {
         // ... and continues with transforms created in this function
         self.local_this_id = Some(input_id);
 
+        // prepare window
+        let (partition_ids, partition) = if let Some(partition) = transform_call.partition {
+            let ids = self.lower_and_flatten_tuple(*partition, false)?;
+            let cids = self.flatten_tuple_fields_into_cids(&ids)?;
+            (ids, cids)
+        } else {
+            (vec![], vec![])
+        };
         let window = rq::Window {
             frame: WindowFrame {
                 kind: transform_call.frame.kind,
                 range: self.lower_range(transform_call.frame.range)?,
             },
-            partition: if let Some(partition) = transform_call.partition {
-                let ids = self.lower_and_flatten_tuple(*partition, false)?;
-                self.flatten_tuple_fields_into_cids(&ids)?
-            } else {
-                vec![]
-            },
+            partition,
             sort: self.lower_sorts(transform_call.sort)?,
         };
-        self.window = Some(window);
+        self.window = Some((partition_ids, window));
 
+        // main thing
         let new_fields: Option<Vec<usize>> = match *transform_call.kind {
             pl::TransformKind::Derive { assigns, .. } => {
                 let ids = self.lower_and_flatten_tuple(*assigns, false)?;
@@ -549,17 +554,16 @@ impl Lowerer {
                 None
             }
             pl::TransformKind::Aggregate { assigns, .. } => {
-                let window = self.window.take();
+                let (partition_ids, window) = self.window.take().unwrap();
 
                 let ids = self.lower_and_flatten_tuple(*assigns, true)?;
 
-                let partition = window.unwrap().partition;
                 self.pipeline.push(Transform::Aggregate {
-                    partition,
+                    partition: window.partition,
                     compute: self.flatten_tuple_fields_into_cids(&ids)?,
                 });
 
-                Some(ids)
+                Some([partition_ids, ids].concat())
             }
             pl::TransformKind::Sort { by, .. } => {
                 let sorts = self.lower_sorts(by)?;
@@ -568,7 +572,7 @@ impl Lowerer {
                 None
             }
             pl::TransformKind::Take { range, .. } => {
-                let window = self.window.take().unwrap_or_default();
+                let (_, window) = self.window.take().unwrap_or_default();
                 let range = self.lower_range(range)?;
 
                 validate_take_range(&range, span)?;
