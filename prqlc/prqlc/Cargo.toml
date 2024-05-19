@@ -45,10 +45,10 @@ itertools = {workspace = true}
 log = {workspace = true}
 once_cell = "1.19.0"
 regex = "1.10.4"
-semver = {version = "1.0.22", features = ["serde"]}
+semver = {version = "1.0.23", features = ["serde"]}
 # We could put `serde` behind a feature if we wanted to reduce the size of prqlc.
 serde = {workspace = true}
-serde_json = "1.0.116"
+serde_json = "1.0.117"
 serde_yaml = {version = "0.9.34"}
 sqlformat = "0.2.3"
 sqlparser = {version = "0.46.0", features = ["serde"]}
@@ -59,7 +59,7 @@ strum_macros = "0.26.2"
 
 # unique dependencies from the CLI, marked as optional and included in the 'cli'
 # feature
-anyhow = {version = "1.0.82", features = ["backtrace"], optional = true}
+anyhow = {version = "1.0.86", features = ["backtrace"], optional = true}
 clap = {version = "4.4.18", features = ["derive", "env", "wrap_help"], optional = true}
 clap_complete_command = {version = "0.5.1", optional = true}
 clio = {version = "0.3.3", features = ['clap-parse'], optional = true}
