@@ -6,7 +6,7 @@ use crate::ast::{Ty, TyFunc};
 use crate::codegen::write_ty;
 use crate::ir::decl::{Decl, DeclKind};
 use crate::ir::pl::*;
-use crate::semantic::{NS_GENERIC, NS_LOCAL, NS_THAT, NS_THIS};
+use crate::semantic::{write_pl, NS_GENERIC, NS_LOCAL, NS_THAT, NS_THIS};
 use crate::{Error, Result, Span, WithErrorInfo};
 
 use super::scope::{self, Scope};
@@ -344,12 +344,12 @@ impl Resolver<'_> {
                 if impl_cl_pos.map_or(false, |pos| pos == index) {
                     let mut scope = scope::Scope::new();
                     if let Some(pos) = this_pos {
-                        let ty = app.args[pos as usize].ty.as_ref().unwrap();
-                        prepare_scope_of_implicit_closure_param(&mut scope, NS_THIS, ty);
+                        let arg = &app.args[pos as usize];
+                        self.prepare_scope_of_implicit_closure_arg(&mut scope, NS_THIS, arg)?;
                     }
                     if let Some(pos) = that_pos {
-                        let ty = app.args[pos as usize].ty.as_ref().unwrap();
-                        prepare_scope_of_implicit_closure_param(&mut scope, NS_THAT, ty);
+                        let arg = &app.args[pos as usize];
+                        self.prepare_scope_of_implicit_closure_arg(&mut scope, NS_THAT, arg)?;
                     }
                     self.scopes.push(scope);
                 }
@@ -374,7 +374,7 @@ impl Resolver<'_> {
                 metadata.as_debug_name()
             );
 
-            Err(extract_partial_application(app, position))
+            Err(extract_partial_application(app, position)?)
         } else {
             Ok(app)
         })
@@ -445,9 +445,40 @@ impl Resolver<'_> {
             self.fold_expr(expr)?
         })
     }
+
+    fn prepare_scope_of_implicit_closure_arg(
+        &mut self,
+        scope: &mut Scope,
+        namespace: &str,
+        expr: &Expr,
+    ) -> Result<()> {
+        let ty = expr.ty.as_ref().unwrap();
+
+        // we expect the param to be an array of tuples, but have the type of this to be a tuple
+        // here we unwrap the array and keep only the inner tuple
+        let tuple_ty = match &ty.kind {
+            TyKind::Array(tuple_ty) => *tuple_ty.clone(),
+            TyKind::Ident(ident_of_generic) => {
+                self.infer_generic_as_array(ident_of_generic, expr.span)?
+            }
+            _ => {
+                return Err(
+                    Error::new_simple("implict closure param was expected to be an array")
+                        .push_hint(format!("got ty: {}", write_ty(ty))),
+                );
+            }
+        };
+        scope.params.insert(
+            namespace.to_string(),
+            Decl::from(DeclKind::Variable(Some(tuple_ty))),
+        );
+        Ok(())
+    }
 }
 
-fn extract_partial_application(mut func: FuncApplication, position: usize) -> Box<Func> {
+fn extract_partial_application(mut func: FuncApplication, position: usize) -> Result<Box<Func>> {
+    dbg!(&func);
+
     // Input:
     // Func {
     //     params: [x, y, z],
@@ -488,7 +519,10 @@ fn extract_partial_application(mut func: FuncApplication, position: usize) -> Bo
     // it with the parent func.
 
     let arg = func.args.get_mut(position).unwrap();
-    let arg_func = arg.kind.as_func_application_mut().unwrap();
+    let ExprKind::FuncApplication(arg_func) = &mut arg.kind else {
+        return Err(Error::new_assert("expected func application")
+            .push_hint(format!("got: {}", write_pl(arg.clone()))));
+    };
 
     let param_name = format!("_partial_{}", arg.id.unwrap());
     let substitute_arg = Expr::new(Ident::from_path(vec![
@@ -498,7 +532,7 @@ fn extract_partial_application(mut func: FuncApplication, position: usize) -> Bo
     arg_func.args.push(substitute_arg);
 
     // set the arg func body to the parent func
-    Box::new(Func {
+    Ok(Box::new(Func {
         return_ty: None,
         body: Box::new(Expr::new(ExprKind::FuncApplication(func))),
         params: vec![FuncParam {
@@ -509,7 +543,7 @@ fn extract_partial_application(mut func: FuncApplication, position: usize) -> Bo
         named_params: Default::default(),
         generic_type_params: Default::default(),
         initial_id: None,
-    })
+    }))
 }
 
 fn prepare_scope_of_func(scope: &mut Scope, func: &Func) {
@@ -521,14 +555,6 @@ fn prepare_scope_of_func(scope: &mut Scope, func: &Func) {
         let param_name = param.name.split('.').last().unwrap();
         scope.params.insert(param_name.to_string(), v);
     }
-}
-
-fn prepare_scope_of_implicit_closure_param(scope: &mut Scope, namespace: &str, ty: &Ty) {
-    let tuple_ty = ty.kind.as_array().unwrap();
-    scope.params.insert(
-        namespace.to_string(),
-        Decl::from(DeclKind::Variable(Some(*tuple_ty.clone()))),
-    );
 }
 
 pub fn expr_of_func_application(

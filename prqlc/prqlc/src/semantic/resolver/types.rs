@@ -243,12 +243,12 @@ impl Resolver<'_> {
             // generics: infer
             (_, TyKind::Ident(expected_fq)) => {
                 // if expected type is a generic, infer that it must be the found type
-                self.infer_type_of_generic(expected_fq, found.clone(), found.span)?;
+                self.infer_generic_as_ty(expected_fq, found.clone(), found.span)?;
                 Ok(())
             }
             (TyKind::Ident(found_fq), _) => {
                 // if found type is a generic, infer that it must be the expected type
-                self.infer_type_of_generic(found_fq, expected.clone(), span)?;
+                self.infer_generic_as_ty(found_fq, expected.clone(), span)?;
                 Ok(())
             }
 

@@ -93,7 +93,7 @@ impl super::Resolver<'_> {
 
                 let indirection = IndirectionKind::Name(name.to_string());
                 let (pos_within, target_ty) =
-                    self.infer_tuple_field_of_generic(&ident_of_generic, indirection);
+                    self.infer_generic_as_tuple(&ident_of_generic, indirection);
 
                 steps.push(StepOwned {
                     position: pos_gen + pos_within,

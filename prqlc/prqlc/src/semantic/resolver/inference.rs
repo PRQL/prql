@@ -20,6 +20,39 @@ impl Resolver<'_> {
         ident
     }
 
+    /// For a given generic, infer that it must be of type `ty`.
+    pub fn infer_generic_as_ty(
+        &mut self,
+        ident_of_generic: &Ident,
+        ty: Ty,
+        span: Option<Span>,
+    ) -> Result<()> {
+        if let TyKind::Ident(ty_ident) = &ty.kind {
+            if ty_ident == ident_of_generic {
+                // don't infer that T is T
+                return Ok(());
+            }
+        }
+
+        log::debug!("inferring that {ident_of_generic:?} is {}", write_ty(&ty));
+
+        let Some(decl) = self.get_ident_mut(ident_of_generic, true) else {
+            return Err(Error::new_assert("type not found"));
+        };
+        let DeclKind::GenericParam(inferred_type) = &mut decl.kind else {
+            return Err(Error::new_assert("expected a generic type param")
+                .push_hint(format!("found {:?}", decl.kind)));
+        };
+
+        if let Some(existing) = inferred_type {
+            let existing = existing.clone();
+            return self.validate_type(&ty, &existing.0, existing.1, &|| None);
+        }
+
+        *inferred_type = Some((ty, span));
+        Ok(())
+    }
+
     /// When we refer to `Generic.my_field`, this function pushes information that `Generic`
     /// is a tuple with a field `my_field` into the generic type argument.
     ///
@@ -27,7 +60,7 @@ impl Resolver<'_> {
     /// - ident must be fq ident of a generic type param,
     /// - generic candidate either must not exist yet or be a tuple,
     /// - if it is a tuple, it must not yet contain the indirection target.
-    pub fn infer_tuple_field_of_generic(
+    pub fn infer_generic_as_tuple(
         &mut self,
         ident_of_generic: &Ident,
         indirection: IndirectionKind,
@@ -72,35 +105,36 @@ impl Resolver<'_> {
         }
     }
 
-    pub fn infer_type_of_generic(
+    pub fn infer_generic_as_array(
         &mut self,
         ident_of_generic: &Ident,
-        ty: Ty,
         span: Option<Span>,
-    ) -> Result<()> {
-        if let TyKind::Ident(ty_ident) = &ty.kind {
-            if ty_ident == ident_of_generic {
-                // don't infer that T is T
-                return Ok(());
+    ) -> Result<Ty> {
+        // generate the type of array items (to be an unknown type - a new generic)
+        // (this has to be done early in this function since we borrow self later)
+        let items_ty = self.init_new_global_generic("A");
+        let items_ty = Ty::new(TyKind::Ident(items_ty));
+
+        let ident = ident_of_generic;
+        let generic_decl = self.root_mod.module.get_mut(ident).unwrap();
+        let candidate = generic_decl.kind.as_generic_param_mut().unwrap();
+
+        // if there is no candidate yet, propose a new tuple type
+        if let Some((candidate, _)) = candidate.as_mut() {
+            if let TyKind::Array(items_ty) = &candidate.kind {
+                // ok, we already know it is an array
+                Ok(*items_ty.clone())
+            } else {
+                // nope
+                Err(Error::new_simple(format!(
+                    "generic type argument {} needs to be an array",
+                    ident_of_generic
+                ))
+                .push_hint(format!("existing candidate: {}", write_ty(candidate))))
             }
+        } else {
+            *candidate = Some((Ty::new(TyKind::Array(Box::new(items_ty.clone()))), span));
+            Ok(items_ty)
         }
-
-        log::debug!("inferring that {ident_of_generic:?} is {}", write_ty(&ty));
-
-        let Some(decl) = self.get_ident_mut(ident_of_generic, true) else {
-            return Err(Error::new_assert("type not found"));
-        };
-        let DeclKind::GenericParam(inferred_type) = &mut decl.kind else {
-            return Err(Error::new_assert("expected a generic type param")
-                .push_hint(format!("found {:?}", decl.kind)));
-        };
-
-        if let Some(existing) = inferred_type {
-            let existing = existing.clone();
-            return self.validate_type(&ty, &existing.0, existing.1, &|| None);
-        }
-
-        *inferred_type = Some((ty, span));
-        Ok(())
     }
 }
