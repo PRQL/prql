@@ -22,7 +22,7 @@ anyhow = {workspace = true}
 itertools = {workspace = true}
 # Unpinning this breaks something to do with env_logger. Try unpinning it and
 # running the tests to see what breaks.
-mdbook = {version = "=0.4.36", default-features = false}
+mdbook = {version = "=0.4.40", default-features = false}
 mdbook-preprocessor-boilerplate = "0.1.2"
 prqlc = {path = "../../prqlc/prqlc", default-features = false}
 pulldown-cmark = {version = "0.10.3", default-features = false}
