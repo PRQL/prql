@@ -18,7 +18,7 @@ use enum_as_inner::EnumAsInner;
 use expr::{InterpolateItem, Range, SwitchCase};
 use serde::{Deserialize, Serialize};
 
-use super::pl::Ident;
+use super::pl::TableExternRef;
 use super::pl::{Literal, QueryDef};
 
 #[derive(Debug, PartialEq, Clone, Serialize, Deserialize)]
@@ -40,7 +40,7 @@ pub struct Relation {
 
 #[derive(Debug, PartialEq, Clone, Serialize, Deserialize, EnumAsInner)]
 pub enum RelationKind {
-    ExternRef(Ident),
+    ExternRef(TableExternRef),
     Pipeline(Vec<Transform>),
     Literal(RelationLiteral),
     SString(Vec<InterpolateItem>),
