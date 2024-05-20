@@ -15,6 +15,7 @@ doctest = false
 enum-as-inner = "0.6.0"
 semver = {version = "1.0.23", features = ["serde"]}
 serde = {workspace = true}
+serde_yaml = {workspace = true, optional = true}
 strum = {version = "0.26.2", features = ["std", "derive"]}
 
 [dev-dependencies]

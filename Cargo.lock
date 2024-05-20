@@ -3123,6 +3123,7 @@ dependencies = [
  "semver",
  "serde",
  "serde_json",
+ "serde_yaml",
  "strum 0.26.2",
 ]
 
@@ -3145,6 +3146,7 @@ dependencies = [
  "prqlc-ast",
  "semver",
  "serde",
+ "serde_yaml",
  "stacker",
 ]
 
