@@ -24,12 +24,15 @@ cli = [
   "is-terminal",
   "minijinja",
   "notify",
-  "prqlc-ast/serde_yaml",
-  "prqlc-parser/serde_yaml",
   "serde_yaml",
   "walkdir",
 ]
 default = ["cli"]
+serde_yaml = [
+  "prqlc-ast/serde_yaml",
+  "prqlc-parser/serde_yaml",
+  "dep:serde_yaml",
+]
 # Technically tokio could be limited to external tests, but its types are in
 # signatures which would require lots of conditional compilation.
 test-dbs = ["anyhow", "duckdb", "glob", "rusqlite", "tokio"]

@@ -40,11 +40,18 @@ pub struct Relation {
 
 #[derive(Debug, PartialEq, Clone, Serialize, Deserialize, EnumAsInner)]
 pub enum RelationKind {
+    #[cfg_attr(
+        feature = "serde_yaml",
+        serde(with = "serde_yaml::with::singleton_map")
+    )]
     ExternRef(TableExternRef),
     Pipeline(Vec<Transform>),
     Literal(RelationLiteral),
     SString(Vec<InterpolateItem>),
-    BuiltInFunction { name: String, args: Vec<Expr> },
+    BuiltInFunction {
+        name: String,
+        args: Vec<Expr>,
+    },
 }
 
 #[derive(Debug, PartialEq, Clone, Serialize, Deserialize)]

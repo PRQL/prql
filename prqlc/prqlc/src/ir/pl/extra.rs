@@ -96,10 +96,6 @@ pub enum TransformKind {
 #[derive(Debug, PartialEq, Eq, Clone, Serialize, Deserialize)]
 pub enum TableExternRef {
     /// Actual table in a database, that we can refer to by name in SQL
-    #[cfg_attr(
-        feature = "serde_yaml",
-        serde(with = "serde_yaml::with::singleton_map")
-    )]
     LocalTable(Ident),
 
     /// Placeholder for a relation that will be provided later.
