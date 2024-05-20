@@ -1,4 +1,5 @@
 use enum_as_inner::EnumAsInner;
+use prqlc_ast::Ident;
 use serde::{Deserialize, Serialize};
 
 use crate::ast::Ty;
@@ -92,15 +93,10 @@ pub enum TransformKind {
 }
 
 /// A reference to a table that is not in scope of this query.
-///
-/// > Note: We're not using this at the moment in
-/// > [crate::ir::rq::RelationKind], since we wanted to avoid nested enums,
-/// > since they can't be serialized to YAML at the moment. We may add this back
-/// > in the future, or flatten it up to [crate::ir::rq::RelationKind]
 #[derive(Debug, PartialEq, Eq, Clone, Serialize, Deserialize)]
 pub enum TableExternRef {
     /// Actual table in a database, that we can refer to by name in SQL
-    LocalTable(String),
+    LocalTable(Ident),
 
     /// Placeholder for a relation that will be provided later.
     /// This is very similar to relational s-strings and may not even be needed for now, so

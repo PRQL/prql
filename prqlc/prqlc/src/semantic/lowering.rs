@@ -5,7 +5,6 @@ use std::iter::zip;
 use enum_as_inner::EnumAsInner;
 use itertools::Itertools;
 
-use crate::ast::generic::{InterpolateItem, Range, SwitchCase};
 use crate::ast::TyTupleField;
 use crate::ir::decl::{self, DeclKind, Module, RootModule, TableExpr};
 use crate::ir::generic::{ColumnSort, WindowFrame};
@@ -16,6 +15,10 @@ use crate::ir::rq::{
 use crate::semantic::write_pl;
 use crate::utils::{toposort, IdGenerator};
 use crate::COMPILER_VERSION;
+use crate::{
+    ast::generic::{InterpolateItem, Range, SwitchCase},
+    ir::pl::TableExternRef::LocalTable,
+};
 use crate::{Error, Reason, Result, Span, WithErrorInfo};
 
 /// Convert a resolved expression at path `main_path` relative to `root_mod`
@@ -105,7 +108,7 @@ fn extern_ref_to_relation(
     columns.sort_by_key(|a| matches!(a, TyTupleField::Wildcard(_)));
 
     let relation = rq::Relation {
-        kind: rq::RelationKind::ExternRef(extern_name),
+        kind: rq::RelationKind::ExternRef(LocalTable(extern_name)),
         columns: tuple_fields_to_relation_columns(columns),
     };
     Ok((relation, None))

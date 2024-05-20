@@ -744,7 +744,8 @@ sort full
           name: null
           relation:
             kind: !ExternRef
-            - x
+              LocalTable:
+              - x
             columns:
             - !Single y
             - Wildcard

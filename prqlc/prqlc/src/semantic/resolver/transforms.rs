@@ -1095,7 +1095,8 @@ mod tests {
             relation:
               kind:
                 ExternRef:
-                  - c_invoice
+                  LocalTable:
+                    - c_invoice
               columns:
                 - Single: invoice_no
                 - Wildcard
@@ -1183,7 +1184,8 @@ mod tests {
             relation:
               kind:
                 ExternRef:
-                  - invoices
+                  LocalTable:
+                    - invoices
               columns:
                 - Single: issued_at
                 - Single: amount
