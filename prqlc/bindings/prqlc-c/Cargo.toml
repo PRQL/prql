@@ -17,14 +17,14 @@ default = []
 # https://github.com/rust-lang/cargo/issues/8607 &
 # https://github.com/rust-lang/rust/issues/59302
 crate_type = ["staticlib", "cdylib"]
+doc = false
 doctest = false
 test = false
-doc = false
 
 [dependencies]
 libc = "0.2.155"
 prqlc = {path = "../../prqlc", default-features = false}
-serde_json = "1.0.117"
+serde_json = {workspace = true}
 
 [package.metadata.release]
 tag-name = "{{version}}"
