@@ -14,7 +14,6 @@ metadata.msrv = "1.70.0"
 [features]
 cli = [
   "anyhow",
-  "is-terminal",
   "clap_complete_command",
   "clap_complete",
   "clap",
@@ -22,8 +21,11 @@ cli = [
   "color-eyre",
   "colorchoice-clap",
   "env_logger",
+  "is-terminal",
   "minijinja",
   "notify",
+  "prqlc-ast/serde_yaml",
+  "prqlc-parser/serde_yaml",
   "walkdir",
 ]
 default = ["cli"]
@@ -49,7 +51,7 @@ semver = {version = "1.0.23", features = ["serde"]}
 # We could put `serde` behind a feature if we wanted to reduce the size of prqlc.
 serde = {workspace = true}
 serde_json = "1.0.117"
-serde_yaml = {version = "0.9.34"}
+serde_yaml = {workspace = true}
 sqlformat = "0.2.3"
 sqlparser = {version = "0.46.0", features = ["serde"]}
 strum = {version = "0.26.2", features = ["std", "derive"]}
