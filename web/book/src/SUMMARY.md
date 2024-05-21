@@ -1,5 +1,13 @@
 <!-- markdownlint-disable MD042 — some pages aren't finished yet (though the graying out of top level pages is not ideal — it's either that, or links to pages that are blank. Or maybe we try and write a useful page for each heading?) -->
 
+# Introduction
+
+PRQL is a modern language for transforming data — a simple, powerful, pipelined
+SQL replacement. This book serves as a tutorial and reference guide on the
+language and the broader project.
+
+[Introduction](./SUMMARY.md)
+
 # Tutorial
 
 A friendly & accessible guide for learning PRQL. It has a gradual increase of
