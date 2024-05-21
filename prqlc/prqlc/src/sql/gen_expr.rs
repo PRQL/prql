@@ -103,7 +103,7 @@ pub(super) fn translate_expr(expr: Expr, ctx: &mut Context) -> Result<ExprOrSour
                     }
                 }
                 "std.concat" => return Ok(process_concat(&expr, ctx)?.into()),
-                "std.array_in" => return Ok(process_array_in(args, ctx)?.into()),
+                "std.array_in" => return Ok(process_array_in(&expr, args, ctx)?.into()),
                 "std.date.to_text" => {
                     return Ok(process_date_to_text(&expr, name, args, ctx)?.into())
                 }
@@ -157,10 +157,14 @@ fn process_null(name: &str, args: &[Expr], ctx: &mut Context) -> Result<sql_ast:
 }
 
 /// Translates into IN (v1, v2, ...) if possible
-fn process_array_in(args: &[Expr], ctx: &mut Context) -> Result<sql_ast::Expr> {
+fn process_array_in(expr: &Expr, args: &[Expr], ctx: &mut Context) -> Result<sql_ast::Expr> {
     match args {
         [col_expr @ Expr {
-            kind: ExprKind::ColumnRef(_),
+            kind: ExprKind::ColumnRef(_)
+                | ExprKind::Literal(_)
+                | ExprKind::SString(_)
+                | ExprKind::Param(_)
+                | ExprKind::Operator { name: _, args: _ },
             ..
         }, Expr {
             kind: ExprKind::Array(in_values),
@@ -173,7 +177,10 @@ fn process_array_in(args: &[Expr], ctx: &mut Context) -> Result<sql_ast::Expr> {
                 .collect::<Result<Vec<sql_ast::Expr>>>()?,
             negated: false,
         }),
-        _ => panic!("args to `std.array_in` must be a column ref and an array"),
+        _ => Err(
+            Error::new_simple("args to `std.array_in` must be an expression and an array")
+                .with_span(expr.span)
+        ),
     }
 }
 
