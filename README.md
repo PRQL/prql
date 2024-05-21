@@ -35,7 +35,7 @@ aggregate {                                   # `aggregate` reduces each column 
 }
 ```
 
-Here's a fuller example of the language;
+Here's a fuller example of the language:
 
 ```elm
 from employees
