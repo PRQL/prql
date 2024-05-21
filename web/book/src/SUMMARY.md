@@ -2,10 +2,6 @@
 
 # Introduction
 
-PRQL is a modern language for transforming data — a simple, powerful, pipelined
-SQL replacement. This book serves as a tutorial and reference guide on the
-language and the broader project.
-
 [Introduction](./README.md)
 
 # Tutorial
