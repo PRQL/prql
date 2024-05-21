@@ -23,8 +23,8 @@ left:
 
 ---
 
-To lead with a couple of examples comparing PRQL & SQL, PRQL can be as simple
-as:
+To lead with a couple of examples, with a comparison to SQL: the language can be
+as simple as:
 
 ```prql
 from tracks
