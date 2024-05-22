@@ -1155,6 +1155,8 @@ fn test_in_values_01() {
     from employees
     filter (title | in ["Sales Manager", "Sales Support Agent"])
     filter (employee_id | in [1, 2, 5])
+    filter (f"{emp_group}.{role}" | in ["sales_ne.mgr", "sales_mw.mgr"])
+    filter (s"{metadata} ->> '$.location'" | in ["Northeast", "Midwest"])
     "#).unwrap()), @r#"
     SELECT
       *
@@ -1163,6 +1165,8 @@ fn test_in_values_01() {
     WHERE
       title IN ('Sales Manager', 'Sales Support Agent')
       AND employee_id IN (1, 2, 5)
+      AND CONCAT(emp_group, '.', role) IN ('sales_ne.mgr', 'sales_mw.mgr')
+      AND metadata ->> '$.location' IN ('Northeast', 'Midwest')
     "#);
 }
 
@@ -1219,6 +1223,22 @@ fn test_not_in_values() {
     WHERE
       NOT title IN ('Sales Manager', 'Sales Support Agent')
     "#);
+}
+
+#[test]
+fn test_in_values_err_01() {
+    assert_snapshot!((compile(r###"
+    from employees
+    derive { ng = ([1, 2] | in [3, 4]) }
+    "###).unwrap_err()), @r###"
+    Error:
+       ╭─[:3:29]
+       │
+     3 │     derive { ng = ([1, 2] | in [3, 4]) }
+       │                             ────┬────
+       │                                 ╰────── args to `std.array_in` must be an expression and an array
+    ───╯
+    "###);
 }
 
 #[test]

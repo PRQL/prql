@@ -13,6 +13,8 @@
 
 **Fixes**:
 
+- Support expressions on left hand side of `std.in` operator. (@kgutwin, #4498)
+
 **Documentation**:
 
 **Web**:
