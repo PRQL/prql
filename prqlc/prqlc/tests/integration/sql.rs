@@ -2386,6 +2386,80 @@ fn test_join() {
 }
 
 #[test]
+fn test_join_side_literal() {
+    assert_snapshot!((compile(r###"
+    let my_side = "right"
+
+    from x
+    join y (==id) side:my_side
+    "###).unwrap()), @r###"
+    SELECT
+      x.*,
+      y.*
+    FROM
+      x
+      RIGHT JOIN y ON x.id = y.id
+    "###);
+}
+
+#[test]
+fn test_join_side_literal_err() {
+    assert_snapshot!((compile(r###"
+    let my_side = 42
+
+    from x
+    join y (==id) side:my_side
+    "###).unwrap_err()), @r###"
+    Error:
+       ╭─[:5:24]
+       │
+     5 │     join y (==id) side:my_side
+       │                        ───┬───
+       │                           ╰───── `side` expected inner, left, right or full, but found my_side
+    ───╯
+    "###);
+}
+
+#[test]
+fn test_join_side_literal_via_func() {
+    assert_snapshot!((compile(r###"
+    let my_join = func m <relation> c <scalar> s <text>:"right" tbl <relation> -> (
+        join side:_param.s m (c == that.k) tbl
+    )
+
+    from x
+    my_join default_db.y this.id s:"left"
+    "###).unwrap()), @r###"
+    SELECT
+      x.*,
+      y.*
+    FROM
+      x
+      LEFT JOIN y ON x.id = y.k
+    "###);
+}
+
+#[test]
+fn test_join_side_literal_via_func_err() {
+    assert_snapshot!((compile(r###"
+    let my_join = func m <relation> c <scalar> s <text>:"right" tbl <relation> -> (
+        join side:_param.s m (c == that.k) tbl
+    )
+
+    from x
+    my_join default_db.y this.id s:"four"
+    "###).unwrap_err()), @r###"
+    Error:
+       ╭─[:3:25]
+       │
+     3 │         join side:_param.s m (c == that.k) tbl
+       │                         ─┬
+       │                          ╰── `side` expected inner, left, right or full, but found _param.s
+    ───╯
+    "###);
+}
+
+#[test]
 fn test_from_json() {
     // Test that the SQL generated from the JSON of the PRQL is the same as the raw PRQL
     let original_prql = r#"

@@ -101,7 +101,9 @@ impl Resolver<'_> {
 
                 let side = {
                     let span = side.span;
-                    let ident = side.try_cast(ExprKind::into_ident, Some("side"), "ident")?;
+                    let ident =
+                        side.clone()
+                            .try_cast(ExprKind::into_ident, Some("side"), "ident")?;
                     match ident.to_string().as_str() {
                         "inner" => JoinSide::Inner,
                         "left" => JoinSide::Left,
@@ -109,12 +111,27 @@ impl Resolver<'_> {
                         "full" => JoinSide::Full,
 
                         found => {
-                            return Err(Error::new(Reason::Expected {
-                                who: Some("`side`".to_string()),
-                                expected: "inner, left, right or full".to_string(),
-                                found: found.to_string(),
-                            })
-                            .with_span(span))
+                            let folded = self.fold_expr(side)?.try_cast(
+                                ExprKind::into_literal,
+                                Some("side"),
+                                "string literal",
+                            )?;
+
+                            match folded.to_string().as_str() {
+                                "\"inner\"" => JoinSide::Inner,
+                                "\"left\"" => JoinSide::Left,
+                                "\"right\"" => JoinSide::Right,
+                                "\"full\"" => JoinSide::Full,
+
+                                _ => {
+                                    return Err(Error::new(Reason::Expected {
+                                        who: Some("`side`".to_string()),
+                                        expected: "inner, left, right or full".to_string(),
+                                        found: found.to_string(),
+                                    })
+                                    .with_span(span))
+                                }
+                            }
                         }
                     }
                 };
