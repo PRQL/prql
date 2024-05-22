@@ -1226,6 +1226,22 @@ fn test_not_in_values() {
 }
 
 #[test]
+fn test_in_values_err_01() {
+    assert_snapshot!((compile(r###"
+    from employees
+    derive { ng = ([1, 2] | in [3, 4]) }
+    "###).unwrap_err()), @r###"
+    Error:
+       ╭─[:3:29]
+       │
+     3 │     derive { ng = ([1, 2] | in [3, 4]) }
+       │                             ────┬────
+       │                                 ╰────── args to `std.array_in` must be an expression and an array
+    ───╯
+    "###);
+}
+
+#[test]
 fn test_interval() {
     let query = r###"
     from projects
