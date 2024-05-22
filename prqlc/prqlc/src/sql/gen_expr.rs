@@ -160,7 +160,8 @@ fn process_null(name: &str, args: &[Expr], ctx: &mut Context) -> Result<sql_ast:
 fn process_array_in(expr: &Expr, args: &[Expr], ctx: &mut Context) -> Result<sql_ast::Expr> {
     match args {
         [col_expr @ Expr {
-            kind: ExprKind::ColumnRef(_)
+            kind:
+                ExprKind::ColumnRef(_)
                 | ExprKind::Literal(_)
                 | ExprKind::SString(_)
                 | ExprKind::Param(_)
@@ -179,7 +180,7 @@ fn process_array_in(expr: &Expr, args: &[Expr], ctx: &mut Context) -> Result<sql
         }),
         _ => Err(
             Error::new_simple("args to `std.array_in` must be an expression and an array")
-                .with_span(expr.span)
+                .with_span(expr.span),
         ),
     }
 }
