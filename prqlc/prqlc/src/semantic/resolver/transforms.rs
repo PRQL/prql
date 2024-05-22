@@ -104,6 +104,8 @@ impl Resolver<'_> {
                     let ident =
                         side.clone()
                             .try_cast(ExprKind::into_ident, Some("side"), "ident")?;
+
+                    // first try to match the raw ident string as a bare word
                     match ident.to_string().as_str() {
                         "inner" => JoinSide::Inner,
                         "left" => JoinSide::Left,
@@ -111,6 +113,10 @@ impl Resolver<'_> {
                         "full" => JoinSide::Full,
 
                         found => {
+                            // if that fails, fold the ident and try
+                            // treating the result as a literal
+                            // this allows the join side to be passed as a
+                            // function parameter
                             let folded = self.fold_expr(side)?.try_cast(
                                 ExprKind::into_literal,
                                 Some("side"),
