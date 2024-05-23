@@ -2415,7 +2415,7 @@ fn test_join_side_literal_err() {
        │
      5 │     join y (==id) side:my_side
        │                        ───┬───
-       │                           ╰───── `side` expected inner, left, right or full, but found my_side
+       │                           ╰───── `side` expected inner, left, right or full, but found 42
     ───╯
     "###);
 }
@@ -2454,7 +2454,7 @@ fn test_join_side_literal_via_func_err() {
        │
      3 │         join side:_param.s m (c == that.k) tbl
        │                         ─┬
-       │                          ╰── `side` expected inner, left, right or full, but found _param.s
+       │                          ╰── `side` expected inner, left, right or full, but found "four"
     ───╯
     "###);
 }

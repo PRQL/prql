@@ -112,7 +112,7 @@ impl Resolver<'_> {
                         "right" => JoinSide::Right,
                         "full" => JoinSide::Full,
 
-                        found => {
+                        _ => {
                             // if that fails, fold the ident and try treating the result as a literal
                             // this allows the join side to be passed as a function parameter
                             // NOTE: this is temporary, pending discussions and implementation, tracked in #4501
@@ -132,7 +132,7 @@ impl Resolver<'_> {
                                     return Err(Error::new(Reason::Expected {
                                         who: Some("`side`".to_string()),
                                         expected: "inner, left, right or full".to_string(),
-                                        found: found.to_string(),
+                                        found: folded.to_string(),
                                     })
                                     .with_span(span))
                                 }
