@@ -10,7 +10,7 @@
   generates Markdown documentation from `.prql` files. (@vanillajonathan,
   #4152).
 - Add `prqlc lex` command to the CLI (@max-sixty)
-- Join `side` parameter can take a reference that resolves to a literal (@kgutwin, #4499)
+- Join `side` parameter can take a reference that resolves to a literal (note: this is an experimental feature which may change in the future) (@kgutwin, #4499)
 
 **Fixes**:
 
