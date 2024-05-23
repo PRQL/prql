@@ -113,10 +113,9 @@ impl Resolver<'_> {
                         "full" => JoinSide::Full,
 
                         found => {
-                            // if that fails, fold the ident and try
-                            // treating the result as a literal
-                            // this allows the join side to be passed as a
-                            // function parameter
+                            // if that fails, fold the ident and try treating the result as a literal
+                            // this allows the join side to be passed as a function parameter
+                            // NOTE: this is temporary, pending discussions and implementation, tracked in #4501
                             let folded = self.fold_expr(side)?.try_cast(
                                 ExprKind::into_literal,
                                 Some("side"),
