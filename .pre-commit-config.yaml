@@ -27,7 +27,7 @@ repos:
           # https://github.com/PRQL/prql/issues/3078
           - prettier-plugin-go-template
   - repo: https://github.com/astral-sh/ruff-pre-commit
-    rev: v0.4.4
+    rev: v0.4.5
     hooks:
       - id: ruff
         args: [--fix]
@@ -51,7 +51,7 @@ repos:
     hooks:
       - id: actionlint
   - repo: https://github.com/tcort/markdown-link-check
-    rev: v3.12.1
+    rev: v3.12.2
     hooks:
       - id: markdown-link-check
         name: markdown-link-check-local
