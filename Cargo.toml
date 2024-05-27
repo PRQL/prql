@@ -46,7 +46,7 @@ consolidate-commits = true
 
 [workspace.dependencies]
 anyhow = "1.0.86"
-insta = {version = "1.38.0", features = ["colors", "glob", "yaml"]}
+insta = {version = "1.39.0", features = ["colors", "glob", "yaml"]}
 insta-cmd = "0.6.0"
 itertools = "0.12.0"
 log = "0.4.21"
