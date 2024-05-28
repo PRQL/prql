@@ -237,6 +237,7 @@ tasks:
       # features themselves and so require recompiling. This is only useful for
       # caching.
       - cargo build --all-targets
+      - cargo build --all-targets --targets=default,test-dbs
       - cargo doc
       - task: web:build
       - task: build-each-crate
