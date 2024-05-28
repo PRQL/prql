@@ -239,8 +239,8 @@ tasks:
       - cargo build --all-targets
       - cargo build --all-targets --targets=default,test-dbs
       - cargo doc
-      - task: web:build
       - task: build-each-crate
+      - task: web:build
       - task: python:build
 
   build-each-crate:
