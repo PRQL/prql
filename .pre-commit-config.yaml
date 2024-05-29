@@ -80,6 +80,18 @@ repos:
         entry: "```prql$"
         files: 'CHANGELOG\.md$'
 
+  # This is quite strict, and doesn't fix a large enough share of the issues it
+  # finds, so we don't include it. But it's reasonable to run every now & again
+  # manually and take its fixes.
+  #
+  # - repo: https://github.com/DavidAnson/markdownlint-cli2
+  #   rev: v0.5.1
+  #   hooks:
+  #     - id: markdownlint-cli2
+  #       args: ["--fix"]
+  #       additional_dependencies:
+  #         - markdown-it-footnote
+
 ci:
   # Currently network access isn't supported in the CI product.
   skip: [fmt, markdown-link-check]
