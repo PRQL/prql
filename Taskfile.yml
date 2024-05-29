@@ -46,9 +46,11 @@ vars:
   # Excluding `elixir` atm given it's not enabled on Mac and currently unsupported
   brew_dependencies: |
     hugo
-    npm
-    python3
     jq
+    maturin
+    npm
+    pre-commit
+    python3
 
 tasks:
   # main installer is "setup-dev" which calls other tasks
@@ -76,8 +78,6 @@ tasks:
         ignore_error: true
       - cmd: task check-brew-dependencies
         ignore_error: true
-      - task: install-maturin
-      - task: install-pre-commit
       - task: install-npm-dependencies
       - pre-commit install-hooks
       - rustup component add llvm-tools-preview
@@ -119,11 +119,6 @@ tasks:
         platforms: [linux, darwin]
       - "cargo binstall -y --locked {{.cargo_crates}}"
 
-  install-maturin:
-    desc: Install maturin.
-    cmds:
-      - python3 -m pip install -U maturin
-
   check-vscode-extensions:
     desc: Check and suggest VS Code extensions.
     vars:
@@ -160,14 +155,6 @@ tasks:
         {{ range ( .vscode_extensions | trim | splitLines ) -}}
           code --install-extension {{.}}
         {{ end -}}
-
-  install-pre-commit:
-    # Someone might have this installed with `brew`,
-    # so only install if it can't be found.
-    status:
-      - which pre-commit
-    cmds:
-      - python3 -m pip install -U pre-commit
 
   check-brew-dependencies:
     status:
