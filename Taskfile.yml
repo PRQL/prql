@@ -47,8 +47,8 @@ vars:
   brew_dependencies: |
     hugo
     jq
-    maturin
     npm
+    pipx
     pre-commit
     python3
 
@@ -106,6 +106,15 @@ tasks:
       - cmd: |
           [ "$(which cargo-insta)" ] || echo "🔴 Can't find a binary that cargo just installed. Is the cargo bin path (generally at `~/.cargo/bin`) on the \$PATH?"
         silent: true
+
+  install-maturin:
+    desc: Install maturin.
+    # Someone might have this installed with another approach, so only install
+    # if it can't be found.
+    status:
+      - which maturin
+    cmds:
+      - pipx install -U maturin
 
   install-cargo-tools-source:
     cmds:
