@@ -16,7 +16,7 @@ repos:
         # https://github.com/crate-ci/typos/issues/347
         pass_filenames: false
   - repo: https://github.com/rbubley/mirrors-prettier
-    rev: v4.0.0-alpha.8
+    rev: v3.2.5
     hooks:
       - id: prettier
         additional_dependencies:
