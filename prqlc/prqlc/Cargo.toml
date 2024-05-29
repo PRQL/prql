@@ -9,7 +9,7 @@ rust-version.workspace = true
 version.workspace = true
 
 # Required for `cargo-msrv`, which doesn't yet support workspaces
-metadata.msrv = "1.70.0"
+metadata.msrv = "1.74.0"
 
 [features]
 cli = [
