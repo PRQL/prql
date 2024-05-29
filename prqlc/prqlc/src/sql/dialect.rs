@@ -167,7 +167,7 @@ pub(super) trait DialectHandler: Any + Debug {
     }
 
     /// Whether or not intervals such as `INTERVAL 1 HOUR` require quotes like
-    /// `INTERVAL '1' HOUR`
+    /// `INTERVAL '1 HOUR'`
     fn requires_quotes_intervals(&self) -> bool {
         false
     }
