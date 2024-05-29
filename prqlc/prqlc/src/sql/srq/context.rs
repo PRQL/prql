@@ -4,7 +4,7 @@
 use std::collections::HashMap;
 use std::iter::zip;
 
-use crate::Result;
+use crate::{ir::pl::TableExternRef::LocalTable, Result};
 use enum_as_inner::EnumAsInner;
 use serde::Serialize;
 
@@ -306,7 +306,7 @@ impl QueryLoader {
         let mut name = decl.name.clone().map(Ident::from_name);
 
         // assume name of the LocalTable that the relation is referencing
-        if let RelationKind::ExternRef(table) = &decl.relation.kind {
+        if let RelationKind::ExternRef(LocalTable(table)) = &decl.relation.kind {
             name = Some(table.clone());
         }
 

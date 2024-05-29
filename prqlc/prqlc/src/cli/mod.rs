@@ -744,7 +744,8 @@ sort full
           name: null
           relation:
             kind: !ExternRef
-            - x
+              LocalTable:
+              - x
             columns:
             - !Single y
             - Wildcard
@@ -870,6 +871,54 @@ sort full
           span:
             start: 16
             end: 17
+        "###);
+    }
+    #[test]
+    fn lex_nested_enum() {
+        let output = Command::execute(
+            &Command::Lex {
+                io_args: IoArgs::default(),
+                format: Format::Yaml,
+            },
+            &mut r#"
+            from tracks
+            take 10
+            "#
+            .into(),
+            "",
+        )
+        .unwrap();
+
+        assert_snapshot!(String::from_utf8(output).unwrap().trim(), @r###"
+        - kind: NewLine
+          span:
+            start: 0
+            end: 1
+        - kind: !Ident from
+          span:
+            start: 13
+            end: 17
+        - kind: !Ident tracks
+          span:
+            start: 18
+            end: 24
+        - kind: NewLine
+          span:
+            start: 24
+            end: 25
+        - kind: !Ident take
+          span:
+            start: 37
+            end: 41
+        - kind: !Literal
+            Integer: 10
+          span:
+            start: 42
+            end: 44
+        - kind: NewLine
+          span:
+            start: 44
+            end: 45
         "###);
     }
 }

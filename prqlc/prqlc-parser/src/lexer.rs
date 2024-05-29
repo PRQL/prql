@@ -19,6 +19,10 @@ pub enum TokenKind {
 
     Ident(String),
     Keyword(String),
+    #[cfg_attr(
+        feature = "serde_yaml",
+        serde(with = "serde_yaml::with::singleton_map")
+    )]
     Literal(Literal),
     Param(String),
 

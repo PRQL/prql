@@ -14,7 +14,6 @@ metadata.msrv = "1.70.0"
 [features]
 cli = [
   "anyhow",
-  "is-terminal",
   "clap_complete_command",
   "clap_complete",
   "clap",
@@ -22,11 +21,18 @@ cli = [
   "color-eyre",
   "colorchoice-clap",
   "env_logger",
+  "is-terminal",
   "minijinja",
   "notify",
+  "serde_yaml",
   "walkdir",
 ]
 default = ["cli"]
+serde_yaml = [
+  "prqlc-ast/serde_yaml",
+  "prqlc-parser/serde_yaml",
+  "dep:serde_yaml",
+]
 # Technically tokio could be limited to external tests, but its types are in
 # signatures which would require lots of conditional compilation.
 test-dbs = ["anyhow", "duckdb", "glob", "rusqlite", "tokio"]
@@ -45,11 +51,12 @@ itertools = {workspace = true}
 log = {workspace = true}
 once_cell = "1.19.0"
 regex = "1.10.4"
-semver = {version = "1.0.22", features = ["serde"]}
-# We could put `serde` behind a feature if we wanted to reduce the size of prqlc.
+semver = {version = "1.0.23", features = ["serde"]}
+# serde is required for the `from_text` feature of PRQL, so we can't really put
+# it behind a feature.
 serde = {workspace = true}
-serde_json = "1.0.116"
-serde_yaml = {version = "0.9.34"}
+serde_json = {workspace = true}
+serde_yaml = {workspace = true, optional = true}
 sqlformat = "0.2.3"
 sqlparser = {version = "0.46.0", features = ["serde"]}
 strum = {version = "0.26.2", features = ["std", "derive"]}
@@ -59,7 +66,7 @@ strum_macros = "0.26.2"
 
 # unique dependencies from the CLI, marked as optional and included in the 'cli'
 # feature
-anyhow = {version = "1.0.82", features = ["backtrace"], optional = true}
+anyhow = {version = "1.0.86", features = ["backtrace"], optional = true}
 clap = {version = "4.4.18", features = ["derive", "env", "wrap_help"], optional = true}
 clap_complete_command = {version = "0.5.1", optional = true}
 clio = {version = "0.3.3", features = ['clap-parse'], optional = true}
