@@ -78,6 +78,7 @@ tasks:
         ignore_error: true
       - cmd: task check-brew-dependencies
         ignore_error: true
+      - task: install-maturin
       - task: install-npm-dependencies
       - pre-commit install-hooks
       - rustup component add llvm-tools-preview
