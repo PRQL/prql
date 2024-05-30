@@ -15,7 +15,7 @@ doctest = false
 prqlc-ast = {path = "../prqlc-ast", version = "0.11.5" }
 serde = {workspace = true}
 serde_yaml = {workspace = true, optional = true}
-semver = {version = "1.0.22", features = ["serde"]}
+semver = {version = "1.0.23", features = ["serde"]}
 itertools = {workspace = true}
 log = {workspace = true}
 
