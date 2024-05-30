@@ -46,9 +46,11 @@ vars:
   # Excluding `elixir` atm given it's not enabled on Mac and currently unsupported
   brew_dependencies: |
     hugo
-    npm
-    python3
     jq
+    npm
+    pipx
+    pre-commit
+    python3
 
 tasks:
   # main installer is "setup-dev" which calls other tasks
@@ -77,7 +79,6 @@ tasks:
       - cmd: task check-brew-dependencies
         ignore_error: true
       - task: install-maturin
-      - task: install-pre-commit
       - task: install-npm-dependencies
       - pre-commit install-hooks
       - rustup component add llvm-tools-preview
@@ -107,6 +108,16 @@ tasks:
           [ "$(which cargo-insta)" ] || echo "🔴 Can't find a binary that cargo just installed. Is the cargo bin path (generally at `~/.cargo/bin`) on the \$PATH?"
         silent: true
 
+  install-maturin:
+    desc: Install maturin.
+    # Someone might have this installed with another approach, so only install
+    # if it can't be found.
+    status:
+      - which maturin
+    cmds:
+      - pipx install maturin
+      - pipx upgrade maturin
+
   install-cargo-tools-source:
     cmds:
       # `--locked` installs from the underlying lock files (which is not the
@@ -118,11 +129,6 @@ tasks:
       - cmd: cargo install --locked cargo-binstall
         platforms: [linux, darwin]
       - "cargo binstall -y --locked {{.cargo_crates}}"
-
-  install-maturin:
-    desc: Install maturin.
-    cmds:
-      - python3 -m pip install -U maturin
 
   check-vscode-extensions:
     desc: Check and suggest VS Code extensions.
@@ -160,14 +166,6 @@ tasks:
         {{ range ( .vscode_extensions | trim | splitLines ) -}}
           code --install-extension {{.}}
         {{ end -}}
-
-  install-pre-commit:
-    # Someone might have this installed with `brew`,
-    # so only install if it can't be found.
-    status:
-      - which pre-commit
-    cmds:
-      - python3 -m pip install -U pre-commit
 
   check-brew-dependencies:
     status:
