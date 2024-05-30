@@ -1,7 +1,7 @@
 use core::fmt;
 use std::collections::HashSet;
 use std::fmt::Display;
-use std::hash::{Hash, RandomState};
+use std::hash::Hash;
 
 use crate::ast::Span;
 use crate::err::error::{Error, ErrorSource, Reason, WithErrorInfo};
@@ -11,7 +11,7 @@ use crate::lexer::TokenKind;
 pub struct ChumError<T: Hash + Eq> {
     span: Span,
     reason: Option<String>,
-    expected: HashSet<Option<T>, RandomState>,
+    expected: HashSet<Option<T>>,
     found: Option<T>,
     label: SimpleLabel,
 }
