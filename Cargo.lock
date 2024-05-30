@@ -3142,7 +3142,6 @@ name = "prqlc-parser"
 version = "0.11.5"
 dependencies = [
  "chumsky",
- "enum-as-inner",
  "insta",
  "itertools 0.12.1",
  "log",
@@ -3151,7 +3150,6 @@ dependencies = [
  "serde",
  "serde_yaml",
  "stacker",
- "strum 0.26.2",
 ]
 
 [[package]]
