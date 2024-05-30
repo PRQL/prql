@@ -115,7 +115,8 @@ tasks:
     status:
       - which maturin
     cmds:
-      - pipx install -U maturin
+      - pipx install maturin
+      - pipx upgrade maturin
 
   install-cargo-tools-source:
     cmds:
