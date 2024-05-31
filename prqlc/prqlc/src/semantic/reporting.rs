@@ -1,7 +1,10 @@
+use serde::Serialize;
+use std::collections::HashMap;
 use std::ops::Range;
 
 use ariadne::{Color, Label, Report, ReportBuilder, ReportKind, Source};
 
+use crate::ast;
 use crate::ir::decl::{DeclKind, Module, RootModule, TableDecl, TableExpr};
 use crate::ir::pl::*;
 use crate::{Result, Span};
@@ -126,22 +129,170 @@ impl<'a> PlFold for Labeler<'a> {
     }
 }
 
-pub fn collect_frames(expr: Expr) -> Vec<(Span, Lineage)> {
-    let mut collector = FrameCollector { frames: vec![] };
+/// Traverses AST and collects all node.frame
+pub fn collect_frames(expr: Expr) -> FrameCollector {
+    let mut collector = FrameCollector {
+        frames: vec![],
+        nodes: HashMap::new(),
+        ast: None,
+    };
 
     collector.fold_expr(expr).unwrap();
 
     collector.frames.reverse();
-    collector.frames
+
+    let mut parent_updates = Vec::new();
+    for (id, node) in &collector.nodes {
+        for &child in &node.children {
+            parent_updates.push((child, *id));
+        }
+    }
+    for (child, parent) in parent_updates {
+        if let Some(child_node) = collector.nodes.get_mut(&child) {
+            child_node.parent = Some(parent);
+        }
+    }
+
+    collector
 }
 
-/// Traverses AST and collects all node.frame
-struct FrameCollector {
-    frames: Vec<(Span, Lineage)>,
+#[derive(Debug, Clone, PartialEq, Serialize)]
+pub struct ExprGraphNode {
+    /// Node unique ID
+    pub id: usize,
+
+    /// Descriptive text about the node
+    pub kind: String,
+
+    /// Position of this expr in the original source query
+    pub span: Option<Span>,
+
+    /// When this node is part of a Tuple, this holds the alias name
+    pub alias: Option<String>,
+
+    /// When kind is Ident, this holds the referenced name
+    pub ident: Option<ExprKind>,
+
+    /// Upstream sources of data for this expr as node IDs
+    pub targets: Vec<usize>,
+
+    /// If this expr holds other exprs, these are their node IDs
+    pub children: Vec<usize>,
+
+    /// If this expr is inside of another expr, this is its parent node ID
+    pub parent: Option<usize>,
+}
+
+#[derive(Serialize)]
+pub struct FrameCollector {
+    /// Each transformation step in the main pipeline corresponds to a single
+    /// frame. This holds the output columns at each frame, as well as the span
+    /// position of the frame.
+    pub frames: Vec<(Span, Lineage)>,
+
+    /// A mapping of expression graph node IDs to their node definitions.
+    pub nodes: HashMap<usize, ExprGraphNode>,
+
+    /// The parsed AST from the provided query.
+    pub ast: Option<ast::ModuleDef>,
 }
 
 impl PlFold for FrameCollector {
     fn fold_expr(&mut self, expr: Expr) -> Result<Expr> {
+        if let Some(id) = expr.id {
+            let targets = match &expr.kind {
+                ExprKind::Ident(_) => {
+                    if let Some(target_id) = expr.target_id {
+                        vec![target_id]
+                    } else {
+                        vec![]
+                    }
+                }
+                ExprKind::RqOperator { args, .. } => {
+                    args.into_iter().map(|e| e.id.unwrap()).collect()
+                }
+                ExprKind::Case(switch) => switch
+                    .into_iter()
+                    .flat_map(|c| vec![c.condition.id.unwrap(), c.value.id.unwrap()])
+                    .collect(),
+                ExprKind::SString(iv) | ExprKind::FString(iv) => iv
+                    .into_iter()
+                    .filter_map(|i| match i {
+                        InterpolateItem::Expr { expr: e, .. } => e.id,
+                        _ => None,
+                    })
+                    .collect(),
+                _ => vec![],
+            };
+
+            let ident = if matches!(&expr.kind, ExprKind::Ident(_)) {
+                Some(expr.kind.clone())
+            } else {
+                None
+            };
+
+            let children = match &expr.kind {
+                ExprKind::Tuple(args) | ExprKind::Array(args) => {
+                    args.into_iter().map(|e| e.id.unwrap()).collect()
+                }
+                ExprKind::TransformCall(tc) => {
+                    let mut tcc = vec![tc.input.id.unwrap()];
+
+                    match *tc.kind {
+                        TransformKind::Derive { assigns: ref e }
+                        | TransformKind::Select { assigns: ref e }
+                        | TransformKind::Filter { filter: ref e }
+                        | TransformKind::Aggregate { assigns: ref e }
+                        | TransformKind::Append(ref e)
+                        | TransformKind::Loop(ref e)
+                        | TransformKind::Group {
+                            pipeline: ref e, ..
+                        }
+                        | TransformKind::Window {
+                            pipeline: ref e, ..
+                        } => {
+                            tcc.push(e.id.unwrap());
+                        }
+                        TransformKind::Join {
+                            ref with,
+                            ref filter,
+                            ..
+                        } => {
+                            tcc.push(with.id.unwrap());
+                            tcc.push(filter.id.unwrap());
+                        }
+                        _ => {}
+                    };
+
+                    tcc
+                }
+                _ => vec![],
+            };
+
+            let kind = match &expr.kind {
+                ExprKind::TransformCall(tc) => {
+                    let tc_kind = tc.kind.as_ref().as_ref().to_string();
+
+                    format!("TransformCall: {tc_kind}")
+                }
+                _ => expr.kind.as_ref().to_string(),
+            };
+
+            self.nodes.insert(
+                id,
+                ExprGraphNode {
+                    id,
+                    kind,
+                    span: expr.span.clone(),
+                    alias: expr.alias.clone(),
+                    ident,
+                    targets,
+                    children,
+                    parent: None,
+                },
+            );
+        }
+
         if matches!(expr.kind, ExprKind::TransformCall(_)) {
             if let Some(span) = expr.span {
                 let lineage = expr.lineage.clone();

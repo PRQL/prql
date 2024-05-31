@@ -166,7 +166,7 @@ enum Command {
 
 /// Commands for meant for debugging, prone to change
 #[derive(Subcommand, Debug, Clone)]
-pub enum DebugCommand {
+enum DebugCommand {
     /// Parse & and expand into PL, but don't resolve
     ExpandPL(IoArgs),
 
@@ -181,6 +181,14 @@ pub enum DebugCommand {
 
     /// Parse, resolve & combine source with comments annotating relation type
     Annotate(IoArgs),
+
+    /// Output structured lineage relationships
+    Lineage {
+        #[command(flatten)]
+        io_args: IoArgs,
+        #[arg(value_enum, long, default_value = "yaml")]
+        format: Format,
+    },
 
     /// Print info about the AST data structure
     Ast,
@@ -368,13 +376,31 @@ impl Command {
                 let ctx = semantic::resolve(root_mod, Default::default())?;
 
                 let frames = if let Ok((main, _)) = ctx.find_main_rel(&[]) {
-                    collect_frames(*main.clone().into_relation_var().unwrap())
+                    collect_frames(*main.clone().into_relation_var().unwrap()).frames
                 } else {
                     vec![]
                 };
 
                 // combine with source
                 combine_prql_and_frames(&source, frames).as_bytes().to_vec()
+            }
+            Command::Debug(DebugCommand::Lineage { format, .. }) => {
+                let stmts = prql_to_pl_tree(sources)?;
+                let ast = Some(stmts.clone());
+
+                let root_module = semantic::resolve(stmts, Default::default())
+                    .map_err(|e| prqlc::ErrorMessages::from(e).composed(sources))?;
+
+                log::debug!("{root_module:#?}");
+
+                let (main, _) = root_module.find_main_rel(&[]).unwrap();
+                let mut fc = collect_frames(*main.clone().into_relation_var().unwrap());
+                fc.ast = ast;
+
+                match format {
+                    Format::Json => serde_json::to_string_pretty(&fc)?.into_bytes(),
+                    Format::Yaml => serde_yaml::to_string(&fc)?.into_bytes(),
+                }
             }
             Command::Debug(DebugCommand::Eval(_)) => {
                 let root_mod = prql_to_pl_tree(sources)?;
@@ -470,6 +496,7 @@ impl Command {
                 DebugCommand::Resolve(io_args)
                 | DebugCommand::ExpandPL(io_args)
                 | DebugCommand::Annotate(io_args)
+                | DebugCommand::Lineage { io_args, .. }
                 | DebugCommand::Eval(io_args),
             ) => io_args,
             Experimental(ExperimentalCommand::GenerateDocs(io_args)) => io_args,
@@ -513,6 +540,7 @@ impl Command {
                 DebugCommand::Resolve(io_args)
                 | DebugCommand::ExpandPL(io_args)
                 | DebugCommand::Annotate(io_args)
+                | DebugCommand::Lineage { io_args, .. }
                 | DebugCommand::Eval(io_args),
             ) => io_args.output.clone(),
             Experimental(ExperimentalCommand::GenerateDocs(io_args)) => io_args.output.clone(),

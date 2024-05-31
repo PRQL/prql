@@ -69,7 +69,7 @@ impl PlFold for Resolver<'_> {
             self.root_mod.span_map.insert(id, span);
         }
 
-        log::trace!("folding expr {node:?}");
+        log::trace!("folding expr [{id:?}] {node:?}");
 
         let r = match node.kind {
             ExprKind::Ident(ident) => {
@@ -226,7 +226,6 @@ impl Resolver<'_> {
                 r.lineage = Some(call.infer_lineage()?);
             } else if let Some(relation_columns) = r.ty.as_ref().and_then(|t| t.as_relation()) {
                 // lineage from ty
-
                 let columns = Some(relation_columns.clone());
 
                 let name = r.alias.clone();

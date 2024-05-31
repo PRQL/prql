@@ -93,6 +93,7 @@ Register-ArgumentCompleter -Native -CommandName 'prqlc' -ScriptBlock {
             [CompletionResult]::new('resolve', 'resolve', [CompletionResultType]::ParameterValue, 'Parse & resolve, but don''t lower into RQ')
             [CompletionResult]::new('eval', 'eval', [CompletionResultType]::ParameterValue, 'Parse & evaluate expression down to a value')
             [CompletionResult]::new('annotate', 'annotate', [CompletionResultType]::ParameterValue, 'Parse, resolve & combine source with comments annotating relation type')
+            [CompletionResult]::new('lineage', 'lineage', [CompletionResultType]::ParameterValue, 'Output structured lineage relationships')
             [CompletionResult]::new('ast', 'ast', [CompletionResultType]::ParameterValue, 'Print info about the AST data structure')
             [CompletionResult]::new('help', 'help', [CompletionResultType]::ParameterValue, 'Print this message or the help of the given subcommand(s)')
             break
@@ -121,6 +122,13 @@ Register-ArgumentCompleter -Native -CommandName 'prqlc' -ScriptBlock {
             [CompletionResult]::new('--help', 'help', [CompletionResultType]::ParameterName, 'Print help')
             break
         }
+        'prqlc;debug;lineage' {
+            [CompletionResult]::new('--format', 'format', [CompletionResultType]::ParameterName, 'format')
+            [CompletionResult]::new('--color', 'color', [CompletionResultType]::ParameterName, 'Controls when to use color')
+            [CompletionResult]::new('-h', 'h', [CompletionResultType]::ParameterName, 'Print help')
+            [CompletionResult]::new('--help', 'help', [CompletionResultType]::ParameterName, 'Print help')
+            break
+        }
         'prqlc;debug;ast' {
             [CompletionResult]::new('--color', 'color', [CompletionResultType]::ParameterName, 'Controls when to use color')
             [CompletionResult]::new('-h', 'h', [CompletionResultType]::ParameterName, 'Print help')
@@ -132,6 +140,7 @@ Register-ArgumentCompleter -Native -CommandName 'prqlc' -ScriptBlock {
             [CompletionResult]::new('resolve', 'resolve', [CompletionResultType]::ParameterValue, 'Parse & resolve, but don''t lower into RQ')
             [CompletionResult]::new('eval', 'eval', [CompletionResultType]::ParameterValue, 'Parse & evaluate expression down to a value')
             [CompletionResult]::new('annotate', 'annotate', [CompletionResultType]::ParameterValue, 'Parse, resolve & combine source with comments annotating relation type')
+            [CompletionResult]::new('lineage', 'lineage', [CompletionResultType]::ParameterValue, 'Output structured lineage relationships')
             [CompletionResult]::new('ast', 'ast', [CompletionResultType]::ParameterValue, 'Print info about the AST data structure')
             [CompletionResult]::new('help', 'help', [CompletionResultType]::ParameterValue, 'Print this message or the help of the given subcommand(s)')
             break
@@ -146,6 +155,9 @@ Register-ArgumentCompleter -Native -CommandName 'prqlc' -ScriptBlock {
             break
         }
         'prqlc;debug;help;annotate' {
+            break
+        }
+        'prqlc;debug;help;lineage' {
             break
         }
         'prqlc;debug;help;ast' {
@@ -263,6 +275,7 @@ Register-ArgumentCompleter -Native -CommandName 'prqlc' -ScriptBlock {
             [CompletionResult]::new('resolve', 'resolve', [CompletionResultType]::ParameterValue, 'Parse & resolve, but don''t lower into RQ')
             [CompletionResult]::new('eval', 'eval', [CompletionResultType]::ParameterValue, 'Parse & evaluate expression down to a value')
             [CompletionResult]::new('annotate', 'annotate', [CompletionResultType]::ParameterValue, 'Parse, resolve & combine source with comments annotating relation type')
+            [CompletionResult]::new('lineage', 'lineage', [CompletionResultType]::ParameterValue, 'Output structured lineage relationships')
             [CompletionResult]::new('ast', 'ast', [CompletionResultType]::ParameterValue, 'Print info about the AST data structure')
             break
         }
@@ -276,6 +289,9 @@ Register-ArgumentCompleter -Native -CommandName 'prqlc' -ScriptBlock {
             break
         }
         'prqlc;help;debug;annotate' {
+            break
+        }
+        'prqlc;help;debug;lineage' {
             break
         }
         'prqlc;help;debug;ast' {
