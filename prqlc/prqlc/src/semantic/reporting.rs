@@ -165,21 +165,27 @@ pub struct ExprGraphNode {
     pub kind: String,
 
     /// Position of this expr in the original source query
+    #[serde(default, skip_serializing_if = "Option::is_none")]
     pub span: Option<Span>,
 
     /// When this node is part of a Tuple, this holds the alias name
+    #[serde(default, skip_serializing_if = "Option::is_none")]
     pub alias: Option<String>,
 
     /// When kind is Ident, this holds the referenced name
+    #[serde(default, skip_serializing_if = "Option::is_none")]
     pub ident: Option<ExprKind>,
 
     /// Upstream sources of data for this expr as node IDs
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub targets: Vec<usize>,
 
     /// If this expr holds other exprs, these are their node IDs
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub children: Vec<usize>,
 
     /// If this expr is inside of another expr, this is its parent node ID
+    #[serde(default, skip_serializing_if = "Option::is_none")]
     pub parent: Option<usize>,
 }
 

@@ -1,4 +1,4 @@
-use std::collections::{HashSet};
+use std::collections::HashSet;
 use std::fmt::{Debug, Display, Formatter};
 
 use enum_as_inner::EnumAsInner;

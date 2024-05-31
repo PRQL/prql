@@ -356,6 +356,105 @@ fn debug() {
         .pass_stdin("from tracks"));
 
     assert_cmd_snapshot!(prqlc_command()
+        .args(["debug", "lineage"])
+        .pass_stdin("from tracks | select {artist, album}"), @r###"
+    success: true
+    exit_code: 0
+    ----- stdout -----
+    frames:
+    - - 1:14-36
+      - columns:
+        - !Single
+          name:
+          - tracks
+          - artist
+          target_id: 120
+          target_name: null
+        - !Single
+          name:
+          - tracks
+          - album
+          target_id: 121
+          target_name: null
+        inputs:
+        - id: 118
+          name: tracks
+          table:
+          - default_db
+          - tracks
+    nodes:
+      120:
+        id: 120
+        kind: Ident
+        span: 1:22-28
+        ident: !Ident
+        - this
+        - tracks
+        - artist
+        targets:
+        - 118
+        parent: 122
+      121:
+        id: 121
+        kind: Ident
+        span: 1:30-35
+        ident: !Ident
+        - this
+        - tracks
+        - album
+        targets:
+        - 118
+        parent: 122
+      118:
+        id: 118
+        kind: Ident
+        span: 1:0-11
+        ident: !Ident
+        - default_db
+        - tracks
+        parent: 123
+      123:
+        id: 123
+        kind: 'TransformCall: Select'
+        span: 1:14-36
+        children:
+        - 118
+        - 122
+      122:
+        id: 122
+        kind: Tuple
+        span: 1:21-36
+        children:
+        - 120
+        - 121
+        parent: 123
+    ast:
+      name: Project
+      stmts:
+      - VarDef:
+          kind: Main
+          name: main
+          value:
+            Pipeline:
+              exprs:
+              - FuncCall:
+                  name:
+                    Ident: from
+                  args:
+                  - Ident: tracks
+              - FuncCall:
+                  name:
+                    Ident: select
+                  args:
+                  - Tuple:
+                    - Ident: artist
+                    - Ident: album
+        span: 1:0-36
+
+    ----- stderr -----
+    "###);
+
+    assert_cmd_snapshot!(prqlc_command()
         .args(["debug", "expand-pl"])
         .pass_stdin("from tracks"), @r###"
     success: true
