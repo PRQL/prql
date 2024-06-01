@@ -24,13 +24,13 @@ tasks:
     desc: Build & serve the static website for interactive development.
     dir: website
     cmds:
-      - hugo server
+      - hugo server --bind 0.0.0.0
 
   run-book:
     desc: Build & serve the book for interactive development.
     dir: book
     cmds:
-      - mdbook serve --port=3000
+      - mdbook serve --port=3000 -n 0.0.0.0
 
   run-playground:
     desc: Build & serve the playground for interactive development.
