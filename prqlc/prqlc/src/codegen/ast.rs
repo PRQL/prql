@@ -30,10 +30,7 @@ impl WriteSource for Expr {
             opt.unbound_expr = false;
         }
 
-        let needs_parenthesis = (opt.unbound_expr && can_bind_left(&self.kind))
-            || (opt.context_strength >= binding_strength(&self.kind));
-
-        if !needs_parenthesis {
+        if !needs_parenthesis(self, &opt) {
             r += &self.kind.write(opt.clone())?;
         } else {
             let value = self.kind.write_between("(", ")", opt.clone());
@@ -46,6 +43,44 @@ impl WriteSource for Expr {
         };
         Some(r)
     }
+}
+
+fn needs_parenthesis(this: &Expr, opt: &WriteOpt) -> bool {
+    if opt.unbound_expr && can_bind_left(&this.kind) {
+        return true;
+    }
+
+    let binding_strength = binding_strength(&this.kind);
+    if opt.context_strength > binding_strength {
+        // parent has higher binding strength, which means it would "steal" operand of this expr
+        // => parenthesis are needed
+        return true;
+    }
+
+    if opt.context_strength < binding_strength {
+        // parent has higher binding strength, which means it would "steal" operand of this expr
+        // => parenthesis are needed
+        return false;
+    }
+
+    // parent has equal binding stength, which means that now associativity of this expr counts
+    // for example:
+    //   this=(a + b), parent=(a + b) + c
+    //   asoc of + is left
+    //   this is the left operand of parent
+    //   => assoc_matches=true => we don't need parenthesis
+
+    //   this=(a + b), parent=c + (a + b)
+    //   asoc of + is left
+    //   this is the right operand of parent
+    //   => assoc_matches=false => we need parenthesis
+    let assoc_matches = match opt.binary_position {
+        super::Position::Left => associativity(&this.kind) == super::Position::Left,
+        super::Position::Right => associativity(&this.kind) == super::Position::Right,
+        super::Position::Unspecified => false,
+    };
+
+    !assoc_matches
 }
 
 impl WriteSource for ExprKind {
@@ -109,14 +144,18 @@ impl WriteSource for ExprKind {
             Binary(BinaryExpr { op, left, right }) => {
                 let mut r = String::new();
 
-                let left = write_within(left.as_ref(), self, opt.clone())?;
+                let mut opt_left = opt.clone();
+                opt_left.binary_position = super::Position::Left;
+                let left = write_within(left.as_ref(), self, opt_left)?;
                 r += opt.consume(&left)?;
 
                 r += opt.consume(" ")?;
                 r += opt.consume(&op.to_string())?;
                 r += opt.consume(" ")?;
 
-                r += &write_within(right.as_ref(), self, opt)?;
+                let mut opt_right = opt;
+                opt_right.binary_position = super::Position::Right;
+                r += &write_within(right.as_ref(), self, opt_right)?;
                 Some(r)
             }
             Unary(UnaryExpr { op, expr }) => {
@@ -272,6 +311,24 @@ fn binding_strength(expr: &ExprKind) -> u8 {
 
         // other nodes should not contain any inner exprs
         _ => 100,
+    }
+}
+
+fn associativity(expr: &ExprKind) -> super::Position {
+    match expr {
+        ExprKind::Binary(BinaryExpr { op, .. }) => match op {
+            BinOp::Pow => super::Position::Right,
+            BinOp::Eq
+            | BinOp::Ne
+            | BinOp::Gt
+            | BinOp::Lt
+            | BinOp::Gte
+            | BinOp::Lte
+            | BinOp::RegexSearch => super::Position::Unspecified,
+            _ => super::Position::Left,
+        },
+
+        _ => super::Position::Unspecified,
     }
 }
 
@@ -551,10 +608,9 @@ mod test {
 
     #[test]
     fn test_binary() {
-        assert_is_formatted(r#"let a = 5 * (4 + 3) ?? (5 / 2) // 2 == 1 and true"#);
+        assert_is_formatted(r#"let a = 5 * (4 + 3) ?? 5 / 2 // 2 == 1 and true"#);
 
-        // TODO: associativity is not handled correctly
-        // assert_is_formatted(r#"let a = 5 / 2 / 2"#);
+        assert_is_formatted(r#"let a = 5 / 2 / 2"#);
     }
 
     #[test]
