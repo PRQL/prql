@@ -1,6 +1,5 @@
 behavior:
-  # Disabling because of issues with running on Windows
-  # force_update: true
+  require_full_match: true
 review:
   # The default (true) has a small performance hit and never needed for us
   warn_undiscovered: false
