@@ -611,6 +611,11 @@ mod test {
         assert_is_formatted(r#"let a = 5 * (4 + 3) ?? 5 / 2 // 2 == 1 and true"#);
 
         assert_is_formatted(r#"let a = 5 / 2 / 2"#);
+        assert_is_formatted(r#"let a = 5 / (2 / 2)"#);
+
+        // TODO: parsing for pow operator
+        // assert_is_formatted(r#"let a = (5 ** 2) ** 2"#); 
+        // assert_is_formatted(r#"let a = 5 ** 2 ** 2"#);
     }
 
     #[test]
