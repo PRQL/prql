@@ -399,7 +399,7 @@ mod test {
         let mut r = Resolver::new(&mut root_module, Default::default());
 
         // generate a new generic type (tests expect it to get name 'X1')
-        let ident = r.init_new_global_generic("X");
+        let ident = r.init_new_generic_global("X");
         assert_eq!(ident.to_string(), "_generic.X1");
 
         // do the lookup

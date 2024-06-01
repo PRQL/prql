@@ -208,7 +208,7 @@ impl AnchorContext {
     ) {
         let output_cids = self.determine_select_columns(pipeline);
 
-        assert_eq!(output_cids.len(), output_cols.len());
+        assert_eq!(output_cids.len(), output_cols.len(), "number of CId does not match number of cols");
 
         for (cid, col) in zip(output_cids.iter(), output_cols) {
             if let RelationColumn::Single(Some(name)) = col {

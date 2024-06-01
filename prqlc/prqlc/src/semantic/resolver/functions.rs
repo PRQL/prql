@@ -1,4 +1,4 @@
-use itertools::Itertools;
+use itertools::{zip_eq, Itertools};
 use prqlc_ast::{GenericTypeParam, TyKind};
 use std::collections::HashMap;
 
@@ -6,7 +6,7 @@ use crate::ast::{Ty, TyFunc};
 use crate::codegen::write_ty;
 use crate::ir::decl::{Decl, DeclKind};
 use crate::ir::pl::*;
-use crate::semantic::{write_pl, NS_GENERIC, NS_LOCAL, NS_THAT, NS_THIS};
+use crate::semantic::{write_pl, NS_GENERIC, NS_LOCAL};
 use crate::{Error, Result, Span, WithErrorInfo};
 
 use super::scope::Scope;
@@ -94,20 +94,15 @@ impl Resolver<'_> {
         Ok(func)
     }
 
-    pub fn apply_args_to_function(
-        &mut self,
-        func: Box<Expr>,
-        args: Vec<Expr>,
-        mut _named_args: HashMap<String, Expr>,
-    ) -> Result<FuncApplication> {
-        let mut fn_app = if let ExprKind::FuncApplication(fn_app) = func.kind {
+    pub fn into_func_app(&mut self, func: Box<Expr>) -> FuncApplication {
+        if let ExprKind::FuncApplication(fn_app) = func.kind {
             fn_app
         } else {
             FuncApplication {
                 func,
                 args: Vec::new(),
             }
-        };
+        }
 
         // named
         // let fn_ty = fn_app.func.ty.as_ref().unwrap();
@@ -127,15 +122,12 @@ impl Resolver<'_> {
         //         fn_app.func.name_hint
         //     )));
         // }
-
-        // positional
-        fn_app.args.extend(args);
-        Ok(fn_app)
     }
 
     pub fn resolve_func_application(
         &mut self,
         fn_app: FuncApplication,
+        args: Vec<Expr>,
         span: Option<Span>,
     ) -> Result<Expr> {
         let metadata = self.gather_func_metadata(&fn_app.func);
@@ -147,11 +139,11 @@ impl Resolver<'_> {
         log::debug!(
             "func {} {}/{} params",
             metadata.as_debug_name(),
-            fn_app.args.len(),
+            fn_app.args.len() + args.len(),
             fn_ty.params.len()
         );
 
-        if fn_app.args.len() > fn_ty.params.len() {
+        if fn_app.args.len() + args.len() > fn_ty.params.len() {
             return Err(Error::new_simple(format!(
                 "Too many arguments to function `{}`",
                 metadata.as_debug_name()
@@ -159,15 +151,12 @@ impl Resolver<'_> {
             .with_span(span));
         }
 
-        let enough_args = fn_app.args.len() == fn_ty.params.len();
-        if !enough_args {
-            return Ok(*expr_of_func_application(fn_app, *fn_ty.return_ty, span));
+        if fn_app.args.is_empty() {
+            self.init_func_app_generic_args(&fn_ty, fn_app.func.id.unwrap());
         }
 
-        self.init_func_app_generic_args(&fn_ty, fn_app.func.id.unwrap());
-
         log::debug!("resolving args of function {}", metadata.as_debug_name());
-        let res = self.resolve_func_app_args(fn_app, &metadata)?;
+        let res = self.resolve_func_app_args(fn_app, args, &metadata)?;
 
         let app = match res {
             Ok(func) => func,
@@ -176,15 +165,15 @@ impl Resolver<'_> {
             }
         };
 
-        self.finalize_func_app_generic_args(&fn_ty, app.func.id.unwrap())
-            .with_span_fallback(span)?;
+        let mut return_ty = *fn_ty.return_ty.clone();
 
-        // run fold again, so idents that used to point to generics get inlined
-        let return_ty = fn_ty
-            .return_ty
-            .clone()
-            .map(|ty| self.fold_type(ty))
-            .transpose()?;
+        if app.args.len() == fn_ty.params.len() {
+            self.finalize_func_app_generic_args(&fn_ty, app.func.id.unwrap())
+                .with_span_fallback(span)?;
+
+            // run fold again, so idents that used to point to generics get inlined
+            return_ty = return_ty.map(|ty| self.fold_type(ty)).transpose()?;
+        }
 
         Ok(*expr_of_func_application(app, return_ty, span))
     }
@@ -257,7 +246,7 @@ impl Resolver<'_> {
                     // bounds that are tuples mean "a tuple with at least these fields"
                     // so we need a global generic to track information about the other fields
 
-                    let generic = self.init_new_global_generic("A");
+                    let generic = self.init_new_generic_local("A");
                     let generic = Ty::new(TyKind::Ident(generic));
                     fields.push(prqlc_ast::TyTupleField::Unpack(Some(generic)));
                 }
@@ -303,13 +292,11 @@ impl Resolver<'_> {
     /// Resolves function arguments. Will return `Err(func)` is partial application is required.
     fn resolve_func_app_args(
         &mut self,
-        to_resolve: FuncApplication,
+        base: FuncApplication,
+        args: Vec<Expr>,
         metadata: &FuncMetadata,
     ) -> Result<Result<FuncApplication, Box<Func>>> {
-        let mut app = FuncApplication {
-            func: to_resolve.func,
-            args: vec![Expr::new(Literal::Null); to_resolve.args.len()],
-        };
+        let mut app = base;
         let mut partial_application_position = None;
 
         let func_name = &metadata.name_hint;
@@ -317,55 +304,65 @@ impl Resolver<'_> {
         let func_ty = app.func.ty.as_ref().unwrap();
         let func_ty = func_ty.kind.as_function().unwrap();
         let func_ty = func_ty.as_ref().unwrap();
-        let mut param_args = itertools::zip_eq(&func_ty.params, to_resolve.args)
-            .map(Box::new)
-            .map(Some)
-            .collect_vec();
 
         // pull out this and that
         let impl_cl_pos = metadata.implicit_closure.as_ref().map(|i| i.param as usize);
         let this_pos = metadata.implicit_closure.as_ref().and_then(|i| i.this);
         let that_pos = metadata.implicit_closure.as_ref().and_then(|i| i.that);
 
-        // prepare order
-        let order = this_pos
-            .into_iter()
-            .chain(that_pos)
-            .map(|x| x as usize)
-            .chain(0..param_args.len())
-            .unique()
-            .collect_vec();
-
-        for index in order {
-            let (param, mut arg) = *param_args[index].take().unwrap();
-            let should_coerce_tuple = metadata.coerce_tuple.map_or(false, |i| i as usize == index);
-
+        app.args.reserve(func_ty.params.len());
+        let params = func_ty
+            .params
+            .iter()
+            .enumerate()
+            .skip(app.args.len())
+            .take(args.len());
+        for ((index, param), mut arg) in zip_eq(params, args) {
             if partial_application_position.is_none() {
+                if metadata.coerce_tuple.map_or(false, |i| i as usize == index) {
+                    if !arg.kind.is_tuple() {
+                        let s = arg.span;
+                        arg = Expr::new(ExprKind::Tuple(vec![arg]));
+                        arg.span = s;
+                    }
+                }
+
                 if impl_cl_pos.map_or(false, |pos| pos == index) {
-                    let mut scope = Scope::new();
-                    if let Some(pos) = this_pos {
-                        let arg = &app.args[pos as usize];
-                        self.prepare_scope_of_implicit_closure_arg(&mut scope, NS_THIS, arg)?;
+                    let param_ty = param.as_ref().and_then(|t| t.kind.as_function());
+                    if let Some(param_ty) = param_ty.and_then(|x| x.as_ref()) {
+                        let mut params = Vec::with_capacity(2);
+                        if this_pos.is_some() {
+                            params.push(FuncParam {
+                                name: "this".to_string(),
+                                ty: param_ty.params.get(0).cloned().flatten(),
+                                default_value: None,
+                            })
+                        }
+                        if that_pos.is_some() {
+                            params.push(FuncParam {
+                                name: "that".to_string(),
+                                ty: param_ty.params.get(1).cloned().flatten(),
+                                default_value: None,
+                            })
+                        }
+                        arg = Expr::new(Func {
+                            return_ty: None,
+                            body: Box::new(arg),
+                            params,
+                            named_params: Default::default(),
+                            generic_type_params: Default::default(),
+                        });
                     }
-                    if let Some(pos) = that_pos {
-                        let arg = &app.args[pos as usize];
-                        self.prepare_scope_of_implicit_closure_arg(&mut scope, NS_THAT, arg)?;
-                    }
-                    self.scopes.push(scope);
                 }
 
                 arg = self
-                    .resolve_func_app_arg(arg, param, func_name, should_coerce_tuple)?
+                    .resolve_func_app_arg(arg, param, func_name)?
                     .unwrap_or_else(|a| {
                         partial_application_position = Some(index);
                         a
                     });
-
-                if impl_cl_pos.map_or(false, |pos| pos == index) {
-                    self.scopes.pop();
-                }
             }
-            app.args[index] = arg;
+            app.args.push(arg);
         }
 
         Ok(if let Some(position) = partial_application_position {
@@ -385,7 +382,6 @@ impl Resolver<'_> {
         arg: Expr,
         param: &Option<Ty>,
         func_name: &Option<Ident>,
-        coerce_tuple: bool,
     ) -> Result<Result<Expr, Expr>> {
         // fold
         // if param.name.starts_with("noresolve.") {
@@ -393,10 +389,6 @@ impl Resolver<'_> {
         // };
 
         let mut arg = self.fold_expr(arg)?;
-
-        if coerce_tuple {
-            arg = self.coerce_into_tuple(arg)?;
-        }
 
         // special case: (I forgot why this is needed)
         let expects_func = param
@@ -445,40 +437,9 @@ impl Resolver<'_> {
             self.fold_expr(expr)?
         })
     }
-
-    fn prepare_scope_of_implicit_closure_arg(
-        &mut self,
-        scope: &mut Scope,
-        namespace: &str,
-        expr: &Expr,
-    ) -> Result<()> {
-        let ty = expr.ty.as_ref().unwrap();
-
-        // we expect the param to be an array of tuples, but have the type of this to be a tuple
-        // here we unwrap the array and keep only the inner tuple
-        let tuple_ty = match &ty.kind {
-            TyKind::Array(tuple_ty) => *tuple_ty.clone(),
-            TyKind::Ident(ident_of_generic) => {
-                self.infer_generic_as_array(ident_of_generic, expr.span)?
-            }
-            _ => {
-                return Err(
-                    Error::new_simple("implict closure param was expected to be an array")
-                        .push_hint(format!("got ty: {}", write_ty(ty))),
-                );
-            }
-        };
-        scope.values.insert(
-            namespace.to_string(),
-            Decl::from(DeclKind::Variable(Some(tuple_ty))),
-        );
-        Ok(())
-    }
 }
 
 fn extract_partial_application(mut func: FuncApplication, position: usize) -> Result<Box<Func>> {
-    dbg!(&func);
-
     // Input:
     // Func {
     //     params: [x, y, z],

@@ -258,12 +258,50 @@ impl Resolver<'_> {
                 self.validate_type(found_items, expected_items, span, who)
             }
             (TyKind::Tuple(found_fields), TyKind::Tuple(expected_fields)) => {
-                for (e, f) in itertools::zip_eq(expected_fields, found_fields) {
-                    if let (TyTupleField::Single(_, Some(e)), TyTupleField::Single(_, Some(f))) =
-                        (e, f)
-                    {
-                        // co-variant contained type
-                        self.validate_type(f, e, span, who)?;
+                let expected_types: HashMap<_, _> = found_fields
+                    .iter()
+                    .filter_map(|e| match e {
+                        TyTupleField::Single(Some(n), ty) => Some((n, ty)),
+                        TyTupleField::Single(None, _) => None,
+                        TyTupleField::Unpack(_) => None,
+                    })
+                    .collect();
+
+                let mut not_found = Vec::new();
+                for f in expected_fields {
+                    match f {
+                        TyTupleField::Single(Some(f_name), f_ty) => {
+                            if let Some(e_ty) = expected_types.get(f_name) {
+                                if let Some((e_ty, f_ty)) = e_ty.as_ref().zip(f_ty.as_ref()) {
+                                    // co-variant contained type
+                                    self.validate_type(f_ty, e_ty, span, who)?;
+                                }
+                            } else {
+                                not_found.push(f);
+                            }
+                        }
+                        TyTupleField::Single(None, _) => {
+                            // TODO
+                        }
+                        TyTupleField::Unpack(_) => {
+                            // TODO
+                        }
+                    }
+                }
+
+                if !not_found.is_empty() {
+                    if let Some(expected_unpack) = found_fields.last().and_then(|f| f.as_unpack()) {
+                        if let Some(e_unpack_ty) = expected_unpack {
+                            let remaining = Ty::new(TyKind::Tuple(
+                                not_found.into_iter().cloned().collect_vec(),
+                            ));
+                            self.validate_type(&remaining, e_unpack_ty, span, who)?;
+                        } else {
+                            // we don't know the type of unpack, so we cannot fully check if it has the fields
+                        }
+                    } else {
+                        // there is no unpack, not_found fields are an error
+                        return Err(compose_type_error(found, expected, who).with_span(span));
                     }
                 }
 

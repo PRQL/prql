@@ -4,13 +4,23 @@ use crate::ast::{Ident, Ty, TyKind, TyTupleField};
 use crate::codegen::write_ty;
 use crate::ir::decl::{Decl, DeclKind};
 use crate::ir::pl::IndirectionKind;
-use crate::semantic::NS_GENERIC;
+use crate::semantic::{NS_GENERIC, NS_LOCAL};
 use crate::{Error, Result, Span};
 
 use super::Resolver;
 
 impl Resolver<'_> {
-    pub fn init_new_global_generic(&mut self, prefix: &str) -> Ident {
+    pub fn init_new_generic_local(&mut self, prefix: &str) -> Ident {
+        let a_unique_number = self.id.gen();
+        let param_name = format!("{prefix}{a_unique_number}");
+        let ident = Ident::from_path(vec![NS_LOCAL.to_string(), param_name.clone()]);
+        let decl = Decl::from(DeclKind::GenericParam(None));
+
+        self.scope_mut().types.insert(param_name, decl);
+        ident
+    }
+
+    pub fn init_new_generic_global(&mut self, prefix: &str) -> Ident {
         let a_unique_number = self.id.gen();
         let param_name = format!("{prefix}{a_unique_number}");
         let ident = Ident::from_path(vec![NS_GENERIC.to_string(), param_name]);
@@ -67,7 +77,11 @@ impl Resolver<'_> {
     ) -> (usize, Ty) {
         // generate the type of inferred field (to be an unknown type - a new generic)
         // (this has to be done early in this function since we borrow self later)
-        let ty_of_field = self.init_new_global_generic("F");
+        let ty_of_field = if ident_of_generic.starts_with_part(NS_LOCAL) {
+            self.init_new_generic_local("F")
+        } else {
+            self.init_new_generic_global("F")
+        };
         let ty = Ty::new(TyKind::Ident(ty_of_field));
 
         let ident = ident_of_generic;
@@ -102,39 +116,6 @@ impl Resolver<'_> {
                 candidate_fields.push(TyTupleField::Single(None, Some(ty.clone())));
                 (pos, ty)
             }
-        }
-    }
-
-    pub fn infer_generic_as_array(
-        &mut self,
-        ident_of_generic: &Ident,
-        span: Option<Span>,
-    ) -> Result<Ty> {
-        // generate the type of array items (to be an unknown type - a new generic)
-        // (this has to be done early in this function since we borrow self later)
-        let items_ty = self.init_new_global_generic("A");
-        let items_ty = Ty::new(TyKind::Ident(items_ty));
-
-        let ident = ident_of_generic;
-        let generic_decl = self.root_mod.module.get_mut(ident).unwrap();
-        let candidate = generic_decl.kind.as_generic_param_mut().unwrap();
-
-        // if there is no candidate yet, propose a new tuple type
-        if let Some((candidate, _)) = candidate.as_mut() {
-            if let TyKind::Array(items_ty) = &candidate.kind {
-                // ok, we already know it is an array
-                Ok(*items_ty.clone())
-            } else {
-                // nope
-                Err(Error::new_simple(format!(
-                    "generic type argument {} needs to be an array",
-                    ident_of_generic
-                ))
-                .push_hint(format!("existing candidate: {}", write_ty(candidate))))
-            }
-        } else {
-            *candidate = Some((Ty::new(TyKind::Array(Box::new(items_ty.clone()))), span));
-            Ok(items_ty)
         }
     }
 }

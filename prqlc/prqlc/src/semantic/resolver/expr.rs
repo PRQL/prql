@@ -157,7 +157,7 @@ impl PlFold for super::Resolver<'_> {
             ExprKind::FuncCall(FuncCall {
                 name,
                 args,
-                named_args,
+                named_args: _,
             }) => {
                 // fold function name
                 let old = self.in_func_call_name;
@@ -166,8 +166,8 @@ impl PlFold for super::Resolver<'_> {
                 self.in_func_call_name = old;
 
                 // convert to function application
-                let fn_app = self.apply_args_to_function(func, args, named_args)?;
-                self.resolve_func_application(fn_app, *span)?
+                let fn_app = self.into_func_app(func);
+                self.resolve_func_application(fn_app, args, *span)?
             }
 
             ExprKind::Func(func) => {
@@ -223,7 +223,7 @@ impl super::Resolver<'_> {
             r.ty = self.infer_type(&r)?;
         }
         if r.ty.is_none() {
-            let generic = self.init_new_global_generic("E");
+            let generic = self.init_new_generic_local("E");
             r.ty = Some(Ty::new(TyKind::Ident(generic)));
         }
         if let Some(ty) = &mut r.ty {

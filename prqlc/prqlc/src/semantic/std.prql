@@ -65,27 +65,27 @@ let from = func <R>
 @(coerce_tuple 0)
 @(implicit_closure 0 this:1)
 let select = func <I, A>
-  assigns <A>
+  assigns <func I -> A>
   tbl <[I]>
   -> <[A]> internal select
 
 @(implicit_closure 0 this:1)
 let filter = func <T>
-  condition <bool>
+  condition <func T -> bool>
   tbl <[T]>
   -> <[T]> internal filter
 
 @(coerce_tuple 0)
 @(implicit_closure 0 this:1)
 let derive = func <I, A>
-  assigns <A>
+  assigns <func I -> A>
   tbl <[I]>
   -> <[{I, ..A}]> internal derive
 
 @(coerce_tuple 0)
 @(implicit_closure 0 this:1)
 let aggregate = func <I, A>
-  assigns <A>
+  assigns <func I -> A>
   tbl <[I]>
   -> <[A]> internal aggregate
 
@@ -104,7 +104,7 @@ let take = func <I>
 @(implicit_closure 1 this:2 that:0)
 let join = func <A, B>
   with <[B]>
-  condition <bool>
+  condition <func A B -> bool>
   `noresolve.side`:inner
   tbl <[A]>
   -> <[{A, B}]> internal join
@@ -112,7 +112,7 @@ let join = func <A, B>
 @(coerce_tuple 0)
 @(implicit_closure 0 this:2)
 let group = func <I, B, PO>
-  by<B>
+  by <func I -> B>
   pipeline <func [I - B] -> [PO]>
   tbl <[I]>
   -> <[{B, ..PO}]> internal group

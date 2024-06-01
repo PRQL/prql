@@ -20,22 +20,27 @@ pub fn resolve_special_func(expr: Expr) -> Result<Expr> {
     let (kind, input) = match name.as_str() {
         "select" => {
             let [assigns, tbl] = unpack::<2>(args);
+            let assigns = assigns.kind.into_func().unwrap().body;
             (TransformKind::Select { assigns }, tbl)
         }
         "filter" => {
             let [filter, tbl] = unpack::<2>(args);
+            let filter = filter.kind.into_func().unwrap().body;
             (TransformKind::Filter { filter }, tbl)
         }
         "derive" => {
             let [assigns, tbl] = unpack::<2>(args);
+            let assigns = assigns.kind.into_func().unwrap().body;
             (TransformKind::Derive { assigns }, tbl)
         }
         "aggregate" => {
             let [assigns, tbl] = unpack::<2>(args);
+            let assigns = assigns.kind.into_func().unwrap().body;
             (TransformKind::Aggregate { assigns }, tbl)
         }
         "sort" => {
             let [by, tbl] = unpack::<2>(args);
+            let by = by.kind.into_func().unwrap().body;
 
             let by_fields = by.try_cast(|x| x.into_tuple(), Some("sort"), "tuple")?;
             let by = by_fields
@@ -83,6 +88,7 @@ pub fn resolve_special_func(expr: Expr) -> Result<Expr> {
         }
         "join" => {
             let [with, filter, tbl] = unpack::<3>(args);
+            let filter = filter.kind.into_func().unwrap().body;
 
             let side = {
                 JoinSide::Inner
@@ -109,6 +115,8 @@ pub fn resolve_special_func(expr: Expr) -> Result<Expr> {
         }
         "group" => {
             let [by, pipeline, tbl] = unpack::<3>(args);
+            let by = by.kind.into_func().unwrap().body;
+
             (TransformKind::Group { by, pipeline }, tbl)
         }
         "window" => {
