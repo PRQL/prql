@@ -67,7 +67,7 @@ pub struct WriteOpt {
     pub context_strength: u8,
 
     /// Position within binary operators.
-    /// Needed for omitting parentesis in following expressions: `(a + b) + c`.
+    /// Needed for omitting parenthesis in following expressions: `(a + b) + c`.
     pub binary_position: Position,
 
     /// True iff preceding source ends in an expression that could
