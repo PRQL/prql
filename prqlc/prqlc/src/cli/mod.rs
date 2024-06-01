@@ -1,19 +1,5 @@
 #![cfg(not(target_family = "wasm"))]
 
-mod docs_generator;
-mod jinja;
-mod watch;
-
-use anstream::{eprintln, println};
-use anyhow::anyhow;
-use anyhow::bail;
-use anyhow::Result;
-use ariadne::Source;
-use clap::{CommandFactory, Parser, Subcommand, ValueHint};
-use clio::has_extension;
-use clio::Output;
-use is_terminal::IsTerminal;
-use itertools::Itertools;
 use std::collections::HashMap;
 use std::env;
 use std::io::{Read, Write};
@@ -21,6 +7,18 @@ use std::ops::Range;
 use std::path::Path;
 use std::process::exit;
 use std::str::FromStr;
+
+use anstream::{eprintln, println};
+use anyhow::anyhow;
+use anyhow::bail;
+use anyhow::Result;
+use ariadne::Source;
+use clap::{CommandFactory, Parser, Subcommand, ValueHint};
+use clap_verbosity_flag::LogLevel;
+use clio::has_extension;
+use clio::Output;
+use is_terminal::IsTerminal;
+use itertools::Itertools;
 
 use prqlc::semantic;
 use prqlc::semantic::reporting::{collect_frames, label_references};
@@ -30,11 +28,18 @@ use prqlc::{ir::pl::Lineage, ir::Span};
 use prqlc::{pl_to_prql, pl_to_rq_tree, prql_to_pl, prql_to_pl_tree, rq_to_sql, SourceTree};
 use prqlc::{Options, Target};
 
+mod docs_generator;
+mod jinja;
+mod watch;
+
 /// Entrypoint called by [`crate::main`]
 pub fn main() -> color_eyre::eyre::Result<()> {
-    env_logger::builder().format_timestamp(None).init();
-    color_eyre::install()?;
     let mut cli = Cli::parse();
+    env_logger::builder()
+        .filter_level(cli.verbose.log_level_filter())
+        .format_timestamp(None)
+        .init();
+    color_eyre::install()?;
     cli.color.write_global();
 
     if let Err(error) = cli.command.run() {
@@ -66,6 +71,9 @@ struct Cli {
     command: Command,
     #[command(flatten)]
     color: colorchoice_clap::Color,
+
+    #[command(flatten)]
+    verbose: clap_verbosity_flag::Verbosity<LoggingHelp>,
 }
 
 #[derive(Subcommand, Debug, Clone)]
@@ -205,6 +213,37 @@ pub struct IoArgs {
     /// Identifier of the main pipeline.
     #[arg(value_parser, value_hint(ValueHint::Unknown))]
     main_path: Option<String>,
+}
+
+#[derive(Copy, Clone, Debug, Default)]
+struct LoggingHelp;
+
+impl LogLevel for LoggingHelp {
+    /// By default, this will only report errors.
+    fn default() -> Option<log::Level> {
+        Some(log::Level::Error)
+    }
+    fn verbose_help() -> Option<&'static str> {
+        Some("Increase logging verbosity")
+    }
+
+    fn verbose_long_help() -> Option<&'static str> {
+        Some(
+            r#"More v's, More vebose logging:
+-v shows warnings
+-vv shows info
+-vvv shows debug
+-vvvv shows trace"#,
+        )
+    }
+
+    fn quiet_help() -> Option<&'static str> {
+        Some("Silences logging output")
+    }
+
+    fn quiet_long_help() -> Option<&'static str> {
+        Some("Silences logging output")
+    }
 }
 
 #[derive(clap::ValueEnum, Clone, Debug)]
