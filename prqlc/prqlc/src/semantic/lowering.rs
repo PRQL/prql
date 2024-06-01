@@ -393,7 +393,7 @@ impl Lowerer {
         ty_tuple_fields.sort_by_key(|a| matches!(a, TyTupleField::Unpack(_)));
 
         let relation = rq::Relation {
-            kind: rq::RelationKind::ExternRef(extern_name),
+            kind: rq::RelationKind::ExternRef(pl::TableExternRef::LocalTable(extern_name)),
             columns: self.ty_tuple_to_relation_columns(ty_tuple_fields, None)?,
         };
         Ok((relation, None))

@@ -1,3 +1,7 @@
+# prettier respects the root `.gitignore` file, so prefer that for files which
+# we also want to ignore from our version control. This should contain files we
+# want to track but not format.
+
 **/*.rs
 **/*.min.*
 
@@ -11,8 +15,3 @@
 
 # TODO: fix the go-template issue in `.prettierrc.yaml`
 **/*.html
-
-# A few large, ignored dirs
-target/
-**/dist/*
-.mypy_cache/

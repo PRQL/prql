@@ -1,0 +1,45 @@
+---
+source: web/book/tests/documentation/book.rs
+expression: "from employees\nfilter start_date > @2021-01-01               # Clear date syntax\nderive {                                      # `derive` adds columns / variables\n  gross_salary = salary + (tax ?? 0),         # Terse coalesce\n  gross_cost = gross_salary + benefits_cost,  # Variables can use other variables\n}\nfilter gross_cost > 0\ngroup {title, country} (                      # `group` runs a pipeline over each group\n  aggregate {                                 # `aggregate` reduces each group to a value\n    average gross_salary,\n    sum_gross_cost = sum gross_cost,          # `=` sets a column name\n  }\n)\nfilter sum_gross_cost > 100_000               # `filter` replaces both of SQL's `WHERE` & `HAVING`\nderive id = f\"{title}_{country}\"              # F-strings like Python\nderive country_code = s\"LEFT(country, 2)\"     # S-strings allow using SQL as an escape hatch\nsort {sum_gross_cost, -country}               # `-country` means descending order\ntake 1..20                                    # Range expressions (also valid here as `take 20`)\n"
+---
+WITH table_1 AS (
+  SELECT
+    title,
+    country,
+    salary + COALESCE(tax, 0) + benefits_cost AS _expr_1,
+    salary + COALESCE(tax, 0) AS _expr_2
+  FROM
+    employees
+  WHERE
+    start_date > DATE '2021-01-01'
+),
+table_0 AS (
+  SELECT
+    title,
+    country,
+    AVG(_expr_2) AS _expr_0,
+    COALESCE(SUM(_expr_1), 0) AS sum_gross_cost
+  FROM
+    table_1
+  WHERE
+    _expr_1 > 0
+  GROUP BY
+    title,
+    country
+)
+SELECT
+  title,
+  country,
+  _expr_0,
+  sum_gross_cost,
+  CONCAT(title, '_', country) AS id,
+  LEFT(country, 2) AS country_code
+FROM
+  table_0
+WHERE
+  sum_gross_cost > 100000
+ORDER BY
+  sum_gross_cost,
+  country DESC
+LIMIT
+  20

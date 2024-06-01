@@ -44,8 +44,7 @@ fn test_expr_ast_code_matches() {
     -    pub left: Box<Expr>,
     -    pub op: BinOp,
     -    pub right: Box<Expr>,
-    -}
-    -
+    @@ .. @@
     -#[derive(Debug, PartialEq, Clone, Serialize, Deserialize)]
     -pub struct UnaryExpr {
     -    pub op: UnOp,

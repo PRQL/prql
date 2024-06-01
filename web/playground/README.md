@@ -8,8 +8,8 @@ To run locally,
 and then run:
 
 ```sh
-task run-playground
+task web:run-playground
 ```
 
 ...or use the commands which that command calls from
-[our Taskfile](../../Taskfile.yml).
+[our Taskfile](../Taskfile.yaml).

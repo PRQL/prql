@@ -4,7 +4,8 @@ use itertools::Itertools;
 use regex::Regex;
 use sqlparser::ast::{
     self as sql_ast, BinaryOperator, DateTimeField, Fetch, Function, FunctionArg, FunctionArgExpr,
-    ObjectName, OrderByExpr, SelectItem, UnaryOperator, Value, WindowFrameBound, WindowSpec,
+    FunctionArgumentList, ObjectName, OrderByExpr, SelectItem, UnaryOperator, Value,
+    WindowFrameBound, WindowSpec,
 };
 use std::cmp::Ordering;
 
@@ -102,7 +103,7 @@ pub(super) fn translate_expr(expr: Expr, ctx: &mut Context) -> Result<ExprOrSour
                     }
                 }
                 "std.concat" => return Ok(process_concat(&expr, ctx)?.into()),
-                "std.array_in" => return Ok(process_array_in(args, ctx)?.into()),
+                "std.array_in" => return Ok(process_array_in(&expr, args, ctx)?.into()),
                 "std.date.to_text" => {
                     return Ok(process_date_to_text(&expr, name, args, ctx)?.into())
                 }
@@ -156,10 +157,15 @@ fn process_null(name: &str, args: &[Expr], ctx: &mut Context) -> Result<sql_ast:
 }
 
 /// Translates into IN (v1, v2, ...) if possible
-fn process_array_in(args: &[Expr], ctx: &mut Context) -> Result<sql_ast::Expr> {
+fn process_array_in(expr: &Expr, args: &[Expr], ctx: &mut Context) -> Result<sql_ast::Expr> {
     match args {
         [col_expr @ Expr {
-            kind: ExprKind::ColumnRef(_),
+            kind:
+                ExprKind::ColumnRef(_)
+                | ExprKind::Literal(_)
+                | ExprKind::SString(_)
+                | ExprKind::Param(_)
+                | ExprKind::Operator { name: _, args: _ },
             ..
         }, Expr {
             kind: ExprKind::Array(in_values),
@@ -172,7 +178,10 @@ fn process_array_in(args: &[Expr], ctx: &mut Context) -> Result<sql_ast::Expr> {
                 .collect::<Result<Vec<sql_ast::Expr>>>()?,
             negated: false,
         }),
-        _ => panic!("args to `std.array_in` must be a column ref and an array"),
+        _ => Err(
+            Error::new_simple("args to `std.array_in` must be an expression and an array")
+                .with_span(expr.span),
+        ),
     }
 }
 
@@ -219,7 +228,7 @@ fn process_concat(expr: &Expr, ctx: &mut Context) -> Result<sql_ast::Expr> {
     if ctx.dialect.has_concat_function() {
         let concat_args = collect_concat_args(expr);
 
-        let args = concat_args
+        let args_list = concat_args
             .iter()
             .map(|a| {
                 translate_expr((*a).clone(), ctx)
@@ -227,15 +236,19 @@ fn process_concat(expr: &Expr, ctx: &mut Context) -> Result<sql_ast::Expr> {
             })
             .try_collect()?;
 
+        let args = sql_ast::FunctionArguments::List(FunctionArgumentList {
+            args: args_list,
+            clauses: vec![],
+            duplicate_treatment: None,
+        });
+
         Ok(sql_ast::Expr::Function(Function {
             name: ObjectName(vec![sql_ast::Ident::new("CONCAT")]),
             args,
             over: None,
-            distinct: false,
-            special: false,
-            order_by: vec![],
             filter: None,
             null_treatment: None,
+            within_group: vec![],
         }))
     } else {
         let concat_args = collect_concat_args(expr);
@@ -372,7 +385,7 @@ pub(super) fn translate_literal(l: Literal, ctx: &Context) -> Result<sql_ast::Ex
             let sql_parser_datetime = match vau.unit.as_str() {
                 "years" => DateTimeField::Year,
                 "months" => DateTimeField::Month,
-                "weeks" => DateTimeField::Week,
+                "weeks" => DateTimeField::Week(None),
                 "days" => DateTimeField::Day,
                 "hours" => DateTimeField::Hour,
                 "minutes" => DateTimeField::Minute,
@@ -451,15 +464,19 @@ fn translate_datetime_literal_with_sqlite_function(
         _ => unreachable!(),
     };
 
+    let args = sql_ast::FunctionArguments::List(FunctionArgumentList {
+        args: vec![arg],
+        clauses: vec![],
+        duplicate_treatment: None,
+    });
+
     sql_ast::Expr::Function(Function {
         name: ObjectName(vec![sql_ast::Ident::new(func_name)]),
-        args: vec![arg],
+        args,
         over: None,
-        distinct: false,
-        special: false,
-        order_by: vec![],
         filter: None,
         null_treatment: None,
+        within_group: vec![],
     })
 }
 
@@ -675,6 +692,7 @@ fn translate_windowed(
     );
 
     let window = WindowSpec {
+        window_name: None,
         partition_by: try_into_exprs(window.partition, ctx, span)?,
         order_by: (window.sort)
             .into_iter()

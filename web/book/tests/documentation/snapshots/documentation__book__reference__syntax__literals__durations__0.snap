@@ -4,7 +4,6 @@ expression: "from projects\nderive first_check_in = start + 10days\n"
 ---
 SELECT
   *,
-  start + INTERVAL 10 DAY AS first_check_in
+  "start" + INTERVAL 10 DAY AS first_check_in
 FROM
   projects
-

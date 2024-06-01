@@ -17,7 +17,7 @@ the complete build, add any `mdbook` crates listed in the `Taskfile.yaml`.
 And then to build & serve locally[^1]:
 
 ```sh
-task run-book
+task web:run-book
 ```
 
 [^1]: ...which is equivalent to:

@@ -1185,6 +1185,8 @@ fn test_in_values_01() {
     from db.employees
     filter (title | in ["Sales Manager", "Sales Support Agent"])
     filter (employee_id | in [1, 2, 5])
+    filter (f"{emp_group}.{role}" | in ["sales_ne.mgr", "sales_mw.mgr"])
+    filter (s"{metadata} ->> '$.location'" | in ["Northeast", "Midwest"])
     "#).unwrap()), @r#"
     SELECT
       *
@@ -1193,6 +1195,8 @@ fn test_in_values_01() {
     WHERE
       title IN ('Sales Manager', 'Sales Support Agent')
       AND employee_id IN (1, 2, 5)
+      AND CONCAT(emp_group, '.', role) IN ('sales_ne.mgr', 'sales_mw.mgr')
+      AND metadata ->> '$.location' IN ('Northeast', 'Midwest')
     "#);
 }
 
@@ -1252,6 +1256,22 @@ fn test_not_in_values() {
 }
 
 #[test]
+fn test_in_values_err_01() {
+    assert_snapshot!((compile(r###"
+    from db.employees
+    derive { ng = ([1, 2] | in [3, 4]) }
+    "###).unwrap_err()), @r###"
+    Error:
+       ╭─[:3:29]
+       │
+     3 │     derive { ng = ([1, 2] | in [3, 4]) }
+       │                             ────┬────
+       │                                 ╰────── args to `std.array_in` must be an expression and an array
+    ───╯
+    "###);
+}
+
+#[test]
 fn test_interval() {
     let query = r###"
     from db.projects
@@ -1261,7 +1281,7 @@ fn test_interval() {
     assert_snapshot!((compile(query).unwrap()), @r###"
     SELECT
       *,
-      start + INTERVAL 10 DAY AS first_check_in
+      "start" + INTERVAL 10 DAY AS first_check_in
     FROM
       projects
     "###);
@@ -1275,7 +1295,7 @@ fn test_interval() {
     assert_snapshot!((compile(query).unwrap()), @r###"
     SELECT
       *,
-      start + INTERVAL '10' DAY AS first_check_in
+      "start" + INTERVAL '10' DAY AS first_check_in
     FROM
       projects
     "###);
@@ -2431,6 +2451,84 @@ fn test_join() {
     "###);
 
     compile("from x | join db.y {==x.id}").unwrap_err();
+}
+
+#[test]
+#[ignore] // TODO: join side
+fn test_join_side_literal() {
+    assert_snapshot!((compile(r###"
+    let my_side = "right"
+
+    from db.x
+    join db.y (==id) side:my_side
+    "###).unwrap()), @r###"
+    SELECT
+      x.*,
+      y.*
+    FROM
+      x
+      RIGHT JOIN y ON x.id = y.id
+    "###);
+}
+
+#[test]
+#[ignore] // TODO: join side
+fn test_join_side_literal_err() {
+    assert_snapshot!((compile(r###"
+    let my_side = 42
+
+    from db.x
+    join db.y (==id) side:my_side
+    "###).unwrap_err()), @r###"
+    Error:
+       ╭─[:5:27]
+       │
+     5 │     join db.y (==id) side:my_side
+       │                           ───┬───
+       │                              ╰───── `side` expected inner, left, right or full, but found 42
+    ───╯
+    "###);
+}
+
+#[test]
+#[ignore]
+fn test_join_side_literal_via_func() {
+    assert_snapshot!((compile(r###"
+    let my_join = func m <relation> c <scalar> s <text>:"right" tbl <relation> -> (
+        join side:_param.s m (c == that.k) tbl
+    )
+
+    from db.x
+    my_join db.y this.id s:"left"
+    "###).unwrap()), @r###"
+    SELECT
+      x.*,
+      y.*
+    FROM
+      x
+      LEFT JOIN y ON x.id = y.k
+    "###);
+}
+
+#[test]
+#[ignore]
+fn test_join_side_literal_via_func_err() {
+    assert_snapshot!((compile(r###"
+    let my_join = func m <relation> c <scalar> s <text>:"right" tbl <relation> -> (
+        join side:s m (c == that.k) tbl
+    )
+
+    from db.x
+    my_join db.y this.id s:"four"
+    "###).unwrap_err()), @r###"
+    Error:
+       ╭─[:3:25]
+       │
+     3 │         join side:_param.s m (c == that.k) tbl
+       │                         ─┬
+       │                          ╰── `side` expected inner, left, right or full, but found "four"
+    ───╯
+    "###);
 }
 
 #[test]

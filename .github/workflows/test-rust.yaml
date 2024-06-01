@@ -93,7 +93,7 @@ jobs:
             --no-run --locked --target=${{ inputs.target }}
             --no-default-features --features=${{ inputs.features }}
       - name: Wait for database
-        uses: ifaxity/wait-on-action@v1.1.0
+        uses: ifaxity/wait-on-action@v1.2.1
         with:
           resource: "tcp:1433 tcp:3306 tcp:5432 tcp:9004"
           timeout: 60000

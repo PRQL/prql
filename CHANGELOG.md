@@ -9,6 +9,10 @@
 - Initial implementation of an experimental documentation generator that
   generates Markdown documentation from `.prql` files. (@vanillajonathan,
   #4152).
+- Add `prqlc lex` command to the CLI (@max-sixty)
+- Join `side` parameter can take a reference that resolves to a literal (note:
+  this is an experimental feature which may change in the future) (@kgutwin,
+  #4499)
 
 - _Breaking_: References to database tables now require an explicit `db.`
   prefix. Example:
@@ -18,6 +22,8 @@
   ```
 
 **Fixes**:
+
+- Support expressions on left hand side of `std.in` operator. (@kgutwin, #4498)
 
 **Documentation**:
 
@@ -31,6 +37,11 @@
 
 - The syntax highlighter package for Sublime Text is now
   [published](https://packagecontrol.io/packages/PRQL) (@vanillajonathan).
+- The
+  [VSCode Great Icons](https://marketplace.visualstudio.com/items?itemName=emmanuelbeziat.vscode-great-icons)
+  icon pack extension shows a database icon for `.prql` files. (@EmmanuelBeziat)
+- [Tokei](https://github.com/XAMPPRocky/tokei), a source lines of code counter
+  now has support for `.prql` files. (@vanillajonathan)
 
 **Internal changes**:
 
@@ -1573,10 +1584,9 @@ Rust.
 I especially want to give [Aljaž Mur Eržen](https://github.com/aljazerzen)
 (@aljazerzen) the credit he deserves, who has contributed the majority of the
 difficult work of building out the compiler. Much credit also goes to
-[Charlie Sanders](https://github.com/charlie-sanders) (@charlie-sanders), one of
-PRQL's earliest supporters and the author of pyprql, and
-[Ryan Patterson-Cross](https://github.com/rbpatt2019) (@rbpatt2019), who built
-the Jupyter integration among other Python contributions.
+@charlie-sanders, one of PRQL's earliest supporters and the author of pyprql,
+and [Ryan Patterson-Cross](https://github.com/rbpatt2019) (@rbpatt2019), who
+built the Jupyter integration among other Python contributions.
 
 Other contributors who deserve a special mention include: @roG0d, @snth,
 @kwigley

@@ -39,3 +39,11 @@ _*.sql
 cobertura.xml
 codecov.json
 .envrc
+
+# Some paths we don't want to include. We could ignore these further down the
+# tree, but prettier relies on this file rather than resolving all the way down.
+.venv
+.nox
+vendor
+.mypy_cache/
+.hypothesis/

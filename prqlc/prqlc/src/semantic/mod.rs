@@ -250,7 +250,8 @@ pub mod test {
             relation:
               kind:
                 ExternRef:
-                  - employees
+                  LocalTable:
+                    - employees
               columns:
                 - Wildcard
         relation:

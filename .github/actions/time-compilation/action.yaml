@@ -29,9 +29,11 @@ runs:
       with:
         command: build
         args: --timings --all-targets
-    - uses: actions/upload-artifact@v3
+    - uses: actions/upload-artifact@v4
       with:
-        name: cargo-timing.html
+        name:
+          cargo-timing-${{ inputs.use_cache == 'true' && 'cache' || 'no_cache'
+          }}.html
         path: target/cargo-timings/cargo-timing-*.html
         if-no-files-found: error
         # Only upload if a) we got a cache hit or b) we didn't want to use the cache anyway

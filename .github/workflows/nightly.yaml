@@ -38,6 +38,8 @@ jobs:
       - uses: rustsec/audit-check@v1
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
+          # Only used in tests. Waiting for tiberius to publish a new release.
+          ignore: "RUSTSEC-2024-0336"
 
   cargo-bench:
     runs-on: ubuntu-latest

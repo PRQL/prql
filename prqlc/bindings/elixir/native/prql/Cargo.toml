@@ -21,4 +21,4 @@ doc = false
 # See Readme for details on Mac
 [target.'cfg(not(any(target_family="wasm", target_os = "macos")))'.dependencies]
 prqlc = {path = "../../../../prqlc", default-features = false, version = "0.11.5" }
-rustler = "0.31.0"
+rustler = "0.32.1"

@@ -10,13 +10,12 @@ mod types;
 use chumsky::error::SimpleReason;
 use chumsky::{prelude::*, Stream};
 
-use prqlc_ast::error::Reason;
-use prqlc_ast::error::{Error, WithErrorInfo};
+use prqlc_ast::error::{Error, Reason, WithErrorInfo};
 use prqlc_ast::stmt::*;
 use prqlc_ast::Span;
 
-use lexer::TokenKind;
-use lexer::{Token, TokenVec};
+use lexer::Token;
+pub use lexer::{TokenKind, TokenVec};
 use span::ParserSpan;
 
 /// Build PRQL AST from a PRQL query string.
@@ -148,6 +147,33 @@ fn prepare_stream(
     Stream::from_iter(eoi, tokens)
 }
 
+#[test]
+fn test_prepare_stream() {
+    use insta::assert_yaml_snapshot;
+
+    let input = "from artists | filter name == 'John'";
+    let tokens = lex_source(input).unwrap();
+    let mut stream = prepare_stream(tokens.0.into_iter(), input, 0);
+    assert_yaml_snapshot!(stream.fetch_tokens().collect::<Vec<(TokenKind, ParserSpan)>>(), @r###"
+    ---
+    - - Ident: from
+      - "0:0-4"
+    - - Ident: artists
+      - "0:5-12"
+    - - Control: "|"
+      - "0:13-14"
+    - - Ident: filter
+      - "0:15-21"
+    - - Ident: name
+      - "0:22-26"
+    - - Eq
+      - "0:27-29"
+    - - Literal:
+          String: John
+      - "0:30-36"
+    "###);
+}
+
 fn convert_lexer_error(source: &str, e: chumsky::error::Cheap<char>, source_id: u16) -> Error {
     // We want to slice based on the chars, not the bytes, so can't just index
     // into the str.
@@ -242,10 +268,12 @@ fn test_lex_source() {
 
     assert_debug_snapshot!(lex_source("5 + 3"), @r###"
     Ok(
-        TokenVec (
-          0..1: Literal(Integer(5)),
-          2..3: Control('+'),
-          4..5: Literal(Integer(3)),
+        TokenVec(
+            [
+                0..1: Literal(Integer(5)),
+                2..3: Control('+'),
+                4..5: Literal(Integer(3)),
+            ],
         ),
     )
     "###);

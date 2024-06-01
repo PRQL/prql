@@ -124,9 +124,16 @@ impl WriteOpt {
     }
 }
 
+/// Holds a list of (generally) expressions, attempting to write them in a
+/// single line, or falling back to one-per-line
+#[derive(Debug, Clone)]
 struct SeparatedExprs<'a, T: WriteSource> {
     exprs: &'a [T],
+    /// The separator to use when writing the expressions on a single line; for
+    /// example `", "`.
     inline: &'static str,
+    /// The separator to use when writing the expressions on separate lines, for
+    /// example `","` (`/n` is implied)
     line_end: &'static str,
 }
 

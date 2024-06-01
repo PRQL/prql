@@ -7,10 +7,17 @@ info:
     - shell-completion
     - bash
   env:
+<<<<<<< HEAD
     NO_COLOR: "1"
     RUST_LOG: ""
     RUST_BACKTRACE: ""
     CLICOLOR_FORCE: ""
+=======
+    CLICOLOR_FORCE: ""
+    NO_COLOR: "1"
+    RUST_BACKTRACE: ""
+    RUST_LOG: ""
+>>>>>>> main
 ---
 success: true
 exit_code: 0
@@ -46,6 +53,9 @@ _prqlc() {
                 ;;
             prqlc,help)
                 cmd="prqlc__help"
+                ;;
+            prqlc,lex)
+                cmd="prqlc__lex"
                 ;;
             prqlc,list-targets)
                 cmd="prqlc__list__targets"
@@ -128,6 +138,9 @@ _prqlc() {
             prqlc__help,help)
                 cmd="prqlc__help__help"
                 ;;
+            prqlc__help,lex)
+                cmd="prqlc__help__lex"
+                ;;
             prqlc__help,list-targets)
                 cmd="prqlc__help__list__targets"
                 ;;
@@ -171,7 +184,7 @@ _prqlc() {
 
     case "${cmd}" in
         prqlc)
-            opts="-h -V --color --help --version parse fmt collect debug experimental resolve sql:preprocess sql:anchor compile watch list-targets shell-completion help"
+            opts="-h -V --color --help --version parse lex fmt collect debug experimental resolve sql:preprocess sql:anchor compile watch list-targets shell-completion help"
             if [[ ${cur} == -* || ${COMP_CWORD} -eq 1 ]] ; then
                 COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
                 return 0
@@ -503,7 +516,7 @@ _prqlc() {
             return 0
             ;;
         prqlc__help)
-            opts="parse fmt collect debug experimental resolve sql:preprocess sql:anchor compile watch list-targets shell-completion help"
+            opts="parse lex fmt collect debug experimental resolve sql:preprocess sql:anchor compile watch list-targets shell-completion help"
             if [[ ${cur} == -* || ${COMP_CWORD} -eq 2 ]] ; then
                 COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
                 return 0
@@ -670,6 +683,20 @@ _prqlc() {
             COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
             return 0
             ;;
+        prqlc__help__lex)
+            opts=""
+            if [[ ${cur} == -* || ${COMP_CWORD} -eq 3 ]] ; then
+                COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
+                return 0
+            fi
+            case "${prev}" in
+                *)
+                    COMPREPLY=()
+                    ;;
+            esac
+            COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
+            return 0
+            ;;
         prqlc__help__list__targets)
             opts=""
             if [[ ${cur} == -* || ${COMP_CWORD} -eq 3 ]] ; then
@@ -761,6 +788,28 @@ _prqlc() {
                 return 0
             fi
             case "${prev}" in
+                *)
+                    COMPREPLY=()
+                    ;;
+            esac
+            COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
+            return 0
+            ;;
+        prqlc__lex)
+            opts="-h --format --color --help [INPUT] [OUTPUT] [MAIN_PATH]"
+            if [[ ${cur} == -* || ${COMP_CWORD} -eq 2 ]] ; then
+                COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
+                return 0
+            fi
+            case "${prev}" in
+                --format)
+                    COMPREPLY=($(compgen -W "json yaml" -- "${cur}"))
+                    return 0
+                    ;;
+                --color)
+                    COMPREPLY=($(compgen -W "auto always never" -- "${cur}"))
+                    return 0
+                    ;;
                 *)
                     COMPREPLY=()
                     ;;

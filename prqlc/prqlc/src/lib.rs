@@ -69,8 +69,10 @@
 //!
 //! The following [feature flags](https://doc.rust-lang.org/cargo/reference/manifest.html#the-features-section) are available:
 //!
-//! * `serde_yaml`: adapts the `Serialize` implementation for [`crate::ast::expr::ExprKind::Literal`]
-//!   to `serde_yaml`, which doesn't support the serialization of nested enums
+//! * `serde_yaml`: adapts the `Serialize` implementation for
+//!   [`crate::ast::expr::ExprKind::Literal`] within
+//!   [`crate::ir::rq::ExprKind`] to a custom one for `serde_yaml`, which
+//!   doesn't support the serialization of nested enums.
 //!
 //! ## Large binary sizes
 //!
@@ -111,6 +113,7 @@ pub static COMPILER_VERSION: Lazy<Version> =
     Lazy::new(|| Version::parse(env!("CARGO_PKG_VERSION")).expect("Invalid prqlc version number"));
 
 use once_cell::sync::Lazy;
+use prqlc_parser::TokenVec;
 use semver::Version;
 use serde::{Deserialize, Serialize};
 use std::{collections::HashMap, path::PathBuf, str::FromStr};
@@ -278,7 +281,7 @@ impl Options {
         self
     }
 
-    #[deprecated(note = "`color` now has no effect; see `Options` docs for more details")]
+    #[deprecated(note = "`color` is replaced by `display`; see `Options` docs for more details")]
     pub fn with_color(mut self, color: bool) -> Self {
         self.color = color;
         self
@@ -303,6 +306,16 @@ pub enum DisplayOptions {
 #[doc = include_str!("../README.md")]
 #[cfg(doctest)]
 pub struct ReadmeDoctests;
+
+/// Lex PRQL source into tokens.
+pub fn prql_to_tokens(prql: &str) -> Result<TokenVec, ErrorMessages> {
+    prqlc_parser::lex_source(prql).map_err(|e| {
+        e.into_iter()
+            .map(|e| e.into())
+            .collect::<Vec<ErrorMessage>>()
+            .into()
+    })
+}
 
 /// Parse PRQL into a PL AST
 // TODO: rename this to `prql_to_pl_simple`

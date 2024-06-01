@@ -24,7 +24,7 @@ def _install_prqlc(session: Session) -> None:
         # plain pip of doing that (https://github.com/pypa/pip/issues/11440).
         # "--no-index",
         f"--find-links={Path('..', '..', '..', 'target', 'python')}",
-        "prqlc[test]",
+        "prqlc[dev]",
     )
 
 

@@ -54,8 +54,7 @@ tasks:
             nextest \
             {{.packages}}
 
-      - cmd:
-          cargo clippy --all-targets {{.packages}} -- -D warnings
+      - cmd: cargo clippy --all-targets {{.packages}} -- -D warnings
 
   pull-request:
     desc: Most checks that run within GH actions for a pull request

@@ -62,6 +62,15 @@ fn linearize_tree(tree: &SourceTree) -> Result<Vec<SourceFile>> {
     } else if let Some(root) = tree.sources.keys().find(path_starts_with_uppercase) {
         root_path = root;
     } else {
+        if tree.sources.is_empty() {
+            // TODO: should we allow non `.prql` files? We could require `.prql`
+            // for modules but then allow any file if a single file is passed
+            // (python allows this, for example)
+            return Err(Error::new_simple(
+                "No `.prql` files found in the source tree",
+            ));
+        }
+
         let file_names = tree
             .sources
             .keys()

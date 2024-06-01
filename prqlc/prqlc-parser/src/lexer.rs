@@ -9,7 +9,6 @@ use serde::{Deserialize, Serialize};
 
 #[derive(Clone, PartialEq, Serialize, Deserialize)]
 pub struct Token {
-    #[serde(flatten)]
     pub kind: TokenKind,
     pub span: std::ops::Range<usize>,
 }
@@ -20,6 +19,10 @@ pub enum TokenKind {
 
     Ident(String),
     Keyword(String),
+    #[cfg_attr(
+        feature = "serde_yaml",
+        serde(with = "serde_yaml::with::singleton_map")
+    )]
     Literal(Literal),
     Param(String),
 
@@ -51,10 +54,10 @@ pub enum TokenKind {
     // Aesthetics only
     Comment(String),
     DocComment(String),
-    /// Vec contains comments between the newline and the line wrap
+    /// Vec containing comments between the newline and the line wrap
     // Currently we include the comments with the LineWrap token. This isn't
     // ideal, but I'm not sure of an easy way of having them be separate.
-    // - The line wrap span technically include the comments — on a newline,
+    // - The line wrap span technically includes the comments — on a newline,
     //   we need to look ahead to _after_ the comments to see if there's a
     //   line wrap, and exclude the newline if there is.
     // - We can only pass one token back
@@ -109,6 +112,7 @@ pub fn lex_token() -> impl Parser<char, Token, Error = Cheap<char>> {
         just("internal"),
         just("func"),
         just("import"),
+        just("enum"),
     ))
     .then_ignore(end_expr())
     .map(|x| x.to_string())
@@ -575,17 +579,18 @@ impl std::fmt::Debug for Token {
     }
 }
 
+#[derive(Serialize, Deserialize, Debug)]
 pub struct TokenVec(pub Vec<Token>);
 
-impl std::fmt::Debug for TokenVec {
-    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        writeln!(f, "TokenVec (")?;
-        for token in self.0.iter() {
-            writeln!(f, "  {:?},", token)?;
-        }
-        write!(f, ")")
-    }
-}
+// impl std::fmt::Debug for TokenVec {
+//     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+//         writeln!(f, "TokenVec (")?;
+//         for token in self.0.iter() {
+//             writeln!(f, "  {:?},", token)?;
+//         }
+//         write!(f, ")")
+//     }
+// }
 
 #[cfg(test)]
 mod test {
@@ -598,11 +603,13 @@ mod test {
         assert_debug_snapshot!(TokenVec(lexer().parse(r"5 +
     \ 3 "
         ).unwrap()), @r###"
-        TokenVec (
-          0..1: Literal(Integer(5)),
-          2..3: Control('+'),
-          3..9: LineWrap([]),
-          10..11: Literal(Integer(3)),
+        TokenVec(
+            [
+                0..1: Literal(Integer(5)),
+                2..3: Control('+'),
+                3..9: LineWrap([]),
+                10..11: Literal(Integer(3)),
+            ],
         )
         "###);
 
@@ -612,11 +619,13 @@ mod test {
    # comment with whitespace
   \ 3 "
         ).unwrap()), @r###"
-        TokenVec (
-          0..1: Literal(Integer(5)),
-          2..3: Control('+'),
-          3..46: LineWrap([Comment(" comment"), Comment(" comment with whitespace")]),
-          47..48: Literal(Integer(3)),
+        TokenVec(
+            [
+                0..1: Literal(Integer(5)),
+                2..3: Control('+'),
+                3..46: LineWrap([Comment(" comment"), Comment(" comment with whitespace")]),
+                47..48: Literal(Integer(3)),
+            ],
         )
         "###);
 
@@ -659,21 +668,25 @@ mod test {
     #[test]
     fn debug_display() {
         assert_debug_snapshot!(TokenVec(lexer().parse("5 + 3").unwrap()), @r###"
-    TokenVec (
-      0..1: Literal(Integer(5)),
-      2..3: Control('+'),
-      4..5: Literal(Integer(3)),
-    )
-    "###);
+        TokenVec(
+            [
+                0..1: Literal(Integer(5)),
+                2..3: Control('+'),
+                4..5: Literal(Integer(3)),
+            ],
+        )
+        "###);
     }
 
     #[test]
     fn comment() {
         assert_debug_snapshot!(TokenVec(lexer().parse("# comment\n# second line").unwrap()), @r###"
-        TokenVec (
-          0..9: Comment(" comment"),
-          9..10: NewLine,
-          10..23: Comment(" second line"),
+        TokenVec(
+            [
+                0..9: Comment(" comment"),
+                9..10: NewLine,
+                10..23: Comment(" second line"),
+            ],
         )
         "###);
 
@@ -685,8 +698,10 @@ mod test {
     #[test]
     fn doc_comment() {
         assert_debug_snapshot!(TokenVec(lexer().parse("#! docs").unwrap()), @r###"
-        TokenVec (
-          0..7: DocComment(" docs"),
+        TokenVec(
+            [
+                0..7: DocComment(" docs"),
+            ],
         )
         "###);
     }
@@ -729,32 +744,40 @@ mod test {
     #[test]
     fn range() {
         assert_debug_snapshot!(TokenVec(lexer().parse("1..2").unwrap()), @r###"
-        TokenVec (
-          0..1: Literal(Integer(1)),
-          1..3: Range { bind_left: true, bind_right: true },
-          3..4: Literal(Integer(2)),
+        TokenVec(
+            [
+                0..1: Literal(Integer(1)),
+                1..3: Range { bind_left: true, bind_right: true },
+                3..4: Literal(Integer(2)),
+            ],
         )
         "###);
 
         assert_debug_snapshot!(TokenVec(lexer().parse("..2").unwrap()), @r###"
-        TokenVec (
-          0..2: Range { bind_left: true, bind_right: true },
-          2..3: Literal(Integer(2)),
+        TokenVec(
+            [
+                0..2: Range { bind_left: true, bind_right: true },
+                2..3: Literal(Integer(2)),
+            ],
         )
         "###);
 
         assert_debug_snapshot!(TokenVec(lexer().parse("1..").unwrap()), @r###"
-        TokenVec (
-          0..1: Literal(Integer(1)),
-          1..3: Range { bind_left: true, bind_right: true },
+        TokenVec(
+            [
+                0..1: Literal(Integer(1)),
+                1..3: Range { bind_left: true, bind_right: true },
+            ],
         )
         "###);
 
         assert_debug_snapshot!(TokenVec(lexer().parse("in ..5").unwrap()), @r###"
-        TokenVec (
-          0..2: Ident("in"),
-          2..5: Range { bind_left: false, bind_right: true },
-          5..6: Literal(Integer(5)),
+        TokenVec(
+            [
+                0..2: Ident("in"),
+                2..5: Range { bind_left: false, bind_right: true },
+                5..6: Literal(Integer(5)),
+            ],
         )
         "###);
     }

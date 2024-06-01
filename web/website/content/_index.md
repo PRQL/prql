@@ -198,6 +198,10 @@ integrations_section:
       link: https://github.com/kaspermarstal/plprql
       text: Write PRQL functions in PostgreSQL
 
+    - label: "Databend"
+      link: https://www.databend.com/blog/2024-04-03-databend-integrates-prql/
+      text: Databend natively supports PRQL
+
 bindings_section:
   enable: true
   title: "Bindings"

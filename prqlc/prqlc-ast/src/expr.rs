@@ -47,6 +47,10 @@ pub enum ExprKind {
         base: Box<Expr>,
         field: IndirectionKind,
     },
+    #[cfg_attr(
+        feature = "serde_yaml",
+        serde(with = "serde_yaml::with::singleton_map")
+    )]
     Literal(Literal),
     Pipeline(Pipeline),
 

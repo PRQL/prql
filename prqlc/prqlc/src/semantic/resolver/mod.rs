@@ -205,16 +205,15 @@ pub(in crate::semantic) mod test {
         assert_yaml_snapshot!(resolve_lineage(
             r#"
             from db.table_1
-            join db.customers(==customer_no)
+            join db.customers (==customer_no)
             "#
         )
         .unwrap());
 
         assert_yaml_snapshot!(resolve_lineage(
             r#"
-            from db.employees
-            select {e = this}
-            join db.salaries(==emp_no)
+            from e = db.employees
+            join db.salaries (==emp_no)
             group {e.emp_no, e.gender} (
                 aggregate {
                     emp_salary = average salaries.salary
