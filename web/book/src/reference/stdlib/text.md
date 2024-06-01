@@ -19,7 +19,7 @@ These are all the functions defined in the `text` module:
 ### Example
 
 ```prql
-from employees
+from db.employees
 select {
   last_name | text.lower | text.starts_with("a"),
   title | text.replace "manager" "chief"

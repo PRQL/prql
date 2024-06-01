@@ -41,7 +41,7 @@ Some examples:
 ## Example
 
 ```prql
-from employees
+from db.employees
 group employee_id (
   sort month
   window rolling:12 (
@@ -51,7 +51,7 @@ group employee_id (
 ```
 
 ```prql
-from orders
+from db.orders
 sort day
 window rows:-3..3 (
   derive {centered_weekly_average = average value}
@@ -67,7 +67,7 @@ group {order_month} (
 Rows vs Range:
 
 ```prql
-from [
+[
   {time_id=1, value=15},
   {time_id=2, value=11},
   {time_id=3, value=16},
@@ -119,7 +119,7 @@ the whole table. Unlike in SQL, they will remain window functions and will not
 trigger aggregation.
 
 ```prql
-from employees
+from db.employees
 sort age
 derive {rnk = rank age}
 ```
@@ -127,7 +127,7 @@ derive {rnk = rank age}
 You can also only apply `group`:
 
 ```prql
-from employees
+from db.employees
 group department (
   sort age
   derive {rnk = rank age}
@@ -139,6 +139,6 @@ group department (
 There are no limitations on where windowed expressions can be used:
 
 ```prql
-from employees
+from db.employees
 filter salary < (average salary)
 ```

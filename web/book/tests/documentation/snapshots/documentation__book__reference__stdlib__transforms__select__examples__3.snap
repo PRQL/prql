@@ -1,10 +1,10 @@
 ---
 source: web/book/tests/documentation/book.rs
-expression: "from e=employees\nselect {e.first_name, e.last_name}\n"
+expression: "from db.employees\nselect {e = this}\nselect {e.first_name, e.last_name}\n"
 ---
 SELECT
   first_name,
   last_name
 FROM
-  employees AS e
+  employees
 

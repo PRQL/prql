@@ -12,8 +12,8 @@ let favourite_artists = [
   {artist_id = 7, last_listen = @2023-05-16},
 ]
 
-from favourite_artists
-join input = (from chinook.artists | select {artist_id, name}) side:left (==artist_id)
+favourite_artists
+join (chinook.artists | select {artist_id, name}) side:left (==artist_id)
 derive aid = favourite_artists.artist_id * 2
-select {aid, input.name, favourite_artists.last_listen}
+select {aid, name, favourite_artists.last_listen}
 sort {-aid}

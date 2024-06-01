@@ -1,6 +1,6 @@
 ---
 source: prqlc/prqlc/src/semantic/resolver/mod.rs
-expression: "resolve_lineage(r#\"\n            from e = employees\n            join salaries (==emp_no)\n            group {e.emp_no, e.gender} (\n                aggregate {\n                    emp_salary = average salaries.salary\n                }\n            )\n            \"#).unwrap()"
+expression: "resolve_lineage(r#\"\n            from e = db.employees\n            join db.salaries (==emp_no)\n            group {e.emp_no, e.gender} (\n                aggregate {\n                    emp_salary = average salaries.salary\n                }\n            )\n            \"#).unwrap()"
 ---
 columns:
   - Single:
@@ -24,11 +24,10 @@ inputs:
   - id: 122
     name: e
     table:
-      - default_db
+      - db
       - employees
   - id: 119
     name: salaries
     table:
-      - default_db
+      - db
       - salaries
-

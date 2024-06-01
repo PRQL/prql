@@ -16,21 +16,16 @@ use super::Resolver;
 
 impl Resolver<'_> {
     pub(super) fn resolve_ident(&mut self, ident: &Ident) -> Result<Ident, Error> {
-        let mut res = if let Some(default_namespace) = self.default_namespace.clone() {
-            self.resolve_ident_core(ident, Some(&default_namespace))
-        } else {
-            let mut ident = ident.clone().prepend(self.current_module_path.clone());
+        let mut ident = ident.clone().prepend(self.current_module_path.clone());
 
-            let mut res = self.resolve_ident_core(&ident, None);
-            for _ in 0..self.current_module_path.len() {
-                if res.is_ok() {
-                    break;
-                }
-                ident = ident.pop_front().1.unwrap();
-                res = self.resolve_ident_core(&ident, None);
+        let mut res = self.resolve_ident_core(&ident);
+        for _ in 0..self.current_module_path.len() {
+            if res.is_ok() {
+                break;
             }
-            res
-        };
+            ident = ident.pop_front().1.unwrap();
+            res = self.resolve_ident_core(&ident);
+        }
 
         match &res {
             Ok(fq_ident) => {
@@ -78,11 +73,7 @@ impl Resolver<'_> {
         cols
     }
 
-    pub(super) fn resolve_ident_core(
-        &mut self,
-        ident: &Ident,
-        default_namespace: Option<&String>,
-    ) -> Result<Ident, Error> {
+    pub(super) fn resolve_ident_core(&mut self, ident: &Ident) -> Result<Ident, Error> {
         // special case: wildcard
         if ident.name == "*" {
             // TODO: we may want to raise an error if someone has passed `download*` in
@@ -112,23 +103,7 @@ impl Resolver<'_> {
             _ => return Err(ambiguous_error(decls, None)),
         }
 
-        let ident = if let Some(default_namespace) = default_namespace {
-            let ident = ident.clone().prepend(vec![default_namespace.clone()]);
-
-            let decls = self.root_mod.module.lookup(&ident);
-            match decls.len() {
-                // no match: try match *
-                0 => ident,
-
-                // single match, great!
-                1 => return Ok(decls.into_iter().next().unwrap()),
-
-                // ambiguous
-                _ => return Err(ambiguous_error(decls, None)),
-            }
-        } else {
-            ident.clone()
-        };
+        let ident = ident.clone();
 
         // fallback case: try to match with NS_INFER and infer the declaration
         // from the original ident.

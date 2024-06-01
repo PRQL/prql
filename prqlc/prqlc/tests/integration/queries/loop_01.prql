@@ -1,6 +1,6 @@
 # clickhouse:skip (DB::Exception: Syntax error)
 # glaredb:skip (DataFusion does not support recursive CTEs https://github.com/apache/arrow-datafusion/issues/462)
-from [{n = 1}]
+[{n = 1}]
 select n = n - 2
 loop (filter n < 4 | select n = n + 1)
 select n = n * 2

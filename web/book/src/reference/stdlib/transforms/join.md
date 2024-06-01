@@ -25,21 +25,21 @@ join side:{inner|left|right|full} rel (condition)
 ## Examples
 
 ```prql
-from employees
-join side:left positions (employees.id==positions.employee_id)
+from db.employees
+join side:left db.positions (employees.id==positions.employee_id)
 ```
 
 ---
 
 ```prql
-from employees
-join side:left p=positions (employees.id==p.employee_id)
+from db.employees
+join side:left p=db.positions (employees.id==p.employee_id)
 ```
 
 ---
 
 ```prql
-from tracks
+from db.tracks
 join side:left artists (
   # This adds a `country` condition, as an alternative to filtering
   artists.id==tracks.artist_id && artists.country=='UK'
@@ -64,8 +64,8 @@ join hats true
 the current & other table respectively:
 
 ```prql
-from tracks
-join side:inner artists (
+from db.tracks
+join side:inner db.artists (
   this.id==that.artist_id
 )
 ```
@@ -76,6 +76,6 @@ If the join conditions are of form `left.x == right.x`, we can use "self
 equality operator":
 
 ```prql
-from employees
-join positions (==emp_no)
+from db.employees
+join db.positions (==emp_no)
 ```

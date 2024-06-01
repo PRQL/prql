@@ -5,7 +5,7 @@ defmodule PRQLTest do
   @compile_opts [signature_comment: false]
 
   test "compiles PRQL" do
-    prql_query = "from customers"
+    prql_query = "from db.customers"
 
     assert PRQL.compile(prql_query, @compile_opts) ==
              {:ok,

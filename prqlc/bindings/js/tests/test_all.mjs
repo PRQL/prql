@@ -2,15 +2,15 @@ import assert from "assert";
 import { expect } from "chai";
 import prql from "../dist/node/prql_js.js";
 
-const employee_prql = `from employees
-join salaries (==emp_no)
+const employee_prql = `from db.employees
+join db.salaries (==emp_no)
 group {employees.emp_no, employees.gender} (
   aggregate {
     emp_salary = average salaries.salary
   }
 )
-join de=dept_emp (==emp_no)
-join dm=dept_manager (
+join de = db.dept_emp (==emp_no)
+join dm = db.dept_manager (
   (dm.dept_no == de.dept_no) && s"(de.from_date, de.to_date) OVERLAPS (dm.from_date, dm.to_date)"
 )
 group {dm.emp_no, gender} (
@@ -20,7 +20,7 @@ group {dm.emp_no, gender} (
   }
 )
 derive mng_no = emp_no
-join managers=employees (==emp_no)
+join managers = db.employees (==emp_no)
 derive mng_name = s"managers.first_name || ' ' || managers.last_name"
 select {mng_name, managers.gender, salary_avg, salary_sd}`;
 
@@ -46,7 +46,7 @@ describe("prql-js", () => {
       opts.format = false;
       opts.signature_comment = false;
 
-      const res = prql.compile("from a | take 10", opts);
+      const res = prql.compile("from db.a | take 10", opts);
       assert.equal(
         res,
         "SELECT * FROM a ORDER BY (SELECT NULL) OFFSET 0 ROWS FETCH FIRST 10 ROWS ONLY",
@@ -60,7 +60,7 @@ describe("prql-js", () => {
       opts.signature_comment = true;
 
       const res = prql.compile(
-        "prql target:sql.sqlite\nfrom a | take 10",
+        "prql target:sql.sqlite\nfrom db.a | take 10",
         opts,
       );
       assert(
@@ -94,7 +94,7 @@ describe("prql-js", () => {
       const opts = new prql.CompileOptions();
 
       opts.target = "sql.any";
-      const res = prql.compile("prql target:sql.mssql\nfrom a | take 1", opts);
+      const res = prql.compile("prql target:sql.mssql\nfrom db.a | take 1", opts);
       assert(res.includes("1 ROWS ONLY"));
     });
   });
@@ -110,7 +110,7 @@ describe("prql-js", () => {
   describe("compile error", () => {
     it("should contain json", () => {
       try {
-        prql.compile("from x | select a | select b");
+        prql.compile("from db.x | select a | select b");
       } catch (error) {
         const errorMessages = JSON.parse(error.message).inner;
 
@@ -122,7 +122,7 @@ describe("prql-js", () => {
 
     it("should contain error code", () => {
       try {
-        prql.compile("let a = (from x)");
+        prql.compile("let a = (from db.x)");
       } catch (error) {
         const errorMessages = JSON.parse(error.message).inner;
 

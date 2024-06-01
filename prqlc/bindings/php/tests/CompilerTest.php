@@ -45,7 +45,7 @@ final class CompilerTest extends TestCase
         $options->target = "sql.mssql";
         $prql = new Compiler();
 
-        $actual = $prql->compile("from employees | take 10", $options);
+        $actual = $prql->compile("from db.employees | take 10", $options);
         $this->assertCount(0, $actual->messages);
 
         $this->assertEquals(
@@ -59,9 +59,9 @@ final class CompilerTest extends TestCase
         $prql = new Compiler();
 
         $query = "
-            let a = (from employees | take 10)
+            let a = (from db.employees | take 10)
 
-            from a | select {first_name}
+            from db.a | select {first_name}
         ";
 
         $pl = $prql->prqlToPL($query);

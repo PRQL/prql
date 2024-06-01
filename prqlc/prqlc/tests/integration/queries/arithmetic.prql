@@ -1,5 +1,5 @@
 # mssql:test
-from [
+[
     { id = 1, x_int =  13, x_float =  13.0, k_int =  5, k_float =  5.0 },
     { id = 2, x_int = -13, x_float = -13.0, k_int =  5, k_float =  5.0 },
     { id = 3, x_int =  13, x_float =  13.0, k_int = -5, k_float = -5.0 },

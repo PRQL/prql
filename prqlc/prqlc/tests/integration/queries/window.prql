@@ -7,7 +7,7 @@
     # Substring { expr: Identifier(Ident { value: "title", quote_style: None }),
     # substring_from: Some(Value(Number("2", false))), substring_for:
     # Some(Value(Number("5", false))), special: true }
-from tracks
+from db.tracks
 group genre_id (
   sort milliseconds
   derive {

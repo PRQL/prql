@@ -13,12 +13,12 @@ derive {
 ## Examples
 
 ```prql
-from employees
+from db.employees
 derive gross_salary = salary + payroll_tax
 ```
 
 ```prql
-from employees
+from db.employees
 derive {
   gross_salary = salary + payroll_tax,
   gross_cost = gross_salary + benefits_cost

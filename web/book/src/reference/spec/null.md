@@ -22,7 +22,7 @@ PRQL, on the other hand, treats `null` as a value, which means that:
 - distinct column cannot contain multiple `null` values.
 
 ```prql
-from employees
+from db.employees
 filter first_name == null
 filter null != last_name
 ```

@@ -11,7 +11,7 @@ Now we will explore how to manipulate the rows of a table using `filter` and
 The `filter` transform picks rows to pass through based on their values:
 
 ```prql no-eval
-from invoices
+from db.invoices
 filter billing_city == "Berlin"
 ```
 
@@ -29,19 +29,19 @@ the table. The set of rows picked can be specified in two ways:
 - an inclusive range of rows `start..end`.
 
 ```prql no-eval
-from invoices
+from db.invoices
 take 4
 ```
 
 ```prql no-eval
-from invoices
+from db.invoices
 take 4..7
 ```
 
 Of course, it is possible combine all these transforms into a single pipeline:
 
 ```prql no-eval
-from invoices
+from db.invoices
 
 # retain only rows for orders from Berlin
 filter billing_city == "Berlin"
