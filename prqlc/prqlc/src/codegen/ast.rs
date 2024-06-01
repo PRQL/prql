@@ -63,7 +63,7 @@ fn needs_parenthesis(this: &Expr, opt: &WriteOpt) -> bool {
         return false;
     }
 
-    // parent has equal binding stength, which means that now associativity of this expr counts
+    // parent has equal binding strength, which means that now associativity of this expr counts
     // for example:
     //   this=(a + b), parent=(a + b) + c
     //   asoc of + is left
