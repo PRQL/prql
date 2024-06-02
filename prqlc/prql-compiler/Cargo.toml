@@ -11,7 +11,7 @@ repository.workspace = true
 rust-version.workspace = true
 version.workspace = true
 
-metadata.msrv = "1.70.0"
+metadata.msrv = "1.74.0"
 
 [dependencies]
 prqlc = {path = "../prqlc", version = "0.11.5", default-features = false}
