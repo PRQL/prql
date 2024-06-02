@@ -13,7 +13,7 @@ members = [
   "prqlc/prqlc/examples/compile-files", # An example
   "lutra/lutra",
   "lutra/bindings/python",
-  "web/book", # The book / docs
+  "web/book",
 ]
 resolver = "2"
 
@@ -22,6 +22,8 @@ authors = ["PRQL Developers"]
 edition = "2021"
 license = "Apache-2.0"
 repository = "https://github.com/PRQL/prql"
+# This isn't tested since `cargo-msrv` doesn't support workspaces; instead we
+# test `metadata.msrv` in `prqlc`
 rust-version = "1.70.0"
 version = "0.11.5"
 
