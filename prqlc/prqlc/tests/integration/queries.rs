@@ -4,7 +4,6 @@ use std::{env, fs};
 
 use insta::assert_debug_snapshot;
 use insta::{assert_snapshot, with_settings};
-
 use prqlc::sql::Dialect;
 use prqlc::{Options, Target};
 use test_each_file::test_each_path;
@@ -71,13 +70,12 @@ mod fmt {
 
 #[cfg(any(feature = "test-dbs", feature = "test-dbs-external"))]
 mod results {
-    use super::*;
-
     use std::{ops::DerefMut, sync::Mutex};
 
     use once_cell::sync::Lazy;
     use prqlc::sql::SupportLevel;
 
+    use super::*;
     use crate::dbs::{ConnectionCfg, DbConnection, DbProtocol};
 
     static CONNECTIONS: Lazy<Mutex<Vec<DbConnection>>> = Lazy::new(init_connections);

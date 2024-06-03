@@ -4,19 +4,17 @@
 use std::collections::HashMap;
 use std::iter::zip;
 
-use crate::{ir::pl::TableExternRef::LocalTable, Result};
 use enum_as_inner::EnumAsInner;
 use serde::Serialize;
 
+use super::ast::{SqlRelation, SqlTransform};
 use crate::ir::pl::Ident;
 use crate::ir::rq::{
     fold_table, CId, Compute, Relation, RelationColumn, RelationKind, RelationalQuery, RqFold, TId,
     TableDecl, TableRef, Transform,
 };
-
 use crate::utils::{IdGenerator, NameGenerator};
-
-use super::ast::{SqlRelation, SqlTransform};
+use crate::{ir::pl::TableExternRef::LocalTable, Result};
 
 /// The AnchorContext struct stores information about tables and columns, and
 /// is used to generate new IDs and names.

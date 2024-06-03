@@ -1,6 +1,7 @@
-use itertools::Itertools;
 use std::path::PathBuf;
 use std::{collections::HashMap, path::Path};
+
+use itertools::Itertools;
 
 use crate::ast::{ModuleDef, Stmt, StmtKind};
 use crate::{Error, Errors, Result, SourceTree, WithErrorInfo};

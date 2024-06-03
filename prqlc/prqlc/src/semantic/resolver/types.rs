@@ -1,17 +1,15 @@
 use std::collections::HashMap;
 use std::iter::zip;
 
-use crate::ast::{PrimitiveSet, Ty, TyFunc, TyKind, TyTupleField};
-use crate::Result;
 use itertools::Itertools;
 
+use super::Resolver;
+use crate::ast::{PrimitiveSet, Ty, TyFunc, TyKind, TyTupleField};
 use crate::codegen::{write_ty, write_ty_kind};
 use crate::ir::decl::DeclKind;
 use crate::ir::pl::*;
-
+use crate::Result;
 use crate::{Error, Reason, WithErrorInfo};
-
-use super::Resolver;
 
 impl Resolver<'_> {
     pub fn infer_type(expr: &Expr) -> Result<Option<Ty>> {

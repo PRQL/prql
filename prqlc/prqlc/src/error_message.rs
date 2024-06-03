@@ -1,17 +1,15 @@
-use anstream::adapter::strip_str;
-
-use ariadne::{Cache, Config, Label, Report, ReportKind, Source};
-use serde::Serialize;
-
 use std::error::Error as StdError;
 use std::fmt::{self, Debug, Display, Formatter};
 use std::ops::Range;
 use std::path::PathBuf;
 use std::{collections::HashMap, io::stderr};
 
-use crate::{Error, Errors, MessageKind, SourceTree};
+use anstream::adapter::strip_str;
+use ariadne::{Cache, Config, Label, Report, ReportKind, Source};
+use serde::Serialize;
 
 pub use crate::ir::Span;
+use crate::{Error, Errors, MessageKind, SourceTree};
 
 #[derive(Clone, Serialize)]
 pub struct ErrorMessage {

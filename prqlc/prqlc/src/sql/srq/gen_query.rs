@@ -2,22 +2,20 @@
 
 use std::str::FromStr;
 
-use crate::Result;
 use itertools::Itertools;
 
-use crate::ir::rq::{RelationKind, RelationalQuery, RqFold, Transform};
-use crate::utils::BreakUp;
-use crate::Target;
-
+use super::super::{Context, Dialect};
 use super::anchor::{self, anchor_split};
 use super::ast::{
     fold_sql_transform, Cte, CteKind, RelationExpr, RelationExprKind, SqlQuery, SqlRelation,
     SqlTransform, SrqMapper,
 };
 use super::context::{AnchorContext, RIId, RelationAdapter, RelationStatus};
-
-use super::super::{Context, Dialect};
 use super::{postprocess, preprocess};
+use crate::ir::rq::{RelationKind, RelationalQuery, RqFold, Transform};
+use crate::utils::BreakUp;
+use crate::Result;
+use crate::Target;
 
 pub(in super::super) fn compile_query(
     query: RelationalQuery,

@@ -1,5 +1,7 @@
 #![cfg(not(target_family = "wasm"))]
 
+use std::str::FromStr;
+
 use anyhow::{bail, Result};
 use itertools::Itertools;
 use mdbook::preprocess::Preprocessor;
@@ -8,9 +10,6 @@ use mdbook::{book::Book, BookItem};
 use prqlc::compile;
 use pulldown_cmark::{CodeBlockKind, Event, Options, Parser, Tag};
 use pulldown_cmark_to_cmark::cmark_with_options;
-
-use std::str::FromStr;
-
 use strum::EnumString;
 
 pub struct ComparisonPreprocessor;

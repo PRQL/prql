@@ -191,8 +191,9 @@ impl<T, E: WithErrorInfo> WithErrorInfo for Result<T, E> {
 
 #[cfg(test)]
 mod tests {
-    use super::*;
     use insta::{assert_debug_snapshot, assert_snapshot};
+
+    use super::*;
 
     // Helper function to create a simple Error object
     fn create_simple_error() -> Error {

@@ -1,11 +1,10 @@
 use enum_as_inner::EnumAsInner;
 use serde::{Deserialize, Serialize};
 
+use super::*;
 use crate::ir::generic::ColumnSort;
 use crate::ir::generic::WindowFrame;
 use crate::ir::pl::JoinSide;
-
-use super::*;
 
 /// Transformation of a table.
 #[derive(Debug, PartialEq, Clone, Serialize, Deserialize, strum::AsRefStr, EnumAsInner)]

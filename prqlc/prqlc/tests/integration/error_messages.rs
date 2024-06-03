@@ -2,8 +2,9 @@
 //! It's also fine to put errors by the things that they're testing.
 //! See also [test_bad_error_messages.rs](test_bad_error_messages.rs) for error
 //! messages which need to be improved.
-use super::sql::compile;
 use insta::assert_snapshot;
+
+use super::sql::compile;
 
 #[test]
 fn test_errors() {

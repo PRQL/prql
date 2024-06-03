@@ -101,22 +101,24 @@ pub mod semantic;
 pub mod sql;
 mod utils;
 
-pub use crate::ast::error::{Error, Errors, MessageKind, Reason, WithErrorInfo};
 use anstream::adapter::strip_str;
 pub use error_message::{ErrorMessage, ErrorMessages, SourceLocation};
 pub use ir::Span;
 pub use prqlc_ast as ast;
+
+pub use crate::ast::error::{Error, Errors, MessageKind, Reason, WithErrorInfo};
 
 pub type Result<T, E = Error> = core::result::Result<T, E>;
 
 pub static COMPILER_VERSION: Lazy<Version> =
     Lazy::new(|| Version::parse(env!("CARGO_PKG_VERSION")).expect("Invalid prqlc version number"));
 
+use std::{collections::HashMap, path::PathBuf, str::FromStr};
+
 use once_cell::sync::Lazy;
 use prqlc_parser::TokenVec;
 use semver::Version;
 use serde::{Deserialize, Serialize};
-use std::{collections::HashMap, path::PathBuf, str::FromStr};
 use strum::VariantNames;
 
 /// Compile a PRQL string into a SQL string.
@@ -448,10 +450,12 @@ impl<S: ToString> From<S> for SourceTree {
 
 #[cfg(test)]
 mod tests {
+    use std::str::FromStr;
+
+    use insta::assert_debug_snapshot;
+
     use crate::ast::expr::Ident;
     use crate::Target;
-    use insta::assert_debug_snapshot;
-    use std::str::FromStr;
 
     pub fn compile(prql: &str) -> Result<String, super::ErrorMessages> {
         anstream::ColorChoice::Never.write_global();

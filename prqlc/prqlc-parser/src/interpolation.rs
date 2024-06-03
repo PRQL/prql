@@ -2,11 +2,10 @@ use chumsky::{error::Cheap, prelude::*};
 use itertools::Itertools;
 use prqlc_ast::expr::*;
 
-use crate::Span;
-
 use super::common::{into_expr, PError};
 use super::lexer::*;
 use super::span::ParserSpan;
+use crate::Span;
 
 /// Parses interpolated strings
 pub fn parse(string: String, span_base: ParserSpan) -> Result<Vec<InterpolateItem>, Vec<PError>> {

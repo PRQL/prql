@@ -1,13 +1,11 @@
 use std::collections::HashSet;
 
 use once_cell::sync::Lazy;
-
-use crate::ast::*;
 use regex::Regex;
 
-use crate::codegen::SeparatedExprs;
-
 use super::{WriteOpt, WriteSource};
+use crate::ast::*;
+use crate::codegen::SeparatedExprs;
 
 pub(crate) fn write_expr(expr: &Expr) -> String {
     expr.write(WriteOpt::new_width(u16::MAX)).unwrap()

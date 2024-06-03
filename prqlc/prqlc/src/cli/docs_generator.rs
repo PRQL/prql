@@ -311,9 +311,10 @@ Generated with [prqlc](https://prql-lang.org/) {}.
 
 #[cfg(test)]
 mod tests {
+    use std::process::Command;
+
     use insta_cmd::assert_cmd_snapshot;
     use insta_cmd::get_cargo_bin;
-    use std::process::Command;
 
     #[test]
     fn generate_markdown_docs() {
