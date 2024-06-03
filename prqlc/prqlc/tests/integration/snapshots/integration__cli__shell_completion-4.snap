@@ -185,8 +185,12 @@ _arguments "${_arguments_options[@]}" \
 _arguments "${_arguments_options[@]}" \
 '--format=[]:FORMAT:(json yaml)' \
 '--color=[Controls when to use color]:WHEN:(auto always never)' \
-'-h[Print help]' \
-'--help[Print help]' \
+'*-v[Increase logging verbosity]' \
+'*--verbose[Increase logging verbosity]' \
+'(-v --verbose)*-q[Silences logging output]' \
+'(-v --verbose)*--quiet[Silences logging output]' \
+'-h[Print help (see more with '\''--help'\'')]' \
+'--help[Print help (see more with '\''--help'\'')]' \
 '::input:_files' \
 '::output:_files' \
 '::main_path -- Identifier of the main pipeline:' \
