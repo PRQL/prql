@@ -4,7 +4,7 @@ use strum::AsRefStr;
 
 use crate::{Ident, Span};
 
-use super::Literal;
+use super::token::Literal;
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct Ty {

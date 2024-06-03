@@ -6,12 +6,12 @@ use semver::VersionReq;
 
 use prqlc_ast::expr::*;
 use prqlc_ast::stmt::*;
+use prqlc_ast::token::*;
 
 use crate::types::type_expr;
 
 use super::common::*;
 use super::expr::*;
-use super::lexer::TokenKind;
 
 pub fn source() -> impl Parser<TokenKind, Vec<Stmt>, Error = PError> {
     query_def()

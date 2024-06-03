@@ -1,10 +1,8 @@
 pub mod generic;
 mod ident;
-mod literal;
 mod ops;
 
 pub use ident::Ident;
-pub use literal::{Literal, ValueAndUnit};
 pub use ops::{BinOp, UnOp};
 
 use std::collections::HashMap;
@@ -12,6 +10,7 @@ use std::collections::HashMap;
 use enum_as_inner::EnumAsInner;
 use serde::{Deserialize, Serialize};
 
+use super::token;
 use crate::{Span, Ty};
 
 impl Expr {
@@ -51,7 +50,7 @@ pub enum ExprKind {
         feature = "serde_yaml",
         serde(with = "serde_yaml::with::singleton_map")
     )]
-    Literal(Literal),
+    Literal(token::Literal),
     Pipeline(Pipeline),
 
     Tuple(Vec<Expr>),
@@ -153,8 +152,8 @@ pub type Range = generic::Range<Box<Expr>>;
 pub type InterpolateItem = generic::InterpolateItem<Expr>;
 pub type SwitchCase = generic::SwitchCase<Box<Expr>>;
 
-impl From<Literal> for ExprKind {
-    fn from(value: Literal) -> Self {
+impl From<token::Literal> for ExprKind {
+    fn from(value: token::Literal) -> Self {
         ExprKind::Literal(value)
     }
 }

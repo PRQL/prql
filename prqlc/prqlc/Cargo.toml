@@ -47,7 +47,7 @@ anstream = {version = "0.6.14", features = ["auto"]}
 ariadne = "0.4.1"
 chrono = "0.4.38"
 csv = "1.3.0"
-enum-as-inner = "0.6.0"
+enum-as-inner = {workspace = true}
 itertools = {workspace = true}
 log = {workspace = true}
 once_cell = "1.19.0"

@@ -12,10 +12,10 @@ use chumsky::{prelude::*, Stream};
 
 use prqlc_ast::error::{Error, Reason, WithErrorInfo};
 use prqlc_ast::stmt::*;
+use prqlc_ast::token::*;
 use prqlc_ast::Span;
 
-use lexer::Token;
-pub use lexer::{TokenKind, TokenVec};
+pub use lexer::TokenVec;
 use span::ParserSpan;
 
 /// Build PRQL AST from a PRQL query string.
@@ -73,9 +73,10 @@ mod common {
     use prqlc_ast::Ty;
     use prqlc_ast::TyKind;
 
-    use super::{lexer::TokenKind, span::ParserSpan};
+    use super::span::ParserSpan;
     use prqlc_ast::expr::*;
     use prqlc_ast::stmt::*;
+    use prqlc_ast::token::*;
 
     pub type PError = Simple<TokenKind, ParserSpan>;
 

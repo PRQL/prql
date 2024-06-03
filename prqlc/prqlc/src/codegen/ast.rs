@@ -1,9 +1,11 @@
 use std::collections::HashSet;
 
+use regex::Regex;
+
 use once_cell::sync::Lazy;
+use prqlc_ast::expr::*;
 
 use crate::ast::*;
-use regex::Regex;
 
 use crate::codegen::SeparatedExprs;
 
