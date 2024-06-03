@@ -30,8 +30,9 @@ Language design & development in the last year have been focused on these areas:
 - fundamentals of how [functions](https://github.com/PRQL/prql/issues/444) and
   pipelines are [evaluated](#define-functional-semantics).
 
-- small quality-of-life language features (e.g. syntax for [f-strings,
-  dates, coalesce operator](https://prql-lang.org/book/reference/syntax/ [case](https://github.com/PRQL/prql/issues/504)),
+- small quality-of-life language features (e.g. syntax for
+  [f-strings, dates, coalesce operator](https://prql-lang.org/book/reference/syntax/),
+  [case](https://github.com/PRQL/prql/issues/504)),
 
 PRQL is now in a state where it can greatly improve the developer experience for
 writing complex analytical queries, but it does require a bit of fiddling to set
