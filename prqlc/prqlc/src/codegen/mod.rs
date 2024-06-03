@@ -66,12 +66,23 @@ pub struct WriteOpt {
     /// For exprs in function calls, this will be 10.
     pub context_strength: u8,
 
+    /// Position within binary operators.
+    /// Needed for omitting parenthesis in following expressions: `(a + b) + c`.
+    pub binary_position: Position,
+
     /// True iff preceding source ends in an expression that could
     /// be mistakenly bound into a binary op by appending an unary op.
     ///
     /// For example:
     /// `join foo` has an unbound expr, since `join foo ==bar` produced a binary op.
     pub unbound_expr: bool,
+}
+
+#[derive(Clone, PartialEq)]
+pub enum Position {
+    Unspecified,
+    Left,
+    Right,
 }
 
 impl Default for WriteOpt {
@@ -83,6 +94,7 @@ impl Default for WriteOpt {
             indent: 0,
             rem_width: 50,
             context_strength: 0,
+            binary_position: Position::Unspecified,
             unbound_expr: false,
         }
     }

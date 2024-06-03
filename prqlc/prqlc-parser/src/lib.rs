@@ -78,8 +78,9 @@ mod common {
     use chumsky::prelude::*;
     use prqlc_ast::expr::*;
     use prqlc_ast::stmt::*;
+    use prqlc_ast::Span;
+    use prqlc_ast::Ty;
     use prqlc_ast::TyKind;
-    use prqlc_ast::{Span, Ty};
 
     use super::lexer::TokenKind;
     use crate::err::parse_error::PError;

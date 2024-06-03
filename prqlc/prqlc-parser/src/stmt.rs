@@ -2,13 +2,13 @@ use std::collections::HashMap;
 
 use chumsky::prelude::*;
 use itertools::Itertools;
+use prqlc_ast::expr::*;
+use prqlc_ast::stmt::*;
 use semver::VersionReq;
 
 use super::common::*;
 use super::expr::*;
 use super::lexer::TokenKind;
-use crate::ast::expr::*;
-use crate::ast::stmt::*;
 use crate::err::parse_error::PError;
 // use crate::ast::err::chumsky_error::PError;
 use crate::types::type_expr;

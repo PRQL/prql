@@ -1,12 +1,12 @@
 use std::collections::HashMap;
 
 use chumsky::prelude::*;
+use prqlc_ast::expr::*;
+use prqlc_ast::Span;
 
 use super::common::*;
 use super::interpolation;
 use super::lexer::TokenKind;
-use crate::ast::expr::*;
-use crate::ast::span::Span;
 use crate::err::parse_error::PError;
 use crate::types::type_expr;
 

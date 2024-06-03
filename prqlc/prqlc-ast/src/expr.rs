@@ -6,11 +6,11 @@ mod ops;
 use std::collections::HashMap;
 
 use enum_as_inner::EnumAsInner;
-pub use ident::Ident;
-pub use literal::{Literal, ValueAndUnit};
-pub use ops::{BinOp, UnOp};
 use serde::{Deserialize, Serialize};
 
+pub use self::ident::Ident;
+pub use self::literal::{Literal, ValueAndUnit};
+pub use self::ops::{BinOp, UnOp};
 use crate::span::Span;
 use crate::Ty;
 

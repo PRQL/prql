@@ -1,8 +1,8 @@
 use chumsky::prelude::*;
+use prqlc_ast::*;
 
 use super::common::*;
 use super::lexer::TokenKind;
-use crate::ast::*;
 use crate::err::parse_error::PError;
 use crate::expr::ident;
 

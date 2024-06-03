@@ -42,7 +42,7 @@
   "type": "module",
   "private": true,
   "scripts": {
-    "dev": "vite",
+    "dev": "vite --host 0.0.0.0",
     "build": "vite build",
     "prepare": "rsync -ai --checksum --delete ../../prqlc/prqlc/tests/integration/data/ public/data/ && node generateBook.cjs",
     "preview": "vite preview"

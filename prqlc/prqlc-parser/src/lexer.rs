@@ -3,9 +3,8 @@ use chumsky::{
     prelude::*,
     text::{newline, Character},
 };
+use prqlc_ast::expr::*;
 use serde::{Deserialize, Serialize};
-
-use crate::ast::expr::*;
 
 #[derive(Clone, PartialEq, Serialize, Deserialize)]
 pub struct Token {
