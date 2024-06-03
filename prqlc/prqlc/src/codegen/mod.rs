@@ -4,7 +4,9 @@ mod types;
 pub(crate) use ast::write_expr;
 pub(crate) use types::{write_ty, write_ty_kind};
 
-pub trait WriteSource {
+use prqlc_parser::TokenVec;
+
+pub trait WriteSource: std::fmt::Debug {
     /// Converts self to its source representation according to specified
     /// options.
     ///
@@ -29,11 +31,14 @@ pub trait WriteSource {
         Some(r)
     }
 
+    /// Attempts to write the current item, expanding the maximum width where necessary.
     fn write_or_expand(&self, mut opt: WriteOpt) -> String {
         loop {
             if let Some(s) = self.write(opt.clone()) {
                 return s;
             } else {
+                // TODO: could we just set the max width rather than increasing
+                // it in a loop?
                 opt.max_width += opt.max_width / 2;
                 opt.reset_line();
             }
@@ -76,6 +81,13 @@ pub struct WriteOpt {
     /// For example:
     /// `join foo` has an unbound expr, since `join foo ==bar` produced a binary op.
     pub unbound_expr: bool,
+
+    /// The lexer tokens that were used to produce this source; used for
+    /// comments.
+    pub tokens: TokenVec,
+
+    // TODO: remove
+    pub enable_comments: bool,
 }
 
 #[derive(Clone, PartialEq)]
@@ -96,6 +108,8 @@ impl Default for WriteOpt {
             context_strength: 0,
             binary_position: Position::Unspecified,
             unbound_expr: false,
+            tokens: TokenVec(vec![]),
+            enable_comments: true,
         }
     }
 }
@@ -114,6 +128,8 @@ impl WriteOpt {
         Some(())
     }
 
+    /// Sets [WriteOpt::rem_width] to (max_width - indent_width), returning
+    /// `Some(())`, or `None` if there's not enough space.
     fn reset_line(&mut self) -> Option<()> {
         let ident = self.tab.len() as u16 * self.indent;
         self.rem_width = self.max_width.checked_sub(ident)?;

@@ -7,7 +7,7 @@ use chumsky::{
 use prqlc_ast::expr::*;
 use serde::{Deserialize, Serialize};
 
-#[derive(Clone, PartialEq, Serialize, Deserialize)]
+#[derive(Clone, PartialEq, Serialize, Deserialize, Eq)]
 pub struct Token {
     pub kind: TokenKind,
     pub span: std::ops::Range<usize>,
@@ -579,7 +579,7 @@ impl std::fmt::Debug for Token {
     }
 }
 
-#[derive(Serialize, Deserialize, Debug)]
+#[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Eq)]
 pub struct TokenVec(pub Vec<Token>);
 
 // impl std::fmt::Debug for TokenVec {

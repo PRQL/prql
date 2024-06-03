@@ -1,10 +1,10 @@
 use std::collections::HashSet;
 
 use once_cell::sync::Lazy;
-
-use crate::ast::*;
+use prqlc_parser::{Token, TokenKind, TokenVec};
 use regex::Regex;
 
+use crate::ast::*;
 use crate::codegen::SeparatedExprs;
 
 use super::{WriteOpt, WriteSource};
@@ -17,13 +17,28 @@ fn write_within<T: WriteSource>(node: &T, parent: &ExprKind, mut opt: WriteOpt) 
     let parent_strength = binding_strength(parent);
     opt.context_strength = opt.context_strength.max(parent_strength);
 
-    node.write(opt)
+    // FIXME: this is extremely hacky. Our issue is that in:
+    //
+    //   from a.b  # comment
+    //
+    // ...we're writing both `from a.b` and `a.b`, so we need to know which of
+    // these to write comments for. I'm sure there are better ways to do it.
+    let enable_comments = opt.enable_comments;
+    opt.enable_comments = false;
+    let out = node.write(opt.clone());
+    opt.enable_comments = enable_comments;
+    out
 }
 
 impl WriteSource for Expr {
     fn write(&self, mut opt: WriteOpt) -> Option<String> {
         let mut r = String::new();
 
+        // if let Some(span) = self.span {
+        //     if let Some(comment) = find_comment_before(span, &opt.tokens) {
+        //         r += &comment.to_string();
+        //     }
+        // }
         if let Some(alias) = &self.alias {
             r += opt.consume(alias)?;
             r += opt.consume(" = ")?;
@@ -38,9 +53,44 @@ impl WriteSource for Expr {
             if let Some(value) = value {
                 r += &value;
             } else {
-                r += &break_line_within_parenthesis(&self.kind, opt)?;
+                r += &break_line_within_parenthesis(&self.kind, &mut opt)?;
             }
         };
+
+        if opt.enable_comments {
+            if let Some(span) = self.span {
+                // TODO: change underlying function so we can remove this
+                if opt.tokens.0.is_empty() {
+                    return Some(r);
+                }
+
+                let comments = find_comments_after(span, &opt.tokens);
+
+                // If the first item is a comment, it's an inline comment, and
+                // so add two spaces
+                if matches!(
+                    comments.first(),
+                    Some(Token {
+                        kind: TokenKind::Comment(_),
+                        ..
+                    })
+                ) {
+                    r += "  ";
+                }
+
+                for c in comments {
+                    match c.kind {
+                        // TODO: these are defined here since the debug
+                        // representations aren't quite right (NewLine is `new
+                        // line` as is used in error messages). But we should
+                        // probably move them onto the Struct.
+                        TokenKind::Comment(s) => r += format!("#{}", s).as_str(),
+                        TokenKind::NewLine => r += "\n",
+                        _ => unreachable!(),
+                    }
+                }
+            }
+        }
         Some(r)
     }
 }
@@ -236,7 +286,7 @@ impl WriteSource for ExprKind {
                 if let Some(body) = c.body.write(opt.clone()) {
                     r += &body;
                 } else {
-                    r += &break_line_within_parenthesis(c.body.as_ref(), opt)?;
+                    r += &break_line_within_parenthesis(c.body.as_ref(), &mut opt)?;
                 }
 
                 Some(r)
@@ -261,7 +311,7 @@ impl WriteSource for ExprKind {
     }
 }
 
-fn break_line_within_parenthesis<T: WriteSource>(expr: &T, mut opt: WriteOpt) -> Option<String> {
+fn break_line_within_parenthesis<T: WriteSource>(expr: &T, opt: &mut WriteOpt) -> Option<String> {
     let mut r = "(\n".to_string();
     opt.indent += 1;
     r += &opt.write_indent();
@@ -376,6 +426,52 @@ pub fn write_ident_part(s: &str) -> String {
     } else {
         format!("`{}`", s)
     }
+}
+
+// impl WriteSource for ModuleDef {
+//     fn write(&self, mut opt: WriteOpt) -> Option<String> {
+//         codegen::WriteSource::write(&pl.stmts, codegen::WriteOpt::default()).unwrap()
+//     }}
+
+// /// Find a comment before a span. If there's exactly one newline prior, then the
+// /// comment is included here. Any further above are included with the prior token.
+// fn find_comment_before(span: Span, tokens: &TokenVec) -> Option<TokenKind> {
+//     // index of the span in the token vec
+//     let index = tokens
+//         .0
+//         .iter()
+//         .position(|t| t.span.start == span.start && t.span.end == span.end)?;
+//     if index <= 1 {
+//         return None;
+//     }
+//     let prior_token = &tokens.0[index - 1].kind;
+//     let prior_2_token = &tokens.0[index - 2].kind;
+//     if matches!(prior_token, TokenKind::NewLine) && matches!(prior_2_token, TokenKind::Comment(_)) {
+//         Some(prior_2_token.clone())
+//     } else {
+//         None
+//     }
+// }
+
+/// Find comments after a given span.
+fn find_comments_after(span: Span, tokens: &TokenVec) -> Vec<Token> {
+    // index of the span in the token vec
+    let index = tokens
+        .0
+        .iter()
+        // FIXME: why isn't this working?
+        // .position(|t| t.1.start == span.start && t.1.end == span.end)
+        .position(|t| t.span.end == span.end)
+        .unwrap_or_else(|| panic!("{:?}, {:?}", &tokens, &span));
+
+    let mut out = vec![];
+    for token in tokens.0.iter().skip(index + 1) {
+        match token.kind {
+            TokenKind::NewLine | TokenKind::Comment(_) => out.push(token.clone()),
+            _ => break,
+        }
+    }
+    out
 }
 
 impl WriteSource for Vec<Stmt> {
@@ -526,7 +622,8 @@ impl WriteSource for SwitchCase {
 
 #[cfg(test)]
 mod test {
-    use insta::assert_snapshot;
+    use insta::{assert_debug_snapshot, assert_snapshot};
+    use prqlc_parser::lex_source;
 
     use super::*;
 
@@ -545,6 +642,64 @@ mod test {
             .exactly_one()
             .unwrap();
         stmt.write(WriteOpt::default()).unwrap()
+    }
+
+    // #[test]
+    // fn test_find_comment_before() {
+    //     let tokens = lex_source(
+    //         r#"
+    //         # comment
+    //         let a = 5
+    //         "#,
+    //     )
+    //     .unwrap();
+    //     let span = tokens
+    //         .clone()
+    //         .0
+    //         .iter()
+    //         .find(|t| t.kind == TokenKind::Keyword("let".to_string()))
+    //         .unwrap()
+    //         .span
+    //         .clone();
+    //     let comment = find_comment_before(span.into(), &tokens);
+    //     assert_debug_snapshot!(comment, @r###"
+    //     Some(
+    //         Comment(
+    //             " comment",
+    //         ),
+    //     )
+    //     "###);
+    // }
+
+    #[test]
+    fn test_find_comments_after() {
+        let tokens = lex_source(
+            r#"
+            let a = 5 # on side
+            # below
+            # and another
+            "#,
+        )
+        .unwrap();
+        let span = tokens
+            .clone()
+            .0
+            .iter()
+            .find(|t| t.kind == TokenKind::Literal(Literal::Integer(5)))
+            .unwrap()
+            .span
+            .clone();
+        let comment = find_comments_after(span.into(), &tokens);
+        assert_debug_snapshot!(comment, @r###"
+        [
+            23..32: Comment(" on side"),
+            32..33: NewLine,
+            45..52: Comment(" below"),
+            52..53: NewLine,
+            65..78: Comment(" and another"),
+            78..79: NewLine,
+        ]
+        "###);
     }
 
     #[test]

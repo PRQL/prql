@@ -113,6 +113,7 @@ impl WriteSource for TyTupleField {
     }
 }
 
+#[derive(Debug, Clone)]
 struct UnionVariant<'a>(&'a Option<String>, &'a Ty);
 
 impl WriteSource for UnionVariant<'_> {
