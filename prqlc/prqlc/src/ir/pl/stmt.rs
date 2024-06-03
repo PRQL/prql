@@ -2,10 +2,9 @@ use enum_as_inner::EnumAsInner;
 use prqlc_ast::Ident;
 use serde::{Deserialize, Serialize};
 
+use super::expr::Expr;
 pub use crate::ast::stmt::QueryDef;
 use crate::ast::{Span, Ty};
-
-use super::expr::Expr;
 
 // The following code is tested by the tests_misc crate to match stmt.rs in prqlc_ast.
 

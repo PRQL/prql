@@ -2,9 +2,8 @@ use enum_as_inner::EnumAsInner;
 use serde::{Deserialize, Serialize};
 use strum::AsRefStr;
 
-use crate::{Ident, Span};
-
 use super::Literal;
+use crate::{Ident, Span};
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct Ty {

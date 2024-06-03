@@ -452,9 +452,8 @@ mod test {
 
     use insta::assert_snapshot;
 
-    use crate::semantic::write_pl;
-
     use super::*;
+    use crate::semantic::write_pl;
 
     #[track_caller]
     fn eval(source: &str) -> Result<String> {

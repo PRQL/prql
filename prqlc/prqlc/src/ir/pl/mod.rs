@@ -24,12 +24,12 @@ pub use self::utils::*;
 pub use crate::ast::{BinOp, BinaryExpr, Ident, Literal, UnOp, UnaryExpr, ValueAndUnit};
 
 pub fn print_mem_sizes() {
+    use std::mem::size_of;
+
     use crate::ast::{PrimitiveSet, Ty, TyFunc, TyKind, TyTupleField};
     use crate::ir::{decl, generic, pl, rq};
     use crate::sql::internal::SqlTransform;
     use crate::{ErrorMessage, ErrorMessages, SourceTree, Span};
-
-    use std::mem::size_of;
 
     println!("{:16}= {}", "Annotation", size_of::<Annotation>());
     println!("{:16}= {}", "BinaryExpr", size_of::<BinaryExpr>());

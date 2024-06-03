@@ -1,11 +1,10 @@
 use std::collections::HashMap;
 
-use crate::Result;
-
 use crate::ir::pl::{
     fold_column_sorts, fold_transform_kind, ColumnSort, Expr, ExprKind, PlFold, TransformCall,
     TransformKind, WindowFrame,
 };
+use crate::Result;
 
 /// Flattens group and window [TransformCall]s into a single pipeline.
 /// Sets partition, window and sort of [TransformCall].

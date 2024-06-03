@@ -1,8 +1,8 @@
-use similar_asserts::assert_eq;
 use std::fs::read_dir;
 
 use regex::Regex;
 use serde_yaml::Value;
+use similar_asserts::assert_eq;
 
 use super::compile;
 
