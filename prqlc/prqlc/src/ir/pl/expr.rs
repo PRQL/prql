@@ -5,12 +5,10 @@ use serde::{Deserialize, Serialize};
 
 use prqlc_ast::token::Literal;
 
+use super::{Lineage, TransformCall};
 use crate::ast::generic;
 use crate::ast::{GenericTypeParam, Ident, Span, Ty};
-
 use crate::codegen::write_ty;
-
-use super::{Lineage, TransformCall};
 
 // The following code is tested by the tests_misc crate to match expr.rs in prqlc_ast.
 

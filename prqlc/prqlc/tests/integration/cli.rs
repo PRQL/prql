@@ -1,10 +1,11 @@
 #![cfg(all(not(target_family = "wasm"), feature = "cli"))]
 
-use insta_cmd::assert_cmd_snapshot;
-use insta_cmd::get_cargo_bin;
 use std::env::current_dir;
 use std::path::PathBuf;
 use std::process::Command;
+
+use insta_cmd::assert_cmd_snapshot;
+use insta_cmd::get_cargo_bin;
 
 #[cfg(not(windows))] // Windows has slightly different output (e.g. `prqlc.exe`), so we exclude.
 #[test]

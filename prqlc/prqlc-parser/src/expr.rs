@@ -1,16 +1,14 @@
 use std::collections::HashMap;
 
 use chumsky::prelude::*;
-
 use prqlc_ast::expr::*;
 use prqlc_ast::token::*;
 use prqlc_ast::Span;
 
-use crate::types::type_expr;
-
 use super::common::*;
 use super::interpolation;
 use super::span::ParserSpan;
+use crate::types::type_expr;
 
 pub fn expr_call() -> impl Parser<TokenKind, Expr, Error = PError> {
     let expr = expr();

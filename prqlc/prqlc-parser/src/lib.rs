@@ -9,14 +9,13 @@ mod types;
 
 use chumsky::error::SimpleReason;
 use chumsky::{prelude::*, Stream};
-
 use prqlc_ast::error::{Error, Reason, WithErrorInfo};
 use prqlc_ast::stmt::*;
 use prqlc_ast::token::*;
 use prqlc_ast::Span;
 
-pub use lexer::TokenVec;
-use span::ParserSpan;
+pub use self::lexer::TokenVec;
+use self::span::ParserSpan;
 
 /// Build PRQL AST from a PRQL query string.
 pub fn parse_source(source: &str, source_id: u16) -> Result<Vec<Stmt>, Vec<Error>> {
@@ -70,12 +69,12 @@ pub fn lex_source(source: &str) -> Result<TokenVec, Vec<Error>> {
 
 mod common {
     use chumsky::prelude::*;
+    use prqlc_ast::expr::*;
+    use prqlc_ast::stmt::*;
     use prqlc_ast::Ty;
     use prqlc_ast::TyKind;
 
     use super::span::ParserSpan;
-    use prqlc_ast::expr::*;
-    use prqlc_ast::stmt::*;
     use prqlc_ast::token::*;
 
     pub type PError = Simple<TokenKind, ParserSpan>;

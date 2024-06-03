@@ -1,17 +1,15 @@
-use itertools::Itertools;
 use std::collections::HashMap;
 
 use chumsky::prelude::*;
-use semver::VersionReq;
-
+use itertools::Itertools;
 use prqlc_ast::expr::*;
 use prqlc_ast::stmt::*;
 use prqlc_ast::token::*;
-
-use crate::types::type_expr;
+use semver::VersionReq;
 
 use super::common::*;
 use super::expr::*;
+use crate::types::type_expr;
 
 pub fn source() -> impl Parser<TokenKind, Vec<Stmt>, Error = PError> {
     query_def()

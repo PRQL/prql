@@ -2,17 +2,14 @@ use std::collections::HashSet;
 
 use itertools::Itertools;
 
-use crate::Result;
-
+use super::Resolver;
 use crate::ast::Ident;
-
 use crate::ir::decl::{Decl, DeclKind, Module};
 use crate::ir::pl::{Expr, ExprKind};
 use crate::semantic::{NS_INFER, NS_INFER_MODULE, NS_SELF, NS_THAT, NS_THIS};
 use crate::Error;
+use crate::Result;
 use crate::WithErrorInfo;
-
-use super::Resolver;
 
 impl Resolver<'_> {
     pub(super) fn resolve_ident(&mut self, ident: &Ident) -> Result<Ident, Error> {

@@ -1,4 +1,3 @@
-use crate::Result;
 use itertools::Itertools;
 
 use crate::ast::{Ty, TyKind, TyTupleField};
@@ -7,6 +6,7 @@ use crate::ir::pl::*;
 use crate::semantic::resolver::{flatten, types, Resolver};
 use crate::semantic::{NS_INFER, NS_SELF, NS_THAT, NS_THIS};
 use crate::utils::IdGenerator;
+use crate::Result;
 use crate::{Error, Reason, Span, WithErrorInfo};
 
 impl PlFold for Resolver<'_> {

@@ -1,5 +1,7 @@
 //! Contains functions that compile [crate::ast::pl] nodes into [sqlparser] nodes.
 
+use std::cmp::Ordering;
+
 use itertools::Itertools;
 use regex::Regex;
 use sqlparser::ast::{
@@ -7,8 +9,9 @@ use sqlparser::ast::{
     FunctionArgumentList, ObjectName, OrderByExpr, SelectItem, UnaryOperator, Value,
     WindowFrameBound, WindowSpec,
 };
-use std::cmp::Ordering;
 
+use super::gen_projection::try_into_exprs;
+use super::{keywords, Context};
 use crate::ast::expr::generic::{InterpolateItem, Range};
 use crate::ir::generic::{ColumnSort, SortDirection, WindowFrame, WindowKind};
 use crate::ir::pl::{self, Ident, Literal};
@@ -16,9 +19,6 @@ use crate::ir::rq::*;
 use crate::sql::srq::context::ColumnDecl;
 use crate::utils::{OrMap, VALID_IDENT};
 use crate::{Error, Reason, Result, Span, WithErrorInfo};
-
-use super::gen_projection::try_into_exprs;
-use super::{keywords, Context};
 
 pub(super) fn translate_expr(expr: Expr, ctx: &mut Context) -> Result<ExprOrSource> {
     Ok(match expr.kind {
@@ -1022,9 +1022,9 @@ impl From<sql_ast::Expr> for ExprOrSource {
 
 #[cfg(test)]
 mod test {
-    use super::*;
-
     use insta::assert_yaml_snapshot;
+
+    use super::*;
 
     #[test]
     fn test_range_of_ranges() -> Result<()> {

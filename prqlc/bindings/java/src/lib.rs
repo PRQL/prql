@@ -1,8 +1,9 @@
+use std::str::FromStr;
+
 use jni::objects::{JClass, JString};
 use jni::sys::{jboolean, jstring};
 use jni::JNIEnv;
 use prqlc::{json, pl_to_prql, prql_to_pl, ErrorMessages, Options, Target};
-use std::str::FromStr;
 
 #[no_mangle]
 #[allow(non_snake_case)]

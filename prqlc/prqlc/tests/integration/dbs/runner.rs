@@ -1,6 +1,7 @@
+use std::fs;
+
 use itertools::Itertools;
 use regex::Regex;
-use std::fs;
 
 use super::protocol::DbProtocolHandler;
 

@@ -2,14 +2,14 @@ pub mod generic;
 mod ident;
 mod ops;
 
-pub use ident::Ident;
-pub use ops::{BinOp, UnOp};
-
 use std::collections::HashMap;
 
 use enum_as_inner::EnumAsInner;
 use serde::{Deserialize, Serialize};
 
+pub use self::ident::Ident;
+pub use self::ops::{BinOp, UnOp};
+pub use self::token::{Literal, ValueAndUnit};
 use super::token;
 use crate::{Span, Ty};
 
