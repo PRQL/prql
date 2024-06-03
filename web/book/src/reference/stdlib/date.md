@@ -5,9 +5,9 @@ These are all the functions defined in the `date` module:
 ### `to_text`
 
 Converts a date into a text.\
-Since there are many possible date representations, `to_text` takes a `format` parameter
-that describes thanks to [specifiers](#date--time-format-specifiers) how the date
-or timestamp should be structured.
+Since there are many possible date representations, `to_text` takes a `format`
+parameter that describes thanks to [specifiers](#date--time-format-specifiers)
+how the date or timestamp should be structured.
 
 ```admonish info
 Since all RDBMS have different ways to format dates and times, PRQL **requires an explicit dialect** to be specified
