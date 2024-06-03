@@ -220,14 +220,14 @@ impl PlFold for FrameCollector {
                     }
                 }
                 ExprKind::RqOperator { args, .. } => {
-                    args.into_iter().map(|e| e.id.unwrap()).collect()
+                    args.iter().map(|e| e.id.unwrap()).collect()
                 }
                 ExprKind::Case(switch) => switch
-                    .into_iter()
+                    .iter()
                     .flat_map(|c| vec![c.condition.id.unwrap(), c.value.id.unwrap()])
                     .collect(),
                 ExprKind::SString(iv) | ExprKind::FString(iv) => iv
-                    .into_iter()
+                    .iter()
                     .filter_map(|i| match i {
                         InterpolateItem::Expr { expr: e, .. } => e.id,
                         _ => None,
@@ -244,7 +244,7 @@ impl PlFold for FrameCollector {
 
             let children = match &expr.kind {
                 ExprKind::Tuple(args) | ExprKind::Array(args) => {
-                    args.into_iter().map(|e| e.id.unwrap()).collect()
+                    args.iter().map(|e| e.id.unwrap()).collect()
                 }
                 ExprKind::TransformCall(tc) => {
                     let mut tcc = vec![tc.input.id.unwrap()];
@@ -309,7 +309,7 @@ impl PlFold for FrameCollector {
             self.nodes.push(ExprGraphNode {
                 id,
                 kind,
-                span: expr.span.clone(),
+                span: expr.span,
                 alias: expr.alias.clone(),
                 ident,
                 targets,
