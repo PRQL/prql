@@ -10,13 +10,11 @@ mod srq;
 
 pub use dialect::{Dialect, SupportLevel};
 
-use crate::Result;
-
-use crate::{ir::rq::RelationalQuery, Options, COMPILER_VERSION};
-
 use self::dialect::DialectHandler;
 use self::srq::ast::Cte;
 use self::srq::context::AnchorContext;
+use crate::Result;
+use crate::{ir::rq::RelationalQuery, Options, COMPILER_VERSION};
 
 /// Translate a PRQL AST into a SQL string.
 pub fn compile(query: RelationalQuery, options: &Options) -> Result<String> {
@@ -59,11 +57,10 @@ pub fn compile(query: RelationalQuery, options: &Options) -> Result<String> {
 
 /// This module gives access to internal machinery that gives no stability guarantees.
 pub mod internal {
+    pub use super::srq::ast::SqlTransform;
     use super::*;
     use crate::ir::rq::Transform;
     use crate::Error;
-
-    pub use super::srq::ast::SqlTransform;
 
     fn init(query: RelationalQuery) -> Result<(Vec<Transform>, Context)> {
         let (ctx, relation) = AnchorContext::of(query);

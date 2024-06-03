@@ -4,6 +4,14 @@ mod docs_generator;
 mod jinja;
 mod watch;
 
+use std::collections::HashMap;
+use std::env;
+use std::io::{Read, Write};
+use std::ops::Range;
+use std::path::Path;
+use std::process::exit;
+use std::str::FromStr;
+
 use anstream::{eprintln, println};
 use anyhow::anyhow;
 use anyhow::bail;
@@ -14,14 +22,6 @@ use clio::has_extension;
 use clio::Output;
 use is_terminal::IsTerminal;
 use itertools::Itertools;
-use std::collections::HashMap;
-use std::env;
-use std::io::{Read, Write};
-use std::ops::Range;
-use std::path::Path;
-use std::process::exit;
-use std::str::FromStr;
-
 use prqlc::semantic;
 use prqlc::semantic::reporting::{collect_frames, label_references};
 use prqlc::semantic::NS_DEFAULT_DB;

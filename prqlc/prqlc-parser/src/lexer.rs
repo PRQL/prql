@@ -3,9 +3,9 @@ use chumsky::{
     prelude::*,
     text::{newline, Character},
 };
+use serde::{Deserialize, Serialize};
 
 use crate::ast::expr::*;
-use serde::{Deserialize, Serialize};
 
 #[derive(Clone, PartialEq, Serialize, Deserialize)]
 pub struct Token {
@@ -594,9 +594,10 @@ pub struct TokenVec(pub Vec<Token>);
 
 #[cfg(test)]
 mod test {
-    use super::*;
     use insta::assert_debug_snapshot;
     use insta::assert_snapshot;
+
+    use super::*;
 
     #[test]
     fn line_wrap() {

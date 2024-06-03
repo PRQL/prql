@@ -1,20 +1,17 @@
-use itertools::Itertools;
 use std::collections::HashMap;
 
 use chumsky::prelude::*;
+use itertools::Itertools;
 use semver::VersionReq;
-
-use crate::ast::expr::*;
-use crate::ast::stmt::*;
-use crate::err::parse_error::PError;
-
-// use crate::ast::err::chumsky_error::PError;
-
-use crate::types::type_expr;
 
 use super::common::*;
 use super::expr::*;
 use super::lexer::TokenKind;
+use crate::ast::expr::*;
+use crate::ast::stmt::*;
+use crate::err::parse_error::PError;
+// use crate::ast::err::chumsky_error::PError;
+use crate::types::type_expr;
 
 pub fn source() -> impl Parser<TokenKind, Vec<Stmt>, Error = PError> {
     query_def()

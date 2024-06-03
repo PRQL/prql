@@ -1,9 +1,9 @@
 #![cfg(not(target_family = "wasm"))]
 
-use arrow::{pyarrow::PyArrowType, record_batch::RecordBatch};
-use itertools::Itertools;
 use std::str::FromStr;
 
+use arrow::{pyarrow::PyArrowType, record_batch::RecordBatch};
+use itertools::Itertools;
 use pyo3::prelude::*;
 
 #[pymodule]

@@ -15,8 +15,9 @@
 //! be a huge number of issues, and it would be difficult to see what's current.
 //! So instead, add the error message as a test here.
 
-use super::sql::compile;
 use insta::assert_snapshot;
+
+use super::sql::compile;
 
 #[test]
 fn test_bad_error_messages() {

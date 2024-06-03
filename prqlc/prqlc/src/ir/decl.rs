@@ -1,8 +1,9 @@
+use std::collections::HashMap;
+use std::fmt::Debug;
+
 use enum_as_inner::EnumAsInner;
 use itertools::Itertools;
 use serde::{Deserialize, Serialize};
-use std::collections::HashMap;
-use std::fmt::Debug;
 
 use crate::ast::{Span, Ty};
 use crate::codegen::write_ty;

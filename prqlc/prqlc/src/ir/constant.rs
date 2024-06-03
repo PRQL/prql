@@ -1,5 +1,6 @@
-use crate::ast::{Literal, Span};
 use serde::{Deserialize, Serialize};
+
+use crate::ast::{Literal, Span};
 
 /// A subset of PL expressions that are constant.
 #[derive(Serialize, Deserialize)]

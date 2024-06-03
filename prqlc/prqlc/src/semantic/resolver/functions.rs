@@ -1,17 +1,16 @@
 use std::collections::HashMap;
 use std::iter::zip;
 
-use crate::Result;
 use itertools::{Itertools, Position};
 
+use super::Resolver;
 use crate::ast::{Ty, TyFunc, TyKind};
 use crate::ir::decl::{Decl, DeclKind, Module};
 use crate::ir::pl::*;
 use crate::semantic::resolver::types;
 use crate::semantic::{NS_GENERIC, NS_PARAM, NS_THAT, NS_THIS};
+use crate::Result;
 use crate::{Error, Span, WithErrorInfo};
-
-use super::Resolver;
 
 impl Resolver<'_> {
     pub fn fold_function(

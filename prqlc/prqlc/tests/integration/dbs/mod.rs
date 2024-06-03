@@ -9,10 +9,9 @@ use prqlc::{sql::Dialect, sql::SupportLevel, Options, Target};
 use regex::Regex;
 use serde::{Deserialize, Serialize};
 
+pub use self::protocol::DbProtocol;
 use self::protocol::DbProtocolHandler;
 use self::runner::DbTestRunner;
-
-pub use self::protocol::DbProtocol;
 pub type Row = Vec<String>;
 
 pub struct DbConnection {

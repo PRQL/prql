@@ -1,5 +1,4 @@
 use chumsky::{prelude::*, Stream};
-
 use err::error::Reason;
 use err::error::{Error, WithErrorInfo};
 use lexer::TokenKind;
@@ -77,14 +76,13 @@ pub fn lex_source(source: &str) -> Result<TokenVec, Vec<Error>> {
 
 mod common {
     use chumsky::prelude::*;
-
-    use crate::err::parse_error::PError;
     use prqlc_ast::expr::*;
     use prqlc_ast::stmt::*;
     use prqlc_ast::TyKind;
     use prqlc_ast::{Span, Ty};
 
     use super::lexer::TokenKind;
+    use crate::err::parse_error::PError;
 
     pub fn ident_part() -> impl Parser<TokenKind, String, Error = PError> {
         return select! {

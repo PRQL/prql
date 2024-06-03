@@ -191,9 +191,10 @@ impl<'a, T: WriteSource> SeparatedExprs<'a, T> {
 
 #[cfg(test)]
 mod test {
+    use insta::assert_snapshot;
+
     use super::*;
     use crate::ast::{Expr, ExprKind, Literal};
-    use insta::assert_snapshot;
 
     #[test]
     fn test_string_quoting() {

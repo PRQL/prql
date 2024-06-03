@@ -2,12 +2,12 @@ mod id_gen;
 mod toposort;
 
 pub use id_gen::{IdGenerator, NameGenerator};
+use itertools::Itertools;
 use once_cell::sync::Lazy;
 use regex::Regex;
 pub use toposort::toposort;
 
 use crate::Result;
-use itertools::Itertools;
 
 pub trait OrMap<T> {
     /// Merges two options into one using `f`.

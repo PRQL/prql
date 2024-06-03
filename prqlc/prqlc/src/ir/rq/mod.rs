@@ -8,15 +8,14 @@ mod ids;
 mod transform;
 mod utils;
 
+use enum_as_inner::EnumAsInner;
 pub use expr::{Expr, ExprKind, UnOp};
+use expr::{InterpolateItem, Range, SwitchCase};
 pub use fold::*;
 pub use ids::*;
+use serde::{Deserialize, Serialize};
 pub use transform::*;
 pub use utils::*;
-
-use enum_as_inner::EnumAsInner;
-use expr::{InterpolateItem, Range, SwitchCase};
-use serde::{Deserialize, Serialize};
 
 use super::pl::TableExternRef;
 use super::pl::{Literal, QueryDef};

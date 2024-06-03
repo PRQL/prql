@@ -9,18 +9,16 @@ use sqlparser::ast::{
     TableFactor, TableWithJoins,
 };
 
+use super::gen_expr::*;
+use super::gen_projection::*;
+use super::operators::translate_operator;
+use super::srq::ast::{Cte, CteKind, RelationExpr, RelationExprKind, SqlRelation, SqlTransform};
+use super::{Context, Dialect};
 use crate::ast::generic::InterpolateItem;
 use crate::ir::pl::{JoinSide, Literal};
 use crate::ir::rq::{CId, Expr, ExprKind, RelationLiteral, RelationalQuery};
 use crate::utils::{BreakUp, Pluck};
 use crate::{Error, Result, WithErrorInfo};
-
-use super::gen_expr::*;
-use super::gen_projection::*;
-use super::srq::ast::{Cte, CteKind, RelationExpr, RelationExprKind, SqlRelation, SqlTransform};
-
-use super::operators::translate_operator;
-use super::{Context, Dialect};
 
 type Transform = SqlTransform<RelationExpr, ()>;
 

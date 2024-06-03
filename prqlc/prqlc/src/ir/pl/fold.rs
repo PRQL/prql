@@ -3,10 +3,9 @@
 /// type.
 use itertools::Itertools;
 
+use super::*;
 use crate::ast::{Ty, TyFunc, TyKind, TyTupleField};
 use crate::Result;
-
-use super::*;
 
 // Fold pattern:
 // - https://rust-unofficial.github.io/patterns/patterns/creational/fold.html
