@@ -9,14 +9,14 @@ mod transform;
 mod utils;
 
 use enum_as_inner::EnumAsInner;
-pub use expr::{Expr, ExprKind, UnOp};
-use expr::{InterpolateItem, Range, SwitchCase};
-pub use fold::*;
-pub use ids::*;
 use serde::{Deserialize, Serialize};
-pub use transform::*;
-pub use utils::*;
 
+pub use self::expr::{Expr, ExprKind, UnOp};
+use self::expr::{InterpolateItem, Range, SwitchCase};
+pub use self::fold::*;
+pub use self::ids::*;
+pub use self::transform::*;
+pub use self::utils::*;
 use super::pl::TableExternRef;
 use super::pl::{Literal, QueryDef};
 
