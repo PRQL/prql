@@ -4,16 +4,15 @@
 
 use std::collections::{HashMap, HashSet};
 
-use crate::Result;
 use itertools::Itertools;
 
+use super::anchor::CidRedirector;
+use super::ast::*;
 use crate::ir::generic::ColumnSort;
 use crate::ir::pl::Ident;
 use crate::ir::rq::{CId, RqFold, TId};
 use crate::sql::Context;
-
-use super::anchor::CidRedirector;
-use super::ast::*;
+use crate::Result;
 
 type Sorting = Vec<ColumnSort<CId>>;
 

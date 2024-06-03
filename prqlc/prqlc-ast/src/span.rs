@@ -1,7 +1,8 @@
-use serde::de::Visitor;
-use serde::{Deserialize, Serialize};
 use std::fmt::{self, Debug, Formatter};
 use std::ops::Range;
+
+use serde::de::Visitor;
+use serde::{Deserialize, Serialize};
 
 #[derive(Clone, PartialEq, Eq, Copy)]
 pub struct Span {

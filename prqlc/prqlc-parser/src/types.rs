@@ -1,11 +1,9 @@
 use chumsky::prelude::*;
-
 use prqlc_ast::*;
-
-use crate::expr::ident;
 
 use super::common::*;
 use super::lexer::TokenKind;
+use crate::expr::ident;
 
 pub fn type_expr() -> impl Parser<TokenKind, Ty, Error = PError> {
     recursive(|nested_type_expr| {

@@ -2,16 +2,15 @@ use std::collections::HashMap;
 use std::iter::zip;
 use std::path::PathBuf;
 
-use crate::Result;
 use itertools::Itertools;
 use once_cell::sync::Lazy;
 
 use super::gen_expr::{translate_operand, ExprOrSource, SourceExpr};
 use super::{Context, Dialect};
-
 use crate::ir::{decl, pl, rq};
 use crate::semantic;
 use crate::utils::Pluck;
+use crate::Result;
 use crate::{Error, WithErrorInfo};
 
 static STD: Lazy<decl::Module> = Lazy::new(load_std_sql);

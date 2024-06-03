@@ -1,5 +1,6 @@
-use prqlc::{compile, Options};
 use std::{env, fs, path::Path};
+
+use prqlc::{compile, Options};
 
 fn main() {
     // we expect queries to reside in `queries/` dir

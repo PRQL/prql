@@ -1,4 +1,7 @@
 #![cfg(not(target_family = "wasm"))]
+use std::fs;
+use std::path::Path;
+
 use anyhow::{anyhow, bail, Result};
 use globset::Glob;
 use insta::assert_snapshot;
@@ -6,8 +9,6 @@ use itertools::Itertools;
 use mdbook_prql::{code_block_lang_tags, LangTag};
 use prqlc::{pl_to_prql, pl_to_rq, prql_to_pl};
 use pulldown_cmark::Tag;
-use std::fs;
-use std::path::Path;
 use walkdir::WalkDir;
 
 use super::compile;

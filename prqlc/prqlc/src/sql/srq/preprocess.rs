@@ -1,8 +1,12 @@
-use itertools::Itertools;
 use std::cmp::Ordering;
 use std::collections::hash_map::RandomState;
 use std::collections::HashSet;
 
+use itertools::Itertools;
+
+use super::anchor::{infer_complexity, CidCollector, Complexity};
+use super::ast::*;
+use super::context::RIId;
 use crate::ast::generic::{InterpolateItem, Range};
 use crate::ir::generic::{ColumnSort, SortDirection, WindowFrame, WindowKind};
 use crate::ir::pl::{JoinSide, Literal};
@@ -12,10 +16,6 @@ use crate::ir::rq::{
 use crate::sql::srq::context::ColumnDecl;
 use crate::sql::Context;
 use crate::{Error, Result, WithErrorInfo};
-
-use super::anchor::{infer_complexity, CidCollector, Complexity};
-use super::ast::*;
-use super::context::RIId;
 
 /// Converts RQ AST into SqlRQ AST and applies a few preprocessing operations.
 ///

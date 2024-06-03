@@ -134,8 +134,9 @@ pub fn get_targets() -> Vec<String> {
 #[cfg(not(feature = "extension-module"))]
 #[cfg(test)]
 mod test {
-    use super::*;
     use insta::assert_snapshot;
+
+    use super::*;
 
     #[test]
     fn parse_for_python() {

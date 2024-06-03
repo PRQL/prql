@@ -1,12 +1,11 @@
-use crate::Result;
 use itertools::Itertools;
 
+use super::Resolver;
 use crate::ast::{Ident, Ty, TyTupleField};
 use crate::ir::decl::{Decl, TableDecl, TableExpr};
 use crate::ir::pl::{Lineage, LineageColumn, LineageInput};
 use crate::semantic::{NS_DEFAULT_DB, NS_INFER};
-
-use super::Resolver;
+use crate::Result;
 
 impl Resolver<'_> {
     pub fn infer_table_column(

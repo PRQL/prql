@@ -2,12 +2,13 @@
 
 extern crate libc;
 
-use libc::{c_char, size_t};
-use prqlc::ErrorMessages;
-use prqlc::Target;
 use std::ffi::CStr;
 use std::ffi::CString;
 use std::str::FromStr;
+
+use libc::{c_char, size_t};
+use prqlc::ErrorMessages;
+use prqlc::Target;
 
 /// Compile a PRQL string into a SQL string.
 ///

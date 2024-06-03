@@ -3,15 +3,14 @@ mod ident;
 mod literal;
 mod ops;
 
-pub use ident::Ident;
-pub use literal::{Literal, ValueAndUnit};
-pub use ops::{BinOp, UnOp};
-
 use std::collections::HashMap;
 
 use enum_as_inner::EnumAsInner;
 use serde::{Deserialize, Serialize};
 
+pub use self::ident::Ident;
+pub use self::literal::{Literal, ValueAndUnit};
+pub use self::ops::{BinOp, UnOp};
 use crate::{Span, Ty};
 
 impl Expr {

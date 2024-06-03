@@ -1,21 +1,19 @@
 use std::collections::HashMap;
+use std::iter::zip;
 
 use itertools::Itertools;
 use serde::Deserialize;
-use std::iter::zip;
 
+use super::types::{ty_tuple_kind, type_intersection};
+use super::Resolver;
+use crate::ast::{Ty, TyKind, TyTupleField};
 use crate::ir::decl::{Decl, DeclKind, Module};
 use crate::ir::generic::{SortDirection, WindowKind};
 use crate::ir::pl::*;
-
-use crate::ast::{Ty, TyKind, TyTupleField};
 use crate::semantic::ast_expand::{restrict_null_literal, try_restrict_range};
 use crate::semantic::resolver::functions::expr_of_func;
 use crate::semantic::{write_pl, NS_PARAM, NS_THIS};
 use crate::{Error, Reason, Result, WithErrorInfo, COMPILER_VERSION};
-
-use super::types::{ty_tuple_kind, type_intersection};
-use super::Resolver;
 
 impl Resolver<'_> {
     /// try to convert function call with enough args into transform
@@ -981,9 +979,8 @@ fn unpack<const P: usize>(func_args: Vec<Expr>) -> [Expr; P] {
 }
 
 mod from_text {
-    use crate::ir::rq::RelationLiteral;
-
     use super::*;
+    use crate::ir::rq::RelationLiteral;
 
     // TODO: Can we dynamically get the types, like in pandas? We need to put
     // quotes around strings and not around numbers.

@@ -1,7 +1,6 @@
+use super::{WriteOpt, WriteSource};
 use crate::ast::*;
 use crate::codegen::SeparatedExprs;
-
-use super::{WriteOpt, WriteSource};
 
 pub(crate) fn write_ty(ty: &Ty) -> String {
     ty.write(WriteOpt::new_width(u16::MAX)).unwrap()
