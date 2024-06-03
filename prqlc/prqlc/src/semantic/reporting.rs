@@ -133,7 +133,7 @@ impl<'a> PlFold for Labeler<'a> {
 pub fn collect_frames(expr: Expr) -> FrameCollector {
     let mut collector = FrameCollector {
         frames: vec![],
-        nodes: HashMap::new(),
+        nodes: vec![],
         ast: None,
     };
 
@@ -142,14 +142,20 @@ pub fn collect_frames(expr: Expr) -> FrameCollector {
     collector.frames.reverse();
 
     let mut parent_updates = Vec::new();
-    for (id, node) in &collector.nodes {
+    let mut node_pos = HashMap::new();
+    for (i, node) in collector.nodes.iter().enumerate() {
+        node_pos.insert(node.id, i);
         for &child in &node.children {
-            parent_updates.push((child, *id));
+            parent_updates.push((child, node.id));
         }
     }
+    //log::debug!("{parent_updates:?}");
+    
     for (child, parent) in parent_updates {
-        if let Some(child_node) = collector.nodes.get_mut(&child) {
-            child_node.parent = Some(parent);
+        if let Some(child_pos) = node_pos.get(&child) {
+            if let Some(child_node) = collector.nodes.get_mut(*child_pos) {
+                child_node.parent = Some(parent);
+            }
         }
     }
 
@@ -197,7 +203,7 @@ pub struct FrameCollector {
     pub frames: Vec<(Span, Lineage)>,
 
     /// A mapping of expression graph node IDs to their node definitions.
-    pub nodes: HashMap<usize, ExprGraphNode>,
+    pub nodes: Vec<ExprGraphNode>,
 
     /// The parsed AST from the provided query.
     pub ast: Option<ast::ModuleDef>,
@@ -284,8 +290,7 @@ impl PlFold for FrameCollector {
                 _ => expr.kind.as_ref().to_string(),
             };
 
-            self.nodes.insert(
-                id,
+            self.nodes.push(
                 ExprGraphNode {
                     id,
                     kind,
@@ -299,6 +304,9 @@ impl PlFold for FrameCollector {
             );
         }
 
+        self.nodes.sort_by(|a, b| a.id.cmp(&b.id));
+        self.nodes.dedup();
+        
         if matches!(expr.kind, ExprKind::TransformCall(_)) {
             if let Some(span) = expr.span {
                 let lineage = expr.lineage.clone();

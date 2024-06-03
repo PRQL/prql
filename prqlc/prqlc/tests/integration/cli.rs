@@ -383,51 +383,46 @@ fn debug() {
           - default_db
           - tracks
     nodes:
-      120:
-        id: 120
-        kind: Ident
-        span: 1:22-28
-        ident: !Ident
-        - this
-        - tracks
-        - artist
-        targets:
-        - 118
-        parent: 122
-      121:
-        id: 121
-        kind: Ident
-        span: 1:30-35
-        ident: !Ident
-        - this
-        - tracks
-        - album
-        targets:
-        - 118
-        parent: 122
-      118:
-        id: 118
-        kind: Ident
-        span: 1:0-11
-        ident: !Ident
-        - default_db
-        - tracks
-        parent: 123
-      123:
-        id: 123
-        kind: 'TransformCall: Select'
-        span: 1:14-36
-        children:
-        - 118
-        - 122
-      122:
-        id: 122
-        kind: Tuple
-        span: 1:21-36
-        children:
-        - 120
-        - 121
-        parent: 123
+    - id: 118
+      kind: Ident
+      span: 1:0-11
+      ident: !Ident
+      - default_db
+      - tracks
+      parent: 123
+    - id: 120
+      kind: Ident
+      span: 1:22-28
+      ident: !Ident
+      - this
+      - tracks
+      - artist
+      targets:
+      - 118
+      parent: 122
+    - id: 121
+      kind: Ident
+      span: 1:30-35
+      ident: !Ident
+      - this
+      - tracks
+      - album
+      targets:
+      - 118
+      parent: 122
+    - id: 122
+      kind: Tuple
+      span: 1:21-36
+      children:
+      - 120
+      - 121
+      parent: 123
+    - id: 123
+      kind: 'TransformCall: Select'
+      span: 1:14-36
+      children:
+      - 118
+      - 122
     ast:
       name: Project
       stmts:
