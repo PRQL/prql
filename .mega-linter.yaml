@@ -19,6 +19,7 @@ DISABLE_LINTERS:
   - REPOSITORY_GRYPE # Slow (10+ seconds). Blocking unrelated PRs. We already have depandabot.
   - YAML_V8R # Slow (70+ seconds). We don't use YAML schema.
   - JSON_V8R # Failing for vscode-style syntax (comments).
+  - REPOSITORY_GITLEAKS # False positive on codecov token, which according to codecov is fine to have hardcoded
 DISABLE_ERRORS_LINTERS:
   - COPYPASTE_JSCPD
   - REPOSITORY_TRIVY
