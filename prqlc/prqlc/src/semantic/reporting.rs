@@ -149,8 +149,7 @@ pub fn collect_frames(expr: Expr) -> FrameCollector {
             parent_updates.push((child, node.id));
         }
     }
-    //log::debug!("{parent_updates:?}");
-    
+
     for (child, parent) in parent_updates {
         if let Some(child_pos) = node_pos.get(&child) {
             if let Some(child_node) = collector.nodes.get_mut(*child_pos) {
@@ -254,7 +253,6 @@ impl PlFold for FrameCollector {
                         TransformKind::Derive { assigns: ref e }
                         | TransformKind::Select { assigns: ref e }
                         | TransformKind::Filter { filter: ref e }
-                        | TransformKind::Aggregate { assigns: ref e }
                         | TransformKind::Append(ref e)
                         | TransformKind::Loop(ref e)
                         | TransformKind::Group {
@@ -265,6 +263,12 @@ impl PlFold for FrameCollector {
                         } => {
                             tcc.push(e.id.unwrap());
                         }
+                        TransformKind::Aggregate { assigns: ref e } => {
+                            tcc.push(e.id.unwrap());
+                            if let Some(p) = &tc.partition {
+                                tcc.push(p.id.unwrap())
+                            }
+                        }
                         TransformKind::Join {
                             ref with,
                             ref filter,
@@ -273,7 +277,19 @@ impl PlFold for FrameCollector {
                             tcc.push(with.id.unwrap());
                             tcc.push(filter.id.unwrap());
                         }
-                        _ => {}
+                        TransformKind::Take { ref range } => {
+                            if let Some(e) = &range.start {
+                                tcc.push(e.id.unwrap());
+                            }
+                            if let Some(e) = &range.end {
+                                tcc.push(e.id.unwrap());
+                            }
+                        }
+                        TransformKind::Sort { ref by } => {
+                            for c in by {
+                                tcc.push(c.column.id.unwrap());
+                            }
+                        }
                     };
 
                     tcc
@@ -290,23 +306,21 @@ impl PlFold for FrameCollector {
                 _ => expr.kind.as_ref().to_string(),
             };
 
-            self.nodes.push(
-                ExprGraphNode {
-                    id,
-                    kind,
-                    span: expr.span.clone(),
-                    alias: expr.alias.clone(),
-                    ident,
-                    targets,
-                    children,
-                    parent: None,
-                },
-            );
+            self.nodes.push(ExprGraphNode {
+                id,
+                kind,
+                span: expr.span.clone(),
+                alias: expr.alias.clone(),
+                ident,
+                targets,
+                children,
+                parent: None,
+            });
         }
 
         self.nodes.sort_by(|a, b| a.id.cmp(&b.id));
         self.nodes.dedup();
-        
+
         if matches!(expr.kind, ExprKind::TransformCall(_)) {
             if let Some(span) = expr.span {
                 let lineage = expr.lineage.clone();
