@@ -211,4 +211,20 @@ mod test {
           id IN (1, 2, 3)
         "###);
     }
+
+    #[test]
+    fn debug_prql_lineage() {
+        assert_snapshot!(
+            debug::prql_lineage(r#"from a"#).unwrap(),
+            @r#"{"frames":[],"nodes":[{"id":115,"kind":"Ident","span":"1:0-6","ident":{"Ident":["default_db","a"]}}],"ast":{"name":"Project","stmts":[{"VarDef":{"kind":"Main","name":"main","value":{"FuncCall":{"name":{"Ident":"from"},"args":[{"Ident":"a"}]}}},"span":"1:0-6"}]}}"#
+        );
+    }
+
+    #[test]
+    fn debug_pl_to_lineage() {
+        assert_snapshot!(
+            prql_to_pl(r#"from a"#).and_then(|x| debug::pl_to_lineage(&x)).unwrap(),
+            @r#"{"frames":[],"nodes":[{"id":115,"kind":"Ident","ident":{"Ident":["default_db","a"]}}],"ast":{"name":"Project","stmts":[{"VarDef":{"kind":"Main","name":"main","value":{"FuncCall":{"name":{"Ident":"from"},"args":[{"Ident":"a"}]}}},"span":"1:0-6"}]}}"#
+        );
+    }
 }
