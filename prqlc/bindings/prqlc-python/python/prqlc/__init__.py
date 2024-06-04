@@ -1,3 +1,4 @@
+# ruff: noqa: F403, F405
 from .prqlc import *
 
 __doc__ = prqlc.__doc__

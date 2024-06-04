@@ -66,7 +66,8 @@ mod debug {
         prqlc_lib::json::to_pl(pl_json)
             .and_then(|x| prqlc_lib::debug::pl_to_lineage(x))
             .and_then(|x| prqlc_lib::debug::json::from_lineage(&x))
-            .map_err(|err| (PyErr::new::<exceptions::PyValueError, _>(err.to_json())))   }
+            .map_err(|err| (PyErr::new::<exceptions::PyValueError, _>(err.to_json())))
+    }
 }
 
 #[pymodule]

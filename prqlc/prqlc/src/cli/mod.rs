@@ -19,13 +19,13 @@ use clio::has_extension;
 use clio::Output;
 use is_terminal::IsTerminal;
 use itertools::Itertools;
+use prqlc::debug::pl_to_lineage;
 use prqlc::semantic;
 use prqlc::semantic::reporting::{collect_frames, label_references};
 use prqlc::semantic::NS_DEFAULT_DB;
 use prqlc::{ast, prql_to_tokens};
 use prqlc::{ir::pl::Lineage, ir::Span};
 use prqlc::{pl_to_prql, pl_to_rq_tree, prql_to_pl, prql_to_pl_tree, rq_to_sql, SourceTree};
-use prqlc::debug::pl_to_lineage;
 use prqlc::{Options, Target};
 
 mod docs_generator;

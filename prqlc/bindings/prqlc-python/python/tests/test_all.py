@@ -86,6 +86,6 @@ def test_compile_options() -> None:
 
 def test_debug_functions() -> None:
     prql_query = "from invoices | select { id, customer_id }"
-    
+
     lineage = json.loads(prqlc.debug.prql_lineage(prql_query))
     assert lineage.keys() == {"frames", "nodes", "ast"}

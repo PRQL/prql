@@ -454,12 +454,11 @@ pub mod debug {
 
     /// Create column-level lineage graph
     pub fn pl_to_lineage(
-        pl: ast::ModuleDef
+        pl: ast::ModuleDef,
     ) -> Result<semantic::reporting::FrameCollector, ErrorMessages> {
         let ast = Some(pl.clone());
 
-        let root_module =
-            semantic::resolve(pl, Default::default()).map_err(ErrorMessages::from)?;
+        let root_module = semantic::resolve(pl, Default::default()).map_err(ErrorMessages::from)?;
 
         let (main, _) = root_module.find_main_rel(&[]).unwrap();
         let mut fc =
