@@ -47,8 +47,8 @@ Tests are by default run on all the DBs with `SupportLevel::Supported`.
 
 If you also want to test on a DB that is not yet at this support level like
 `MSSQL`, simply add `# mssql:test` on top of your query.\
-If you want to ignore one of the supported DBs like `sqlite`, simply add `# sqlite:skip`
-on top of your query.
+If you want to ignore one of the supported DBs like `sqlite`, simply add
+`# sqlite:skip` on top of your query.
 
 ## Data
 

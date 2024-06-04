@@ -1024,7 +1024,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "b34115915337defe99b2aff5c2ce6771e5fbc4079f4b506301f5cf394c8452f7"
 dependencies = [
  "strum 0.26.2",
- "strum_macros 0.26.2",
+ "strum_macros 0.26.3",
  "unicode-width",
 ]
 
@@ -2365,7 +2365,7 @@ dependencies = [
  "serde_yaml",
  "similar-asserts",
  "strum 0.26.2",
- "strum_macros 0.26.2",
+ "strum_macros 0.26.3",
  "walkdir",
 ]
 
@@ -3104,7 +3104,7 @@ dependencies = [
  "sqlformat",
  "sqlparser",
  "strum 0.26.2",
- "strum_macros 0.26.2",
+ "strum_macros 0.26.3",
  "test_each_file",
  "tiberius",
  "tokio",
@@ -3912,9 +3912,9 @@ dependencies = [
 
 [[package]]
 name = "sqlparser"
-version = "0.46.0"
+version = "0.47.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "11a81a8cad9befe4cf1b9d2d4b9c6841c76f0882a3fec00d95133953c13b3d3d"
+checksum = "295e9930cd7a97e58ca2a070541a3ca502b17f5d1fa7157376d0fabd85324f25"
 dependencies = [
  "log",
  "serde",
@@ -3977,7 +3977,7 @@ version = "0.26.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "5d8cec3501a5194c432b2b7976db6b7d10ec95c253208b45f83f7136aa985e29"
 dependencies = [
- "strum_macros 0.26.2",
+ "strum_macros 0.26.3",
 ]
 
 [[package]]
@@ -3995,11 +3995,11 @@ dependencies = [
 
 [[package]]
 name = "strum_macros"
-version = "0.26.2"
+version = "0.26.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "c6cf59daf282c0a494ba14fd21610a0325f9f90ec9d1231dea26bcb1d696c946"
+checksum = "f7993a8e3a9e88a00351486baae9522c91b123a088f76469e5bd5cc17198ea87"
 dependencies = [
- "heck 0.4.1",
+ "heck 0.5.0",
  "proc-macro2",
  "quote",
  "rustversion",

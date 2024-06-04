@@ -27,11 +27,10 @@ an index.
   - The website (outside of the book & playground):
     [`website/themes/prql-theme/static/plugins/highlight/prql.js`](https://github.com/PRQL/prql/blob/main/web/book/highlight-prql.js)
 
-- Sublime Text — It's in the
-  [`sublime-prql`](https://github.com/PRQL/sublime-prql/) repository.
+- Sublime Text — in the [`sublime-prql`](https://github.com/PRQL/sublime-prql/)
+  repository.
 
-- [TextMate](https://macromates.com/manual/en/language_grammars) — used by the
-  VS Code extension. It's in the `prql-vscode` repo in
+- TextMate — used by the VS Code extension; in the `prql-vscode` repo in
   [`prql-vscode/syntaxes/prql.tmLanguage.json`](https://github.com/PRQL/prql-vscode/blob/main/syntaxes/prql.tmLanguage.json).
 
 - [Monarch](https://microsoft.github.io/monaco-editor/monarch.html) — used by
