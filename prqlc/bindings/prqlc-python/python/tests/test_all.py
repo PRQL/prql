@@ -1,3 +1,5 @@
+import json
+
 import prqlc
 
 
@@ -80,3 +82,10 @@ def test_compile_options() -> None:
     assert res.startswith(
         "SELECT\n  *\nFROM\n  a\nORDER BY\n  (\n    SELECT\n      NULL\n  ) OFFSET 0 ROWS\nFETCH FIRST\n  3 ROWS ONLY"
     )
+
+
+def test_debug_functions() -> None:
+    prql_query = "from invoices | select { id, customer_id }"
+    
+    lineage = json.loads(prqlc.debug.prql_lineage(prql_query))
+    assert lineage.keys() == {"frames", "nodes", "ast"}

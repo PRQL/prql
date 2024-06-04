@@ -50,6 +50,17 @@ pub fn rq_to_sql(rq_json: &str, options: Option<CompileOptions>) -> PyResult<Str
         .map_err(|err| (PyErr::new::<exceptions::PyValueError, _>(err.to_json())))
 }
 
+mod debug {
+    use super::*;
+
+    #[pyfunction]
+    pub fn prql_lineage(prql_query: &str) -> PyResult<String> {
+        prqlc_lib::debug::prql_to_lineage(prql_query)
+            .and_then(|x| prqlc_lib::debug::json::from_lineage(&x))
+            .map_err(|err| (PyErr::new::<exceptions::PyValueError, _>(err.to_json())))
+    }
+}
+
 #[pymodule]
 fn prqlc(_py: Python, m: &PyModule) -> PyResult<()> {
     m.add_function(wrap_pyfunction!(compile, m)?)?;
@@ -57,9 +68,16 @@ fn prqlc(_py: Python, m: &PyModule) -> PyResult<()> {
     m.add_function(wrap_pyfunction!(pl_to_rq, m)?)?;
     m.add_function(wrap_pyfunction!(rq_to_sql, m)?)?;
     m.add_function(wrap_pyfunction!(get_targets, m)?)?;
+
     m.add_class::<CompileOptions>()?;
     // From https://github.com/PyO3/maturin/issues/100
     m.add("__version__", env!("CARGO_PKG_VERSION"))?;
+
+    // add debug submodule
+    let debug_module = PyModule::new(_py, "debug")?;
+    debug_module.add_function(wrap_pyfunction!(debug::prql_lineage, debug_module)?)?;
+
+    m.add_submodule(debug_module)?;
 
     Ok(())
 }
