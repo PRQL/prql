@@ -1,6 +1,3 @@
-# This MegaLinter config is very experimental stage. Open to changes and updates.
-# https://github.com/PRQL/prql/pull/1974
-
 GITHUB_COMMENT_REPORTER: false
 DISABLE:
   - RUST
