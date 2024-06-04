@@ -37,3 +37,4 @@ tag-prefix = ""
 # package to `prqlc`.
 [package.metadata.maturin]
 name = "prqlc"
+

@@ -55,10 +55,18 @@ mod debug {
 
     #[pyfunction]
     pub fn prql_lineage(prql_query: &str) -> PyResult<String> {
-        prqlc_lib::debug::prql_to_lineage(prql_query)
+        prqlc_lib::prql_to_pl(prql_query)
+            .and_then(|x| prqlc_lib::debug::pl_to_lineage(x))
             .and_then(|x| prqlc_lib::debug::json::from_lineage(&x))
             .map_err(|err| (PyErr::new::<exceptions::PyValueError, _>(err.to_json())))
     }
+
+    #[pyfunction]
+    pub fn pl_to_lineage(pl_json: &str) -> PyResult<String> {
+        prqlc_lib::json::to_pl(pl_json)
+            .and_then(|x| prqlc_lib::debug::pl_to_lineage(x))
+            .and_then(|x| prqlc_lib::debug::json::from_lineage(&x))
+            .map_err(|err| (PyErr::new::<exceptions::PyValueError, _>(err.to_json())))   }
 }
 
 #[pymodule]
@@ -76,6 +84,7 @@ fn prqlc(_py: Python, m: &PyModule) -> PyResult<()> {
     // add debug submodule
     let debug_module = PyModule::new(_py, "debug")?;
     debug_module.add_function(wrap_pyfunction!(debug::prql_lineage, debug_module)?)?;
+    debug_module.add_function(wrap_pyfunction!(debug::pl_to_lineage, debug_module)?)?;
 
     m.add_submodule(debug_module)?;
 

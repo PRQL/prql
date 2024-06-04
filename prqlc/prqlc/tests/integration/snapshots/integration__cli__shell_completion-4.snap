@@ -621,7 +621,7 @@ _prqlc__debug_commands() {
 'resolve:Parse & resolve, but don'\''t lower into RQ' \
 'eval:Parse & evaluate expression down to a value' \
 'annotate:Parse, resolve & combine source with comments annotating relation type' \
-'lineage:Output structured lineage relationships' \
+'lineage:Output column-level lineage graph' \
 'ast:Print info about the AST data structure' \
 'help:Print this message or the help of the given subcommand(s)' \
     )
@@ -634,7 +634,7 @@ _prqlc__help__debug_commands() {
 'resolve:Parse & resolve, but don'\''t lower into RQ' \
 'eval:Parse & evaluate expression down to a value' \
 'annotate:Parse, resolve & combine source with comments annotating relation type' \
-'lineage:Output structured lineage relationships' \
+'lineage:Output column-level lineage graph' \
 'ast:Print info about the AST data structure' \
     )
     _describe -t commands 'prqlc help debug commands' commands "$@"
@@ -716,7 +716,7 @@ _prqlc__debug__help_commands() {
 'resolve:Parse & resolve, but don'\''t lower into RQ' \
 'eval:Parse & evaluate expression down to a value' \
 'annotate:Parse, resolve & combine source with comments annotating relation type' \
-'lineage:Output structured lineage relationships' \
+'lineage:Output column-level lineage graph' \
 'ast:Print info about the AST data structure' \
 'help:Print this message or the help of the given subcommand(s)' \
     )

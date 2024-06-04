@@ -25,6 +25,7 @@ use prqlc::semantic::NS_DEFAULT_DB;
 use prqlc::{ast, prql_to_tokens};
 use prqlc::{ir::pl::Lineage, ir::Span};
 use prqlc::{pl_to_prql, pl_to_rq_tree, prql_to_pl, prql_to_pl_tree, rq_to_sql, SourceTree};
+use prqlc::debug::pl_to_lineage;
 use prqlc::{Options, Target};
 
 mod docs_generator;
@@ -458,16 +459,7 @@ impl Command {
             }
             Command::Debug(DebugCommand::Lineage { format, .. }) => {
                 let stmts = prql_to_pl_tree(sources)?;
-                let ast = Some(stmts.clone());
-
-                let root_module = semantic::resolve(stmts, Default::default())
-                    .map_err(|e| prqlc::ErrorMessages::from(e).composed(sources))?;
-
-                log::debug!("{root_module:#?}");
-
-                let (main, _) = root_module.find_main_rel(&[]).unwrap();
-                let mut fc = collect_frames(*main.clone().into_relation_var().unwrap());
-                fc.ast = ast;
+                let fc = pl_to_lineage(stmts)?;
 
                 match format {
                     Format::Json => serde_json::to_string_pretty(&fc)?.into_bytes(),

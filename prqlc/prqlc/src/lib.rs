@@ -453,14 +453,13 @@ pub mod debug {
     use super::*;
 
     /// Create column-level lineage graph
-    pub fn prql_to_lineage(
-        prql: &str,
+    pub fn pl_to_lineage(
+        pl: ast::ModuleDef
     ) -> Result<semantic::reporting::FrameCollector, ErrorMessages> {
-        let stmts = prql_to_pl(prql)?;
-        let ast = Some(stmts.clone());
+        let ast = Some(pl.clone());
 
         let root_module =
-            semantic::resolve(stmts, Default::default()).map_err(ErrorMessages::from)?;
+            semantic::resolve(pl, Default::default()).map_err(ErrorMessages::from)?;
 
         let (main, _) = root_module.find_main_rel(&[]).unwrap();
         let mut fc =
