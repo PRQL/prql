@@ -1,10 +1,3 @@
-# As discussed in
-# https://community.codecov.com/t/upload-issues-unable-to-locate-build-via-github-actions-api/3954,
-# without this the upload has a fairly high failure rate. The only thing the
-# token allows is uploading coverage, so there are apparently no security risks.
-codecov:
-  token: cab4ace5-4f10-4027-8b5c-d79722234571
-
 comment: false
 
 ignore:
