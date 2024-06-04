@@ -189,7 +189,41 @@ enum DebugCommand {
     /// Parse, resolve & combine source with comments annotating relation type
     Annotate(IoArgs),
 
-    /// Output structured lineage relationships
+    /// Output column-level lineage graph
+    ///
+    /// The returned data includes:
+    ///
+    /// * "frames": a list of Span and Lineage records corresponding to each
+    ///   transformation frame in the main pipeline.
+    ///
+    /// * "nodes": a list of expression graph nodes.
+    ///
+    /// * "ast": the parsed PL abstract syntax tree.
+    ///
+    /// Each expression node has attributes:
+    ///
+    /// * "id": A unique ID for each expression.
+    ///
+    /// * "kind": Descriptive text about the expression type.
+    ///
+    /// * "span": Position of the expression in the original source (optional).
+    ///
+    /// * "alias": When this expression is part of a Tuple, this is its alias
+    ///   (optional).
+    ///
+    /// * "ident": When this expression is an Ident, this is its reference
+    ///   (optional).
+    ///
+    /// * "targets": Any upstream sources of data for this expression, as a list
+    ///   of node IDs (optional).
+    ///
+    /// * "children": A list of expression IDs contained within this expression
+    ///   (optional).
+    ///
+    /// * "parent": The expression ID that contains this expression (optional).
+    ///
+    /// A Python script for rendering this output as a GraphViz visualization is
+    /// available at https://gist.github.com/kgutwin/efe5f03df5ff930d899249018a0a551b.
     Lineage {
         #[command(flatten)]
         io_args: IoArgs,
