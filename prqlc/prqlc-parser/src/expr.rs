@@ -7,7 +7,7 @@ use prqlc_ast::Span;
 use super::common::*;
 use super::interpolation;
 use super::lexer::TokenKind;
-use super::span::ParserSpan;
+use crate::err::parse_error::PError;
 use crate::types::type_expr;
 
 pub fn expr_call() -> impl Parser<TokenKind, Expr, Error = PError> {
@@ -87,7 +87,7 @@ pub fn expr() -> impl Parser<TokenKind, Expr, Error = PError> + Clone {
             TokenKind::Interpolation('s', string) => (ExprKind::SString as fn(_) -> _, string),
             TokenKind::Interpolation('f', string) => (ExprKind::FString as fn(_) -> _, string),
         }
-        .validate(|(finish, string), span: ParserSpan, emit| {
+        .validate(|(finish, string), span: Span, emit| {
             match interpolation::parse(string, span + 2) {
                 Ok(items) => finish(items),
                 Err(errors) => {
@@ -268,11 +268,11 @@ where
     (term.clone())
         .then(op.then(term).repeated())
         .foldl(|left, (op, right)| {
-            let span = ParserSpan(Span {
+            let span = Span {
                 start: left.1.start,
                 end: right.1.end,
                 source_id: left.1.source_id,
-            });
+            };
             let kind = ExprKind::Binary(BinaryExpr {
                 left: Box::new(left.0),
                 op,
@@ -317,7 +317,7 @@ where
             for (name, arg) in args {
                 if let Some(name) = name {
                     if named_args.contains_key(&name) {
-                        let err = Simple::custom(span, "argument is used multiple times");
+                        let err = PError::custom(span, "argument is used multiple times");
                         emit(err)
                     }
                     named_args.insert(name, arg);

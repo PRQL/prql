@@ -1,6 +1,6 @@
 use insta::assert_yaml_snapshot;
 use prqlc::ir::{constant::ConstExpr, decl::RootModule};
-use prqlc_ast::{Expr, VarDef};
+use prqlc_parser::ast::{Expr, VarDef};
 
 #[track_caller]
 fn static_eval(prql_source: &str) -> ConstExpr {

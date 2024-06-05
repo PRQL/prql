@@ -6,4 +6,4 @@ pub mod generic;
 pub mod pl;
 pub mod rq;
 
-pub use crate::ast::Span;
+pub use prqlc_ast::span::Span;

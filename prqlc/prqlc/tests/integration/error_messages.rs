@@ -365,3 +365,16 @@ fn available_columns() {
     ───╯
     "###);
 }
+
+#[test]
+fn empty_interpolations() {
+    assert_snapshot!(compile(r#"from x | select f"{}" "#).unwrap_err(), @r###"
+    Error:
+       ╭─[:1:20]
+       │
+     1 │ from x | select f"{}"
+       │                    ┬
+       │                    ╰── interpolated string variable expected "`" or "{", but found "}"
+    ───╯
+    "###);
+}

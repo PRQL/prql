@@ -3,10 +3,9 @@ source: web/book/tests/documentation/book.rs
 expression: "from tracks\nselect length_str = f\"{length_seconds / 60} minutes\"\n"
 ---
 Error:
-   ╭─[:2:37]
+   ╭─[:2:38]
    │
  2 │ select length_str = f"{length_seconds / 60} minutes"
-   │                                     ┬
-   │                                     ╰── unexpected end of input while parsing interpolated string
+   │                                      ┬
+   │                                      ╰── interpolated string expected one of ".", ":" or "}", but found " "
 ───╯
-

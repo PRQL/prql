@@ -1,6 +1,7 @@
 use std::fmt::{self, Debug, Formatter};
-use std::ops::Range;
+use std::ops::{Add, Range, Sub};
 
+use chumsky::Stream;
 use serde::de::Visitor;
 use serde::{Deserialize, Serialize};
 
@@ -102,6 +103,81 @@ impl<'de> Deserialize<'de> for Span {
 
         deserializer.deserialize_string(SpanVisitor {})
     }
+}
+
+impl chumsky::Span for Span {
+    type Context = u16;
+
+    type Offset = usize;
+
+    fn new(context: Self::Context, range: std::ops::Range<Self::Offset>) -> Self {
+        Self {
+            start: range.start,
+            end: range.end,
+            source_id: context,
+        }
+    }
+
+    fn context(&self) -> Self::Context {
+        self.source_id
+    }
+
+    fn start(&self) -> Self::Offset {
+        self.start
+    }
+
+    fn end(&self) -> Self::Offset {
+        self.end
+    }
+}
+
+impl Add<usize> for Span {
+    type Output = Span;
+
+    fn add(self, rhs: usize) -> Span {
+        Self {
+            start: self.start + rhs,
+            end: self.end + rhs,
+            source_id: self.source_id,
+        }
+    }
+}
+
+impl Sub<usize> for Span {
+    type Output = Span;
+
+    fn sub(self, rhs: usize) -> Span {
+        Self {
+            start: self.start - rhs,
+            end: self.end - rhs,
+            source_id: self.source_id,
+        }
+    }
+}
+
+pub fn string_stream<'a>(
+    s: String,
+    span_base: Span,
+) -> Stream<'a, char, Span, Box<dyn Iterator<Item = (char, Span)>>> {
+    let chars = s.chars().collect::<Vec<_>>();
+
+    Stream::from_iter(
+        Span {
+            start: span_base.start + chars.len(),
+            end: span_base.start + chars.len(),
+            source_id: span_base.source_id,
+        },
+        Box::new(chars.into_iter().enumerate().map(move |(i, c)| {
+            (
+                c,
+                Span {
+                    start: span_base.start + i,
+                    end: span_base.start + i + 1,
+                    source_id: span_base.source_id,
+                },
+            )
+        })),
+    )
 }
 
 #[cfg(test)]
