@@ -219,8 +219,7 @@ impl PlFold for FrameCollector {
                         vec![]
                     }
                 }
-                ExprKind::RqOperator { args, .. } => args
-                    .iter().filter_map(|e| e.id).collect(),
+                ExprKind::RqOperator { args, .. } => args.iter().filter_map(|e| e.id).collect(),
                 ExprKind::Case(switch) => switch
                     .iter()
                     .flat_map(|c| vec![c.condition.id.unwrap(), c.value.id.unwrap()])

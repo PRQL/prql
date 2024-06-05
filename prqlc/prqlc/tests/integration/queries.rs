@@ -72,16 +72,16 @@ mod debug_lineage {
     use super::*;
 
     test_each_path! { in "./prqlc/prqlc/tests/integration/queries" => run }
-    
+
     fn run(prql_path: &Path) {
         let test_name = prql_path.file_stem().unwrap().to_str().unwrap();
         let prql = fs::read_to_string(prql_path).unwrap();
 
         let pl = prqlc::prql_to_pl(&prql).unwrap();
         let fc = prqlc::debug::pl_to_lineage(pl).unwrap();
-        
+
         let lineage = prqlc::debug::json::from_lineage(&fc).unwrap();
-        
+
         with_settings!({ input_file => prql_path }, {
             assert_snapshot!(test_name, &lineage, &prql)
         });
