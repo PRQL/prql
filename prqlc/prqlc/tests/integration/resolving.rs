@@ -16,7 +16,7 @@ fn resolve(prql_source: &str) -> Result<String, ErrorMessages> {
     prqlc::pl_to_prql(&root_module)
 }
 
-fn drop_module_defs(stmts: &mut Vec<prqlc_ast::stmt::Stmt>, to_drop: &[&str]) {
+fn drop_module_defs(stmts: &mut Vec<prqlc_parser::ast::stmt::Stmt>, to_drop: &[&str]) {
     stmts.retain(|x| {
         x.kind
             .as_module_def()

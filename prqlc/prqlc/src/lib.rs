@@ -93,6 +93,22 @@
 // yak-shaving exercise in the future.
 #![allow(clippy::result_large_err)]
 
+// use std::{collections::HashMap, path::PathBuf, str::FromStr};
+
+use std::{collections::HashMap, path::PathBuf, str::FromStr};
+
+use anstream::adapter::strip_str;
+pub use error_message::{ErrorMessage, ErrorMessages, SourceLocation};
+pub use ir::Span;
+use once_cell::sync::Lazy;
+pub use prqlc_ast as ast;
+use prqlc_parser::err::error::ErrorSource;
+pub use prqlc_parser::err::error::{Error, Errors, MessageKind, Reason, WithErrorInfo};
+use prqlc_parser::TokenVec;
+use semver::Version;
+use serde::{Deserialize, Serialize};
+use strum::VariantNames;
+
 mod codegen;
 mod error_message;
 pub mod ir;
@@ -101,25 +117,10 @@ pub mod semantic;
 pub mod sql;
 mod utils;
 
-use anstream::adapter::strip_str;
-pub use error_message::{ErrorMessage, ErrorMessages, SourceLocation};
-pub use ir::Span;
-pub use prqlc_ast as ast;
-
-pub use crate::ast::error::{Error, Errors, MessageKind, Reason, WithErrorInfo};
-
 pub type Result<T, E = Error> = core::result::Result<T, E>;
 
 pub static COMPILER_VERSION: Lazy<Version> =
     Lazy::new(|| Version::parse(env!("CARGO_PKG_VERSION")).expect("Invalid prqlc version number"));
-
-use std::{collections::HashMap, path::PathBuf, str::FromStr};
-
-use once_cell::sync::Lazy;
-use prqlc_parser::TokenVec;
-use semver::Version;
-use serde::{Deserialize, Serialize};
-use strum::VariantNames;
 
 /// Compile a PRQL string into a SQL string.
 ///
@@ -149,8 +150,13 @@ pub fn compile(prql: &str, options: &Options) -> Result<String, ErrorMessages> {
 
     Ok(&sources)
         .and_then(parser::parse)
-        .and_then(|ast| semantic::resolve_and_lower(ast, &[], None).map_err(Errors::from))
-        .and_then(|rq| sql::compile(rq, options).map_err(Errors::from))
+        .and_then(|ast| {
+            semantic::resolve_and_lower(ast, &[], None)
+                .map_err(|e| e.with_source(ErrorSource::NameResolver).into())
+        })
+        .and_then(|rq| {
+            sql::compile(rq, options).map_err(|e| e.with_source(ErrorSource::SQL).into())
+        })
         .map_err(|e| {
             let error_messages = ErrorMessages::from(e).composed(&sources);
             match options.display {
@@ -334,7 +340,8 @@ pub fn prql_to_pl_tree(prql: &SourceTree) -> Result<ast::ModuleDef, ErrorMessage
 /// Perform semantic analysis and convert PL to RQ.
 // TODO: rename this to `pl_to_rq_simple`
 pub fn pl_to_rq(pl: ast::ModuleDef) -> Result<ir::rq::RelationalQuery, ErrorMessages> {
-    semantic::resolve_and_lower(pl, &[], None).map_err(ErrorMessages::from)
+    semantic::resolve_and_lower(pl, &[], None)
+        .map_err(|e| e.with_source(ErrorSource::NameResolver).into())
 }
 
 /// Perform semantic analysis and convert PL to RQ.
@@ -344,12 +351,12 @@ pub fn pl_to_rq_tree(
     database_module_path: &[String],
 ) -> Result<ir::rq::RelationalQuery, ErrorMessages> {
     semantic::resolve_and_lower(pl, main_path, Some(database_module_path))
-        .map_err(ErrorMessages::from)
+        .map_err(|e| e.with_source(ErrorSource::NameResolver).into())
 }
 
 /// Generate SQL from RQ.
 pub fn rq_to_sql(rq: ir::rq::RelationalQuery, options: &Options) -> Result<String, ErrorMessages> {
-    sql::compile(rq, options).map_err(ErrorMessages::from)
+    sql::compile(rq, options).map_err(|e| e.with_source(ErrorSource::SQL).into())
 }
 
 /// Generate PRQL code from PL AST
@@ -445,6 +452,42 @@ impl SourceTree {
 impl<S: ToString> From<S> for SourceTree {
     fn from(source: S) -> Self {
         SourceTree::single(PathBuf::from(""), source.to_string())
+    }
+}
+
+/// Debugging and unstable API functions
+pub mod debug {
+    use super::*;
+
+    /// Create column-level lineage graph
+    pub fn pl_to_lineage(
+        pl: ast::ModuleDef,
+    ) -> Result<semantic::reporting::FrameCollector, ErrorMessages> {
+        let ast = Some(pl.clone());
+
+        let root_module = semantic::resolve(pl, Default::default()).map_err(ErrorMessages::from)?;
+
+        let (main, _) = root_module.find_main_rel(&[]).unwrap();
+        let mut fc =
+            semantic::reporting::collect_frames(*main.clone().into_relation_var().unwrap());
+        fc.ast = ast;
+
+        Ok(fc)
+    }
+
+    pub mod json {
+        use super::*;
+
+        /// JSON serialization of FrameCollector lineage
+        pub fn from_lineage(
+            fc: &semantic::reporting::FrameCollector,
+        ) -> Result<String, ErrorMessages> {
+            serde_json::to_string(fc).map_err(convert_json_err)
+        }
+
+        fn convert_json_err(err: serde_json::Error) -> ErrorMessages {
+            ErrorMessages::from(Error::new_simple(err.to_string()))
+        }
     }
 }
 

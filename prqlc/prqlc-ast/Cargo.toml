@@ -18,6 +18,18 @@ serde = {workspace = true}
 serde_yaml = {workspace = true, optional = true}
 strum = {version = "0.26.2", features = ["std", "derive"]}
 
+# Chumsky's default features have issues when running in wasm (though we only
+# see it when compiling on macOS), so we only include features when running
+# outside wasm.
+[target.'cfg(not(target_family="wasm"))'.dependencies]
+chumsky = "0.9.2"
+# Not direct dependencies, but pinning because of bugs in previous versions
+stacker = "0.1.15"
+[target.'cfg(target_family="wasm")'.dependencies]
+chumsky = {version = "0.9.2", features = ["ahash", "std"], default-features = false}
+
+
+
 [dev-dependencies]
 insta = {workspace = true}
 serde_json = {workspace = true}

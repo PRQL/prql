@@ -50,6 +50,26 @@ pub fn rq_to_sql(rq_json: &str, options: Option<CompileOptions>) -> PyResult<Str
         .map_err(|err| (PyErr::new::<exceptions::PyValueError, _>(err.to_json())))
 }
 
+mod debug {
+    use super::*;
+
+    #[pyfunction]
+    pub fn prql_lineage(prql_query: &str) -> PyResult<String> {
+        prqlc_lib::prql_to_pl(prql_query)
+            .and_then(prqlc_lib::debug::pl_to_lineage)
+            .and_then(|x| prqlc_lib::debug::json::from_lineage(&x))
+            .map_err(|err| (PyErr::new::<exceptions::PyValueError, _>(err.to_json())))
+    }
+
+    #[pyfunction]
+    pub fn pl_to_lineage(pl_json: &str) -> PyResult<String> {
+        prqlc_lib::json::to_pl(pl_json)
+            .and_then(prqlc_lib::debug::pl_to_lineage)
+            .and_then(|x| prqlc_lib::debug::json::from_lineage(&x))
+            .map_err(|err| (PyErr::new::<exceptions::PyValueError, _>(err.to_json())))
+    }
+}
+
 #[pymodule]
 fn prqlc(_py: Python, m: &PyModule) -> PyResult<()> {
     m.add_function(wrap_pyfunction!(compile, m)?)?;
@@ -57,9 +77,17 @@ fn prqlc(_py: Python, m: &PyModule) -> PyResult<()> {
     m.add_function(wrap_pyfunction!(pl_to_rq, m)?)?;
     m.add_function(wrap_pyfunction!(rq_to_sql, m)?)?;
     m.add_function(wrap_pyfunction!(get_targets, m)?)?;
+
     m.add_class::<CompileOptions>()?;
     // From https://github.com/PyO3/maturin/issues/100
     m.add("__version__", env!("CARGO_PKG_VERSION"))?;
+
+    // add debug submodule
+    let debug_module = PyModule::new(_py, "debug")?;
+    debug_module.add_function(wrap_pyfunction!(debug::prql_lineage, debug_module)?)?;
+    debug_module.add_function(wrap_pyfunction!(debug::pl_to_lineage, debug_module)?)?;
+
+    m.add_submodule(debug_module)?;
 
     Ok(())
 }
@@ -182,5 +210,21 @@ mod test {
         WHERE
           id IN (1, 2, 3)
         "###);
+    }
+
+    #[test]
+    fn debug_prql_lineage() {
+        assert_snapshot!(
+            debug::prql_lineage(r#"from a"#).unwrap(),
+            @r#"{"frames":[],"nodes":[{"id":115,"kind":"Ident","span":"1:0-6","ident":{"Ident":["default_db","a"]}}],"ast":{"name":"Project","stmts":[{"VarDef":{"kind":"Main","name":"main","value":{"FuncCall":{"name":{"Ident":"from"},"args":[{"Ident":"a"}]}}},"span":"1:0-6"}]}}"#
+        );
+    }
+
+    #[test]
+    fn debug_pl_to_lineage() {
+        assert_snapshot!(
+            prql_to_pl(r#"from a"#).and_then(|x| debug::pl_to_lineage(&x)).unwrap(),
+            @r#"{"frames":[],"nodes":[{"id":115,"kind":"Ident","ident":{"Ident":["default_db","a"]}}],"ast":{"name":"Project","stmts":[{"VarDef":{"kind":"Main","name":"main","value":{"FuncCall":{"name":{"Ident":"from"},"args":[{"Ident":"a"}]}}},"span":"1:0-6"}]}}"#
+        );
     }
 }

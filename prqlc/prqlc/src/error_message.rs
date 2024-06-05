@@ -73,9 +73,10 @@ impl Debug for ErrorMessage {
 
 impl From<Error> for ErrorMessage {
     fn from(e: Error) -> Self {
+        log::debug!("{:#?}", e);
         ErrorMessage {
             code: e.code.map(str::to_string),
-            kind: MessageKind::Error,
+            kind: e.kind,
             reason: e.reason.to_string(),
             hints: e.hints,
             span: e.span,
@@ -150,6 +151,12 @@ impl ErrorMessages {
             };
             e.location = e.compose_location(source);
 
+            assert!(
+                e.location.is_some(),
+                "span {:?} is out of bounds of the source (len = {})",
+                e.span,
+                source.len()
+            );
             e.display = e.compose_display(source_path.clone(), &mut cache);
         }
         self

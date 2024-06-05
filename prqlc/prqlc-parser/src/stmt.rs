@@ -9,6 +9,8 @@ use semver::VersionReq;
 use super::common::*;
 use super::expr::*;
 use super::lexer::TokenKind;
+use crate::err::parse_error::PError;
+// use crate::ast::err::chumsky_error::PError;
 use crate::types::type_expr;
 
 pub fn source() -> impl Parser<TokenKind, Vec<Stmt>, Error = PError> {
@@ -64,7 +66,7 @@ fn query_def() -> impl Parser<TokenKind, Stmt, Error = PError> {
                     _ => Err("version must be a string literal".to_string()),
                 })
                 .transpose()
-                .map_err(|msg| Simple::custom(span, msg))?;
+                .map_err(|msg| PError::custom(span, msg))?;
 
             // TODO: `QueryDef` is currently implemented as `version` & `other`
             // fields. We want to raise an error if an unsupported field is
@@ -90,13 +92,13 @@ fn query_def() -> impl Parser<TokenKind, Stmt, Error = PError> {
                     Err("target must be a string literal".to_string())
                 })
                 .transpose()
-                .map_err(|msg| Simple::custom(span, msg))?
+                .map_err(|msg| PError::custom(span, msg))?
                 .map_or_else(HashMap::new, |x| {
                     HashMap::from_iter(vec![("target".to_string(), x)])
                 });
 
             if !args.is_empty() {
-                return Err(Simple::custom(
+                return Err(PError::custom(
                     span,
                     format!(
                         "unknown query definition arguments {}",

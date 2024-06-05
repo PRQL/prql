@@ -23,6 +23,7 @@ features = ["pyo3/extension-module"]
 
 # The module is named `prqlc` rather than `prqlc-python`.
 module-name = "prqlc"
+python-source = "python"
 
 [project.optional-dependencies]
 dev = [
