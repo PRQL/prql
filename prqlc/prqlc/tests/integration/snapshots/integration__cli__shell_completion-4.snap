@@ -181,6 +181,21 @@ _arguments "${_arguments_options[@]}" \
 '::main_path -- Identifier of the main pipeline:' \
 && ret=0
 ;;
+(lineage)
+_arguments "${_arguments_options[@]}" \
+'--format=[]:FORMAT:(json yaml)' \
+'--color=[Controls when to use color]:WHEN:(auto always never)' \
+'*-v[Increase logging verbosity]' \
+'*--verbose[Increase logging verbosity]' \
+'(-v --verbose)*-q[Silences logging output]' \
+'(-v --verbose)*--quiet[Silences logging output]' \
+'-h[Print help (see more with '\''--help'\'')]' \
+'--help[Print help (see more with '\''--help'\'')]' \
+'::input:_files' \
+'::output:_files' \
+'::main_path -- Identifier of the main pipeline:' \
+&& ret=0
+;;
 (ast)
 _arguments "${_arguments_options[@]}" \
 '--color=[Controls when to use color]:WHEN:(auto always never)' \
@@ -217,6 +232,10 @@ _arguments "${_arguments_options[@]}" \
 && ret=0
 ;;
 (annotate)
+_arguments "${_arguments_options[@]}" \
+&& ret=0
+;;
+(lineage)
 _arguments "${_arguments_options[@]}" \
 && ret=0
 ;;
@@ -452,6 +471,10 @@ _arguments "${_arguments_options[@]}" \
 _arguments "${_arguments_options[@]}" \
 && ret=0
 ;;
+(lineage)
+_arguments "${_arguments_options[@]}" \
+&& ret=0
+;;
 (ast)
 _arguments "${_arguments_options[@]}" \
 && ret=0
@@ -598,6 +621,7 @@ _prqlc__debug_commands() {
 'resolve:Parse & resolve, but don'\''t lower into RQ' \
 'eval:Parse & evaluate expression down to a value' \
 'annotate:Parse, resolve & combine source with comments annotating relation type' \
+'lineage:Output column-level lineage graph' \
 'ast:Print info about the AST data structure' \
 'help:Print this message or the help of the given subcommand(s)' \
     )
@@ -610,6 +634,7 @@ _prqlc__help__debug_commands() {
 'resolve:Parse & resolve, but don'\''t lower into RQ' \
 'eval:Parse & evaluate expression down to a value' \
 'annotate:Parse, resolve & combine source with comments annotating relation type' \
+'lineage:Output column-level lineage graph' \
 'ast:Print info about the AST data structure' \
     )
     _describe -t commands 'prqlc help debug commands' commands "$@"
@@ -691,6 +716,7 @@ _prqlc__debug__help_commands() {
 'resolve:Parse & resolve, but don'\''t lower into RQ' \
 'eval:Parse & evaluate expression down to a value' \
 'annotate:Parse, resolve & combine source with comments annotating relation type' \
+'lineage:Output column-level lineage graph' \
 'ast:Print info about the AST data structure' \
 'help:Print this message or the help of the given subcommand(s)' \
     )
@@ -748,6 +774,21 @@ _prqlc__help__lex_commands() {
 _prqlc__lex_commands() {
     local commands; commands=()
     _describe -t commands 'prqlc lex commands' commands "$@"
+}
+(( $+functions[_prqlc__debug__help__lineage_commands] )) ||
+_prqlc__debug__help__lineage_commands() {
+    local commands; commands=()
+    _describe -t commands 'prqlc debug help lineage commands' commands "$@"
+}
+(( $+functions[_prqlc__debug__lineage_commands] )) ||
+_prqlc__debug__lineage_commands() {
+    local commands; commands=()
+    _describe -t commands 'prqlc debug lineage commands' commands "$@"
+}
+(( $+functions[_prqlc__help__debug__lineage_commands] )) ||
+_prqlc__help__debug__lineage_commands() {
+    local commands; commands=()
+    _describe -t commands 'prqlc help debug lineage commands' commands "$@"
 }
 (( $+functions[_prqlc__help__list-targets_commands] )) ||
 _prqlc__help__list-targets_commands() {

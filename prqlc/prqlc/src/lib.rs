@@ -455,6 +455,42 @@ impl<S: ToString> From<S> for SourceTree {
     }
 }
 
+/// Debugging and unstable API functions
+pub mod debug {
+    use super::*;
+
+    /// Create column-level lineage graph
+    pub fn pl_to_lineage(
+        pl: ast::ModuleDef,
+    ) -> Result<semantic::reporting::FrameCollector, ErrorMessages> {
+        let ast = Some(pl.clone());
+
+        let root_module = semantic::resolve(pl, Default::default()).map_err(ErrorMessages::from)?;
+
+        let (main, _) = root_module.find_main_rel(&[]).unwrap();
+        let mut fc =
+            semantic::reporting::collect_frames(*main.clone().into_relation_var().unwrap());
+        fc.ast = ast;
+
+        Ok(fc)
+    }
+
+    pub mod json {
+        use super::*;
+
+        /// JSON serialization of FrameCollector lineage
+        pub fn from_lineage(
+            fc: &semantic::reporting::FrameCollector,
+        ) -> Result<String, ErrorMessages> {
+            serde_json::to_string(fc).map_err(convert_json_err)
+        }
+
+        fn convert_json_err(err: serde_json::Error) -> ErrorMessages {
+            ErrorMessages::from(Error::new_simple(err.to_string()))
+        }
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use std::str::FromStr;

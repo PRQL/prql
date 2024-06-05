@@ -23,6 +23,7 @@ use clio::has_extension;
 use clio::Output;
 use is_terminal::IsTerminal;
 use itertools::Itertools;
+use prqlc::debug::pl_to_lineage;
 use prqlc::semantic;
 use prqlc::semantic::reporting::{collect_frames, label_references};
 use prqlc::semantic::NS_DEFAULT_DB;
@@ -173,7 +174,7 @@ enum Command {
 
 /// Commands for meant for debugging, prone to change
 #[derive(Subcommand, Debug, Clone)]
-pub enum DebugCommand {
+enum DebugCommand {
     /// Parse & and expand into PL, but don't resolve
     ExpandPL(IoArgs),
 
@@ -188,6 +189,48 @@ pub enum DebugCommand {
 
     /// Parse, resolve & combine source with comments annotating relation type
     Annotate(IoArgs),
+
+    /// Output column-level lineage graph
+    ///
+    /// The returned data includes:
+    ///
+    /// * "frames": a list of Span and Lineage records corresponding to each
+    ///   transformation frame in the main pipeline.
+    ///
+    /// * "nodes": a list of expression graph nodes.
+    ///
+    /// * "ast": the parsed PL abstract syntax tree.
+    ///
+    /// Each expression node has attributes:
+    ///
+    /// * "id": A unique ID for each expression.
+    ///
+    /// * "kind": Descriptive text about the expression type.
+    ///
+    /// * "span": Position of the expression in the original source (optional).
+    ///
+    /// * "alias": When this expression is part of a Tuple, this is its alias
+    ///   (optional).
+    ///
+    /// * "ident": When this expression is an Ident, this is its reference
+    ///   (optional).
+    ///
+    /// * "targets": Any upstream sources of data for this expression, as a list
+    ///   of node IDs (optional).
+    ///
+    /// * "children": A list of expression IDs contained within this expression
+    ///   (optional).
+    ///
+    /// * "parent": The expression ID that contains this expression (optional).
+    ///
+    /// A Python script for rendering this output as a GraphViz visualization is
+    /// available at https://gist.github.com/kgutwin/efe5f03df5ff930d899249018a0a551b.
+    Lineage {
+        #[command(flatten)]
+        io_args: IoArgs,
+        #[arg(value_enum, long, default_value = "yaml")]
+        format: Format,
+    },
 
     /// Print info about the AST data structure
     Ast,
@@ -406,13 +449,22 @@ impl Command {
                 let ctx = semantic::resolve(root_mod, Default::default())?;
 
                 let frames = if let Ok((main, _)) = ctx.find_main_rel(&[]) {
-                    collect_frames(*main.clone().into_relation_var().unwrap())
+                    collect_frames(*main.clone().into_relation_var().unwrap()).frames
                 } else {
                     vec![]
                 };
 
                 // combine with source
                 combine_prql_and_frames(&source, frames).as_bytes().to_vec()
+            }
+            Command::Debug(DebugCommand::Lineage { format, .. }) => {
+                let stmts = prql_to_pl_tree(sources)?;
+                let fc = pl_to_lineage(stmts)?;
+
+                match format {
+                    Format::Json => serde_json::to_string_pretty(&fc)?.into_bytes(),
+                    Format::Yaml => serde_yaml::to_string(&fc)?.into_bytes(),
+                }
             }
             Command::Debug(DebugCommand::Eval(_)) => {
                 let root_mod = prql_to_pl_tree(sources)?;
@@ -508,6 +560,7 @@ impl Command {
                 DebugCommand::Resolve(io_args)
                 | DebugCommand::ExpandPL(io_args)
                 | DebugCommand::Annotate(io_args)
+                | DebugCommand::Lineage { io_args, .. }
                 | DebugCommand::Eval(io_args),
             ) => io_args,
             Experimental(ExperimentalCommand::GenerateDocs(io_args)) => io_args,
@@ -551,6 +604,7 @@ impl Command {
                 DebugCommand::Resolve(io_args)
                 | DebugCommand::ExpandPL(io_args)
                 | DebugCommand::Annotate(io_args)
+                | DebugCommand::Lineage { io_args, .. }
                 | DebugCommand::Eval(io_args),
             ) => io_args.output.clone(),
             Experimental(ExperimentalCommand::GenerateDocs(io_args)) => io_args.output.clone(),
