@@ -273,7 +273,7 @@ impl Resolver<'_> {
 
                 // add relation frame into scope
                 if partial_application_position.is_none() {
-                    let frame = arg.lineage.as_ref().unwrap();
+                    let frame = arg.lineage.as_ref().ok_or_else(|| Error::new_bug(4317))?;
                     if is_last {
                         self.root_mod.module.insert_frame(frame, NS_THIS);
                     } else {

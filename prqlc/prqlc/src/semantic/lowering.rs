@@ -227,7 +227,10 @@ impl Lowerer {
             pl::ExprKind::Ident(fq_table_name) => {
                 // ident that refer to table: create an instance of the table
                 let id = expr.id.unwrap();
-                let tid = *self.table_mapping.get(&fq_table_name).unwrap();
+                let tid = *self
+                    .table_mapping
+                    .get(&fq_table_name)
+                    .ok_or_else(|| Error::new_bug(4474))?;
 
                 log::debug!("lowering an instance of table {fq_table_name} (id={id})...");
 
