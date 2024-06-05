@@ -19,6 +19,7 @@
 **Fixes**:
 
 - Support expressions on left hand side of `std.in` operator. (@kgutwin, #4498)
+- Prevent panic for `from {}` and `std` (@m-span, #4538)
 
 **Documentation**:
 
