@@ -1,26 +1,22 @@
-use chumsky::{prelude::*, Stream};
-use err::error::Reason;
-use err::error::{Error, WithErrorInfo};
-use lexer::TokenKind;
-pub use lexer::{Token, TokenVec};
-use prqlc_ast::span::Span;
-use prqlc_ast::stmt::*;
-
-use crate::err::error::ErrorSource;
-
+pub mod err;
 mod expr;
 mod interpolation;
 mod lexer;
-
 mod stmt;
 #[cfg(test)]
 mod test;
 mod types;
 
-// pub use prqlc_ast;
-pub mod err;
-
+use chumsky::{prelude::*, Stream};
 pub use prqlc_ast as ast;
+use prqlc_ast::span::Span;
+use prqlc_ast::stmt::*;
+use prqlc_ast::token::*;
+
+use self::err::error::Reason;
+use self::err::error::{Error, WithErrorInfo};
+pub use self::lexer::TokenVec;
+use crate::err::error::ErrorSource;
 
 /// Build PRQL AST from a PRQL query string.
 pub fn parse_source(source: &str, source_id: u16) -> Result<Vec<Stmt>, Vec<Error>> {
@@ -78,11 +74,11 @@ mod common {
     use chumsky::prelude::*;
     use prqlc_ast::expr::*;
     use prqlc_ast::stmt::*;
+    use prqlc_ast::token::*;
     use prqlc_ast::Span;
     use prqlc_ast::Ty;
     use prqlc_ast::TyKind;
 
-    use super::lexer::TokenKind;
     use crate::err::parse_error::PError;
 
     pub fn ident_part() -> impl Parser<TokenKind, String, Error = PError> {

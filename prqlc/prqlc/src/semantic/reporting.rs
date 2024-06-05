@@ -1,8 +1,8 @@
-use serde::Serialize;
 use std::collections::HashMap;
 use std::ops::Range;
 
 use ariadne::{Color, Label, Report, ReportBuilder, ReportKind, Source};
+use serde::Serialize;
 
 use crate::ast;
 use crate::ir::decl::{DeclKind, Module, RootModule, TableDecl, TableExpr};

@@ -2,15 +2,16 @@ use std::collections::HashMap;
 
 use chumsky::prelude::*;
 use itertools::Itertools;
-use prqlc_ast::expr::*;
-use prqlc_ast::stmt::*;
+use prqlc_ast::expr::{ExprKind, IndirectionKind};
+use prqlc_ast::stmt::{
+    Annotation, ImportDef, ModuleDef, QueryDef, Stmt, StmtKind, TypeDef, VarDef, VarDefKind,
+};
+use prqlc_ast::token::{Literal, TokenKind};
 use semver::VersionReq;
 
-use super::common::*;
-use super::expr::*;
-use super::lexer::TokenKind;
+use super::common::{ctrl, ident_part, into_stmt, keyword, new_line};
+use super::expr::{expr, expr_call, ident, pipeline};
 use crate::err::parse_error::PError;
-// use crate::ast::err::chumsky_error::PError;
 use crate::types::type_expr;
 
 pub fn source() -> impl Parser<TokenKind, Vec<Stmt>, Error = PError> {

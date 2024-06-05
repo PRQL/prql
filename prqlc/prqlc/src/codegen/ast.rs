@@ -1,6 +1,7 @@
 use std::collections::HashSet;
 
 use once_cell::sync::Lazy;
+use prqlc_ast::expr::*;
 use regex::Regex;
 
 use super::{WriteOpt, WriteSource};

@@ -2,7 +2,6 @@ use chumsky::prelude::*;
 use prqlc_ast::*;
 
 use super::common::*;
-use super::lexer::TokenKind;
 use crate::err::parse_error::PError;
 use crate::expr::ident;
 
