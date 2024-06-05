@@ -2,9 +2,11 @@
 
 use std::fmt::Debug;
 
+use chumsky::error::Cheap;
 use serde::Serialize;
 
-use crate::Span;
+use crate::ast::span::Span;
+use crate::err::parse_error::PError;
 
 /// A prqlc error. Used internally, exposed as prqlc::ErrorMessage.
 #[derive(Debug, Clone)]
@@ -14,7 +16,20 @@ pub struct Error {
     pub span: Option<Span>,
     pub reason: Reason,
     pub hints: Vec<String>,
+    /// Machine readable identifier error code eg, "E0001"
     pub code: Option<&'static str>,
+    // pub source: ErrorSource
+}
+
+#[derive(Clone, Debug, Default)]
+pub enum ErrorSource {
+    Lexer(Cheap<char>),
+    Parser(PError),
+    #[default]
+    Unknown,
+    NameResolver,
+    TypeResolver,
+    SQL,
 }
 
 /// Multiple prqlc errors. Used internally, exposed as prqlc::ErrorMessages.
@@ -58,6 +73,7 @@ impl Error {
             reason,
             hints: Vec::new(),
             code: None,
+            // source: ErrorSource::default()
         }
     }
 
@@ -147,9 +163,16 @@ pub trait WithErrorInfo: Sized {
 
     fn with_span(self, span: Option<Span>) -> Self;
     fn with_code(self, code: &'static str) -> Self;
+
+    fn with_source(self, source: ErrorSource) -> Self;
 }
 
 impl WithErrorInfo for Error {
+    fn push_hint<S: Into<String>>(mut self, hint: S) -> Self {
+        self.hints.push(hint.into());
+        self
+    }
+
     fn with_hints<S: Into<String>, I: IntoIterator<Item = S>>(mut self, hints: I) -> Self {
         self.hints = hints.into_iter().map(|x| x.into()).collect();
         self
@@ -160,18 +183,22 @@ impl WithErrorInfo for Error {
         self
     }
 
-    fn push_hint<S: Into<String>>(mut self, hint: S) -> Self {
-        self.hints.push(hint.into());
+    fn with_code(mut self, code: &'static str) -> Self {
+        self.code = Some(code);
         self
     }
 
-    fn with_code(mut self, code: &'static str) -> Self {
-        self.code = Some(code);
+    fn with_source(self, _source: ErrorSource) -> Self {
+        // self.source = source;
         self
     }
 }
 
 impl<T, E: WithErrorInfo> WithErrorInfo for Result<T, E> {
+    fn push_hint<S: Into<String>>(self, hint: S) -> Self {
+        self.map_err(|e| e.push_hint(hint))
+    }
+
     fn with_hints<S: Into<String>, I: IntoIterator<Item = S>>(self, hints: I) -> Self {
         self.map_err(|e| e.with_hints(hints))
     }
@@ -184,8 +211,8 @@ impl<T, E: WithErrorInfo> WithErrorInfo for Result<T, E> {
         self.map_err(|e| e.with_code(code))
     }
 
-    fn push_hint<S: Into<String>>(self, hint: S) -> Self {
-        self.map_err(|e| e.push_hint(hint))
+    fn with_source(self, source: ErrorSource) -> Self {
+        self.map_err(|e| e.with_source(source))
     }
 }
 

@@ -1,9 +1,8 @@
 use chumsky::prelude::*;
-
-use prqlc_ast::token::*;
 use prqlc_ast::*;
 
 use super::common::*;
+use crate::err::parse_error::PError;
 use crate::expr::ident;
 
 pub fn type_expr() -> impl Parser<TokenKind, Ty, Error = PError> {

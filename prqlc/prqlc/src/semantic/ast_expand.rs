@@ -1,7 +1,7 @@
 use std::collections::HashMap;
 
 use itertools::Itertools;
-use prqlc_ast::error::WithErrorInfo;
+use prqlc_parser::err::error::WithErrorInfo;
 
 use crate::ast;
 use crate::ast::generic;

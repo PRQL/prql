@@ -79,17 +79,14 @@ fn test_bad_error_messages() {
 }
 
 #[test]
-fn empty_interpolations() {
-    assert_snapshot!(compile(r#"
-    from x
-    select f"{}"
-    "#).unwrap_err(), @r###"
+fn interpolation_end() {
+    assert_snapshot!(compile(r#"from x | select f"{}"#).unwrap_err(), @r###"
     Error:
-       ╭─[:3:14]
+       ╭─[:1:21]
        │
-     3 │     select f"{}"
-       │              ┬
-       │              ╰── unexpected end of input while parsing interpolated string
+     1 │ from x | select f"{}
+       │                     │
+       │                     ╰─ unexpected
     ───╯
     "###);
 }

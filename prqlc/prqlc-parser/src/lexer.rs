@@ -3,7 +3,6 @@ use chumsky::{
     prelude::*,
     text::{newline, Character},
 };
-
 use prqlc_ast::token::{Literal, Token, TokenKind, ValueAndUnit};
 use serde::{Deserialize, Serialize};
 
@@ -429,16 +428,6 @@ fn end_expr() -> impl Parser<char, (), Error = Cheap<char>> {
 
 #[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Eq)]
 pub struct TokenVec(pub Vec<Token>);
-
-// impl std::fmt::Debug for TokenVec {
-//     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-//         writeln!(f, "TokenVec (")?;
-//         for token in self.0.iter() {
-//             writeln!(f, "  {:?},", token)?;
-//         }
-//         write!(f, ")")
-//     }
-// }
 
 #[cfg(test)]
 mod test {

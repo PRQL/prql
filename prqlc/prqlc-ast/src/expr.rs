@@ -11,7 +11,8 @@ pub use self::ident::Ident;
 pub use self::ops::{BinOp, UnOp};
 pub use self::token::{Literal, ValueAndUnit};
 use super::token;
-use crate::{Span, Ty};
+use crate::span::Span;
+use crate::Ty;
 
 impl Expr {
     pub fn new<K: Into<ExprKind>>(kind: K) -> Self {

@@ -1,13 +1,11 @@
 use std::collections::HashSet;
 
-use regex::Regex;
-
 use once_cell::sync::Lazy;
 use prqlc_ast::expr::*;
-
-use crate::ast::*;
+use regex::Regex;
 
 use super::{WriteOpt, WriteSource};
+use crate::ast::*;
 use crate::codegen::SeparatedExprs;
 
 pub(crate) fn write_expr(expr: &Expr) -> String {
