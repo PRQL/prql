@@ -399,20 +399,29 @@ pub(super) fn translate_literal(l: Literal, ctx: &Context) -> Result<sql_ast::Ex
                     )))
                 }
             };
-            let value = if ctx.dialect.requires_quotes_intervals() {
-                Box::new(sql_ast::Expr::Value(Value::SingleQuotedString(
-                    vau.n.to_string(),
-                )))
+            if ctx.dialect.requires_quotes_intervals() {
+                //postgres requires quotes around number and unit together eg '3 WEEK'
+                let value = Box::new(sql_ast::Expr::Value(Value::SingleQuotedString(format!(
+                    "{} {}",
+                    vau.n, sql_parser_datetime
+                ))));
+                sql_ast::Expr::Interval(sqlparser::ast::Interval {
+                    value,
+                    leading_field: None, //set to none since field is now contained in string
+                    leading_precision: None,
+                    last_field: None,
+                    fractional_seconds_precision: None,
+                })
             } else {
-                Box::new(translate_literal(Literal::Integer(vau.n), ctx)?)
-            };
-            sql_ast::Expr::Interval(sqlparser::ast::Interval {
-                value,
-                leading_field: Some(sql_parser_datetime),
-                leading_precision: None,
-                last_field: None,
-                fractional_seconds_precision: None,
-            })
+                let value = Box::new(translate_literal(Literal::Integer(vau.n), ctx)?);
+                sql_ast::Expr::Interval(sqlparser::ast::Interval {
+                    value,
+                    leading_field: Some(sql_parser_datetime),
+                    leading_precision: None,
+                    last_field: None,
+                    fractional_seconds_precision: None,
+                })
+            }
         }
     })
 }
