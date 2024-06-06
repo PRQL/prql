@@ -120,7 +120,8 @@ mod utils;
 pub type Result<T, E = Error> = core::result::Result<T, E>;
 
 pub static COMPILER_VERSION: Lazy<Version> = Lazy::new(|| {
-    Version::parse(env!("VERGEN_GIT_DESCRIBE")).expect("Invalid prqlc version number")
+    let vers = env!("VERGEN_GIT_DESCRIBE");
+    Version::parse(vers).expect(format!("Invalid prqlc version number: {}", vers).as_str())
 });
 
 /// Compile a PRQL string into a SQL string.
