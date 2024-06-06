@@ -127,7 +127,7 @@ impl<'a> SrqMapper<RelationExpr, RelationExpr, (), ()> for SortingInference<'a> 
                             // infer sorting from referenced pipeline
                             if let Some(cte_sorting) = self.ctes_sorting.get_mut(tid) {
                                 cte_sorting.has_been_used = true;
-                                sorting = cte_sorting.sorting.clone();
+                                sorting.clone_from(&cte_sorting.sorting);
                             } else {
                                 sorting = Vec::new();
                             };
@@ -148,7 +148,7 @@ impl<'a> SrqMapper<RelationExpr, RelationExpr, (), ()> for SortingInference<'a> 
 
                 // just store sorting and don't emit Sort
                 SqlTransform::Sort(s) => {
-                    sorting = s.clone();
+                    sorting.clone_from(&s);
                     continue;
                 }
 

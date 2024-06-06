@@ -487,7 +487,7 @@ pub(crate) fn normalize_type(ty: Ty) -> Ty {
                                 }
                             }
                             TyTupleField::Single(Some(name), None) => {
-                                if exclude_fields.get(&name).is_some() {
+                                if exclude_fields.contains_key(&name) {
                                     // TODO: I'm not sure what should happen in this case
                                     continue;
                                 } else {
