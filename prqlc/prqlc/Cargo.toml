@@ -116,7 +116,7 @@ similar-asserts = "1.5.0"
 test_each_file = "0.3.2"
 
 [build-dependencies]
-vergen = { version = "8.0.0", features = ["build", "cargo", "git", "gitcl", "rustc", "si"] }
+vergen = { version = "8.0.0", features = ["git", "gitcl"] }
 
 [target.'cfg(not(target_family="wasm"))'.dev-dependencies]
 criterion = {version = "0.5.1"}

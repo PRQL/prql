@@ -119,8 +119,9 @@ mod utils;
 
 pub type Result<T, E = Error> = core::result::Result<T, E>;
 
-pub static COMPILER_VERSION: Lazy<Version> =
-    Lazy::new(|| Version::parse(env!("CARGO_PKG_VERSION")).expect("Invalid prqlc version number"));
+pub static COMPILER_VERSION: Lazy<Version> = Lazy::new(|| {
+    Version::parse(env!("VERGEN_GIT_DESCRIBE")).expect("Invalid prqlc version number")
+});
 
 /// Compile a PRQL string into a SQL string.
 ///
