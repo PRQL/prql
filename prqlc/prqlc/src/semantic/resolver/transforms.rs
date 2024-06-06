@@ -601,8 +601,8 @@ impl Resolver<'_> {
         // chunk and instruct resolver to apply the transform on that.
 
         let mut dummy = Expr::new(ExprKind::Ident(Ident::from_name(param_name)));
-        dummy.lineage = val.lineage.clone();
-        dummy.ty = val.ty.clone();
+        dummy.lineage.clone_from(&val.lineage);
+        dummy.ty.clone_from(&val.ty);
 
         let pipeline = Expr::new(ExprKind::FuncCall(FuncCall::new_simple(
             pipeline,
@@ -796,7 +796,7 @@ impl Lineage {
                         let col = self.columns.first().unwrap();
                         if let LineageColumn::All { input_id, .. } = col {
                             let input = self.inputs.iter_mut().find(|i| i.id == *input_id).unwrap();
-                            input.name = alias.clone();
+                            input.name.clone_from(alias);
                         }
                     }
                 }
@@ -957,7 +957,7 @@ impl Lineage {
     /// Renames all frame inputs to the given alias.
     pub fn rename(&mut self, alias: String) {
         for input in &mut self.inputs {
-            input.name = alias.clone();
+            input.name.clone_from(&alias);
         }
 
         for col in &mut self.columns {

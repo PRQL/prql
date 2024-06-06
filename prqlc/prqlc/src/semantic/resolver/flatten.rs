@@ -67,7 +67,7 @@ impl PlFold for Flattener {
                         let by = fold_column_sorts(self, by)?;
                         let input = self.fold_expr(*t.input)?;
 
-                        self.sort = by.clone();
+                        self.sort.clone_from(&by);
 
                         if self.sort_undone {
                             return Ok(input);

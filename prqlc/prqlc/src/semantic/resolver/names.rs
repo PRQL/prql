@@ -254,7 +254,7 @@ fn ambiguous_error(idents: HashSet<Ident>, replace_name: Option<&String>) -> Err
         }
 
         if let Some(name) = replace_name {
-            ident.name = name.clone();
+            ident.name.clone_from(name);
         }
         chunks.push(ident.to_string());
     }
