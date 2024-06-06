@@ -175,6 +175,14 @@ integrations_section:
         a database. It can also set up an in-memory DuckDB instance, populated
         with a pandas DataFrame."
 
+    - label: "qStudio"
+      link: https://www.timestored.com/qstudio/
+      text:
+        "qStudio is a SQL GUI that lets you browse tables, run SQL scripts, and
+        chart and export the results. qStudio runs on Windows, macOS and Linux,
+        and works with every popular database including mysql, postgresql,
+        mssql, kdb..."
+
     - label: "ClickHouse"
       link: https://clickhouse.com/docs/en/guides/developer/alternative-query-languages
       text: |

@@ -103,15 +103,16 @@ General information about the project, tooling and development.
 
 - [Integrations](./project/integrations/README.md)
 
-  - [`prqlc CLI`](./project/integrations/prqlc-cli.md)
-  - [ClickHouse](./project/integrations/clickhouse.md)
   - [Jupyter](./project/integrations/jupyter.md)
+  - [qStudio](./project/integrations/qstudio.md)
+  - [ClickHouse](./project/integrations/clickhouse.md)
   - [DuckDB](./project/integrations/duckdb.md)
   - [Prefect](./project/integrations/prefect.md)
   - [VS Code](./project/integrations/vscode.md)
   - [Rill](./project/integrations/rill.md)
-  - [Syntax highlighting](./project/integrations/syntax-highlighting.md)
   - [PostgreSQL](./project/integrations/postgresql.md)
+  - [`prqlc CLI`](./project/integrations/prqlc-cli.md)
+  - [Syntax highlighting](./project/integrations/syntax-highlighting.md)
 
 - [Contributing to PRQL](./project/contributing/README.md)
 
