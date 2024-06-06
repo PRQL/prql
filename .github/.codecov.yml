@@ -8,3 +8,7 @@ coverage:
     project:
       default:
         removed_code_behavior: adjust_base
+
+    patch:
+      default:
+        only_pulls: true
