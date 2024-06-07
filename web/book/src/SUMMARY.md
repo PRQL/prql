@@ -107,11 +107,13 @@ General information about the project, tooling and development.
   - [ClickHouse](./project/integrations/clickhouse.md)
   - [Jupyter](./project/integrations/jupyter.md)
   - [DuckDB](./project/integrations/duckdb.md)
+  - [qStudio](./project/integrations/qstudio.md)
   - [Prefect](./project/integrations/prefect.md)
   - [VS Code](./project/integrations/vscode.md)
+  - [PostgreSQL](./project/integrations/postgresql.md)
+  - [Databend](./project/integrations/databend.md)
   - [Rill](./project/integrations/rill.md)
   - [Syntax highlighting](./project/integrations/syntax-highlighting.md)
-  - [PostgreSQL](./project/integrations/postgresql.md)
 
 - [Contributing to PRQL](./project/contributing/README.md)
 
