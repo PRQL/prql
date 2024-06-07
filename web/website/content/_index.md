@@ -168,21 +168,6 @@ integrations_section:
   enable: true
   title: "Integrations"
   sections:
-    - label: "Jupyter/IPython"
-      link: https://pyprql.readthedocs.io/en/latest/magic_readme.html
-      text:
-        "pyprql contains a Jupyter extension, which executes a PRQL cell against
-        a database. It can also set up an in-memory DuckDB instance, populated
-        with a pandas DataFrame."
-
-    - label: "qStudio"
-      link: https://www.timestored.com/qstudio/
-      text:
-        "qStudio is a SQL GUI that lets you browse tables, run SQL scripts, and
-        chart and export the results. qStudio runs on Windows, macOS and Linux,
-        and works with every popular database including mysql, postgresql,
-        mssql, kdb..."
-
     - label: "ClickHouse"
       link: https://clickhouse.com/docs/en/guides/developer/alternative-query-languages
       text: |
@@ -190,17 +175,32 @@ integrations_section:
 
         `SET dialect = 'prql'`
 
-    - label: Visual Studio Code
-      link: https://marketplace.visualstudio.com/items?itemName=prql-lang.prql-vscode
-      text: Extension with syntax highlighting and live SQL compilation.
+    - label: "Jupyter/IPython"
+      link: https://pyprql.readthedocs.io/en/latest/magic_readme.html
+      text:
+        "pyprql contains a Jupyter extension, which executes a PRQL cell against
+        a database. It can also set up an in-memory DuckDB instance, populated
+        with a pandas DataFrame."
+
+    - label: "DuckDB"
+      link: https://github.com/ywelsch/duckdb-prql
+      text: A DuckDB extension to execute PRQL
+
+    - label: "qStudio"
+      link: https://www.timestored.com/qstudio/prql-ide
+      text:
+        "qStudio is a SQL GUI that lets you browse tables, run SQL scripts, and
+        chart and export the results. qStudio runs on Windows, macOS and Linux,
+        and works with every popular database including mysql, postgresql,
+        mssql, kdb..."
 
     - label: "Prefect"
       link: https://prql-lang.org/book/project/integrations/prefect.html
       text: Add PRQL models to your Prefect workflows with a single function.
 
-    - label: "DuckDB"
-      link: https://github.com/ywelsch/duckdb-prql
-      text: A DuckDB extension to execute PRQL
+    - label: Visual Studio Code
+      link: https://marketplace.visualstudio.com/items?itemName=prql-lang.prql-vscode
+      text: Extension with syntax highlighting and live SQL compilation.
 
     - label: "PostgreSQL"
       link: https://github.com/kaspermarstal/plprql

@@ -110,8 +110,9 @@ General information about the project, tooling and development.
   - [qStudio](./project/integrations/qstudio.md)
   - [Prefect](./project/integrations/prefect.md)
   - [VS Code](./project/integrations/vscode.md)
-  - [Rill](./project/integrations/rill.md)
   - [PostgreSQL](./project/integrations/postgresql.md)
+  - [Databend](./project/integrations/databend.md)
+  - [Rill](./project/integrations/rill.md)
   - [Syntax highlighting](./project/integrations/syntax-highlighting.md)
 
 - [Contributing to PRQL](./project/contributing/README.md)
