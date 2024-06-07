@@ -14,7 +14,7 @@
       "_comment": "`https://github.com/PRQL/prql/pkgs/container/` seems to fail extremely frequently from CI, more so than other GitHub links. So ignoring."
     },
     {
-      "pattern": "^https://substack.com",
+      "pattern": "^https://benn.substack.com",
       "_comment": "Frequently giving 403s. Can be removed if it starts working again."
     }
   ],
