@@ -1,27 +1,28 @@
 # PRQL Changelog
 
-## 0.11.5 — Unreleased
+## 0.12.0 — 2024-06-09
 
-**Language**:
+0.12.0 contains a few months of smaller features. Our focus has been on
+rewriting the resolver, an effort that is still ongoing.
+
+It has 239 commits from 12 contributors. Selected changes:
 
 **Features**:
 
+- Add `prqlc lex` command to the CLI (@max-sixty)
+- Add `prqlc debug lineage` command to the CLI, creating an expression lineage
+  graph from a query (@kgutwin, #4533)
 - Initial implementation of an experimental documentation generator that
   generates Markdown documentation from `.prql` files. (@vanillajonathan,
   #4152).
-- Add `prqlc lex` command to the CLI (@max-sixty)
-- Join `side` parameter can take a reference that resolves to a literal (note:
+- Join's `side` parameter can take a reference that resolves to a literal (note:
   this is an experimental feature which may change in the future) (@kgutwin,
   #4499)
-- Add `prqlc debug lineage` command to the CLI, creating an expression lineage
-  graph from a query (@kgutwin, #4533)
 
 **Fixes**:
 
 - Support expressions on left hand side of `std.in` operator. (@kgutwin, #4498)
 - Prevent panic for `from {}` and `std` (@m-span, #4538)
-
-**Documentation**:
 
 **Web**:
 
@@ -1146,8 +1147,8 @@ below in this release).
 
 **Documentation**:
 
-[This release, the changelog only contains a subset of
-documentation improvements]
+[This release, the changelog only contains a subset of documentation
+improvements]
 
 - Add docs on aliases in
   [Select](https://prql-lang.org/book/reference/stdlib/transforms/select.html)
