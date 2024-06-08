@@ -38,6 +38,8 @@
   icon pack extension shows a database icon for `.prql` files. (@EmmanuelBeziat)
 - [Tokei](https://github.com/XAMPPRocky/tokei), a source lines of code counter
   now has support for `.prql` files. (@vanillajonathan)
+- Add syntax highlight file for the [micro](https://micro-editor.github.io/)
+  text editor. (@vanillajonathan)
 
 **Internal changes**:
 
