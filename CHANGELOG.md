@@ -46,6 +46,12 @@ It has 239 commits from 12 contributors. Selected changes:
 
 **New Contributors**:
 
+- @srenatus, with #4274
+- @jacquayj, with #4332
+- @pdelewski, with #4337
+- @m-span, with #4422
+- @kgutwin, with #4498
+
 ## 0.11.4 — 2024-02-25
 
 0.11.4 is a hotfix release, fixing a CI issue that caused the CLI binaries to be
