@@ -420,8 +420,12 @@ jobs:
           fail_ci_if_error: true
           # As discussed in
           # https://community.codecov.com/t/upload-issues-unable-to-locate-build-via-github-actions-api/3954,
-          # without this the upload has a fairly high failure rate. The only thing the
-          # token allows is uploading coverage, so there are apparently no security risks.
+          # without this the upload has a fairly high failure rate. The only
+          # thing the token allows is uploading coverage, so there are
+          # apparently no security risks.
+          #
+          # Edit: actually no luck, waiting on
+          # https://github.com/codecov/codecov-action/issues/1469
           token: cab4ace5-4f10-4027-8b5c-d79722234571
       - name: Upload code coverage results
         uses: actions/upload-artifact@v4
