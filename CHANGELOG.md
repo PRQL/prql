@@ -1,5 +1,10 @@
 # PRQL Changelog
 
+## 0.12.1 — 2024-06-09
+
+0.12.1 is a tiny hotfix release which fixes how intra-prql crate dependencies
+were specified.
+
 ## 0.12.0 — 2024-06-08
 
 0.12.0 contains a few months of smaller features. Our focus has been on
@@ -1152,8 +1157,8 @@ below in this release).
 
 **Documentation**:
 
-[This release, the changelog only contains a subset of
-documentation improvements]
+[This release, the changelog only contains a subset of documentation
+improvements]
 
 - Add docs on aliases in
   [Select](https://prql-lang.org/book/reference/stdlib/transforms/select.html)
