@@ -1,11 +1,12 @@
 # PRQL Changelog
 
-## 0.12.0 — 2024-06-09
+## 0.12.0 — 2024-06-08
 
 0.12.0 contains a few months of smaller features. Our focus has been on
 rewriting the resolver, an effort that is still ongoing.
 
-It has 239 commits from 12 contributors. Selected changes:
+It has 239 commits from 12 contributors. Selected changes (most are not listed
+here, possibly we should be more conscientious about adding them...):
 
 **Features**:
 
@@ -41,8 +42,6 @@ It has 239 commits from 12 contributors. Selected changes:
   now has support for `.prql` files. (@vanillajonathan)
 - Add syntax highlight file for the [micro](https://micro-editor.github.io/)
   text editor. (@vanillajonathan)
-
-**Internal changes**:
 
 **New Contributors**:
 
@@ -1153,8 +1152,8 @@ below in this release).
 
 **Documentation**:
 
-[This release, the changelog only contains a subset of
-documentation improvements]
+[This release, the changelog only contains a subset of documentation
+improvements]
 
 - Add docs on aliases in
   [Select](https://prql-lang.org/book/reference/stdlib/transforms/select.html)
