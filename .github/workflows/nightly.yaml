@@ -45,7 +45,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - uses: richb-hanover/cargo@v1.1.0
+      - uses: richb-hanover/cargo@1.1.1
         with:
           command: bench
           args: --timings --all-targets
@@ -100,11 +100,11 @@ jobs:
           crate: cargo-udeps
       # Once with all targets, once without, to find anything that should be in
       # `dev` but is more general.
-      - uses: richb-hanover/cargo@v1.1.0
+      - uses: richb-hanover/cargo@1.1.1
         with:
           command: udeps
           args: --all-targets
-      - uses: richb-hanover/cargo@v1.1.0
+      - uses: richb-hanover/cargo@1.1.1
         with:
           command: udeps
 
