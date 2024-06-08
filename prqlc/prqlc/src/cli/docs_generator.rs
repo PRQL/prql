@@ -404,7 +404,7 @@ mod tests {
 
 
 
-        Generated with [prqlc](https://prql-lang.org/) 0.11.5.
+        Generated with [prqlc](https://prql-lang.org/) 0.12.0.
 
         ----- stderr -----
         "###);
