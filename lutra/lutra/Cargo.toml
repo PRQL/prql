@@ -30,7 +30,7 @@ connector_arrow = {version = "0.4.1", features = ["src_sqlite"]}
 env_logger = "0.10.2"
 itertools = {workspace = true}
 log = {workspace = true}
-prqlc = {path = "../../prqlc/prqlc", version = "0.12.0", default-features = false}
+prqlc = {path = "../../prqlc/prqlc", version = "0.12.1", default-features = false}
 rusqlite = {version = "0.31.0", features = ["bundled"]}
 walkdir = "2.5.0"
 
