@@ -321,7 +321,7 @@ jobs:
           MATURIN_PYPI_TOKEN: ${{ secrets.PYPI_API_TOKEN }}
         with:
           command: upload
-          args: --skip-existing *
+          args: --skip-existing **/*{.whl,.tar.gz}
 
   publish-prql-js:
     runs-on: ubuntu-latest
