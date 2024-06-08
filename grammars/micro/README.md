@@ -1,6 +1,7 @@
 # Syntax highlighting for micro
 
-This is a syntax highlighting file the [micro](https://micro-editor.github.io/) text editor.
+This is a syntax highlighting file the [micro](https://micro-editor.github.io/)
+text editor.
 
 ## Installation
 
