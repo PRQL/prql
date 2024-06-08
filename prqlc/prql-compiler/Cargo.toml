@@ -14,7 +14,7 @@ version.workspace = true
 metadata.msrv = "1.70.0"
 
 [dependencies]
-prqlc = {path = "../prqlc", version = "0.11.5", default-features = false}
+prqlc = {path = "../prqlc", version = "0.12.0", default-features = false}
 
 [lib]
 doctest = false
