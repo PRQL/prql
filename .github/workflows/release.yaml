@@ -304,7 +304,8 @@ jobs:
   publish-python:
     runs-on: ubuntu-latest
     needs: [build-python-wheels]
-    if: github.event_name == 'release'
+    # FIXME: do not merge without uncommenting this!
+    # if: github.event_name == 'release'
     strategy:
       matrix:
         package:
@@ -315,13 +316,18 @@ jobs:
         with:
           # `*` covers target & OS
           pattern: ${{ matrix.package }}-*-release
+          merge-multiple: true
+      - run: ls -al ./*
+      - run: ls -al ./*/*.{whl,tar.gz}
+      - run: ls -al ./**/*.{whl,tar.gz}
+      - run: ls -al ./**/*{.whl,.tar.gz}
       - name: Publish to PyPI
         uses: PyO3/maturin-action@v1
         env:
           MATURIN_PYPI_TOKEN: ${{ secrets.PYPI_API_TOKEN }}
         with:
           command: upload
-          args: --skip-existing **/*{.whl,.tar.gz}
+          args: --skip-existing **/*.{whl,tar.gz}
 
   publish-js:
     runs-on: ubuntu-latest
