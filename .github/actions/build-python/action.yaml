@@ -22,7 +22,7 @@ runs:
         --arg package_name ${{ inputs.package }} '.packages[] | select(.name ==
         $package_name) | .manifest_path')" >>"$GITHUB_OUTPUT"
       shell: bash
-    # There's benefit from caching here, because the maturin action uses a container.
+    # There's no benefit from caching here, because the maturin action uses a container.
     - uses: PyO3/maturin-action@v1
       if: inputs.target == 'source'
       with:
