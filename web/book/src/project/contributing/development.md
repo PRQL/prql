@@ -54,7 +54,7 @@ since it relies on `brew`.
 
 - [Install Task](https://taskfile.dev/installation/).
 - Then run the `setup-dev` task. This runs commands from our
-  [Taskfile.yaml](https://github.com/PRQL/prql/blob/main/Taskfile.yml),
+  [Taskfile.yaml](https://github.com/PRQL/prql/blob/main/Taskfile.yaml),
   installing dependencies with `cargo`, `brew`, `npm` & `pip`, and suggests some
   VS Code extensions.
 
@@ -84,8 +84,8 @@ since it relies on `brew`.
   book, or some release artifacts, we'll need some additional tools. But we
   won't need those immediately, and the error messages on what's missing should
   be clear when we attempt those things. When we hit them, the
-  [Taskfile.yaml](https://github.com/PRQL/prql/blob/main/Taskfile.yml) will be a
-  good source to copy & paste instructions from.
+  [Taskfile.yaml](https://github.com/PRQL/prql/blob/main/Taskfile.yaml) will be
+  a good source to copy & paste instructions from.
 
 ### Option 3: Use a Dev Container
 
