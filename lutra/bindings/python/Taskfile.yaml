@@ -5,6 +5,8 @@ vars:
   venv_dir: "../../../target/venv"
 
 tasks:
+  # (Duplicates `pre-commit` checks, but some developers prefer to use this
+  # directly.)
   fmt:
     desc: "Format"
     cmds:

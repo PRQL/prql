@@ -318,7 +318,7 @@ This release has 155 commits from 9 contributors. Selected changes:
 
 - Rename some of the internal crates, and refactored their paths in the repo.
   (@aljazerzen, #3683).
-- Add a `justfile` for developers who prefer that above our `Taskfile.yml`
+- Add a `justfile` for developers who prefer that above our `Taskfile.yaml`
   (@aljazerzen, #3681)
 
 **New Contributors**:
@@ -1175,8 +1175,8 @@ below in this release).
 
 **Documentation**:
 
-[This release, the changelog only contains a subset of
-documentation improvements]
+[This release, the changelog only contains a subset of documentation
+improvements]
 
 - Add docs on aliases in
   [Select](https://prql-lang.org/book/reference/stdlib/transforms/select.html)
