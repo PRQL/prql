@@ -42,6 +42,7 @@ tasks:
       - npm run dev
 
   fmt:
+    # (Duplicates `pre-commit` checks, but some developers prefer to use this directly.)
     cmds:
       - cmd: |
           prettier --write . \

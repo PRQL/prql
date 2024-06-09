@@ -384,8 +384,8 @@ tasks:
 # The next two tasks are not used for either:
 #  - the Dockerfile (installing brew takes forever)
 #    so the Dockerfile simply installs hugo & nodejs directly
-#  - the "desktop setup" - it uses other tasks in the Taskfile.yml
-# They remain in the Taskfile.yml as a hint if they should ever be needed
+#  - the "desktop setup" - it uses other tasks in the Taskfile.yaml
+# They remain in the Taskfile.yaml as a hint if they should ever be needed
 
 # install-hugo:
 #   cmds:

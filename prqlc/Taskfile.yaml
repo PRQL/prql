@@ -13,8 +13,8 @@ vars:
 tasks:
   fmt:
     desc:
-      Format prqlc source files. Duplicates `pre-commit` checks, but some
-      developers prefer to use this directly.
+      Format prqlc source files. (Duplicates `pre-commit` checks, but some
+      developers prefer to use this directly.)
     cmds:
       - cmd: |
           # remove trailing whitespace
