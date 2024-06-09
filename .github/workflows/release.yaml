@@ -317,10 +317,7 @@ jobs:
           # `*` covers target & OS
           pattern: ${{ matrix.package }}-*-release
           merge-multiple: true
-      - run: ls -al ./*
-      - run: ls -al ./*/*.{whl,tar.gz}
       - run: ls -al ./**/*.{whl,tar.gz}
-      - run: ls -al ./**/*{.whl,.tar.gz}
       - name: Publish to PyPI
         uses: PyO3/maturin-action@v1
         env:
@@ -335,7 +332,7 @@ jobs:
           MATURIN_PYPI_TOKEN: ${{ secrets.PYPI_API_TOKEN }}
         with:
           command: upload
-          args: --skip-existing **/*.{whl,tar.gz}
+          args: --skip-existing ./**/*.{whl,tar.gz}
 
   publish-js:
     runs-on: ubuntu-latest
