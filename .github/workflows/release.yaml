@@ -338,6 +338,15 @@ jobs:
           node-version: "20.x"
           registry-url: "https://registry.npmjs.org"
 
+      - run: ./.github/workflows/scripts/set_version.sh
+      - name: 💰 Cache
+        uses: Swatinem/rust-cache@v2
+        with:
+          prefix-key: ${{ env.version }}
+          # Share key with the `build-web` job
+          shared-key: web
+          save-if: false
+
       # This is only required in order to have `cross-env` installed, since `npx
       # cross-env` doesn't seem to work in CI (https://github.com/PRQL/prql/pull/3728)
       - run: npm install
