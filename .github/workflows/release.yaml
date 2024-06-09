@@ -337,10 +337,10 @@ jobs:
         with:
           # `*` covers target & OS
           pattern: ${{ matrix.package }}-*-release
-      - run: ls -al *
-      - run: ls -al */*.{whl,tar.gz}
-      - run: ls -al **/*.{whl,tar.gz}
-      - run: ls -al **/*{.whl,.tar.gz}
+      - run: ls -al ./*
+      - run: ls -al ./*/*.{whl,tar.gz}
+      - run: ls -al ./**/*.{whl,tar.gz}
+      - run: ls -al ./**/*{.whl,.tar.gz}
 
   publish-prql-js:
     runs-on: ubuntu-latest
