@@ -327,6 +327,14 @@ jobs:
           MATURIN_PYPI_TOKEN: ${{ secrets.PYPI_API_TOKEN }}
         with:
           command: upload
+          args: --skip-existing *
+      # Old, remove
+      - name: Publish to PyPI
+        uses: PyO3/maturin-action@v1
+        env:
+          MATURIN_PYPI_TOKEN: ${{ secrets.PYPI_API_TOKEN }}
+        with:
+          command: upload
           args: --skip-existing **/*.{whl,tar.gz}
 
   publish-js:
