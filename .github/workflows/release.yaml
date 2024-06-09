@@ -316,6 +316,10 @@ jobs:
         with:
           # `*` covers target & OS
           pattern: ${{ matrix.package }}-*-release
+      - run: ls -al ./*
+      - run: ls -al ./*/*.{whl,tar.gz}
+      - run: ls -al ./**/*.{whl,tar.gz}
+      - run: ls -al ./**/*{.whl,.tar.gz}
       - name: Publish to PyPI
         uses: PyO3/maturin-action@v1
         env:
@@ -323,25 +327,6 @@ jobs:
         with:
           command: upload
           args: --skip-existing **/*.{whl,tar.gz}
-
-  publish-python-test:
-    # Temporary test for whether the artifacts & globs are working as expected.
-    runs-on: ubuntu-latest
-    needs: [build-python-wheels]
-    strategy:
-      matrix:
-        package:
-          - prqlc-python
-          - lutra-python
-    steps:
-      - uses: actions/download-artifact@v4
-        with:
-          # `*` covers target & OS
-          pattern: ${{ matrix.package }}-*-release
-      - run: ls -al ./*
-      - run: ls -al ./*/*.{whl,tar.gz}
-      - run: ls -al ./**/*.{whl,tar.gz}
-      - run: ls -al ./**/*{.whl,.tar.gz}
 
   publish-prql-js:
     runs-on: ubuntu-latest
