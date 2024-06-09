@@ -84,8 +84,8 @@ since it relies on `brew`.
   book, or some release artifacts, we'll need some additional tools. But we
   won't need those immediately, and the error messages on what's missing should
   be clear when we attempt those things. When we hit them, the
-  [Taskfile.yaml](https://github.com/PRQL/prql/blob/main/Taskfile.yaml) will be a
-  good source to copy & paste instructions from.
+  [Taskfile.yaml](https://github.com/PRQL/prql/blob/main/Taskfile.yaml) will be
+  a good source to copy & paste instructions from.
 
 ### Option 3: Use a Dev Container
 
