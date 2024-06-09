@@ -248,6 +248,10 @@ jobs:
         uses: actions/checkout@v4
       - name: Move Snap to project root directory
         run: cp -r prqlc/packages/snap/ .
+      - name: Applying prqlc version to snapcraft.yaml
+        if: github.event_name == 'release'
+        run: |
+          sed -i "s/version: git/version: '${{ github.ref_name }}'/" snap/snapcraft.yaml
       - name: 📦 Build Snap
         id: build
         uses: snapcore/action-build@v1
