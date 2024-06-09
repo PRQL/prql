@@ -304,7 +304,8 @@ jobs:
   publish-python:
     runs-on: ubuntu-latest
     needs: [build-python-wheels]
-    if: github.event_name == 'release'
+    # FIXME: do not merge without uncommenting this!
+    # if: github.event_name == 'release'
     strategy:
       matrix:
         package:
