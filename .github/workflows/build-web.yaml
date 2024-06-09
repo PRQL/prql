@@ -36,7 +36,6 @@ jobs:
       - uses: baptiste0928/cargo-install@v3
         with:
           crate: mdbook-admonish
-
       - uses: baptiste0928/cargo-install@v3
         with:
           crate: wasm-pack
@@ -49,7 +48,6 @@ jobs:
           cache-dependency-path: "**/package-lock.json"
 
       - run: ./.github/workflows/scripts/set_version.sh
-
       - name: 💰 Cache
         uses: Swatinem/rust-cache@v2
         with:
