@@ -49,7 +49,7 @@
 //!
 //! - Compile PRQL queries to SQL at build time.
 //!
-//!   For inline strings, use the `prql-compiler-macros` crate; for example:
+//!   For inline strings, use the `prqlc-macros` crate; for example:
 //!   ```ignore
 //!   let sql: &str = prql_to_sql!("from albums | select {title, artist_id}");
 //!   ```

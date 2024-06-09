@@ -3030,14 +3030,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "prql-compiler-macros"
-version = "0.12.2"
-dependencies = [
- "prqlc",
- "syn 2.0.66",
-]
-
-[[package]]
 name = "prql-java"
 version = "0.12.2"
 dependencies = [
@@ -3134,6 +3126,14 @@ dependencies = [
  "libc",
  "prqlc",
  "serde_json",
+]
+
+[[package]]
+name = "prqlc-macros"
+version = "0.12.2"
+dependencies = [
+ "prqlc",
+ "syn 2.0.66",
 ]
 
 [[package]]
