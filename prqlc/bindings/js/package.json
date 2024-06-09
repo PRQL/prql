@@ -20,7 +20,7 @@
   "homepage": "https://prql-lang.org/",
   "repository": {
     "type": "git",
-    "url": "https://github.com/PRQL/prql",
+    "url": "git+https://github.com/PRQL/prql.git",
     "directory": "prqlc/bindings/js"
   },
   "keywords": [
