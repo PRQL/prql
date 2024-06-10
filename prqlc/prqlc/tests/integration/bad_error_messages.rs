@@ -192,13 +192,13 @@ fn nested_groups() {
     )
     "###).unwrap_err(), @r###"
     Error:
-        ╭─[:2:5]
+        ╭─[:9:9]
         │
-      2 │ ╭─▶     from invoices
+      9 │ ╭─▶         aggregate {
         ┆ ┆
-     13 │ ├─▶     )
+     11 │ ├─▶         }
         │ │
-        │ ╰─────────── internal compiler error; tracked at https://github.com/PRQL/prql/issues/3870
+        │ ╰─────────────── internal compiler error; tracked at https://github.com/PRQL/prql/issues/3870
     ────╯
     "###);
 }
