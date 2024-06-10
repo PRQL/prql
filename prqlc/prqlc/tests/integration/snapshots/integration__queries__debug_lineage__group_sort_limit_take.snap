@@ -3,4 +3,373 @@ source: prqlc/prqlc/tests/integration/queries.rs
 expression: "# Compute the 3 longest songs for each genre and sort by genre\n# mssql:test\nfrom tracks\nselect {genre_id,milliseconds}\ngroup {genre_id} (\n  sort {-milliseconds}\n  take 3\n)\njoin genres (==genre_id)\nselect {name, milliseconds}\nsort {+name,-milliseconds}\n"
 input_file: prqlc/prqlc/tests/integration/queries/group_sort_limit_take.prql
 ---
-{"frames":[["1:88-118",{"columns":[{"Single":{"name":["tracks","genre_id"],"target_id":133,"target_name":null}},{"Single":{"name":["tracks","milliseconds"],"target_id":134,"target_name":null}}],"inputs":[{"id":131,"name":"tracks","table":["default_db","tracks"]}]}],["1:172-196",{"columns":[{"Single":{"name":["tracks","genre_id"],"target_id":137,"target_name":null}},{"Single":{"name":["tracks","milliseconds"],"target_id":134,"target_name":null}},{"All":{"input_id":122,"except":[]}}],"inputs":[{"id":131,"name":"tracks","table":["default_db","tracks"]},{"id":122,"name":"genres","table":["default_db","genres"]}]}],["1:197-224",{"columns":[{"Single":{"name":["genres","name"],"target_id":175,"target_name":null}},{"Single":{"name":["tracks","milliseconds"],"target_id":176,"target_name":null}}],"inputs":[{"id":131,"name":"tracks","table":["default_db","tracks"]},{"id":122,"name":"genres","table":["default_db","genres"]}]}],["1:225-251",{"columns":[{"Single":{"name":["genres","name"],"target_id":175,"target_name":null}},{"Single":{"name":["tracks","milliseconds"],"target_id":176,"target_name":null}}],"inputs":[{"id":131,"name":"tracks","table":["default_db","tracks"]},{"id":122,"name":"genres","table":["default_db","genres"]}]}]],"nodes":[{"id":122,"kind":"Ident","span":"1:177-183","ident":{"Ident":["default_db","genres"]},"parent":174},{"id":131,"kind":"Ident","span":"1:76-87","ident":{"Ident":["default_db","tracks"]},"parent":136},{"id":133,"kind":"Ident","span":"1:96-104","ident":{"Ident":["this","tracks","genre_id"]},"targets":[131],"parent":135},{"id":134,"kind":"Ident","span":"1:105-117","ident":{"Ident":["this","tracks","milliseconds"]},"targets":[131],"parent":135},{"id":135,"kind":"Tuple","span":"1:95-118","children":[133,134],"parent":136},{"id":136,"kind":"TransformCall: Select","span":"1:88-118","children":[131,135],"parent":166},{"id":137,"kind":"Ident","span":"1:126-134","ident":{"Ident":["this","tracks","genre_id"]},"targets":[133],"parent":138},{"id":138,"kind":"Tuple","span":"1:125-135","children":[137]},{"id":162,"kind":"Ident","span":"1:147-159","ident":{"Ident":["this","tracks","milliseconds"]},"targets":[134]},{"id":166,"kind":"TransformCall: Take","children":[136,167],"parent":174},{"id":167,"kind":"Literal","parent":166},{"id":170,"kind":"RqOperator","span":"1:185-195","targets":[172,173],"parent":174},{"id":172,"kind":"Ident","span":"1:187-195","ident":{"Ident":["this","tracks","genre_id"]},"targets":[137]},{"id":173,"kind":"Ident","span":"1:187-195","ident":{"Ident":["that","genres","genre_id"]},"targets":[122]},{"id":174,"kind":"TransformCall: Join","span":"1:172-196","children":[166,122,170],"parent":178},{"id":175,"kind":"Ident","span":"1:205-209","ident":{"Ident":["this","genres","name"]},"targets":[122],"parent":177},{"id":176,"kind":"Ident","span":"1:211-223","ident":{"Ident":["this","tracks","milliseconds"]},"targets":[134],"parent":177},{"id":177,"kind":"Tuple","span":"1:204-224","children":[175,176],"parent":178},{"id":178,"kind":"TransformCall: Select","span":"1:197-224","children":[174,177],"parent":184},{"id":179,"kind":"Ident","span":"1:231-236","ident":{"Ident":["this","genres","name"]},"targets":[175],"parent":184},{"id":182,"kind":"Ident","span":"1:238-250","ident":{"Ident":["this","tracks","milliseconds"]},"targets":[176],"parent":184},{"id":184,"kind":"TransformCall: Sort","span":"1:225-251","children":[178,179,182]}],"ast":{"name":"Project","stmts":[{"VarDef":{"kind":"Main","name":"main","value":{"Pipeline":{"exprs":[{"FuncCall":{"name":{"Ident":"from"},"args":[{"Ident":"tracks"}]}},{"FuncCall":{"name":{"Ident":"select"},"args":[{"Tuple":[{"Ident":"genre_id"},{"Ident":"milliseconds"}]}]}},{"FuncCall":{"name":{"Ident":"group"},"args":[{"Tuple":[{"Ident":"genre_id"}]},{"Pipeline":{"exprs":[{"FuncCall":{"name":{"Ident":"sort"},"args":[{"Tuple":[{"Unary":{"op":"Neg","expr":{"Ident":"milliseconds"}}}]}]}},{"FuncCall":{"name":{"Ident":"take"},"args":[{"Literal":{"Integer":3}}]}}]}}]}},{"FuncCall":{"name":{"Ident":"join"},"args":[{"Ident":"genres"},{"Unary":{"op":"EqSelf","expr":{"Ident":"genre_id"}}}]}},{"FuncCall":{"name":{"Ident":"select"},"args":[{"Tuple":[{"Ident":"name"},{"Ident":"milliseconds"}]}]}},{"FuncCall":{"name":{"Ident":"sort"},"args":[{"Tuple":[{"Unary":{"op":"Add","expr":{"Ident":"name"}}},{"Unary":{"op":"Neg","expr":{"Ident":"milliseconds"}}}]}]}}]}}},"span":"1:76-252"}]}}
+frames:
+- - 1:88-118
+  - columns:
+    - !Single
+      name:
+      - tracks
+      - genre_id
+      target_id: 133
+      target_name: null
+    - !Single
+      name:
+      - tracks
+      - milliseconds
+      target_id: 134
+      target_name: null
+    inputs:
+    - id: 131
+      name: tracks
+      table:
+      - default_db
+      - tracks
+- - 1:163-169
+  - columns:
+    - !Single
+      name:
+      - tracks
+      - genre_id
+      target_id: 137
+      target_name: null
+    - !Single
+      name:
+      - tracks
+      - milliseconds
+      target_id: 134
+      target_name: null
+    inputs:
+    - id: 131
+      name: tracks
+      table:
+      - default_db
+      - tracks
+- - 1:172-196
+  - columns:
+    - !Single
+      name:
+      - tracks
+      - genre_id
+      target_id: 137
+      target_name: null
+    - !Single
+      name:
+      - tracks
+      - milliseconds
+      target_id: 134
+      target_name: null
+    - !All
+      input_id: 122
+      except: []
+    inputs:
+    - id: 131
+      name: tracks
+      table:
+      - default_db
+      - tracks
+    - id: 122
+      name: genres
+      table:
+      - default_db
+      - genres
+- - 1:197-224
+  - columns:
+    - !Single
+      name:
+      - genres
+      - name
+      target_id: 175
+      target_name: null
+    - !Single
+      name:
+      - tracks
+      - milliseconds
+      target_id: 176
+      target_name: null
+    inputs:
+    - id: 131
+      name: tracks
+      table:
+      - default_db
+      - tracks
+    - id: 122
+      name: genres
+      table:
+      - default_db
+      - genres
+- - 1:225-251
+  - columns:
+    - !Single
+      name:
+      - genres
+      - name
+      target_id: 175
+      target_name: null
+    - !Single
+      name:
+      - tracks
+      - milliseconds
+      target_id: 176
+      target_name: null
+    inputs:
+    - id: 131
+      name: tracks
+      table:
+      - default_db
+      - tracks
+    - id: 122
+      name: genres
+      table:
+      - default_db
+      - genres
+nodes:
+- id: 122
+  kind: Ident
+  span: 1:177-183
+  ident: !Ident
+  - default_db
+  - genres
+  parent: 174
+- id: 131
+  kind: Ident
+  span: 1:76-87
+  ident: !Ident
+  - default_db
+  - tracks
+  parent: 136
+- id: 133
+  kind: Ident
+  span: 1:96-104
+  ident: !Ident
+  - this
+  - tracks
+  - genre_id
+  targets:
+  - 131
+  parent: 135
+- id: 134
+  kind: Ident
+  span: 1:105-117
+  ident: !Ident
+  - this
+  - tracks
+  - milliseconds
+  targets:
+  - 131
+  parent: 135
+- id: 135
+  kind: Tuple
+  span: 1:95-118
+  children:
+  - 133
+  - 134
+  parent: 136
+- id: 136
+  kind: 'TransformCall: Select'
+  span: 1:88-118
+  children:
+  - 131
+  - 135
+  parent: 166
+- id: 137
+  kind: Ident
+  span: 1:126-134
+  ident: !Ident
+  - this
+  - tracks
+  - genre_id
+  targets:
+  - 133
+  parent: 138
+- id: 138
+  kind: Tuple
+  span: 1:125-135
+  children:
+  - 137
+- id: 162
+  kind: Ident
+  span: 1:147-159
+  ident: !Ident
+  - this
+  - tracks
+  - milliseconds
+  targets:
+  - 134
+- id: 166
+  kind: 'TransformCall: Take'
+  span: 1:163-169
+  children:
+  - 136
+  - 167
+  parent: 174
+- id: 167
+  kind: Literal
+  parent: 166
+- id: 170
+  kind: RqOperator
+  span: 1:185-195
+  targets:
+  - 172
+  - 173
+  parent: 174
+- id: 172
+  kind: Ident
+  span: 1:187-195
+  ident: !Ident
+  - this
+  - tracks
+  - genre_id
+  targets:
+  - 137
+- id: 173
+  kind: Ident
+  span: 1:187-195
+  ident: !Ident
+  - that
+  - genres
+  - genre_id
+  targets:
+  - 122
+- id: 174
+  kind: 'TransformCall: Join'
+  span: 1:172-196
+  children:
+  - 166
+  - 122
+  - 170
+  parent: 178
+- id: 175
+  kind: Ident
+  span: 1:205-209
+  ident: !Ident
+  - this
+  - genres
+  - name
+  targets:
+  - 122
+  parent: 177
+- id: 176
+  kind: Ident
+  span: 1:211-223
+  ident: !Ident
+  - this
+  - tracks
+  - milliseconds
+  targets:
+  - 134
+  parent: 177
+- id: 177
+  kind: Tuple
+  span: 1:204-224
+  children:
+  - 175
+  - 176
+  parent: 178
+- id: 178
+  kind: 'TransformCall: Select'
+  span: 1:197-224
+  children:
+  - 174
+  - 177
+  parent: 184
+- id: 179
+  kind: Ident
+  span: 1:231-236
+  ident: !Ident
+  - this
+  - genres
+  - name
+  targets:
+  - 175
+  parent: 184
+- id: 182
+  kind: Ident
+  span: 1:238-250
+  ident: !Ident
+  - this
+  - tracks
+  - milliseconds
+  targets:
+  - 176
+  parent: 184
+- id: 184
+  kind: 'TransformCall: Sort'
+  span: 1:225-251
+  children:
+  - 178
+  - 179
+  - 182
+ast:
+  name: Project
+  stmts:
+  - VarDef:
+      kind: Main
+      name: main
+      value:
+        Pipeline:
+          exprs:
+          - FuncCall:
+              name:
+                Ident: from
+              args:
+              - Ident: tracks
+          - FuncCall:
+              name:
+                Ident: select
+              args:
+              - Tuple:
+                - Ident: genre_id
+                - Ident: milliseconds
+          - FuncCall:
+              name:
+                Ident: group
+              args:
+              - Tuple:
+                - Ident: genre_id
+              - Pipeline:
+                  exprs:
+                  - FuncCall:
+                      name:
+                        Ident: sort
+                      args:
+                      - Tuple:
+                        - Unary:
+                            op: Neg
+                            expr:
+                              Ident: milliseconds
+                  - FuncCall:
+                      name:
+                        Ident: take
+                      args:
+                      - Literal:
+                          Integer: 3
+          - FuncCall:
+              name:
+                Ident: join
+              args:
+              - Ident: genres
+              - Unary:
+                  op: EqSelf
+                  expr:
+                    Ident: genre_id
+          - FuncCall:
+              name:
+                Ident: select
+              args:
+              - Tuple:
+                - Ident: name
+                - Ident: milliseconds
+          - FuncCall:
+              name:
+                Ident: sort
+              args:
+              - Tuple:
+                - Unary:
+                    op: Add
+                    expr:
+                      Ident: name
+                - Unary:
+                    op: Neg
+                    expr:
+                      Ident: milliseconds
+    span: 1:76-252
