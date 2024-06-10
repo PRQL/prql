@@ -1,22 +1,11 @@
 # PRQL Changelog
 
-## [unreleased]
+## 0.12.2 — 2024-06-10
 
-**Language**:
+0.12.2 is a very small release which renames `prql-js` to `prqlc-js` to match
+our standard naming scheme. Within node the package is imported as `prqlc`.
 
-**Features**:
-
-**Fixes**:
-
-**Documentation**:
-
-**Web**:
-
-**Integrations**:
-
-**Internal changes**:
-
-**New Contributors**:
+It also fixes a mistake in the `prqlc-python` release pipeline.
 
 ## 0.12.1 — 2024-06-09
 
@@ -1175,8 +1164,8 @@ below in this release).
 
 **Documentation**:
 
-[This release, the changelog only contains a subset of
-documentation improvements]
+[This release, the changelog only contains a subset of documentation
+improvements]
 
 - Add docs on aliases in
   [Select](https://prql-lang.org/book/reference/stdlib/transforms/select.html)
