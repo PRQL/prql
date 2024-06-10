@@ -1,5 +1,5 @@
 {
-  "browser": "dist/web/prql_js.js",
+  "browser": "dist/web/prqlc_js.js",
   "description": "JavaScript bindings for prqlc",
   "devDependencies": {
     "chai": "^5.0.0",
@@ -12,8 +12,8 @@
   ],
   "license": "Apache-2.0",
   "author": "PRQL team",
-  "main": "dist/node/prql_js.js",
-  "name": "prql-js",
+  "main": "dist/node/prqlc_js.js",
+  "name": "prqlc",
   "bugs": {
     "url": "https://github.com/PRQL/prql/issues"
   },
@@ -34,6 +34,6 @@
     "prepare": "npm run build",
     "test": "mocha tests"
   },
-  "types": "dist/node/prql_js.d.ts",
+  "types": "dist/node/prqlc_js.d.ts",
   "version": "0.12.2"
 }
