@@ -30,13 +30,13 @@ describe("prqlc-js", () => {
       const sql = prqlc.compile(employee_prql);
       assert(
         sql.trim().toLowerCase().startsWith("with") ||
-          sql.trim().toLowerCase().startsWith("select")
+          sql.trim().toLowerCase().startsWith("select"),
       );
     });
 
     it("should throw an error on invalid prql", () => {
       expect(() =>
-        prqlc.compile("Mississippi has four Ss and four Is.")
+        prqlc.compile("Mississippi has four Ss and four Is."),
       ).to.throw("Error");
     });
 
@@ -49,7 +49,7 @@ describe("prqlc-js", () => {
       const res = prqlc.compile("from a | take 10", opts);
       assert.equal(
         res,
-        "SELECT * FROM a ORDER BY (SELECT NULL) OFFSET 0 ROWS FETCH FIRST 10 ROWS ONLY"
+        "SELECT * FROM a ORDER BY (SELECT NULL) OFFSET 0 ROWS FETCH FIRST 10 ROWS ONLY",
       );
     });
 
@@ -61,12 +61,12 @@ describe("prqlc-js", () => {
 
       const res = prqlc.compile(
         "prql target:sql.sqlite\nfrom a | take 10",
-        opts
+        opts,
       );
       assert(
         res.includes(
-          "SELECT * FROM a ORDER BY (SELECT NULL) OFFSET 0 ROWS FETCH FIRST 10 ROWS ONLY"
-        )
+          "SELECT * FROM a ORDER BY (SELECT NULL) OFFSET 0 ROWS FETCH FIRST 10 ROWS ONLY",
+        ),
       );
       assert(res.includes("target:sql.mssql"));
     });
