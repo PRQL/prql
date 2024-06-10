@@ -317,7 +317,7 @@ jobs:
           # `*` covers target & OS
           pattern: ${{ matrix.package }}-*-release
           merge-multiple: true
-      - run: ls -al ./**/*.{whl,tar.gz}
+      - run: ls -al *
       - name: Publish to PyPI
         uses: PyO3/maturin-action@v1
         env:
