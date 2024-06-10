@@ -33,6 +33,8 @@ DISABLE_ERRORS_LINTERS:
   - JSON_JSONLINT
   - MAKEFILE_CHECKMAKE
   - MARKDOWN_MARKDOWN_LINK_CHECK
+  # Prevents us from starting a new library, since it raises an error on unpublished libraries. Can remove after publishing...
+  - REPOSITORY_DUSTILOCK
   - SPELL_MISSPELL
   # Disabled for now, as @max-sixty didn't know whether "Unable to locate the
   # project file. A project file (tsconfig.json or tsconfig.eslint.json) is
