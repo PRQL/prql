@@ -13,7 +13,7 @@
   "license": "Apache-2.0",
   "author": "PRQL team",
   "main": "dist/node/prqlc_js.js",
-  "name": "prqlc-js",
+  "name": "prqlc",
   "bugs": {
     "url": "https://github.com/PRQL/prql/issues"
   },

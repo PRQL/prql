@@ -5,7 +5,7 @@ JavaScript bindings for [`prqlc`](https://github.com/PRQL/prql/).
 ## Installation
 
 ```sh
-npm install prqlc-js
+npm install prqlc
 ```
 
 ## Usage
@@ -29,7 +29,7 @@ function rq_to_sql(rq_json: string): string;
 Direct usage
 
 ```javascript
-const prqlc = require("prqlc-js");
+const prqlc = require("prqlc");
 
 const sql = prqlc.compile(`from employees | select first_name`);
 console.log(sql);
@@ -50,7 +50,7 @@ console.log(sql);
 Template literal
 
 ```javascript
-const prqlc = require("prqlc-js");
+const prqlc = require("prqlc");
 const prql = (string) => prqlc.compile(string[0] || "");
 
 const sql = prql`from employees | select first_name`;
@@ -60,7 +60,7 @@ console.log(sql);
 Template literal with newlines
 
 ```javascript
-const prqlc = require("prqlc-js");
+const prqlc = require("prqlc");
 const prql = (string) => prqlc.compile(string[0] || "");
 
 const sql = prql`
@@ -91,7 +91,7 @@ console.log(sql);
 ### From a framework or a bundler
 
 ```typescript
-import compile from "prqlc-js/dist/bundler";
+import compile from "prqlc/dist/bundler";
 
 const sql = compile(`from employees | select first_name`);
 console.log(sql);
@@ -165,7 +165,7 @@ code hasn't changed, which can be slow. For a lower-latency dev loop, pass
 `--profile=dev` to `npm install` for a faster, less optimized build.
 
 ```sh
-npm install prqlc-js --profile=dev
+npm install prqlc --profile=dev
 ```
 
 ## Notes

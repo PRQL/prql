@@ -18,7 +18,7 @@
     "@testing-library/react": "^16.0.0",
     "@testing-library/user-event": "^14.5.0",
     "monaco-editor": "^0.49.0",
-    "prqlc-js": "file:../../prqlc/bindings/js",
+    "prqlc": "file:../../prqlc/bindings/js",
     "react": "^18.2.0",
     "react-dom": "^18.3.0",
     "react-syntax-highlighter": "^15.5.0",

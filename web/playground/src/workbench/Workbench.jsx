@@ -1,6 +1,6 @@
 import "./Workbench.css";
 
-import * as prql from "prqlc-js/dist/bundler";
+import * as prql from "prqlc/dist/bundler";
 import React from "react";
 import YAML from "yaml";
 
