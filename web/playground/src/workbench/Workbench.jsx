@@ -1,6 +1,6 @@
 import "./Workbench.css";
 
-import * as prql from "prql-js/dist/bundler";
+import * as prql from "prqlc-js/dist/bundler";
 import React from "react";
 import YAML from "yaml";
 
@@ -95,7 +95,7 @@ class Workbench extends React.Component {
       this.monaco.editor.setModelMarkers(
         this.editor.getModel(),
         "prql",
-        monacoErrors,
+        monacoErrors
       );
       return;
     }

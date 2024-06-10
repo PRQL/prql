@@ -129,7 +129,7 @@ To stay in touch with PRQL:
 - [pyprql Docs](https://pyprql.readthedocs.io) — the pyprql documentation, the
   Python bindings to PRQL, including Jupyter magic.
 - [PRQL VS Code extension](https://marketplace.visualstudio.com/items?itemName=prql-lang.prql-vscode)
-- [prql-js](https://www.npmjs.com/package/prql-js) — JavaScript bindings for
+- [prqlc-js](https://www.npmjs.com/package/prqlc-js) — JavaScript bindings for
   PRQL.
 
 ## Repo organization

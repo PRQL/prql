@@ -3046,16 +3046,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "prql-js"
-version = "0.12.2"
-dependencies = [
- "console_error_panic_hook",
- "prqlc",
- "wasm-bindgen",
- "wasm-bindgen-test",
-]
-
-[[package]]
 name = "prqlc"
 version = "0.12.2"
 dependencies = [
@@ -3134,6 +3124,16 @@ dependencies = [
  "libc",
  "prqlc",
  "serde_json",
+]
+
+[[package]]
+name = "prqlc-js"
+version = "0.12.2"
+dependencies = [
+ "console_error_panic_hook",
+ "prqlc",
+ "wasm-bindgen",
+ "wasm-bindgen-test",
 ]
 
 [[package]]
