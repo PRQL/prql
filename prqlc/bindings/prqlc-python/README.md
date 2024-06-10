@@ -1,14 +1,13 @@
 # PRQL - Python Bindings
 
-Python bindings for [PRQL](https://github.com/PRQL/prql), the
-Pipelined Relational Query Language. 
+Python bindings for [PRQL](https://github.com/PRQL/prql), the Pipelined
+Relational Query Language.
 
-PRQL is a modern language for transforming data — a simple, powerful,
-pipelined SQL replacement. Like SQL, it's readable, explicit and
-declarative. Unlike SQL, it forms a logical pipeline of
-transformations, and supports abstractions such as variables and
-functions. It can be used with any database that uses SQL, since it
-compiles to SQL.
+PRQL is a modern language for transforming data — a simple, powerful, pipelined
+SQL replacement. Like SQL, it's readable, explicit and declarative. Unlike SQL,
+it forms a logical pipeline of transformations, and supports abstractions such
+as variables and functions. It can be used with any database that uses SQL,
+since it compiles to SQL.
 
 PRQL can be as simple as:
 
@@ -61,16 +60,16 @@ def compile(prql_query: str, options: Optional[CompileOptions] = None) -> str:
 def prql_to_pl(prql_query: str) -> str:
     """Converts a PRQL query to PL AST in JSON format."""
     ...
-    
+
 def pl_to_prql(pl_json: str) -> str:
     """Converts PL AST as a JSON string into a formatted PRQL string."""
     ...
-    
+
 def pl_to_rq(pl_json: str) -> str:
     """Resolves and lowers PL AST (JSON) into RQ AST (JSON)."""
     ...
-    
-def rq_to_sql(rq_json: str, options: Optional[ComplieOptions] = None) -> str:
+
+def rq_to_sql(rq_json: str, options: Optional[CompileOptions] = None) -> str:
     """Converts RQ AST (JSON) into a SQL query."""
     ...
 
@@ -81,9 +80,9 @@ class CompileOptions:
         format: bool = True,
         target: str = "sql.any",
         signature_comment: bool = True,
-    ) -> None: 
+    ) -> None:
     """Compilation options for SQL backend of the compiler.
-    
+
     Args:
         format (bool): Pass generated SQL string through a formatter that splits
             it into multiple lines and prettifies indentation and spacing.
@@ -94,10 +93,10 @@ class CompileOptions:
             function.
         signature_comment (bool): Emits the compiler signature as a comment after
             the generated SQL. Defaults to True.
-    
+
     """
     ...
-    
+
 def get_targets() -> list[str]:
     """List available target dialects for compilation."""
     ...
@@ -105,18 +104,18 @@ def get_targets() -> list[str]:
 
 ### Debugging functions
 
-The following functions are available within the `prqlc.debug` module.
-They are for experimental purposes and may be unstable.
+The following functions are available within the `prqlc.debug` module. They are
+for experimental purposes and may be unstable.
 
 ```python
 def prql_lineage(prql_query: str) -> str:
     """Computes a column-level lineage graph from a PRQL query.
-    
-    Returns JSON-formatted string. See the docs for the `prqlc debug lineage` 
+
+    Returns JSON-formatted string. See the docs for the `prqlc debug lineage`
     CLI command for more details.
     """
     ...
-    
+
 def pl_to_lineage(pl_json: str) -> str:
     """Computes a column-level lineage graph from PL AST (JSON)."""
     ...
@@ -124,10 +123,9 @@ def pl_to_lineage(pl_json: str) -> str:
 
 ## Notes
 
-These bindings are in a crate named `prqlc-python` and published to a
-Python package on PyPI named `prqlc`, available at
-<https://pypi.org/project/prqlc>. This crate is not published to
-crates.io.
+These bindings are in a crate named `prqlc-python` and published to a Python
+package on PyPI named `prqlc`, available at <https://pypi.org/project/prqlc>.
+This crate is not published to crates.io.
 
 The package is consumed by [pyprql](https://github.com/prql/pyprql) &
 [dbt-prql](https://github.com/prql/dbt-prql).
