@@ -221,6 +221,17 @@ mod test {
     }
 
     #[test]
+    fn prql_pl_prql_roundtrip() {
+        let prql = r#"from artists | select {name, id} | filter (id | in [1, 2, 3])"#;
+        assert_snapshot!(
+             prql_to_pl(prql).and_then(|x| pl_to_prql(x.as_str())).unwrap(), @r###"
+        from artists
+        select {name, id}
+        filter (id | in [1, 2, 3])
+        "###);
+    }
+
+    #[test]
     fn debug_prql_lineage() {
         assert_snapshot!(
             debug::prql_lineage(r#"from a"#).unwrap(),
