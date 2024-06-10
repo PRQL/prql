@@ -35,7 +35,7 @@ aggregate {                                   # `aggregate` reduces each column 
 }
 ```
 
-Here's a fuller example of the language:
+Here's a larger example of the language:
 
 ```elm
 from employees
@@ -62,7 +62,7 @@ For more on the language, more examples & comparisons with SQL, visit
 [prql-lang.org][prql website]. To experiment with PRQL in the browser, check out
 [PRQL Playground][prql playground].
 
-## Current Status - April 2024
+## Current Status - June 2024
 
 PRQL is being actively developed by a growing community. It's ready to use by
 the intrepid, either with our supported integrations, or within your own tools,
@@ -83,14 +83,17 @@ While we work on that, we're also focusing on
   but also gives us more to work on.
 - Filling remaining feature gaps, so that PRQL is possible to use for almost all
   standard SQL queries.
-- Expanding our set of supported features — we've recently added experimental
+- Expanding our set of supported features — we are working to add experimental
   support for modules / multi-file projects, and for auto-formatting.
 
 We're also spending time thinking about:
 
 - Making it really easy to start using PRQL. We're doing that by building
-  integrations with tools that folks already use; for example our VS Code
-  extension & Jupyter integration. If there are tools you're familiar with that
+  integrations with tools that folks already use;
+  for example a VS Code extension,
+  Jupyter integration, and the recent
+  [qStudio](https://www.timestored.com/qstudio/prql-ide) integration.
+  If there are tools you're familiar with that
   you think would be open to integrating with PRQL, please let us know in an
   issue.
 - Whether all our initial decisions were correct — for example
@@ -126,6 +129,10 @@ To stay in touch with PRQL:
 - [Jupyter magic](https://pyprql.readthedocs.io/en/latest/magic_readme.html) —
   run PRQL in Jupyter, either against a DB, or a Pandas DataFrame / CSV /
   Parquet file through DuckDB.
+- [qStudio](https://www.timestored.com/qstudio/prql-ide)
+is a PRQL IDE that works with all the popular databases.
+After installing `prqlc` in your path, qStudio will let you run
+PRQL queries and display the results right in the IDE. 
 - [pyprql Docs](https://pyprql.readthedocs.io) — the pyprql documentation, the
   Python bindings to PRQL, including Jupyter magic.
 - [PRQL VS Code extension](https://marketplace.visualstudio.com/items?itemName=prql-lang.prql-vscode)

@@ -9,7 +9,7 @@ PRQL is building integrations with lots of external tools, including:
 - [qStudio](./qstudio.md)
 - [Prefect](./prefect.md)
 - [VS Code](./vscode.md)
-- [Rill](./rill.md)
 - [PostgreSQL](./postgresql.md)
 - [Databend](./databend.md)
+- [Rill](./rill.md)
 - [Syntax highlighting](./syntax-highlighting.md) for many popular tools.
