@@ -89,13 +89,11 @@ While we work on that, we're also focusing on
 We're also spending time thinking about:
 
 - Making it really easy to start using PRQL. We're doing that by building
-  integrations with tools that folks already use;
-  for example a VS Code extension,
-  Jupyter integration, and the recent
-  [qStudio](https://www.timestored.com/qstudio/prql-ide) integration.
-  If there are tools you're familiar with that
-  you think would be open to integrating with PRQL, please let us know in an
-  issue.
+  integrations with tools that folks already use; for example a VS Code
+  extension, Jupyter integration, and the recent
+  [qStudio](https://www.timestored.com/qstudio/prql-ide) integration. If there
+  are tools you're familiar with that you think would be open to integrating
+  with PRQL, please let us know in an issue.
 - Whether all our initial decisions were correct — for example
   [how we handle window functions outside of a `window` transform](https://github.com/PRQL/prql/issues/2723).
 - Making it easier to contribute to the compiler. We have a wide group of
@@ -129,10 +127,10 @@ To stay in touch with PRQL:
 - [Jupyter magic](https://pyprql.readthedocs.io/en/latest/magic_readme.html) —
   run PRQL in Jupyter, either against a DB, or a Pandas DataFrame / CSV /
   Parquet file through DuckDB.
-- [qStudio](https://www.timestored.com/qstudio/prql-ide)
-is a PRQL IDE that works with all the popular databases.
-After installing `prqlc` in your path, qStudio will let you run
-PRQL queries and display the results right in the IDE. 
+- [qStudio](https://www.timestored.com/qstudio/prql-ide) is a PRQL IDE that
+  works with all the popular databases. After installing `prqlc` in your path,
+  qStudio will let you run PRQL queries and display the results right in the
+  IDE.
 - [pyprql Docs](https://pyprql.readthedocs.io) — the pyprql documentation, the
   Python bindings to PRQL, including Jupyter magic.
 - [PRQL VS Code extension](https://marketplace.visualstudio.com/items?itemName=prql-lang.prql-vscode)

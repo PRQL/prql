@@ -23,8 +23,8 @@ left:
 
 ---
 
-**Examples of PRQL** with a comparison to the generated SQL.
-PRQL queries can be as simple as:
+**Examples of PRQL** with a comparison to the generated SQL. PRQL queries can be
+as simple as:
 
 ```prql
 from tracks
