@@ -28,7 +28,7 @@ WHERE
   has_dog
 ```
 
-A PRQL query can be executed with CLI tools compatible with SQL,, such as
+A PRQL query can be executed with CLI tools compatible with SQL, such as
 [DuckDB CLI](https://duckdb.org/docs/api/cli.html).
 
 ```sh

@@ -55,7 +55,7 @@ exactly = 2
 file = "package-lock.json"
 replace = '$1"{{version}}"'
 search = '''
-(\s+"prqlc-js",
+(\s+"prqlc",
 \s+"version": )"[\d\.]+"'''
 
 [[package.metadata.release.pre-release-replacements]]
