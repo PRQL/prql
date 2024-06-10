@@ -28,6 +28,13 @@ pub fn prql_to_pl(prql_query: &str) -> PyResult<String> {
 }
 
 #[pyfunction]
+pub fn pl_to_prql(pl_json: &str) -> PyResult<String> {
+    prqlc_lib::json::to_pl(pl_json)
+        .and_then(|x| prqlc_lib::pl_to_prql(&x))
+        .map_err(|err| (PyErr::new::<exceptions::PyValueError, _>(err.to_json())))
+}
+
+#[pyfunction]
 pub fn pl_to_rq(pl_json: &str) -> PyResult<String> {
     prqlc_lib::json::to_pl(pl_json)
         .and_then(prqlc_lib::pl_to_rq)
@@ -74,6 +81,7 @@ mod debug {
 fn prqlc(_py: Python, m: &PyModule) -> PyResult<()> {
     m.add_function(wrap_pyfunction!(compile, m)?)?;
     m.add_function(wrap_pyfunction!(prql_to_pl, m)?)?;
+    m.add_function(wrap_pyfunction!(pl_to_prql, m)?)?;
     m.add_function(wrap_pyfunction!(pl_to_rq, m)?)?;
     m.add_function(wrap_pyfunction!(rq_to_sql, m)?)?;
     m.add_function(wrap_pyfunction!(get_targets, m)?)?;
