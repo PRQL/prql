@@ -8,13 +8,13 @@ includes:
 vars:
   packages_core: -p prqlc-ast -p prqlc-parser -p prqlc
   packages_addon: -p prql-compiler-macros -p compile-files
-  packages_bindings: -p prql -p prql-java -p prql-js -p prqlc-c -p prqlc-python
+  packages_bindings: -p prql -p prql-java -p prqlc-js -p prqlc-c -p prqlc-python
 
 tasks:
   fmt:
     desc:
-      Format prqlc source files. Duplicates `pre-commit` checks, but some
-      developers prefer to use this directly.
+      Format prqlc source files. (Duplicates `pre-commit` checks, but some
+      developers prefer to use this directly.)
     cmds:
       - cmd: |
           # remove trailing whitespace

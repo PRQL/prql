@@ -219,8 +219,8 @@ bindings_section:
       label: "prqlc-python"
       text: Python bindings for prqlc.
 
-    - link: https://www.npmjs.com/package/prql-js
-      label: "prql-js"
+    - link: https://www.npmjs.com/package/prqlc
+      label: "prqlc-js"
       text: "JavaScript bindings for prqlc."
 
     - link: https://CRAN.R-project.org/package=prqlr

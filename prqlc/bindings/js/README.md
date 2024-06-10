@@ -1,11 +1,11 @@
-# prql-js
+# prqlc-js
 
 JavaScript bindings for [`prqlc`](https://github.com/PRQL/prql/).
 
 ## Installation
 
 ```sh
-npm install prql-js
+npm install prqlc
 ```
 
 ## Usage
@@ -29,29 +29,29 @@ function rq_to_sql(rq_json: string): string;
 Direct usage
 
 ```javascript
-const prqljs = require("prql-js");
+const prqlc = require("prqlc");
 
-const sql = prqljs.compile(`from employees | select first_name`);
+const sql = prqlc.compile(`from employees | select first_name`);
 console.log(sql);
 ```
 
 Options
 
 ```javascript
-const opts = new prql.CompileOptions();
+const opts = new prqlc.CompileOptions();
 opts.target = "sql.mssql";
 opts.format = false;
 opts.signature_comment = false;
 
-const sql = prqljs.compile(`from employees | take 10`, opts);
+const sql = prqlc.compile(`from employees | take 10`, opts);
 console.log(sql);
 ```
 
 Template literal
 
 ```javascript
-const prqljs = require("prql-js");
-const prql = (string) => prqljs.compile(string[0] || "");
+const prqlc = require("prqlc");
+const prql = (string) => prqlc.compile(string[0] || "");
 
 const sql = prql`from employees | select first_name`;
 console.log(sql);
@@ -60,8 +60,8 @@ console.log(sql);
 Template literal with newlines
 
 ```javascript
-const prqljs = require("prql-js");
-const prql = (string) => prqljs.compile(string[0] || "");
+const prqlc = require("prqlc");
+const prql = (string) => prqlc.compile(string[0] || "");
 
 const sql = prql`
     from employees
@@ -91,7 +91,7 @@ console.log(sql);
 ### From a framework or a bundler
 
 ```typescript
-import compile from "prql-js/dist/bundler";
+import compile from "prqlc/dist/bundler";
 
 const sql = compile(`from employees | select first_name`);
 console.log(sql);
@@ -165,7 +165,7 @@ code hasn't changed, which can be slow. For a lower-latency dev loop, pass
 `--profile=dev` to `npm install` for a faster, less optimized build.
 
 ```sh
-npm install prql-js --profile=dev
+npm install prqlc --profile=dev
 ```
 
 ## Notes

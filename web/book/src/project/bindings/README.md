@@ -17,7 +17,7 @@ Supported bindings require:
   [core compile functions](https://docs.rs/prqlc/latest/prqlc/#functions).
 - Test coverage for these functions.
 - A published package to the language's standard package repository.
-- A script in `Taskfile.yml` to bootstrap a development environment.
+- A script in `Taskfile.yaml` to bootstrap a development environment.
 - Any dev tools, such as a linter & formatter, in pre-commit or MegaLinter.
 
 The currently supported bindings are:

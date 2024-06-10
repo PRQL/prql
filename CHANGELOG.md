@@ -18,6 +18,13 @@
 
 **New Contributors**:
 
+## 0.12.2 — 2024-06-10
+
+0.12.2 is a very small release which renames `prql-js` to `prqlc-js` to match
+our standard naming scheme. Within node the package is imported as `prqlc`.
+
+It also fixes a mistake in the `prqlc-python` release pipeline.
+
 ## 0.12.1 — 2024-06-09
 
 0.12.1 is a tiny hotfix release which fixes how intra-prql crate dependencies
@@ -318,7 +325,7 @@ This release has 155 commits from 9 contributors. Selected changes:
 
 - Rename some of the internal crates, and refactored their paths in the repo.
   (@aljazerzen, #3683).
-- Add a `justfile` for developers who prefer that above our `Taskfile.yml`
+- Add a `justfile` for developers who prefer that above our `Taskfile.yaml`
   (@aljazerzen, #3681)
 
 **New Contributors**:

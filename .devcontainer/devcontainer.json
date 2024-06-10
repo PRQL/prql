@@ -1,4 +1,4 @@
-// Dev Container for Rust, website, prql-js and prqlc-python
+// Dev Container for Rust, website, prqlc-js and prqlc-python
 {
   "image": "ghcr.io/prql/prql-devcontainer-base:latest",
   "features": {
@@ -17,7 +17,7 @@
   "customizations": {
     "vscode": {
       "extensions": [
-        // Keep in sync with Taskfile.yml
+        // Keep in sync with Taskfile.yaml
         "prql-lang.prql-vscode",
         "rust-lang.rust-analyzer",
         "mitsuhiko.insta",
