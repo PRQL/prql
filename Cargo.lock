@@ -1030,7 +1030,7 @@ dependencies = [
 
 [[package]]
 name = "compile-files"
-version = "0.12.2"
+version = "0.12.3"
 dependencies = [
  "prqlc",
 ]
@@ -2268,7 +2268,7 @@ dependencies = [
 
 [[package]]
 name = "lutra"
-version = "0.12.2"
+version = "0.12.3"
 dependencies = [
  "anyhow",
  "arrow 49.0.0",
@@ -2285,7 +2285,7 @@ dependencies = [
 
 [[package]]
 name = "lutra-python"
-version = "0.12.2"
+version = "0.12.3"
 dependencies = [
  "arrow 49.0.0",
  "itertools 0.12.1",
@@ -2346,7 +2346,7 @@ dependencies = [
 
 [[package]]
 name = "mdbook-prql"
-version = "0.12.2"
+version = "0.12.3"
 dependencies = [
  "ansi-to-html",
  "anstream",
@@ -3016,7 +3016,7 @@ dependencies = [
 
 [[package]]
 name = "prql"
-version = "0.12.2"
+version = "0.12.3"
 dependencies = [
  "prqlc",
  "rustler",
@@ -3024,14 +3024,14 @@ dependencies = [
 
 [[package]]
 name = "prql-compiler"
-version = "0.12.2"
+version = "0.12.3"
 dependencies = [
  "prqlc",
 ]
 
 [[package]]
 name = "prql-compiler-macros"
-version = "0.12.2"
+version = "0.12.3"
 dependencies = [
  "prqlc",
  "syn 2.0.66",
@@ -3039,7 +3039,7 @@ dependencies = [
 
 [[package]]
 name = "prql-java"
-version = "0.12.2"
+version = "0.12.3"
 dependencies = [
  "jni",
  "prqlc",
@@ -3047,7 +3047,7 @@ dependencies = [
 
 [[package]]
 name = "prqlc"
-version = "0.12.2"
+version = "0.12.3"
 dependencies = [
  "anstream",
  "anyhow",
@@ -3104,7 +3104,7 @@ dependencies = [
 
 [[package]]
 name = "prqlc-ast"
-version = "0.12.2"
+version = "0.12.3"
 dependencies = [
  "chumsky",
  "enum-as-inner",
@@ -3119,7 +3119,7 @@ dependencies = [
 
 [[package]]
 name = "prqlc-c"
-version = "0.12.2"
+version = "0.12.3"
 dependencies = [
  "libc",
  "prqlc",
@@ -3128,7 +3128,7 @@ dependencies = [
 
 [[package]]
 name = "prqlc-js"
-version = "0.12.2"
+version = "0.12.3"
 dependencies = [
  "console_error_panic_hook",
  "prqlc",
@@ -3138,7 +3138,7 @@ dependencies = [
 
 [[package]]
 name = "prqlc-parser"
-version = "0.12.2"
+version = "0.12.3"
 dependencies = [
  "chumsky",
  "insta",
@@ -3153,7 +3153,7 @@ dependencies = [
 
 [[package]]
 name = "prqlc-python"
-version = "0.12.2"
+version = "0.12.3"
 dependencies = [
  "insta",
  "prqlc",
