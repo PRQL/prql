@@ -199,7 +199,7 @@ pub struct FrameCollector {
     /// Each transformation step in the main pipeline corresponds to a single
     /// frame. This holds the output columns at each frame, as well as the span
     /// position of the frame.
-    pub frames: Vec<(Span, Lineage)>,
+    pub frames: Vec<(Option<Span>, Lineage)>,
 
     /// A mapping of expression graph node IDs to their node definitions.
     pub nodes: Vec<ExprGraphNode>,
@@ -320,11 +320,9 @@ impl PlFold for FrameCollector {
         self.nodes.dedup();
 
         if matches!(expr.kind, ExprKind::TransformCall(_)) {
-            if let Some(span) = expr.span {
-                let lineage = expr.lineage.clone();
-                if let Some(lineage) = lineage {
-                    self.frames.push((span, lineage));
-                }
+            let lineage = expr.lineage.clone();
+            if let Some(lineage) = lineage {
+                self.frames.push((expr.span, lineage));
             }
         }
 
