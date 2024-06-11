@@ -8,7 +8,7 @@ on:
     # label, which we then use to trigger a `nightly` run.
     types: [opened, reopened, synchronize, labeled]
     branches:
-      - main
+      - "*"
   push:
     branches:
       - main
