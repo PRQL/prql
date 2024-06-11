@@ -8,6 +8,7 @@ classifiers = [
   "Programming Language :: Python :: Implementation :: CPython",
   "Programming Language :: Python :: Implementation :: PyPy",
 ]
+description = "Python bindings for prqlc, the PRQL compiler"
 name = "prqlc"
 requires-python = ">=3.8"
 
