@@ -3,4 +3,148 @@ source: prqlc/prqlc/tests/integration/queries.rs
 expression: "# clickhouse:skip (ClickHouse prefers aliases to column names https://github.com/PRQL/prql/issues/2827)\n# mssql:test\nlet genre_count = (\n    from genres\n    aggregate {a = count name}\n)\n\nfrom genre_count\nfilter a > 0\nselect a = -a\n"
 input_file: prqlc/prqlc/tests/integration/queries/genre_counts.prql
 ---
-{"frames":[["1:204-216",{"columns":[{"Single":{"name":["genre_count","a"],"target_id":136,"target_name":"a"}}],"inputs":[{"id":136,"name":"genre_count","table":["genre_count"]}]}],["1:217-230",{"columns":[{"Single":{"name":["a"],"target_id":143,"target_name":null}}],"inputs":[{"id":136,"name":"genre_count","table":["genre_count"]}]}]],"nodes":[{"id":136,"kind":"Ident","span":"1:187-203","ident":{"Ident":["genre_count"]},"parent":142},{"id":138,"kind":"RqOperator","span":"1:211-216","targets":[140,141],"parent":142},{"id":140,"kind":"Ident","span":"1:211-212","ident":{"Ident":["this","genre_count","a"]},"targets":[136]},{"id":141,"kind":"Literal","span":"1:215-216"},{"id":142,"kind":"TransformCall: Filter","span":"1:204-216","children":[136,138],"parent":147},{"id":143,"kind":"RqOperator","span":"1:228-230","alias":"a","targets":[145],"parent":146},{"id":145,"kind":"Ident","span":"1:229-230","ident":{"Ident":["this","genre_count","a"]},"targets":[136]},{"id":146,"kind":"Tuple","span":"1:228-230","children":[143],"parent":147},{"id":147,"kind":"TransformCall: Select","span":"1:217-230","children":[142,146]}],"ast":{"name":"Project","stmts":[{"VarDef":{"kind":"Let","name":"genre_count","value":{"Pipeline":{"exprs":[{"FuncCall":{"name":{"Ident":"from"},"args":[{"Ident":"genres"}]}},{"FuncCall":{"name":{"Ident":"aggregate"},"args":[{"Tuple":[{"FuncCall":{"name":{"Ident":"count"},"args":[{"Ident":"name"}]},"alias":"a"}]}]}}]}}},"span":"1:117-185"},{"VarDef":{"kind":"Main","name":"main","value":{"Pipeline":{"exprs":[{"FuncCall":{"name":{"Ident":"from"},"args":[{"Ident":"genre_count"}]}},{"FuncCall":{"name":{"Ident":"filter"},"args":[{"Binary":{"left":{"Ident":"a"},"op":"Gt","right":{"Literal":{"Integer":0}}}}]}},{"FuncCall":{"name":{"Ident":"select"},"args":[{"Unary":{"op":"Neg","expr":{"Ident":"a"}},"alias":"a"}]}}]}}},"span":"1:187-231"}]}}
+frames:
+- - 1:204-216
+  - columns:
+    - !Single
+      name:
+      - genre_count
+      - a
+      target_id: 136
+      target_name: a
+    inputs:
+    - id: 136
+      name: genre_count
+      table:
+      - genre_count
+- - 1:217-230
+  - columns:
+    - !Single
+      name:
+      - a
+      target_id: 143
+      target_name: null
+    inputs:
+    - id: 136
+      name: genre_count
+      table:
+      - genre_count
+nodes:
+- id: 136
+  kind: Ident
+  span: 1:187-203
+  ident: !Ident
+  - genre_count
+  parent: 142
+- id: 138
+  kind: RqOperator
+  span: 1:211-216
+  targets:
+  - 140
+  - 141
+  parent: 142
+- id: 140
+  kind: Ident
+  span: 1:211-212
+  ident: !Ident
+  - this
+  - genre_count
+  - a
+  targets:
+  - 136
+- id: 141
+  kind: Literal
+  span: 1:215-216
+- id: 142
+  kind: 'TransformCall: Filter'
+  span: 1:204-216
+  children:
+  - 136
+  - 138
+  parent: 147
+- id: 143
+  kind: RqOperator
+  span: 1:228-230
+  alias: a
+  targets:
+  - 145
+  parent: 146
+- id: 145
+  kind: Ident
+  span: 1:229-230
+  ident: !Ident
+  - this
+  - genre_count
+  - a
+  targets:
+  - 136
+- id: 146
+  kind: Tuple
+  span: 1:228-230
+  children:
+  - 143
+  parent: 147
+- id: 147
+  kind: 'TransformCall: Select'
+  span: 1:217-230
+  children:
+  - 142
+  - 146
+ast:
+  name: Project
+  stmts:
+  - VarDef:
+      kind: Let
+      name: genre_count
+      value:
+        Pipeline:
+          exprs:
+          - FuncCall:
+              name:
+                Ident: from
+              args:
+              - Ident: genres
+          - FuncCall:
+              name:
+                Ident: aggregate
+              args:
+              - Tuple:
+                - FuncCall:
+                    name:
+                      Ident: count
+                    args:
+                    - Ident: name
+                  alias: a
+    span: 1:117-185
+  - VarDef:
+      kind: Main
+      name: main
+      value:
+        Pipeline:
+          exprs:
+          - FuncCall:
+              name:
+                Ident: from
+              args:
+              - Ident: genre_count
+          - FuncCall:
+              name:
+                Ident: filter
+              args:
+              - Binary:
+                  left:
+                    Ident: a
+                  op: Gt
+                  right:
+                    Literal:
+                      Integer: 0
+          - FuncCall:
+              name:
+                Ident: select
+              args:
+              - Unary:
+                  op: Neg
+                  expr:
+                    Ident: a
+                alias: a
+    span: 1:187-231
