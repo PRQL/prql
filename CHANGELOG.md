@@ -8,6 +8,8 @@
 
 **Fixes**:
 
+ - using `in` with an empty array pattern (e.g. `expr | in []`) will now output a constant `false` condition instead of an `expr IN ()`, which is syntactically invalid in some SQL dialects (@Globidev, #4598)
+
 **Documentation**:
 
 **Web**:
