@@ -1,4 +1,4 @@
-# PRQL Language Reference Book
+# PRQL Language Book
 
 **P**ipelined **R**elational **Q**uery **L**anguage, pronounced "Prequel".
 

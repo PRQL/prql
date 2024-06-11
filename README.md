@@ -127,10 +127,6 @@ To stay in touch with PRQL:
 - [Jupyter magic](https://pyprql.readthedocs.io/en/latest/magic_readme.html) —
   run PRQL in Jupyter, either against a DB, or a Pandas DataFrame / CSV /
   Parquet file through DuckDB.
-- [qStudio](https://www.timestored.com/qstudio/prql-ide) is a PRQL IDE that
-  works with all the popular databases. After installing `prqlc` in your path,
-  qStudio will let you run PRQL queries and display the results right in the
-  IDE.
 - [pyprql Docs](https://pyprql.readthedocs.io) — the pyprql documentation, the
   Python bindings to PRQL, including Jupyter magic.
 - [PRQL VS Code extension](https://marketplace.visualstudio.com/items?itemName=prql-lang.prql-vscode)
