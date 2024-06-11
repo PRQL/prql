@@ -1226,6 +1226,21 @@ fn test_not_in_values() {
 }
 
 #[test]
+fn test_in_no_values() {
+    assert_snapshot!((compile(r#"
+    from employees
+    filter (title | in [])
+    "#).unwrap()), @r#"
+    SELECT
+      *
+    FROM
+      employees
+    WHERE
+      false
+    "#);
+}
+
+#[test]
 fn test_in_values_err_01() {
     assert_snapshot!((compile(r###"
     from employees
