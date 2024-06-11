@@ -6,6 +6,7 @@ requires = ["maturin>=1.0,<2.0"]
 dependencies = [
   "pyarrow ~= 15.0.0",
 ]
+description = "Query runner for PRQL (Pipelined Relational Query Language)"
 name = "lutra"
 requires-python = ">=3.8"
 
