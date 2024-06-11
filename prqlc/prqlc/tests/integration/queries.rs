@@ -68,6 +68,7 @@ mod fmt {
     }
 }
 
+#[cfg(feature = "serde_yaml")]
 mod debug_lineage {
     use super::*;
 
