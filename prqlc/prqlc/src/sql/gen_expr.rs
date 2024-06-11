@@ -170,14 +170,23 @@ fn process_array_in(expr: &Expr, args: &[Expr], ctx: &mut Context) -> Result<sql
         }, Expr {
             kind: ExprKind::Array(in_values),
             ..
-        }] => Ok(sql_ast::Expr::InList {
-            expr: Box::new(translate_expr(col_expr.clone(), ctx)?.into_ast()),
-            list: in_values
-                .iter()
-                .map(|a| Ok(translate_expr(a.clone(), ctx)?.into_ast()))
-                .collect::<Result<Vec<sql_ast::Expr>>>()?,
-            negated: false,
-        }),
+        }] => {
+            if in_values.is_empty() {
+                // We avoid producing `in ()` expressions since they are not syntactically valid
+                // in some engines like PostgreSQL or MySQL.
+                // We can instead optimize this to a condition that is always false
+                Ok(sql_ast::Expr::Value(Value::Boolean(false)))
+            } else {
+                Ok(sql_ast::Expr::InList {
+                    expr: Box::new(translate_expr(col_expr.clone(), ctx)?.into_ast()),
+                    list: in_values
+                        .iter()
+                        .map(|a| Ok(translate_expr(a.clone(), ctx)?.into_ast()))
+                        .collect::<Result<Vec<sql_ast::Expr>>>()?,
+                    negated: false,
+                })
+            }
+        }
         _ => Err(
             Error::new_simple("args to `std.array_in` must be an expression and an array")
                 .with_span(expr.span),
