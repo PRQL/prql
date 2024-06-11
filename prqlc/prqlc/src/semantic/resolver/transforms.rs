@@ -614,6 +614,10 @@ impl Resolver<'_> {
 
         let mut pipeline = self.fold_expr(pipeline)?;
 
+        // attach the span to the TransformCall, as this is what will
+        // be preserved after resolving is complete
+        pipeline.span = pipeline.span.or(span);
+
         self.root_mod.module.stack_pop(NS_PARAM).unwrap();
 
         // now, we need wrap the result into a closure and replace
