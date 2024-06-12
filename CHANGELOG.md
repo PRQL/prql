@@ -8,6 +8,10 @@
 
 **Fixes**:
 
+- using `in` with an empty array pattern (e.g. `expr | in []`) will now output a
+  constant `false` condition instead of an `expr IN ()`, which is syntactically
+  invalid in some SQL dialects (@Globidev, #4598)
+
 **Documentation**:
 
 **Web**:
@@ -17,6 +21,13 @@
 **Internal changes**:
 
 **New Contributors**:
+
+## 0.12.2 — 2024-06-10
+
+0.12.2 is a very small release which renames `prql-js` to `prqlc-js` to match
+our standard naming scheme. Within node the package is imported as `prqlc`.
+
+It also fixes a mistake in the `prqlc-python` release pipeline.
 
 ## 0.12.1 — 2024-06-09
 
@@ -318,7 +329,7 @@ This release has 155 commits from 9 contributors. Selected changes:
 
 - Rename some of the internal crates, and refactored their paths in the repo.
   (@aljazerzen, #3683).
-- Add a `justfile` for developers who prefer that above our `Taskfile.yml`
+- Add a `justfile` for developers who prefer that above our `Taskfile.yaml`
   (@aljazerzen, #3681)
 
 **New Contributors**:

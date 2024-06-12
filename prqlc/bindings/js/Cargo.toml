@@ -1,6 +1,6 @@
 [package]
 description = "Javascript bindings for prqlc"
-name = "prql-js"
+name = "prqlc-js"
 publish = false
 
 edition.workspace = true
@@ -11,9 +11,9 @@ version.workspace = true
 
 [lib]
 crate-type = ["cdylib", "rlib"]
+doc = false
 doctest = false
 test = false
-doc = false
 
 [features]
 default = ["console_error_panic_hook"]
@@ -27,9 +27,9 @@ wasm-bindgen = "0.2.92"
 # for development, but requires all the `std::fmt` and `std::panicking`
 # infrastructure, so isn't great for code size when deploying.", on testing with
 # `--no-default-features`,
-# `prql/target/wasm32-unknown-unknown/release/prql_js.wasm` is 7.416MB vs
+# `prql/target/wasm32-unknown-unknown/release/prqlc_js.wasm` is 7.416MB vs
 # 7.408MB. Maybe because we're already including lots of that with other library
-# features? Even running `wasm-opt prql_js.wasm` makes similarly sized files of
+# features? Even running `wasm-opt prqlc_js.wasm` makes similarly sized files of
 # 5.7M. Feel free to try removing this as part of reducing code size (would be
 # good to have a much smaller code size...).
 console_error_panic_hook = {version = "0.1.7", optional = true}
@@ -55,7 +55,7 @@ exactly = 2
 file = "package-lock.json"
 replace = '$1"{{version}}"'
 search = '''
-(\s+"prql-js",
+(\s+"prqlc",
 \s+"version": )"[\d\.]+"'''
 
 [[package.metadata.release.pre-release-replacements]]

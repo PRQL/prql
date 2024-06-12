@@ -18,7 +18,7 @@ jobs:
           save-if: ${{ github.ref == 'refs/heads/main' }}
           shared-key: lib
       - name: Build
-        uses: richb-hanover/cargo@1.1.1
+        uses: clechasseur/rs-cargo@v2
         with:
           command: build
           # Currently requires a release build; would be useful to allow a debug build.

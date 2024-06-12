@@ -14,7 +14,9 @@ tasks:
       - cmd: cargo run --package lutra -- execute example-project
 
   fmt:
-    desc: Format prqlc source files
+    desc:
+      Format prqlc source files (Duplicates `pre-commit` checks, but some
+      developers prefer to use this directly.)
     cmds:
       - cmd: |
           # remove trailing whitespace
