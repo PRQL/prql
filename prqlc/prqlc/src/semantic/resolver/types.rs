@@ -253,8 +253,8 @@ impl Resolver<'_> {
             TyKind::Function(func) => TyKind::Function(
                 func.map(|f| -> Result<_, Error> {
                     Ok(TyFunc {
-                        args: f
-                            .args
+                        params: f
+                            .params
                             .into_iter()
                             .map(|a| self.resolve_generic_args_opt(a))
                             .try_collect()?,
@@ -830,10 +830,10 @@ fn is_super_type_of_kind(superset: &TyKind, subset: &TyKind) -> bool {
             if is_not_super_type_of(sup.return_ty.as_ref(), sub.return_ty.as_ref()) {
                 return false;
             }
-            if sup.args.len() != sub.args.len() {
+            if sup.params.len() != sub.params.len() {
                 return false;
             }
-            for (sup_arg, sub_arg) in zip(&sup.args, &sub.args) {
+            for (sup_arg, sub_arg) in zip(&sup.params, &sub.params) {
                 if is_not_super_type_of(sup_arg, sub_arg) {
                     return false;
                 }

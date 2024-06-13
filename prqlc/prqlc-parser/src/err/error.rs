@@ -162,6 +162,9 @@ pub trait WithErrorInfo: Sized {
     fn with_hints<S: Into<String>, I: IntoIterator<Item = S>>(self, hints: I) -> Self;
 
     fn with_span(self, span: Option<Span>) -> Self;
+
+    fn with_span_fallback(self, span: Option<Span>) -> Self;
+
     fn with_code(self, code: &'static str) -> Self;
 
     fn with_source(self, source: ErrorSource) -> Self;
@@ -188,6 +191,11 @@ impl WithErrorInfo for Error {
         self
     }
 
+    fn with_span_fallback(mut self, span: Option<Span>) -> Self {
+        self.span = self.span.or(span);
+        self
+    }
+
     fn with_source(self, _source: ErrorSource) -> Self {
         // self.source = source;
         self
@@ -205,6 +213,10 @@ impl<T, E: WithErrorInfo> WithErrorInfo for Result<T, E> {
 
     fn with_span(self, span: Option<Span>) -> Self {
         self.map_err(|e| e.with_span(span))
+    }
+
+    fn with_span_fallback(self, span: Option<Span>) -> Self {
+        self.map_err(|e| e.with_span_fallback(span))
     }
 
     fn with_code(self, code: &'static str) -> Self {
