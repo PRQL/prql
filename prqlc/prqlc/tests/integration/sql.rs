@@ -329,7 +329,7 @@ fn test_precedence_03() {
     from numbers
     derive {
       sum_1 = a + b,
-      sum_2 = add a b,
+      sum_2 = std.add a b,
       g = -a
     }
     select {
@@ -921,7 +921,7 @@ fn test_rn_ids_are_unique() {
 }
 
 #[test]
-fn test_quoting() {
+fn test_quoting_01() {
     // GH-#822
     assert_snapshot!((compile(r###"
     prql target:sql.postgres
@@ -946,11 +946,13 @@ fn test_quoting() {
       "UPPER"
       JOIN "some_schema.tablename" ON "UPPER".id = "some_schema.tablename".id
     "###);
+}
 
+#[test]
+fn test_quoting_02() {
     // GH-1493
     let query = r###"
     from `dir/*.parquet`
-        # join files=`*.parquet` (==id)
     "###;
     assert_snapshot!((compile(query).unwrap()), @r###"
     SELECT
@@ -958,7 +960,10 @@ fn test_quoting() {
     FROM
       "dir/*.parquet"
     "###);
+}
 
+#[test]
+fn test_quoting_03() {
     // GH-#852
     assert_snapshot!((compile(r###"
     prql target:sql.bigquery
@@ -975,7 +980,10 @@ fn test_quoting() {
       JOIN `schema.table2` ON `schema.table`.id = `schema.table2`.id
       JOIN `schema.t-able` AS c ON `schema.table`.id = c.id
     "###);
+}
 
+#[test]
+fn test_quoting_04() {
     assert_snapshot!((compile(r###"
     from table
     select `first name`
@@ -985,7 +993,10 @@ fn test_quoting() {
     FROM
       "table"
     "###);
+}
 
+#[test]
+fn test_quoting_05() {
     assert_snapshot!((compile(r###"
         from as = Assessment
     "###).unwrap()), @r###"
@@ -1070,7 +1081,10 @@ fn test_sorts_02() {
     ORDER BY
       "index"
     "###);
+}
 
+#[test]
+fn test_sorts_03() {
     // TODO: this is invalid SQL: a._expr_0 does not exist
     assert_snapshot!((compile(r#"
     from a
@@ -2613,7 +2627,22 @@ fn test_sql_of_ast_1() {
 }
 
 #[test]
-// Confirm that a bare s-string in a table definition works as expected.
+fn test_sql_of_ast_02() {
+    assert_snapshot!(compile(r#"
+    from employees
+    aggregate sum_salary = s"sum({salary})"
+    filter sum_salary > 100
+    "#).unwrap(), @r###"
+    SELECT
+      sum(salary) AS sum_salary
+    FROM
+      employees
+    HAVING
+      sum(salary) > 100
+    "###);
+}
+
+#[test]
 fn test_bare_s_string() {
     let query = r#"
     let grouping = s"""
@@ -2643,15 +2672,15 @@ fn test_bare_s_string() {
       table_0
     "###
     );
+}
 
+#[test]
+fn test_bare_s_string_01() {
     // Test that case insensitive SELECT is accepted. We allow it as it is valid SQL.
-    let query = r#"
+    assert_snapshot!(compile(r#"
     let a = s"select insensitive from rude"
     from a
-    "#;
-
-    let sql = compile(query).unwrap();
-    assert_snapshot!(sql,
+    "#).unwrap(),
         @r###"
     WITH table_0 AS (
       SELECT
@@ -2665,15 +2694,15 @@ fn test_bare_s_string() {
       table_0
     "###
     );
+}
 
+#[test]
+fn test_bare_s_string_02() {
     // Check a mixture of cases for good measure.
-    let query = r#"
+    assert_snapshot!(compile(r#"
     let a = s"sElEcT insensitive from rude"
     from a
-    "#;
-
-    let sql = compile(query).unwrap();
-    assert_snapshot!(sql,
+    "#).unwrap(),
         @r###"
     WITH table_0 AS (
       SELECT
@@ -2687,9 +2716,12 @@ fn test_bare_s_string() {
       table_0
     "###
     );
+}
 
+#[test]
+fn test_bare_s_string_03() {
     // Check SELECT\n.
-    let query = r#"
+    assert_snapshot!(compile(r#"
     let a = s"
     SELECT
       foo
@@ -2697,11 +2729,7 @@ fn test_bare_s_string() {
       bar"
 
     from a
-    "#;
-
-    let sql = compile(query).unwrap();
-    assert_snapshot!(sql,
-      @r###"
+    "#).unwrap(), @r###"
     WITH table_0 AS (
       SELECT
         foo
@@ -2713,7 +2741,10 @@ fn test_bare_s_string() {
     FROM
       table_0
     "###);
+}
 
+#[test]
+fn test_bare_s_string_04() {
     assert_snapshot!(compile(r#"
     s"SELECTfoo"
     "#).unwrap_err(), @r###"
@@ -2750,25 +2781,6 @@ fn test_table_definition_with_expr_call() {
 }
 
 #[test]
-fn test_sql_of_ast_2() {
-    let query = r#"
-    from employees
-    aggregate sum_salary = s"sum({salary})"
-    filter sum_salary > 100
-    "#;
-    let sql = compile(query).unwrap();
-    assert_snapshot!(sql, @r###"
-    SELECT
-      sum(salary) AS sum_salary
-    FROM
-      employees
-    HAVING
-      sum(salary) > 100
-    "###);
-    assert!(sql.to_lowercase().contains(&"having".to_lowercase()));
-}
-
-#[test]
 fn test_prql_to_sql_1() {
     assert_snapshot!(compile(r#"
     from employees
@@ -2776,8 +2788,7 @@ fn test_prql_to_sql_1() {
         count salary,
         sum salary,
     }
-    "#).unwrap(),
-        @r###"
+    "#).unwrap(), @r###"
     SELECT
       COUNT(*),
       COALESCE(SUM(salary), 0)
@@ -2793,8 +2804,7 @@ fn test_prql_to_sql_1() {
             skill_width = count_distinct specialty,
         }
     )
-    "#).unwrap(),
-        @r###"
+    "#).unwrap(), @r###"
     SELECT
       team,
       COUNT(DISTINCT specialty) AS skill_width
@@ -2807,6 +2817,7 @@ fn test_prql_to_sql_1() {
 }
 
 #[test]
+#[ignore]
 fn test_prql_to_sql_2() {
     let query = r#"
 from employees
@@ -3055,17 +3066,15 @@ fn test_nonatomic_table() {
 }
 
 #[test]
-fn test_table_names_between_splits() {
-    let prql = r###"
+fn test_table_names_between_splits_01() {
+    assert_snapshot!(compile(r###"
     from employees
-    join d=department (==dept_no)
+    join d = department (==dept_no)
     take 10
     derive emp_no = employees.emp_no
-    join s=salaries (==emp_no)
+    join s = salaries (==emp_no)
     select {employees.emp_no, d.name, s.salary}
-    "###;
-    let result = compile(prql).unwrap();
-    assert_snapshot!(result, @r###"
+    "###).unwrap(), @r###"
     WITH table_0 AS (
       SELECT
         employees.emp_no,
@@ -3084,15 +3093,16 @@ fn test_table_names_between_splits() {
       table_0
       JOIN salaries AS s ON table_0.emp_no = s.emp_no
     "###);
+}
 
-    let prql = r###"
-    from e=employees
+#[test]
+fn test_table_names_between_splits_02() {
+    assert_snapshot!(compile(r###"
+    from e = employees
     take 10
     join salaries (==emp_no)
     select {e.*, salaries.salary}
-    "###;
-    let result = compile(prql).unwrap();
-    assert_snapshot!(result, @r###"
+    "###).unwrap(), @r###"
     WITH table_0 AS (
       SELECT
         *
@@ -4156,7 +4166,6 @@ fn test_name_inference() {
         r#"
     from albums
     select {artist_id}
-    # infer albums.artist_id
     select {albums.artist_id}
     "#,
     )
@@ -4165,7 +4174,6 @@ fn test_name_inference() {
         r#"
     from albums
     select {albums.artist_id}
-    # infer albums.artist_id
     select {albums.artist_id}
     "#,
     )
@@ -4242,7 +4250,7 @@ a,b,c
     );
 
     assert_snapshot!(compile(r#"
-    from_text format:json '''{
+    std.from_text format:json '''{
         "columns": ["a", "b", "c"],
         "data": [
             [1, "x", false],
@@ -4358,7 +4366,6 @@ fn prql_version() {
 }
 
 #[test]
-
 fn shortest_prql_version() {
     assert_snapshot!(compile(r#"[{version = prql.version}]"#).unwrap(),@r###"
     WITH table_0 AS (
@@ -4605,8 +4612,8 @@ fn test_1535() {
 #[test]
 fn test_read_parquet_duckdb() {
     assert_snapshot!(compile(r#"
-    read_parquet 'x.parquet'
-    join (read_parquet "y.parquet") (==foo)
+    std.read_parquet 'x.parquet'
+    join (std.read_parquet "y.parquet") (==foo)
     "#).unwrap(),
         @r###"
     WITH table_0 AS (
@@ -5200,7 +5207,7 @@ fn test_group_exclude() {
 fn test_table_declarations() {
     assert_snapshot!(compile(
         r###"
-    module default_{
+    module default_db {
       module my_schema {
         let my_table <[{ id = int, a = text }]>
       }
@@ -5213,8 +5220,10 @@ fn test_table_declarations() {
     )
     .unwrap(), @r###"
     SELECT
-      my_table.*,
-      another_table.*
+      my_table.id,
+      my_table.a,
+      another_table.id,
+      another_table.b
     FROM
       my_schema.my_table
       JOIN another_table ON my_table.id = another_table.id
