@@ -20,6 +20,9 @@
 
 **Internal changes**:
 
+- Renamed `prql-compiler-macros` to `prqlc-macros` for consistency with other
+  crates (@max-sixty, #4565)
+
 **New Contributors**:
 
 ## 0.12.2 — 2024-06-10
