@@ -4,7 +4,7 @@ use serde::{ser::SerializeSeq, Deserialize, Deserializer, Serialize, Serializer}
 
 /// A name. Generally columns, tables, functions, variables.
 /// This is glorified way of writing a "vec with at least one element".
-#[derive(Debug, PartialEq, Eq, PartialOrd, Ord, Hash, Clone)]
+#[derive(PartialEq, Eq, PartialOrd, Ord, Hash, Clone)]
 pub struct Ident {
     pub path: Vec<String>,
     pub name: String,
@@ -19,6 +19,8 @@ impl Ident {
     }
 
     /// Creates a new ident from a non-empty path.
+    ///
+    /// Panics if path is empty.
     pub fn from_path<S: ToString>(mut path: Vec<S>) -> Self {
         let name = path.pop().unwrap().to_string();
         Ident {
@@ -56,6 +58,11 @@ impl Ident {
         Ident::from_path(parts)
     }
 
+    pub fn push(&mut self, name: String) {
+        self.path.push(std::mem::take(&mut self.name));
+        self.name = name;
+    }
+
     pub fn with_name<S: ToString>(mut self, name: S) -> Self {
         self.name = name.to_string();
         self
@@ -88,6 +95,15 @@ impl Ident {
 
     pub fn starts_with_part(&self, prefix: &str) -> bool {
         self.starts_with_path(&[prefix])
+    }
+}
+
+impl std::fmt::Debug for Ident {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_list()
+            .entries(&self.path)
+            .entry(&self.name)
+            .finish()
     }
 }
 
@@ -144,7 +160,14 @@ impl<'de> Deserialize<'de> for Ident {
 }
 
 pub fn display_ident(f: &mut std::fmt::Formatter, ident: &Ident) -> Result<(), std::fmt::Error> {
-    for part in &ident.path {
+    let mut path = &ident.path[..];
+
+    // HACK: don't display `_local` prefix
+    // (this workaround is needed on feat-types branch)
+    if path.first().map_or(false, |f| f == "_local") {
+        path = &path[1..];
+    }
+    for part in path {
         display_ident_part(f, part)?;
         f.write_char('.')?;
     }
@@ -154,10 +177,10 @@ pub fn display_ident(f: &mut std::fmt::Formatter, ident: &Ident) -> Result<(), s
 
 pub fn display_ident_part(f: &mut std::fmt::Formatter, s: &str) -> Result<(), std::fmt::Error> {
     fn forbidden_start(c: char) -> bool {
-        !(c.is_ascii_lowercase() || matches!(c, '_' | '$'))
+        !(c.is_ascii() || matches!(c, '_' | '$'))
     }
     fn forbidden_subsequent(c: char) -> bool {
-        !(c.is_ascii_lowercase() || c.is_ascii_digit() || matches!(c, '_'))
+        !(c.is_ascii() || c.is_ascii_digit() || matches!(c, '_'))
     }
     let needs_escape = s.is_empty()
         || s.starts_with(forbidden_start)

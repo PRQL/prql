@@ -22,6 +22,11 @@ pub fn expr() -> impl Parser<TokenKind, Expr, Error = PError> + Clone {
 
         let ident_kind = ident_part().map(ExprKind::Ident);
 
+        let internal = keyword("internal")
+            .ignore_then(ident())
+            .map(|x| x.to_string())
+            .map(ExprKind::Internal);
+
         let nested_expr = pipeline(lambda_func(expr.clone()).or(func_call(expr.clone()))).boxed();
 
         let tuple = ident_part()
@@ -119,6 +124,7 @@ pub fn expr() -> impl Parser<TokenKind, Expr, Error = PError> + Clone {
 
         let term = choice((
             literal,
+            internal,
             tuple,
             array,
             interpolation,
@@ -345,12 +351,6 @@ where
         .then(ctrl(':').ignore_then(expr.clone().map(Box::new)).or_not())
         .boxed();
 
-    let internal = keyword("internal")
-        .ignore_then(ident())
-        .map(|x| x.to_string())
-        .map(ExprKind::Internal)
-        .map_with_span(into_expr);
-
     let generic_args = ident_part()
         .then_ignore(ctrl(':'))
         .then(type_expr().separated_by(ctrl('|')))
@@ -377,7 +377,7 @@ where
     // return type
     .then(type_expr().delimited_by(ctrl('<'), ctrl('>')).or_not())
     // body
-    .then(choice((internal, func_call(expr))))
+    .then(func_call(expr))
     .map(|(((generic_type_params, params), return_ty), body)| {
         let (pos, name) = params
             .into_iter()

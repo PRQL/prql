@@ -84,7 +84,7 @@ pub enum PrimitiveSet {
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct TyFunc {
     pub name_hint: Option<Ident>,
-    pub args: Vec<Option<Ty>>,
+    pub params: Vec<Option<Ty>>,
     pub return_ty: Box<Option<Ty>>,
 }
 
