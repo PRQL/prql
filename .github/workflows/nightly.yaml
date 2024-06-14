@@ -19,8 +19,8 @@ jobs:
     # Would be better if we could only run when we know we have permissions. But
     # this will do...
     if:
-      ${{ github.repository_owner == 'prql' && !github.event.repository.fork ==
-      'false' }}
+      ${{ github.repository_owner == 'prql' &&
+      !github.event.pull_request.head.repo.fork }}
     permissions:
       actions: read
       contents: read
@@ -61,13 +61,12 @@ jobs:
     runs-on: ubuntu-latest
     # # See notes in `cargo-audit` for why we disable on forks and dependabot.
     if:
-      ${{ github.repository_owner == 'prql' && !github.event.repository.fork ==
-      'false' }}
-
+      ${{ github.repository_owner == 'prql' &&
+      !github.event.pull_request.head.repo.fork }}
     # Note that this doesn't change the minimum supported version, only the
-    # default to run on. The minimum is defined by Cargo.toml's metadata.msrv
-    # and is updated manually based on when build environments such as debian &
-    # winget are updated.
+    # default toolchain to run on. The minimum is defined by Cargo.toml's
+    # metadata.msrv and is updated manually based on when build environments
+    # such as debian & winget are updated.
     steps:
       - name: 📂 Checkout code
         uses: actions/checkout@v4
@@ -78,6 +77,9 @@ jobs:
           toolchain-path: "./rust-toolchain.toml"
           pr-title: "build: Update rust toolchain version"
           token: ${{ secrets.PRQL_BOT_GITHUB_TOKEN }}
+    permissions:
+      contents: read
+      issues: write
 
   check-unused-dependencies:
     runs-on: ubuntu-latest
