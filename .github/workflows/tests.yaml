@@ -397,6 +397,17 @@ jobs:
   measure-code-cov:
     runs-on: ubuntu-latest
     needs: rules
+    if:
+      # This raises an error on forks. It allows running on PRs to the main
+      # repo, which is important.
+      #
+      # As of 2024-06, codecov was still working through how they handle forks /
+      # tokens on PRs given rate limits.
+      #
+      # Rarely do we need this uploading from forks so while we can reenable
+      # running from forks if it works, it's not that important.
+      #
+      ${{ github.repository_owner == 'prql' }}
     steps:
       - name: 📂 Checkout code
         uses: actions/checkout@v4
