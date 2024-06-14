@@ -416,7 +416,24 @@ jobs:
           # what is useful coverage
           cargo llvm-cov --cobertura --output-path=cobertura.xml
           --no-default-features --features=default,test-dbs
+      - name: Upload code coverage results
+        uses: actions/upload-artifact@v4
+        with:
+          name: code-coverage-report
+          path: cobertura.xml
       - name: Upload to codecov.io
+        if:
+          # This raises an error on forks. It allows running on PRs to the main
+          # repo, which is important.
+          #
+          # As of 2024-06, codecov was still working through how they handle
+          # forks / tokens on PRs given rate limits, expect some failurs for a
+          # bit.
+          #
+          # Rarely do we need this uploading from forks so while we can reenable
+          # running from forks if it works, it's not that important.
+          #
+          ${{ github.repository_owner == 'prql' }}
         uses: codecov/codecov-action@v4
         with:
           files: cobertura.xml
@@ -430,11 +447,6 @@ jobs:
           # Edit: actually no luck, waiting on
           # https://github.com/codecov/codecov-action/issues/1469
           token: cab4ace5-4f10-4027-8b5c-d79722234571
-      - name: Upload code coverage results
-        uses: actions/upload-artifact@v4
-        with:
-          name: code-coverage-report
-          path: cobertura.xml
 
   test-grammars:
     # Currently tests lezer grammars. We could split that out into a separate
