@@ -119,7 +119,10 @@ jobs:
               - web/book/**
               - .github/workflows/test-rust.yaml
             taskfile:
-              - Taskfile.yaml
+              # Run taskfile test on any Taskfile change, since the tasks pull in tasks from
+              # other taskfiles. (But we don't run the container rebuilds, since those are
+              # much heavier)
+              - "**/Taskfile.yaml"
             web:
               - "web/**"
               - ".github/workflows/build-web.yaml"
