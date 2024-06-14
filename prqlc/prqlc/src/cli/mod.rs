@@ -271,7 +271,7 @@ impl LogLevel for LoggingHelp {
 
     fn verbose_long_help() -> Option<&'static str> {
         Some(
-            r#"More v's, More vebose logging:
+            r#"More `v`s, More vebose logging:
 -v shows warnings
 -vv shows info
 -vvv shows debug

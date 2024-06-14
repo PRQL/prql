@@ -40,7 +40,7 @@ fn help() {
               [possible values: auto, always, never]
 
       -v, --verbose...
-              More v's, More vebose logging:
+              More `v`s, More vebose logging:
               -v shows warnings
               -vv shows info
               -vvv shows debug
@@ -142,7 +142,7 @@ fn compile_help() {
               [possible values: auto, always, never]
 
       -v, --verbose...
-              More v's, More vebose logging:
+              More `v`s, More vebose logging:
               -v shows warnings
               -vv shows info
               -vvv shows debug
