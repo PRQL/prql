@@ -682,10 +682,10 @@ jobs:
     needs:
       - check-ok-to-merge
     if:
-      # We check that it's on a schedule as well as it running on nightly — we
-      # don't want to trigger just on a `pr-nightly` label
-      always() && (github.event_name == 'schedule') && contains(needs.*.result,
-      'failure')
+      # We check that it's on a schedule (we don't want to trigger just on a
+      # `pr-nightly` label). And we only run on our own repo, not on forks.
+      always() && contains(needs.*.result, 'failure') && (github.event_name ==
+      'schedule') && github.repository_owner == 'prql'
     permissions:
       contents: read
       issues: write
