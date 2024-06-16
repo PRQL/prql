@@ -340,8 +340,7 @@ jobs:
     needs: rules
     uses: ./.github/workflows/nightly.yaml
     if: needs.rules.outputs.nightly == 'true'
-    secrets:
-      PRQL_BOT_GITHUB_TOKEN: ${{ secrets.PRQL_BOT_GITHUB_TOKEN }}
+    secrets: inherit
 
   check-links-markdown:
     needs: rules
