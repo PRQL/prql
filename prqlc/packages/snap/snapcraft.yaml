@@ -1,7 +1,7 @@
 name: prqlc
 title: PRQL Compiler
 base: core22
-version: git
+version: '0.12.2'
 summary: CLI for PRQL, a modern language for transforming data
 description: |
   prqlc is the CLI for the PRQL compiler. It compiles PRQL to SQL, and offers various diagnostics.

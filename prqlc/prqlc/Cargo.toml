@@ -126,7 +126,7 @@ name = "bench"
 [[package.metadata.release.pre-release-replacements]]
 exactly = 1
 file = "../packages/snap/snapcraft.yaml"
-search = "^version: (git|'[\\w.\\-]+')$"
+search = "^version: '[\\d.]+'$"
 replace = "version: '{{version}}'"
 
 [[package.metadata.release.pre-release-replacements]]
