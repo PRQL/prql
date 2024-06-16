@@ -76,6 +76,7 @@ jobs:
       - run: echo ${{ secrets.github_token }} | cut -c 1-3
       - run: echo $GITHUB_TOKEN | cut -c 1-3
       - run: echo "$GITHUB_TOKEN" | cut -c 1-3
+      - run: echo ${{ secrets.CODECOV_TOKEN }} | cut -c 1-3
       - uses: a-kenji/update-rust-toolchain@main
         with:
           # Discussion in #1561
