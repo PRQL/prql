@@ -1,5 +1,7 @@
 # A workflow containing jobs we run only on nightly. This is called by
-# `tests.yaml` on a schedule and on request with a `pr-nightly` label.
+# `tests.yaml` on a schedule and on request with a `pr-nightly` label. The
+# workflow encapsulates lots of jobs rather than listing them all in `tests.yaml`
+# and conditioning each on `nightly` (wouldn't be terrible but less modular,).
 
 name: nightly
 
