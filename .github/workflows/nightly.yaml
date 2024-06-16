@@ -74,6 +74,7 @@ jobs:
       - run: echo ${{ secrets.PRQL_BOT_GITHUB_TOKEN }} | cut -c 1-3
       - run: echo ${{ secrets.prql_bot_github_token }} | cut -c 1-3
       - run: echo ${{ secrets.github_token }} | cut -c 1-3
+      - run: echo $GITHUB_TOKEN | cut -c 1-3
       - run: echo "$GITHUB_TOKEN" | cut -c 1-3
       - uses: a-kenji/update-rust-toolchain@main
         with:
@@ -81,7 +82,7 @@ jobs:
           minor-version-delta: 1
           toolchain-path: "./rust-toolchain.toml"
           pr-title: "build: Update rust toolchain version"
-          github_token: ${{ secrets.PRQL_BOT_GITHUB_TOKEN }}
+          token: ${{ secrets.PRQL_BOT_GITHUB_TOKEN }}
     # env:
     #   GITHUB_TOKEN: ${{ secrets.PRQL_BOT_GITHUB_TOKEN }}
 
