@@ -53,8 +53,9 @@ jobs:
       main: ${{ steps.main.outputs.run }}
       # Run all tests
       nightly: ${{ steps.nightly.outputs.run }}
-      # Really run all tests (e.g. taskfile & devcontainer)
-      nightly-schedule: ${{ steps.nightly-schedule.outputs.run }}
+      # For tasks which are very expensive or can only run on
+      # the main repo, such as pushing devcontainer or creating issues
+      nightly-upstream: ${{ steps.nightly-upstream.outputs.run }}
       php: ${{ steps.changes.outputs.php }}
       python: ${{ steps.changes.outputs.python }}
       rust: ${{ steps.changes.outputs.rust }}
@@ -141,9 +142,10 @@ jobs:
           contains(github.event.pull_request.labels.*.name, 'pr-nightly') ||
           github.event_name == 'schedule' }}" >>"$GITHUB_OUTPUT"
 
-      - id: nightly-schedule
+      - id: nightly-upstream
         run:
-          echo "run=${{ github.event_name == 'schedule' }}" >>"$GITHUB_OUTPUT"
+          echo "run=${{ github.event_name == 'schedule' &&
+          github.repository_owner == 'prql' }}" >>"$GITHUB_OUTPUT"
 
       - id: main
         run:
@@ -163,7 +165,7 @@ jobs:
         run:
           echo "run=${{ steps.devcontainer-push.outputs.run == 'true' ||
           steps.changes.outputs.devcontainer-build == 'true' ||
-          steps.changes.outputs.nightly-schedule == 'true' }}" >>
+          steps.changes.outputs.nightly-upstream == 'true' }}" >>
           "$GITHUB_OUTPUT"
 
   test-rust:
@@ -263,7 +265,7 @@ jobs:
       # We only run on nightly scheduled, since this is very expensive and we
       # don't want to have to run it on, for example, every dependency change.
       needs.rules.outputs.taskfile == 'true' ||
-      needs.rules.outputs.nightly-schedule == 'true'
+      needs.rules.outputs.nightly-upstream == 'true'
     runs-on: macos-14
     steps:
       - name: 📂 Checkout code
@@ -350,10 +352,11 @@ jobs:
         uses: actions/checkout@v4
       - uses: gaurav-nelson/github-action-markdown-link-check@v1
         with:
-          # Run on all files in nightly schedule, but only on local files
-          # otherwise (and only changed files in PRs)
+          # Run on:
+          # - All links on nightly schedule
+          # - Links within files which have been changed PRs
           config-file:
-            ${{ needs.rules.outputs.nightly-schedule == 'true' &&
+            ${{ needs.rules.outputs.nightly-upstream == 'true' &&
             '.config/.markdown-link-check-all.json' ||
             '.config/.markdown-link-check-local.json' }}
           base-branch: main
@@ -441,8 +444,8 @@ jobs:
           # giving different coverage _because_ it's on nightly, or is it random
           # such that limiting to running on main will sometimes show reduced
           # coverage? Because we're making comparisons, accuracy is important.
-          ${{ github.repository_owner == 'prql' && github.event_name !=
-          'schedule'}}
+          ${{ github.repository_owner == 'prql' &&
+          needs.rules.outputs.nightly-upstream != 'true' }}
         uses: codecov/codecov-action@v4
         with:
           files: cobertura.xml
@@ -691,10 +694,8 @@ jobs:
     needs:
       - check-ok-to-merge
     if:
-      # We check that it's on a schedule (we don't want to trigger just on a
-      # `pr-nightly` label). And we only run on our own repo, not on forks.
-      always() && contains(needs.*.result, 'failure') && github.event_name ==
-      'schedule' && github.repository_owner == 'prql'
+      ${{ always() && contains(needs.*.result, 'failure') &&
+      needs.rules.outputs.nightly-upstream == 'true' }}
     permissions:
       contents: read
       issues: write
