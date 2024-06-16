@@ -714,3 +714,21 @@ jobs:
           filename: .github/nightly-failure.md
           update_existing: true
           search_existing: open
+
+  update-rust-toolchain:
+    runs-on: ubuntu-latest
+    if: ${{ needs.rules.outputs.nightly-upstream == 'true' }}
+    # Note that this doesn't change the minimum supported version, only the
+    # default toolchain to run on. The minimum is defined by Cargo.toml's
+    # metadata.msrv and is updated manually based on when build environments
+    # such as debian & winget are updated.
+    steps:
+      - name: 📂 Checkout code
+        uses: actions/checkout@v4
+      - uses: a-kenji/update-rust-toolchain@main
+        with:
+          # Discussion in #1561
+          minor-version-delta: 1
+          toolchain-path: "./rust-toolchain.toml"
+          pr-title: "build: Update rust toolchain version"
+          token: ${{ secrets.PRQL_BOT_GITHUB_TOKEN }}
