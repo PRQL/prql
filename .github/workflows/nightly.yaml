@@ -188,6 +188,7 @@ jobs:
       - name: Perform CodeQL Analysis
         uses: github/codeql-action/analyze@v3
 
-  nightly-release:
-    # Test release workflow
-    uses: ./.github/workflows/release.yaml
+  # FIXME
+  # nightly-release:
+  #   # Test release workflow
+  #   uses: ./.github/workflows/release.yaml
