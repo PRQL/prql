@@ -717,6 +717,7 @@ jobs:
 
   update-rust-toolchain:
     runs-on: ubuntu-latest
+    needs: rules
     if: ${{ needs.rules.outputs.nightly-upstream == 'true' }}
     # Note that this doesn't change the minimum supported version, only the
     # default toolchain to run on. The minimum is defined by Cargo.toml's
