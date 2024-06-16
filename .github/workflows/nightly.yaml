@@ -77,9 +77,9 @@ jobs:
           toolchain-path: "./rust-toolchain.toml"
           pr-title: "build: Update rust toolchain version"
           token: ${{ secrets.PRQL_BOT_GITHUB_TOKEN }}
-    permissions:
-      contents: read
-      issues: write
+    # permissions:
+    #   contents: read
+    #   issues: write
 
   check-unused-dependencies:
     runs-on: ubuntu-latest
