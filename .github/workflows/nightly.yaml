@@ -6,12 +6,6 @@ name: nightly
 on:
   workflow_call:
   workflow_dispatch:
-  pull_request:
-    # Add `labeled`, so we can trigger a new run by adding a `pr-nightly`
-    # label, which we then use to trigger a `nightly` run.
-    types: [opened, reopened, synchronize, labeled]
-    branches:
-      - "*"
 
 jobs:
   cargo-audit:
