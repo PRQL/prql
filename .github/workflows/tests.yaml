@@ -428,24 +428,24 @@ jobs:
       - name: Upload to codecov.io
         if:
           # This action raises an error on forks. It allows running on PRs to
-          # the main repo, which is important.
+          # the main repo, which is important. Rarely do we need this uploading
+          # from forks so while we can reenable running from forks if it works,
+          # it's not that important.
           #
           # As of 2024-06, codecov was still working through how they handle
-          # forks / tokens on PRs given rate limits, expect some failurs for a
+          # forks / tokens on PRs given rate limits, expect some failures for a
           # bit.
           #
-          # Rarely do we need this uploading from forks so while we can reenable
-          # running from forks if it works, it's not that important.
-          #
-          # As of 2024-06, we're also seeing that uploading on nightly can
+          # As of 2024-06, we're also seeing that uploading on schedule can
           # measure very slightly different coverage, which can then cause PRs
           # based off that base to show reduced coverage, and show a failure. So
-          # we disable it on nightly. Not sure that's a perfect solution — is it
-          # giving different coverage _because_ it's on nightly, or is it random
-          # such that limiting to running on main will sometimes show reduced
-          # coverage? Because we're making comparisons, accuracy is important.
-          ${{ github.repository_owner == 'prql' &&
-          needs.rules.outputs.nightly-upstream != 'true' }}
+          # we disable it on schedule. Not sure that's a perfect solution — is
+          # it giving different coverage _because_ it's on schedule, or is it
+          # random such that limiting to running on main will sometimes show
+          # reduced coverage? Because we're making comparisons, reproducible
+          # accuracy is important.
+          ${{ github.repository_owner == 'prql' && github.event_name !=
+          'schedule' }}
         uses: codecov/codecov-action@v4
         with:
           files: cobertura.xml
