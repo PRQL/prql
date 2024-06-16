@@ -76,13 +76,6 @@ jobs:
     steps:
       - name: 📂 Checkout code
         uses: actions/checkout@v4
-      # FIXME: remove
-      - run: echo ${{ secrets.PRQL_BOT_GITHUB_TOKEN }} | cut -c 1-3
-      - run: echo ${{ secrets.prql_bot_github_token }} | cut -c 1-3
-      - run: echo ${{ secrets.github_token }} | cut -c 1-3
-      - run: echo $GITHUB_TOKEN | cut -c 1-3
-      - run: echo "$GITHUB_TOKEN" | cut -c 1-3
-      - run: echo ${{ secrets.CODECOV_TOKEN }} | cut -c 1-3
       - uses: a-kenji/update-rust-toolchain@main
         with:
           # Discussion in #1561
@@ -90,12 +83,6 @@ jobs:
           toolchain-path: "./rust-toolchain.toml"
           pr-title: "build: Update rust toolchain version"
           token: ${{ secrets.PRQL_BOT_GITHUB_TOKEN }}
-    # env:
-    #   GITHUB_TOKEN: ${{ secrets.PRQL_BOT_GITHUB_TOKEN }}
-
-    # permissions:
-    #   contents: read
-    #   issues: write
 
   check-unused-dependencies:
     runs-on: ubuntu-latest
