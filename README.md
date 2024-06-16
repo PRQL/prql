@@ -2,18 +2,20 @@
 
 <!-- User badges on first line (language docs & chat) -->
 
+<!-- Discord online count is blocked rate limits, can try swapping back [![Discord](https://img.shields.io/discord/936728116712316989?label=discord%20chat&style=for-the-badge)](https://discord.gg/eQcfaCmsNc) -->
+<!-- Twitter followers doesn't work, but leaving the badge there -->
+
 [![Website](https://img.shields.io/badge/INTRO-WEB-blue?style=for-the-badge)](https://prql-lang.org)
 [![Playground](https://img.shields.io/badge/INTRO-PLAYGROUND-blue?style=for-the-badge)](https://prql-lang.org/playground)
 [![Language Docs](https://img.shields.io/badge/DOCS-BOOK-blue?style=for-the-badge)](https://prql-lang.org/book)
-[![Discord](https://img.shields.io/discord/936728116712316989?label=discord%20chat&style=for-the-badge)](https://discord.gg/eQcfaCmsNc)
+[![Discord](https://img.shields.io/badge/DISCORD-CHAT-indigo?style=for-the-badge&logo=discord)](https://discord.gg/eQcfaCmsNc)
+![Twitter](https://img.shields.io/twitter/follow/prql_lang?color=%231DA1F2&style=for-the-badge&logo=x)
 
-<!-- Doesn't seem to be working; add back if it is -->
-<!-- [![Twitter](https://img.shields.io/twitter/follow/prql_lang?color=%231DA1F2&style=for-the-badge)](https://twitter.com/prql_lang) -->
 <!-- Dev badges on second line -->
 
 [![GitHub CI Status](https://img.shields.io/github/actions/workflow/status/prql/prql/tests.yaml?event=push&branch=main&logo=github&style=for-the-badge)](https://github.com/PRQL/prql/actions?query=branch%3Amain+workflow%3Atests)
-[![GitHub contributors](https://img.shields.io/github/contributors/PRQL/prql?style=for-the-badge)](https://github.com/PRQL/prql/graphs/contributors)
-[![Stars](https://img.shields.io/github/stars/PRQL/prql?style=for-the-badge)](https://github.com/PRQL/prql/stargazers)
+[![GitHub contributors](https://img.shields.io/github/contributors/PRQL/prql?style=for-the-badge&logo=github)](https://github.com/PRQL/prql/graphs/contributors)
+[![Stars](https://img.shields.io/github/stars/PRQL/prql?style=for-the-badge&logo=github)](https://github.com/PRQL/prql/stargazers)
 
 **P**ipelined **R**elational **Q**uery **L**anguage, pronounced "Prequel".
 
