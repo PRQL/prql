@@ -693,6 +693,7 @@ jobs:
     runs-on: ubuntu-latest
     needs:
       - check-ok-to-merge
+      - rules
     if:
       ${{ always() && contains(needs.*.result, 'failure') &&
       needs.rules.outputs.nightly-upstream == 'true' }}
