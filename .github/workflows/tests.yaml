@@ -336,10 +336,10 @@ jobs:
   #   uses: ./.github/workflows/publish-web.yaml
   #   if: contains(github.event.pull_request.labels.*.name, 'pr-publish-web')
 
-  nightly:
-    needs: rules
-    uses: ./.github/workflows/nightly.yaml
-    if: needs.rules.outputs.nightly == 'true'
+  # nightly:
+  #   needs: rules
+  #   uses: ./.github/workflows/nightly.yaml
+  #   if: needs.rules.outputs.nightly == 'true'
 
   # check-links-markdown:
   #   needs: rules
