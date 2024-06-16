@@ -9,7 +9,7 @@
 [![Playground](https://img.shields.io/badge/INTRO-PLAYGROUND-blue?style=for-the-badge)](https://prql-lang.org/playground)
 [![Language Docs](https://img.shields.io/badge/DOCS-BOOK-blue?style=for-the-badge)](https://prql-lang.org/book)
 [![Discord](https://img.shields.io/badge/DISCORD-CHAT-indigo?style=for-the-badge&logo=discord)](https://discord.gg/eQcfaCmsNc)
-![Twitter](https://img.shields.io/twitter/follow/prql_lang?color=%231DA1F2&style=for-the-badge&logo=x)
+[![Twitter](https://img.shields.io/twitter/follow/prql_lang?color=%231DA1F2&style=for-the-badge&logo=x)](https://twitter.com/prql_lang)
 
 <!-- Dev badges on second line -->
 
