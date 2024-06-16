@@ -13,7 +13,8 @@ on:
     branches:
       - main
   schedule:
-    # Pick a random time, something that others won't pick, to reduce GH's demand variance.
+    # Pick a random time, something that others won't pick, to be good citizens
+    # and reduce GH's demand variance.
     - cron: "49 10 * * *"
   workflow_dispatch:
   workflow_call:
@@ -423,8 +424,8 @@ jobs:
           path: cobertura.xml
       - name: Upload to codecov.io
         if:
-          # This raises an error on forks. It allows running on PRs to the main
-          # repo, which is important.
+          # This action raises an error on forks. It allows running on PRs to
+          # the main repo, which is important.
           #
           # As of 2024-06, codecov was still working through how they handle
           # forks / tokens on PRs given rate limits, expect some failurs for a
@@ -433,7 +434,15 @@ jobs:
           # Rarely do we need this uploading from forks so while we can reenable
           # running from forks if it works, it's not that important.
           #
-          ${{ github.repository_owner == 'prql' }}
+          # As of 2024-06, we're also seeing that uploading on nightly can
+          # measure very slightly different coverage, which can then cause PRs
+          # based off that base to show reduced coverage, and show a failure. So
+          # we disable it on nightly. Not sure that's a perfect solution — is it
+          # giving different coverage _because_ it's on nightly, or is it random
+          # such that limiting to running on main will sometimes show reduced
+          # coverage? Because we're making comparisons, accuracy is important.
+          ${{ github.repository_owner == 'prql' && github.event_name !=
+          'schedule'}}
         uses: codecov/codecov-action@v4
         with:
           files: cobertura.xml
@@ -684,8 +693,8 @@ jobs:
     if:
       # We check that it's on a schedule (we don't want to trigger just on a
       # `pr-nightly` label). And we only run on our own repo, not on forks.
-      always() && contains(needs.*.result, 'failure') && (github.event_name ==
-      'schedule') && github.repository_owner == 'prql'
+      always() && contains(needs.*.result, 'failure') && github.event_name ==
+      'schedule' && github.repository_owner == 'prql'
     permissions:
       contents: read
       issues: write
