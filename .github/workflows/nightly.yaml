@@ -59,7 +59,7 @@ jobs:
 
   update-rust-toolchain:
     runs-on: ubuntu-latest
-    # # See notes in `cargo-audit` for why we disable on forks.
+    # See notes in `cargo-audit` for why we disable on forks.
     if:
       ${{ github.repository_owner == 'prql' &&
       !github.event.pull_request.head.repo.fork }}
