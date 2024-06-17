@@ -1,5 +1,7 @@
 # A workflow containing jobs we run only on nightly. This is called by
-# `tests.yaml` on a schedule and on request with a `pr-nightly` label.
+# `tests.yaml` on a schedule and on request with a `pr-nightly` label. The
+# workflow encapsulates lots of jobs rather than listing them all in `tests.yaml`
+# and conditioning each on `nightly` (wouldn't be terrible but less modular,).
 
 name: nightly
 
@@ -56,30 +58,6 @@ jobs:
       - uses: ./.github/actions/time-compilation
         with:
           use_cache: ${{ matrix.use_cache }}
-
-  update-rust-toolchain:
-    runs-on: ubuntu-latest
-    # See notes in `cargo-audit` for why we disable on forks.
-    if:
-      ${{ github.repository_owner == 'prql' &&
-      !github.event.pull_request.head.repo.fork }}
-    # Note that this doesn't change the minimum supported version, only the
-    # default toolchain to run on. The minimum is defined by Cargo.toml's
-    # metadata.msrv and is updated manually based on when build environments
-    # such as debian & winget are updated.
-    steps:
-      - name: 📂 Checkout code
-        uses: actions/checkout@v4
-      - uses: a-kenji/update-rust-toolchain@main
-        with:
-          # Discussion in #1561
-          minor-version-delta: 1
-          toolchain-path: "./rust-toolchain.toml"
-          pr-title: "build: Update rust toolchain version"
-          token: ${{ secrets.PRQL_BOT_GITHUB_TOKEN }}
-    permissions:
-      contents: read
-      issues: write
 
   check-unused-dependencies:
     runs-on: ubuntu-latest
