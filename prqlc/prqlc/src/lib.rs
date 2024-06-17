@@ -99,12 +99,19 @@
 // yak-shaving exercise in the future.
 #![allow(clippy::result_large_err)]
 
+mod codegen;
+mod error_message;
+pub mod ir;
+pub mod parser;
+pub mod semantic;
+pub mod sql;
+mod utils;
+
 use std::sync::OnceLock;
 use std::{collections::HashMap, path::PathBuf, str::FromStr};
 
 use anstream::adapter::strip_str;
 pub use error_message::{ErrorMessage, ErrorMessages, SourceLocation};
-pub use ir::Span;
 pub use prqlc_ast as ast;
 use prqlc_parser::err::error::ErrorSource;
 pub use prqlc_parser::err::error::{Error, Errors, MessageKind, Reason, WithErrorInfo};
@@ -113,13 +120,7 @@ use semver::Version;
 use serde::{Deserialize, Serialize};
 use strum::VariantNames;
 
-mod codegen;
-mod error_message;
-pub mod ir;
-pub mod parser;
-pub mod semantic;
-pub mod sql;
-mod utils;
+pub use crate::ir::Span;
 
 pub type Result<T, E = Error> = core::result::Result<T, E>;
 
