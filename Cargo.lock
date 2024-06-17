@@ -3069,7 +3069,6 @@ dependencies = [
  "minijinja",
  "mysql",
  "notify",
- "once_cell",
  "pg_bigdecimal",
  "postgres",
  "prqlc-ast",

@@ -17,7 +17,7 @@ use crate::ir::generic::{ColumnSort, SortDirection, WindowFrame, WindowKind};
 use crate::ir::pl::{self, Ident, Literal};
 use crate::ir::rq::*;
 use crate::sql::srq::context::ColumnDecl;
-use crate::utils::{OrMap, VALID_IDENT};
+use crate::utils::{valid_ident, OrMap};
 use crate::{Error, Reason, Result, Span, WithErrorInfo};
 
 pub(super) fn translate_expr(expr: Expr, ctx: &mut Context) -> Result<ExprOrSource> {
@@ -804,7 +804,7 @@ pub(super) fn translate_ident(
 }
 
 pub(super) fn translate_ident_part(ident: String, ctx: &Context) -> sql_ast::Ident {
-    let is_bare = VALID_IDENT.is_match(&ident);
+    let is_bare = valid_ident().is_match(&ident);
 
     if is_bare && !keywords::is_keyword(&ident) {
         sql_ast::Ident::new(ident)
