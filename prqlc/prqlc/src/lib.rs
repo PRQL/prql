@@ -99,12 +99,12 @@
 // yak-shaving exercise in the future.
 #![allow(clippy::result_large_err)]
 
+use std::sync::OnceLock;
 use std::{collections::HashMap, path::PathBuf, str::FromStr};
 
 use anstream::adapter::strip_str;
 pub use error_message::{ErrorMessage, ErrorMessages, SourceLocation};
 pub use ir::Span;
-use once_cell::sync::Lazy;
 pub use prqlc_ast as ast;
 use prqlc_parser::err::error::ErrorSource;
 pub use prqlc_parser::err::error::{Error, Errors, MessageKind, Reason, WithErrorInfo};
@@ -123,8 +123,12 @@ mod utils;
 
 pub type Result<T, E = Error> = core::result::Result<T, E>;
 
-pub static COMPILER_VERSION: Lazy<Version> =
-    Lazy::new(|| Version::parse(env!("CARGO_PKG_VERSION")).expect("Invalid prqlc version number"));
+pub fn compiler_version() -> &'static Version {
+    static COMPILER_VERSION: OnceLock<Version> = OnceLock::new();
+    COMPILER_VERSION.get_or_init(|| {
+        Version::parse(env!("CARGO_PKG_VERSION")).expect("Invalid prqlc version number")
+    })
+}
 
 /// Compile a PRQL string into a SQL string.
 ///
