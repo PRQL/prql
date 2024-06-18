@@ -14,11 +14,6 @@ jobs:
   build-web:
     runs-on: ubuntu-latest
 
-    # Skip running workflow on forks. Checking the repository owner still allows
-    # this to be run on PRs, and then below we disable it from attempting to
-    # publish.
-    if: github.repository_owner == 'prql'
-
     steps:
       - name: 📂 Checkout code
         uses: actions/checkout@v4
@@ -70,8 +65,6 @@ jobs:
 
   build-codemirror-demo:
     runs-on: ubuntu-latest
-
-    if: github.repository_owner == 'prql'
 
     steps:
       - name: 📂 Checkout code
