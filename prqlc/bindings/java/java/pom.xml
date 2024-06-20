@@ -9,7 +9,7 @@
     <version>0.5.2</version>
 
     <name>${project.groupId}:${project.artifactId}</name>
-    <description>prql-compiler api for java</description>
+    <description>prqlc api for java</description>
     <url>https://github.com/PRQL/prql</url>
 
     <licenses>

@@ -6,7 +6,6 @@ members = [
   "prqlc/bindings/prqlc-c",
   "prqlc/bindings/prqlc-python",
   "prqlc/prqlc-macros",
-  "prqlc/prql-compiler",
   "prqlc/prqlc-parser",
   "prqlc/prqlc",
   "prqlc/prqlc/examples/compile-files", # An example

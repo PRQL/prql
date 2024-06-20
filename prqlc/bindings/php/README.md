@@ -1,6 +1,6 @@
 # prql-php
 
-`prql-php` offers PHP bindings to `prql-compiler` crate through FFI.
+`prql-php` offers PHP bindings to `prqlc` crate through FFI.
 
 It provides the `Compiler` class which contains `compile`, `prqlToPL`, `plToRQ`
 and `rqToSQL` functions.
@@ -34,14 +34,14 @@ A way to establish a dev environment with PHP, the ext-ffi extension and
 Composer is to use a [nix flake](https://github.com/loophp/nix-shell). After
 installing nix, enable experimental flakes feature:
 
-```
+```sh
 mkdir -p ~/.config/nix
 echo "experimental-features = nix-command flakes" >> ~/.config/nix/nix.conf
 ```
 
 Now you can spawn a shell from `prql-php/`:
 
-```
+```sh
 nix shell github:loophp/nix-shell#env-php81 --impure
 ```
 
@@ -57,13 +57,13 @@ There is a `task build-php` script that:
 
 ### Tests
 
-```
+```sh
 task build-php
 task test-php
 ```
 
 ### Code style
 
-```
+```sh
 ./vendor/bin/phpcs --standard=PSR12 src tests
 ```

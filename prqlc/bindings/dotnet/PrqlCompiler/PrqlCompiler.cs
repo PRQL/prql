@@ -62,7 +62,7 @@ namespace Prql.Compiler
         /// <returns>JSON.</returns>
         /// <exception cref="ArgumentException"><paramref name="prqlQuery"/> is null or empty.</exception>
         /// <exception cref="FormatException"><paramref name="prqlQuery"/> cannot be compiled.</exception>
-        /// <remarks>https://docs.rs/prql-compiler/latest/prql_compiler/ir/pl</remarks>
+        /// <remarks>https://docs.rs/prqlc/latest/</remarks>
         public static Result PrqlToPl(string prqlQuery)
         {
             if (string.IsNullOrEmpty(prqlQuery))
@@ -83,7 +83,7 @@ namespace Prql.Compiler
         /// <returns>JSON.</returns>
         /// <exception cref="ArgumentException"><paramref name="plJson"/> is null or empty.</exception>
         /// <exception cref="FormatException"><paramref name="plJson"/> cannot be compiled.</exception>
-        /// <remarks>https://docs.rs/prql-compiler/latest/prql_compiler/ast</remarks>
+        /// <remarks>https://docs.rs/prqlc/latest/</remarks>
         public static Result PlToRq(string plJson)
         {
             if (string.IsNullOrEmpty(plJson))
@@ -106,7 +106,7 @@ namespace Prql.Compiler
         /// <exception cref="ArgumentException"><paramref name="prqlQuery"/> is null or empty.</exception>
         /// <exception cref="ArgumentNullException"><paramref name="options"/> is <c>null</c>.</exception>
         /// <exception cref="FormatException"><paramref name="prqlQuery"/> cannot be compiled.</exception>
-        /// <remarks>https://docs.rs/prql-compiler/latest/prql_compiler/ir/rq</remarks>
+        /// <remarks>https://docs.rs/prqlc/latest/</remarks>
         public static Result RqToSql(string rqJson, PrqlCompilerOptions options)
         {
             if (string.IsNullOrEmpty(rqJson))
