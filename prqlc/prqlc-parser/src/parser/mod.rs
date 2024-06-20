@@ -10,7 +10,7 @@ mod expr;
 pub mod generic;
 mod interpolation;
 pub mod pr;
-mod stmt;
+pub(crate) mod stmt;
 mod test_parser;
 mod types;
 
@@ -29,7 +29,7 @@ pub fn parse_lr_to_pr(
 
 /// Convert the output of the lexer into the input of the parser. Requires
 /// supplying the original source code.
-fn prepare_stream(
+pub fn prepare_stream(
     tokens: impl Iterator<Item = Token>,
     source: &str,
     source_id: u16,

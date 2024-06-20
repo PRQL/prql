@@ -10,7 +10,7 @@ fn test_expr_ast_code_matches() {
     // This test exists to ensure that the doc comments of the shared fields/variants stay in sync.
     assert_snapshot!(
         diff_code_after_start(
-            &read_to_string("../prqlc-ast/src/expr.rs").unwrap(),
+            &read_to_string("../prqlc-parser/src/parser/pr/expr.rs").unwrap(),
             &read_to_string("../prqlc/src/ir/pl/expr.rs").unwrap(),
         ), @r###"
     @@ .. @@
@@ -88,7 +88,7 @@ fn test_stmt_ast_code_matches() {
     // This test exists to ensure that the doc comments of the shared fields/variants stay in sync.
     assert_snapshot!(
         diff_code_after_start(
-            &read_to_string("../prqlc-ast/src/stmt.rs").unwrap(),
+            &read_to_string("../prqlc-parser/src/parser/pr/stmt.rs").unwrap(),
             &read_to_string("../prqlc/src/ir/pl/stmt.rs").unwrap(),
         ), @r###"
     @@ .. @@
