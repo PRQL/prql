@@ -9,6 +9,7 @@
 //! Top-level construct is a list of statements [`Vec<Stmt>`].
 
 pub use crate::ast::Literal;
+pub use crate::ast::QueryDef;
 pub use crate::ast::{BinOp, BinaryExpr, Ident, UnOp, UnaryExpr};
 
 pub use self::expr::*;
