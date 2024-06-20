@@ -27,6 +27,9 @@ pub fn expr() -> impl Parser<TokenKind, Expr, Error = PError> + Clone {
             .map(|x| x.to_string())
             .map(ExprKind::Internal);
 
+        // This simply inlines `expr_call`. But if we call `expr_call` here, we get a
+        // stack overflow — possibly because this is a recursive parser?
+        // let nested_expr = pipeline(expr_call().boxed()).boxed();
         let nested_expr = pipeline(lambda_func(expr.clone()).or(func_call(expr.clone()))).boxed();
 
         let tuple = ident_part()
