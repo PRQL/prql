@@ -1,7 +1,7 @@
 use std::fs;
 
 use anyhow::Result;
-use prqlc::Error;
+use prqlc::parser_error::Error;
 
 use crate::ProjectCompiled;
 

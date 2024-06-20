@@ -3,10 +3,9 @@ use std::collections::HashSet;
 use std::fmt::Display;
 use std::hash::Hash;
 
-use prqlc_ast::TokenKind;
-
-use crate::ast::Span;
-use crate::err::error::{Error, ErrorSource, Reason, WithErrorInfo};
+use crate::error::{Error, ErrorSource, Reason, WithErrorInfo};
+use crate::lexer::lr::TokenKind;
+use crate::span::Span;
 
 #[derive(Clone, Debug)]
 pub struct ChumError<T: Hash + Eq> {

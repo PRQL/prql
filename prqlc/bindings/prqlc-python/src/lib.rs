@@ -148,7 +148,7 @@ impl CompileOptions {
 }
 
 fn convert_options(o: CompileOptions) -> Result<prqlc_lib::Options, prqlc_lib::ErrorMessages> {
-    use prqlc_lib::Error;
+    use prqlc_lib::parser_error::Error;
     let target = prqlc_lib::Target::from_str(&o.target).map_err(prqlc_lib::ErrorMessages::from)?;
 
     Ok(prqlc_lib::Options {

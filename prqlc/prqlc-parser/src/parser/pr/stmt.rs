@@ -4,7 +4,11 @@ use enum_as_inner::EnumAsInner;
 use semver::VersionReq;
 use serde::{Deserialize, Serialize};
 
-use crate::{expr::Expr, Ident, Span, TokenKind, Ty, WithAesthetics};
+use crate::parser::pr::ident::Ident;
+use crate::parser::pr::{Expr, Ty};
+use crate::parser::WithAesthetics;
+use crate::span::Span;
+use crate::TokenKind;
 
 #[derive(Debug, PartialEq, Eq, Clone, Serialize, Deserialize, Default)]
 pub struct QueryDef {

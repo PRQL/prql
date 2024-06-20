@@ -1,10 +1,10 @@
 use std::collections::HashMap;
 
 use itertools::Itertools;
-use prqlc_parser::err::error::WithErrorInfo;
+use prqlc_parser::error::WithErrorInfo;
+use prqlc_parser::parser::generic;
 
 use crate::ast;
-use crate::ast::generic;
 use crate::ir::decl;
 use crate::ir::pl::{self, new_binop};
 use crate::semantic::{NS_THAT, NS_THIS};
