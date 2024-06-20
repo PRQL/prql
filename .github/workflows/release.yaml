@@ -368,12 +368,12 @@ jobs:
       - uses: baptiste0928/cargo-install@v3
         with:
           crate: cargo-release
-      # Currently, we can only check prqlc-ast which is not dependent other local crates with --dry-run.
+      # Currently, we can only check prqlc-parser which is not dependent other local crates with --dry-run.
       # https://github.com/crate-ci/cargo-release/issues/691
       # --no-verify is required to prevent build.
       - run:
           cargo release publish --no-confirm ${{ github.event_name == 'release'
-          && '--execute' || '--no-verify --package prqlc-ast'}}
+          && '--execute' || '--no-verify --package prqlc-parser'}}
         env:
           CARGO_REGISTRY_TOKEN: ${{ secrets.CARGO_REGISTRY_TOKEN }}
 

@@ -3064,7 +3064,6 @@ dependencies = [
  "notify",
  "pg_bigdecimal",
  "postgres",
- "prqlc-ast",
  "prqlc-parser",
  "regex",
  "rstest",
@@ -3084,21 +3083,6 @@ dependencies = [
  "tokio",
  "tokio-util",
  "walkdir",
-]
-
-[[package]]
-name = "prqlc-ast"
-version = "0.12.3"
-dependencies = [
- "chumsky",
- "enum-as-inner",
- "insta",
- "semver",
- "serde",
- "serde_json",
- "serde_yaml",
- "stacker",
- "strum 0.26.2",
 ]
 
 [[package]]
@@ -3133,14 +3117,16 @@ name = "prqlc-parser"
 version = "0.12.3"
 dependencies = [
  "chumsky",
+ "enum-as-inner",
  "insta",
  "itertools 0.12.1",
  "log",
- "prqlc-ast",
  "semver",
  "serde",
+ "serde_json",
  "serde_yaml",
  "stacker",
+ "strum 0.26.2",
 ]
 
 [[package]]

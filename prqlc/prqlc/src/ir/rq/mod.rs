@@ -13,12 +13,13 @@ pub use expr::{Expr, ExprKind, UnOp};
 use expr::{InterpolateItem, Range, SwitchCase};
 pub use fold::*;
 pub use ids::*;
+use prqlc_parser::lexer::lr::Literal;
 use serde::{Deserialize, Serialize};
 pub use transform::*;
 pub use utils::*;
 
+use super::pl::QueryDef;
 use super::pl::TableExternRef;
-use super::pl::{Literal, QueryDef};
 
 #[derive(Debug, PartialEq, Clone, Serialize, Deserialize)]
 pub struct RelationalQuery {

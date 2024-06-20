@@ -272,7 +272,7 @@ tasks:
           split(" ")[0]'
     cmds:
       - |
-        cargo test {{ range without (splitLines .PACKAGES) "prqlc-ast" "prqlc-parser" }} -p={{ . }} {{ end }}
+        cargo test {{ range without (splitLines .PACKAGES) "prqlc-parser" }} -p={{ . }} {{ end }}
 
   test-all:
     desc: Test everything, accepting snapshots.

@@ -1,7 +1,6 @@
 use std::collections::HashSet;
 use std::sync::OnceLock;
 
-use prqlc_ast::expr::*;
 use regex::Regex;
 
 use super::{WriteOpt, WriteSource};
