@@ -20,6 +20,11 @@
 
 **Internal changes**:
 
+- Major reorganization of `prqlc-parser`. Files have been re-arranged and
+  exports have changed
+
+- Deprecated `prqlc-ast`. Functionality and objects were moved to `prqlc-parser`
+
 - Renamed `prql-compiler-macros` to `prqlc-macros` for consistency with other
   crates (@max-sixty, #4565)
 
