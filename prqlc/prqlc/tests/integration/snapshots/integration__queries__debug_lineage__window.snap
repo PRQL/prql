@@ -459,3 +459,13 @@ ast:
                     Literal:
                       Integer: 22
     span: 1:762-1021
+    aesthetics_before:
+    - !Comment ' mssql:skip Conversion("cannot interpret I64(Some(1)) as an i32 value")'', connection.rs:200:34'
+    - !Comment ' duckdb:skip problems with DISTINCT ON (duckdb internal error: [with INPUT_TYPE = int; RESULT_TYPE = unsigned char]: Assertion `min_val <= input'' failed.)'
+    - !Comment ' clickhouse:skip problems with DISTINCT ON'
+    - !Comment ' postgres:skip problems with DISTINCT ON'
+    - !Comment ' glaredb:skip — TODO: started raising an error on 2024-05-20, from https://github.com/PRQL/prql/actions/runs/9154902656/job/25198160283:'
+    - !Comment ' ERROR: This feature is not implemented: Unsupported ast node in sqltorel:'
+    - !Comment ' Substring { expr: Identifier(Ident { value: "title", quote_style: None }),'
+    - !Comment ' substring_from: Some(Value(Number("2", false))), substring_for:'
+    - !Comment ' Some(Value(Number("5", false))), special: true }'

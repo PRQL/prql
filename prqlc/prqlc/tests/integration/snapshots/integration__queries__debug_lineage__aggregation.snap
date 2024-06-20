@@ -258,3 +258,8 @@ ast:
                     args:
                     - Ident: empty_name
     span: 1:102-244
+    aesthetics_before:
+    - !Comment ' mssql:skip'
+    - !Comment ' mysql:skip'
+    - !Comment ' clickhouse:skip'
+    - !Comment ' glaredb:skip (the string_agg function is not supported)'

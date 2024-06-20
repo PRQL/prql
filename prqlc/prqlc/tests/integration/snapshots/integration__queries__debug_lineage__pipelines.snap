@@ -308,3 +308,7 @@ ast:
                 - Ident: name
                 - Ident: composer
     span: 1:166-298
+    aesthetics_before:
+    - !Comment ' sqlite:skip (Only works on Sqlite implementations which have the extension'
+    - !Comment ' installed'
+    - !Comment ' https://stackoverflow.com/questions/24037982/how-to-use-regexp-in-sqlite)'

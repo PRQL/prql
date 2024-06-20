@@ -9,12 +9,14 @@ pub use self::lexer::TokenVec;
 use crate::error::Error;
 use crate::lexer::lr::TokenKind;
 use crate::parser::pr::Stmt;
+use crate::parser::prepare_stream;
 
 /// Build PRQL AST from a PRQL query string.
 pub fn parse_source(source: &str, source_id: u16) -> Result<Vec<Stmt>, Vec<Error>> {
     let mut errors = Vec::new();
 
     let (tokens, lex_errors) = ::chumsky::Parser::parse_recovery(&lexer::lexer(), source);
+    // let (tokens, lex_errors) = ::chumsky::Parser::parse_recovery_verbose(&lexer::lexer(), source);
 
     log::debug!("Lex errors: {:?}", lex_errors);
     errors.extend(
@@ -23,20 +25,13 @@ pub fn parse_source(source: &str, source_id: u16) -> Result<Vec<Stmt>, Vec<Error
             .map(|e| lexer::convert_lexer_error(source, e, source_id)),
     );
 
-    // We don't want comments in the AST (but we do intend to use them as part of
-    // formatting)
-    let semantic_tokens: Option<_> = tokens.map(|tokens| {
-        tokens.into_iter().filter(|token| {
-            !matches!(
-                token.kind,
-                TokenKind::Comment(_) | TokenKind::LineWrap(_) | TokenKind::DocComment(_)
-            )
-        })
-    });
+    let ast = if let Some(tokens) = tokens {
+        let stream = prepare_stream(tokens.into_iter(), source, source_id);
 
-    let ast = if let Some(semantic_tokens) = semantic_tokens {
-        let stream = parser::prepare_stream(semantic_tokens, source, source_id);
+        // let ast = if let Some(semantic_tokens) = semantic_tokens {
+        //     let stream = parser::prepare_stream(semantic_tokens, source, source_id);
 
+        // ::chumsky::Parser::parse_recovery_verbose(&stmt::source(), stream);
         let (ast, parse_errors) =
             ::chumsky::Parser::parse_recovery(&parser::stmt::source(), stream);
 

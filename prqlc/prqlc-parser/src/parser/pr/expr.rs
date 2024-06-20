@@ -7,7 +7,9 @@ use crate::lexer::lr::Literal;
 use crate::parser::generic;
 use crate::parser::pr::ops::{BinOp, UnOp};
 use crate::parser::pr::Ty;
+use crate::parser::WithAesthetics;
 use crate::span::Span;
+use crate::TokenKind;
 
 impl Expr {
     pub fn new<K: Into<ExprKind>>(kind: K) -> Self {
@@ -15,6 +17,8 @@ impl Expr {
             kind: kind.into(),
             span: None,
             alias: None,
+            aesthetics_before: Vec::new(),
+            aesthetics_after: Vec::new(),
         }
     }
 }
@@ -33,6 +37,24 @@ pub struct Expr {
 
     #[serde(skip_serializing_if = "Option::is_none")]
     pub alias: Option<String>,
+
+    // Maybe should be Token?
+    #[serde(skip_serializing_if = "Vec::is_empty")]
+    pub aesthetics_before: Vec<TokenKind>,
+    #[serde(skip_serializing_if = "Vec::is_empty")]
+    pub aesthetics_after: Vec<TokenKind>,
+}
+
+impl WithAesthetics for Expr {
+    fn with_aesthetics(
+        mut self,
+        aesthetics_before: Vec<TokenKind>,
+        aesthetics_after: Vec<TokenKind>,
+    ) -> Self {
+        self.aesthetics_before = aesthetics_before;
+        self.aesthetics_after = aesthetics_after;
+        self
+    }
 }
 
 #[derive(Debug, EnumAsInner, PartialEq, Clone, Serialize, Deserialize, strum::AsRefStr)]

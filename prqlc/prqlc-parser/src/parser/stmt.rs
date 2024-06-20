@@ -8,11 +8,12 @@ use super::common::{ctrl, ident_part, into_stmt, keyword, new_line};
 use super::expr::{expr, expr_call, ident, pipeline};
 use crate::error::parse_error::PError;
 use crate::lexer::lr::{Literal, TokenKind};
+use crate::parser::common::with_aesthetics;
 use crate::parser::pr::*;
 use crate::parser::types::type_expr;
 
 pub fn source() -> impl Parser<TokenKind, Vec<Stmt>, Error = PError> {
-    query_def()
+    with_aesthetics(query_def())
         .or_not()
         .chain(module_contents())
         .then_ignore(end())
@@ -31,15 +32,36 @@ fn module_contents() -> impl Parser<TokenKind, Vec<Stmt>, Error = PError> {
             .then_ignore(new_line().repeated())
             .map(|expr| Annotation {
                 expr: Box::new(expr),
+                aesthetics_before: Vec::new(),
+                aesthetics_after: Vec::new(),
             });
 
-        annotation
-            .repeated()
-            .then(choice((module_def, type_def(), import_def(), var_def())))
-            .map_with_span(into_stmt)
-            .separated_by(new_line().repeated().at_least(1))
-            .allow_leading()
-            .allow_trailing()
+        // TODO: I think some duplication here; we allow for potential
+        // newlines before each item here, but then also have `.allow_leading`
+        // below — since now we can get newlines after a comment between the
+        // aesthetic item and the stmt... So a bit messy
+        let stmt_kind = new_line().repeated().ignore_then(choice((
+            module_def,
+            type_def(),
+            import_def(),
+            var_def(),
+        )));
+
+        // Two wrapping of `with_aesthetics` — the first for the whole block,
+        // and the second for just the annotation; if there's a comment between
+        // the annotation and the code.
+        with_aesthetics(
+            with_aesthetics(annotation)
+                .repeated()
+                // TODO: do we need this? I think possibly we get an additional
+                // error when we remove it; check (because it seems redundant...).
+                .then_ignore(new_line().repeated())
+                .then(stmt_kind)
+                .map_with_span(into_stmt),
+        )
+        .separated_by(new_line().repeated().at_least(1))
+        .allow_leading()
+        .allow_trailing()
     })
 }
 
@@ -113,7 +135,9 @@ fn query_def() -> impl Parser<TokenKind, Stmt, Error = PError> + Clone {
 }
 
 fn var_def() -> impl Parser<TokenKind, StmtKind, Error = PError> + Clone {
-    let let_ = keyword("let")
+    let let_ = new_line()
+        .repeated()
+        .ignore_then(keyword("let"))
         .ignore_then(ident_part())
         .then(type_expr().delimited_by(ctrl('<'), ctrl('>')).or_not())
         .then(ctrl('=').ignore_then(expr_call()).map(Box::new).or_not())

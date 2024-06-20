@@ -3,6 +3,7 @@ use chumsky::prelude::*;
 use crate::error::parse_error::PError;
 use crate::lexer::lr::TokenKind;
 use crate::parser::pr::{Annotation, Expr, ExprKind, Stmt, StmtKind, Ty, TyKind};
+use crate::parser::WithAesthetics;
 use crate::span::Span;
 
 pub fn ident_part() -> impl Parser<TokenKind, String, Error = PError> + Clone {
@@ -36,6 +37,8 @@ pub fn into_stmt((annotations, kind): (Vec<Annotation>, StmtKind), span: Span) -
         kind,
         span: Some(span),
         annotations,
+        aesthetics_before: Vec::new(),
+        aesthetics_after: Vec::new(),
     }
 }
 
@@ -51,4 +54,41 @@ pub fn into_ty(kind: TyKind, span: Span) -> Ty {
         span: Some(span),
         ..Ty::new(kind)
     }
+}
+
+pub fn aesthetic() -> impl Parser<TokenKind, TokenKind, Error = PError> + Clone {
+    select! {
+        TokenKind::Comment(comment) =>         TokenKind::Comment(comment),
+        TokenKind::LineWrap(lw) =>         TokenKind::LineWrap(lw),
+        TokenKind::DocComment(dc) => TokenKind::DocComment(dc),
+    }
+}
+
+pub fn with_aesthetics<P, O>(parser: P) -> impl Parser<TokenKind, O, Error = PError> + Clone
+where
+    P: Parser<TokenKind, O, Error = PError> + Clone,
+    O: WithAesthetics,
+{
+    // We can safely remove newlines following the `aesthetics_before`, to cover
+    // a case like `# foo` here:
+    //
+    // ```prql
+    // # foo
+    //
+    // from bar
+    // # baz
+    // select artists
+    // ```
+    //
+    // ...but not following the `aesthetics_after`; since that would eat all
+    // newlines between `from_bar` and `select_artists`.
+    //
+    let aesthetics_before = aesthetic().then_ignore(new_line().repeated()).repeated();
+    let aesthetics_after = aesthetic().separated_by(new_line());
+
+    aesthetics_before.then(parser).then(aesthetics_after).map(
+        |((aesthetics_before, inner), aesthetics_after)| {
+            inner.with_aesthetics(aesthetics_before, aesthetics_after)
+        },
+    )
 }

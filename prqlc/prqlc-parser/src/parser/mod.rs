@@ -46,3 +46,11 @@ pub fn prepare_stream(
     };
     Stream::from_iter(eoi, tokens)
 }
+
+pub trait WithAesthetics {
+    fn with_aesthetics(
+        self,
+        aesthetics_before: Vec<TokenKind>,
+        aethetics_after: Vec<TokenKind>,
+    ) -> Self;
+}

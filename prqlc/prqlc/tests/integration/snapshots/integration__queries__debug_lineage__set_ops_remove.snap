@@ -276,6 +276,8 @@ ast:
           named_params: []
           generic_type_params: []
     span: 1:13-79
+    aesthetics_before:
+    - !Comment ' mssql:test'
   - VarDef:
       kind: Main
       name: main

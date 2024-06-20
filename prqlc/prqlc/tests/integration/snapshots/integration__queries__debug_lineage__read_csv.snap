@@ -66,3 +66,7 @@ ast:
               args:
               - Ident: media_type_id
     span: 1:43-111
+    aesthetics_before:
+    - !Comment ' sqlite:skip'
+    - !Comment ' postgres:skip'
+    - !Comment ' mysql:skip'

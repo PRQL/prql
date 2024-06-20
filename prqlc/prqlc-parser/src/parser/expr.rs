@@ -6,7 +6,7 @@ use itertools::Itertools;
 use super::interpolation;
 use crate::error::parse_error::PError;
 use crate::lexer::lr::{Literal, TokenKind};
-use crate::parser::common::{ctrl, ident_part, into_expr, keyword, new_line};
+use crate::parser::common::{ctrl, ident_part, into_expr, keyword, new_line, with_aesthetics};
 use crate::parser::pr::ident::Ident;
 use crate::parser::pr::ops::{BinOp, UnOp};
 use crate::parser::pr::*;
@@ -30,7 +30,9 @@ pub fn expr() -> impl Parser<TokenKind, Expr, Error = PError> + Clone {
             .map(|x| x.to_string())
             .map(ExprKind::Internal);
 
-        let nested_expr = pipeline(lambda_func(expr.clone()).or(func_call(expr.clone()))).boxed();
+        let nested_expr = with_aesthetics(
+            pipeline(lambda_func(expr.clone()).or(func_call(expr.clone()))).boxed(),
+        );
 
         let tuple = ident_part()
             .then_ignore(ctrl('='))
@@ -125,18 +127,20 @@ pub fn expr() -> impl Parser<TokenKind, Expr, Error = PError> + Clone {
 
         let param = select! { TokenKind::Param(id) => ExprKind::Param(id) };
 
-        let term = choice((
-            literal,
-            internal,
-            tuple,
-            array,
-            interpolation,
-            ident_kind,
-            case,
-            param,
-        ))
-        .map_with_span(into_expr)
-        .or(pipeline)
+        let term = with_aesthetics(
+            choice((
+                literal,
+                internal,
+                tuple,
+                array,
+                interpolation,
+                ident_kind,
+                case,
+                param,
+            ))
+            .map_with_span(into_expr)
+            .or(pipeline),
+        )
         .boxed();
 
         // indirections

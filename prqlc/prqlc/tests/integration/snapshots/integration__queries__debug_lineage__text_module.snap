@@ -632,3 +632,7 @@ ast:
                           - Literal:
                               String: os
     span: 1:113-589
+    aesthetics_before:
+    - !Comment ' mssql:test'
+    - !Comment ' glaredb:skip — TODO: started raising an error on 2024-05-20; see `window.prql`'
+    - !Comment ' for more details'

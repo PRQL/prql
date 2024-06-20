@@ -401,6 +401,8 @@ fn test_basic_exprs() {
             args:
               - Ident: a
       span: "0:28-36"
+      aesthetics_before:
+        - Comment: " this is a comment"
     "###);
     assert_yaml_snapshot!(parse_expr(
             "join side:left country (id==employee_id)"
@@ -1926,6 +1928,8 @@ fn test_allowed_idents() {
                         op: EqSelf
                         expr:
                           Ident: employee_id
+                      aesthetics_after:
+                        - Comment: " table with leading underscore"
               - FuncCall:
                   name:
                     Ident: filter
