@@ -20,8 +20,15 @@
 
 **Internal changes**:
 
-- Major reorganization of `prqlc-parser` — `prqlc-ast` is merged into `prqlc-parser`, and `prqlc-parser`'s files are rearranged, including its exports. This is part of an effort to modularize the compiler by stage, reducing the amount of context that's required to understand a single stage. There will likely be some further changes (more detail in the PR description). (@m-span, #4634)
-  -  This is a breaking change for any libraries that use `prqlc-parser` which should be fairly rare.
+- Major reorganization of `prqlc-parser` — `prqlc-ast` is merged into
+  `prqlc-parser`, and `prqlc-parser`'s files are rearranged, including its
+  exports. This is part of an effort to modularize the compiler by stage,
+  reducing the amount of context that's required to understand a single stage.
+  There will likely be some further changes (more detail in the PR description).
+  (@m-span, #4634)
+
+  - This is a breaking change for any libraries that use `prqlc-parser` which
+    should be fairly rare.
 
 - Renamed `prql-compiler-macros` to `prqlc-macros` for consistency with other
   crates (@max-sixty, #4565)
