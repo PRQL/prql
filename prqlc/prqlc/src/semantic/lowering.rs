@@ -4,8 +4,8 @@ use std::iter::zip;
 
 use enum_as_inner::EnumAsInner;
 use itertools::Itertools;
+use prqlc_parser::generic::{InterpolateItem, Range, SwitchCase};
 use prqlc_parser::lexer::lr::Literal;
-use prqlc_parser::parser::generic::{InterpolateItem, Range, SwitchCase};
 
 use crate::ast::TyTupleField;
 use crate::compiler_version;

@@ -1,6 +1,5 @@
 mod common;
 mod expr;
-pub mod generic;
 mod interpolation;
 pub mod pr;
 pub(crate) mod stmt;

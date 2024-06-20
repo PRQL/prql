@@ -2,7 +2,7 @@ use std::collections::HashMap;
 
 use itertools::Itertools;
 use prqlc_parser::error::WithErrorInfo;
-use prqlc_parser::parser::generic;
+use prqlc_parser::generic;
 
 use crate::ast;
 use crate::ir::decl;

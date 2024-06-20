@@ -3,8 +3,8 @@ use std::collections::HashMap;
 use enum_as_inner::EnumAsInner;
 use serde::{Deserialize, Serialize};
 
+use crate::generic;
 use crate::lexer::lr::Literal;
-use crate::parser::generic;
 use crate::parser::pr::ops::{BinOp, UnOp};
 use crate::parser::pr::Ty;
 use crate::span::Span;

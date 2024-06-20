@@ -3,7 +3,7 @@
 use std::cmp::Ordering;
 
 use itertools::Itertools;
-use prqlc_parser::parser::generic::{InterpolateItem, Range};
+use prqlc_parser::generic::{InterpolateItem, Range};
 use regex::Regex;
 use sqlparser::ast::{
     self as sql_ast, BinaryOperator, DateTimeField, Fetch, Function, FunctionArg, FunctionArgExpr,

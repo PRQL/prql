@@ -5,7 +5,7 @@
 
 use enum_as_inner::EnumAsInner;
 use itertools::Itertools;
-use prqlc_parser::parser::generic::InterpolateItem;
+use prqlc_parser::generic::InterpolateItem;
 use serde::Serialize;
 
 use super::context::RIId;
