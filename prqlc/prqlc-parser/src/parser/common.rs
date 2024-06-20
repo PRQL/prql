@@ -5,7 +5,7 @@ use crate::lexer::lr::TokenKind;
 use crate::parser::pr::{Annotation, Expr, ExprKind, Stmt, StmtKind, Ty, TyKind};
 use crate::span::Span;
 
-pub fn ident_part() -> impl Parser<TokenKind, String, Error = PError> {
+pub fn ident_part() -> impl Parser<TokenKind, String, Error = PError> + Clone {
     return select! {
         TokenKind::Ident(ident) => ident,
         TokenKind::Keyword(ident) if &ident == "module" => ident,

@@ -12,7 +12,7 @@ use crate::parser::pr::*;
 use crate::parser::types::type_expr;
 use crate::span::Span;
 
-pub fn expr_call() -> impl Parser<TokenKind, Expr, Error = PError> {
+pub fn expr_call() -> impl Parser<TokenKind, Expr, Error = PError> + Clone {
     let expr = expr();
 
     lambda_func(expr.clone()).or(func_call(expr))
@@ -231,9 +231,9 @@ pub fn expr() -> impl Parser<TokenKind, Expr, Error = PError> + Clone {
     })
 }
 
-pub fn pipeline<E>(expr: E) -> impl Parser<TokenKind, Expr, Error = PError>
+pub fn pipeline<E>(expr: E) -> impl Parser<TokenKind, Expr, Error = PError> + Clone
 where
-    E: Parser<TokenKind, Expr, Error = PError>,
+    E: Parser<TokenKind, Expr, Error = PError> + Clone,
 {
     // expr has to be a param, because it can be either a normal expr() or
     // a recursive expr called from within expr()
@@ -266,7 +266,7 @@ where
 pub fn binary_op_parser<'a, Term, Op>(
     term: Term,
     op: Op,
-) -> impl Parser<TokenKind, Expr, Error = PError> + 'a
+) -> impl Parser<TokenKind, Expr, Error = PError> + 'a + Clone
 where
     Term: Parser<TokenKind, Expr, Error = PError> + 'a,
     Op: Parser<TokenKind, BinOp, Error = PError> + 'a,
@@ -292,7 +292,7 @@ where
         .boxed()
 }
 
-fn func_call<E>(expr: E) -> impl Parser<TokenKind, Expr, Error = PError>
+fn func_call<E>(expr: E) -> impl Parser<TokenKind, Expr, Error = PError> + Clone
 where
     E: Parser<TokenKind, Expr, Error = PError> + Clone,
 {
@@ -344,7 +344,7 @@ where
         .labelled("function call")
 }
 
-fn lambda_func<E>(expr: E) -> impl Parser<TokenKind, Expr, Error = PError>
+fn lambda_func<E>(expr: E) -> impl Parser<TokenKind, Expr, Error = PError> + Clone
 where
     E: Parser<TokenKind, Expr, Error = PError> + Clone + 'static,
 {
@@ -404,7 +404,7 @@ where
     .labelled("function definition")
 }
 
-pub fn ident() -> impl Parser<TokenKind, Ident, Error = PError> {
+pub fn ident() -> impl Parser<TokenKind, Ident, Error = PError> + Clone {
     ident_part()
         .separated_by(ctrl('.'))
         .at_least(1)
