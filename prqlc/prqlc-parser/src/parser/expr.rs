@@ -1,6 +1,7 @@
 use std::collections::HashMap;
 
 use chumsky::prelude::*;
+use itertools::Itertools;
 
 use super::interpolation;
 use crate::error::parse_error::PError;
@@ -235,8 +236,10 @@ pub fn pipeline<E>(expr: E) -> impl Parser<TokenKind, Expr, Error = PError> + Cl
 where
     E: Parser<TokenKind, Expr, Error = PError> + Clone,
 {
-    // expr has to be a param, because it can be either a normal expr() or
-    // a recursive expr called from within expr()
+    // expr has to be a param, because it can be either a normal expr() or a
+    // recursive expr called from within expr(), which causes a stack overflow
+
+    let pipe = ctrl('|').or(new_line().repeated().at_least(1).ignored());
 
     new_line()
         .repeated()
@@ -245,18 +248,21 @@ where
                 .then_ignore(ctrl('='))
                 .or_not()
                 .then(expr)
-                .map(|(alias, mut expr)| {
-                    expr.alias = alias.or(expr.alias);
-                    expr
-                })
-                .separated_by(ctrl('|').or(new_line().repeated().at_least(1).ignored()))
+                .map(|(alias, expr)| Expr { alias, ..expr })
+                .separated_by(pipe)
                 .at_least(1)
-                .map_with_span(|mut exprs, span| {
-                    if exprs.len() == 1 {
-                        exprs.remove(0)
-                    } else {
-                        into_expr(ExprKind::Pipeline(Pipeline { exprs }), span)
-                    }
+                .map_with_span(|exprs, span| {
+                    // If there's only one expr, then we don't need to wrap it
+                    // in a pipeline — just return the lone expr. Otherwise,
+                    // wrap them in a pipeline.
+                    exprs.into_iter().exactly_one().unwrap_or_else(|exprs| {
+                        into_expr(
+                            ExprKind::Pipeline(Pipeline {
+                                exprs: exprs.collect(),
+                            }),
+                            span,
+                        )
+                    })
                 }),
         )
         .then_ignore(new_line().repeated())
