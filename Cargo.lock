@@ -3023,13 +3023,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "prql-compiler"
-version = "0.12.3"
-dependencies = [
- "prqlc",
-]
-
-[[package]]
 name = "prql-java"
 version = "0.12.3"
 dependencies = [
