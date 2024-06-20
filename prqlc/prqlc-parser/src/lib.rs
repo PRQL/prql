@@ -1,6 +1,5 @@
 use crate::error::Error;
 use crate::lexer::lr::TokenKind;
-use crate::parser::parse_lr_to_pr;
 use crate::parser::pr::Stmt;
 
 pub use self::lexer::TokenVec;
