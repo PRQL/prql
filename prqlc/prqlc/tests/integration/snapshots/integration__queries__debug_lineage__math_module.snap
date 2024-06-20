@@ -757,3 +757,6 @@ ast:
                             Integer: 2
                   alias: total_square
     span: 1:82-788
+    aesthetics_before:
+    - !Comment ' mssql:test'
+    - !Comment ' sqlite:skip (see https://github.com/rusqlite/rusqlite/issues/1211)'

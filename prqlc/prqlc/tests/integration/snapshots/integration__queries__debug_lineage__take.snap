@@ -103,3 +103,5 @@ ast:
                     Literal:
                       Integer: 5
     span: 1:13-52
+    aesthetics_before:
+    - !Comment ' mssql:test'

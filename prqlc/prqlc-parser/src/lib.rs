@@ -23,6 +23,7 @@ pub fn parse_source(source: &str, source_id: u16) -> Result<Vec<Stmt>, Vec<Error
     let mut errors = Vec::new();
 
     let (tokens, lex_errors) = ::chumsky::Parser::parse_recovery(&lexer::lexer(), source);
+    // let (tokens, lex_errors) = ::chumsky::Parser::parse_recovery_verbose(&lexer::lexer(), source);
 
     log::debug!("Lex errors: {:?}", lex_errors);
     errors.extend(
@@ -31,21 +32,12 @@ pub fn parse_source(source: &str, source_id: u16) -> Result<Vec<Stmt>, Vec<Error
             .map(|e| convert_lexer_error(source, e, source_id)),
     );
 
-    // We don't want comments in the AST (but we do intend to use them as part of
-    // formatting)
-    let semantic_tokens: Option<_> = tokens.map(|tokens| {
-        tokens.into_iter().filter(|token| {
-            !matches!(
-                token.kind,
-                TokenKind::Comment(_) | TokenKind::LineWrap(_) | TokenKind::DocComment(_)
-            )
-        })
-    });
+    let ast = if let Some(tokens) = tokens {
+        let stream = prepare_stream(tokens.into_iter(), source, source_id);
 
-    let ast = if let Some(semantic_tokens) = semantic_tokens {
-        let stream = prepare_stream(semantic_tokens, source, source_id);
-
-        let (ast, parse_errors) = ::chumsky::Parser::parse_recovery(&stmt::source(), stream);
+        let (ast, parse_errors) =
+            // ::chumsky::Parser::parse_recovery_verbose(&stmt::source(), stream);
+            ::chumsky::Parser::parse_recovery(&stmt::source(), stream);
 
         log::debug!("parse errors: {:?}", parse_errors);
         errors.extend(parse_errors.into_iter().map(|e| e.into()));
@@ -72,16 +64,16 @@ pub fn lex_source(source: &str) -> Result<TokenVec, Vec<Error>> {
 
 mod common {
     use chumsky::prelude::*;
-    use prqlc_ast::expr::*;
     use prqlc_ast::stmt::*;
     use prqlc_ast::token::*;
     use prqlc_ast::Span;
     use prqlc_ast::Ty;
     use prqlc_ast::TyKind;
+    use prqlc_ast::{expr::*, WithAesthetics};
 
     use crate::err::parse_error::PError;
 
-    pub fn ident_part() -> impl Parser<TokenKind, String, Error = PError> {
+    pub fn ident_part() -> impl Parser<TokenKind, String, Error = PError> + Clone {
         return select! {
             TokenKind::Ident(ident) => ident,
             TokenKind::Keyword(ident) if &ident == "module" => ident,
@@ -112,6 +104,8 @@ mod common {
             kind,
             span: Some(span),
             annotations,
+            aesthetics_before: Vec::new(),
+            aesthetics_after: Vec::new(),
         }
     }
 
@@ -127,6 +121,43 @@ mod common {
             span: Some(span),
             ..Ty::new(kind)
         }
+    }
+
+    pub fn aesthetic() -> impl Parser<TokenKind, TokenKind, Error = PError> + Clone {
+        select! {
+            TokenKind::Comment(comment) =>         TokenKind::Comment(comment),
+            TokenKind::LineWrap(lw) =>         TokenKind::LineWrap(lw),
+            TokenKind::DocComment(dc) => TokenKind::DocComment(dc),
+        }
+    }
+
+    pub fn with_aesthetics<P, O>(parser: P) -> impl Parser<TokenKind, O, Error = PError> + Clone
+    where
+        P: Parser<TokenKind, O, Error = PError> + Clone,
+        O: WithAesthetics,
+    {
+        // We can have newlines between the aesthetics and the actual token to
+        // cover a case like `# foo` here:
+        //
+        // ```prql
+        // # foo
+        //
+        // from bar
+        // # baz
+        // select artists
+        // ```
+        //
+        // ...but not after the aesthetics after the token; since we don't want
+        // to eat the newline after `from bar`
+        //
+        let aesthetics_before = aesthetic().then_ignore(new_line().repeated()).repeated();
+        let aesthetics_after = aesthetic().separated_by(new_line());
+
+        aesthetics_before.then(parser).then(aesthetics_after).map(
+            |((aesthetics_before, inner), aesthetics_after)| {
+                inner.with_aesthetics(aesthetics_before, aesthetics_after)
+            },
+        )
     }
 }
 

@@ -24,6 +24,8 @@ expression: "parse_single(r#\"\nfrom employees\nfilter country == \"USA\"       
                     right:
                       Literal:
                         String: USA
+                      aesthetics_after:
+                        - Comment: " Each line transforms the previous result."
           - FuncCall:
               name:
                 Ident: derive
@@ -36,12 +38,16 @@ expression: "parse_single(r#\"\nfrom employees\nfilter country == \"USA\"       
                         right:
                           Ident: payroll_tax
                       alias: gross_salary
+                      aesthetics_before:
+                        - Comment: " This adds columns / variables."
                     - Binary:
                         left:
                           Ident: gross_salary
                         op: Add
                         right:
                           Ident: benefits_cost
+                          aesthetics_after:
+                            - Comment: " Variables can use other variables."
                       alias: gross_cost
           - FuncCall:
               name:
@@ -71,6 +77,8 @@ expression: "parse_single(r#\"\nfrom employees\nfilter country == \"USA\"       
                                 Ident: average
                               args:
                                 - Ident: salary
+                            aesthetics_before:
+                              - Comment: " Aggregate each group to a single row"
                           - FuncCall:
                               name:
                                 Ident: average

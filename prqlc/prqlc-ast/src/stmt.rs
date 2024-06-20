@@ -4,7 +4,7 @@ use enum_as_inner::EnumAsInner;
 use semver::VersionReq;
 use serde::{Deserialize, Serialize};
 
-use crate::{expr::Expr, Ident, Span, Ty};
+use crate::{expr::Expr, Ident, Span, TokenKind, Ty, WithAesthetics};
 
 #[derive(Debug, PartialEq, Eq, Clone, Serialize, Deserialize, Default)]
 pub struct QueryDef {
@@ -31,6 +31,26 @@ pub struct Stmt {
 
     #[serde(skip_serializing_if = "Vec::is_empty", default)]
     pub annotations: Vec<Annotation>,
+
+    // Maybe should be Token?
+    #[serde(skip_serializing_if = "Vec::is_empty")]
+    pub aesthetics_before: Vec<TokenKind>,
+    #[serde(skip_serializing_if = "Vec::is_empty")]
+    pub aesthetics_after: Vec<TokenKind>,
+}
+
+impl WithAesthetics for Stmt {
+    fn with_aesthetics(
+        self,
+        aesthetics_before: Vec<TokenKind>,
+        aesthetics_after: Vec<TokenKind>,
+    ) -> Self {
+        Stmt {
+            aesthetics_before,
+            aesthetics_after,
+            ..self
+        }
+    }
 }
 
 #[derive(Debug, EnumAsInner, PartialEq, Clone, Serialize, Deserialize)]
@@ -73,6 +93,24 @@ pub struct ImportDef {
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct Annotation {
     pub expr: Box<Expr>,
+    #[serde(skip_serializing_if = "Vec::is_empty")]
+    pub aesthetics_before: Vec<TokenKind>,
+    #[serde(skip_serializing_if = "Vec::is_empty")]
+    pub aesthetics_after: Vec<TokenKind>,
+}
+
+impl WithAesthetics for Annotation {
+    fn with_aesthetics(
+        self,
+        aesthetics_before: Vec<TokenKind>,
+        aesthetics_after: Vec<TokenKind>,
+    ) -> Self {
+        Annotation {
+            aesthetics_before,
+            aesthetics_after,
+            ..self
+        }
+    }
 }
 
 impl Stmt {
@@ -81,6 +119,8 @@ impl Stmt {
             kind,
             span: None,
             annotations: Vec::new(),
+            aesthetics_before: Vec::new(),
+            aesthetics_after: Vec::new(),
         }
     }
 }

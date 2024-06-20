@@ -17,6 +17,51 @@ fn test_expr_ast_code_matches() {
     -#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
     +#[derive(Clone, PartialEq, Serialize, Deserialize)]
     @@ .. @@
+    -    // Maybe should be Token?
+    -    #[serde(skip_serializing_if = "Vec::is_empty")]
+    -    pub aesthetics_before: Vec<TokenKind>,
+    -    #[serde(skip_serializing_if = "Vec::is_empty")]
+    -    pub aesthetics_after: Vec<TokenKind>,
+    -}
+    +    /// Unique identificator of the node. Set exactly once during semantic::resolve.
+    +    #[serde(skip_serializing_if = "Option::is_none")]
+    +    pub id: Option<usize>,
+    @@ .. @@
+    -impl WithAesthetics for Expr {
+    -    fn with_aesthetics(
+    -        mut self,
+    -        aesthetics_before: Vec<TokenKind>,
+    -        aesthetics_after: Vec<TokenKind>,
+    -    ) -> Self {
+    -        self.aesthetics_before = aesthetics_before;
+    -        self.aesthetics_after = aesthetics_after;
+    -        self
+    -    }
+    +    /// For [Ident]s, this is id of node referenced by the ident
+    +    #[serde(skip_serializing_if = "Option::is_none")]
+    +    pub target_id: Option<usize>,
+    +
+    +    /// Type of expression this node represents.
+    +    /// [None] means that type should be inferred.
+    +    #[serde(skip_serializing_if = "Option::is_none")]
+    +    pub ty: Option<Ty>,
+    +
+    +    /// Information about where data of this expression will come from.
+    +    ///
+    +    /// Currently, this is used to infer relational pipeline frames.
+    +    /// Must always exists if ty is a relation.
+    +    #[serde(skip_serializing_if = "Option::is_none")]
+    +    pub lineage: Option<Lineage>,
+    +
+    +    #[serde(skip)]
+    +    pub needs_window: bool,
+    +
+    +    /// When true on [ExprKind::Tuple], this list will be flattened when placed
+    +    /// in some other list.
+    +    // TODO: maybe we should have a special ExprKind instead of this flag?
+    +    #[serde(skip)]
+    +    pub flatten: bool,
+    @@ .. @@
     -    Ident(String),
     -    Indirection {
     -        base: Box<Expr>,
@@ -38,6 +83,8 @@ fn test_expr_ast_code_matches() {
     -    Binary(BinaryExpr),
     -    Unary(UnaryExpr),
     @@ .. @@
+    -}
+    -
     -#[derive(Debug, EnumAsInner, PartialEq, Clone, Serialize, Deserialize)]
     -pub enum IndirectionKind {
     -    Name(String),
@@ -50,8 +97,7 @@ fn test_expr_ast_code_matches() {
     -    pub left: Box<Expr>,
     -    pub op: BinOp,
     -    pub right: Box<Expr>,
-    -}
-    -
+    @@ .. @@
     -#[derive(Debug, PartialEq, Clone, Serialize, Deserialize)]
     -pub struct UnaryExpr {
     -    pub op: UnOp,
@@ -59,11 +105,12 @@ fn test_expr_ast_code_matches() {
     -}
     -
     @@ .. @@
+    -
     -#[derive(Debug, PartialEq, Clone, Serialize, Deserialize)]
     -pub struct GenericTypeParam {
     -    /// Assigned name of this generic type argument.
     -    pub name: String,
-    -
+    @@ .. @@
     -    pub domain: Vec<Ty>,
     -}
     -
@@ -92,8 +139,48 @@ fn test_stmt_ast_code_matches() {
             &read_to_string("../prqlc/src/ir/pl/stmt.rs").unwrap(),
         ), @r###"
     @@ .. @@
+    -
+    -    // Maybe should be Token?
+    -    #[serde(skip_serializing_if = "Vec::is_empty")]
+    -    pub aesthetics_before: Vec<TokenKind>,
+    -    #[serde(skip_serializing_if = "Vec::is_empty")]
+    -    pub aesthetics_after: Vec<TokenKind>,
+    @@ .. @@
+    -impl WithAesthetics for Stmt {
+    -    fn with_aesthetics(
+    -        self,
+    -        aesthetics_before: Vec<TokenKind>,
+    -        aesthetics_after: Vec<TokenKind>,
+    -    ) -> Self {
+    -        Stmt {
+    -            aesthetics_before,
+    -            aesthetics_after,
+    -            ..self
+    -        }
+    -    }
+    -}
+    -
+    @@ .. @@
     -    pub kind: VarDefKind,
     @@ .. @@
+    -    #[serde(skip_serializing_if = "Vec::is_empty")]
+    -    pub aesthetics_before: Vec<TokenKind>,
+    -    #[serde(skip_serializing_if = "Vec::is_empty")]
+    -    pub aesthetics_after: Vec<TokenKind>,
+    -}
+    -
+    -impl WithAesthetics for Annotation {
+    -    fn with_aesthetics(
+    -        self,
+    -        aesthetics_before: Vec<TokenKind>,
+    -        aesthetics_after: Vec<TokenKind>,
+    -    ) -> Self {
+    -        Annotation {
+    -            aesthetics_before,
+    -            aesthetics_after,
+    -            ..self
+    -        }
+    -    }
     -}
     -
     -impl Stmt {
@@ -102,6 +189,8 @@ fn test_stmt_ast_code_matches() {
     -            kind,
     -            span: None,
     -            annotations: Vec::new(),
+    -            aesthetics_before: Vec::new(),
+    -            aesthetics_after: Vec::new(),
     -        }
     -    }
     "###

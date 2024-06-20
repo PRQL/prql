@@ -404,6 +404,8 @@ fn test_basic_exprs() {
             args:
               - Ident: a
       span: "0:28-36"
+      aesthetics_before:
+        - Comment: " this is a comment"
     "###);
     assert_yaml_snapshot!(parse_expr(
             "join side:left country (id==employee_id)"
@@ -1827,7 +1829,7 @@ fn test_dates() {
 #[test]
 fn test_multiline_string() {
     assert_yaml_snapshot!(parse_single(r##"
-        derive x = r#"r-string test"#
+        derive x = r"r-string test"
         "##).unwrap(), @r###"
     ---
     - VarDef:
@@ -1838,9 +1840,10 @@ fn test_multiline_string() {
             name:
               Ident: derive
             args:
-              - Ident: r
+              - Literal:
+                  String: r-string test
                 alias: x
-      span: "0:9-39"
+      span: "0:9-37"
     "### )
 }
 
@@ -1928,6 +1931,8 @@ fn test_allowed_idents() {
                         op: EqSelf
                         expr:
                           Ident: employee_id
+                      aesthetics_after:
+                        - Comment: " table with leading underscore"
               - FuncCall:
                   name:
                     Ident: filter
