@@ -1,3 +1,7 @@
+use crate::error::Error;
+use crate::lexer::lr::TokenKind;
+use crate::parser::pr::Stmt;
+
 pub mod error;
 pub mod generic;
 pub mod lexer;
@@ -5,11 +9,6 @@ pub mod parser;
 pub mod span;
 #[cfg(test)]
 mod test;
-
-pub use self::lexer::TokenVec;
-use crate::error::Error;
-use crate::lexer::lr::TokenKind;
-use crate::parser::pr::Stmt;
 
 /// Build PRQL AST from a PRQL query string.
 pub fn parse_source(source: &str, source_id: u16) -> Result<Vec<Stmt>, Vec<Error>> {

@@ -109,9 +109,9 @@ use strum::VariantNames;
 
 pub use error_message::{ErrorMessage, ErrorMessages, SourceLocation};
 pub use prqlc_parser::error::{Error, ErrorSource, Errors, MessageKind, Reason, WithErrorInfo};
+use prqlc_parser::lexer::TokenVec;
 pub use prqlc_parser::parser::pr as ast;
 pub use prqlc_parser::span::Span;
-use prqlc_parser::TokenVec;
 
 mod codegen;
 mod error_message;

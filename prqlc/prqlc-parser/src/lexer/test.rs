@@ -3,8 +3,8 @@ use insta::assert_snapshot;
 
 use super::*;
 use crate::lexer::lr::token::{Literal, TokenKind};
+use crate::lexer::TokenVec;
 use crate::lexer::{lexer, literal, quoted_string};
-use crate::TokenVec;
 
 #[test]
 fn line_wrap() {
