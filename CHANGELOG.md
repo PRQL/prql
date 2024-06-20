@@ -27,8 +27,8 @@
   There will likely be some further changes (more detail in the PR description).
   (@m-span, #4634)
 
-  - This is a breaking change for any libraries that depend on `prqlc-parser` (which
-    should be fairly rare).
+  - This is a breaking change for any libraries that depend on `prqlc-parser`
+    (which should be fairly rare).
 
 - Renamed `prql-compiler-macros` to `prqlc-macros` for consistency with other
   crates (@max-sixty, #4565)
