@@ -8,7 +8,7 @@
 
 **Fixes**:
 
-- using `in` with an empty array pattern (e.g. `expr | in []`) will now output a
+- Using `in` with an empty array pattern (e.g. `expr | in []`) will now output a
   constant `false` condition instead of an `expr IN ()`, which is syntactically
   invalid in some SQL dialects (@Globidev, #4598)
 
@@ -22,6 +22,10 @@
 
 - Renamed `prql-compiler-macros` to `prqlc-macros` for consistency with other
   crates (@max-sixty, #4565)
+
+- `prql-compiler`, the old name for `prqlc`, is removed as a facade to `prqlc`.
+  It had been deprecated for a few versions and will no longer be updated.
+  (@max-sixty)
 
 **New Contributors**:
 
@@ -1189,8 +1193,8 @@ below in this release).
 
 **Documentation**:
 
-[This release, the changelog only contains a subset of
-documentation improvements]
+[This release, the changelog only contains a subset of documentation
+improvements]
 
 - Add docs on aliases in
   [Select](https://prql-lang.org/book/reference/stdlib/transforms/select.html)
