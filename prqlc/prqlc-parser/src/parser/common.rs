@@ -69,8 +69,8 @@ where
     P: Parser<TokenKind, O, Error = PError> + Clone,
     O: WithAesthetics,
 {
-    // We can have newlines between the aesthetics and the actual token to
-    // cover a case like `# foo` here:
+    // We can safely remove newlines following the `aesthetics_before`, to cover
+    // a case like `# foo` here:
     //
     // ```prql
     // # foo
@@ -80,8 +80,8 @@ where
     // select artists
     // ```
     //
-    // ...but not after the aesthetics after the token; since we don't want
-    // to eat the newline after `from bar`
+    // ...but not following the `aesthetics_after`; since that would eat all
+    // newlines between `from_bar` and `select_artists`.
     //
     let aesthetics_before = aesthetic().then_ignore(new_line().repeated()).repeated();
     let aesthetics_after = aesthetic().separated_by(new_line());
