@@ -9,8 +9,6 @@ use super::{Lineage, TransformCall};
 use crate::ast::{GenericTypeParam, Ident, Literal, Span, Ty};
 use crate::codegen::write_ty;
 
-// The following code is tested by the tests_misc crate to match expr.rs in prqlc_ast.
-
 /// Expr is anything that has a value and thus a type.
 /// Most of these can contain other [Expr] themselves; literals should be [ExprKind::Literal].
 #[derive(Clone, PartialEq, Serialize, Deserialize)]

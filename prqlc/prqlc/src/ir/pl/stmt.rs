@@ -6,8 +6,6 @@ pub use crate::ast::stmt::QueryDef;
 use crate::ast::Ident;
 use crate::ast::{Span, Ty};
 
-// The following code is tested by the tests_misc crate to match stmt.rs in prqlc_ast.
-
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct Stmt {
     #[serde(skip_serializing_if = "Option::is_none")]

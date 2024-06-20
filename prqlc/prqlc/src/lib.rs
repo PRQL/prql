@@ -99,7 +99,13 @@
 // yak-shaving exercise in the future.
 #![allow(clippy::result_large_err)]
 
-// use std::{collections::HashMap, path::PathBuf, str::FromStr};
+mod codegen;
+mod error_message;
+pub mod ir;
+pub mod parser;
+pub mod semantic;
+pub mod sql;
+mod utils;
 
 use std::sync::OnceLock;
 use std::{collections::HashMap, path::PathBuf, str::FromStr};
@@ -110,30 +116,13 @@ use serde::{Deserialize, Serialize};
 use strum::VariantNames;
 
 pub use error_message::{ErrorMessage, ErrorMessages, SourceLocation};
-pub use prqlc_parser::error::{Errors, MessageKind, Reason, WithErrorInfo};
-// pub use prqlc_ast as ast;
-// use prqlc_parser::err::error::ErrorSource;
-// pub use prqlc_parser::err::error::{Error, Errors, MessageKind, Reason, WithErrorInfo};
-// use prqlc_parser::TokenVec;
 pub use prqlc_parser::error as parser_error;
 use prqlc_parser::error::{Error, ErrorSource};
+pub use prqlc_parser::error::{Errors, MessageKind, Reason, WithErrorInfo};
 
 pub use prqlc_parser::parser::pr as ast;
 pub use prqlc_parser::span::Span;
 use prqlc_parser::TokenVec;
-
-// pub use ir::Span;
-
-// use prqlc_parser::err::error::Error;
-// use prqlc_parser::err::error::Error;
-
-mod codegen;
-mod error_message;
-pub mod ir;
-pub mod parser;
-pub mod semantic;
-pub mod sql;
-mod utils;
 
 pub type Result<T, E = Error> = core::result::Result<T, E>;
 
