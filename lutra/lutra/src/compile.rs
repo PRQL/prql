@@ -4,9 +4,9 @@ use std::str::FromStr;
 use anyhow::Result;
 use prqlc::ir::decl::RootModule;
 use prqlc::ir::pl::{Ident, Literal};
+use prqlc::parser_error::Error;
 use prqlc::sql::Dialect;
-use prqlc::{semantic, ErrorMessages};
-use prqlc::{Error, Errors, Options, SourceTree, Target, WithErrorInfo};
+use prqlc::{semantic, ErrorMessages, Errors, Options, SourceTree, Target, WithErrorInfo};
 
 use crate::project::{DatabaseModule, ProjectCompiled, ProjectDiscovered, SqliteConnectionParams};
 

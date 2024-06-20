@@ -1,6 +1,7 @@
 use std::collections::HashMap;
 use std::iter::zip;
 use std::path::PathBuf;
+use std::sync::OnceLock;
 
 use itertools::Itertools;
 
@@ -11,8 +12,6 @@ use crate::semantic;
 use crate::utils::Pluck;
 use crate::Result;
 use crate::{Error, WithErrorInfo};
-
-use std::sync::OnceLock;
 
 fn std() -> &'static decl::Module {
     static STD: OnceLock<decl::Module> = OnceLock::new();
