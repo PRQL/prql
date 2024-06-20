@@ -1,4 +1,5 @@
 pub mod lr;
+#[cfg(test)]
 mod test;
 
 use chumsky::{

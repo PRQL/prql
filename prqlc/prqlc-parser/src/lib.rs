@@ -2,6 +2,7 @@ pub mod error;
 pub mod lexer;
 pub mod parser;
 pub mod span;
+#[cfg(test)]
 mod test;
 
 pub use self::lexer::TokenVec;

@@ -4,7 +4,8 @@ pub mod generic;
 mod interpolation;
 pub mod pr;
 pub(crate) mod stmt;
-mod test_parser;
+#[cfg(test)]
+mod test;
 mod types;
 
 use chumsky::{prelude::*, Stream};

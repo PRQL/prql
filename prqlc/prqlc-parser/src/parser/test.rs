@@ -1,5 +1,3 @@
-#![cfg(test)]
-
 use crate::lexer::lex_source;
 use crate::lexer::lr::TokenKind;
 use crate::parser::prepare_stream;

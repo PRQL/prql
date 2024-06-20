@@ -1,5 +1,3 @@
-#![cfg(test)]
-
 use insta::{assert_debug_snapshot, assert_yaml_snapshot};
 use itertools::Itertools;
 
