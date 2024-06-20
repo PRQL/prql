@@ -1,12 +1,11 @@
 use chumsky::prelude::*;
 use itertools::Itertools;
 
+use super::common::into_expr;
 use crate::error::parse_error::{ChumError, PError};
 use crate::lexer::lr::{Literal, TokenKind};
 use crate::parser::pr::*;
 use crate::span::{string_stream, Span};
-
-use super::common::into_expr;
 
 /// Parses interpolated strings
 pub fn parse(string: String, span_base: Span) -> Result<Vec<InterpolateItem>, Vec<PError>> {

@@ -1,8 +1,7 @@
+pub use self::lexer::TokenVec;
 use crate::error::Error;
 use crate::lexer::lr::TokenKind;
 use crate::parser::pr::Stmt;
-
-pub use self::lexer::TokenVec;
 
 pub mod error;
 pub mod lexer;

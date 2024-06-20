@@ -1,11 +1,10 @@
 use chumsky::prelude::*;
 
+use super::common::*;
 use crate::error::parse_error::PError;
 use crate::lexer::lr::TokenKind;
 use crate::parser::expr::ident;
 use crate::parser::pr::*;
-
-use super::common::*;
 
 pub fn type_expr() -> impl Parser<TokenKind, Ty, Error = PError> {
     recursive(|nested_type_expr| {

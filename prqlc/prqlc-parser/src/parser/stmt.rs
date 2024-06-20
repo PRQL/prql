@@ -4,13 +4,12 @@ use chumsky::prelude::*;
 use itertools::Itertools;
 use semver::VersionReq;
 
+use super::common::{ctrl, ident_part, into_stmt, keyword, new_line};
+use super::expr::{expr, expr_call, ident, pipeline};
 use crate::error::parse_error::PError;
 use crate::lexer::lr::{Literal, TokenKind};
 use crate::parser::pr::*;
 use crate::parser::types::type_expr;
-
-use super::common::{ctrl, ident_part, into_stmt, keyword, new_line};
-use super::expr::{expr, expr_call, ident, pipeline};
 
 pub fn source() -> impl Parser<TokenKind, Vec<Stmt>, Error = PError> {
     query_def()

@@ -1,9 +1,9 @@
 use std::collections::HashMap;
 
-use crate::lexer::lr::Literal;
 use enum_as_inner::EnumAsInner;
 use serde::{Deserialize, Serialize};
 
+use crate::lexer::lr::Literal;
 use crate::parser::generic;
 use crate::parser::pr::ops::{BinOp, UnOp};
 use crate::parser::pr::Ty;

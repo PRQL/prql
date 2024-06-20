@@ -5,6 +5,7 @@
 
 use enum_as_inner::EnumAsInner;
 use itertools::Itertools;
+use prqlc_parser::parser::generic::InterpolateItem;
 use serde::Serialize;
 
 use super::context::RIId;
@@ -12,7 +13,6 @@ use crate::ir::generic::ColumnSort;
 use crate::ir::pl::JoinSide;
 use crate::ir::rq::{self, fold_column_sorts, RelationLiteral, RqFold};
 use crate::Result;
-use prqlc_parser::parser::generic::InterpolateItem;
 
 #[derive(Debug, Clone, Serialize)]
 pub struct SqlQuery {

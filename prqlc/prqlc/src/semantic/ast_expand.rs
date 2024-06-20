@@ -2,13 +2,13 @@ use std::collections::HashMap;
 
 use itertools::Itertools;
 use prqlc_parser::error::WithErrorInfo;
+use prqlc_parser::parser::generic;
 
 use crate::ast;
 use crate::ir::decl;
 use crate::ir::pl::{self, new_binop};
 use crate::semantic::{NS_THAT, NS_THIS};
 use crate::{Error, Result};
-use prqlc_parser::parser::generic;
 
 /// An AST pass that maps AST to PL.
 pub fn expand_expr(expr: ast::Expr) -> Result<pl::Expr> {

@@ -1,8 +1,8 @@
-use crate::lexer::lr::Literal;
 use enum_as_inner::EnumAsInner;
 use serde::{Deserialize, Serialize};
 use strum::AsRefStr;
 
+use crate::lexer::lr::Literal;
 use crate::parser::pr::ident::Ident;
 use crate::span::Span;
 

@@ -111,18 +111,16 @@ use std::sync::OnceLock;
 use std::{collections::HashMap, path::PathBuf, str::FromStr};
 
 use anstream::adapter::strip_str;
-use semver::Version;
-use serde::{Deserialize, Serialize};
-use strum::VariantNames;
-
 pub use error_message::{ErrorMessage, ErrorMessages, SourceLocation};
 pub use prqlc_parser::error as parser_error;
 use prqlc_parser::error::{Error, ErrorSource};
 pub use prqlc_parser::error::{Errors, MessageKind, Reason, WithErrorInfo};
-
 pub use prqlc_parser::parser::pr as ast;
 pub use prqlc_parser::span::Span;
 use prqlc_parser::TokenVec;
+use semver::Version;
+use serde::{Deserialize, Serialize};
+use strum::VariantNames;
 
 pub type Result<T, E = Error> = core::result::Result<T, E>;
 
