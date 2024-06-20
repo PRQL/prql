@@ -21,7 +21,8 @@ pub use self::fold::*;
 pub use self::lineage::*;
 pub use self::stmt::*;
 pub use self::utils::*;
-pub use crate::ast::{BinOp, BinaryExpr, Ident, Literal, UnOp, UnaryExpr, ValueAndUnit};
+pub use crate::ast::Literal;
+pub use crate::ast::{BinOp, BinaryExpr, Ident, UnOp, UnaryExpr};
 
 pub fn print_mem_sizes() {
     use std::mem::size_of;

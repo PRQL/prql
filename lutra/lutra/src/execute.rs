@@ -1,5 +1,5 @@
 use anyhow::Result;
-use prqlc::{ir::pl::Ident, Error};
+use prqlc::{ir::pl::Ident, parser_error::Error};
 
 use super::ProjectCompiled;
 
