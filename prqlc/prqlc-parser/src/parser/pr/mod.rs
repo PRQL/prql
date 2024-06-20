@@ -1,12 +1,8 @@
-// TODO: exporting `foo::*` and exporting the module `foo` seems prone to
-// confusion and IIUC serves no purpose — IIUC it guarantees there are two ways
-// of accessing the same variable
-
-pub mod expr;
-pub mod ident;
-pub mod ops;
-pub mod stmt;
-pub mod types;
+mod expr;
+mod ident;
+mod ops;
+mod stmt;
+mod types;
 
 pub use expr::*;
 pub use ident::*;

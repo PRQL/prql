@@ -30,7 +30,7 @@ pub fn parse_lr_to_pr(
 
 /// Convert the output of the lexer into the input of the parser. Requires
 /// supplying the original source code.
-pub fn prepare_stream(
+fn prepare_stream(
     tokens: impl Iterator<Item = Token>,
     source: &str,
     source_id: u16,

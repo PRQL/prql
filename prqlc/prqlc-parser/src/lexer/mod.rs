@@ -33,7 +33,7 @@ pub fn lex_source(source: &str) -> Result<TokenVec, Vec<Error>> {
     })
 }
 
-pub fn convert_lexer_error(source: &str, e: chumsky::error::Cheap<char>, source_id: u16) -> Error {
+fn convert_lexer_error(source: &str, e: chumsky::error::Cheap<char>, source_id: u16) -> Error {
     // We want to slice based on the chars, not the bytes, so can't just index
     // into the str.
     let found = source
@@ -53,7 +53,7 @@ pub fn convert_lexer_error(source: &str, e: chumsky::error::Cheap<char>, source_
 }
 
 /// Lex chars to tokens until the end of the input
-pub fn lexer() -> impl Parser<char, Vec<Token>, Error = Cheap<char>> {
+fn lexer() -> impl Parser<char, Vec<Token>, Error = Cheap<char>> {
     lex_token()
         .repeated()
         .then_ignore(ignored())

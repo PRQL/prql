@@ -2,8 +2,8 @@ use enum_as_inner::EnumAsInner;
 use serde::{Deserialize, Serialize};
 
 use super::expr::Expr;
-pub use crate::ast::stmt::QueryDef;
 use crate::ast::Ident;
+pub use crate::ast::QueryDef;
 use crate::ast::{Span, Ty};
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
