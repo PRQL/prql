@@ -3093,21 +3093,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "prqlc-ast"
-version = "0.12.3"
-dependencies = [
- "chumsky",
- "enum-as-inner",
- "insta",
- "semver",
- "serde",
- "serde_json",
- "serde_yaml",
- "stacker",
- "strum 0.26.2",
-]
-
-[[package]]
 name = "prqlc-c"
 version = "0.12.3"
 dependencies = [
