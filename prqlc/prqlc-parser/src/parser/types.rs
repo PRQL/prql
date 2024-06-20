@@ -6,7 +6,7 @@ use crate::lexer::lr::TokenKind;
 use crate::parser::expr::ident;
 use crate::parser::pr::*;
 
-pub fn type_expr() -> impl Parser<TokenKind, Ty, Error = PError> {
+pub fn type_expr() -> impl Parser<TokenKind, Ty, Error = PError> + Clone {
     recursive(|nested_type_expr| {
         let basic = select! {
             TokenKind::Literal(lit) => TyKind::Singleton(lit),
