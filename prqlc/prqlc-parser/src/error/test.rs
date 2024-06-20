@@ -2,7 +2,7 @@
 mod tests {
     use insta::{assert_debug_snapshot, assert_snapshot};
 
-    use crate::err::error::{Error, Errors, Reason, WithErrorInfo};
+    use crate::error::{Error, Errors, Reason, WithErrorInfo};
 
     // Helper function to create a simple Error object
     fn create_simple_error() -> Error {

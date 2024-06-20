@@ -99,6 +99,34 @@
 // yak-shaving exercise in the future.
 #![allow(clippy::result_large_err)]
 
+// use std::{collections::HashMap, path::PathBuf, str::FromStr};
+
+use std::sync::OnceLock;
+use std::{collections::HashMap, path::PathBuf, str::FromStr};
+
+use anstream::adapter::strip_str;
+use semver::Version;
+use serde::{Deserialize, Serialize};
+use strum::VariantNames;
+
+pub use error_message::{ErrorMessage, ErrorMessages, SourceLocation};
+pub use prqlc_parser::error::{Errors, MessageKind, Reason, WithErrorInfo};
+// pub use prqlc_ast as ast;
+// use prqlc_parser::err::error::ErrorSource;
+// pub use prqlc_parser::err::error::{Error, Errors, MessageKind, Reason, WithErrorInfo};
+// use prqlc_parser::TokenVec;
+pub use prqlc_parser::error as parser_error;
+use prqlc_parser::error::{Error, ErrorSource};
+
+pub use prqlc_parser::parser::pr as ast;
+pub use prqlc_parser::span::Span;
+use prqlc_parser::TokenVec;
+
+// pub use ir::Span;
+
+// use prqlc_parser::err::error::Error;
+// use prqlc_parser::err::error::Error;
+
 mod codegen;
 mod error_message;
 pub mod ir;
@@ -106,21 +134,6 @@ pub mod parser;
 pub mod semantic;
 pub mod sql;
 mod utils;
-
-use std::sync::OnceLock;
-use std::{collections::HashMap, path::PathBuf, str::FromStr};
-
-use anstream::adapter::strip_str;
-pub use error_message::{ErrorMessage, ErrorMessages, SourceLocation};
-pub use prqlc_ast as ast;
-use prqlc_parser::err::error::ErrorSource;
-pub use prqlc_parser::err::error::{Error, Errors, MessageKind, Reason, WithErrorInfo};
-use prqlc_parser::TokenVec;
-use semver::Version;
-use serde::{Deserialize, Serialize};
-use strum::VariantNames;
-
-pub use crate::ir::Span;
 
 pub type Result<T, E = Error> = core::result::Result<T, E>;
 
@@ -326,7 +339,7 @@ pub struct ReadmeDoctests;
 
 /// Lex PRQL source into tokens.
 pub fn prql_to_tokens(prql: &str) -> Result<TokenVec, ErrorMessages> {
-    prqlc_parser::lex_source(prql).map_err(|e| {
+    prqlc_parser::lexer::lex_source(prql).map_err(|e| {
         e.into_iter()
             .map(|e| e.into())
             .collect::<Vec<ErrorMessage>>()
@@ -506,7 +519,7 @@ mod tests {
 
     use insta::assert_debug_snapshot;
 
-    use crate::ast::expr::Ident;
+    use crate::ast::Ident;
     use crate::Target;
 
     pub fn compile(prql: &str) -> Result<String, super::ErrorMessages> {

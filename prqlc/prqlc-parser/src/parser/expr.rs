@@ -1,14 +1,17 @@
 use std::collections::HashMap;
 
 use chumsky::prelude::*;
-use prqlc_ast::expr::*;
-use prqlc_ast::Span;
-use prqlc_ast::TokenKind;
 
-use super::common::*;
+use crate::error::parse_error::PError;
+use crate::lexer::lr::{Literal, TokenKind};
+use crate::parser::common::{ctrl, ident_part, into_expr, keyword, new_line};
+use crate::parser::pr::ident::Ident;
+use crate::parser::pr::ops::{BinOp, UnOp};
+use crate::parser::pr::*;
+use crate::parser::types::type_expr;
+use crate::span::Span;
+
 use super::interpolation;
-use crate::err::parse_error::PError;
-use crate::types::type_expr;
 
 pub fn expr_call() -> impl Parser<TokenKind, Expr, Error = PError> {
     let expr = expr();
