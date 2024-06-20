@@ -1,3 +1,6 @@
+pub mod lr;
+mod test;
+
 use chumsky::{
     error::Cheap,
     prelude::*,
@@ -9,9 +12,6 @@ use crate::error::{Error, ErrorSource, Reason, WithErrorInfo};
 use crate::lexer;
 use crate::lexer::lr::{Literal, Token, TokenKind, ValueAndUnit};
 use crate::span::Span;
-
-pub mod lr;
-mod test_lexer;
 
 pub fn lex_string_recovery(source: &str, source_id: u16) -> (Option<Vec<Token>>, Vec<Error>) {
     let (tokens, lex_errors) = ::chumsky::Parser::parse_recovery(&lexer::lexer(), source);

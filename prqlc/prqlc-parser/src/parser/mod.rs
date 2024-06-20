@@ -1,10 +1,3 @@
-use chumsky::{prelude::*, Stream};
-
-use crate::error::Error;
-use crate::lexer::lr::{Token, TokenKind};
-use crate::parser::pr::Stmt;
-use crate::span::Span;
-
 mod common;
 mod expr;
 pub mod generic;
@@ -13,6 +6,13 @@ pub mod pr;
 pub(crate) mod stmt;
 mod test_parser;
 mod types;
+
+use chumsky::{prelude::*, Stream};
+
+use crate::error::Error;
+use crate::lexer::lr::{Token, TokenKind};
+use crate::parser::pr::Stmt;
+use crate::span::Span;
 
 pub fn parse_lr_to_pr(
     source: &str,
