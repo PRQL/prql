@@ -4,10 +4,10 @@ use super::{
     NS_DEFAULT_DB, NS_GENERIC, NS_INFER, NS_INFER_MODULE, NS_MAIN, NS_PARAM, NS_QUERY_DEF, NS_SELF,
     NS_STD, NS_THAT, NS_THIS,
 };
-use crate::ast::QueryDef;
-use crate::ast::{Literal, Span, Ty, TyKind, TyTupleField};
 use crate::ir::decl::{Decl, DeclKind, Module, RootModule, TableDecl, TableExpr};
 use crate::ir::pl::{Annotation, Expr, Ident, Lineage, LineageColumn};
+use crate::pr::QueryDef;
+use crate::pr::{Literal, Span, Ty, TyKind, TyTupleField};
 use crate::Error;
 use crate::Result;
 

@@ -3,7 +3,7 @@ use std::{collections::HashMap, path::Path};
 
 use itertools::Itertools;
 
-use crate::ast::{ModuleDef, Stmt, StmtKind};
+use crate::pr::{ModuleDef, Stmt, StmtKind};
 use crate::{Error, Errors, Result, SourceTree, WithErrorInfo};
 
 pub fn parse(file_tree: &SourceTree) -> Result<ModuleDef, Errors> {

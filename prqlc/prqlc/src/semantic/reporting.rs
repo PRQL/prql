@@ -4,9 +4,9 @@ use std::ops::Range;
 use ariadne::{Color, Label, Report, ReportBuilder, ReportKind, Source};
 use serde::Serialize;
 
-use crate::ast;
 use crate::ir::decl::{DeclKind, Module, RootModule, TableDecl, TableExpr};
 use crate::ir::pl::*;
+use crate::pr;
 use crate::{Result, Span};
 
 pub fn label_references(root_mod: &RootModule, source_id: String, source: String) -> Vec<u8> {
@@ -205,7 +205,7 @@ pub struct FrameCollector {
     pub nodes: Vec<ExprGraphNode>,
 
     /// The parsed AST from the provided query.
-    pub ast: Option<ast::ModuleDef>,
+    pub ast: Option<pr::ModuleDef>,
 }
 
 impl PlFold for FrameCollector {

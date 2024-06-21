@@ -1,8 +1,8 @@
 use itertools::Itertools;
 
-use crate::ast::{Ty, TyKind, TyTupleField};
 use crate::ir::decl::{DeclKind, Module};
 use crate::ir::pl::*;
+use crate::pr::{Ty, TyKind, TyTupleField};
 use crate::semantic::resolver::{flatten, types, Resolver};
 use crate::semantic::{NS_INFER, NS_SELF, NS_THAT, NS_THIS};
 use crate::utils::IdGenerator;

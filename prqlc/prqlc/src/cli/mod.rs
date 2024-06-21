@@ -27,9 +27,9 @@ use prqlc::debug::pl_to_lineage;
 use prqlc::semantic;
 use prqlc::semantic::reporting::{collect_frames, label_references};
 use prqlc::semantic::NS_DEFAULT_DB;
-use prqlc::{ast, prql_to_tokens};
 use prqlc::{ir::pl::Lineage, ir::Span};
 use prqlc::{pl_to_prql, pl_to_rq_tree, prql_to_pl, prql_to_pl_tree, rq_to_sql, SourceTree};
+use prqlc::{pr, prql_to_tokens};
 use prqlc::{Options, Target};
 
 /// Entrypoint called by [`crate::main`]
@@ -471,7 +471,7 @@ impl Command {
 
                 let mut res = String::new();
                 for stmt in root_mod.stmts {
-                    if let ast::StmtKind::VarDef(def) = stmt.kind {
+                    if let pr::StmtKind::VarDef(def) = stmt.kind {
                         res += &format!("## {}\n", def.name);
 
                         let val = semantic::eval(*def.value.unwrap())
@@ -614,7 +614,7 @@ impl Command {
     }
 }
 
-fn drop_module_def(stmts: &mut Vec<ast::Stmt>, name: &str) {
+fn drop_module_def(stmts: &mut Vec<pr::Stmt>, name: &str) {
     stmts.retain(|x| x.kind.as_module_def().map_or(true, |m| m.name != name));
 }
 

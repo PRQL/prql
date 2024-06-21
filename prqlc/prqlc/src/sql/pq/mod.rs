@@ -2,8 +2,8 @@
 //!
 //! This in an internal intermediate representation between RQ and SQL AST.
 //!
-//! For example, RQ does not have a separate node for DISTINCT, but uses [crate::ast::rq::Take] 1 with
-//! `partition`. In [super::pq::preprocess] module, [crate::ast::rq::Transform] take is wrapped into
+//! For example, RQ does not have a separate node for DISTINCT, but uses [crate::pr::rq::Take] 1 with
+//! `partition`. In [super::pq::preprocess] module, [crate::pr::rq::Transform] take is wrapped into
 //! [ast::SqlTransform], which does have [`ast::SqlTransform::Distinct`].
 //!
 //! This module also contains the compiler from RQ to PQ.

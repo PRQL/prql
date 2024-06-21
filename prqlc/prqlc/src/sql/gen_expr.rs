@@ -1,4 +1,4 @@
-//! Contains functions that compile [crate::ast::pl] nodes into [sqlparser] nodes.
+//! Contains functions that compile [crate::pr::pl] nodes into [sqlparser] nodes.
 
 use std::cmp::Ordering;
 

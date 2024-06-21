@@ -4,7 +4,7 @@
 use itertools::Itertools;
 
 use super::*;
-use crate::ast::{Ty, TyFunc, TyKind, TyTupleField};
+use crate::pr::{Ty, TyFunc, TyKind, TyTupleField};
 use crate::Result;
 
 // Fold pattern:

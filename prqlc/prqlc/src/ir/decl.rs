@@ -5,9 +5,9 @@ use enum_as_inner::EnumAsInner;
 use itertools::Itertools;
 use serde::{Deserialize, Serialize};
 
-use crate::ast::{Span, Ty};
 use crate::codegen::write_ty;
 use crate::ir::pl::*;
+use crate::pr::{Span, Ty};
 use crate::semantic::write_pl;
 
 /// Context of the pipeline.

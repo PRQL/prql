@@ -206,7 +206,7 @@ mod test {
     use insta::assert_snapshot;
 
     use super::*;
-    use crate::ast::{Expr, ExprKind, Literal};
+    use crate::pr::{Expr, ExprKind, Literal};
 
     #[test]
     fn test_string_quoting() {
