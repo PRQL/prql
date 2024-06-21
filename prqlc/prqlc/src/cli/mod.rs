@@ -614,7 +614,7 @@ impl Command {
     }
 }
 
-fn drop_module_def(stmts: &mut Vec<ast::stmt::Stmt>, name: &str) {
+fn drop_module_def(stmts: &mut Vec<ast::Stmt>, name: &str) {
     stmts.retain(|x| x.kind.as_module_def().map_or(true, |m| m.name != name));
 }
 

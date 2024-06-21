@@ -2,24 +2,25 @@
 //!
 //! Strictly typed AST for describing relational queries.
 
-mod expr;
-mod fold;
-mod ids;
-mod transform;
-mod utils;
-
 use enum_as_inner::EnumAsInner;
+use serde::{Deserialize, Serialize};
+
 pub use expr::{Expr, ExprKind, UnOp};
 use expr::{InterpolateItem, Range, SwitchCase};
 pub use fold::*;
 pub use ids::*;
-use prqlc_parser::lexer::lr::Literal;
-use serde::{Deserialize, Serialize};
+use prqlc_parser::lexer::lr;
 pub use transform::*;
 pub use utils::*;
 
 use super::pl::QueryDef;
 use super::pl::TableExternRef;
+
+mod expr;
+mod fold;
+mod ids;
+mod transform;
+mod utils;
 
 #[derive(Debug, PartialEq, Clone, Serialize, Deserialize)]
 pub struct RelationalQuery {
@@ -59,7 +60,7 @@ pub struct RelationLiteral {
     /// Column names
     pub columns: Vec<String>,
     /// Row-oriented data
-    pub rows: Vec<Vec<Literal>>,
+    pub rows: Vec<Vec<lr::Literal>>,
 }
 
 #[derive(Debug, PartialEq, Clone, Eq, Hash, Serialize, Deserialize, EnumAsInner)]

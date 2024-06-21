@@ -1,7 +1,7 @@
 use std::collections::HashMap;
 
 use enum_as_inner::EnumAsInner;
-use prqlc_parser::parser::generic;
+use prqlc_parser::generic;
 use serde::{Deserialize, Serialize};
 
 use super::{Lineage, TransformCall};

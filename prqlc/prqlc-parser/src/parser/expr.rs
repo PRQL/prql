@@ -7,9 +7,9 @@ use super::interpolation;
 use crate::error::parse_error::PError;
 use crate::lexer::lr::{Literal, TokenKind};
 use crate::parser::common::{ctrl, ident_part, into_expr, keyword, new_line};
-use crate::parser::pr::ident::Ident;
-use crate::parser::pr::ops::{BinOp, UnOp};
+use crate::parser::pr::Ident;
 use crate::parser::pr::*;
+use crate::parser::pr::{BinOp, UnOp};
 use crate::parser::types::type_expr;
 use crate::span::Span;
 

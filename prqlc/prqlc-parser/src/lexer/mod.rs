@@ -1,7 +1,3 @@
-pub mod lr;
-#[cfg(test)]
-mod test;
-
 use chumsky::{
     error::Cheap,
     prelude::*,
@@ -10,12 +6,15 @@ use chumsky::{
 use serde::{Deserialize, Serialize};
 
 use crate::error::{Error, ErrorSource, Reason, WithErrorInfo};
-use crate::lexer;
 use crate::lexer::lr::{Literal, Token, TokenKind, ValueAndUnit};
 use crate::span::Span;
 
+pub mod lr;
+#[cfg(test)]
+mod test;
+
 pub fn lex_string_recovery(source: &str, source_id: u16) -> (Option<Vec<Token>>, Vec<Error>) {
-    let (tokens, lex_errors) = ::chumsky::Parser::parse_recovery(&lexer::lexer(), source);
+    let (tokens, lex_errors) = ::chumsky::Parser::parse_recovery(&lexer(), source);
 
     let errors = lex_errors
         .into_iter()
@@ -33,7 +32,7 @@ pub fn lex_source(source: &str) -> Result<TokenVec, Vec<Error>> {
     })
 }
 
-pub fn convert_lexer_error(source: &str, e: chumsky::error::Cheap<char>, source_id: u16) -> Error {
+fn convert_lexer_error(source: &str, e: chumsky::error::Cheap<char>, source_id: u16) -> Error {
     // We want to slice based on the chars, not the bytes, so can't just index
     // into the str.
     let found = source
@@ -53,7 +52,7 @@ pub fn convert_lexer_error(source: &str, e: chumsky::error::Cheap<char>, source_
 }
 
 /// Lex chars to tokens until the end of the input
-pub fn lexer() -> impl Parser<char, Vec<Token>, Error = Cheap<char>> {
+pub(crate) fn lexer() -> impl Parser<char, Vec<Token>, Error = Cheap<char>> {
     lex_token()
         .repeated()
         .then_ignore(ignored())

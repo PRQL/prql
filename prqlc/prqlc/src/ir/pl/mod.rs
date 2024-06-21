@@ -8,12 +8,9 @@
 //!
 //! Top-level construct is a list of statements [`Vec<Stmt>`].
 
-mod expr;
-mod extra;
-mod fold;
-mod lineage;
-mod stmt;
-mod utils;
+pub use crate::ast::Literal;
+pub use crate::ast::QueryDef;
+pub use crate::ast::{BinOp, BinaryExpr, Ident, UnOp, UnaryExpr};
 
 pub use self::expr::*;
 pub use self::extra::*;
@@ -21,8 +18,13 @@ pub use self::fold::*;
 pub use self::lineage::*;
 pub use self::stmt::*;
 pub use self::utils::*;
-pub use crate::ast::Literal;
-pub use crate::ast::{BinOp, BinaryExpr, Ident, UnOp, UnaryExpr};
+
+mod expr;
+mod extra;
+mod fold;
+mod lineage;
+mod stmt;
+mod utils;
 
 pub fn print_mem_sizes() {
     use std::mem::size_of;

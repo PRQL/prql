@@ -11,7 +11,7 @@ use crate::lexer::lr::{Literal, TokenKind};
 use crate::parser::pr::*;
 use crate::parser::types::type_expr;
 
-pub fn source() -> impl Parser<TokenKind, Vec<Stmt>, Error = PError> {
+pub(crate) fn source() -> impl Parser<TokenKind, Vec<Stmt>, Error = PError> {
     query_def()
         .or_not()
         .chain(module_contents())
