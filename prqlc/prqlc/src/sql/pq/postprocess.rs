@@ -1,4 +1,4 @@
-//! An AST pass after compilation to SRQ.
+//! An AST pass after compilation to PQ.
 //!
 //! Currently only moves [SqlTransform::Sort]s.
 
@@ -46,7 +46,7 @@ struct CteSorting {
 
 impl<'a> RqFold for SortingInference<'a> {}
 
-impl<'a> SrqFold for SortingInference<'a> {
+impl<'a> PqFold for SortingInference<'a> {
     fn fold_sql_query(&mut self, query: SqlQuery) -> Result<SqlQuery> {
         let mut ctes = Vec::with_capacity(query.ctes.len());
         for cte in query.ctes {
@@ -102,7 +102,7 @@ impl<'a> SrqFold for SortingInference<'a> {
     }
 }
 
-impl<'a> SrqMapper<RelationExpr, RelationExpr, (), ()> for SortingInference<'a> {
+impl<'a> PqMapper<RelationExpr, RelationExpr, (), ()> for SortingInference<'a> {
     fn fold_rel(&mut self, rel: RelationExpr) -> Result<RelationExpr> {
         Ok(rel)
     }
@@ -202,7 +202,7 @@ struct RelVarNameAssigner<'a> {
 
 impl<'a> RqFold for RelVarNameAssigner<'a> {}
 
-impl<'a> SrqFold for RelVarNameAssigner<'a> {
+impl<'a> PqFold for RelVarNameAssigner<'a> {
     fn fold_sql_relation(&mut self, relation: SqlRelation) -> Result<SqlRelation> {
         // only fold AtomicPipelines
         Ok(match relation {
@@ -221,7 +221,7 @@ impl<'a> SrqFold for RelVarNameAssigner<'a> {
     }
 }
 
-impl<'a> SrqMapper<RelationExpr, RelationExpr, (), ()> for RelVarNameAssigner<'a> {
+impl<'a> PqMapper<RelationExpr, RelationExpr, (), ()> for RelVarNameAssigner<'a> {
     fn fold_rel(&mut self, mut rel: RelationExpr) -> Result<RelationExpr> {
         // normal fold
         rel.kind = match rel.kind {

@@ -16,7 +16,7 @@ use super::{keywords, Context};
 use crate::ir::generic::{ColumnSort, SortDirection, WindowFrame, WindowKind};
 use crate::ir::pl::{self, Ident, Literal};
 use crate::ir::rq::*;
-use crate::sql::srq::context::ColumnDecl;
+use crate::sql::pq::context::ColumnDecl;
 use crate::utils::{valid_ident, OrMap};
 use crate::{Error, Reason, Result, Span, WithErrorInfo};
 

@@ -87,7 +87,7 @@ enum Command {
         format: Format,
     },
 
-    /// Lex into Tokens
+    /// Lex into Lexer Representation
     Lex {
         #[command(flatten)]
         io_args: IoArgs,
@@ -120,11 +120,11 @@ enum Command {
         format: Format,
     },
 
-    /// Parse, resolve, lower into RQ & preprocess SRQ
+    /// Parse, resolve, lower into RQ & preprocess PQ
     #[command(name = "sql:preprocess")]
     SQLPreprocess(IoArgs),
 
-    /// Parse, resolve, lower into RQ & preprocess & anchor SRQ
+    /// Parse, resolve, lower into RQ & preprocess & anchor PQ
     ///
     /// Only displays the main pipeline.
     #[command(name = "sql:anchor")]
@@ -519,15 +519,15 @@ impl Command {
             Command::SQLPreprocess { .. } => {
                 let ast = prql_to_pl_tree(sources)?;
                 let rq = pl_to_rq_tree(ast, &main_path, &[NS_DEFAULT_DB.to_string()])?;
-                let srq = prqlc::sql::internal::preprocess(rq)?;
-                format!("{srq:#?}").as_bytes().to_vec()
+                let pq = prqlc::sql::internal::preprocess(rq)?;
+                format!("{pq:#?}").as_bytes().to_vec()
             }
             Command::SQLAnchor { format, .. } => {
                 let ast = prql_to_pl_tree(sources)?;
                 let rq = pl_to_rq_tree(ast, &main_path, &[NS_DEFAULT_DB.to_string()])?;
-                let srq = prqlc::sql::internal::anchor(rq)?;
+                let pq = prqlc::sql::internal::anchor(rq)?;
 
-                let json = serde_json::to_string_pretty(&srq)?;
+                let json = serde_json::to_string_pretty(&pq)?;
 
                 match format {
                     Format::Json => json.into_bytes(),

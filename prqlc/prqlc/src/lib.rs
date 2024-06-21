@@ -323,7 +323,7 @@ pub enum DisplayOptions {
 #[cfg(doctest)]
 pub struct ReadmeDoctests;
 
-/// Lex PRQL source into tokens.
+/// Lex PRQL source into Lexer Representation.
 pub fn prql_to_tokens(prql: &str) -> Result<TokenVec, ErrorMessages> {
     prqlc_parser::lexer::lex_source(prql).map_err(|e| {
         e.into_iter()

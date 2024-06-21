@@ -12,7 +12,7 @@ use sqlparser::ast::{
 use super::gen_expr::*;
 use super::gen_projection::*;
 use super::operators::translate_operator;
-use super::srq::ast::{Cte, CteKind, RelationExpr, RelationExprKind, SqlRelation, SqlTransform};
+use super::pq::ast::{Cte, CteKind, RelationExpr, RelationExprKind, SqlRelation, SqlTransform};
 use super::{Context, Dialect};
 use crate::ir::pl::{JoinSide, Literal};
 use crate::ir::rq::{CId, Expr, ExprKind, RelationLiteral, RelationalQuery};
@@ -23,16 +23,16 @@ use prqlc_parser::generic::InterpolateItem;
 type Transform = SqlTransform<RelationExpr, ()>;
 
 pub fn translate_query(query: RelationalQuery, dialect: Option<Dialect>) -> Result<sql_ast::Query> {
-    // compile from RQ to SRQ
-    let (srq_query, mut ctx) = super::srq::compile_query(query, dialect)?;
+    // compile from RQ to PQ
+    let (pq_query, mut ctx) = super::pq::compile_query(query, dialect)?;
 
-    let mut query = translate_relation(srq_query.main_relation, &mut ctx)?;
+    let mut query = translate_relation(pq_query.main_relation, &mut ctx)?;
 
-    if !srq_query.ctes.is_empty() {
+    if !pq_query.ctes.is_empty() {
         // attach CTEs
         let mut cte_tables = Vec::new();
         let mut recursive = false;
-        for cte in srq_query.ctes {
+        for cte in pq_query.ctes {
             let (cte, rec) = translate_cte(cte, &mut ctx)?;
             cte_tables.push(cte);
             recursive = recursive || rec;
