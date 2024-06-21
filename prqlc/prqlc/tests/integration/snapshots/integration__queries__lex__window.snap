@@ -3,7 +3,7 @@ source: prqlc/prqlc/tests/integration/queries.rs
 expression: tokens
 input_file: prqlc/prqlc/tests/integration/queries/window.prql
 ---
-TokenVec(
+Tokens(
     [
         0..95: Comment(" mssql:skip Conversion(\"cannot interpret I64(Some(1)) as an i32 value\")', connection.rs:200:34"),
         95..96: NewLine,

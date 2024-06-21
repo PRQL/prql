@@ -3,7 +3,7 @@ source: prqlc/prqlc/tests/integration/queries.rs
 expression: tokens
 input_file: prqlc/prqlc/tests/integration/queries/switch.prql
 ---
-TokenVec(
+Tokens(
     [
         0..75: Comment(" glaredb:skip (May be a bag of String type conversion for Postgres Client)"),
         75..76: NewLine,

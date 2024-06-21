@@ -12,13 +12,13 @@ pub use lowering::lower_to_ir;
 
 use self::resolver::Resolver;
 pub use self::resolver::ResolverOptions;
-use crate::ast;
 use crate::ir::constant::ConstExpr;
 use crate::ir::decl::{Module, RootModule};
 use crate::ir::pl::{self, Expr, ImportDef, ModuleDef, Stmt, StmtKind, TypeDef, VarDef};
 use crate::ir::rq::RelationalQuery;
 use crate::parser::is_mod_def_for;
 use crate::WithErrorInfo;
+use crate::{ast, debug};
 use crate::{Error, Reason, Result};
 
 /// Runs semantic analysis on the query and lowers PL to RQ.
@@ -29,19 +29,26 @@ pub fn resolve_and_lower(
 ) -> Result<RelationalQuery> {
     let root_mod = resolve(file_tree, Default::default())?;
 
+    debug::log_stage(debug::Stage::Semantic(debug::StageSemantic::Lowering));
     let default_db = [NS_DEFAULT_DB.to_string()];
     let database_module_path = database_module_path.unwrap_or(&default_db);
     let (query, _) = lowering::lower_to_ir(root_mod, main_path, database_module_path)?;
+
+    debug::log_entry(|| debug::DebugEntryKind::ReprRq(query.clone()));
     Ok(query)
 }
 
 /// Runs semantic analysis on the query.
 pub fn resolve(mut module_tree: ast::ModuleDef, options: ResolverOptions) -> Result<RootModule> {
+    debug::log_stage(debug::Stage::Semantic(debug::StageSemantic::AstExpand));
+
     load_std_lib(&mut module_tree);
 
     // expand AST into PL
     let root_module_def = ast_expand::expand_module_def(module_tree)?;
+    debug::log_entry(|| debug::DebugEntryKind::ReprPl(root_module_def.clone()));
 
+    debug::log_stage(debug::Stage::Semantic(debug::StageSemantic::Resolver));
     // init new root module
     let mut root_module = RootModule {
         module: Module::new_root(),
@@ -51,6 +58,7 @@ pub fn resolve(mut module_tree: ast::ModuleDef, options: ResolverOptions) -> Res
 
     // resolve the module def into the root module
     resolver.fold_statements(root_module_def.stmts)?;
+    debug::log_entry(|| debug::DebugEntryKind::ReprDecl(root_module.clone()));
 
     Ok(root_module)
 }

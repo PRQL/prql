@@ -3,7 +3,7 @@ source: prqlc/prqlc/tests/integration/queries.rs
 expression: tokens
 input_file: prqlc/prqlc/tests/integration/queries/aggregation.prql
 ---
-TokenVec(
+Tokens(
     [
         0..12: Comment(" mssql:skip"),
         12..13: NewLine,
