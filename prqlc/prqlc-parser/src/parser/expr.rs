@@ -352,12 +352,11 @@ where
 
 fn lambda_func<E>(expr: E) -> impl Parser<TokenKind, Expr, Error = PError> + Clone
 where
-    E: Parser<TokenKind, Expr, Error = PError> + Clone + 'static,
+    E: Parser<TokenKind, Expr, Error = PError> + Clone,
 {
     let param = ident_part()
         .then(type_expr().delimited_by(ctrl('<'), ctrl('>')).or_not())
-        .then(ctrl(':').ignore_then(expr.clone().map(Box::new)).or_not())
-        .boxed();
+        .then(ctrl(':').ignore_then(expr.clone().map(Box::new)).or_not());
 
     let generic_args = ident_part()
         .then_ignore(ctrl(':'))
