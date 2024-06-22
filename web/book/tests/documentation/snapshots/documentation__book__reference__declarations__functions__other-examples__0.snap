@@ -8,7 +8,7 @@ WITH table_0 AS (
     last_name,
     hobby,
     age >= 18 AS adult,
-    POW(2, age) AS age_squared
+    POW(age, 2) AS age_squared
   FROM
     employees
 )

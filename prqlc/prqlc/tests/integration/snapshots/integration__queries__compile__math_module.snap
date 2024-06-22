@@ -16,7 +16,7 @@ SELECT
   ROUND(ASIN(SIN(total)), 2) AS total_sin,
   ROUND(ATAN(TAN(total)), 2) AS total_tan,
   ROUND(RADIANS(DEGREES(total)), 2) AS total_deg,
-  ROUND(POW(2, total), 2) AS total_square,
+  ROUND(POW(total, 2), 2) AS total_square,
   ROUND(POW(total, 2), 2) AS total_square_op
 FROM
   invoices

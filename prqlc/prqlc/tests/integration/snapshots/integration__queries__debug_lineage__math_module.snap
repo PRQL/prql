@@ -473,6 +473,9 @@ nodes:
   - 230
   - 231
 - id: 230
+  kind: Literal
+  span: 1:819-820
+- id: 231
   kind: Ident
   span: 1:810-815
   ident: !Ident
@@ -481,9 +484,6 @@ nodes:
   - total
   targets:
   - 121
-- id: 231
-  kind: Literal
-  span: 1:819-820
 - id: 232
   kind: Tuple
   span: 1:110-839

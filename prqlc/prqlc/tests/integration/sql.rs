@@ -76,6 +76,7 @@ fn test_stdlib_math_module() {
       salary_tan = math.tan salary,
       salary_atan = math.atan salary,
       salary_pow = salary | math.pow 2,
+      salary_pow_op = salary ** 2,
     }
     "#).unwrap(), @r###"
     SELECT
@@ -96,7 +97,8 @@ fn test_stdlib_math_module() {
       ASIN(salary) AS salary_asin,
       TAN(salary) AS salary_tan,
       ATAN(salary) AS salary_atan,
-      POW(2, salary) AS salary_pow
+      POW(salary, 2) AS salary_pow,
+      POW(salary, 2) AS salary_pow_op
     FROM
       employees
     "###

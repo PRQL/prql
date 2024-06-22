@@ -221,6 +221,18 @@ fn expand_binary(ast::BinaryExpr { op, left, right }: ast::BinaryExpr) -> Result
         ast::BinOp::Or => vec!["std", "or"],
         ast::BinOp::Coalesce => vec!["std", "coalesce"],
     };
+
+    // For the power operator, we need to reverse the order, since `math.pow a
+    // b` is equivalent to `b ** a`. (but for example `sub a b` is equivalent to
+    // `a - b`).
+    //
+    // (I think this is the most globally consistent approach, since final
+    // arguments should be the "data", which in the case of `pow` would be the
+    // base; but it's not perfect, we could change it...)
+    let (left, right) = match op {
+        ast::BinOp::Pow => (right, left),
+        _ => (left, right),
+    };
     Ok(new_binop(left, &func_name, right).kind)
 }
 

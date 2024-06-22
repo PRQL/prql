@@ -3,6 +3,6 @@ source: web/book/tests/documentation/book.rs
 expression: "from employees\nselect {\n  age_squared = age | math.pow 2\n}\n"
 ---
 SELECT
-  POW(2, age) AS age_squared
+  POW(age, 2) AS age_squared
 FROM
   employees
