@@ -286,10 +286,24 @@ where
                 end: right.1.end,
                 source_id: left.1.source_id,
             };
-            let kind = ExprKind::Binary(BinaryExpr {
-                left: Box::new(left.0),
-                op,
-                right: Box::new(right.0),
+            let kind = ExprKind::Binary(match op {
+                // For the power operator, we need to reverse the order, since
+                // `math.pow a b` is equivalent to `b ** a`. (but for example
+                // `sub a b` is equivalent to `a - b`).
+                // (I think this is the most globally consistent approach, since
+                // final arguments should be the "data", which in the case of
+                // `pow` would be the base; but it's not perfect, we could
+                // change it...)
+                BinOp::Pow => BinaryExpr {
+                    left: Box::new(right.0),
+                    op,
+                    right: Box::new(left.0),
+                },
+                _ => BinaryExpr {
+                    left: Box::new(left.0),
+                    op,
+                    right: Box::new(right.0),
+                },
             });
             (into_expr(kind, span), span)
         })

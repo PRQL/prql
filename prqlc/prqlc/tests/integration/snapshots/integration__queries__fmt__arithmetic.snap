@@ -53,4 +53,3 @@ select {
   (q_ff * k_float + r_ff | math.round 0),
 }
 sort id
-

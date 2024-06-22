@@ -202,24 +202,24 @@ fn expand_binary(ast::BinaryExpr { op, left, right }: ast::BinaryExpr) -> Result
     let left = expand_expr(*left)?;
     let right = expand_expr(*right)?;
 
-    let func_name = match op {
-        ast::BinOp::Mul => ["std", "mul"],
-        ast::BinOp::DivInt => ["std", "div_i"],
-        ast::BinOp::DivFloat => ["std", "div_f"],
-        ast::BinOp::Mod => ["std", "mod"],
-        ast::BinOp::Pow => ["std", "pow"],
-        ast::BinOp::Add => ["std", "add"],
-        ast::BinOp::Sub => ["std", "sub"],
-        ast::BinOp::Eq => ["std", "eq"],
-        ast::BinOp::Ne => ["std", "ne"],
-        ast::BinOp::Gt => ["std", "gt"],
-        ast::BinOp::Lt => ["std", "lt"],
-        ast::BinOp::Gte => ["std", "gte"],
-        ast::BinOp::Lte => ["std", "lte"],
-        ast::BinOp::RegexSearch => ["std", "regex_search"],
-        ast::BinOp::And => ["std", "and"],
-        ast::BinOp::Or => ["std", "or"],
-        ast::BinOp::Coalesce => ["std", "coalesce"],
+    let func_name: Vec<&str> = match op {
+        ast::BinOp::Mul => vec!["std", "mul"],
+        ast::BinOp::DivInt => vec!["std", "div_i"],
+        ast::BinOp::DivFloat => vec!["std", "div_f"],
+        ast::BinOp::Mod => vec!["std", "mod"],
+        ast::BinOp::Pow => vec!["std", "math", "pow"],
+        ast::BinOp::Add => vec!["std", "add"],
+        ast::BinOp::Sub => vec!["std", "sub"],
+        ast::BinOp::Eq => vec!["std", "eq"],
+        ast::BinOp::Ne => vec!["std", "ne"],
+        ast::BinOp::Gt => vec!["std", "gt"],
+        ast::BinOp::Lt => vec!["std", "lt"],
+        ast::BinOp::Gte => vec!["std", "gte"],
+        ast::BinOp::Lte => vec!["std", "lte"],
+        ast::BinOp::RegexSearch => vec!["std", "regex_search"],
+        ast::BinOp::And => vec!["std", "and"],
+        ast::BinOp::Or => vec!["std", "or"],
+        ast::BinOp::Coalesce => vec!["std", "coalesce"],
     };
     Ok(new_binop(left, &func_name, right).kind)
 }
