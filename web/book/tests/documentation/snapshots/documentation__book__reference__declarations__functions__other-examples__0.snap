@@ -8,7 +8,7 @@ WITH table_0 AS (
     last_name,
     hobby,
     age >= 18 AS adult,
-    POW(age, 2) AS age_squared
+    POW(2, age) AS age_squared
   FROM
     employees
 )
@@ -23,4 +23,3 @@ FROM
 WHERE
   LOWER(last_name) LIKE CONCAT('a', '%')
   AND hobby IN ('PRQL', 'Rust')
-
