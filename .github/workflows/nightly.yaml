@@ -1,5 +1,7 @@
 # A workflow containing jobs we run only on nightly. This is called by
-# `tests.yaml` on a schedule and on request with a `pr-nightly` label.
+# `tests.yaml` on a schedule and on request with a `pr-nightly` label. The
+# workflow encapsulates lots of jobs rather than listing them all in `tests.yaml`
+# and conditioning each on `nightly` (wouldn't be terrible but less modular,).
 
 name: nightly
 
@@ -14,18 +16,13 @@ jobs:
     # incorrectly fail (
     # https://github.com/PRQL/prql/actions/runs/5718693342/job/15495030808?pr=3195#step:3:28
     # ). So we disable. If we wanted to run checks on PRs, we could move this to
-    # `pull-request-target`. And note that it does suggest that it can run on
-    # forks at https://github.com/rustsec/audit-check#limitations
+    # `pull-request-target`.
     #
-    # We also disable on dependabot, since dependabot doesn't have permissions
-    # even when running on the main repo. Would be better if we could only run
-    # when we know we have permissions. But this will do...
-    #
-    # Note also that we seem to need `== false` rather than just a `!` prefix
-    # once we combine with another expression (but not confident)
+    # Would be better if we could only run when we know we have permissions. But
+    # this will do...
     if:
-      ${{ github.event.pull_request.head.repo.fork == false && github.actor !=
-      'dependabot[bot]' }}
+      ${{ github.repository_owner == 'prql' &&
+      !github.event.pull_request.head.repo.fork }}
     permissions:
       actions: read
       contents: read
@@ -35,7 +32,7 @@ jobs:
 
     steps:
       - uses: actions/checkout@v4
-      - uses: rustsec/audit-check@v1
+      - uses: rustsec/audit-check@v1.4.1
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
           # Only used in tests. Waiting for tiberius to publish a new release.
@@ -45,7 +42,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - uses: richb-hanover/cargo@v1.1.0
+      - uses: clechasseur/rs-cargo@v2
         with:
           command: bench
           args: --timings --all-targets
@@ -62,33 +59,6 @@ jobs:
         with:
           use_cache: ${{ matrix.use_cache }}
 
-  update-rust-toolchain:
-    runs-on: ubuntu-latest
-    # Currently turned off, as I can't get the token to work correctly in this
-    # workflow, despite it working well in other workflows... Contributions
-    # welcome
-    # https://github.com/PRQL/prql/actions/runs/7351852156/job/20017282449#step:3:14
-    if: false
-    # # See notes in `cargo-audit` for why we disable on forks and dependabot.
-    # if:
-    #   ${{ github.event.pull_request.head.repo.fork == false && github.actor !=
-    #   'dependabot[bot]' }}
-
-    # Note that this doesn't change the minimum supported version, only the
-    # default to run on. The minimum is defined by Cargo.toml's metadata.msrv
-    # and is updated manually based on when build environments such as debian &
-    # winget are updated.
-    steps:
-      - name: 📂 Checkout code
-        uses: actions/checkout@v4
-      - uses: a-kenji/update-rust-toolchain@main
-        with:
-          # Discussion in #1561
-          minor-version-delta: 1
-          toolchain-path: "./rust-toolchain.toml"
-          pr-title: "build: Update rust toolchain version"
-          token: ${{ secrets.PRQL_BOT_GITHUB_TOKEN }}
-
   check-unused-dependencies:
     runs-on: ubuntu-latest
     steps:
@@ -100,11 +70,11 @@ jobs:
           crate: cargo-udeps
       # Once with all targets, once without, to find anything that should be in
       # `dev` but is more general.
-      - uses: richb-hanover/cargo@v1.1.0
+      - uses: clechasseur/rs-cargo@v2
         with:
           command: udeps
           args: --all-targets
-      - uses: richb-hanover/cargo@v1.1.0
+      - uses: clechasseur/rs-cargo@v2
         with:
           command: udeps
 

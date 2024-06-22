@@ -2,24 +2,25 @@
 //!
 //! Strictly typed AST for describing relational queries.
 
+use enum_as_inner::EnumAsInner;
+use serde::{Deserialize, Serialize};
+
+pub use expr::{Expr, ExprKind, UnOp};
+use expr::{InterpolateItem, Range, SwitchCase};
+pub use fold::*;
+pub use ids::*;
+use prqlc_parser::lexer::lr;
+pub use transform::*;
+pub use utils::*;
+
+use super::pl::QueryDef;
+use super::pl::TableExternRef;
+
 mod expr;
 mod fold;
 mod ids;
 mod transform;
 mod utils;
-
-pub use expr::{Expr, ExprKind, UnOp};
-pub use fold::*;
-pub use ids::*;
-pub use transform::*;
-pub use utils::*;
-
-use enum_as_inner::EnumAsInner;
-use expr::{InterpolateItem, Range, SwitchCase};
-use serde::{Deserialize, Serialize};
-
-use super::pl::Ident;
-use super::pl::{Literal, QueryDef};
 
 #[derive(Debug, PartialEq, Clone, Serialize, Deserialize)]
 pub struct RelationalQuery {
@@ -40,11 +41,18 @@ pub struct Relation {
 
 #[derive(Debug, PartialEq, Clone, Serialize, Deserialize, EnumAsInner)]
 pub enum RelationKind {
-    ExternRef(Ident),
+    #[cfg_attr(
+        feature = "serde_yaml",
+        serde(with = "serde_yaml::with::singleton_map")
+    )]
+    ExternRef(TableExternRef),
     Pipeline(Vec<Transform>),
     Literal(RelationLiteral),
     SString(Vec<InterpolateItem>),
-    BuiltInFunction { name: String, args: Vec<Expr> },
+    BuiltInFunction {
+        name: String,
+        args: Vec<Expr>,
+    },
 }
 
 #[derive(Debug, PartialEq, Clone, Serialize, Deserialize)]
@@ -52,7 +60,7 @@ pub struct RelationLiteral {
     /// Column names
     pub columns: Vec<String>,
     /// Row-oriented data
-    pub rows: Vec<Vec<Literal>>,
+    pub rows: Vec<Vec<lr::Literal>>,
 }
 
 #[derive(Debug, PartialEq, Clone, Eq, Hash, Serialize, Deserialize, EnumAsInner)]

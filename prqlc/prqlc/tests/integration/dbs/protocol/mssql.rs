@@ -1,5 +1,6 @@
+use std::sync::OnceLock;
+
 use anyhow::{bail, Result};
-use once_cell::sync::Lazy;
 use tiberius::numeric::BigDecimal;
 use tiberius::time::time::PrimitiveDateTime;
 use tiberius::{AuthMethod, Client, ColumnType, Config};
@@ -10,12 +11,15 @@ use tokio_util::compat::{Compat, TokioAsyncWriteCompatExt};
 use super::DbProtocolHandler;
 use crate::dbs::Row;
 
-static RUNTIME: Lazy<runtime::Runtime> = Lazy::new(|| {
-    runtime::Builder::new_current_thread()
-        .enable_all()
-        .build()
-        .unwrap()
-});
+fn runtime() -> &'static runtime::Runtime {
+    static RUNTIME: OnceLock<runtime::Runtime> = OnceLock::new();
+    RUNTIME.get_or_init(|| {
+        runtime::Builder::new_current_thread()
+            .enable_all()
+            .build()
+            .unwrap()
+    })
+}
 
 pub fn init() -> Box<dyn DbProtocolHandler> {
     let mut config = Config::new();
@@ -24,7 +28,7 @@ pub fn init() -> Box<dyn DbProtocolHandler> {
     config.trust_cert();
     config.authentication(AuthMethod::sql_server("sa", "Wordpass123##"));
 
-    let res = RUNTIME.block_on(async {
+    let res = runtime().block_on(async {
         let tcp = TcpStream::connect(config.get_addr()).await?;
         tcp.set_nodelay(true).unwrap();
         Client::connect(config, tcp.compat_write()).await
@@ -34,7 +38,7 @@ pub fn init() -> Box<dyn DbProtocolHandler> {
 
 impl DbProtocolHandler for tiberius::Client<Compat<TcpStream>> {
     fn query(&mut self, sql: &str) -> Result<Vec<Row>> {
-        RUNTIME.block_on(async {
+        runtime().block_on(async {
             let mut stream = self.query(sql, &[]).await?;
             let mut vec = vec![];
             let cols_option = stream.columns().await?;

@@ -2,12 +2,13 @@
 
 extern crate libc;
 
-use libc::{c_char, size_t};
-use prqlc::ErrorMessages;
-use prqlc::Target;
 use std::ffi::CStr;
 use std::ffi::CString;
 use std::str::FromStr;
+
+use libc::{c_char, size_t};
+use prqlc::ErrorMessages;
+use prqlc::Target;
 
 /// Compile a PRQL string into a SQL string.
 ///
@@ -66,7 +67,7 @@ pub unsafe extern "C" fn prql_to_pl(prql_query: *const c_char) -> CompileResult 
 
 /// Finds variable references, validates functions calls, determines frames and converts PL to RQ.
 /// PL and RQ are documented in the
-/// [prqlc Rust crate](https://docs.rs/prqlc/latest/prqlc/ast).
+/// [prqlc Rust crate](https://docs.rs/prqlc/latest/prqlc).
 ///
 /// Takes PL serialized as JSON buffer and writes RQ serialized as JSON to `out` buffer.
 ///

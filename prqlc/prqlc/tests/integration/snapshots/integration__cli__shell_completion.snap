@@ -7,10 +7,10 @@ info:
     - shell-completion
     - bash
   env:
-    RUST_LOG: ""
     CLICOLOR_FORCE: ""
-    RUST_BACKTRACE: ""
     NO_COLOR: "1"
+    RUST_BACKTRACE: ""
+    RUST_LOG: ""
 ---
 success: true
 exit_code: 0
@@ -46,6 +46,9 @@ _prqlc() {
                 ;;
             prqlc,help)
                 cmd="prqlc__help"
+                ;;
+            prqlc,lex)
+                cmd="prqlc__lex"
                 ;;
             prqlc,list-targets)
                 cmd="prqlc__list__targets"
@@ -83,6 +86,9 @@ _prqlc() {
             prqlc__debug,help)
                 cmd="prqlc__debug__help"
                 ;;
+            prqlc__debug,lineage)
+                cmd="prqlc__debug__lineage"
+                ;;
             prqlc__debug,resolve)
                 cmd="prqlc__debug__resolve"
                 ;;
@@ -100,6 +106,9 @@ _prqlc() {
                 ;;
             prqlc__debug__help,help)
                 cmd="prqlc__debug__help__help"
+                ;;
+            prqlc__debug__help,lineage)
+                cmd="prqlc__debug__help__lineage"
                 ;;
             prqlc__debug__help,resolve)
                 cmd="prqlc__debug__help__resolve"
@@ -134,6 +143,9 @@ _prqlc() {
             prqlc__help,help)
                 cmd="prqlc__help__help"
                 ;;
+            prqlc__help,lex)
+                cmd="prqlc__help__lex"
+                ;;
             prqlc__help,list-targets)
                 cmd="prqlc__help__list__targets"
                 ;;
@@ -167,6 +179,9 @@ _prqlc() {
             prqlc__help__debug,expand-pl)
                 cmd="prqlc__help__debug__expand__pl"
                 ;;
+            prqlc__help__debug,lineage)
+                cmd="prqlc__help__debug__lineage"
+                ;;
             prqlc__help__debug,resolve)
                 cmd="prqlc__help__debug__resolve"
                 ;;
@@ -180,7 +195,7 @@ _prqlc() {
 
     case "${cmd}" in
         prqlc)
-            opts="-h -V --color --help --version parse fmt collect debug experimental resolve sql:preprocess sql:anchor compile watch list-targets shell-completion help"
+            opts="-v -q -h -V --color --verbose --quiet --help --version parse lex fmt collect debug experimental resolve sql:preprocess sql:anchor compile watch list-targets shell-completion help"
             if [[ ${cur} == -* || ${COMP_CWORD} -eq 1 ]] ; then
                 COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
                 return 0
@@ -198,7 +213,7 @@ _prqlc() {
             return 0
             ;;
         prqlc__collect)
-            opts="-h --color --help [INPUT] [OUTPUT] [MAIN_PATH]"
+            opts="-v -q -h --color --verbose --quiet --help [INPUT] [OUTPUT] [MAIN_PATH]"
             if [[ ${cur} == -* || ${COMP_CWORD} -eq 2 ]] ; then
                 COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
                 return 0
@@ -216,7 +231,7 @@ _prqlc() {
             return 0
             ;;
         prqlc__compile)
-            opts="-t -h --hide-signature-comment --no-format --target --color --help [INPUT] [OUTPUT] [MAIN_PATH]"
+            opts="-t -v -q -h --hide-signature-comment --no-format --target --color --verbose --quiet --help [INPUT] [OUTPUT] [MAIN_PATH]"
             if [[ ${cur} == -* || ${COMP_CWORD} -eq 2 ]] ; then
                 COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
                 return 0
@@ -242,7 +257,7 @@ _prqlc() {
             return 0
             ;;
         prqlc__debug)
-            opts="-h --color --help expand-pl resolve eval annotate ast help"
+            opts="-v -q -h --color --verbose --quiet --help expand-pl resolve eval annotate lineage ast help"
             if [[ ${cur} == -* || ${COMP_CWORD} -eq 2 ]] ; then
                 COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
                 return 0
@@ -260,7 +275,7 @@ _prqlc() {
             return 0
             ;;
         prqlc__debug__annotate)
-            opts="-h --color --help [INPUT] [OUTPUT] [MAIN_PATH]"
+            opts="-v -q -h --color --verbose --quiet --help [INPUT] [OUTPUT] [MAIN_PATH]"
             if [[ ${cur} == -* || ${COMP_CWORD} -eq 3 ]] ; then
                 COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
                 return 0
@@ -278,7 +293,7 @@ _prqlc() {
             return 0
             ;;
         prqlc__debug__ast)
-            opts="-h --color --help"
+            opts="-v -q -h --color --verbose --quiet --help"
             if [[ ${cur} == -* || ${COMP_CWORD} -eq 3 ]] ; then
                 COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
                 return 0
@@ -296,7 +311,7 @@ _prqlc() {
             return 0
             ;;
         prqlc__debug__eval)
-            opts="-h --color --help [INPUT] [OUTPUT] [MAIN_PATH]"
+            opts="-v -q -h --color --verbose --quiet --help [INPUT] [OUTPUT] [MAIN_PATH]"
             if [[ ${cur} == -* || ${COMP_CWORD} -eq 3 ]] ; then
                 COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
                 return 0
@@ -314,7 +329,7 @@ _prqlc() {
             return 0
             ;;
         prqlc__debug__expand__pl)
-            opts="-h --color --help [INPUT] [OUTPUT] [MAIN_PATH]"
+            opts="-v -q -h --color --verbose --quiet --help [INPUT] [OUTPUT] [MAIN_PATH]"
             if [[ ${cur} == -* || ${COMP_CWORD} -eq 3 ]] ; then
                 COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
                 return 0
@@ -332,7 +347,7 @@ _prqlc() {
             return 0
             ;;
         prqlc__debug__help)
-            opts="expand-pl resolve eval annotate ast help"
+            opts="expand-pl resolve eval annotate lineage ast help"
             if [[ ${cur} == -* || ${COMP_CWORD} -eq 3 ]] ; then
                 COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
                 return 0
@@ -415,6 +430,20 @@ _prqlc() {
             COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
             return 0
             ;;
+        prqlc__debug__help__lineage)
+            opts=""
+            if [[ ${cur} == -* || ${COMP_CWORD} -eq 4 ]] ; then
+                COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
+                return 0
+            fi
+            case "${prev}" in
+                *)
+                    COMPREPLY=()
+                    ;;
+            esac
+            COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
+            return 0
+            ;;
         prqlc__debug__help__resolve)
             opts=""
             if [[ ${cur} == -* || ${COMP_CWORD} -eq 4 ]] ; then
@@ -429,8 +458,30 @@ _prqlc() {
             COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
             return 0
             ;;
+        prqlc__debug__lineage)
+            opts="-v -q -h --format --color --verbose --quiet --help [INPUT] [OUTPUT] [MAIN_PATH]"
+            if [[ ${cur} == -* || ${COMP_CWORD} -eq 3 ]] ; then
+                COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
+                return 0
+            fi
+            case "${prev}" in
+                --format)
+                    COMPREPLY=($(compgen -W "json yaml" -- "${cur}"))
+                    return 0
+                    ;;
+                --color)
+                    COMPREPLY=($(compgen -W "auto always never" -- "${cur}"))
+                    return 0
+                    ;;
+                *)
+                    COMPREPLY=()
+                    ;;
+            esac
+            COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
+            return 0
+            ;;
         prqlc__debug__resolve)
-            opts="-h --color --help [INPUT] [OUTPUT] [MAIN_PATH]"
+            opts="-v -q -h --color --verbose --quiet --help [INPUT] [OUTPUT] [MAIN_PATH]"
             if [[ ${cur} == -* || ${COMP_CWORD} -eq 3 ]] ; then
                 COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
                 return 0
@@ -448,7 +499,7 @@ _prqlc() {
             return 0
             ;;
         prqlc__experimental)
-            opts="-h --color --help doc help"
+            opts="-v -q -h --color --verbose --quiet --help doc help"
             if [[ ${cur} == -* || ${COMP_CWORD} -eq 2 ]] ; then
                 COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
                 return 0
@@ -466,7 +517,7 @@ _prqlc() {
             return 0
             ;;
         prqlc__experimental__doc)
-            opts="-h --color --help [INPUT] [OUTPUT] [MAIN_PATH]"
+            opts="-v -q -h --color --verbose --quiet --help [INPUT] [OUTPUT] [MAIN_PATH]"
             if [[ ${cur} == -* || ${COMP_CWORD} -eq 3 ]] ; then
                 COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
                 return 0
@@ -526,7 +577,7 @@ _prqlc() {
             return 0
             ;;
         prqlc__fmt)
-            opts="-h --color --help [INPUT]"
+            opts="-v -q -h --color --verbose --quiet --help [INPUT]"
             if [[ ${cur} == -* || ${COMP_CWORD} -eq 2 ]] ; then
                 COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
                 return 0
@@ -544,7 +595,7 @@ _prqlc() {
             return 0
             ;;
         prqlc__help)
-            opts="parse fmt collect debug experimental resolve sql:preprocess sql:anchor compile watch list-targets shell-completion help"
+            opts="parse lex fmt collect debug experimental resolve sql:preprocess sql:anchor compile watch list-targets shell-completion help"
             if [[ ${cur} == -* || ${COMP_CWORD} -eq 2 ]] ; then
                 COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
                 return 0
@@ -586,7 +637,7 @@ _prqlc() {
             return 0
             ;;
         prqlc__help__debug)
-            opts="expand-pl resolve eval annotate ast"
+            opts="expand-pl resolve eval annotate lineage ast"
             if [[ ${cur} == -* || ${COMP_CWORD} -eq 3 ]] ; then
                 COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
                 return 0
@@ -642,6 +693,20 @@ _prqlc() {
             return 0
             ;;
         prqlc__help__debug__expand__pl)
+            opts=""
+            if [[ ${cur} == -* || ${COMP_CWORD} -eq 4 ]] ; then
+                COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
+                return 0
+            fi
+            case "${prev}" in
+                *)
+                    COMPREPLY=()
+                    ;;
+            esac
+            COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
+            return 0
+            ;;
+        prqlc__help__debug__lineage)
             opts=""
             if [[ ${cur} == -* || ${COMP_CWORD} -eq 4 ]] ; then
                 COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
@@ -712,6 +777,20 @@ _prqlc() {
             return 0
             ;;
         prqlc__help__help)
+            opts=""
+            if [[ ${cur} == -* || ${COMP_CWORD} -eq 3 ]] ; then
+                COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
+                return 0
+            fi
+            case "${prev}" in
+                *)
+                    COMPREPLY=()
+                    ;;
+            esac
+            COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
+            return 0
+            ;;
+        prqlc__help__lex)
             opts=""
             if [[ ${cur} == -* || ${COMP_CWORD} -eq 3 ]] ; then
                 COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
@@ -823,8 +902,30 @@ _prqlc() {
             COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
             return 0
             ;;
+        prqlc__lex)
+            opts="-v -q -h --format --color --verbose --quiet --help [INPUT] [OUTPUT] [MAIN_PATH]"
+            if [[ ${cur} == -* || ${COMP_CWORD} -eq 2 ]] ; then
+                COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
+                return 0
+            fi
+            case "${prev}" in
+                --format)
+                    COMPREPLY=($(compgen -W "json yaml" -- "${cur}"))
+                    return 0
+                    ;;
+                --color)
+                    COMPREPLY=($(compgen -W "auto always never" -- "${cur}"))
+                    return 0
+                    ;;
+                *)
+                    COMPREPLY=()
+                    ;;
+            esac
+            COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
+            return 0
+            ;;
         prqlc__list__targets)
-            opts="-h --color --help"
+            opts="-v -q -h --color --verbose --quiet --help"
             if [[ ${cur} == -* || ${COMP_CWORD} -eq 2 ]] ; then
                 COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
                 return 0
@@ -842,7 +943,7 @@ _prqlc() {
             return 0
             ;;
         prqlc__parse)
-            opts="-h --format --color --help [INPUT] [OUTPUT] [MAIN_PATH]"
+            opts="-v -q -h --format --color --verbose --quiet --help [INPUT] [OUTPUT] [MAIN_PATH]"
             if [[ ${cur} == -* || ${COMP_CWORD} -eq 2 ]] ; then
                 COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
                 return 0
@@ -864,7 +965,7 @@ _prqlc() {
             return 0
             ;;
         prqlc__resolve)
-            opts="-h --format --color --help [INPUT] [OUTPUT] [MAIN_PATH]"
+            opts="-v -q -h --format --color --verbose --quiet --help [INPUT] [OUTPUT] [MAIN_PATH]"
             if [[ ${cur} == -* || ${COMP_CWORD} -eq 2 ]] ; then
                 COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
                 return 0
@@ -886,7 +987,7 @@ _prqlc() {
             return 0
             ;;
         prqlc__shell__completion)
-            opts="-h --color --help bash elvish fig fish nushell powershell zsh"
+            opts="-v -q -h --color --verbose --quiet --help bash elvish fig fish nushell powershell zsh"
             if [[ ${cur} == -* || ${COMP_CWORD} -eq 2 ]] ; then
                 COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
                 return 0
@@ -904,7 +1005,7 @@ _prqlc() {
             return 0
             ;;
         prqlc__sql:anchor)
-            opts="-h --format --color --help [INPUT] [OUTPUT] [MAIN_PATH]"
+            opts="-v -q -h --format --color --verbose --quiet --help [INPUT] [OUTPUT] [MAIN_PATH]"
             if [[ ${cur} == -* || ${COMP_CWORD} -eq 2 ]] ; then
                 COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
                 return 0
@@ -926,7 +1027,7 @@ _prqlc() {
             return 0
             ;;
         prqlc__sql:preprocess)
-            opts="-h --color --help [INPUT] [OUTPUT] [MAIN_PATH]"
+            opts="-v -q -h --color --verbose --quiet --help [INPUT] [OUTPUT] [MAIN_PATH]"
             if [[ ${cur} == -* || ${COMP_CWORD} -eq 2 ]] ; then
                 COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
                 return 0
@@ -944,7 +1045,7 @@ _prqlc() {
             return 0
             ;;
         prqlc__watch)
-            opts="-h --no-format --no-signature --color --help <PATH>"
+            opts="-v -q -h --no-format --no-signature --color --verbose --quiet --help <PATH>"
             if [[ ${cur} == -* || ${COMP_CWORD} -eq 2 ]] ; then
                 COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
                 return 0
@@ -971,4 +1072,3 @@ else
 fi
 
 ----- stderr -----
-

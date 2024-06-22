@@ -9,10 +9,10 @@ rust-version.workspace = true
 version.workspace = true
 
 [lib]
-crate_type = ["cdylib"]
+crate-type = ["cdylib"]
+doc = false
 doctest = false
 test = false
-doc = false
 
 [dependencies]
 jni = "0.21.1"

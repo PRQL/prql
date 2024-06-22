@@ -50,10 +50,10 @@ impl Resolver<'_> {
 
 #[cfg(test)]
 pub(super) mod test {
-    use crate::{Errors, Result};
     use insta::assert_yaml_snapshot;
 
     use crate::ir::pl::{Expr, Lineage, PlFold};
+    use crate::{Errors, Result};
 
     pub fn erase_ids(expr: Expr) -> Expr {
         IdEraser {}.fold_expr(expr).unwrap()

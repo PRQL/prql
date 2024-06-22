@@ -5,15 +5,13 @@ members = [
   "prqlc/bindings/js",
   "prqlc/bindings/prqlc-c",
   "prqlc/bindings/prqlc-python",
-  "prqlc/prql-compiler-macros",
-  "prqlc/prql-compiler",
-  "prqlc/prqlc-ast",
+  "prqlc/prqlc-macros",
   "prqlc/prqlc-parser",
   "prqlc/prqlc",
   "prqlc/prqlc/examples/compile-files", # An example
   "lutra/lutra",
   "lutra/bindings/python",
-  "web/book", # The book / docs
+  "web/book",
 ]
 resolver = "2"
 
@@ -22,8 +20,10 @@ authors = ["PRQL Developers"]
 edition = "2021"
 license = "Apache-2.0"
 repository = "https://github.com/PRQL/prql"
+# This isn't tested since `cargo-msrv` doesn't support workspaces; instead we
+# test `metadata.msrv` in `prqlc`
 rust-version = "1.70.0"
-version = "0.11.5"
+version = "0.12.3"
 
 [profile.release]
 # Optimize for binary size in releases of all crates,
@@ -45,9 +45,13 @@ allow-branch = ["*"]
 consolidate-commits = true
 
 [workspace.dependencies]
-anyhow = "1.0.82"
-insta = {version = "1.38.0", features = ["colors", "glob", "yaml"]}
+anyhow = "1.0.86"
+enum-as-inner = "0.6.0"
+insta = {version = "1.39.0", features = ["colors", "glob", "yaml"]}
 insta-cmd = "0.6.0"
 itertools = "0.12.0"
 log = "0.4.21"
-serde = {version = "1.0.200", features = ["derive"]}
+semver = {version = "1.0.23", features = ["serde"]}
+serde = {version = "1.0.203", features = ["derive"]}
+serde_json = "1.0.117"
+serde_yaml = {version = "0.9.34"}

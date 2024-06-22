@@ -56,7 +56,7 @@ runs:
         echo 'CC=aarch64-linux-gnu-gcc' >>"$GITHUB_ENV"
 
     - name: cargo build
-      uses: richb-hanover/cargo@v1.1.0
+      uses: clechasseur/rs-cargo@v2
       with:
         command: build
         # We previously had `--package=prqlc` for all, but this caches much
@@ -75,7 +75,7 @@ runs:
       shell: bash
       if: runner.os != 'Windows'
       run: |
-        export ARTIFACT_NAME="prqlc-v${{ github.ref_type == 'tag' && github.ref_name || 0 }}-${{ matrix.target }}.tar.gz"
+        export ARTIFACT_NAME="prqlc-${{ github.ref_type == 'tag' && github.ref_name || 0 }}-${{ matrix.target }}.tar.gz"
         echo "ARTIFACT_NAME=${ARTIFACT_NAME}" >>"$GITHUB_ENV"
         TEMP_DIR=$(mktemp -d)
         cp prqlc/prqlc/README.md LICENSE "${TEMP_DIR}/"
@@ -86,7 +86,7 @@ runs:
       shell: bash
       if: runner.os == 'Windows'
       run: |
-        export ARTIFACT_NAME="prqlc-v${{ github.ref_type == 'tag' && github.ref_name || 0 }}-${{ matrix.target }}.zip"
+        export ARTIFACT_NAME="prqlc-${{ github.ref_type == 'tag' && github.ref_name || 0 }}-${{ matrix.target }}.zip"
         echo "ARTIFACT_NAME=${ARTIFACT_NAME}" >>"$GITHUB_ENV"
         cd target/${{ matrix.target }}/${{ inputs.profile == 'release' && 'release' || 'debug' }}
         cp ../../../prqlc/prqlc/README.md .

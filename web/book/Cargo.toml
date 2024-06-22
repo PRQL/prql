@@ -5,7 +5,6 @@ publish = false
 edition.workspace = true
 license.workspace = true
 repository.workspace = true
-rust-version.workspace = true
 version.workspace = true
 
 [lib]
@@ -20,22 +19,24 @@ test = false
 ansi-to-html = "0.2.1"
 anyhow = {workspace = true}
 itertools = {workspace = true}
-mdbook = {version = "0.4.36", default-features = false}
+# Unpinning this breaks something to do with env_logger. Try unpinning it and
+# running the tests to see what breaks.
+mdbook = {version = "=0.4.36", default-features = false}
 mdbook-preprocessor-boilerplate = "0.1.2"
 prqlc = {path = "../../prqlc/prqlc", default-features = false}
 pulldown-cmark = {version = "0.10.3", default-features = false}
 pulldown-cmark-to-cmark = "13.0.0"
 strum = {version = "0.26.2", features = ["std", "derive"]}
-strum_macros = "0.26.2"
+strum_macros = "0.26.4"
 
 [target.'cfg(not(target_family="wasm"))'.dev-dependencies]
 anstream = {version = "0.6.14"}
 globset = "0.4.14"
 insta = {workspace = true}
 log = {workspace = true}
-regex = "1.10.4"
-serde_json = "1.0.116"
-serde_yaml = "0.9.34"
+regex = "1.10.5"
+serde_json = {workspace = true}
+serde_yaml = {workspace = true}
 similar-asserts = "1.5.0"
 walkdir = "2.5.0"
 

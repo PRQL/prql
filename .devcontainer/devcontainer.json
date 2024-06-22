@@ -1,4 +1,4 @@
-// Dev Container for Rust, website, prql-js and prqlc-python
+// Dev Container for Rust, website, prqlc-js and prqlc-python
 {
   "image": "ghcr.io/prql/prql-devcontainer-base:latest",
   "features": {
@@ -7,42 +7,42 @@
     "ghcr.io/devcontainers/features/node:1": {},
     "ghcr.io/eitsupi/devcontainer-features/go-task:1": {},
     "ghcr.io/eitsupi/devcontainer-features/jq-likes:2": {
-      "yqVersion": "latest",
+      "yqVersion": "latest"
     },
     "ghcr.io/eitsupi/devcontainer-features/duckdb-cli:1": {},
     "ghcr.io/rocker-org/devcontainer-features/apt-packages:1": {
-      "packages": "cmake,sqlite3",
-    },
+      "packages": "cmake,sqlite3"
+    }
   },
   "customizations": {
     "vscode": {
       "extensions": [
-        // Keep in sync with Taskfile.yml
+        // Keep in sync with Taskfile.yaml
         "prql-lang.prql-vscode",
         "rust-lang.rust-analyzer",
         "mitsuhiko.insta",
         "esbenp.prettier-vscode",
-        "budparr.language-hugo-vscode",
-      ],
-    },
+        "budparr.language-hugo-vscode"
+      ]
+    }
   },
   "mounts": [
     {
       "source": "devcontainer-cargo-cache-${devcontainerId}",
       "target": "/usr/local/cargo/registry",
-      "type": "volume",
+      "type": "volume"
     },
     {
       "source": "devcontainer-cargo-target-${devcontainerId}",
       "target": "${containerWorkspaceFolder}/target",
-      "type": "volume",
-    },
+      "type": "volume"
+    }
   ],
   "postCreateCommand": {
     "set-ownership": "sudo chown vscode target",
     "install-python-deps": "task install-maturin",
     // Disabling because of the issues in #3709
     // "install-python-deps": "task install-maturin && task install-pre-commit && pre-commit install-hooks",
-    "install-npm-dependencies": "task install-npm-dependencies",
-  },
+    "install-npm-dependencies": "task install-npm-dependencies"
+  }
 }

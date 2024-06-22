@@ -1,0 +1,634 @@
+---
+source: prqlc/prqlc/tests/integration/queries.rs
+expression: "# mssql:test\n# glaredb:skip — TODO: started raising an error on 2024-05-20; see `window.prql`\n# for more details\nfrom albums\nselect {\n    title,\n    title_and_spaces = f\"  {title}  \",\n    low = title | text.lower,\n    up = title | text.upper,\n    ltrimmed = title | text.ltrim,\n    rtrimmed = title | text.rtrim,\n    trimmed = title | text.trim,\n    len = title | text.length,\n    subs = title | text.extract 2 5,\n    replace = title | text.replace \"al\" \"PIKA\",\n}\nsort {title}\nfilter (title | text.starts_with \"Black\") || (title | text.contains \"Sabbath\") || (title | text.ends_with \"os\")\n"
+input_file: prqlc/prqlc/tests/integration/queries/text_module.prql
+---
+frames:
+- - 1:125-463
+  - columns:
+    - !Single
+      name:
+      - albums
+      - title
+      target_id: 126
+      target_name: null
+    - !Single
+      name:
+      - title_and_spaces
+      target_id: 127
+      target_name: null
+    - !Single
+      name:
+      - low
+      target_id: 129
+      target_name: null
+    - !Single
+      name:
+      - up
+      target_id: 132
+      target_name: null
+    - !Single
+      name:
+      - ltrimmed
+      target_id: 135
+      target_name: null
+    - !Single
+      name:
+      - rtrimmed
+      target_id: 138
+      target_name: null
+    - !Single
+      name:
+      - trimmed
+      target_id: 141
+      target_name: null
+    - !Single
+      name:
+      - len
+      target_id: 144
+      target_name: null
+    - !Single
+      name:
+      - subs
+      target_id: 147
+      target_name: null
+    - !Single
+      name:
+      - replace
+      target_id: 153
+      target_name: null
+    inputs:
+    - id: 124
+      name: albums
+      table:
+      - default_db
+      - albums
+- - 1:464-476
+  - columns:
+    - !Single
+      name:
+      - albums
+      - title
+      target_id: 126
+      target_name: null
+    - !Single
+      name:
+      - title_and_spaces
+      target_id: 127
+      target_name: null
+    - !Single
+      name:
+      - low
+      target_id: 129
+      target_name: null
+    - !Single
+      name:
+      - up
+      target_id: 132
+      target_name: null
+    - !Single
+      name:
+      - ltrimmed
+      target_id: 135
+      target_name: null
+    - !Single
+      name:
+      - rtrimmed
+      target_id: 138
+      target_name: null
+    - !Single
+      name:
+      - trimmed
+      target_id: 141
+      target_name: null
+    - !Single
+      name:
+      - len
+      target_id: 144
+      target_name: null
+    - !Single
+      name:
+      - subs
+      target_id: 147
+      target_name: null
+    - !Single
+      name:
+      - replace
+      target_id: 153
+      target_name: null
+    inputs:
+    - id: 124
+      name: albums
+      table:
+      - default_db
+      - albums
+- - 1:477-588
+  - columns:
+    - !Single
+      name:
+      - albums
+      - title
+      target_id: 126
+      target_name: null
+    - !Single
+      name:
+      - title_and_spaces
+      target_id: 127
+      target_name: null
+    - !Single
+      name:
+      - low
+      target_id: 129
+      target_name: null
+    - !Single
+      name:
+      - up
+      target_id: 132
+      target_name: null
+    - !Single
+      name:
+      - ltrimmed
+      target_id: 135
+      target_name: null
+    - !Single
+      name:
+      - rtrimmed
+      target_id: 138
+      target_name: null
+    - !Single
+      name:
+      - trimmed
+      target_id: 141
+      target_name: null
+    - !Single
+      name:
+      - len
+      target_id: 144
+      target_name: null
+    - !Single
+      name:
+      - subs
+      target_id: 147
+      target_name: null
+    - !Single
+      name:
+      - replace
+      target_id: 153
+      target_name: null
+    inputs:
+    - id: 124
+      name: albums
+      table:
+      - default_db
+      - albums
+nodes:
+- id: 124
+  kind: Ident
+  span: 1:113-124
+  ident: !Ident
+  - default_db
+  - albums
+  parent: 160
+- id: 126
+  kind: Ident
+  span: 1:138-143
+  ident: !Ident
+  - this
+  - albums
+  - title
+  targets:
+  - 124
+  parent: 159
+- id: 127
+  kind: FString
+  span: 1:168-182
+  alias: title_and_spaces
+  targets:
+  - 128
+  parent: 159
+- id: 128
+  kind: Ident
+  span: 1:173-178
+  ident: !Ident
+  - this
+  - albums
+  - title
+  targets:
+  - 124
+- id: 129
+  kind: RqOperator
+  span: 1:202-212
+  alias: low
+  targets:
+  - 131
+  parent: 159
+- id: 131
+  kind: Ident
+  span: 1:194-199
+  ident: !Ident
+  - this
+  - albums
+  - title
+  targets:
+  - 124
+- id: 132
+  kind: RqOperator
+  span: 1:231-241
+  alias: up
+  targets:
+  - 134
+  parent: 159
+- id: 134
+  kind: Ident
+  span: 1:223-228
+  ident: !Ident
+  - this
+  - albums
+  - title
+  targets:
+  - 124
+- id: 135
+  kind: RqOperator
+  span: 1:266-276
+  alias: ltrimmed
+  targets:
+  - 137
+  parent: 159
+- id: 137
+  kind: Ident
+  span: 1:258-263
+  ident: !Ident
+  - this
+  - albums
+  - title
+  targets:
+  - 124
+- id: 138
+  kind: RqOperator
+  span: 1:301-311
+  alias: rtrimmed
+  targets:
+  - 140
+  parent: 159
+- id: 140
+  kind: Ident
+  span: 1:293-298
+  ident: !Ident
+  - this
+  - albums
+  - title
+  targets:
+  - 124
+- id: 141
+  kind: RqOperator
+  span: 1:335-344
+  alias: trimmed
+  targets:
+  - 143
+  parent: 159
+- id: 143
+  kind: Ident
+  span: 1:327-332
+  ident: !Ident
+  - this
+  - albums
+  - title
+  targets:
+  - 124
+- id: 144
+  kind: RqOperator
+  span: 1:364-375
+  alias: len
+  targets:
+  - 146
+  parent: 159
+- id: 146
+  kind: Ident
+  span: 1:356-361
+  ident: !Ident
+  - this
+  - albums
+  - title
+  targets:
+  - 124
+- id: 147
+  kind: RqOperator
+  span: 1:396-412
+  alias: subs
+  targets:
+  - 150
+  - 151
+  - 152
+  parent: 159
+- id: 150
+  kind: Literal
+  span: 1:409-410
+- id: 151
+  kind: Literal
+  span: 1:411-412
+- id: 152
+  kind: Ident
+  span: 1:388-393
+  ident: !Ident
+  - this
+  - albums
+  - title
+  targets:
+  - 124
+- id: 153
+  kind: RqOperator
+  span: 1:436-460
+  alias: replace
+  targets:
+  - 156
+  - 157
+  - 158
+  parent: 159
+- id: 156
+  kind: Literal
+  span: 1:449-453
+- id: 157
+  kind: Literal
+  span: 1:454-460
+- id: 158
+  kind: Ident
+  span: 1:428-433
+  ident: !Ident
+  - this
+  - albums
+  - title
+  targets:
+  - 124
+- id: 159
+  kind: Tuple
+  span: 1:132-463
+  children:
+  - 126
+  - 127
+  - 129
+  - 132
+  - 135
+  - 138
+  - 141
+  - 144
+  - 147
+  - 153
+  parent: 160
+- id: 160
+  kind: 'TransformCall: Select'
+  span: 1:125-463
+  children:
+  - 124
+  - 159
+  parent: 163
+- id: 161
+  kind: Ident
+  span: 1:470-475
+  ident: !Ident
+  - this
+  - albums
+  - title
+  targets:
+  - 126
+  parent: 163
+- id: 163
+  kind: 'TransformCall: Sort'
+  span: 1:464-476
+  children:
+  - 160
+  - 161
+  parent: 183
+- id: 164
+  kind: RqOperator
+  span: 1:484-588
+  targets:
+  - 166
+  - 178
+  parent: 183
+- id: 166
+  kind: RqOperator
+  span: 1:484-555
+  targets:
+  - 168
+  - 173
+- id: 168
+  kind: RqOperator
+  span: 1:493-517
+  targets:
+  - 171
+  - 172
+- id: 171
+  kind: Literal
+  span: 1:510-517
+- id: 172
+  kind: Ident
+  span: 1:485-490
+  ident: !Ident
+  - this
+  - albums
+  - title
+  targets:
+  - 126
+- id: 173
+  kind: RqOperator
+  span: 1:531-554
+  targets:
+  - 176
+  - 177
+- id: 176
+  kind: Literal
+  span: 1:545-554
+- id: 177
+  kind: Ident
+  span: 1:523-528
+  ident: !Ident
+  - this
+  - albums
+  - title
+  targets:
+  - 126
+- id: 178
+  kind: RqOperator
+  span: 1:568-587
+  targets:
+  - 181
+  - 182
+- id: 181
+  kind: Literal
+  span: 1:583-587
+- id: 182
+  kind: Ident
+  span: 1:560-565
+  ident: !Ident
+  - this
+  - albums
+  - title
+  targets:
+  - 126
+- id: 183
+  kind: 'TransformCall: Filter'
+  span: 1:477-588
+  children:
+  - 163
+  - 164
+ast:
+  name: Project
+  stmts:
+  - VarDef:
+      kind: Main
+      name: main
+      value:
+        Pipeline:
+          exprs:
+          - FuncCall:
+              name:
+                Ident: from
+              args:
+              - Ident: albums
+          - FuncCall:
+              name:
+                Ident: select
+              args:
+              - Tuple:
+                - Ident: title
+                - FString:
+                  - !String '  '
+                  - !Expr
+                    expr:
+                      Ident: title
+                    format: null
+                  - !String '  '
+                  alias: title_and_spaces
+                - Pipeline:
+                    exprs:
+                    - Ident: title
+                    - Indirection:
+                        base:
+                          Ident: text
+                        field: !Name lower
+                  alias: low
+                - Pipeline:
+                    exprs:
+                    - Ident: title
+                    - Indirection:
+                        base:
+                          Ident: text
+                        field: !Name upper
+                  alias: up
+                - Pipeline:
+                    exprs:
+                    - Ident: title
+                    - Indirection:
+                        base:
+                          Ident: text
+                        field: !Name ltrim
+                  alias: ltrimmed
+                - Pipeline:
+                    exprs:
+                    - Ident: title
+                    - Indirection:
+                        base:
+                          Ident: text
+                        field: !Name rtrim
+                  alias: rtrimmed
+                - Pipeline:
+                    exprs:
+                    - Ident: title
+                    - Indirection:
+                        base:
+                          Ident: text
+                        field: !Name trim
+                  alias: trimmed
+                - Pipeline:
+                    exprs:
+                    - Ident: title
+                    - Indirection:
+                        base:
+                          Ident: text
+                        field: !Name length
+                  alias: len
+                - Pipeline:
+                    exprs:
+                    - Ident: title
+                    - FuncCall:
+                        name:
+                          Indirection:
+                            base:
+                              Ident: text
+                            field: !Name extract
+                        args:
+                        - Literal:
+                            Integer: 2
+                        - Literal:
+                            Integer: 5
+                  alias: subs
+                - Pipeline:
+                    exprs:
+                    - Ident: title
+                    - FuncCall:
+                        name:
+                          Indirection:
+                            base:
+                              Ident: text
+                            field: !Name replace
+                        args:
+                        - Literal:
+                            String: al
+                        - Literal:
+                            String: PIKA
+                  alias: replace
+          - FuncCall:
+              name:
+                Ident: sort
+              args:
+              - Tuple:
+                - Ident: title
+          - FuncCall:
+              name:
+                Ident: filter
+              args:
+              - Binary:
+                  left:
+                    Binary:
+                      left:
+                        Pipeline:
+                          exprs:
+                          - Ident: title
+                          - FuncCall:
+                              name:
+                                Indirection:
+                                  base:
+                                    Ident: text
+                                  field: !Name starts_with
+                              args:
+                              - Literal:
+                                  String: Black
+                      op: Or
+                      right:
+                        Pipeline:
+                          exprs:
+                          - Ident: title
+                          - FuncCall:
+                              name:
+                                Indirection:
+                                  base:
+                                    Ident: text
+                                  field: !Name contains
+                              args:
+                              - Literal:
+                                  String: Sabbath
+                  op: Or
+                  right:
+                    Pipeline:
+                      exprs:
+                      - Ident: title
+                      - FuncCall:
+                          name:
+                            Indirection:
+                              base:
+                                Ident: text
+                              field: !Name ends_with
+                          args:
+                          - Literal:
+                              String: os
+    span: 1:113-589

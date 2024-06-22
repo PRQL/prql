@@ -54,7 +54,7 @@ type array = [anytype]
 
 ## Scalar
 type scalar = int || float || bool || text || date || time || timestamp || null
-type tuple = {anytype..}
+type tuple = {..anytype}
 
 ## Range
 type range = {start = scalar, end = scalar}

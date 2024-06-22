@@ -43,10 +43,10 @@ jobs:
 
       - name: Prep args
         run: |
-          echo "cargo_crates=$(yq -r '.vars.cargo_crates' Taskfile.yml)" >>"$GITHUB_ENV"
+          echo "cargo_crates=$(yq -r '.vars.cargo_crates' Taskfile.yaml)" >>"$GITHUB_ENV"
 
       - name: Build
-        uses: docker/build-push-action@v5
+        uses: docker/build-push-action@v6
         timeout-minutes: 3600
         with:
           context: .devcontainer/base-image

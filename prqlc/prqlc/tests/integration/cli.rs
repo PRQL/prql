@@ -1,10 +1,11 @@
 #![cfg(all(not(target_family = "wasm"), feature = "cli"))]
 
-use insta_cmd::assert_cmd_snapshot;
-use insta_cmd::get_cargo_bin;
 use std::env::current_dir;
 use std::path::PathBuf;
 use std::process::Command;
+
+use insta_cmd::assert_cmd_snapshot;
+use insta_cmd::get_cargo_bin;
 
 #[cfg(not(windows))] // Windows has slightly different output (e.g. `prqlc.exe`), so we exclude.
 #[test]
@@ -17,6 +18,7 @@ fn help() {
 
     Commands:
       parse             Parse into PL AST
+      lex               Lex into Tokens
       fmt               Parse & generate PRQL code back
       collect           Parse the whole project and collect it into a single PRQL source file
       debug             Commands for meant for debugging, prone to change
@@ -31,10 +33,27 @@ fn help() {
       help              Print this message or the help of the given subcommand(s)
 
     Options:
-          --color <WHEN>  Controls when to use color [default: auto] [possible values: auto, always,
-                          never]
-      -h, --help          Print help
-      -V, --version       Print version
+          --color <WHEN>
+              Controls when to use color
+              
+              [default: auto]
+              [possible values: auto, always, never]
+
+      -v, --verbose...
+              More `v`s, More vebose logging:
+              -v shows warnings
+              -vv shows info
+              -vvv shows debug
+              -vvvv shows trace
+
+      -q, --quiet...
+              Silences logging output
+
+      -h, --help
+              Print help (see a summary with '-h')
+
+      -V, --version
+              Print version
 
     ----- stderr -----
     "###);
@@ -121,6 +140,16 @@ fn compile_help() {
               
               [default: auto]
               [possible values: auto, always, never]
+
+      -v, --verbose...
+              More `v`s, More vebose logging:
+              -v shows warnings
+              -vv shows info
+              -vvv shows debug
+              -vvvv shows trace
+
+      -q, --quiet...
+              Silences logging output
 
       -h, --help
               Print help (see a summary with '-h')
@@ -355,6 +384,100 @@ fn debug() {
         .pass_stdin("from tracks"));
 
     assert_cmd_snapshot!(prqlc_command()
+        .args(["debug", "lineage"])
+        .pass_stdin("from tracks | select {artist, album}"), @r###"
+    success: true
+    exit_code: 0
+    ----- stdout -----
+    frames:
+    - - 1:14-36
+      - columns:
+        - !Single
+          name:
+          - tracks
+          - artist
+          target_id: 120
+          target_name: null
+        - !Single
+          name:
+          - tracks
+          - album
+          target_id: 121
+          target_name: null
+        inputs:
+        - id: 118
+          name: tracks
+          table:
+          - default_db
+          - tracks
+    nodes:
+    - id: 118
+      kind: Ident
+      span: 1:0-11
+      ident: !Ident
+      - default_db
+      - tracks
+      parent: 123
+    - id: 120
+      kind: Ident
+      span: 1:22-28
+      ident: !Ident
+      - this
+      - tracks
+      - artist
+      targets:
+      - 118
+      parent: 122
+    - id: 121
+      kind: Ident
+      span: 1:30-35
+      ident: !Ident
+      - this
+      - tracks
+      - album
+      targets:
+      - 118
+      parent: 122
+    - id: 122
+      kind: Tuple
+      span: 1:21-36
+      children:
+      - 120
+      - 121
+      parent: 123
+    - id: 123
+      kind: 'TransformCall: Select'
+      span: 1:14-36
+      children:
+      - 118
+      - 122
+    ast:
+      name: Project
+      stmts:
+      - VarDef:
+          kind: Main
+          name: main
+          value:
+            Pipeline:
+              exprs:
+              - FuncCall:
+                  name:
+                    Ident: from
+                  args:
+                  - Ident: tracks
+              - FuncCall:
+                  name:
+                    Ident: select
+                  args:
+                  - Tuple:
+                    - Ident: artist
+                    - Ident: album
+        span: 1:0-36
+
+    ----- stderr -----
+    "###);
+
+    assert_cmd_snapshot!(prqlc_command()
         .args(["debug", "expand-pl"])
         .pass_stdin("from tracks"), @r###"
     success: true
@@ -469,5 +592,51 @@ fn compile_no_prql_files() {
     ----- stderr -----
     Error: No `.prql` files found in the source tree
 
+    "###);
+}
+
+#[test]
+fn lex() {
+    assert_cmd_snapshot!(prqlc_command().args(["lex"]).pass_stdin("from tracks"), @r###"
+    success: true
+    exit_code: 0
+    ----- stdout -----
+    - kind: !Ident from
+      span:
+        start: 0
+        end: 4
+    - kind: !Ident tracks
+      span:
+        start: 5
+        end: 11
+
+    ----- stderr -----
+    "###);
+
+    assert_cmd_snapshot!(prqlc_command().args(["lex", "--format=json"]).pass_stdin("from tracks"), @r###"
+    success: true
+    exit_code: 0
+    ----- stdout -----
+    [
+      {
+        "kind": {
+          "Ident": "from"
+        },
+        "span": {
+          "start": 0,
+          "end": 4
+        }
+      },
+      {
+        "kind": {
+          "Ident": "tracks"
+        },
+        "span": {
+          "start": 5,
+          "end": 11
+        }
+      }
+    ]
+    ----- stderr -----
     "###);
 }

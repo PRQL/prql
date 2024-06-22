@@ -1,17 +1,15 @@
-use anstream::adapter::strip_str;
-
-use ariadne::{Cache, Config, Label, Report, ReportKind, Source};
-use serde::Serialize;
-
 use std::error::Error as StdError;
 use std::fmt::{self, Debug, Display, Formatter};
 use std::ops::Range;
 use std::path::PathBuf;
 use std::{collections::HashMap, io::stderr};
 
-use crate::{Error, Errors, MessageKind, SourceTree};
+use anstream::adapter::strip_str;
+use ariadne::{Cache, Config, Label, Report, ReportKind, Source};
+use serde::Serialize;
 
-pub use crate::ir::Span;
+use crate::Span;
+use crate::{Error, Errors, MessageKind, SourceTree};
 
 #[derive(Clone, Serialize)]
 pub struct ErrorMessage {
@@ -75,15 +73,22 @@ impl Debug for ErrorMessage {
 
 impl From<Error> for ErrorMessage {
     fn from(e: Error) -> Self {
+        log::debug!("{:#?}", e);
         ErrorMessage {
             code: e.code.map(str::to_string),
-            kind: MessageKind::Error,
+            kind: e.kind,
             reason: e.reason.to_string(),
             hints: e.hints,
             span: e.span,
             display: None,
             location: None,
         }
+    }
+}
+
+impl From<Vec<ErrorMessage>> for ErrorMessages {
+    fn from(errors: Vec<ErrorMessage>) -> Self {
+        ErrorMessages { inner: errors }
     }
 }
 
@@ -146,6 +151,12 @@ impl ErrorMessages {
             };
             e.location = e.compose_location(source);
 
+            assert!(
+                e.location.is_some(),
+                "span {:?} is out of bounds of the source (len = {})",
+                e.span,
+                source.len()
+            );
             e.display = e.compose_display(source_path.clone(), &mut cache);
         }
         self

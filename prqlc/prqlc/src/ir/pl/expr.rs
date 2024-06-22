@@ -1,17 +1,12 @@
 use std::collections::HashMap;
 
 use enum_as_inner::EnumAsInner;
-
+use prqlc_parser::generic;
 use serde::{Deserialize, Serialize};
 
-use crate::ast::generic;
-use crate::ast::{GenericTypeParam, Ident, Literal, Span, Ty};
-
-use crate::codegen::write_ty;
-
 use super::{Lineage, TransformCall};
-
-// The following code is tested by the tests_misc crate to match expr.rs in prqlc_ast.
+use crate::ast::{GenericTypeParam, Ident, Literal, Span, Ty};
+use crate::codegen::write_ty;
 
 /// Expr is anything that has a value and thus a type.
 /// Most of these can contain other [Expr] themselves; literals should be [ExprKind::Literal].

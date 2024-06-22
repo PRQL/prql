@@ -1,0 +1,548 @@
+---
+source: prqlc/prqlc/tests/integration/queries.rs
+expression: "# generic:skip\n# glaredb:skip\n# sqlite:skip\n# mssql:test\nfrom invoices\ntake 20\nselect {\n    d1 = (invoice_date | date.to_text \"%Y/%m/%d\"),\n    d2 = (invoice_date | date.to_text \"%F\"),\n    d3 = (invoice_date | date.to_text \"%D\"),\n    d4 = (invoice_date | date.to_text \"%H:%M:%S.%f\"),\n    d5 = (invoice_date | date.to_text \"%r\"),\n    d6 = (invoice_date | date.to_text \"%A %B %-d %Y\"),\n    d7 = (invoice_date | date.to_text \"%a, %-d %b %Y at %I:%M:%S %p\"),\n    d8 = (invoice_date | date.to_text \"%+\"),\n    d9 = (invoice_date | date.to_text \"%-d/%-m/%y\"),\n    d10 = (invoice_date | date.to_text \"%-Hh %Mmin\"),\n    d11 = (invoice_date | date.to_text \"%M'%S\\\"\"),\n    d12 = (invoice_date | date.to_text \"100%% in %d days\"),\n}\n"
+input_file: prqlc/prqlc/tests/integration/queries/date_to_text.prql
+---
+frames:
+- - 1:71-78
+  - columns:
+    - !All
+      input_id: 121
+      except: []
+    inputs:
+    - id: 121
+      name: invoices
+      table:
+      - default_db
+      - invoices
+- - 1:79-718
+  - columns:
+    - !Single
+      name:
+      - d1
+      target_id: 126
+      target_name: null
+    - !Single
+      name:
+      - d2
+      target_id: 131
+      target_name: null
+    - !Single
+      name:
+      - d3
+      target_id: 136
+      target_name: null
+    - !Single
+      name:
+      - d4
+      target_id: 141
+      target_name: null
+    - !Single
+      name:
+      - d5
+      target_id: 146
+      target_name: null
+    - !Single
+      name:
+      - d6
+      target_id: 151
+      target_name: null
+    - !Single
+      name:
+      - d7
+      target_id: 156
+      target_name: null
+    - !Single
+      name:
+      - d8
+      target_id: 161
+      target_name: null
+    - !Single
+      name:
+      - d9
+      target_id: 166
+      target_name: null
+    - !Single
+      name:
+      - d10
+      target_id: 171
+      target_name: null
+    - !Single
+      name:
+      - d11
+      target_id: 176
+      target_name: null
+    - !Single
+      name:
+      - d12
+      target_id: 181
+      target_name: null
+    inputs:
+    - id: 121
+      name: invoices
+      table:
+      - default_db
+      - invoices
+nodes:
+- id: 121
+  kind: Ident
+  span: 1:57-70
+  ident: !Ident
+  - default_db
+  - invoices
+  parent: 124
+- id: 124
+  kind: 'TransformCall: Take'
+  span: 1:71-78
+  children:
+  - 121
+  - 125
+  parent: 187
+- id: 125
+  kind: Literal
+  parent: 124
+- id: 126
+  kind: RqOperator
+  span: 1:113-136
+  alias: d1
+  targets:
+  - 129
+  - 130
+  parent: 186
+- id: 129
+  kind: Literal
+  span: 1:126-136
+- id: 130
+  kind: Ident
+  span: 1:98-110
+  ident: !Ident
+  - this
+  - invoices
+  - invoice_date
+  targets:
+  - 121
+- id: 131
+  kind: RqOperator
+  span: 1:164-181
+  alias: d2
+  targets:
+  - 134
+  - 135
+  parent: 186
+- id: 134
+  kind: Literal
+  span: 1:177-181
+- id: 135
+  kind: Ident
+  span: 1:149-161
+  ident: !Ident
+  - this
+  - invoices
+  - invoice_date
+  targets:
+  - 121
+- id: 136
+  kind: RqOperator
+  span: 1:209-226
+  alias: d3
+  targets:
+  - 139
+  - 140
+  parent: 186
+- id: 139
+  kind: Literal
+  span: 1:222-226
+- id: 140
+  kind: Ident
+  span: 1:194-206
+  ident: !Ident
+  - this
+  - invoices
+  - invoice_date
+  targets:
+  - 121
+- id: 141
+  kind: RqOperator
+  span: 1:254-280
+  alias: d4
+  targets:
+  - 144
+  - 145
+  parent: 186
+- id: 144
+  kind: Literal
+  span: 1:267-280
+- id: 145
+  kind: Ident
+  span: 1:239-251
+  ident: !Ident
+  - this
+  - invoices
+  - invoice_date
+  targets:
+  - 121
+- id: 146
+  kind: RqOperator
+  span: 1:308-325
+  alias: d5
+  targets:
+  - 149
+  - 150
+  parent: 186
+- id: 149
+  kind: Literal
+  span: 1:321-325
+- id: 150
+  kind: Ident
+  span: 1:293-305
+  ident: !Ident
+  - this
+  - invoices
+  - invoice_date
+  targets:
+  - 121
+- id: 151
+  kind: RqOperator
+  span: 1:353-380
+  alias: d6
+  targets:
+  - 154
+  - 155
+  parent: 186
+- id: 154
+  kind: Literal
+  span: 1:366-380
+- id: 155
+  kind: Ident
+  span: 1:338-350
+  ident: !Ident
+  - this
+  - invoices
+  - invoice_date
+  targets:
+  - 121
+- id: 156
+  kind: RqOperator
+  span: 1:408-451
+  alias: d7
+  targets:
+  - 159
+  - 160
+  parent: 186
+- id: 159
+  kind: Literal
+  span: 1:421-451
+- id: 160
+  kind: Ident
+  span: 1:393-405
+  ident: !Ident
+  - this
+  - invoices
+  - invoice_date
+  targets:
+  - 121
+- id: 161
+  kind: RqOperator
+  span: 1:479-496
+  alias: d8
+  targets:
+  - 164
+  - 165
+  parent: 186
+- id: 164
+  kind: Literal
+  span: 1:492-496
+- id: 165
+  kind: Ident
+  span: 1:464-476
+  ident: !Ident
+  - this
+  - invoices
+  - invoice_date
+  targets:
+  - 121
+- id: 166
+  kind: RqOperator
+  span: 1:524-549
+  alias: d9
+  targets:
+  - 169
+  - 170
+  parent: 186
+- id: 169
+  kind: Literal
+  span: 1:537-549
+- id: 170
+  kind: Ident
+  span: 1:509-521
+  ident: !Ident
+  - this
+  - invoices
+  - invoice_date
+  targets:
+  - 121
+- id: 171
+  kind: RqOperator
+  span: 1:578-603
+  alias: d10
+  targets:
+  - 174
+  - 175
+  parent: 186
+- id: 174
+  kind: Literal
+  span: 1:591-603
+- id: 175
+  kind: Ident
+  span: 1:563-575
+  ident: !Ident
+  - this
+  - invoices
+  - invoice_date
+  targets:
+  - 121
+- id: 176
+  kind: RqOperator
+  span: 1:632-654
+  alias: d11
+  targets:
+  - 179
+  - 180
+  parent: 186
+- id: 179
+  kind: Literal
+  span: 1:645-654
+- id: 180
+  kind: Ident
+  span: 1:617-629
+  ident: !Ident
+  - this
+  - invoices
+  - invoice_date
+  targets:
+  - 121
+- id: 181
+  kind: RqOperator
+  span: 1:683-714
+  alias: d12
+  targets:
+  - 184
+  - 185
+  parent: 186
+- id: 184
+  kind: Literal
+  span: 1:696-714
+- id: 185
+  kind: Ident
+  span: 1:668-680
+  ident: !Ident
+  - this
+  - invoices
+  - invoice_date
+  targets:
+  - 121
+- id: 186
+  kind: Tuple
+  span: 1:86-718
+  children:
+  - 126
+  - 131
+  - 136
+  - 141
+  - 146
+  - 151
+  - 156
+  - 161
+  - 166
+  - 171
+  - 176
+  - 181
+  parent: 187
+- id: 187
+  kind: 'TransformCall: Select'
+  span: 1:79-718
+  children:
+  - 124
+  - 186
+ast:
+  name: Project
+  stmts:
+  - VarDef:
+      kind: Main
+      name: main
+      value:
+        Pipeline:
+          exprs:
+          - FuncCall:
+              name:
+                Ident: from
+              args:
+              - Ident: invoices
+          - FuncCall:
+              name:
+                Ident: take
+              args:
+              - Literal:
+                  Integer: 20
+          - FuncCall:
+              name:
+                Ident: select
+              args:
+              - Tuple:
+                - Pipeline:
+                    exprs:
+                    - Ident: invoice_date
+                    - FuncCall:
+                        name:
+                          Indirection:
+                            base:
+                              Ident: date
+                            field: !Name to_text
+                        args:
+                        - Literal:
+                            String: '%Y/%m/%d'
+                  alias: d1
+                - Pipeline:
+                    exprs:
+                    - Ident: invoice_date
+                    - FuncCall:
+                        name:
+                          Indirection:
+                            base:
+                              Ident: date
+                            field: !Name to_text
+                        args:
+                        - Literal:
+                            String: '%F'
+                  alias: d2
+                - Pipeline:
+                    exprs:
+                    - Ident: invoice_date
+                    - FuncCall:
+                        name:
+                          Indirection:
+                            base:
+                              Ident: date
+                            field: !Name to_text
+                        args:
+                        - Literal:
+                            String: '%D'
+                  alias: d3
+                - Pipeline:
+                    exprs:
+                    - Ident: invoice_date
+                    - FuncCall:
+                        name:
+                          Indirection:
+                            base:
+                              Ident: date
+                            field: !Name to_text
+                        args:
+                        - Literal:
+                            String: '%H:%M:%S.%f'
+                  alias: d4
+                - Pipeline:
+                    exprs:
+                    - Ident: invoice_date
+                    - FuncCall:
+                        name:
+                          Indirection:
+                            base:
+                              Ident: date
+                            field: !Name to_text
+                        args:
+                        - Literal:
+                            String: '%r'
+                  alias: d5
+                - Pipeline:
+                    exprs:
+                    - Ident: invoice_date
+                    - FuncCall:
+                        name:
+                          Indirection:
+                            base:
+                              Ident: date
+                            field: !Name to_text
+                        args:
+                        - Literal:
+                            String: '%A %B %-d %Y'
+                  alias: d6
+                - Pipeline:
+                    exprs:
+                    - Ident: invoice_date
+                    - FuncCall:
+                        name:
+                          Indirection:
+                            base:
+                              Ident: date
+                            field: !Name to_text
+                        args:
+                        - Literal:
+                            String: '%a, %-d %b %Y at %I:%M:%S %p'
+                  alias: d7
+                - Pipeline:
+                    exprs:
+                    - Ident: invoice_date
+                    - FuncCall:
+                        name:
+                          Indirection:
+                            base:
+                              Ident: date
+                            field: !Name to_text
+                        args:
+                        - Literal:
+                            String: '%+'
+                  alias: d8
+                - Pipeline:
+                    exprs:
+                    - Ident: invoice_date
+                    - FuncCall:
+                        name:
+                          Indirection:
+                            base:
+                              Ident: date
+                            field: !Name to_text
+                        args:
+                        - Literal:
+                            String: '%-d/%-m/%y'
+                  alias: d9
+                - Pipeline:
+                    exprs:
+                    - Ident: invoice_date
+                    - FuncCall:
+                        name:
+                          Indirection:
+                            base:
+                              Ident: date
+                            field: !Name to_text
+                        args:
+                        - Literal:
+                            String: '%-Hh %Mmin'
+                  alias: d10
+                - Pipeline:
+                    exprs:
+                    - Ident: invoice_date
+                    - FuncCall:
+                        name:
+                          Indirection:
+                            base:
+                              Ident: date
+                            field: !Name to_text
+                        args:
+                        - Literal:
+                            String: '%M''%S"'
+                  alias: d11
+                - Pipeline:
+                    exprs:
+                    - Ident: invoice_date
+                    - FuncCall:
+                        name:
+                          Indirection:
+                            base:
+                              Ident: date
+                            field: !Name to_text
+                        args:
+                        - Literal:
+                            String: 100%% in %d days
+                  alias: d12
+    span: 1:57-719

@@ -1,4 +1,3 @@
-use crate::Result;
 use itertools::Itertools;
 
 use crate::ast::{Ty, TyKind, TyTupleField};
@@ -7,6 +6,7 @@ use crate::ir::pl::*;
 use crate::semantic::resolver::{flatten, types, Resolver};
 use crate::semantic::{NS_INFER, NS_SELF, NS_THAT, NS_THIS};
 use crate::utils::IdGenerator;
+use crate::Result;
 use crate::{Error, Reason, Span, WithErrorInfo};
 
 impl PlFold for Resolver<'_> {
@@ -69,7 +69,7 @@ impl PlFold for Resolver<'_> {
             self.root_mod.span_map.insert(id, span);
         }
 
-        log::trace!("folding expr {node:?}");
+        log::trace!("folding expr [{id:?}] {node:?}");
 
         let r = match node.kind {
             ExprKind::Ident(ident) => {
@@ -226,7 +226,6 @@ impl Resolver<'_> {
                 r.lineage = Some(call.infer_lineage()?);
             } else if let Some(relation_columns) = r.ty.as_ref().and_then(|t| t.as_relation()) {
                 // lineage from ty
-
                 let columns = Some(relation_columns.clone());
 
                 let name = r.alias.clone();

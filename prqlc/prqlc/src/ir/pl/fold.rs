@@ -3,10 +3,9 @@
 /// type.
 use itertools::Itertools;
 
+use super::*;
 use crate::ast::{Ty, TyFunc, TyKind, TyTupleField};
 use crate::Result;
-
-use super::*;
 
 // Fold pattern:
 // - https://rust-unofficial.github.io/patterns/patterns/creational/fold.html
@@ -335,8 +334,8 @@ pub fn fold_type<T: ?Sized + PlFold>(fold: &mut T, ty: Ty) -> Result<Ty> {
             TyKind::Function(func) => TyKind::Function(
                 func.map(|f| -> Result<_> {
                     Ok(TyFunc {
-                        args: f
-                            .args
+                        params: f
+                            .params
                             .into_iter()
                             .map(|a| fold_type_opt(fold, a))
                             .try_collect()?,

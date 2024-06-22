@@ -4,16 +4,15 @@
 
 use std::collections::{HashMap, HashSet};
 
-use crate::Result;
 use itertools::Itertools;
 
+use super::anchor::CidRedirector;
+use super::ast::*;
 use crate::ir::generic::ColumnSort;
 use crate::ir::pl::Ident;
 use crate::ir::rq::{CId, RqFold, TId};
 use crate::sql::Context;
-
-use super::anchor::CidRedirector;
-use super::ast::*;
+use crate::Result;
 
 type Sorting = Vec<ColumnSort<CId>>;
 
@@ -128,7 +127,7 @@ impl<'a> SrqMapper<RelationExpr, RelationExpr, (), ()> for SortingInference<'a> 
                             // infer sorting from referenced pipeline
                             if let Some(cte_sorting) = self.ctes_sorting.get_mut(tid) {
                                 cte_sorting.has_been_used = true;
-                                sorting = cte_sorting.sorting.clone();
+                                sorting.clone_from(&cte_sorting.sorting);
                             } else {
                                 sorting = Vec::new();
                             };
@@ -149,7 +148,7 @@ impl<'a> SrqMapper<RelationExpr, RelationExpr, (), ()> for SortingInference<'a> 
 
                 // just store sorting and don't emit Sort
                 SqlTransform::Sort(s) => {
-                    sorting = s.clone();
+                    sorting.clone_from(&s);
                     continue;
                 }
 

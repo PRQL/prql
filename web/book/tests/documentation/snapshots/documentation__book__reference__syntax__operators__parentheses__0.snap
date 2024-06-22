@@ -17,4 +17,3 @@ FROM
   employees
 ORDER BY
   distance DESC
-

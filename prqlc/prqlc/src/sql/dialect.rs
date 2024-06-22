@@ -11,10 +11,11 @@
 //!
 //! As a consequence, generated SQL may be verbose, since it will avoid newer or less adopted SQL
 //! constructs. The upside is much less complex translator.
-use chrono::format::{Fixed, Item, Numeric, Pad, StrftimeItems};
 use core::fmt::Debug;
-use serde::{Deserialize, Serialize};
 use std::any::{Any, TypeId};
+
+use chrono::format::{Fixed, Item, Numeric, Pad, StrftimeItems};
+use serde::{Deserialize, Serialize};
 use strum::VariantNames;
 
 use crate::{Error, Result};
@@ -166,7 +167,7 @@ pub(super) trait DialectHandler: Any + Debug {
     }
 
     /// Whether or not intervals such as `INTERVAL 1 HOUR` require quotes like
-    /// `INTERVAL '1' HOUR`
+    /// `INTERVAL '1 HOUR'`
     fn requires_quotes_intervals(&self) -> bool {
         false
     }
@@ -515,9 +516,11 @@ impl DialectHandler for DuckDbDialect {
 
 #[cfg(test)]
 mod tests {
-    use super::Dialect;
-    use insta::assert_debug_snapshot;
     use std::str::FromStr;
+
+    use insta::assert_debug_snapshot;
+
+    use super::Dialect;
 
     #[test]
     fn test_dialect_from_str() {

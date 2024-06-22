@@ -1,16 +1,16 @@
-use crate::Result;
-use itertools::Itertools;
 use std::collections::{HashMap, HashSet};
 
+use itertools::Itertools;
+
+use super::ast::{SqlTransform, SrqMapper};
+use super::context::{AnchorContext, ColumnDecl, RIId, RelationStatus, SqlTableDecl};
 use crate::ir::generic::ColumnSort;
 use crate::ir::rq::{
     self, fold_column_sorts, fold_transform, CId, Compute, Expr, RelationColumn, RqFold, TableRef,
     Transform,
 };
 use crate::sql::srq::context::RelationAdapter;
-
-use super::ast::{SqlTransform, SrqMapper};
-use super::context::{AnchorContext, ColumnDecl, RIId, RelationStatus, SqlTableDecl};
+use crate::Result;
 
 /// Extract last part of pipeline that is able to "fit" into a single SELECT statement.
 /// Remaining proceeding pipeline is declared as a table and stored in AnchorContext.

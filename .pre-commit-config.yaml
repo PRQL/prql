@@ -10,13 +10,13 @@ repos:
         # rustfmt handles rust files, and in some snapshots we expect trailing spaces.
         exclude: '.*\.(rs|snap)$'
   - repo: https://github.com/crate-ci/typos
-    rev: v1.20.10
+    rev: v1.22.7
     hooks:
       - id: typos
         # https://github.com/crate-ci/typos/issues/347
         pass_filenames: false
-  - repo: https://github.com/pre-commit/mirrors-prettier
-    rev: v4.0.0-alpha.8
+  - repo: https://github.com/rbubley/mirrors-prettier
+    rev: v3.3.2
     hooks:
       - id: prettier
         additional_dependencies:
@@ -24,16 +24,14 @@ repos:
           # TODO: This doesn't seem to work, would be great to fix.
           # https://github.com/PRQL/prql/issues/3078
           - prettier-plugin-go-template
-        # Undo this on the next version of prettier; ref https://github.com/PRQL/prql/pull/4101
-        stages: [manual]
   - repo: https://github.com/astral-sh/ruff-pre-commit
-    rev: v0.4.2
+    rev: v0.4.9
     hooks:
       - id: ruff
         args: [--fix]
       - id: ruff-format
   - repo: https://github.com/pre-commit/mirrors-clang-format
-    rev: v18.1.4
+    rev: v18.1.6
     hooks:
       - id: clang-format
         types_or: [c, c++]
@@ -47,11 +45,11 @@ repos:
       - id: clippy
         stages: [manual]
   - repo: https://github.com/rhysd/actionlint
-    rev: v1.6.27
+    rev: v1.7.1
     hooks:
       - id: actionlint
   - repo: https://github.com/tcort/markdown-link-check
-    rev: v3.12.1
+    rev: v3.12.2
     hooks:
       - id: markdown-link-check
         name: markdown-link-check-local
@@ -96,5 +94,5 @@ repos:
 
 ci:
   # Currently network access isn't supported in the CI product.
-  skip: [fmt, markdown-link-check, prettier]
+  skip: [fmt, markdown-link-check]
   autoupdate_commit_msg: "chore: pre-commit autoupdate"

@@ -11,26 +11,26 @@ tasks:
       - cd book && mdbook build
       - mkdir -p website/public
       # Copy the book into the website path, using rsync so it only copies new files
-      - rsync -ai --checksum --delete book/book/ website/public/book/
+      - rsync -ai --checksum --delete --no-times book/book/ website/public/book/
       # (we don't use `build-playground-dependencies`, since that uses the dev profile)
       - cd playground && npm ci && npm run build
       # We place the playground app in a nested path, because we want to use
       # prql-lang.org/playground with an iframe containing the playground.
       # Possibly there's a more elegant way of doing this...
-      - rsync -ai --checksum --delete playground/dist/
+      - rsync -ai --checksum --delete --no-times playground/dist/
         website/public/playground/playground/
 
   run-website:
     desc: Build & serve the static website for interactive development.
     dir: website
     cmds:
-      - hugo server
+      - hugo server --bind 0.0.0.0
 
   run-book:
     desc: Build & serve the book for interactive development.
     dir: book
     cmds:
-      - mdbook serve --port=3000
+      - mdbook serve --port=3000 -n 0.0.0.0
 
   run-playground:
     desc: Build & serve the playground for interactive development.
@@ -42,6 +42,7 @@ tasks:
       - npm run dev
 
   fmt:
+    # (Duplicates `pre-commit` checks, but some developers prefer to use this directly.)
     cmds:
       - cmd: |
           prettier --write . \

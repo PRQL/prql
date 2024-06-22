@@ -1,0 +1,310 @@
+---
+source: prqlc/prqlc/tests/integration/queries.rs
+expression: "# sqlite:skip (Only works on Sqlite implementations which have the extension\n# installed\n# https://stackoverflow.com/questions/24037982/how-to-use-regexp-in-sqlite)\n\nfrom tracks\n\nfilter (name ~= \"Love\")\nfilter ((milliseconds / 1000 / 60) | in 3..4)\nsort track_id\ntake 1..15\nselect {name, composer}\n"
+input_file: prqlc/prqlc/tests/integration/queries/pipelines.prql
+---
+frames:
+- - 1:179-202
+  - columns:
+    - !All
+      input_id: 130
+      except: []
+    inputs:
+    - id: 130
+      name: tracks
+      table:
+      - default_db
+      - tracks
+- - 1:203-248
+  - columns:
+    - !All
+      input_id: 130
+      except: []
+    inputs:
+    - id: 130
+      name: tracks
+      table:
+      - default_db
+      - tracks
+- - 1:249-262
+  - columns:
+    - !All
+      input_id: 130
+      except: []
+    inputs:
+    - id: 130
+      name: tracks
+      table:
+      - default_db
+      - tracks
+- - 1:263-273
+  - columns:
+    - !All
+      input_id: 130
+      except: []
+    inputs:
+    - id: 130
+      name: tracks
+      table:
+      - default_db
+      - tracks
+- - 1:274-297
+  - columns:
+    - !Single
+      name:
+      - tracks
+      - name
+      target_id: 164
+      target_name: null
+    - !Single
+      name:
+      - tracks
+      - composer
+      target_id: 165
+      target_name: null
+    inputs:
+    - id: 130
+      name: tracks
+      table:
+      - default_db
+      - tracks
+nodes:
+- id: 130
+  kind: Ident
+  span: 1:166-177
+  ident: !Ident
+  - default_db
+  - tracks
+  parent: 136
+- id: 132
+  kind: RqOperator
+  span: 1:187-201
+  targets:
+  - 134
+  - 135
+  parent: 136
+- id: 134
+  kind: Ident
+  span: 1:187-191
+  ident: !Ident
+  - this
+  - tracks
+  - name
+  targets:
+  - 130
+- id: 135
+  kind: Literal
+  span: 1:195-201
+- id: 136
+  kind: 'TransformCall: Filter'
+  span: 1:179-202
+  children:
+  - 130
+  - 132
+  parent: 156
+- id: 140
+  kind: Literal
+  span: 1:243-244
+  alias: start
+- id: 141
+  kind: Literal
+  span: 1:246-247
+  alias: end
+- id: 143
+  kind: RqOperator
+  span: 1:211-237
+  targets:
+  - 145
+  - 149
+- id: 145
+  kind: RqOperator
+  span: 1:212-231
+  targets:
+  - 147
+  - 148
+- id: 147
+  kind: Ident
+  span: 1:212-224
+  ident: !Ident
+  - this
+  - tracks
+  - milliseconds
+  targets:
+  - 130
+- id: 148
+  kind: Literal
+  span: 1:227-231
+- id: 149
+  kind: Literal
+  span: 1:234-236
+- id: 150
+  kind: RqOperator
+  span: 1:240-247
+  targets:
+  - 152
+  - 154
+  parent: 156
+- id: 152
+  kind: RqOperator
+  targets:
+  - 143
+  - 140
+- id: 154
+  kind: RqOperator
+  targets:
+  - 143
+  - 141
+- id: 156
+  kind: 'TransformCall: Filter'
+  span: 1:203-248
+  children:
+  - 136
+  - 150
+  parent: 159
+- id: 157
+  kind: Ident
+  span: 1:254-262
+  ident: !Ident
+  - this
+  - tracks
+  - track_id
+  targets:
+  - 130
+  parent: 159
+- id: 159
+  kind: 'TransformCall: Sort'
+  span: 1:249-262
+  children:
+  - 156
+  - 157
+  parent: 163
+- id: 160
+  kind: Literal
+  span: 1:268-269
+  alias: start
+  parent: 163
+- id: 161
+  kind: Literal
+  span: 1:271-273
+  alias: end
+  parent: 163
+- id: 163
+  kind: 'TransformCall: Take'
+  span: 1:263-273
+  children:
+  - 159
+  - 160
+  - 161
+  parent: 167
+- id: 164
+  kind: Ident
+  span: 1:282-286
+  ident: !Ident
+  - this
+  - tracks
+  - name
+  targets:
+  - 130
+  parent: 166
+- id: 165
+  kind: Ident
+  span: 1:288-296
+  ident: !Ident
+  - this
+  - tracks
+  - composer
+  targets:
+  - 130
+  parent: 166
+- id: 166
+  kind: Tuple
+  span: 1:281-297
+  children:
+  - 164
+  - 165
+  parent: 167
+- id: 167
+  kind: 'TransformCall: Select'
+  span: 1:274-297
+  children:
+  - 163
+  - 166
+ast:
+  name: Project
+  stmts:
+  - VarDef:
+      kind: Main
+      name: main
+      value:
+        Pipeline:
+          exprs:
+          - FuncCall:
+              name:
+                Ident: from
+              args:
+              - Ident: tracks
+          - FuncCall:
+              name:
+                Ident: filter
+              args:
+              - Binary:
+                  left:
+                    Ident: name
+                  op: RegexSearch
+                  right:
+                    Literal:
+                      String: Love
+          - FuncCall:
+              name:
+                Ident: filter
+              args:
+              - Pipeline:
+                  exprs:
+                  - Binary:
+                      left:
+                        Binary:
+                          left:
+                            Ident: milliseconds
+                          op: DivFloat
+                          right:
+                            Literal:
+                              Integer: 1000
+                      op: DivFloat
+                      right:
+                        Literal:
+                          Integer: 60
+                  - FuncCall:
+                      name:
+                        Ident: in
+                      args:
+                      - Range:
+                          start:
+                            Literal:
+                              Integer: 3
+                          end:
+                            Literal:
+                              Integer: 4
+          - FuncCall:
+              name:
+                Ident: sort
+              args:
+              - Ident: track_id
+          - FuncCall:
+              name:
+                Ident: take
+              args:
+              - Range:
+                  start:
+                    Literal:
+                      Integer: 1
+                  end:
+                    Literal:
+                      Integer: 15
+          - FuncCall:
+              name:
+                Ident: select
+              args:
+              - Tuple:
+                - Ident: name
+                - Ident: composer
+    span: 1:166-298

@@ -36,43 +36,49 @@
 //!
 //! - Compile PRQL queries to SQL at run time.
 //!
-//!     ```
-//!     # fn main() -> Result<(), prqlc::ErrorMessages> {
-//!     let sql = prqlc::compile(
-//!         "from albums | select {title, artist_id}",
-//!          &prqlc::Options::default().no_format()
-//!     )?;
-//!     assert_eq!(&sql[..35], "SELECT title, artist_id FROM albums");
-//!     # Ok(())
-//!     # }
-//!     ```
+//!   ```
+//!   # fn main() -> Result<(), prqlc::ErrorMessages> {
+//!   let sql = prqlc::compile(
+//!       "from albums | select {title, artist_id}",
+//!        &prqlc::Options::default().no_format()
+//!   )?;
+//!   assert_eq!(&sql[..35], "SELECT title, artist_id FROM albums");
+//!   # Ok(())
+//!   # }
+//!   ```
 //!
 //! - Compile PRQL queries to SQL at build time.
 //!
-//!     For inline strings, use the `prql-compiler-macros` crate; for example:
-//!     ```ignore
-//!     let sql: &str = prql_to_sql!("from albums | select {title, artist_id}");
-//!     ```
+//!   For inline strings, use the `prqlc-macros` crate; for example:
+//!   ```ignore
+//!   let sql: &str = prql_to_sql!("from albums | select {title, artist_id}");
+//!   ```
 //!
-//!     For compiling whole files (`.prql` to `.sql`), call `prqlc`
-//!     from `build.rs`.
-//!     See [this example project](https://github.com/PRQL/prql/tree/main/prqlc/prqlc/examples/compile-files).
+//!   For compiling whole files (`.prql` to `.sql`), call `prqlc` from
+//!   `build.rs`. See [this example
+//!   project](https://github.com/PRQL/prql/tree/main/prqlc/prqlc/examples/compile-files).
 //!
 //! - Compile, format & debug PRQL from command line.
 //!
-//!     ```sh
-//!     $ cargo install --locked prqlc
-//!     $ prqlc compile query.prql
-//!     ```
+//!   ```sh
+//!   $ cargo install --locked prqlc
+//!   $ prqlc compile query.prql
+//!   ```
 //!
 //! ## Feature flags
 //!
-//! The following [feature flags](https://doc.rust-lang.org/cargo/reference/manifest.html#the-features-section) are available:
+//! The following feature flags are available:
 //!
-//! * `serde_yaml`: adapts the `Serialize` implementation for
-//!   [`crate::ast::expr::ExprKind::Literal`] within
-//!   [`crate::ir::rq::ExprKind`] to a custom one for `serde_yaml`, which
-//!   doesn't support the serialization of nested enums.
+//! * `cli`: enables the `prqlc` CLI binary. This is enabled by default. When
+//!   consuming this crate from another rust library, it can be disabled.
+//! * `test-dbs`: enables the `prqlc` in-process test databases as part of the
+//!   crate's tests. This significantly increases compile times so is not
+//!   enabled by default.
+//! * `test-dbs-external`: enables the `prqlc` external test databases,
+//!   requiring a docker container with the test databases to be running. Check
+//!   out the [integration tests](https://github.com/PRQL/prql/tree/main/prqlc/prqlc/tests/integration/dbs)
+//!   for more details.
+//! * `serde_yaml`: Enables serialization and deserialization of ASTs to YAML.
 //!
 //! ## Large binary sizes
 //!
@@ -93,6 +99,20 @@
 // yak-shaving exercise in the future.
 #![allow(clippy::result_large_err)]
 
+use std::sync::OnceLock;
+use std::{collections::HashMap, path::PathBuf, str::FromStr};
+
+use anstream::adapter::strip_str;
+use semver::Version;
+use serde::{Deserialize, Serialize};
+use strum::VariantNames;
+
+pub use error_message::{ErrorMessage, ErrorMessages, SourceLocation};
+pub use prqlc_parser::error::{Error, ErrorSource, Errors, MessageKind, Reason, WithErrorInfo};
+use prqlc_parser::lexer::TokenVec;
+pub use prqlc_parser::parser::pr as ast;
+pub use prqlc_parser::span::Span;
+
 mod codegen;
 mod error_message;
 pub mod ir;
@@ -101,22 +121,14 @@ pub mod semantic;
 pub mod sql;
 mod utils;
 
-pub use crate::ast::error::{Error, Errors, MessageKind, Reason, WithErrorInfo};
-use anstream::adapter::strip_str;
-pub use error_message::{ErrorMessage, ErrorMessages, SourceLocation};
-pub use ir::Span;
-pub use prqlc_ast as ast;
-
 pub type Result<T, E = Error> = core::result::Result<T, E>;
 
-pub static COMPILER_VERSION: Lazy<Version> =
-    Lazy::new(|| Version::parse(env!("CARGO_PKG_VERSION")).expect("Invalid prqlc version number"));
-
-use once_cell::sync::Lazy;
-use semver::Version;
-use serde::{Deserialize, Serialize};
-use std::{collections::HashMap, path::PathBuf, str::FromStr};
-use strum::VariantNames;
+pub fn compiler_version() -> &'static Version {
+    static COMPILER_VERSION: OnceLock<Version> = OnceLock::new();
+    COMPILER_VERSION.get_or_init(|| {
+        Version::parse(env!("CARGO_PKG_VERSION")).expect("Invalid prqlc version number")
+    })
+}
 
 /// Compile a PRQL string into a SQL string.
 ///
@@ -146,8 +158,13 @@ pub fn compile(prql: &str, options: &Options) -> Result<String, ErrorMessages> {
 
     Ok(&sources)
         .and_then(parser::parse)
-        .and_then(|ast| semantic::resolve_and_lower(ast, &[], None).map_err(Errors::from))
-        .and_then(|rq| sql::compile(rq, options).map_err(Errors::from))
+        .and_then(|ast| {
+            semantic::resolve_and_lower(ast, &[], None)
+                .map_err(|e| e.with_source(ErrorSource::NameResolver).into())
+        })
+        .and_then(|rq| {
+            sql::compile(rq, options).map_err(|e| e.with_source(ErrorSource::SQL).into())
+        })
         .map_err(|e| {
             let error_messages = ErrorMessages::from(e).composed(&sources);
             match options.display {
@@ -280,7 +297,7 @@ impl Options {
         self
     }
 
-    #[deprecated(note = "`color` now has no effect; see `Options` docs for more details")]
+    #[deprecated(note = "`color` is replaced by `display`; see `Options` docs for more details")]
     pub fn with_color(mut self, color: bool) -> Self {
         self.color = color;
         self
@@ -306,6 +323,16 @@ pub enum DisplayOptions {
 #[cfg(doctest)]
 pub struct ReadmeDoctests;
 
+/// Lex PRQL source into tokens.
+pub fn prql_to_tokens(prql: &str) -> Result<TokenVec, ErrorMessages> {
+    prqlc_parser::lexer::lex_source(prql).map_err(|e| {
+        e.into_iter()
+            .map(|e| e.into())
+            .collect::<Vec<ErrorMessage>>()
+            .into()
+    })
+}
+
 /// Parse PRQL into a PL AST
 // TODO: rename this to `prql_to_pl_simple`
 pub fn prql_to_pl(prql: &str) -> Result<ast::ModuleDef, ErrorMessages> {
@@ -321,7 +348,8 @@ pub fn prql_to_pl_tree(prql: &SourceTree) -> Result<ast::ModuleDef, ErrorMessage
 /// Perform semantic analysis and convert PL to RQ.
 // TODO: rename this to `pl_to_rq_simple`
 pub fn pl_to_rq(pl: ast::ModuleDef) -> Result<ir::rq::RelationalQuery, ErrorMessages> {
-    semantic::resolve_and_lower(pl, &[], None).map_err(ErrorMessages::from)
+    semantic::resolve_and_lower(pl, &[], None)
+        .map_err(|e| e.with_source(ErrorSource::NameResolver).into())
 }
 
 /// Perform semantic analysis and convert PL to RQ.
@@ -331,12 +359,12 @@ pub fn pl_to_rq_tree(
     database_module_path: &[String],
 ) -> Result<ir::rq::RelationalQuery, ErrorMessages> {
     semantic::resolve_and_lower(pl, main_path, Some(database_module_path))
-        .map_err(ErrorMessages::from)
+        .map_err(|e| e.with_source(ErrorSource::NameResolver).into())
 }
 
 /// Generate SQL from RQ.
 pub fn rq_to_sql(rq: ir::rq::RelationalQuery, options: &Options) -> Result<String, ErrorMessages> {
-    sql::compile(rq, options).map_err(ErrorMessages::from)
+    sql::compile(rq, options).map_err(|e| e.with_source(ErrorSource::SQL).into())
 }
 
 /// Generate PRQL code from PL AST
@@ -435,12 +463,50 @@ impl<S: ToString> From<S> for SourceTree {
     }
 }
 
+/// Debugging and unstable API functions
+pub mod debug {
+    use super::*;
+
+    /// Create column-level lineage graph
+    pub fn pl_to_lineage(
+        pl: ast::ModuleDef,
+    ) -> Result<semantic::reporting::FrameCollector, ErrorMessages> {
+        let ast = Some(pl.clone());
+
+        let root_module = semantic::resolve(pl, Default::default()).map_err(ErrorMessages::from)?;
+
+        let (main, _) = root_module.find_main_rel(&[]).unwrap();
+        let mut fc =
+            semantic::reporting::collect_frames(*main.clone().into_relation_var().unwrap());
+        fc.ast = ast;
+
+        Ok(fc)
+    }
+
+    pub mod json {
+        use super::*;
+
+        /// JSON serialization of FrameCollector lineage
+        pub fn from_lineage(
+            fc: &semantic::reporting::FrameCollector,
+        ) -> Result<String, ErrorMessages> {
+            serde_json::to_string(fc).map_err(convert_json_err)
+        }
+
+        fn convert_json_err(err: serde_json::Error) -> ErrorMessages {
+            ErrorMessages::from(Error::new_simple(err.to_string()))
+        }
+    }
+}
+
 #[cfg(test)]
 mod tests {
-    use crate::ast::expr::Ident;
-    use crate::Target;
-    use insta::assert_debug_snapshot;
     use std::str::FromStr;
+
+    use insta::assert_debug_snapshot;
+
+    use crate::ast::Ident;
+    use crate::Target;
 
     pub fn compile(prql: &str) -> Result<String, super::ErrorMessages> {
         anstream::ColorChoice::Never.write_global();

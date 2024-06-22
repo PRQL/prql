@@ -24,8 +24,10 @@ jobs:
     needs: build-web
     runs-on: ubuntu-latest
 
-    # Don't attempt to publish if on a fork, including a PR.
-    if: ${{ !github.event.pull_request.head.repo.fork }}
+    # Don't attempt to publish if on a fork or on a PR running on upstream.
+    if:
+      ${{ github.repository_owner == 'prql' &&
+      !github.event.pull_request.head.repo.fork }}
 
     permissions:
       pages: write

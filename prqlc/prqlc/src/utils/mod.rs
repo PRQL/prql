@@ -1,13 +1,14 @@
 mod id_gen;
 mod toposort;
 
+use std::sync::OnceLock;
+
 pub use id_gen::{IdGenerator, NameGenerator};
-use once_cell::sync::Lazy;
+use itertools::Itertools;
 use regex::Regex;
 pub use toposort::toposort;
 
 use crate::Result;
-use itertools::Itertools;
 
 pub trait OrMap<T> {
     /// Merges two options into one using `f`.
@@ -77,17 +78,20 @@ impl<T> BreakUp<T> for Vec<T> {
     }
 }
 
-pub static VALID_IDENT: Lazy<Regex> = Lazy::new(|| {
-    // One of:
-    // - `*`
-    // - An ident starting with `a-z_\$` and containing other characters `a-z0-9_\$`
-    //
-    // We could replace this with pomsky (regex<>pomsky : sql<>prql)
-    // ^ ('*' | [ascii_lower '_$'] [ascii_lower ascii_digit '_$']* ) $
-    Regex::new(r"^((\*)|(^[a-z_\$][a-z0-9_\$]*))$").unwrap()
-});
+pub(crate) fn valid_ident() -> &'static Regex {
+    static VALID_IDENT: OnceLock<Regex> = OnceLock::new();
+    VALID_IDENT.get_or_init(|| {
+        // One of:
+        // - `*`
+        // - An ident starting with `a-z_\$` and containing other characters `a-z0-9_\$`
+        //
+        // We could replace this with pomsky (regex<>pomsky : sql<>prql)
+        // ^ ('*' | [ascii_lower '_$'] [ascii_lower ascii_digit '_$']* ) $
+        Regex::new(r"^((\*)|(^[a-z_\$][a-z0-9_\$]*))$").unwrap()
+    })
+}
 
 #[test]
 fn test_write_ident_part() {
-    assert!(!VALID_IDENT.is_match(""));
+    assert!(!valid_ident().is_match(""));
 }

@@ -15,8 +15,9 @@
 //! be a huge number of issues, and it would be difficult to see what's current.
 //! So instead, add the error message as a test here.
 
-use super::sql::compile;
 use insta::assert_snapshot;
+
+use super::sql::compile;
 
 #[test]
 fn test_bad_error_messages() {
@@ -78,17 +79,14 @@ fn test_bad_error_messages() {
 }
 
 #[test]
-fn empty_interpolations() {
-    assert_snapshot!(compile(r#"
-    from x
-    select f"{}"
-    "#).unwrap_err(), @r###"
+fn interpolation_end() {
+    assert_snapshot!(compile(r#"from x | select f"{}"#).unwrap_err(), @r###"
     Error:
-       ╭─[:3:14]
+       ╭─[:1:21]
        │
-     3 │     select f"{}"
-       │              ┬
-       │              ╰── unexpected end of input while parsing interpolated string
+     1 │ from x | select f"{}
+       │                     │
+       │                     ╰─ unexpected
     ───╯
     "###);
 }
@@ -194,13 +192,13 @@ fn nested_groups() {
     )
     "###).unwrap_err(), @r###"
     Error:
-        ╭─[:2:5]
+        ╭─[:9:9]
         │
-      2 │ ╭─▶     from invoices
+      9 │ ╭─▶         aggregate {
         ┆ ┆
-     13 │ ├─▶     )
+     11 │ ├─▶         }
         │ │
-        │ ╰─────────── internal compiler error; tracked at https://github.com/PRQL/prql/issues/3870
+        │ ╰─────────────── internal compiler error; tracked at https://github.com/PRQL/prql/issues/3870
     ────╯
     "###);
 }
@@ -213,5 +211,42 @@ fn a_arrow_b() {
     x -> y
     "###).unwrap_err(), @r###"
     Error: internal compiler error; tracked at https://github.com/PRQL/prql/issues/4280
+    "###);
+}
+
+#[test]
+fn just_std() {
+    assert_snapshot!(compile(r###"
+    std
+    "###).unwrap_err(), @r###"
+    Error:
+       ╭─[:2:5]
+       │
+     2 │     std
+       │     ──┬─
+       │       ╰─── internal compiler error; tracked at https://github.com/PRQL/prql/issues/4474
+    ───╯
+    "###);
+}
+
+#[test]
+fn empty_tuple_from() {
+    assert_snapshot!(compile(r###"
+    from {}
+    "###).unwrap_err(), @r###"
+    Error: internal compiler error; tracked at https://github.com/PRQL/prql/issues/4317
+    "###);
+
+    assert_snapshot!(compile(r###"
+    from []
+    "###).unwrap_err(), @r###"
+    Error: internal compiler error; tracked at https://github.com/PRQL/prql/issues/4317
+    "###);
+
+    assert_snapshot!(compile(r###"
+    from {}
+    select a
+    "###).unwrap_err(), @r###"
+    Error: internal compiler error; tracked at https://github.com/PRQL/prql/issues/4317
     "###);
 }

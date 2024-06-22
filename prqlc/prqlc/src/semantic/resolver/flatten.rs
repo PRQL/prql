@@ -1,11 +1,10 @@
 use std::collections::HashMap;
 
-use crate::Result;
-
 use crate::ir::pl::{
     fold_column_sorts, fold_transform_kind, ColumnSort, Expr, ExprKind, PlFold, TransformCall,
     TransformKind, WindowFrame,
 };
+use crate::Result;
 
 /// Flattens group and window [TransformCall]s into a single pipeline.
 /// Sets partition, window and sort of [TransformCall].
@@ -68,7 +67,7 @@ impl PlFold for Flattener {
                         let by = fold_column_sorts(self, by)?;
                         let input = self.fold_expr(*t.input)?;
 
-                        self.sort = by.clone();
+                        self.sort.clone_from(&by);
 
                         if self.sort_undone {
                             return Ok(input);

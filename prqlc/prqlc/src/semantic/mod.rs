@@ -7,11 +7,11 @@ mod module;
 pub mod reporting;
 mod resolver;
 
-use self::resolver::Resolver;
-pub use self::resolver::ResolverOptions;
 pub use eval::eval;
 pub use lowering::lower_to_ir;
 
+use self::resolver::Resolver;
+pub use self::resolver::ResolverOptions;
 use crate::ast;
 use crate::ir::constant::ConstExpr;
 use crate::ir::decl::{Module, RootModule};
@@ -160,11 +160,10 @@ pub fn write_pl(expr: pl::Expr) -> String {
 pub mod test {
     use insta::assert_yaml_snapshot;
 
+    use super::{resolve, resolve_and_lower, RootModule};
     use crate::ir::rq::RelationalQuery;
     use crate::parser::parse;
     use crate::Errors;
-
-    use super::{resolve, resolve_and_lower, RootModule};
 
     pub fn parse_resolve_and_lower(query: &str) -> Result<RelationalQuery, Errors> {
         let source_tree = query.into();
@@ -248,7 +247,8 @@ pub mod test {
             relation:
               kind:
                 ExternRef:
-                  - employees
+                  LocalTable:
+                    - employees
               columns:
                 - Wildcard
         relation:

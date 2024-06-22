@@ -1,0 +1,39 @@
+## Syntax highlighting for PRQL.
+
+syntax python "\.prql$"
+magic "PRQL script"
+comment "#"
+
+# Types.
+color green "\<(int(8|16|32|64|128)?|float(32|64)|bool|text|date|time|timestamp)\>"
+
+# Keywords.
+color yellow "\<let|module|prql\>"
+
+# Transforms.
+color brightcyan "\<(aggregate|derive|filter|from|group|join|select|sort|take|window)\>"
+
+# Special values.
+color brightmagenta "\<(false|null|true|this|that)\>"
+
+# Decorators.
+color cyan start="@\{" end="\}"
+
+# Mono-quoted strings.
+color brightgreen "[frs]?'([^'\]|\\.)*'|[frs]?"([^"\]|\\.)*"|'''|""""
+color normal "'''|""""
+# Comments.
+color gray "(^|[[:blank:]])#.*"
+# Triple-quoted strings.
+color brightgreen start="[frs]?'''([^'),]|$)" end="(^|[^(\])'''"
+color brightgreen start="[frs]?"""([^"),]|$)" end="(^|[^(\])""""
+
+# Backslash escapes.
+color lime "\\($|[\'"bfnrt]|[0-3]?[0-7]?[0-7]|x[[:xdigit:]]{2})"
+color lime "\\(N\{[[:alpha:]]+\}|u\{[[:xdigit:]]{1,6}\})"
+
+# Reminders.
+color brightwhite,yellow "\<(FIXME|TODO)\>"
+
+# Trailing whitespace.
+color ,green "[[:space:]]+$"

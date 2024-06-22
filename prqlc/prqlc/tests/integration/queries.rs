@@ -4,7 +4,6 @@ use std::{env, fs};
 
 use insta::assert_debug_snapshot;
 use insta::{assert_snapshot, with_settings};
-
 use prqlc::sql::Dialect;
 use prqlc::{Options, Target};
 use test_each_file::test_each_path;
@@ -18,7 +17,7 @@ mod lex {
         let test_name = prql_path.file_stem().unwrap().to_str().unwrap();
         let prql = fs::read_to_string(prql_path).unwrap();
 
-        let tokens = prqlc_parser::lex_source(&prql).unwrap();
+        let tokens = prqlc_parser::lexer::lex_source(&prql).unwrap();
 
         with_settings!({ input_file => prql_path }, {
             assert_debug_snapshot!(test_name, tokens)
@@ -69,94 +68,118 @@ mod fmt {
     }
 }
 
-#[cfg(any(feature = "test-dbs", feature = "test-dbs-external"))]
-mod results {
+#[cfg(feature = "serde_yaml")]
+mod debug_lineage {
     use super::*;
 
-    use std::{ops::DerefMut, sync::Mutex};
+    test_each_path! { in "./prqlc/prqlc/tests/integration/queries" => run }
 
-    use once_cell::sync::Lazy;
+    fn run(prql_path: &Path) {
+        let test_name = prql_path.file_stem().unwrap().to_str().unwrap();
+        let prql = fs::read_to_string(prql_path).unwrap();
+
+        let pl = prqlc::prql_to_pl(&prql).unwrap();
+        let fc = prqlc::debug::pl_to_lineage(pl).unwrap();
+
+        let lineage = serde_yaml::to_string(&fc).unwrap();
+
+        with_settings!({ input_file => prql_path }, {
+            assert_snapshot!(test_name, &lineage, &prql)
+        });
+    }
+}
+
+#[cfg(any(feature = "test-dbs", feature = "test-dbs-external"))]
+mod results {
+    use std::ops::DerefMut;
+    use std::sync::Mutex;
+    use std::sync::OnceLock;
+
     use prqlc::sql::SupportLevel;
 
+    use super::*;
     use crate::dbs::{ConnectionCfg, DbConnection, DbProtocol};
 
-    static CONNECTIONS: Lazy<Mutex<Vec<DbConnection>>> = Lazy::new(init_connections);
+    fn connections() -> &'static Mutex<Vec<DbConnection>> {
+        static CONNECTIONS: OnceLock<Mutex<Vec<DbConnection>>> = OnceLock::new();
+        CONNECTIONS.get_or_init(|| {
+            Mutex::new({
+                let configs = [
+                    ConnectionCfg {
+                        dialect: Dialect::SQLite,
+                        data_file_root: "tests/integration/data/chinook".to_string(),
 
-    fn init_connections() -> Mutex<Vec<DbConnection>> {
-        let configs = [
-            ConnectionCfg {
-                dialect: Dialect::SQLite,
-                data_file_root: "tests/integration/data/chinook".to_string(),
+                        protocol: DbProtocol::SQLite,
+                    },
+                    ConnectionCfg {
+                        dialect: Dialect::DuckDb,
+                        data_file_root: "tests/integration/data/chinook".to_string(),
 
-                protocol: DbProtocol::SQLite,
-            },
-            ConnectionCfg {
-                dialect: Dialect::DuckDb,
-                data_file_root: "tests/integration/data/chinook".to_string(),
+                        protocol: DbProtocol::DuckDb,
+                    },
+                    ConnectionCfg {
+                        dialect: Dialect::Postgres,
+                        data_file_root: "/tmp/chinook".to_string(),
 
-                protocol: DbProtocol::DuckDb,
-            },
-            ConnectionCfg {
-                dialect: Dialect::Postgres,
-                data_file_root: "/tmp/chinook".to_string(),
+                        protocol: DbProtocol::Postgres {
+                            url: "host=localhost user=root password=root dbname=dummy".to_string(),
+                        },
+                    },
+                    ConnectionCfg {
+                        dialect: Dialect::MySql,
+                        data_file_root: "/tmp/chinook".to_string(),
 
-                protocol: DbProtocol::Postgres {
-                    url: "host=localhost user=root password=root dbname=dummy".to_string(),
-                },
-            },
-            ConnectionCfg {
-                dialect: Dialect::MySql,
-                data_file_root: "/tmp/chinook".to_string(),
+                        protocol: DbProtocol::MySql {
+                            url: "mysql://root:root@localhost:3306/dummy".to_string(),
+                        },
+                    },
+                    ConnectionCfg {
+                        dialect: Dialect::ClickHouse,
+                        data_file_root: "chinook".to_string(),
 
-                protocol: DbProtocol::MySql {
-                    url: "mysql://root:root@localhost:3306/dummy".to_string(),
-                },
-            },
-            ConnectionCfg {
-                dialect: Dialect::ClickHouse,
-                data_file_root: "chinook".to_string(),
+                        protocol: DbProtocol::MySql {
+                            url: "mysql://default:@localhost:9004/dummy".to_string(),
+                        },
+                    },
+                    ConnectionCfg {
+                        dialect: Dialect::GlareDb,
+                        data_file_root: "/tmp/chinook".to_string(),
 
-                protocol: DbProtocol::MySql {
-                    url: "mysql://default:@localhost:9004/dummy".to_string(),
-                },
-            },
-            ConnectionCfg {
-                dialect: Dialect::GlareDb,
-                data_file_root: "/tmp/chinook".to_string(),
+                        protocol: DbProtocol::Postgres {
+                            url: "host=localhost user=glaredb dbname=glaredb port=6543".to_string(),
+                        },
+                    },
+                    ConnectionCfg {
+                        dialect: Dialect::MsSql,
+                        data_file_root: "/tmp/chinook".to_string(),
 
-                protocol: DbProtocol::Postgres {
-                    url: "host=localhost user=glaredb dbname=glaredb port=6543".to_string(),
-                },
-            },
-            ConnectionCfg {
-                dialect: Dialect::MsSql,
-                data_file_root: "/tmp/chinook".to_string(),
+                        protocol: DbProtocol::MsSql,
+                    },
+                ];
 
-                protocol: DbProtocol::MsSql,
-            },
-        ];
+                let mut connections = Vec::new();
+                for cfg in configs {
+                    if !matches!(
+                        cfg.dialect.support_level(),
+                        SupportLevel::Supported | SupportLevel::Unsupported
+                    ) {
+                        continue;
+                    }
 
-        let mut connections = Vec::new();
-        for cfg in configs {
-            if !matches!(
-                cfg.dialect.support_level(),
-                SupportLevel::Supported | SupportLevel::Unsupported
-            ) {
-                continue;
-            }
+                    // The filtering is not a great design, since it doesn't proactively
+                    // check that we can get connections; but it's a compromise given we
+                    // implement the external_dbs feature using this.
+                    let Some(mut connection) = DbConnection::new(cfg) else {
+                        continue;
+                    };
 
-            // The filtering is not a great design, since it doesn't proactively
-            // check that we can get connections; but it's a compromise given we
-            // implement the external_dbs feature using this.
-            let Some(mut connection) = DbConnection::new(cfg) else {
-                continue;
-            };
+                    connection.setup();
 
-            connection.setup();
-
-            connections.push(connection);
-        }
-        Mutex::new(connections)
+                    connections.push(connection);
+                }
+                connections
+            })
+        })
     }
 
     test_each_path! { in "./prqlc/prqlc/tests/integration/queries" => run }
@@ -170,7 +193,7 @@ mod results {
 
         // for each of the connections
         let mut results = Vec::new();
-        for con in CONNECTIONS.lock().unwrap().deref_mut() {
+        for con in connections().lock().unwrap().deref_mut() {
             if !con.should_run_query(&prql) {
                 continue;
             }

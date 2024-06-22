@@ -1,21 +1,19 @@
 use std::collections::HashMap;
+use std::iter::zip;
 
 use itertools::Itertools;
 use serde::Deserialize;
-use std::iter::zip;
-
-use crate::ir::decl::{Decl, DeclKind, Module};
-use crate::ir::generic::{SortDirection, WindowKind};
-use crate::ir::pl::*;
-
-use crate::ast::{Ty, TyKind, TyTupleField};
-use crate::semantic::ast_expand::{restrict_null_literal, try_restrict_range};
-use crate::semantic::resolver::functions::expr_of_func;
-use crate::semantic::{write_pl, NS_PARAM, NS_THIS};
-use crate::{Error, Reason, Result, WithErrorInfo, COMPILER_VERSION};
 
 use super::types::{ty_tuple_kind, type_intersection};
 use super::Resolver;
+use crate::ast::{Ty, TyKind, TyTupleField};
+use crate::ir::decl::{Decl, DeclKind, Module};
+use crate::ir::generic::{SortDirection, WindowKind};
+use crate::ir::pl::*;
+use crate::semantic::ast_expand::{restrict_null_literal, try_restrict_range};
+use crate::semantic::resolver::functions::expr_of_func;
+use crate::semantic::{write_pl, NS_PARAM, NS_THIS};
+use crate::{compiler_version, Error, Reason, Result, WithErrorInfo};
 
 impl Resolver<'_> {
     /// try to convert function call with enough args into transform
@@ -101,20 +99,42 @@ impl Resolver<'_> {
 
                 let side = {
                     let span = side.span;
-                    let ident = side.try_cast(ExprKind::into_ident, Some("side"), "ident")?;
+                    let ident =
+                        side.clone()
+                            .try_cast(ExprKind::into_ident, Some("side"), "ident")?;
+
+                    // first try to match the raw ident string as a bare word
                     match ident.to_string().as_str() {
                         "inner" => JoinSide::Inner,
                         "left" => JoinSide::Left,
                         "right" => JoinSide::Right,
                         "full" => JoinSide::Full,
 
-                        found => {
-                            return Err(Error::new(Reason::Expected {
-                                who: Some("`side`".to_string()),
-                                expected: "inner, left, right or full".to_string(),
-                                found: found.to_string(),
-                            })
-                            .with_span(span))
+                        _ => {
+                            // if that fails, fold the ident and try treating the result as a literal
+                            // this allows the join side to be passed as a function parameter
+                            // NOTE: this is temporary, pending discussions and implementation, tracked in #4501
+                            let folded = self.fold_expr(side)?.try_cast(
+                                ExprKind::into_literal,
+                                Some("side"),
+                                "string literal",
+                            )?;
+
+                            match folded.to_string().as_str() {
+                                "\"inner\"" => JoinSide::Inner,
+                                "\"left\"" => JoinSide::Left,
+                                "\"right\"" => JoinSide::Right,
+                                "\"full\"" => JoinSide::Full,
+
+                                _ => {
+                                    return Err(Error::new(Reason::Expected {
+                                        who: Some("`side`".to_string()),
+                                        expected: "inner, left, right or full".to_string(),
+                                        found: folded.to_string(),
+                                    })
+                                    .with_span(span))
+                                }
+                            }
                         }
                     }
                 };
@@ -401,7 +421,7 @@ impl Resolver<'_> {
 
             "prql_version" => {
                 // yes, this is not a transform, but this is the most appropriate place for it
-                let ver = COMPILER_VERSION.to_string();
+                let ver = compiler_version().to_string();
                 return Ok(Expr::new(ExprKind::Literal(Literal::String(ver))));
             }
 
@@ -581,8 +601,8 @@ impl Resolver<'_> {
         // chunk and instruct resolver to apply the transform on that.
 
         let mut dummy = Expr::new(ExprKind::Ident(Ident::from_name(param_name)));
-        dummy.lineage = val.lineage.clone();
-        dummy.ty = val.ty.clone();
+        dummy.lineage.clone_from(&val.lineage);
+        dummy.ty.clone_from(&val.ty);
 
         let pipeline = Expr::new(ExprKind::FuncCall(FuncCall::new_simple(
             pipeline,
@@ -593,6 +613,10 @@ impl Resolver<'_> {
         self.root_mod.module.stack_push(NS_PARAM, env);
 
         let mut pipeline = self.fold_expr(pipeline)?;
+
+        // attach the span to the TransformCall, as this is what will
+        // be preserved after resolving is complete
+        pipeline.span = pipeline.span.or(span);
 
         self.root_mod.module.stack_pop(NS_PARAM).unwrap();
 
@@ -776,7 +800,7 @@ impl Lineage {
                         let col = self.columns.first().unwrap();
                         if let LineageColumn::All { input_id, .. } = col {
                             let input = self.inputs.iter_mut().find(|i| i.id == *input_id).unwrap();
-                            input.name = alias.clone();
+                            input.name.clone_from(alias);
                         }
                     }
                 }
@@ -937,7 +961,7 @@ impl Lineage {
     /// Renames all frame inputs to the given alias.
     pub fn rename(&mut self, alias: String) {
         for input in &mut self.inputs {
-            input.name = alias.clone();
+            input.name.clone_from(&alias);
         }
 
         for col in &mut self.columns {
@@ -959,9 +983,8 @@ fn unpack<const P: usize>(func_args: Vec<Expr>) -> [Expr; P] {
 }
 
 mod from_text {
-    use crate::ir::rq::RelationLiteral;
-
     use super::*;
+    use crate::ir::rq::RelationLiteral;
 
     // TODO: Can we dynamically get the types, like in pandas? We need to put
     // quotes around strings and not around numbers.
@@ -1095,7 +1118,8 @@ mod tests {
             relation:
               kind:
                 ExternRef:
-                  - c_invoice
+                  LocalTable:
+                    - c_invoice
               columns:
                 - Single: invoice_no
                 - Wildcard
@@ -1183,7 +1207,8 @@ mod tests {
             relation:
               kind:
                 ExternRef:
-                  - invoices
+                  LocalTable:
+                    - invoices
               columns:
                 - Single: issued_at
                 - Single: amount

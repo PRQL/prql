@@ -1,23 +1,24 @@
 //! Contains functions that compile [crate::ast::pl] nodes into [sqlparser] nodes.
 
+use std::cmp::Ordering;
+
 use itertools::Itertools;
+use prqlc_parser::generic::{InterpolateItem, Range};
 use regex::Regex;
 use sqlparser::ast::{
     self as sql_ast, BinaryOperator, DateTimeField, Fetch, Function, FunctionArg, FunctionArgExpr,
-    ObjectName, OrderByExpr, SelectItem, UnaryOperator, Value, WindowFrameBound, WindowSpec,
+    FunctionArgumentList, ObjectName, OrderByExpr, SelectItem, UnaryOperator, Value,
+    WindowFrameBound, WindowSpec,
 };
-use std::cmp::Ordering;
 
-use crate::ast::expr::generic::{InterpolateItem, Range};
+use super::gen_projection::try_into_exprs;
+use super::{keywords, Context};
 use crate::ir::generic::{ColumnSort, SortDirection, WindowFrame, WindowKind};
 use crate::ir::pl::{self, Ident, Literal};
 use crate::ir::rq::*;
 use crate::sql::srq::context::ColumnDecl;
-use crate::utils::{OrMap, VALID_IDENT};
+use crate::utils::{valid_ident, OrMap};
 use crate::{Error, Reason, Result, Span, WithErrorInfo};
-
-use super::gen_projection::try_into_exprs;
-use super::{keywords, Context};
 
 pub(super) fn translate_expr(expr: Expr, ctx: &mut Context) -> Result<ExprOrSource> {
     Ok(match expr.kind {
@@ -102,7 +103,7 @@ pub(super) fn translate_expr(expr: Expr, ctx: &mut Context) -> Result<ExprOrSour
                     }
                 }
                 "std.concat" => return Ok(process_concat(&expr, ctx)?.into()),
-                "std.array_in" => return Ok(process_array_in(args, ctx)?.into()),
+                "std.array_in" => return Ok(process_array_in(&expr, args, ctx)?.into()),
                 "std.date.to_text" => {
                     return Ok(process_date_to_text(&expr, name, args, ctx)?.into())
                 }
@@ -156,23 +157,40 @@ fn process_null(name: &str, args: &[Expr], ctx: &mut Context) -> Result<sql_ast:
 }
 
 /// Translates into IN (v1, v2, ...) if possible
-fn process_array_in(args: &[Expr], ctx: &mut Context) -> Result<sql_ast::Expr> {
+fn process_array_in(expr: &Expr, args: &[Expr], ctx: &mut Context) -> Result<sql_ast::Expr> {
     match args {
         [col_expr @ Expr {
-            kind: ExprKind::ColumnRef(_),
+            kind:
+                ExprKind::ColumnRef(_)
+                | ExprKind::Literal(_)
+                | ExprKind::SString(_)
+                | ExprKind::Param(_)
+                | ExprKind::Operator { name: _, args: _ },
             ..
         }, Expr {
             kind: ExprKind::Array(in_values),
             ..
-        }] => Ok(sql_ast::Expr::InList {
-            expr: Box::new(translate_expr(col_expr.clone(), ctx)?.into_ast()),
-            list: in_values
-                .iter()
-                .map(|a| Ok(translate_expr(a.clone(), ctx)?.into_ast()))
-                .collect::<Result<Vec<sql_ast::Expr>>>()?,
-            negated: false,
-        }),
-        _ => panic!("args to `std.array_in` must be a column ref and an array"),
+        }] => {
+            if in_values.is_empty() {
+                // We avoid producing `in ()` expressions since they are not syntactically valid
+                // in some engines like PostgreSQL or MySQL.
+                // We can instead optimize this to a condition that is always false
+                Ok(sql_ast::Expr::Value(Value::Boolean(false)))
+            } else {
+                Ok(sql_ast::Expr::InList {
+                    expr: Box::new(translate_expr(col_expr.clone(), ctx)?.into_ast()),
+                    list: in_values
+                        .iter()
+                        .map(|a| Ok(translate_expr(a.clone(), ctx)?.into_ast()))
+                        .collect::<Result<Vec<sql_ast::Expr>>>()?,
+                    negated: false,
+                })
+            }
+        }
+        _ => Err(
+            Error::new_simple("args to `std.array_in` must be an expression and an array")
+                .with_span(expr.span),
+        ),
     }
 }
 
@@ -219,7 +237,7 @@ fn process_concat(expr: &Expr, ctx: &mut Context) -> Result<sql_ast::Expr> {
     if ctx.dialect.has_concat_function() {
         let concat_args = collect_concat_args(expr);
 
-        let args = concat_args
+        let args_list = concat_args
             .iter()
             .map(|a| {
                 translate_expr((*a).clone(), ctx)
@@ -227,15 +245,19 @@ fn process_concat(expr: &Expr, ctx: &mut Context) -> Result<sql_ast::Expr> {
             })
             .try_collect()?;
 
+        let args = sql_ast::FunctionArguments::List(FunctionArgumentList {
+            args: args_list,
+            clauses: vec![],
+            duplicate_treatment: None,
+        });
+
         Ok(sql_ast::Expr::Function(Function {
             name: ObjectName(vec![sql_ast::Ident::new("CONCAT")]),
             args,
             over: None,
-            distinct: false,
-            special: false,
-            order_by: vec![],
             filter: None,
             null_treatment: None,
+            within_group: vec![],
         }))
     } else {
         let concat_args = collect_concat_args(expr);
@@ -386,20 +408,29 @@ pub(super) fn translate_literal(l: Literal, ctx: &Context) -> Result<sql_ast::Ex
                     )))
                 }
             };
-            let value = if ctx.dialect.requires_quotes_intervals() {
-                Box::new(sql_ast::Expr::Value(Value::SingleQuotedString(
-                    vau.n.to_string(),
-                )))
+            if ctx.dialect.requires_quotes_intervals() {
+                //postgres requires quotes around number and unit together eg '3 WEEK'
+                let value = Box::new(sql_ast::Expr::Value(Value::SingleQuotedString(format!(
+                    "{} {}",
+                    vau.n, sql_parser_datetime
+                ))));
+                sql_ast::Expr::Interval(sqlparser::ast::Interval {
+                    value,
+                    leading_field: None, //set to none since field is now contained in string
+                    leading_precision: None,
+                    last_field: None,
+                    fractional_seconds_precision: None,
+                })
             } else {
-                Box::new(translate_literal(Literal::Integer(vau.n), ctx)?)
-            };
-            sql_ast::Expr::Interval(sqlparser::ast::Interval {
-                value,
-                leading_field: Some(sql_parser_datetime),
-                leading_precision: None,
-                last_field: None,
-                fractional_seconds_precision: None,
-            })
+                let value = Box::new(translate_literal(Literal::Integer(vau.n), ctx)?);
+                sql_ast::Expr::Interval(sqlparser::ast::Interval {
+                    value,
+                    leading_field: Some(sql_parser_datetime),
+                    leading_precision: None,
+                    last_field: None,
+                    fractional_seconds_precision: None,
+                })
+            }
         }
     })
 }
@@ -451,15 +482,19 @@ fn translate_datetime_literal_with_sqlite_function(
         _ => unreachable!(),
     };
 
+    let args = sql_ast::FunctionArguments::List(FunctionArgumentList {
+        args: vec![arg],
+        clauses: vec![],
+        duplicate_treatment: None,
+    });
+
     sql_ast::Expr::Function(Function {
         name: ObjectName(vec![sql_ast::Ident::new(func_name)]),
-        args: vec![arg],
+        args,
         over: None,
-        distinct: false,
-        special: false,
-        order_by: vec![],
         filter: None,
         null_treatment: None,
+        within_group: vec![],
     })
 }
 
@@ -769,7 +804,7 @@ pub(super) fn translate_ident(
 }
 
 pub(super) fn translate_ident_part(ident: String, ctx: &Context) -> sql_ast::Ident {
-    let is_bare = VALID_IDENT.is_match(&ident);
+    let is_bare = valid_ident().is_match(&ident);
 
     if is_bare && !keywords::is_keyword(&ident) {
         sql_ast::Ident::new(ident)
@@ -1005,9 +1040,9 @@ impl From<sql_ast::Expr> for ExprOrSource {
 
 #[cfg(test)]
 mod test {
-    use super::*;
-
     use insta::assert_yaml_snapshot;
+
+    use super::*;
 
     #[test]
     fn test_range_of_ranges() -> Result<()> {

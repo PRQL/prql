@@ -1,4 +1,4 @@
-use prqlc_ast::{stmt::StmtKind, ExprKind, Stmt, TyKind, VarDefKind};
+use prqlc::ast::{ExprKind, Stmt, StmtKind, TyKind, VarDefKind};
 
 /// Generate HTML documentation.
 // pub fn generate_html_docs(stmts: Vec<Stmt>) -> String {
@@ -181,7 +181,7 @@ pub fn generate_markdown_docs(stmts: Vec<Stmt>) -> String {
 
 Generated with [prqlc](https://prql-lang.org/) {}.
 "#,
-        *prqlc::COMPILER_VERSION
+        *prqlc::compiler_version()
     );
 
     let mut docs = String::new();
@@ -311,9 +311,10 @@ Generated with [prqlc](https://prql-lang.org/) {}.
 
 #[cfg(test)]
 mod tests {
+    use std::process::Command;
+
     use insta_cmd::assert_cmd_snapshot;
     use insta_cmd::get_cargo_bin;
-    use std::process::Command;
 
     #[test]
     fn generate_markdown_docs() {
@@ -403,7 +404,7 @@ mod tests {
 
 
 
-        Generated with [prqlc](https://prql-lang.org/) 0.11.5.
+        Generated with [prqlc](https://prql-lang.org/) 0.12.3.
 
         ----- stderr -----
         "###);

@@ -2,17 +2,14 @@ use std::collections::HashSet;
 
 use itertools::Itertools;
 
-use crate::Result;
-
+use super::Resolver;
 use crate::ast::Ident;
-
 use crate::ir::decl::{Decl, DeclKind, Module};
 use crate::ir::pl::{Expr, ExprKind};
 use crate::semantic::{NS_INFER, NS_INFER_MODULE, NS_SELF, NS_THAT, NS_THIS};
 use crate::Error;
+use crate::Result;
 use crate::WithErrorInfo;
-
-use super::Resolver;
 
 impl Resolver<'_> {
     pub(super) fn resolve_ident(&mut self, ident: &Ident) -> Result<Ident, Error> {
@@ -257,7 +254,7 @@ fn ambiguous_error(idents: HashSet<Ident>, replace_name: Option<&String>) -> Err
         }
 
         if let Some(name) = replace_name {
-            ident.name = name.clone();
+            ident.name.clone_from(name);
         }
         chunks.push(ident.to_string());
     }

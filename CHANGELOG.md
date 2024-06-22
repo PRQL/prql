@@ -1,18 +1,80 @@
 # PRQL Changelog
 
-## 0.11.5 — Unreleased
+## [unreleased]
 
 **Language**:
 
 **Features**:
 
+**Fixes**:
+
+- Using `in` with an empty array pattern (e.g. `expr | in []`) will now output a
+  constant `false` condition instead of an `expr IN ()`, which is syntactically
+  invalid in some SQL dialects (@Globidev, #4598)
+
+**Documentation**:
+
+**Web**:
+
+**Integrations**:
+
+**Internal changes**:
+
+- Major reorganization of `prqlc-parser` — `prqlc-ast` is merged into
+  `prqlc-parser`, and `prqlc-parser`'s files are rearranged, including its
+  exports. This is part of an effort to modularize the compiler by stage,
+  reducing the amount of context that's required to understand a single stage.
+  There will likely be some further changes (more detail in the PR description).
+  (@m-span, #4634)
+
+  - This is a breaking change for any libraries that depend on `prqlc-parser`
+    (which should be fairly rare).
+
+- Renamed `prql-compiler-macros` to `prqlc-macros` for consistency with other
+  crates (@max-sixty, #4565)
+
+- `prql-compiler`, the old name for `prqlc`, is removed as a facade to `prqlc`.
+  It had been deprecated for a few versions and will no longer be updated.
+  (@max-sixty)
+
+**New Contributors**:
+
+## 0.12.2 — 2024-06-10
+
+0.12.2 is a very small release which renames `prql-js` to `prqlc-js` to match
+our standard naming scheme. Within node the package is imported as `prqlc`.
+
+It also fixes a mistake in the `prqlc-python` release pipeline.
+
+## 0.12.1 — 2024-06-09
+
+0.12.1 is a tiny hotfix release which fixes how intra-prql crate dependencies
+were specified.
+
+## 0.12.0 — 2024-06-08
+
+0.12.0 contains a few months of smaller features. Our focus has been on
+rewriting the resolver, an effort that is still ongoing.
+
+It has 239 commits from 12 contributors. Selected changes (most are not listed
+here, possibly we should be more conscientious about adding them...):
+
+**Features**:
+
+- Add `prqlc lex` command to the CLI (@max-sixty)
+- Add `prqlc debug lineage` command to the CLI, creating an expression lineage
+  graph from a query (@kgutwin, #4533)
 - Initial implementation of an experimental documentation generator that
   generates Markdown documentation from `.prql` files. (@vanillajonathan,
   #4152).
+- Join's `side` parameter can take a reference that resolves to a literal (note:
+  this is an experimental feature which may change in the future) (@kgutwin,
+  #4499)
 
 **Fixes**:
 
-**Documentation**:
+- Support expressions on left hand side of `std.in` operator. (@kgutwin, #4498)
+- Prevent panic for `from {}` and `std` (@m-span, #4538)
 
 **Web**:
 
@@ -27,12 +89,18 @@
 - The
   [VSCode Great Icons](https://marketplace.visualstudio.com/items?itemName=emmanuelbeziat.vscode-great-icons)
   icon pack extension shows a database icon for `.prql` files. (@EmmanuelBeziat)
-- [Tokei](https://github.com/XAMPPRocky/tokei), a source lines of code counter now has
-  support for `.prql` files. (@vanillajonathan)
-
-**Internal changes**:
+- [Tokei](https://github.com/XAMPPRocky/tokei), a source lines of code counter
+  now has support for `.prql` files. (@vanillajonathan)
+- Add syntax highlight file for the [micro](https://micro-editor.github.io/)
+  text editor. (@vanillajonathan)
 
 **New Contributors**:
+
+- @srenatus, with #4274
+- @jacquayj, with #4332
+- @pdelewski, with #4337
+- @m-span, with #4422
+- @kgutwin, with #4498
 
 ## 0.11.4 — 2024-02-25
 
@@ -278,7 +346,7 @@ This release has 155 commits from 9 contributors. Selected changes:
 
 - Rename some of the internal crates, and refactored their paths in the repo.
   (@aljazerzen, #3683).
-- Add a `justfile` for developers who prefer that above our `Taskfile.yml`
+- Add a `justfile` for developers who prefer that above our `Taskfile.yaml`
   (@aljazerzen, #3681)
 
 **New Contributors**:
@@ -1135,8 +1203,8 @@ below in this release).
 
 **Documentation**:
 
-[This release, the changelog only contains a subset of documentation
-improvements]
+[This release, the changelog only contains a subset of
+documentation improvements]
 
 - Add docs on aliases in
   [Select](https://prql-lang.org/book/reference/stdlib/transforms/select.html)
@@ -1571,10 +1639,9 @@ Rust.
 I especially want to give [Aljaž Mur Eržen](https://github.com/aljazerzen)
 (@aljazerzen) the credit he deserves, who has contributed the majority of the
 difficult work of building out the compiler. Much credit also goes to
-[Charlie Sanders](https://github.com/charlie-sanders) (@charlie-sanders), one of
-PRQL's earliest supporters and the author of pyprql, and
-[Ryan Patterson-Cross](https://github.com/rbpatt2019) (@rbpatt2019), who built
-the Jupyter integration among other Python contributions.
+@charlie-sanders, one of PRQL's earliest supporters and the author of pyprql,
+and [Ryan Patterson-Cross](https://github.com/rbpatt2019) (@rbpatt2019), who
+built the Jupyter integration among other Python contributions.
 
 Other contributors who deserve a special mention include: @roG0d, @snth,
 @kwigley

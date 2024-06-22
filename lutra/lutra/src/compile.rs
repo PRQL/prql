@@ -5,8 +5,7 @@ use anyhow::Result;
 use prqlc::ir::decl::RootModule;
 use prqlc::ir::pl::{Ident, Literal};
 use prqlc::sql::Dialect;
-use prqlc::{semantic, ErrorMessages};
-use prqlc::{Error, Errors, Options, SourceTree, Target, WithErrorInfo};
+use prqlc::{semantic, Error, ErrorMessages, Errors, Options, SourceTree, Target, WithErrorInfo};
 
 use crate::project::{DatabaseModule, ProjectCompiled, ProjectDiscovered, SqliteConnectionParams};
 

@@ -111,7 +111,7 @@ jobs:
           append_body: true
           files: ${{ steps.build-artifact.outputs.artifact-name }}
 
-  winget-release:
+  publish-winget:
     runs-on: ubuntu-latest
     needs: build-prqlc
     if: github.event_name == 'release'
@@ -315,6 +315,7 @@ jobs:
         with:
           # `*` covers target & OS
           pattern: ${{ matrix.package }}-*-release
+          merge-multiple: true
       - name: Publish to PyPI
         uses: PyO3/maturin-action@v1
         env:
@@ -323,7 +324,7 @@ jobs:
           command: upload
           args: --skip-existing *
 
-  publish-prql-js:
+  publish-js:
     runs-on: ubuntu-latest
     steps:
       - name: 📂 Checkout code
@@ -337,6 +338,15 @@ jobs:
         with:
           node-version: "20.x"
           registry-url: "https://registry.npmjs.org"
+
+      - run: ./.github/workflows/scripts/set_version.sh
+      - name: 💰 Cache
+        uses: Swatinem/rust-cache@v2
+        with:
+          prefix-key: ${{ env.version }}
+          # Share key with the `build-web` job
+          shared-key: web
+          save-if: false
 
       # This is only required in order to have `cross-env` installed, since `npx
       # cross-env` doesn't seem to work in CI (https://github.com/PRQL/prql/pull/3728)
@@ -358,12 +368,12 @@ jobs:
       - uses: baptiste0928/cargo-install@v3
         with:
           crate: cargo-release
-      # Currently, we can only check prqlc-ast which is not dependent other local crates with --dry-run.
+      # Currently, we can only check prqlc-parser which is not dependent other local crates with --dry-run.
       # https://github.com/crate-ci/cargo-release/issues/691
       # --no-verify is required to prevent build.
       - run:
           cargo release publish --no-confirm ${{ github.event_name == 'release'
-          && '--execute' || '--no-verify --package prqlc-ast'}}
+          && '--execute' || '--no-verify --package prqlc-parser'}}
         env:
           CARGO_REGISTRY_TOKEN: ${{ secrets.CARGO_REGISTRY_TOKEN }}
 

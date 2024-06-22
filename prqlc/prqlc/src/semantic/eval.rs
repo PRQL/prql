@@ -1,12 +1,13 @@
 use std::iter::zip;
 
 use itertools::Itertools;
+use prqlc_parser::lexer::lr::Literal;
 
 use super::ast_expand;
-use crate::ir::pl::{Expr, ExprKind, Func, FuncParam, Ident, Literal, PlFold};
+use crate::ir::pl::{Expr, ExprKind, Func, FuncParam, Ident, PlFold};
 use crate::{Error, Result, Span, WithErrorInfo};
 
-pub fn eval(expr: crate::ast::expr::Expr) -> Result<Expr> {
+pub fn eval(expr: crate::ast::Expr) -> Result<Expr> {
     let expr = ast_expand::expand_expr(expr)?;
 
     Evaluator::new().fold_expr(expr)
@@ -131,7 +132,6 @@ impl Evaluator {
         };
 
         // eval body
-        use Literal::*;
         Ok(match func_name.as_str() {
             "std.add" => {
                 let [l, r]: [_; 2] = args.try_into().unwrap();
@@ -140,35 +140,37 @@ impl Evaluator {
                 let r = r.kind.into_literal().unwrap();
 
                 let res = match (l, r) {
-                    (Integer(l), Integer(r)) => (l + r) as f64,
-                    (Float(l), Integer(r)) => l + (r as f64),
-                    (Integer(l), Float(r)) => (l as f64) + r,
-                    (Float(l), Float(r)) => l + r,
+                    (Literal::Integer(l), Literal::Integer(r)) => (l + r) as f64,
+                    (Literal::Float(l), Literal::Integer(r)) => l + (r as f64),
+                    (Literal::Integer(l), Literal::Float(r)) => (l as f64) + r,
+                    (Literal::Float(l), Literal::Float(r)) => l + r,
 
                     _ => return Err(Error::new_simple("bad arg types").with_span(span)),
                 };
 
-                ExprKind::Literal(Float(res))
+                ExprKind::Literal(Literal::Float(res))
             }
 
             "std.floor" => {
                 let [x]: [_; 1] = args.try_into().unwrap();
 
                 let res = match x.kind {
-                    ExprKind::Literal(Integer(i)) => i,
-                    ExprKind::Literal(Float(f)) => f.floor() as i64,
+                    ExprKind::Literal(Literal::Integer(i)) => i,
+                    ExprKind::Literal(Literal::Float(f)) => f.floor() as i64,
                     _ => return Err(Error::new_simple("bad arg types").with_span(x.span)),
                 };
 
-                ExprKind::Literal(Integer(res))
+                ExprKind::Literal(Literal::Integer(res))
             }
 
             "std.neg" => {
                 let [x]: [_; 1] = args.try_into().unwrap();
 
                 match x.kind {
-                    ExprKind::Literal(Integer(i)) => ExprKind::Literal(Integer(-i)),
-                    ExprKind::Literal(Float(f)) => ExprKind::Literal(Float(-f)),
+                    ExprKind::Literal(Literal::Integer(i)) => {
+                        ExprKind::Literal(Literal::Integer(-i))
+                    }
+                    ExprKind::Literal(Literal::Float(f)) => ExprKind::Literal(Literal::Float(-f)),
                     _ => return Err(Error::new_simple("bad arg types").with_span(x.span)),
                 }
             }
@@ -252,13 +254,13 @@ impl Evaluator {
                 for item in array.kind.into_array().unwrap() {
                     let lit = item.kind.into_literal().unwrap();
                     match lit {
-                        Integer(x) => sum += x as f64,
-                        Float(x) => sum += x,
+                        Literal::Integer(x) => sum += x as f64,
+                        Literal::Float(x) => sum += x,
                         _ => panic!("bad type"),
                     }
                 }
 
-                ExprKind::Literal(Float(sum))
+                ExprKind::Literal(Literal::Float(sum))
             }
 
             "std.lag" => {
@@ -452,9 +454,8 @@ mod test {
 
     use insta::assert_snapshot;
 
-    use crate::semantic::write_pl;
-
     use super::*;
+    use crate::semantic::write_pl;
 
     #[track_caller]
     fn eval(source: &str) -> Result<String> {

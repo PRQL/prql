@@ -19,12 +19,10 @@ pub(super) use gen_query::compile_query;
 
 #[cfg(test)]
 mod test {
-    use crate::{Errors, Result};
-
     use super::ast::SqlQuery;
     use super::*;
-
     use crate::sql::Dialect;
+    use crate::{Errors, Result};
 
     fn parse_and_resolve(source: &str) -> Result<SqlQuery, Errors> {
         let query = crate::semantic::test::parse_resolve_and_lower(source)?;

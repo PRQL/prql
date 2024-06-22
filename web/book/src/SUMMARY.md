@@ -1,5 +1,9 @@
 <!-- markdownlint-disable MD042 — some pages aren't finished yet (though the graying out of top level pages is not ideal — it's either that, or links to pages that are blank. Or maybe we try and write a useful page for each heading?) -->
 
+# Introduction
+
+[Introduction](./README.md)
+
 # Tutorial
 
 A friendly & accessible guide for learning PRQL. It has a gradual increase of
@@ -103,11 +107,13 @@ General information about the project, tooling and development.
   - [ClickHouse](./project/integrations/clickhouse.md)
   - [Jupyter](./project/integrations/jupyter.md)
   - [DuckDB](./project/integrations/duckdb.md)
+  - [qStudio](./project/integrations/qstudio.md)
   - [Prefect](./project/integrations/prefect.md)
   - [VS Code](./project/integrations/vscode.md)
+  - [PostgreSQL](./project/integrations/postgresql.md)
+  - [Databend](./project/integrations/databend.md)
   - [Rill](./project/integrations/rill.md)
   - [Syntax highlighting](./project/integrations/syntax-highlighting.md)
-  - [PostgreSQL](./project/integrations/postgresql.md)
 
 - [Contributing to PRQL](./project/contributing/README.md)
 

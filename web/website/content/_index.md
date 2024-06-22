@@ -168,13 +168,6 @@ integrations_section:
   enable: true
   title: "Integrations"
   sections:
-    - label: "Jupyter/IPython"
-      link: https://pyprql.readthedocs.io/en/latest/magic_readme.html
-      text:
-        "pyprql contains a Jupyter extension, which executes a PRQL cell against
-        a database. It can also set up an in-memory DuckDB instance, populated
-        with a pandas DataFrame."
-
     - label: "ClickHouse"
       link: https://clickhouse.com/docs/en/guides/developer/alternative-query-languages
       text: |
@@ -182,21 +175,40 @@ integrations_section:
 
         `SET dialect = 'prql'`
 
-    - label: Visual Studio Code
-      link: https://marketplace.visualstudio.com/items?itemName=prql-lang.prql-vscode
-      text: Extension with syntax highlighting and live SQL compilation.
-
-    - label: "Prefect"
-      link: https://prql-lang.org/book/project/integrations/prefect.html
-      text: Add PRQL models to your Prefect workflows with a single function.
+    - label: "Jupyter/IPython"
+      link: https://pyprql.readthedocs.io/en/latest/magic_readme.html
+      text:
+        "pyprql contains a Jupyter extension, which executes a PRQL cell against
+        a database. It can also set up an in-memory DuckDB instance, populated
+        with a pandas DataFrame."
 
     - label: "DuckDB"
       link: https://github.com/ywelsch/duckdb-prql
       text: A DuckDB extension to execute PRQL
 
+    - label: "qStudio"
+      link: https://www.timestored.com/qstudio/prql-ide
+      text:
+        "qStudio is a SQL GUI that lets you browse tables, run SQL scripts, and
+        chart and export the results. qStudio runs on Windows, macOS and Linux,
+        and works with every popular database including mysql, postgresql,
+        mssql, kdb..."
+
+    - label: "Prefect"
+      link: https://prql-lang.org/book/project/integrations/prefect.html
+      text: Add PRQL models to your Prefect workflows with a single function.
+
+    - label: Visual Studio Code
+      link: https://marketplace.visualstudio.com/items?itemName=prql-lang.prql-vscode
+      text: Extension with syntax highlighting and live SQL compilation.
+
     - label: "PostgreSQL"
       link: https://github.com/kaspermarstal/plprql
       text: Write PRQL functions in PostgreSQL
+
+    - label: "Databend"
+      link: https://www.databend.com/blog/2024-04-03-databend-integrates-prql/
+      text: Databend natively supports PRQL
 
 bindings_section:
   enable: true
@@ -207,8 +219,8 @@ bindings_section:
       label: "prqlc-python"
       text: Python bindings for prqlc.
 
-    - link: https://www.npmjs.com/package/prql-js
-      label: "prql-js"
+    - link: https://www.npmjs.com/package/prqlc
+      label: "prqlc-js"
       text: "JavaScript bindings for prqlc."
 
     - link: https://CRAN.R-project.org/package=prqlr

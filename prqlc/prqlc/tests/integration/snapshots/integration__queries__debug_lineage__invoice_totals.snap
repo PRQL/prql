@@ -1,0 +1,903 @@
+---
+source: prqlc/prqlc/tests/integration/queries.rs
+expression: "# clickhouse:skip (clickhouse doesn't have lag function)\n\n#! Calculate a number of metrics about the sales of tracks in each city.\nfrom i=invoices\njoin ii=invoice_items (==invoice_id)\nderive {\n    city = i.billing_city,\n    street = i.billing_address,\n}\ngroup {city, street} (\n    derive total = ii.unit_price * ii.quantity\n    aggregate {\n        num_orders = count_distinct i.invoice_id,\n        num_tracks = sum ii.quantity,\n        total_price = sum total,\n    }\n)\ngroup {city} (\n    sort street\n    window expanding:true (\n        derive {running_total_num_tracks = sum num_tracks}\n    )\n)\nsort {city, street}\nderive {num_tracks_last_week = lag 7 num_tracks}\nselect {\n    city,\n    street,\n    num_orders,\n    num_tracks,\n    running_total_num_tracks,\n    num_tracks_last_week\n}\ntake 20\n"
+input_file: prqlc/prqlc/tests/integration/queries/invoice_totals.prql
+---
+frames:
+- - 1:147-183
+  - columns:
+    - !All
+      input_id: 140
+      except: []
+    - !All
+      input_id: 137
+      except: []
+    inputs:
+    - id: 140
+      name: i
+      table:
+      - default_db
+      - invoices
+    - id: 137
+      name: ii
+      table:
+      - default_db
+      - invoice_items
+- - 1:184-253
+  - columns:
+    - !All
+      input_id: 140
+      except: []
+    - !All
+      input_id: 137
+      except: []
+    - !Single
+      name:
+      - city
+      target_id: 147
+      target_name: null
+    - !Single
+      name:
+      - street
+      target_id: 148
+      target_name: null
+    inputs:
+    - id: 140
+      name: i
+      table:
+      - default_db
+      - invoices
+    - id: 137
+      name: ii
+      table:
+      - default_db
+      - invoice_items
+- - 1:281-323
+  - columns:
+    - !All
+      input_id: 140
+      except: []
+    - !All
+      input_id: 137
+      except: []
+    - !Single
+      name:
+      - total
+      target_id: 178
+      target_name: null
+    inputs:
+    - id: 140
+      name: i
+      table:
+      - default_db
+      - invoices
+    - id: 137
+      name: ii
+      table:
+      - default_db
+      - invoice_items
+- - 1:328-466
+  - columns:
+    - !Single
+      name:
+      - city
+      target_id: 151
+      target_name: null
+    - !Single
+      name:
+      - street
+      target_id: 152
+      target_name: null
+    - !Single
+      name:
+      - num_orders
+      target_id: 184
+      target_name: null
+    - !Single
+      name:
+      - num_tracks
+      target_id: 187
+      target_name: null
+    - !Single
+      name:
+      - total_price
+      target_id: 190
+      target_name: null
+    inputs:
+    - id: 140
+      name: i
+      table:
+      - default_db
+      - invoices
+    - id: 137
+      name: ii
+      table:
+      - default_db
+      - invoice_items
+- - 1:536-586
+  - columns:
+    - !Single
+      name:
+      - city
+      target_id: 197
+      target_name: null
+    - !Single
+      name:
+      - street
+      target_id: 152
+      target_name: null
+    - !Single
+      name:
+      - num_orders
+      target_id: 184
+      target_name: null
+    - !Single
+      name:
+      - num_tracks
+      target_id: 187
+      target_name: null
+    - !Single
+      name:
+      - total_price
+      target_id: 190
+      target_name: null
+    - !Single
+      name:
+      - running_total_num_tracks
+      target_id: 243
+      target_name: null
+    inputs:
+    - id: 140
+      name: i
+      table:
+      - default_db
+      - invoices
+    - id: 137
+      name: ii
+      table:
+      - default_db
+      - invoice_items
+- - 1:595-614
+  - columns:
+    - !Single
+      name:
+      - city
+      target_id: 197
+      target_name: null
+    - !Single
+      name:
+      - street
+      target_id: 152
+      target_name: null
+    - !Single
+      name:
+      - num_orders
+      target_id: 184
+      target_name: null
+    - !Single
+      name:
+      - num_tracks
+      target_id: 187
+      target_name: null
+    - !Single
+      name:
+      - total_price
+      target_id: 190
+      target_name: null
+    - !Single
+      name:
+      - running_total_num_tracks
+      target_id: 243
+      target_name: null
+    inputs:
+    - id: 140
+      name: i
+      table:
+      - default_db
+      - invoices
+    - id: 137
+      name: ii
+      table:
+      - default_db
+      - invoice_items
+- - 1:615-663
+  - columns:
+    - !Single
+      name:
+      - city
+      target_id: 197
+      target_name: null
+    - !Single
+      name:
+      - street
+      target_id: 152
+      target_name: null
+    - !Single
+      name:
+      - num_orders
+      target_id: 184
+      target_name: null
+    - !Single
+      name:
+      - num_tracks
+      target_id: 187
+      target_name: null
+    - !Single
+      name:
+      - total_price
+      target_id: 190
+      target_name: null
+    - !Single
+      name:
+      - running_total_num_tracks
+      target_id: 243
+      target_name: null
+    - !Single
+      name:
+      - num_tracks_last_week
+      target_id: 257
+      target_name: null
+    inputs:
+    - id: 140
+      name: i
+      table:
+      - default_db
+      - invoices
+    - id: 137
+      name: ii
+      table:
+      - default_db
+      - invoice_items
+- - 1:664-783
+  - columns:
+    - !Single
+      name:
+      - city
+      target_id: 263
+      target_name: null
+    - !Single
+      name:
+      - street
+      target_id: 264
+      target_name: null
+    - !Single
+      name:
+      - num_orders
+      target_id: 265
+      target_name: null
+    - !Single
+      name:
+      - num_tracks
+      target_id: 266
+      target_name: null
+    - !Single
+      name:
+      - running_total_num_tracks
+      target_id: 267
+      target_name: null
+    - !Single
+      name:
+      - num_tracks_last_week
+      target_id: 268
+      target_name: null
+    inputs:
+    - id: 140
+      name: i
+      table:
+      - default_db
+      - invoices
+    - id: 137
+      name: ii
+      table:
+      - default_db
+      - invoice_items
+- - 1:784-791
+  - columns:
+    - !Single
+      name:
+      - city
+      target_id: 263
+      target_name: null
+    - !Single
+      name:
+      - street
+      target_id: 264
+      target_name: null
+    - !Single
+      name:
+      - num_orders
+      target_id: 265
+      target_name: null
+    - !Single
+      name:
+      - num_tracks
+      target_id: 266
+      target_name: null
+    - !Single
+      name:
+      - running_total_num_tracks
+      target_id: 267
+      target_name: null
+    - !Single
+      name:
+      - num_tracks_last_week
+      target_id: 268
+      target_name: null
+    inputs:
+    - id: 140
+      name: i
+      table:
+      - default_db
+      - invoices
+    - id: 137
+      name: ii
+      table:
+      - default_db
+      - invoice_items
+nodes:
+- id: 137
+  kind: Ident
+  span: 1:155-168
+  ident: !Ident
+  - default_db
+  - invoice_items
+  parent: 146
+- id: 140
+  kind: Ident
+  span: 1:131-146
+  ident: !Ident
+  - default_db
+  - invoices
+  parent: 146
+- id: 142
+  kind: RqOperator
+  span: 1:170-182
+  targets:
+  - 144
+  - 145
+  parent: 146
+- id: 144
+  kind: Ident
+  span: 1:172-182
+  ident: !Ident
+  - this
+  - i
+  - invoice_id
+  targets:
+  - 140
+- id: 145
+  kind: Ident
+  span: 1:172-182
+  ident: !Ident
+  - that
+  - ii
+  - invoice_id
+  targets:
+  - 137
+- id: 146
+  kind: 'TransformCall: Join'
+  span: 1:147-183
+  children:
+  - 140
+  - 137
+  - 142
+  parent: 150
+- id: 147
+  kind: Ident
+  span: 1:204-218
+  alias: city
+  ident: !Ident
+  - this
+  - i
+  - billing_city
+  targets:
+  - 140
+  parent: 149
+- id: 148
+  kind: Ident
+  span: 1:233-250
+  alias: street
+  ident: !Ident
+  - this
+  - i
+  - billing_address
+  targets:
+  - 140
+  parent: 149
+- id: 149
+  kind: Tuple
+  span: 1:191-253
+  children:
+  - 147
+  - 148
+  parent: 150
+- id: 150
+  kind: 'TransformCall: Derive'
+  span: 1:184-253
+  children:
+  - 146
+  - 149
+  parent: 183
+- id: 151
+  kind: Ident
+  span: 1:261-265
+  ident: !Ident
+  - this
+  - city
+  targets:
+  - 147
+  parent: 153
+- id: 152
+  kind: Ident
+  span: 1:267-273
+  ident: !Ident
+  - this
+  - street
+  targets:
+  - 148
+  parent: 153
+- id: 153
+  kind: Tuple
+  span: 1:260-274
+  children:
+  - 151
+  - 152
+  parent: 194
+- id: 178
+  kind: RqOperator
+  span: 1:296-323
+  alias: total
+  targets:
+  - 180
+  - 181
+  parent: 182
+- id: 180
+  kind: Ident
+  span: 1:298-309
+  ident: !Ident
+  - this
+  - ii
+  - unit_price
+  targets:
+  - 137
+- id: 181
+  kind: Ident
+  span: 1:314-323
+  ident: !Ident
+  - this
+  - ii
+  - quantity
+  targets:
+  - 137
+- id: 182
+  kind: Tuple
+  span: 1:296-323
+  children:
+  - 178
+  parent: 183
+- id: 183
+  kind: 'TransformCall: Derive'
+  span: 1:281-323
+  children:
+  - 150
+  - 182
+  parent: 194
+- id: 184
+  kind: RqOperator
+  span: 1:361-388
+  alias: num_orders
+  targets:
+  - 186
+  parent: 193
+- id: 186
+  kind: Ident
+  span: 1:377-388
+  ident: !Ident
+  - this
+  - i
+  - invoice_id
+  targets:
+  - 140
+- id: 187
+  kind: RqOperator
+  span: 1:411-426
+  alias: num_tracks
+  targets:
+  - 189
+  parent: 193
+- id: 189
+  kind: Ident
+  span: 1:417-426
+  ident: !Ident
+  - this
+  - ii
+  - quantity
+  targets:
+  - 137
+- id: 190
+  kind: RqOperator
+  span: 1:450-459
+  alias: total_price
+  targets:
+  - 192
+  parent: 193
+- id: 192
+  kind: Ident
+  span: 1:454-459
+  ident: !Ident
+  - this
+  - total
+  targets:
+  - 178
+- id: 193
+  kind: Tuple
+  span: 1:338-466
+  children:
+  - 184
+  - 187
+  - 190
+  parent: 194
+- id: 194
+  kind: 'TransformCall: Aggregate'
+  span: 1:328-466
+  children:
+  - 183
+  - 193
+  - 153
+  parent: 247
+- id: 197
+  kind: Ident
+  span: 1:476-480
+  ident: !Ident
+  - this
+  - city
+  targets:
+  - 151
+  parent: 198
+- id: 198
+  kind: Tuple
+  span: 1:475-481
+  children:
+  - 197
+- id: 222
+  kind: Ident
+  span: 1:493-499
+  ident: !Ident
+  - this
+  - street
+  targets:
+  - 152
+- id: 243
+  kind: RqOperator
+  span: 1:571-585
+  alias: running_total_num_tracks
+  targets:
+  - 245
+  parent: 246
+- id: 245
+  kind: Ident
+  span: 1:575-585
+  ident: !Ident
+  - this
+  - num_tracks
+  targets:
+  - 187
+- id: 246
+  kind: Tuple
+  span: 1:543-586
+  children:
+  - 243
+  parent: 247
+- id: 247
+  kind: 'TransformCall: Derive'
+  span: 1:536-586
+  children:
+  - 194
+  - 246
+  parent: 256
+- id: 249
+  kind: Literal
+- id: 253
+  kind: Ident
+  span: 1:601-605
+  ident: !Ident
+  - this
+  - city
+  targets:
+  - 197
+  parent: 256
+- id: 254
+  kind: Ident
+  span: 1:607-613
+  ident: !Ident
+  - this
+  - street
+  targets:
+  - 152
+  parent: 256
+- id: 256
+  kind: 'TransformCall: Sort'
+  span: 1:595-614
+  children:
+  - 247
+  - 253
+  - 254
+  parent: 262
+- id: 257
+  kind: RqOperator
+  span: 1:646-662
+  alias: num_tracks_last_week
+  targets:
+  - 259
+  - 260
+  parent: 261
+- id: 259
+  kind: Literal
+  span: 1:650-651
+- id: 260
+  kind: Ident
+  span: 1:652-662
+  ident: !Ident
+  - this
+  - num_tracks
+  targets:
+  - 187
+- id: 261
+  kind: Tuple
+  span: 1:622-663
+  children:
+  - 257
+  parent: 262
+- id: 262
+  kind: 'TransformCall: Derive'
+  span: 1:615-663
+  children:
+  - 256
+  - 261
+  parent: 270
+- id: 263
+  kind: Ident
+  span: 1:677-681
+  ident: !Ident
+  - this
+  - city
+  targets:
+  - 197
+  parent: 269
+- id: 264
+  kind: Ident
+  span: 1:687-693
+  ident: !Ident
+  - this
+  - street
+  targets:
+  - 152
+  parent: 269
+- id: 265
+  kind: Ident
+  span: 1:699-709
+  ident: !Ident
+  - this
+  - num_orders
+  targets:
+  - 184
+  parent: 269
+- id: 266
+  kind: Ident
+  span: 1:715-725
+  ident: !Ident
+  - this
+  - num_tracks
+  targets:
+  - 187
+  parent: 269
+- id: 267
+  kind: Ident
+  span: 1:731-755
+  ident: !Ident
+  - this
+  - running_total_num_tracks
+  targets:
+  - 243
+  parent: 269
+- id: 268
+  kind: Ident
+  span: 1:761-781
+  ident: !Ident
+  - this
+  - num_tracks_last_week
+  targets:
+  - 257
+  parent: 269
+- id: 269
+  kind: Tuple
+  span: 1:671-783
+  children:
+  - 263
+  - 264
+  - 265
+  - 266
+  - 267
+  - 268
+  parent: 270
+- id: 270
+  kind: 'TransformCall: Select'
+  span: 1:664-783
+  children:
+  - 262
+  - 269
+  parent: 272
+- id: 272
+  kind: 'TransformCall: Take'
+  span: 1:784-791
+  children:
+  - 270
+  - 273
+- id: 273
+  kind: Literal
+  parent: 272
+ast:
+  name: Project
+  stmts:
+  - VarDef:
+      kind: Main
+      name: main
+      value:
+        Pipeline:
+          exprs:
+          - FuncCall:
+              name:
+                Ident: from
+              args:
+              - Ident: invoices
+                alias: i
+          - FuncCall:
+              name:
+                Ident: join
+              args:
+              - Ident: invoice_items
+                alias: ii
+              - Unary:
+                  op: EqSelf
+                  expr:
+                    Ident: invoice_id
+          - FuncCall:
+              name:
+                Ident: derive
+              args:
+              - Tuple:
+                - Indirection:
+                    base:
+                      Ident: i
+                    field: !Name billing_city
+                  alias: city
+                - Indirection:
+                    base:
+                      Ident: i
+                    field: !Name billing_address
+                  alias: street
+          - FuncCall:
+              name:
+                Ident: group
+              args:
+              - Tuple:
+                - Ident: city
+                - Ident: street
+              - Pipeline:
+                  exprs:
+                  - FuncCall:
+                      name:
+                        Ident: derive
+                      args:
+                      - Binary:
+                          left:
+                            Indirection:
+                              base:
+                                Ident: ii
+                              field: !Name unit_price
+                          op: Mul
+                          right:
+                            Indirection:
+                              base:
+                                Ident: ii
+                              field: !Name quantity
+                        alias: total
+                  - FuncCall:
+                      name:
+                        Ident: aggregate
+                      args:
+                      - Tuple:
+                        - FuncCall:
+                            name:
+                              Ident: count_distinct
+                            args:
+                            - Indirection:
+                                base:
+                                  Ident: i
+                                field: !Name invoice_id
+                          alias: num_orders
+                        - FuncCall:
+                            name:
+                              Ident: sum
+                            args:
+                            - Indirection:
+                                base:
+                                  Ident: ii
+                                field: !Name quantity
+                          alias: num_tracks
+                        - FuncCall:
+                            name:
+                              Ident: sum
+                            args:
+                            - Ident: total
+                          alias: total_price
+          - FuncCall:
+              name:
+                Ident: group
+              args:
+              - Tuple:
+                - Ident: city
+              - Pipeline:
+                  exprs:
+                  - FuncCall:
+                      name:
+                        Ident: sort
+                      args:
+                      - Ident: street
+                  - FuncCall:
+                      name:
+                        Ident: window
+                      args:
+                      - FuncCall:
+                          name:
+                            Ident: derive
+                          args:
+                          - Tuple:
+                            - FuncCall:
+                                name:
+                                  Ident: sum
+                                args:
+                                - Ident: num_tracks
+                              alias: running_total_num_tracks
+                      named_args:
+                        expanding:
+                          Literal:
+                            Boolean: true
+          - FuncCall:
+              name:
+                Ident: sort
+              args:
+              - Tuple:
+                - Ident: city
+                - Ident: street
+          - FuncCall:
+              name:
+                Ident: derive
+              args:
+              - Tuple:
+                - FuncCall:
+                    name:
+                      Ident: lag
+                    args:
+                    - Literal:
+                        Integer: 7
+                    - Ident: num_tracks
+                  alias: num_tracks_last_week
+          - FuncCall:
+              name:
+                Ident: select
+              args:
+              - Tuple:
+                - Ident: city
+                - Ident: street
+                - Ident: num_orders
+                - Ident: num_tracks
+                - Ident: running_total_num_tracks
+                - Ident: num_tracks_last_week
+          - FuncCall:
+              name:
+                Ident: take
+              args:
+              - Literal:
+                  Integer: 20
+    span: 1:131-792

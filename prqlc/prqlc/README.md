@@ -28,11 +28,11 @@ WHERE
   has_dog
 ```
 
-A PRQL query can be executed with CLI tools compatible with SQL,, such as
+A PRQL query can be executed with CLI tools compatible with SQL, such as
 [DuckDB CLI](https://duckdb.org/docs/api/cli.html).
 
 ```sh
-$ curl -fsL https://raw.githubusercontent.com/PRQL/prql/0.8.1/prql-compiler/tests/integration/data/chinook/albums.csv -o albums.csv
+$ curl -fsL https://raw.githubusercontent.com/PRQL/prql/0.12.2/prqlc/prqlc/tests/integration/data/chinook/albums.csv -o albums.csv
 $ echo 'from `albums.csv` | take 3' | prqlc compile | duckdb
 ┌──────────┬───────────────────────────────────────┬───────────┐
 │ album_id │                 title                 │ artist_id │

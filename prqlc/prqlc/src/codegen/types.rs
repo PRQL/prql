@@ -1,7 +1,6 @@
+use super::{WriteOpt, WriteSource};
 use crate::ast::*;
 use crate::codegen::SeparatedExprs;
-
-use super::{WriteOpt, WriteSource};
 
 pub(crate) fn write_ty(ty: &Ty) -> String {
     ty.write(WriteOpt::new_width(u16::MAX)).unwrap()
@@ -69,7 +68,7 @@ impl WriteSource for TyKind {
             Function(Some(func)) => {
                 let mut r = "func ".to_string();
 
-                for t in &func.args {
+                for t in &func.params {
                     r += &t.as_ref().write(opt.clone())?;
                     r += " ";
                 }

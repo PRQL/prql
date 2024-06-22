@@ -7,8 +7,7 @@ editing, and testing PRQL's compiler code in two minutes:
 
 - Install
   [`rustup` & `cargo`](https://doc.rust-lang.org/cargo/getting-started/installation.html).
-- [Optional but highly recommended] Install `cargo-insta`, our testing
-  framework:
+- [Optional but highly recommended] Install `cargo-insta`, our testing framework:
 
   ```sh
   cargo install cargo-insta
@@ -55,7 +54,7 @@ since it relies on `brew`.
 
 - [Install Task](https://taskfile.dev/installation/).
 - Then run the `setup-dev` task. This runs commands from our
-  [Taskfile.yml](https://github.com/PRQL/prql/blob/main/Taskfile.yml),
+  [Taskfile.yaml](https://github.com/PRQL/prql/blob/main/Taskfile.yaml),
   installing dependencies with `cargo`, `brew`, `npm` & `pip`, and suggests some
   VS Code extensions.
 
@@ -85,8 +84,8 @@ since it relies on `brew`.
   book, or some release artifacts, we'll need some additional tools. But we
   won't need those immediately, and the error messages on what's missing should
   be clear when we attempt those things. When we hit them, the
-  [Taskfile.yml](https://github.com/PRQL/prql/blob/main/Taskfile.yml) will be a
-  good source to copy & paste instructions from.
+  [Taskfile.yaml](https://github.com/PRQL/prql/blob/main/Taskfile.yaml) will be
+  a good source to copy & paste instructions from.
 
 ### Option 3: Use a Dev Container
 
@@ -469,13 +468,14 @@ Currently we release in a semi-automated way:
 2. If the current version is correct, then skip ahead. But if the version needs
    to be changed — for example, we had planned on a patch release, but instead
    require a minor release — then run
-   `cargo release version $version -x && cargo release replace -x` to bump the
-   version and PR the resulting commit.
+   `cargo release version $version -x && cargo release replace -x && task test-rust`
+   to bump the version, and PR the resulting commit.
 
 3. After merging, go to
    [Draft a new release](https://github.com/PRQL/prql/releases/new){{footnote: Only
-       maintainers have access to this page.}}, copy the changelog entry into the
-   release description{{footnote: Unfortunately GitHub's markdown parser
+       maintainers have access to this page.}},
+   copy the changelog entry into the release
+   description{{footnote: Unfortunately GitHub's markdown parser
         interprets linebreaks as newlines. I haven't found a better way of
         editing the markdown to look reasonable than manually editing the text
         or asking LLM to help.}}, enter the tag to be created, and hit

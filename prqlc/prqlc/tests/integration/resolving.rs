@@ -1,5 +1,6 @@
 use insta::assert_snapshot;
 use prqlc::ErrorMessages;
+use prqlc_parser::parser::pr;
 
 // equivalent to prqlc debug resolve
 fn resolve(prql_source: &str) -> Result<String, ErrorMessages> {
@@ -16,7 +17,7 @@ fn resolve(prql_source: &str) -> Result<String, ErrorMessages> {
     prqlc::pl_to_prql(&root_module)
 }
 
-fn drop_module_defs(stmts: &mut Vec<prqlc_ast::stmt::Stmt>, to_drop: &[&str]) {
+fn drop_module_defs(stmts: &mut Vec<pr::Stmt>, to_drop: &[&str]) {
     stmts.retain(|x| {
         x.kind
             .as_module_def()
@@ -59,9 +60,9 @@ fn resolve_types_01() {
 #[test]
 fn resolve_types_02() {
     assert_snapshot!(resolve(r#"
-    type A = int || ()
+    type A = int || {}
     "#).unwrap(), @r###"
-    type A = int
+    type A = int || {}
     "###)
 }
 
@@ -78,16 +79,15 @@ fn resolve_types_03() {
 fn resolve_types_04() {
     assert_snapshot!(resolve(
         r#"
-    type Status = (
-        Paid = () ||
-        Unpaid = float ||
-        Canceled = {reason = text, cancelled_at = timestamp} ||
-    )
+    type Status = enum {
+        Paid = {},
+        Unpaid = float,
+        Canceled = {reason = text, cancelled_at = timestamp},
+    }
     "#,
     )
     .unwrap(), @r###"
     type Status = (
-      Paid = () ||
       Unpaid = float ||
       {reason = text, cancelled_at = timestamp} ||
     )

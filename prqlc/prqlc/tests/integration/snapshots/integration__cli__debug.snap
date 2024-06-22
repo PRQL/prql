@@ -145,12 +145,10 @@ Module {
                         Expr {
                             span: 1:0-11,
                             kind: Ident(
-                                Ident {
-                                    path: [
-                                        "default_db",
-                                    ],
-                                    name: "tracks",
-                                },
+                                [
+                                    "default_db",
+                                    "tracks",
+                                ],
                             ),
                             id: 115,
                             ty: relation,
@@ -165,12 +163,10 @@ Module {
                                     LineageInput {
                                         id: 115,
                                         name: "tracks",
-                                        table: Ident {
-                                            path: [
-                                                "default_db",
-                                            ],
-                                            name: "tracks",
-                                        },
+                                        table: [
+                                            "default_db",
+                                            "tracks",
+                                        ],
                                     },
                                 ],
                                 prev_columns: [],
@@ -214,4 +210,3 @@ module default_db {
 let main <[{*..}]> = default_db.tracks
 
 ----- stderr -----
-

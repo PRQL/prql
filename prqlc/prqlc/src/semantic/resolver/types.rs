@@ -1,17 +1,15 @@
 use std::collections::HashMap;
 use std::iter::zip;
 
-use crate::ast::{PrimitiveSet, Ty, TyFunc, TyKind, TyTupleField};
-use crate::Result;
 use itertools::Itertools;
 
+use super::Resolver;
+use crate::ast::{PrimitiveSet, Ty, TyFunc, TyKind, TyTupleField};
 use crate::codegen::{write_ty, write_ty_kind};
 use crate::ir::decl::DeclKind;
 use crate::ir::pl::*;
-
+use crate::Result;
 use crate::{Error, Reason, WithErrorInfo};
-
-use super::Resolver;
 
 impl Resolver<'_> {
     pub fn infer_type(expr: &Expr) -> Result<Option<Ty>> {
@@ -255,8 +253,8 @@ impl Resolver<'_> {
             TyKind::Function(func) => TyKind::Function(
                 func.map(|f| -> Result<_, Error> {
                     Ok(TyFunc {
-                        args: f
-                            .args
+                        params: f
+                            .params
                             .into_iter()
                             .map(|a| self.resolve_generic_args_opt(a))
                             .try_collect()?,
@@ -489,7 +487,7 @@ pub(crate) fn normalize_type(ty: Ty) -> Ty {
                                 }
                             }
                             TyTupleField::Single(Some(name), None) => {
-                                if exclude_fields.get(&name).is_some() {
+                                if exclude_fields.contains_key(&name) {
                                     // TODO: I'm not sure what should happen in this case
                                     continue;
                                 } else {
@@ -832,10 +830,10 @@ fn is_super_type_of_kind(superset: &TyKind, subset: &TyKind) -> bool {
             if is_not_super_type_of(sup.return_ty.as_ref(), sub.return_ty.as_ref()) {
                 return false;
             }
-            if sup.args.len() != sub.args.len() {
+            if sup.params.len() != sub.params.len() {
                 return false;
             }
-            for (sup_arg, sub_arg) in zip(&sup.args, &sub.args) {
+            for (sup_arg, sub_arg) in zip(&sup.params, &sub.params) {
                 if is_not_super_type_of(sup_arg, sub_arg) {
                     return false;
                 }
