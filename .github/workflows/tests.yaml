@@ -276,9 +276,9 @@ jobs:
         with:
           prefix-key: ${{ env.version }}
           # The mac rust cache key. It's not _that_ useful since this will build
-          # much more, but it's better than nothing. We can't have our own
+          # much more, but it's better than nothing. This task can't have our own
           # cache, since we're out of cache space and this workflow takes 1.5GB.
-          shared-key: rust-x86_64-apple-darwin
+          shared-key: rust-aarch64-apple-darwin
           save-if: false
       - uses: actions/setup-python@v5
         with:

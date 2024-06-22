@@ -14,11 +14,11 @@ use super::gen_projection::*;
 use super::operators::translate_operator;
 use super::srq::ast::{Cte, CteKind, RelationExpr, RelationExprKind, SqlRelation, SqlTransform};
 use super::{Context, Dialect};
-use crate::ast::generic::InterpolateItem;
 use crate::ir::pl::{JoinSide, Literal};
 use crate::ir::rq::{CId, Expr, ExprKind, RelationLiteral, RelationalQuery};
 use crate::utils::{BreakUp, Pluck};
 use crate::{Error, Result, WithErrorInfo};
+use prqlc_parser::generic::InterpolateItem;
 
 type Transform = SqlTransform<RelationExpr, ()>;
 

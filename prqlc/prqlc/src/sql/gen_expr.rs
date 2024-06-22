@@ -3,6 +3,7 @@
 use std::cmp::Ordering;
 
 use itertools::Itertools;
+use prqlc_parser::generic::{InterpolateItem, Range};
 use regex::Regex;
 use sqlparser::ast::{
     self as sql_ast, BinaryOperator, DateTimeField, Fetch, Function, FunctionArg, FunctionArgExpr,
@@ -12,7 +13,6 @@ use sqlparser::ast::{
 
 use super::gen_projection::try_into_exprs;
 use super::{keywords, Context};
-use crate::ast::expr::generic::{InterpolateItem, Range};
 use crate::ir::generic::{ColumnSort, SortDirection, WindowFrame, WindowKind};
 use crate::ir::pl::{self, Ident, Literal};
 use crate::ir::rq::*;

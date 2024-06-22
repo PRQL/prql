@@ -5,10 +5,10 @@
 
 use enum_as_inner::EnumAsInner;
 use itertools::Itertools;
+use prqlc_parser::generic::InterpolateItem;
 use serde::Serialize;
 
 use super::context::RIId;
-use crate::ast::generic::InterpolateItem;
 use crate::ir::generic::ColumnSort;
 use crate::ir::pl::JoinSide;
 use crate::ir::rq::{self, fold_column_sorts, RelationLiteral, RqFold};

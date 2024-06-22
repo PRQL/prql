@@ -1,4 +1,4 @@
-use prqlc_parser::ast::{stmt::StmtKind, ExprKind, Stmt, TyKind, VarDefKind};
+use prqlc::ast::{ExprKind, Stmt, StmtKind, TyKind, VarDefKind};
 
 /// Generate HTML documentation.
 // pub fn generate_html_docs(stmts: Vec<Stmt>) -> String {

@@ -17,7 +17,7 @@ mod lex {
         let test_name = prql_path.file_stem().unwrap().to_str().unwrap();
         let prql = fs::read_to_string(prql_path).unwrap();
 
-        let tokens = prqlc_parser::lex_source(&prql).unwrap();
+        let tokens = prqlc_parser::lexer::lex_source(&prql).unwrap();
 
         with_settings!({ input_file => prql_path }, {
             assert_debug_snapshot!(test_name, tokens)

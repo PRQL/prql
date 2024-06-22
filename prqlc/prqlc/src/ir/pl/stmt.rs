@@ -1,12 +1,11 @@
 use enum_as_inner::EnumAsInner;
 use serde::{Deserialize, Serialize};
 
-use super::expr::Expr;
-pub use crate::ast::stmt::QueryDef;
 use crate::ast::Ident;
+use crate::ast::QueryDef;
 use crate::ast::{Span, Ty};
 
-// The following code is tested by the tests_misc crate to match stmt.rs in prqlc_ast.
+use super::expr::Expr;
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct Stmt {
