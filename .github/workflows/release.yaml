@@ -12,6 +12,13 @@ on:
   workflow_call:
   workflow_dispatch:
 
+# We need consistent env vars across all workflows for the cache to work
+env:
+  CARGO_TERM_COLOR: always
+  CLICOLOR_FORCE: 1
+  RUSTFLAGS: "-C debuginfo=0"
+  RUSTDOCFLAGS: "-Dwarnings"
+
 jobs:
   brew-dispatcher:
     name: Release on homebrew-prql
@@ -408,6 +415,4 @@ jobs:
     if: github.event_name == 'release'
     uses: ./.github/workflows/build-devcontainer.yaml
     with:
-      # TOOD: I think having this as a bool is OK, but check a recent release
-      # from 0.10.0 and confirm that it is indeed pushing the image.
       push: true

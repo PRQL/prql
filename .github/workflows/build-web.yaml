@@ -4,6 +4,7 @@ on:
   workflow_call:
   workflow_dispatch:
 
+# We need consistent env vars across all workflows for the cache to work
 env:
   CARGO_TERM_COLOR: always
   CLICOLOR_FORCE: 1
