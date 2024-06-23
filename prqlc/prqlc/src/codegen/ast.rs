@@ -87,7 +87,7 @@ impl WriteSource for ExprKind {
 
         match &self {
             Ident(ident) => Some(write_ident_part(ident)),
-            Indirection { base, field } => {
+            Property { base, field } => {
                 let mut r = base.write(opt.clone())?;
                 opt.consume_width(r.len() as u16)?;
 

@@ -14,7 +14,7 @@ use crate::{Error, Result};
 pub fn expand_expr(expr: ast::Expr) -> Result<pl::Expr> {
     let kind = match expr.kind {
         ast::ExprKind::Ident(v) => pl::ExprKind::Ident(ast::Ident::from_name(v)),
-        ast::ExprKind::Indirection { base, field } => {
+        ast::ExprKind::Property { base, field } => {
             let field_as_name = match field {
                 ast::IndirectionKind::Name(n) => n,
                 ast::IndirectionKind::Position(_) => Err(Error::new_simple(
@@ -311,7 +311,7 @@ fn restrict_expr_kind(value: pl::ExprKind) -> ast::ExprKind {
             let mut base = Box::new(ast::Expr::new(ast::ExprKind::Ident(parts.next().unwrap())));
             for part in parts {
                 let field = ast::IndirectionKind::Name(part);
-                base = Box::new(ast::Expr::new(ast::ExprKind::Indirection { base, field }))
+                base = Box::new(ast::Expr::new(ast::ExprKind::Property { base, field }))
             }
             base.kind
         }

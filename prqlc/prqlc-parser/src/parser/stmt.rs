@@ -77,7 +77,7 @@ fn query_def() -> impl Parser<TokenKind, Stmt, Error = PError> + Clone {
                 .map(|v| {
                     match v.kind {
                         ExprKind::Ident(name) => return Ok(name.to_string()),
-                        ExprKind::Indirection {
+                        ExprKind::Property {
                             base,
                             field: IndirectionKind::Name(field),
                         } => {

@@ -766,12 +766,12 @@ ast:
                 Ident: derive
               args:
               - Tuple:
-                - Indirection:
+                - Property:
                     base:
                       Ident: i
                     field: !Name billing_city
                   alias: city
-                - Indirection:
+                - Property:
                     base:
                       Ident: i
                     field: !Name billing_address
@@ -791,13 +791,13 @@ ast:
                       args:
                       - Binary:
                           left:
-                            Indirection:
+                            Property:
                               base:
                                 Ident: ii
                               field: !Name unit_price
                           op: Mul
                           right:
-                            Indirection:
+                            Property:
                               base:
                                 Ident: ii
                               field: !Name quantity
@@ -811,7 +811,7 @@ ast:
                             name:
                               Ident: count_distinct
                             args:
-                            - Indirection:
+                            - Property:
                                 base:
                                   Ident: i
                                 field: !Name invoice_id
@@ -820,7 +820,7 @@ ast:
                             name:
                               Ident: sum
                             args:
-                            - Indirection:
+                            - Property:
                                 base:
                                   Ident: ii
                                 field: !Name quantity

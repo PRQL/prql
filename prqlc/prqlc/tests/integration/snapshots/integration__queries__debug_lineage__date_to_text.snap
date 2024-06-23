@@ -394,7 +394,7 @@ ast:
                     - Ident: invoice_date
                     - FuncCall:
                         name:
-                          Indirection:
+                          Property:
                             base:
                               Ident: date
                             field: !Name to_text
@@ -407,7 +407,7 @@ ast:
                     - Ident: invoice_date
                     - FuncCall:
                         name:
-                          Indirection:
+                          Property:
                             base:
                               Ident: date
                             field: !Name to_text
@@ -420,7 +420,7 @@ ast:
                     - Ident: invoice_date
                     - FuncCall:
                         name:
-                          Indirection:
+                          Property:
                             base:
                               Ident: date
                             field: !Name to_text
@@ -433,7 +433,7 @@ ast:
                     - Ident: invoice_date
                     - FuncCall:
                         name:
-                          Indirection:
+                          Property:
                             base:
                               Ident: date
                             field: !Name to_text
@@ -446,7 +446,7 @@ ast:
                     - Ident: invoice_date
                     - FuncCall:
                         name:
-                          Indirection:
+                          Property:
                             base:
                               Ident: date
                             field: !Name to_text
@@ -459,7 +459,7 @@ ast:
                     - Ident: invoice_date
                     - FuncCall:
                         name:
-                          Indirection:
+                          Property:
                             base:
                               Ident: date
                             field: !Name to_text
@@ -472,7 +472,7 @@ ast:
                     - Ident: invoice_date
                     - FuncCall:
                         name:
-                          Indirection:
+                          Property:
                             base:
                               Ident: date
                             field: !Name to_text
@@ -485,7 +485,7 @@ ast:
                     - Ident: invoice_date
                     - FuncCall:
                         name:
-                          Indirection:
+                          Property:
                             base:
                               Ident: date
                             field: !Name to_text
@@ -498,7 +498,7 @@ ast:
                     - Ident: invoice_date
                     - FuncCall:
                         name:
-                          Indirection:
+                          Property:
                             base:
                               Ident: date
                             field: !Name to_text
@@ -511,7 +511,7 @@ ast:
                     - Ident: invoice_date
                     - FuncCall:
                         name:
-                          Indirection:
+                          Property:
                             base:
                               Ident: date
                             field: !Name to_text
@@ -524,7 +524,7 @@ ast:
                     - Ident: invoice_date
                     - FuncCall:
                         name:
-                          Indirection:
+                          Property:
                             base:
                               Ident: date
                             field: !Name to_text
@@ -537,7 +537,7 @@ ast:
                     - Ident: invoice_date
                     - FuncCall:
                         name:
-                          Indirection:
+                          Property:
                             base:
                               Ident: date
                             field: !Name to_text

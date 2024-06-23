@@ -249,7 +249,7 @@ fn test_ranges() {
         Literal:
           Float: 1.6
       end:
-        Indirection:
+        Property:
           base:
             Ident: rel
           field:
@@ -531,7 +531,7 @@ fn test_s_string() {
       - String: SUM(
       - Expr:
           expr:
-            Indirection:
+            Property:
               base:
                 Ident: rel
               field:
@@ -693,7 +693,7 @@ fn test_number() {
     // We don't allow trailing periods
     assert!(parse_expr(r#"add 1. (2, 3)"#).is_err());
 
-    assert!(parse_expr("_2.3").unwrap().kind.is_indirection());
+    assert!(parse_expr("_2.3").unwrap().kind.is_property());
 
     assert_yaml_snapshot!(parse_expr(r#"2e3"#).unwrap(), @r###"
         ---
@@ -743,7 +743,7 @@ fn test_filter() {
                   left:
                     FuncCall:
                       name:
-                        Indirection:
+                        Property:
                           base:
                             Ident: text
                           field:
@@ -1680,9 +1680,9 @@ join `my-proj`.`dataset`.`table`
                   name:
                     Ident: join
                   args:
-                    - Indirection:
+                    - Property:
                         base:
-                          Indirection:
+                          Property:
                             base:
                               Ident: my-proj
                             field:
@@ -1941,7 +1941,7 @@ fn test_allowed_idents() {
                     Ident: select
                   args:
                     - Tuple:
-                        - Indirection:
+                        - Property:
                             base:
                               Ident: _employees
                             field:
@@ -2367,7 +2367,7 @@ fn test_module() {
               kind: Let
               name: man
               value:
-                Indirection:
+                Property:
                   base:
                     Ident: module
                   field:
@@ -2385,9 +2385,9 @@ fn test_indirection_01() {
     "#,
     ).unwrap(), @r###"
     ---
-    Indirection:
+    Property:
       base:
-        Indirection:
+        Property:
           base:
             Tuple:
               - Tuple:
@@ -2410,7 +2410,7 @@ fn test_indirection_02() {
     "#,
     ).unwrap(), @r###"
     ---
-    Indirection:
+    Property:
       base:
         Ident: hello
       field: Star

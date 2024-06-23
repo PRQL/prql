@@ -38,7 +38,7 @@ pub struct Expr {
 #[derive(Debug, EnumAsInner, PartialEq, Clone, Serialize, Deserialize, strum::AsRefStr)]
 pub enum ExprKind {
     Ident(String),
-    Indirection {
+    Property {
         base: Box<Expr>,
         field: IndirectionKind,
     },

@@ -1080,7 +1080,7 @@ ast:
                           Ident: r_ii
                     - FuncCall:
                         name:
-                          Indirection:
+                          Property:
                             base:
                               Ident: math
                             field: !Name round
@@ -1102,7 +1102,7 @@ ast:
                           Ident: r_if
                     - FuncCall:
                         name:
-                          Indirection:
+                          Property:
                             base:
                               Ident: math
                             field: !Name round
@@ -1124,7 +1124,7 @@ ast:
                           Ident: r_fi
                     - FuncCall:
                         name:
-                          Indirection:
+                          Property:
                             base:
                               Ident: math
                             field: !Name round
@@ -1146,7 +1146,7 @@ ast:
                           Ident: r_ff
                     - FuncCall:
                         name:
-                          Indirection:
+                          Property:
                             base:
                               Ident: math
                             field: !Name round
