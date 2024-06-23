@@ -3007,7 +3007,6 @@ dependencies = [
  "anstream",
  "anyhow",
  "ariadne",
- "cfg-if",
  "chrono",
  "clap 4.4.18",
  "clap-verbosity-flag",
