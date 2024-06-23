@@ -68,6 +68,16 @@ pub enum ExprKind {
     Internal(String),
 }
 
+impl ExprKind {
+    pub fn into_expr(self, span: Span) -> Expr {
+        Expr {
+            span: Some(span),
+            kind: self,
+            alias: None,
+        }
+    }
+}
+
 #[derive(Debug, EnumAsInner, PartialEq, Clone, Serialize, Deserialize)]
 pub enum IndirectionKind {
     Name(String),
