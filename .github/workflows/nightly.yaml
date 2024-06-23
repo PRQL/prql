@@ -45,7 +45,7 @@ jobs:
       - uses: clechasseur/rs-cargo@v2
         with:
           command: bench
-          args: --timings --all-targets
+          args: -p prqlc
 
   time-compilation:
     runs-on: ubuntu-latest
