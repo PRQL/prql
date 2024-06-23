@@ -358,13 +358,10 @@ where
             for (name, arg) in args {
                 if let Some(name) = name {
                     match named_args.entry(name) {
-                        std::collections::hash_map::Entry::Occupied(entry) => {
-                            let err = PError::custom(
-                                span,
-                                format!("argument '{}' is used multiple times", entry.key()),
-                            );
-                            emit(err);
-                        }
+                        std::collections::hash_map::Entry::Occupied(entry) => emit(PError::custom(
+                            span,
+                            format!("argument '{}' is used multiple times", entry.key()),
+                        )),
                         std::collections::hash_map::Entry::Vacant(entry) => {
                             entry.insert(arg);
                         }
