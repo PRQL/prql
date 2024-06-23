@@ -4,6 +4,7 @@ on:
   workflow_call:
   workflow_dispatch:
 
+# We need consistent env vars across all workflows for the cache to work
 env:
   CARGO_TERM_COLOR: always
   CLICOLOR_FORCE: 1
@@ -13,11 +14,6 @@ env:
 jobs:
   build-web:
     runs-on: ubuntu-latest
-
-    # Skip running workflow on forks. Checking the repository owner still allows
-    # this to be run on PRs, and then below we disable it from attempting to
-    # publish.
-    if: github.repository_owner == 'prql'
 
     steps:
       - name: 📂 Checkout code
@@ -70,8 +66,6 @@ jobs:
 
   build-codemirror-demo:
     runs-on: ubuntu-latest
-
-    if: github.repository_owner == 'prql'
 
     steps:
       - name: 📂 Checkout code

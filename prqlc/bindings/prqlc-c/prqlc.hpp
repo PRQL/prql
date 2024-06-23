@@ -117,7 +117,7 @@ CompileResult prql_to_pl(const char *prql_query);
 
 /// Finds variable references, validates functions calls, determines frames and
 /// converts PL to RQ. PL and RQ are documented in the [prqlc Rust
-/// crate](https://docs.rs/prqlc/latest/prqlc/ast).
+/// crate](https://docs.rs/prqlc/latest/prqlc).
 ///
 /// Takes PL serialized as JSON buffer and writes RQ serialized as JSON to `out`
 /// buffer.

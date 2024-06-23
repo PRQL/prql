@@ -3,4 +3,264 @@ source: prqlc/prqlc/tests/integration/queries.rs
 expression: "# mssql:test\nfrom tracks\nselect {genre_id, media_type_id, album_id}\ngroup {genre_id, media_type_id} (sort {-album_id} | take 1)\nsort {-genre_id, media_type_id}\n"
 input_file: prqlc/prqlc/tests/integration/queries/distinct_on.prql
 ---
-{"frames":[["1:25-67",{"columns":[{"Single":{"name":["tracks","genre_id"],"target_id":126,"target_name":null}},{"Single":{"name":["tracks","media_type_id"],"target_id":127,"target_name":null}},{"Single":{"name":["tracks","album_id"],"target_id":128,"target_name":null}}],"inputs":[{"id":124,"name":"tracks","table":["default_db","tracks"]}]}],["1:128-159",{"columns":[{"Single":{"name":["tracks","genre_id"],"target_id":131,"target_name":null}},{"Single":{"name":["tracks","media_type_id"],"target_id":132,"target_name":null}},{"Single":{"name":["tracks","album_id"],"target_id":128,"target_name":null}}],"inputs":[{"id":124,"name":"tracks","table":["default_db","tracks"]}]}]],"nodes":[{"id":124,"kind":"Ident","span":"1:13-24","ident":{"Ident":["default_db","tracks"]},"parent":130},{"id":126,"kind":"Ident","span":"1:33-41","ident":{"Ident":["this","tracks","genre_id"]},"targets":[124],"parent":129},{"id":127,"kind":"Ident","span":"1:43-56","ident":{"Ident":["this","tracks","media_type_id"]},"targets":[124],"parent":129},{"id":128,"kind":"Ident","span":"1:58-66","ident":{"Ident":["this","tracks","album_id"]},"targets":[124],"parent":129},{"id":129,"kind":"Tuple","span":"1:32-67","children":[126,127,128],"parent":130},{"id":130,"kind":"TransformCall: Select","span":"1:25-67","children":[124,129],"parent":162},{"id":131,"kind":"Ident","span":"1:75-83","ident":{"Ident":["this","tracks","genre_id"]},"targets":[126],"parent":133},{"id":132,"kind":"Ident","span":"1:85-98","ident":{"Ident":["this","tracks","media_type_id"]},"targets":[127],"parent":133},{"id":133,"kind":"Tuple","span":"1:74-99","children":[131,132]},{"id":158,"kind":"Ident","span":"1:108-116","ident":{"Ident":["this","tracks","album_id"]},"targets":[128]},{"id":162,"kind":"TransformCall: Take","children":[130,163],"parent":171},{"id":163,"kind":"Literal","parent":162},{"id":168,"kind":"Ident","span":"1:135-143","ident":{"Ident":["this","tracks","genre_id"]},"targets":[131],"parent":171},{"id":169,"kind":"Ident","span":"1:145-158","ident":{"Ident":["this","tracks","media_type_id"]},"targets":[132],"parent":171},{"id":171,"kind":"TransformCall: Sort","span":"1:128-159","children":[162,168,169]}],"ast":{"name":"Project","stmts":[{"VarDef":{"kind":"Main","name":"main","value":{"Pipeline":{"exprs":[{"FuncCall":{"name":{"Ident":"from"},"args":[{"Ident":"tracks"}]}},{"FuncCall":{"name":{"Ident":"select"},"args":[{"Tuple":[{"Ident":"genre_id"},{"Ident":"media_type_id"},{"Ident":"album_id"}]}]}},{"FuncCall":{"name":{"Ident":"group"},"args":[{"Tuple":[{"Ident":"genre_id"},{"Ident":"media_type_id"}]},{"Pipeline":{"exprs":[{"FuncCall":{"name":{"Ident":"sort"},"args":[{"Tuple":[{"Unary":{"op":"Neg","expr":{"Ident":"album_id"}}}]}]}},{"FuncCall":{"name":{"Ident":"take"},"args":[{"Literal":{"Integer":1}}]}}]}}]}},{"FuncCall":{"name":{"Ident":"sort"},"args":[{"Tuple":[{"Unary":{"op":"Neg","expr":{"Ident":"genre_id"}}},{"Ident":"media_type_id"}]}]}}]}}},"span":"1:13-160"}]}}
+frames:
+- - 1:25-67
+  - columns:
+    - !Single
+      name:
+      - tracks
+      - genre_id
+      target_id: 126
+      target_name: null
+    - !Single
+      name:
+      - tracks
+      - media_type_id
+      target_id: 127
+      target_name: null
+    - !Single
+      name:
+      - tracks
+      - album_id
+      target_id: 128
+      target_name: null
+    inputs:
+    - id: 124
+      name: tracks
+      table:
+      - default_db
+      - tracks
+- - 1:120-126
+  - columns:
+    - !Single
+      name:
+      - tracks
+      - genre_id
+      target_id: 131
+      target_name: null
+    - !Single
+      name:
+      - tracks
+      - media_type_id
+      target_id: 132
+      target_name: null
+    - !Single
+      name:
+      - tracks
+      - album_id
+      target_id: 128
+      target_name: null
+    inputs:
+    - id: 124
+      name: tracks
+      table:
+      - default_db
+      - tracks
+- - 1:128-159
+  - columns:
+    - !Single
+      name:
+      - tracks
+      - genre_id
+      target_id: 131
+      target_name: null
+    - !Single
+      name:
+      - tracks
+      - media_type_id
+      target_id: 132
+      target_name: null
+    - !Single
+      name:
+      - tracks
+      - album_id
+      target_id: 128
+      target_name: null
+    inputs:
+    - id: 124
+      name: tracks
+      table:
+      - default_db
+      - tracks
+nodes:
+- id: 124
+  kind: Ident
+  span: 1:13-24
+  ident: !Ident
+  - default_db
+  - tracks
+  parent: 130
+- id: 126
+  kind: Ident
+  span: 1:33-41
+  ident: !Ident
+  - this
+  - tracks
+  - genre_id
+  targets:
+  - 124
+  parent: 129
+- id: 127
+  kind: Ident
+  span: 1:43-56
+  ident: !Ident
+  - this
+  - tracks
+  - media_type_id
+  targets:
+  - 124
+  parent: 129
+- id: 128
+  kind: Ident
+  span: 1:58-66
+  ident: !Ident
+  - this
+  - tracks
+  - album_id
+  targets:
+  - 124
+  parent: 129
+- id: 129
+  kind: Tuple
+  span: 1:32-67
+  children:
+  - 126
+  - 127
+  - 128
+  parent: 130
+- id: 130
+  kind: 'TransformCall: Select'
+  span: 1:25-67
+  children:
+  - 124
+  - 129
+  parent: 162
+- id: 131
+  kind: Ident
+  span: 1:75-83
+  ident: !Ident
+  - this
+  - tracks
+  - genre_id
+  targets:
+  - 126
+  parent: 133
+- id: 132
+  kind: Ident
+  span: 1:85-98
+  ident: !Ident
+  - this
+  - tracks
+  - media_type_id
+  targets:
+  - 127
+  parent: 133
+- id: 133
+  kind: Tuple
+  span: 1:74-99
+  children:
+  - 131
+  - 132
+- id: 158
+  kind: Ident
+  span: 1:108-116
+  ident: !Ident
+  - this
+  - tracks
+  - album_id
+  targets:
+  - 128
+- id: 162
+  kind: 'TransformCall: Take'
+  span: 1:120-126
+  children:
+  - 130
+  - 163
+  parent: 171
+- id: 163
+  kind: Literal
+  parent: 162
+- id: 168
+  kind: Ident
+  span: 1:135-143
+  ident: !Ident
+  - this
+  - tracks
+  - genre_id
+  targets:
+  - 131
+  parent: 171
+- id: 169
+  kind: Ident
+  span: 1:145-158
+  ident: !Ident
+  - this
+  - tracks
+  - media_type_id
+  targets:
+  - 132
+  parent: 171
+- id: 171
+  kind: 'TransformCall: Sort'
+  span: 1:128-159
+  children:
+  - 162
+  - 168
+  - 169
+ast:
+  name: Project
+  stmts:
+  - VarDef:
+      kind: Main
+      name: main
+      value:
+        Pipeline:
+          exprs:
+          - FuncCall:
+              name:
+                Ident: from
+              args:
+              - Ident: tracks
+          - FuncCall:
+              name:
+                Ident: select
+              args:
+              - Tuple:
+                - Ident: genre_id
+                - Ident: media_type_id
+                - Ident: album_id
+          - FuncCall:
+              name:
+                Ident: group
+              args:
+              - Tuple:
+                - Ident: genre_id
+                - Ident: media_type_id
+              - Pipeline:
+                  exprs:
+                  - FuncCall:
+                      name:
+                        Ident: sort
+                      args:
+                      - Tuple:
+                        - Unary:
+                            op: Neg
+                            expr:
+                              Ident: album_id
+                  - FuncCall:
+                      name:
+                        Ident: take
+                      args:
+                      - Literal:
+                          Integer: 1
+          - FuncCall:
+              name:
+                Ident: sort
+              args:
+              - Tuple:
+                - Unary:
+                    op: Neg
+                    expr:
+                      Ident: genre_id
+                - Ident: media_type_id
+    span: 1:13-160

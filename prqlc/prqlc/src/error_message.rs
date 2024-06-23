@@ -8,7 +8,7 @@ use anstream::adapter::strip_str;
 use ariadne::{Cache, Config, Label, Report, ReportKind, Source};
 use serde::Serialize;
 
-pub use crate::ir::Span;
+use crate::Span;
 use crate::{Error, Errors, MessageKind, SourceTree};
 
 #[derive(Clone, Serialize)]

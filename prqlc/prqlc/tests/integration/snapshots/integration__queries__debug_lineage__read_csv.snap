@@ -3,4 +3,66 @@ source: prqlc/prqlc/tests/integration/queries.rs
 expression: "# sqlite:skip\n# postgres:skip\n# mysql:skip\nfrom (read_csv \"data_file_root/media_types.csv\")\nsort media_type_id\n"
 input_file: prqlc/prqlc/tests/integration/queries/read_csv.prql
 ---
-{"frames":[["1:92-110",{"columns":[{"All":{"input_id":118,"except":[]}}],"inputs":[{"id":118,"name":"_literal_118","table":["default_db","_literal_118"]}]}]],"nodes":[{"id":118,"kind":"RqOperator","span":"1:43-91","targets":[120],"parent":124},{"id":120,"kind":"Literal","span":"1:58-90"},{"id":122,"kind":"Ident","span":"1:97-110","ident":{"Ident":["this","_literal_118","media_type_id"]},"targets":[118],"parent":124},{"id":124,"kind":"TransformCall: Sort","span":"1:92-110","children":[118,122]}],"ast":{"name":"Project","stmts":[{"VarDef":{"kind":"Main","name":"main","value":{"Pipeline":{"exprs":[{"FuncCall":{"name":{"Ident":"from"},"args":[{"FuncCall":{"name":{"Ident":"read_csv"},"args":[{"Literal":{"String":"data_file_root/media_types.csv"}}]}}]}},{"FuncCall":{"name":{"Ident":"sort"},"args":[{"Ident":"media_type_id"}]}}]}}},"span":"1:43-111"}]}}
+frames:
+- - 1:92-110
+  - columns:
+    - !All
+      input_id: 118
+      except: []
+    inputs:
+    - id: 118
+      name: _literal_118
+      table:
+      - default_db
+      - _literal_118
+nodes:
+- id: 118
+  kind: RqOperator
+  span: 1:43-91
+  targets:
+  - 120
+  parent: 124
+- id: 120
+  kind: Literal
+  span: 1:58-90
+- id: 122
+  kind: Ident
+  span: 1:97-110
+  ident: !Ident
+  - this
+  - _literal_118
+  - media_type_id
+  targets:
+  - 118
+  parent: 124
+- id: 124
+  kind: 'TransformCall: Sort'
+  span: 1:92-110
+  children:
+  - 118
+  - 122
+ast:
+  name: Project
+  stmts:
+  - VarDef:
+      kind: Main
+      name: main
+      value:
+        Pipeline:
+          exprs:
+          - FuncCall:
+              name:
+                Ident: from
+              args:
+              - FuncCall:
+                  name:
+                    Ident: read_csv
+                  args:
+                  - Literal:
+                      String: data_file_root/media_types.csv
+          - FuncCall:
+              name:
+                Ident: sort
+              args:
+              - Ident: media_type_id
+    span: 1:43-111

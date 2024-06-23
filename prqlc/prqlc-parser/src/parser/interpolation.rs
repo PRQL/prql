@@ -1,12 +1,10 @@
 use chumsky::prelude::*;
 use itertools::Itertools;
-use prqlc_ast::TokenKind;
 
-use super::common::into_expr;
-use crate::ast::expr::*;
-use crate::ast::Literal;
-use crate::ast::{string_stream, Span};
-use crate::err::parse_error::{ChumError, PError};
+use crate::error::parse_error::{ChumError, PError};
+use crate::lexer::lr::{Literal, TokenKind};
+use crate::parser::pr::*;
+use crate::span::{string_stream, Span};
 
 /// Parses interpolated strings
 pub fn parse(string: String, span_base: Span) -> Result<Vec<InterpolateItem>, Vec<PError>> {
@@ -38,11 +36,11 @@ fn interpolated_parser() -> impl Parser<char, Vec<InterpolateItem>, Error = Chum
             let mut parts = ident_parts.into_iter();
 
             let (first, first_span) = parts.next().unwrap();
-            let mut base = Box::new(into_expr(ExprKind::Ident(first), first_span));
+            let mut base = Box::new(ExprKind::Ident(first).into_expr(first_span));
 
             for (part, span) in parts {
                 let field = IndirectionKind::Name(part);
-                base = Box::new(into_expr(ExprKind::Indirection { base, field }, span));
+                base = Box::new(ExprKind::Indirection { base, field }.into_expr(span));
             }
             base
         })

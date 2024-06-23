@@ -475,7 +475,7 @@ fn env_of_closure(closure: Func) -> (Module, Expr, Box<Option<Ty>>) {
 
 pub fn expr_of_func(func: Box<Func>, span: Option<Span>) -> Box<Expr> {
     let ty = TyFunc {
-        args: func
+        params: func
             .params
             .iter()
             .skip(func.args.len())

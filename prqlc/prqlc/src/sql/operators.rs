@@ -1,9 +1,9 @@
 use std::collections::HashMap;
 use std::iter::zip;
 use std::path::PathBuf;
+use std::sync::OnceLock;
 
 use itertools::Itertools;
-use once_cell::sync::Lazy;
 
 use super::gen_expr::{translate_operand, ExprOrSource, SourceExpr};
 use super::{Context, Dialect};
@@ -13,22 +13,21 @@ use crate::utils::Pluck;
 use crate::Result;
 use crate::{Error, WithErrorInfo};
 
-static STD: Lazy<decl::Module> = Lazy::new(load_std_sql);
-
-fn load_std_sql() -> decl::Module {
-    let std_lib = crate::SourceTree::new(
-        [(
-            PathBuf::from("std.prql"),
-            include_str!("./std.sql.prql").to_string(),
-        )],
-        None,
-    );
-    let ast = crate::parser::parse(&std_lib).unwrap();
-
-    let options = semantic::ResolverOptions {};
-
-    let context = semantic::resolve(ast, options).unwrap();
-    context.module
+fn std() -> &'static decl::Module {
+    static STD: OnceLock<decl::Module> = OnceLock::new();
+    STD.get_or_init(|| {
+        let std_lib = crate::SourceTree::new(
+            [(
+                PathBuf::from("std.prql"),
+                include_str!("./std.sql.prql").to_string(),
+            )],
+            None,
+        );
+        let ast = crate::parser::parse(&std_lib).unwrap();
+        let options = semantic::ResolverOptions {};
+        let context = semantic::resolve(ast, options).unwrap();
+        context.module
+    })
 }
 
 pub(super) fn translate_operator_expr(expr: rq::Expr, ctx: &mut Context) -> Result<ExprOrSource> {
@@ -131,7 +130,7 @@ fn find_operator_impl(
             .collect::<Vec<_>>(),
     );
 
-    let dialect_module = STD.get(&pl::Ident::from_name(dialect.to_string()));
+    let dialect_module = std().get(&pl::Ident::from_name(dialect.to_string()));
 
     let mut func_def = None;
 
@@ -141,7 +140,7 @@ fn find_operator_impl(
     }
 
     if func_def.is_none() {
-        func_def = STD.get(&operator_ident);
+        func_def = std().get(&operator_ident);
     }
 
     let decl = func_def?;

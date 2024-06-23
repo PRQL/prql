@@ -28,6 +28,13 @@ pub fn prql_to_pl(prql_query: &str) -> PyResult<String> {
 }
 
 #[pyfunction]
+pub fn pl_to_prql(pl_json: &str) -> PyResult<String> {
+    prqlc_lib::json::to_pl(pl_json)
+        .and_then(|x| prqlc_lib::pl_to_prql(&x))
+        .map_err(|err| (PyErr::new::<exceptions::PyValueError, _>(err.to_json())))
+}
+
+#[pyfunction]
 pub fn pl_to_rq(pl_json: &str) -> PyResult<String> {
     prqlc_lib::json::to_pl(pl_json)
         .and_then(prqlc_lib::pl_to_rq)
@@ -74,6 +81,7 @@ mod debug {
 fn prqlc(_py: Python, m: &PyModule) -> PyResult<()> {
     m.add_function(wrap_pyfunction!(compile, m)?)?;
     m.add_function(wrap_pyfunction!(prql_to_pl, m)?)?;
+    m.add_function(wrap_pyfunction!(pl_to_prql, m)?)?;
     m.add_function(wrap_pyfunction!(pl_to_rq, m)?)?;
     m.add_function(wrap_pyfunction!(rq_to_sql, m)?)?;
     m.add_function(wrap_pyfunction!(get_targets, m)?)?;
@@ -213,18 +221,29 @@ mod test {
     }
 
     #[test]
+    fn prql_pl_prql_roundtrip() {
+        let prql = r#"from artists | select {name, id} | filter (id | in [1, 2, 3])"#;
+        assert_snapshot!(
+             prql_to_pl(prql).and_then(|x| pl_to_prql(x.as_str())).unwrap(), @r###"
+        from artists
+        select {name, id}
+        filter (id | in [1, 2, 3])
+        "###);
+    }
+
+    #[test]
     fn debug_prql_lineage() {
         assert_snapshot!(
-            debug::prql_lineage(r#"from a"#).unwrap(),
-            @r#"{"frames":[],"nodes":[{"id":115,"kind":"Ident","span":"1:0-6","ident":{"Ident":["default_db","a"]}}],"ast":{"name":"Project","stmts":[{"VarDef":{"kind":"Main","name":"main","value":{"FuncCall":{"name":{"Ident":"from"},"args":[{"Ident":"a"}]}}},"span":"1:0-6"}]}}"#
+            debug::prql_lineage(r#"from a | select { beta, gamma }"#).unwrap(),
+            @r###"{"frames":[["1:9-31",{"columns":[{"Single":{"name":["a","beta"],"target_id":120,"target_name":null}},{"Single":{"name":["a","gamma"],"target_id":121,"target_name":null}}],"inputs":[{"id":118,"name":"a","table":["default_db","a"]}]}]],"nodes":[{"id":118,"kind":"Ident","span":"1:0-6","ident":{"Ident":["default_db","a"]},"parent":123},{"id":120,"kind":"Ident","span":"1:18-22","ident":{"Ident":["this","a","beta"]},"targets":[118],"parent":122},{"id":121,"kind":"Ident","span":"1:24-29","ident":{"Ident":["this","a","gamma"]},"targets":[118],"parent":122},{"id":122,"kind":"Tuple","span":"1:16-31","children":[120,121],"parent":123},{"id":123,"kind":"TransformCall: Select","span":"1:9-31","children":[118,122]}],"ast":{"name":"Project","stmts":[{"VarDef":{"kind":"Main","name":"main","value":{"Pipeline":{"exprs":[{"FuncCall":{"name":{"Ident":"from"},"args":[{"Ident":"a"}]}},{"FuncCall":{"name":{"Ident":"select"},"args":[{"Tuple":[{"Ident":"beta"},{"Ident":"gamma"}]}]}}]}}},"span":"1:0-31"}]}}"###
         );
     }
 
     #[test]
     fn debug_pl_to_lineage() {
         assert_snapshot!(
-            prql_to_pl(r#"from a"#).and_then(|x| debug::pl_to_lineage(&x)).unwrap(),
-            @r#"{"frames":[],"nodes":[{"id":115,"kind":"Ident","ident":{"Ident":["default_db","a"]}}],"ast":{"name":"Project","stmts":[{"VarDef":{"kind":"Main","name":"main","value":{"FuncCall":{"name":{"Ident":"from"},"args":[{"Ident":"a"}]}}},"span":"1:0-6"}]}}"#
+            prql_to_pl(r#"from a | select { beta, gamma }"#).and_then(|x| debug::pl_to_lineage(&x)).unwrap(),
+            @r###"{"frames":[[null,{"columns":[{"Single":{"name":["a","beta"],"target_id":120,"target_name":null}},{"Single":{"name":["a","gamma"],"target_id":121,"target_name":null}}],"inputs":[{"id":118,"name":"a","table":["default_db","a"]}]}]],"nodes":[{"id":118,"kind":"Ident","ident":{"Ident":["default_db","a"]},"parent":123},{"id":120,"kind":"Ident","ident":{"Ident":["this","a","beta"]},"targets":[118],"parent":122},{"id":121,"kind":"Ident","ident":{"Ident":["this","a","gamma"]},"targets":[118],"parent":122},{"id":122,"kind":"Tuple","children":[120,121],"parent":123},{"id":123,"kind":"TransformCall: Select","children":[118,122]}],"ast":{"name":"Project","stmts":[{"VarDef":{"kind":"Main","name":"main","value":{"Pipeline":{"exprs":[{"FuncCall":{"name":{"Ident":"from"},"args":[{"Ident":"a"}]}},{"FuncCall":{"name":{"Ident":"select"},"args":[{"Tuple":[{"Ident":"beta"},{"Ident":"gamma"}]}]}}]}}},"span":"1:0-31"}]}}"###
         );
     }
 }

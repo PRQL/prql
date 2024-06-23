@@ -3,6 +3,7 @@
 use std::cmp::Ordering;
 
 use itertools::Itertools;
+use prqlc_parser::generic::{InterpolateItem, Range};
 use regex::Regex;
 use sqlparser::ast::{
     self as sql_ast, BinaryOperator, DateTimeField, Fetch, Function, FunctionArg, FunctionArgExpr,
@@ -12,12 +13,11 @@ use sqlparser::ast::{
 
 use super::gen_projection::try_into_exprs;
 use super::{keywords, Context};
-use crate::ast::expr::generic::{InterpolateItem, Range};
 use crate::ir::generic::{ColumnSort, SortDirection, WindowFrame, WindowKind};
 use crate::ir::pl::{self, Ident, Literal};
 use crate::ir::rq::*;
 use crate::sql::srq::context::ColumnDecl;
-use crate::utils::{OrMap, VALID_IDENT};
+use crate::utils::{valid_ident, OrMap};
 use crate::{Error, Reason, Result, Span, WithErrorInfo};
 
 pub(super) fn translate_expr(expr: Expr, ctx: &mut Context) -> Result<ExprOrSource> {
@@ -170,14 +170,23 @@ fn process_array_in(expr: &Expr, args: &[Expr], ctx: &mut Context) -> Result<sql
         }, Expr {
             kind: ExprKind::Array(in_values),
             ..
-        }] => Ok(sql_ast::Expr::InList {
-            expr: Box::new(translate_expr(col_expr.clone(), ctx)?.into_ast()),
-            list: in_values
-                .iter()
-                .map(|a| Ok(translate_expr(a.clone(), ctx)?.into_ast()))
-                .collect::<Result<Vec<sql_ast::Expr>>>()?,
-            negated: false,
-        }),
+        }] => {
+            if in_values.is_empty() {
+                // We avoid producing `in ()` expressions since they are not syntactically valid
+                // in some engines like PostgreSQL or MySQL.
+                // We can instead optimize this to a condition that is always false
+                Ok(sql_ast::Expr::Value(Value::Boolean(false)))
+            } else {
+                Ok(sql_ast::Expr::InList {
+                    expr: Box::new(translate_expr(col_expr.clone(), ctx)?.into_ast()),
+                    list: in_values
+                        .iter()
+                        .map(|a| Ok(translate_expr(a.clone(), ctx)?.into_ast()))
+                        .collect::<Result<Vec<sql_ast::Expr>>>()?,
+                    negated: false,
+                })
+            }
+        }
         _ => Err(
             Error::new_simple("args to `std.array_in` must be an expression and an array")
                 .with_span(expr.span),
@@ -795,7 +804,7 @@ pub(super) fn translate_ident(
 }
 
 pub(super) fn translate_ident_part(ident: String, ctx: &Context) -> sql_ast::Ident {
-    let is_bare = VALID_IDENT.is_match(&ident);
+    let is_bare = valid_ident().is_match(&ident);
 
     if is_bare && !keywords::is_keyword(&ident) {
         sql_ast::Ident::new(ident)

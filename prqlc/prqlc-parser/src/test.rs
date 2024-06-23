@@ -1,11 +1,8 @@
-#![cfg(test)]
-
 use insta::{assert_debug_snapshot, assert_yaml_snapshot};
 use itertools::Itertools;
 
-use crate::ast::expr::*;
-use crate::ast::stmt::*;
-use crate::err::error::*;
+use crate::error::Error;
+use crate::parser::pr::{Expr, FuncCall, Stmt};
 
 /// Helper that does not track source_ids
 fn parse_single(source: &str) -> Result<Vec<Stmt>, Vec<Error>> {
@@ -1827,7 +1824,7 @@ fn test_dates() {
 #[test]
 fn test_multiline_string() {
     assert_yaml_snapshot!(parse_single(r##"
-        derive x = r#"r-string test"#
+        derive x = r"r-string test"
         "##).unwrap(), @r###"
     ---
     - VarDef:
@@ -1838,9 +1835,10 @@ fn test_multiline_string() {
             name:
               Ident: derive
             args:
-              - Ident: r
+              - Literal:
+                  String: r-string test
                 alias: x
-      span: "0:9-39"
+      span: "0:9-37"
     "### )
 }
 

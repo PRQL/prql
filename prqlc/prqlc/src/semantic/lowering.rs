@@ -4,21 +4,20 @@ use std::iter::zip;
 
 use enum_as_inner::EnumAsInner;
 use itertools::Itertools;
+use prqlc_parser::generic::{InterpolateItem, Range, SwitchCase};
+use prqlc_parser::lexer::lr::Literal;
 
 use crate::ast::TyTupleField;
+use crate::compiler_version;
 use crate::ir::decl::{self, DeclKind, Module, RootModule, TableExpr};
 use crate::ir::generic::{ColumnSort, WindowFrame};
+use crate::ir::pl::TableExternRef::LocalTable;
 use crate::ir::pl::{self, Ident, Lineage, LineageColumn, PlFold, QueryDef};
 use crate::ir::rq::{
     self, CId, RelationColumn, RelationLiteral, RelationalQuery, TId, TableDecl, Transform,
 };
 use crate::semantic::write_pl;
 use crate::utils::{toposort, IdGenerator};
-use crate::COMPILER_VERSION;
-use crate::{
-    ast::generic::{InterpolateItem, Range, SwitchCase},
-    ir::pl::TableExternRef::LocalTable,
-};
 use crate::{Error, Reason, Result, Span, WithErrorInfo};
 
 /// Convert a resolved expression at path `main_path` relative to `root_mod`
@@ -126,7 +125,7 @@ fn tuple_fields_to_relation_columns(columns: Vec<TyTupleField>) -> Vec<RelationC
 
 fn validate_query_def(query_def: &QueryDef) -> Result<()> {
     if let Some(requirement) = &query_def.version {
-        if !requirement.matches(&COMPILER_VERSION) {
+        if !requirement.matches(compiler_version()) {
             return Err(Error::new_simple("This query uses a version of PRQL that is not supported by prqlc. Please upgrade the compiler."));
         }
     }
@@ -981,7 +980,7 @@ impl Lowerer {
 
 fn str_lit(string: String) -> rq::Expr {
     rq::Expr {
-        kind: rq::ExprKind::Literal(pl::Literal::String(string)),
+        kind: rq::ExprKind::Literal(Literal::String(string)),
         span: None,
     }
 }

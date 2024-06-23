@@ -67,7 +67,7 @@ pub unsafe extern "C" fn prql_to_pl(prql_query: *const c_char) -> CompileResult 
 
 /// Finds variable references, validates functions calls, determines frames and converts PL to RQ.
 /// PL and RQ are documented in the
-/// [prqlc Rust crate](https://docs.rs/prqlc/latest/prqlc/ast).
+/// [prqlc Rust crate](https://docs.rs/prqlc/latest/prqlc).
 ///
 /// Takes PL serialized as JSON buffer and writes RQ serialized as JSON to `out` buffer.
 ///

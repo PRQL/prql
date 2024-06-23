@@ -2,19 +2,16 @@ use std::collections::HashMap;
 
 use chumsky::prelude::*;
 use itertools::Itertools;
-use prqlc_ast::expr::{ExprKind, IndirectionKind};
-use prqlc_ast::stmt::{
-    Annotation, ImportDef, ModuleDef, QueryDef, Stmt, StmtKind, TypeDef, VarDef, VarDefKind,
-};
-use prqlc_ast::token::{Literal, TokenKind};
 use semver::VersionReq;
 
 use super::common::{ctrl, ident_part, into_stmt, keyword, new_line};
 use super::expr::{expr, expr_call, ident, pipeline};
-use crate::err::parse_error::PError;
-use crate::types::type_expr;
+use crate::error::parse_error::PError;
+use crate::lexer::lr::{Literal, TokenKind};
+use crate::parser::pr::*;
+use crate::parser::types::type_expr;
 
-pub fn source() -> impl Parser<TokenKind, Vec<Stmt>, Error = PError> {
+pub(crate) fn source() -> impl Parser<TokenKind, Vec<Stmt>, Error = PError> {
     query_def()
         .or_not()
         .chain(module_contents())
@@ -46,7 +43,7 @@ fn module_contents() -> impl Parser<TokenKind, Vec<Stmt>, Error = PError> {
     })
 }
 
-fn query_def() -> impl Parser<TokenKind, Stmt, Error = PError> {
+fn query_def() -> impl Parser<TokenKind, Stmt, Error = PError> + Clone {
     new_line()
         .repeated()
         .ignore_then(keyword("prql"))
@@ -115,7 +112,7 @@ fn query_def() -> impl Parser<TokenKind, Stmt, Error = PError> {
         .labelled("query header")
 }
 
-fn var_def() -> impl Parser<TokenKind, StmtKind, Error = PError> {
+fn var_def() -> impl Parser<TokenKind, StmtKind, Error = PError> + Clone {
     let let_ = keyword("let")
         .ignore_then(ident_part())
         .then(type_expr().delimited_by(ctrl('<'), ctrl('>')).or_not())
@@ -153,7 +150,7 @@ fn var_def() -> impl Parser<TokenKind, StmtKind, Error = PError> {
     let_.or(main_or_into)
 }
 
-fn type_def() -> impl Parser<TokenKind, StmtKind, Error = PError> {
+fn type_def() -> impl Parser<TokenKind, StmtKind, Error = PError> + Clone {
     keyword("type")
         .ignore_then(ident_part())
         .then(ctrl('=').ignore_then(type_expr()).or_not())
@@ -161,7 +158,7 @@ fn type_def() -> impl Parser<TokenKind, StmtKind, Error = PError> {
         .labelled("type definition")
 }
 
-fn import_def() -> impl Parser<TokenKind, StmtKind, Error = PError> {
+fn import_def() -> impl Parser<TokenKind, StmtKind, Error = PError> + Clone {
     keyword("import")
         .ignore_then(ident_part().then_ignore(ctrl('=')).or_not())
         .then(ident())

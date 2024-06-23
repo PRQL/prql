@@ -2,18 +2,20 @@
 
 <!-- User badges on first line (language docs & chat) -->
 
+<!-- Discord online count is blocked rate limits, can try swapping back [![Discord](https://img.shields.io/discord/936728116712316989?label=discord%20chat&style=for-the-badge)](https://discord.gg/eQcfaCmsNc) -->
+<!-- Twitter followers doesn't work, but leaving the badge there -->
+
 [![Website](https://img.shields.io/badge/INTRO-WEB-blue?style=for-the-badge)](https://prql-lang.org)
 [![Playground](https://img.shields.io/badge/INTRO-PLAYGROUND-blue?style=for-the-badge)](https://prql-lang.org/playground)
 [![Language Docs](https://img.shields.io/badge/DOCS-BOOK-blue?style=for-the-badge)](https://prql-lang.org/book)
-[![Discord](https://img.shields.io/discord/936728116712316989?label=discord%20chat&style=for-the-badge)](https://discord.gg/eQcfaCmsNc)
+[![Discord](https://img.shields.io/badge/DISCORD-CHAT-indigo?style=for-the-badge&logo=discord)](https://discord.gg/eQcfaCmsNc)
+[![Twitter](https://img.shields.io/twitter/follow/prql_lang?color=%231DA1F2&style=for-the-badge&logo=x)](https://twitter.com/prql_lang)
 
-<!-- Doesn't seem to be working; add back if it is -->
-<!-- [![Twitter](https://img.shields.io/twitter/follow/prql_lang?color=%231DA1F2&style=for-the-badge)](https://twitter.com/prql_lang) -->
 <!-- Dev badges on second line -->
 
 [![GitHub CI Status](https://img.shields.io/github/actions/workflow/status/prql/prql/tests.yaml?event=push&branch=main&logo=github&style=for-the-badge)](https://github.com/PRQL/prql/actions?query=branch%3Amain+workflow%3Atests)
-[![GitHub contributors](https://img.shields.io/github/contributors/PRQL/prql?style=for-the-badge)](https://github.com/PRQL/prql/graphs/contributors)
-[![Stars](https://img.shields.io/github/stars/PRQL/prql?style=for-the-badge)](https://github.com/PRQL/prql/stargazers)
+[![GitHub contributors](https://img.shields.io/github/contributors/PRQL/prql?style=for-the-badge&logo=github)](https://github.com/PRQL/prql/graphs/contributors)
+[![Stars](https://img.shields.io/github/stars/PRQL/prql?style=for-the-badge&logo=github)](https://github.com/PRQL/prql/stargazers)
 
 **P**ipelined **R**elational **Q**uery **L**anguage, pronounced "Prequel".
 
@@ -35,7 +37,7 @@ aggregate {                                   # `aggregate` reduces each column 
 }
 ```
 
-Here's a fuller example of the language:
+Here's a larger example of the language:
 
 ```elm
 from employees
@@ -62,7 +64,7 @@ For more on the language, more examples & comparisons with SQL, visit
 [prql-lang.org][prql website]. To experiment with PRQL in the browser, check out
 [PRQL Playground][prql playground].
 
-## Current Status - April 2024
+## Current Status - June 2024
 
 PRQL is being actively developed by a growing community. It's ready to use by
 the intrepid, either with our supported integrations, or within your own tools,
@@ -83,16 +85,17 @@ While we work on that, we're also focusing on
   but also gives us more to work on.
 - Filling remaining feature gaps, so that PRQL is possible to use for almost all
   standard SQL queries.
-- Expanding our set of supported features — we've recently added experimental
+- Expanding our set of supported features — we are working to add experimental
   support for modules / multi-file projects, and for auto-formatting.
 
 We're also spending time thinking about:
 
 - Making it really easy to start using PRQL. We're doing that by building
-  integrations with tools that folks already use; for example our VS Code
-  extension & Jupyter integration. If there are tools you're familiar with that
-  you think would be open to integrating with PRQL, please let us know in an
-  issue.
+  integrations with tools that folks already use; for example a VS Code
+  extension, Jupyter integration, and the recent
+  [qStudio](https://www.timestored.com/qstudio/prql-ide) integration. If there
+  are tools you're familiar with that you think would be open to integrating
+  with PRQL, please let us know in an issue.
 - Whether all our initial decisions were correct — for example
   [how we handle window functions outside of a `window` transform](https://github.com/PRQL/prql/issues/2723).
 - Making it easier to contribute to the compiler. We have a wide group of

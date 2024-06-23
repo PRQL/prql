@@ -49,7 +49,7 @@
 //!
 //! - Compile PRQL queries to SQL at build time.
 //!
-//!   For inline strings, use the `prql-compiler-macros` crate; for example:
+//!   For inline strings, use the `prqlc-macros` crate; for example:
 //!   ```ignore
 //!   let sql: &str = prql_to_sql!("from albums | select {title, artist_id}");
 //!   ```
@@ -99,19 +99,19 @@
 // yak-shaving exercise in the future.
 #![allow(clippy::result_large_err)]
 
+use std::sync::OnceLock;
 use std::{collections::HashMap, path::PathBuf, str::FromStr};
 
 use anstream::adapter::strip_str;
-pub use error_message::{ErrorMessage, ErrorMessages, SourceLocation};
-pub use ir::Span;
-use once_cell::sync::Lazy;
-pub use prqlc_ast as ast;
-use prqlc_parser::err::error::ErrorSource;
-pub use prqlc_parser::err::error::{Error, Errors, MessageKind, Reason, WithErrorInfo};
-use prqlc_parser::TokenVec;
 use semver::Version;
 use serde::{Deserialize, Serialize};
 use strum::VariantNames;
+
+pub use error_message::{ErrorMessage, ErrorMessages, SourceLocation};
+pub use prqlc_parser::error::{Error, ErrorSource, Errors, MessageKind, Reason, WithErrorInfo};
+use prqlc_parser::lexer::TokenVec;
+pub use prqlc_parser::parser::pr as ast;
+pub use prqlc_parser::span::Span;
 
 mod codegen;
 mod error_message;
@@ -123,8 +123,12 @@ mod utils;
 
 pub type Result<T, E = Error> = core::result::Result<T, E>;
 
-pub static COMPILER_VERSION: Lazy<Version> =
-    Lazy::new(|| Version::parse(env!("CARGO_PKG_VERSION")).expect("Invalid prqlc version number"));
+pub fn compiler_version() -> &'static Version {
+    static COMPILER_VERSION: OnceLock<Version> = OnceLock::new();
+    COMPILER_VERSION.get_or_init(|| {
+        Version::parse(env!("CARGO_PKG_VERSION")).expect("Invalid prqlc version number")
+    })
+}
 
 /// Compile a PRQL string into a SQL string.
 ///
@@ -321,7 +325,7 @@ pub struct ReadmeDoctests;
 
 /// Lex PRQL source into tokens.
 pub fn prql_to_tokens(prql: &str) -> Result<TokenVec, ErrorMessages> {
-    prqlc_parser::lex_source(prql).map_err(|e| {
+    prqlc_parser::lexer::lex_source(prql).map_err(|e| {
         e.into_iter()
             .map(|e| e.into())
             .collect::<Vec<ErrorMessage>>()
@@ -501,7 +505,7 @@ mod tests {
 
     use insta::assert_debug_snapshot;
 
-    use crate::ast::expr::Ident;
+    use crate::ast::Ident;
     use crate::Target;
 
     pub fn compile(prql: &str) -> Result<String, super::ErrorMessages> {

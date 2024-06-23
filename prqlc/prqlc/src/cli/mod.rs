@@ -271,7 +271,7 @@ impl LogLevel for LoggingHelp {
 
     fn verbose_long_help() -> Option<&'static str> {
         Some(
-            r#"More v's, More vebose logging:
+            r#"More `v`s, More vebose logging:
 -v shows warnings
 -vv shows info
 -vvv shows debug
@@ -614,7 +614,7 @@ impl Command {
     }
 }
 
-fn drop_module_def(stmts: &mut Vec<ast::stmt::Stmt>, name: &str) {
+fn drop_module_def(stmts: &mut Vec<ast::Stmt>, name: &str) {
     stmts.retain(|x| x.kind.as_module_def().map_or(true, |m| m.name != name));
 }
 
@@ -634,7 +634,7 @@ fn read_files(input: &mut clio::ClioPath) -> Result<SourceTree> {
     Ok(SourceTree::new(sources, Some(root.to_path_buf())))
 }
 
-fn combine_prql_and_frames(source: &str, frames: Vec<(Span, Lineage)>) -> String {
+fn combine_prql_and_frames(source: &str, frames: Vec<(Option<Span>, Lineage)>) -> String {
     let source = Source::from(source);
     let lines = source.lines().collect_vec();
     let width = lines.iter().map(|l| l.len()).max().unwrap_or(0);
@@ -646,34 +646,36 @@ fn combine_prql_and_frames(source: &str, frames: Vec<(Span, Lineage)>) -> String
     let mut printed_lines_count = 0;
     let mut result = Vec::new();
     for (span, frame) in frames {
-        let line_len = source.get_line_range(&Range::from(span)).end - 1;
+        if let Some(span) = span {
+            let line_len = source.get_line_range(&Range::from(span)).end - 1;
 
-        while printed_lines_count < line_len {
-            result.push(
-                source
-                    .get_line_text(source.line(printed_lines_count).unwrap())
-                    .unwrap()
-                    // Ariadne 0.4.1 added a line break at the end of the line, so we
-                    // trim it.
-                    .trim_end()
-                    .to_string(),
-            );
+            while printed_lines_count < line_len {
+                result.push(
+                    source
+                        .get_line_text(source.line(printed_lines_count).unwrap())
+                        .unwrap()
+                        // Ariadne 0.4.1 added a line break at the end of the line, so we
+                        // trim it.
+                        .trim_end()
+                        .to_string(),
+                );
+                printed_lines_count += 1;
+            }
+
+            if printed_lines_count >= lines.len() {
+                break;
+            }
+            let chars: String = source
+                .get_line_text(source.line(printed_lines_count).unwrap())
+                .unwrap()
+                // Ariadne 0.4.1 added a line break at the end of the line, so we
+                // trim it.
+                .trim_end()
+                .to_string();
             printed_lines_count += 1;
-        }
 
-        if printed_lines_count >= lines.len() {
-            break;
+            result.push(format!("{chars:width$} # {frame}"));
         }
-        let chars: String = source
-            .get_line_text(source.line(printed_lines_count).unwrap())
-            .unwrap()
-            // Ariadne 0.4.1 added a line break at the end of the line, so we
-            // trim it.
-            .trim_end()
-            .to_string();
-        printed_lines_count += 1;
-
-        result.push(format!("{chars:width$} # {frame}"));
     }
     for line in lines.iter().skip(printed_lines_count) {
         result.push(source.get_line_text(line.to_owned()).unwrap().to_string());

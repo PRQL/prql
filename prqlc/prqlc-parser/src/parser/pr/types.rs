@@ -2,8 +2,9 @@ use enum_as_inner::EnumAsInner;
 use serde::{Deserialize, Serialize};
 use strum::AsRefStr;
 
-use super::{Ident, Literal};
-use crate::Span;
+use crate::lexer::lr::Literal;
+use crate::parser::pr::ident::Ident;
+use crate::span::Span;
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct Ty {
@@ -49,6 +50,16 @@ pub enum TyKind {
     GenericArg((usize, String)),
 }
 
+impl TyKind {
+    pub fn into_ty(self: TyKind, span: Span) -> Ty {
+        Ty {
+            kind: self,
+            span: Some(span),
+            name: None,
+        }
+    }
+}
+
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize, EnumAsInner)]
 pub enum TyTupleField {
     /// Named tuple element.
@@ -84,7 +95,7 @@ pub enum PrimitiveSet {
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct TyFunc {
     pub name_hint: Option<Ident>,
-    pub args: Vec<Option<Ty>>,
+    pub params: Vec<Option<Ty>>,
     pub return_ty: Box<Option<Ty>>,
 }
 

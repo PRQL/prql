@@ -12,6 +12,13 @@ on:
   workflow_call:
   workflow_dispatch:
 
+# We need consistent env vars across all workflows for the cache to work
+env:
+  CARGO_TERM_COLOR: always
+  CLICOLOR_FORCE: 1
+  RUSTFLAGS: "-C debuginfo=0"
+  RUSTDOCFLAGS: "-Dwarnings"
+
 jobs:
   brew-dispatcher:
     name: Release on homebrew-prql
@@ -368,12 +375,12 @@ jobs:
       - uses: baptiste0928/cargo-install@v3
         with:
           crate: cargo-release
-      # Currently, we can only check prqlc-ast which is not dependent other local crates with --dry-run.
+      # Currently, we can only check prqlc-parser which is not dependent other local crates with --dry-run.
       # https://github.com/crate-ci/cargo-release/issues/691
       # --no-verify is required to prevent build.
       - run:
           cargo release publish --no-confirm ${{ github.event_name == 'release'
-          && '--execute' || '--no-verify --package prqlc-ast'}}
+          && '--execute' || '--no-verify --package prqlc-parser'}}
         env:
           CARGO_REGISTRY_TOKEN: ${{ secrets.CARGO_REGISTRY_TOKEN }}
 
@@ -408,6 +415,4 @@ jobs:
     if: github.event_name == 'release'
     uses: ./.github/workflows/build-devcontainer.yaml
     with:
-      # TOOD: I think having this as a bool is OK, but check a recent release
-      # from 0.10.0 and confirm that it is indeed pushing the image.
       push: true

@@ -8,6 +8,10 @@
 
 **Fixes**:
 
+- Using `in` with an empty array pattern (e.g. `expr | in []`) will now output a
+  constant `false` condition instead of an `expr IN ()`, which is syntactically
+  invalid in some SQL dialects (@Globidev, #4598)
+
 **Documentation**:
 
 **Web**:
@@ -15,6 +19,25 @@
 **Integrations**:
 
 **Internal changes**:
+
+- Major reorganization of `prqlc-parser` — `prqlc-ast` is merged into
+  `prqlc-parser`, and `prqlc-parser`'s files are rearranged, including its
+  exports. This is part of an effort to modularize the compiler by stage,
+  reducing the amount of context that's required to understand a single stage.
+  There will likely be some further changes (more detail in the PR description).
+  (@m-span, #4634)
+
+  - This is a breaking change for any libraries that depend on `prqlc-parser`
+    (which should be fairly rare).
+
+- Renamed `prql-compiler-macros` to `prqlc-macros` for consistency with other
+  crates (@max-sixty, #4565)
+
+- `prql-compiler`, the old name for `prqlc`, is removed as a facade to `prqlc`.
+  It had been deprecated for a few versions and will no longer be updated.
+  (@max-sixty)
+
+- New benchmarks (@max-sixty, #4654)
 
 **New Contributors**:
 

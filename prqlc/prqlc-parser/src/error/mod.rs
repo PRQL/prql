@@ -1,12 +1,16 @@
-//! Error message produced by the compiler.
-
 use std::fmt::Debug;
 
 use chumsky::error::Cheap;
 use serde::Serialize;
 
-use crate::ast::span::Span;
-use crate::err::parse_error::PError;
+use crate::error::parse_error::PError;
+use crate::span::Span;
+
+/// Error message produced by the compiler.
+pub mod parse_error;
+
+#[cfg(test)]
+mod test;
 
 /// A prqlc error. Used internally, exposed as prqlc::ErrorMessage.
 #[derive(Debug, Clone)]
@@ -162,6 +166,9 @@ pub trait WithErrorInfo: Sized {
     fn with_hints<S: Into<String>, I: IntoIterator<Item = S>>(self, hints: I) -> Self;
 
     fn with_span(self, span: Option<Span>) -> Self;
+
+    fn with_span_fallback(self, span: Option<Span>) -> Self;
+
     fn with_code(self, code: &'static str) -> Self;
 
     fn with_source(self, source: ErrorSource) -> Self;
@@ -188,6 +195,11 @@ impl WithErrorInfo for Error {
         self
     }
 
+    fn with_span_fallback(mut self, span: Option<Span>) -> Self {
+        self.span = self.span.or(span);
+        self
+    }
+
     fn with_source(self, _source: ErrorSource) -> Self {
         // self.source = source;
         self
@@ -207,129 +219,15 @@ impl<T, E: WithErrorInfo> WithErrorInfo for Result<T, E> {
         self.map_err(|e| e.with_span(span))
     }
 
+    fn with_span_fallback(self, span: Option<Span>) -> Self {
+        self.map_err(|e| e.with_span_fallback(span))
+    }
+
     fn with_code(self, code: &'static str) -> Self {
         self.map_err(|e| e.with_code(code))
     }
 
     fn with_source(self, source: ErrorSource) -> Self {
         self.map_err(|e| e.with_source(source))
-    }
-}
-
-#[cfg(test)]
-mod tests {
-    use insta::{assert_debug_snapshot, assert_snapshot};
-
-    use super::*;
-
-    // Helper function to create a simple Error object
-    fn create_simple_error() -> Error {
-        Error::new_simple("A simple error message")
-            .push_hint("take a hint")
-            .with_code("E001")
-    }
-
-    #[test]
-    fn display() {
-        assert_snapshot!(create_simple_error(),
-            @r###"Error { kind: Error, span: None, reason: Simple("A simple error message"), hints: ["take a hint"], code: Some("E001") }"###
-        );
-
-        let errors = Errors(vec![create_simple_error()]);
-        assert_snapshot!(errors,
-            @r###"Errors([Error { kind: Error, span: None, reason: Simple("A simple error message"), hints: ["take a hint"], code: Some("E001") }])"###
-        );
-        assert_debug_snapshot!(errors, @r###"
-        Errors(
-            [
-                Error {
-                    kind: Error,
-                    span: None,
-                    reason: Simple(
-                        "A simple error message",
-                    ),
-                    hints: [
-                        "take a hint",
-                    ],
-                    code: Some(
-                        "E001",
-                    ),
-                },
-            ],
-        )
-        "###)
-    }
-
-    #[test]
-    fn test_simple_error() {
-        let err = create_simple_error();
-        assert_debug_snapshot!(err, @r###"
-        Error {
-            kind: Error,
-            span: None,
-            reason: Simple(
-                "A simple error message",
-            ),
-            hints: [
-                "take a hint",
-            ],
-            code: Some(
-                "E001",
-            ),
-        }
-        "###);
-    }
-
-    #[test]
-    fn test_complex_error() {
-        assert_debug_snapshot!(
-        Error::new(Reason::Expected {
-            who: Some("Test".to_string()),
-            expected: "expected_value".to_string(),
-            found: "found_value".to_string(),
-        })
-        .with_code("E002"), @r###"
-        Error {
-            kind: Error,
-            span: None,
-            reason: Expected {
-                who: Some(
-                    "Test",
-                ),
-                expected: "expected_value",
-                found: "found_value",
-            },
-            hints: [],
-            code: Some(
-                "E002",
-            ),
-        }
-        "###);
-    }
-
-    #[test]
-    fn test_simple_error_with_result() {
-        let result: Result<(), Error> = Err(Error::new_simple("A simple error message"))
-            .with_hints(vec!["Take a hint"])
-            .push_hint("Take another hint")
-            .with_code("E001");
-        assert_debug_snapshot!(result, @r###"
-        Err(
-            Error {
-                kind: Error,
-                span: None,
-                reason: Simple(
-                    "A simple error message",
-                ),
-                hints: [
-                    "Take a hint",
-                    "Take another hint",
-                ],
-                code: Some(
-                    "E001",
-                ),
-            },
-        )
-        "###);
     }
 }

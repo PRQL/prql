@@ -3,4 +3,307 @@ source: prqlc/prqlc/tests/integration/queries.rs
 expression: "# mssql:test\nfrom a=albums\ntake 10\njoin tracks (==album_id)\ngroup {a.album_id, a.title} (aggregate price = (sum tracks.unit_price | math.round 2))\nsort album_id\n"
 input_file: prqlc/prqlc/tests/integration/queries/group_all.prql
 ---
-{"frames":[["1:27-34",{"columns":[{"All":{"input_id":128,"except":[]}}],"inputs":[{"id":128,"name":"a","table":["default_db","albums"]}]}],["1:35-59",{"columns":[{"All":{"input_id":128,"except":[]}},{"All":{"input_id":122,"except":[]}}],"inputs":[{"id":128,"name":"a","table":["default_db","albums"]},{"id":122,"name":"tracks","table":["default_db","tracks"]}]}],["1:147-160",{"columns":[{"Single":{"name":["a","album_id"],"target_id":138,"target_name":null}},{"Single":{"name":["a","title"],"target_id":139,"target_name":null}},{"Single":{"name":["price"],"target_id":157,"target_name":null}}],"inputs":[{"id":128,"name":"a","table":["default_db","albums"]},{"id":122,"name":"tracks","table":["default_db","tracks"]}]}]],"nodes":[{"id":122,"kind":"Ident","span":"1:40-46","ident":{"Ident":["default_db","tracks"]},"parent":137},{"id":128,"kind":"Ident","span":"1:13-26","ident":{"Ident":["default_db","albums"]},"parent":131},{"id":131,"kind":"TransformCall: Take","span":"1:27-34","children":[128,132],"parent":137},{"id":132,"kind":"Literal","parent":131},{"id":133,"kind":"RqOperator","span":"1:48-58","targets":[135,136],"parent":137},{"id":135,"kind":"Ident","span":"1:50-58","ident":{"Ident":["this","a","album_id"]},"targets":[128]},{"id":136,"kind":"Ident","span":"1:50-58","ident":{"Ident":["that","tracks","album_id"]},"targets":[122]},{"id":137,"kind":"TransformCall: Join","span":"1:35-59","children":[131,122,133],"parent":165},{"id":138,"kind":"Ident","span":"1:67-77","ident":{"Ident":["this","a","album_id"]},"targets":[128],"parent":140},{"id":139,"kind":"Ident","span":"1:79-86","ident":{"Ident":["this","a","title"]},"targets":[128],"parent":140},{"id":140,"kind":"Tuple","span":"1:66-87","children":[138,139],"parent":165},{"id":157,"kind":"RqOperator","span":"1:132-144","alias":"price","targets":[160,161],"parent":164},{"id":160,"kind":"Literal","span":"1:143-144"},{"id":161,"kind":"RqOperator","span":"1:108-129","targets":[163]},{"id":163,"kind":"Ident","span":"1:118-129","ident":{"Ident":["this","tracks","unit_price"]},"targets":[122]},{"id":164,"kind":"Tuple","span":"1:132-144","children":[157],"parent":165},{"id":165,"kind":"TransformCall: Aggregate","children":[137,164,140],"parent":170},{"id":168,"kind":"Ident","span":"1:152-160","ident":{"Ident":["this","a","album_id"]},"targets":[138],"parent":170},{"id":170,"kind":"TransformCall: Sort","span":"1:147-160","children":[165,168]}],"ast":{"name":"Project","stmts":[{"VarDef":{"kind":"Main","name":"main","value":{"Pipeline":{"exprs":[{"FuncCall":{"name":{"Ident":"from"},"args":[{"Ident":"albums","alias":"a"}]}},{"FuncCall":{"name":{"Ident":"take"},"args":[{"Literal":{"Integer":10}}]}},{"FuncCall":{"name":{"Ident":"join"},"args":[{"Ident":"tracks"},{"Unary":{"op":"EqSelf","expr":{"Ident":"album_id"}}}]}},{"FuncCall":{"name":{"Ident":"group"},"args":[{"Tuple":[{"Indirection":{"base":{"Ident":"a"},"field":{"Name":"album_id"}}},{"Indirection":{"base":{"Ident":"a"},"field":{"Name":"title"}}}]},{"FuncCall":{"name":{"Ident":"aggregate"},"args":[{"Pipeline":{"exprs":[{"FuncCall":{"name":{"Ident":"sum"},"args":[{"Indirection":{"base":{"Ident":"tracks"},"field":{"Name":"unit_price"}}}]}},{"FuncCall":{"name":{"Indirection":{"base":{"Ident":"math"},"field":{"Name":"round"}}},"args":[{"Literal":{"Integer":2}}]}}]},"alias":"price"}]}}]}},{"FuncCall":{"name":{"Ident":"sort"},"args":[{"Ident":"album_id"}]}}]}}},"span":"1:13-161"}]}}
+frames:
+- - 1:27-34
+  - columns:
+    - !All
+      input_id: 128
+      except: []
+    inputs:
+    - id: 128
+      name: a
+      table:
+      - default_db
+      - albums
+- - 1:35-59
+  - columns:
+    - !All
+      input_id: 128
+      except: []
+    - !All
+      input_id: 122
+      except: []
+    inputs:
+    - id: 128
+      name: a
+      table:
+      - default_db
+      - albums
+    - id: 122
+      name: tracks
+      table:
+      - default_db
+      - tracks
+- - 1:89-145
+  - columns:
+    - !Single
+      name:
+      - a
+      - album_id
+      target_id: 138
+      target_name: null
+    - !Single
+      name:
+      - a
+      - title
+      target_id: 139
+      target_name: null
+    - !Single
+      name:
+      - price
+      target_id: 157
+      target_name: null
+    inputs:
+    - id: 128
+      name: a
+      table:
+      - default_db
+      - albums
+    - id: 122
+      name: tracks
+      table:
+      - default_db
+      - tracks
+- - 1:147-160
+  - columns:
+    - !Single
+      name:
+      - a
+      - album_id
+      target_id: 138
+      target_name: null
+    - !Single
+      name:
+      - a
+      - title
+      target_id: 139
+      target_name: null
+    - !Single
+      name:
+      - price
+      target_id: 157
+      target_name: null
+    inputs:
+    - id: 128
+      name: a
+      table:
+      - default_db
+      - albums
+    - id: 122
+      name: tracks
+      table:
+      - default_db
+      - tracks
+nodes:
+- id: 122
+  kind: Ident
+  span: 1:40-46
+  ident: !Ident
+  - default_db
+  - tracks
+  parent: 137
+- id: 128
+  kind: Ident
+  span: 1:13-26
+  ident: !Ident
+  - default_db
+  - albums
+  parent: 131
+- id: 131
+  kind: 'TransformCall: Take'
+  span: 1:27-34
+  children:
+  - 128
+  - 132
+  parent: 137
+- id: 132
+  kind: Literal
+  parent: 131
+- id: 133
+  kind: RqOperator
+  span: 1:48-58
+  targets:
+  - 135
+  - 136
+  parent: 137
+- id: 135
+  kind: Ident
+  span: 1:50-58
+  ident: !Ident
+  - this
+  - a
+  - album_id
+  targets:
+  - 128
+- id: 136
+  kind: Ident
+  span: 1:50-58
+  ident: !Ident
+  - that
+  - tracks
+  - album_id
+  targets:
+  - 122
+- id: 137
+  kind: 'TransformCall: Join'
+  span: 1:35-59
+  children:
+  - 131
+  - 122
+  - 133
+  parent: 165
+- id: 138
+  kind: Ident
+  span: 1:67-77
+  ident: !Ident
+  - this
+  - a
+  - album_id
+  targets:
+  - 128
+  parent: 140
+- id: 139
+  kind: Ident
+  span: 1:79-86
+  ident: !Ident
+  - this
+  - a
+  - title
+  targets:
+  - 128
+  parent: 140
+- id: 140
+  kind: Tuple
+  span: 1:66-87
+  children:
+  - 138
+  - 139
+  parent: 165
+- id: 157
+  kind: RqOperator
+  span: 1:132-144
+  alias: price
+  targets:
+  - 160
+  - 161
+  parent: 164
+- id: 160
+  kind: Literal
+  span: 1:143-144
+- id: 161
+  kind: RqOperator
+  span: 1:108-129
+  targets:
+  - 163
+- id: 163
+  kind: Ident
+  span: 1:118-129
+  ident: !Ident
+  - this
+  - tracks
+  - unit_price
+  targets:
+  - 122
+- id: 164
+  kind: Tuple
+  span: 1:132-144
+  children:
+  - 157
+  parent: 165
+- id: 165
+  kind: 'TransformCall: Aggregate'
+  span: 1:89-145
+  children:
+  - 137
+  - 164
+  - 140
+  parent: 170
+- id: 168
+  kind: Ident
+  span: 1:152-160
+  ident: !Ident
+  - this
+  - a
+  - album_id
+  targets:
+  - 138
+  parent: 170
+- id: 170
+  kind: 'TransformCall: Sort'
+  span: 1:147-160
+  children:
+  - 165
+  - 168
+ast:
+  name: Project
+  stmts:
+  - VarDef:
+      kind: Main
+      name: main
+      value:
+        Pipeline:
+          exprs:
+          - FuncCall:
+              name:
+                Ident: from
+              args:
+              - Ident: albums
+                alias: a
+          - FuncCall:
+              name:
+                Ident: take
+              args:
+              - Literal:
+                  Integer: 10
+          - FuncCall:
+              name:
+                Ident: join
+              args:
+              - Ident: tracks
+              - Unary:
+                  op: EqSelf
+                  expr:
+                    Ident: album_id
+          - FuncCall:
+              name:
+                Ident: group
+              args:
+              - Tuple:
+                - Indirection:
+                    base:
+                      Ident: a
+                    field: !Name album_id
+                - Indirection:
+                    base:
+                      Ident: a
+                    field: !Name title
+              - FuncCall:
+                  name:
+                    Ident: aggregate
+                  args:
+                  - Pipeline:
+                      exprs:
+                      - FuncCall:
+                          name:
+                            Ident: sum
+                          args:
+                          - Indirection:
+                              base:
+                                Ident: tracks
+                              field: !Name unit_price
+                      - FuncCall:
+                          name:
+                            Indirection:
+                              base:
+                                Ident: math
+                              field: !Name round
+                          args:
+                          - Literal:
+                              Integer: 2
+                    alias: price
+          - FuncCall:
+              name:
+                Ident: sort
+              args:
+              - Ident: album_id
+    span: 1:13-161
