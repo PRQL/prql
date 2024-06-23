@@ -37,6 +37,8 @@
   It had been deprecated for a few versions and will no longer be updated.
   (@max-sixty)
 
+- New benchmarks (@max-sixty, #4654)
+
 **New Contributors**:
 
 ## 0.12.2 — 2024-06-10
@@ -1203,8 +1205,8 @@ below in this release).
 
 **Documentation**:
 
-[This release, the changelog only contains a subset of
-documentation improvements]
+[This release, the changelog only contains a subset of documentation
+improvements]
 
 - Add docs on aliases in
   [Select](https://prql-lang.org/book/reference/stdlib/transforms/select.html)
