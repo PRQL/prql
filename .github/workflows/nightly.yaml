@@ -65,6 +65,12 @@ jobs:
       - uses: ./.github/actions/time-compilation
         with:
           use_cache: ${{ matrix.use_cache }}
+    # We need consistent env vars across all workflows for the cache to work
+    env:
+      CARGO_TERM_COLOR: always
+      CLICOLOR_FORCE: 1
+      RUSTFLAGS: "-C debuginfo=0"
+      RUSTDOCFLAGS: "-Dwarnings"
 
   check-unused-dependencies:
     runs-on: ubuntu-latest
