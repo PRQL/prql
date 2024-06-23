@@ -335,15 +335,15 @@ where
         .then_ignore(ctrl(':'))
         .then(expr.clone());
 
-    let positional_arg = ident_part()
-        .then_ignore(ctrl('='))
-        .or_not()
-        .then(expr)
-        // .map(|(alias, expr)| (None, Expr { alias, ..expr }));
-        .map(|(alias, mut expr)| {
-            expr.alias = alias.or(expr.alias);
-            (None, expr)
-        });
+    let positional_arg =
+        ident_part()
+            .then_ignore(ctrl('='))
+            .or_not()
+            .then(expr)
+            .map(|(alias, mut expr)| {
+                expr.alias = alias.or(expr.alias);
+                (None, expr)
+            });
 
     func_name
         .then(named_arg.or(positional_arg).repeated())
