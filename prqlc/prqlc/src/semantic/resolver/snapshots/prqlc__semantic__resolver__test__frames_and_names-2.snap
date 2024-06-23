@@ -20,3 +20,4 @@ inputs:
     table:
       - default_db
       - customers
+

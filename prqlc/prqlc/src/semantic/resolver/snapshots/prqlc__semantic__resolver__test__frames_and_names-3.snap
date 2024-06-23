@@ -31,3 +31,4 @@ inputs:
     table:
       - default_db
       - salaries
+

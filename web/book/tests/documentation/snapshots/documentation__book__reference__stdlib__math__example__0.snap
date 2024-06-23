@@ -6,3 +6,4 @@ SELECT
   POW(age, 2) AS age_squared
 FROM
   employees
+
