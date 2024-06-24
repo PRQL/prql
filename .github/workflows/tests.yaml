@@ -415,6 +415,8 @@ jobs:
         with:
           save-if: ${{ github.ref == 'refs/heads/main' }}
           prefix-key: ${{ env.version }}
+      # Ensure nothing remains from caching
+      - run: cargo llvm-cov clean --workspace
       - run:
           # We considered moving to using `codecov.json` with
           # `--codecov --output-path=codecov.json` since that has branch & region
