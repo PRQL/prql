@@ -64,8 +64,9 @@ let row_number = -> s"ROW_NUMBER()"
 module math {
   # Clickhouse: https://clickhouse.com/docs/en/sql-reference/functions/math-functions
   # DuckDB: https://duckdb.org/docs/test/functions/math.html
-  # MySQL: https://dev.mysql.com/doc/refman/8.0/en/mathematical-functions.html
-  # Postgres: https://www.postgresql.org/docs/7.4/functions-math.html
+  # MariaDB: https://mariadb.com/kb/en/numeric-functions/
+  # MySQL: https://dev.mysql.com/doc/refman/8.4/en/mathematical-functions.html
+  # Postgres: https://www.postgresql.org/docs/current/functions-math.html
   # SQLite: https://www.sqlite.org/lang_mathfunc.html
   # MSSQL: https://learn.microsoft.com/en-us/sql/t-sql/functions/mathematical-functions-transact-sql
   # BigQuery: https://cloud.google.com/bigquery/docs/reference/standard-sql/mathematical_functions
@@ -99,8 +100,9 @@ let as = `type` column -> s"CAST({column:0} AS {type:0})"
 module text {
   # Clickhouse: https://clickhouse.com/docs/en/sql-reference/functions/string-functions
   # DuckDB: https://duckdb.org/docs/sql/functions/char
-  # MySQL: https://dev.mysql.com/doc/refman/8.0/en/string-functions.html
-  # Postgres: https://www.postgresql.org/docs/7.4/functions-string.html
+  # MariaDB: https://mariadb.com/kb/en/string-functions/
+  # MySQL: https://dev.mysql.com/doc/refman/8.4/en/string-functions.html
+  # Postgres: https://www.postgresql.org/docs/current/functions-string.html
   # SQLite: https://www.sqlite.org/lang_corefunc.html
   # MSSQL: https://learn.microsoft.com/en-us/sql/t-sql/functions/string-functions-transact-sql
   # BigQuery: https://cloud.google.com/bigquery/docs/reference/standard-sql/string_functions
