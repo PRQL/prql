@@ -2869,7 +2869,6 @@ dependencies = [
  "csv",
  "duckdb",
  "enum-as-inner",
- "env_logger",
  "glob",
  "insta",
  "insta-cmd",

@@ -3,6 +3,7 @@
 
 use chrono::prelude::*;
 use serde::Serialize;
+use std::marker::PhantomData;
 use std::{sync::RwLock, time::SystemTime};
 use strum_macros::AsRefStr;
 
@@ -26,8 +27,7 @@ pub fn log_start() {
         version: crate::compiler_version().to_string(),
         entries: Vec::new(),
 
-        current_stage: Stage::Parsing(StageParsing::Lexer),
-        suppress: false,
+        suppress_count: 0,
     });
 }
 
@@ -36,35 +36,32 @@ pub fn log_finish() -> Option<DebugLog> {
     lock.take()
 }
 
-pub fn log_set_suppress(suppress: bool) {
-    let mut lock = CURRENT_LOG.write().unwrap();
-    if let Some(log) = lock.as_mut() {
-        log.suppress = suppress;
-    }
+/// Will discard any new entries until the lock is dropped.
+pub fn log_suppress() -> Option<LogSuppressLock> {
+    LogSuppressLock::new()
 }
 
 pub fn log_stage(stage: Stage) {
-    let mut lock = CURRENT_LOG.write().unwrap();
-    if let Some(log) = lock.as_mut() {
-        if log.suppress {
-            return;
-        }
-        log.current_stage = stage;
-    }
+    log_entry(|| DebugEntryKind::NewStage(stage));
 }
 
 pub fn log_entry(entry: impl FnOnce() -> DebugEntryKind) {
     let mut lock: std::sync::RwLockWriteGuard<'_, Option<DebugLog>> = CURRENT_LOG.write().unwrap();
     if let Some(log) = lock.as_mut() {
-        if log.suppress {
+        if log.suppress_count > 0 {
             return;
         }
 
-        let entry = DebugEntry {
-            stage: log.current_stage,
-            kind: entry(),
-        };
-        log.entries.push(entry);
+        log.entries.push(DebugEntry { kind: entry() });
+    }
+}
+
+pub fn log_is_enabled() -> bool {
+    let lock: std::sync::RwLockReadGuard<'_, Option<DebugLog>> = CURRENT_LOG.read().unwrap();
+    if let Some(log) = lock.as_ref() {
+        log.suppress_count == 0
+    } else {
+        false
     }
 }
 
@@ -75,15 +72,11 @@ pub struct DebugLog {
     pub(super) entries: Vec<DebugEntry>,
 
     #[serde(skip)]
-    current_stage: Stage,
-
-    #[serde(skip)]
-    suppress: bool,
+    suppress_count: usize,
 }
 
 #[derive(Serialize)]
 pub(super) struct DebugEntry {
-    pub(crate) stage: Stage,
     pub(crate) kind: DebugEntryKind,
 }
 
@@ -96,13 +89,24 @@ pub enum DebugEntryKind {
     ReprDecl(decl::RootModule),
     ReprRq(rq::RelationalQuery),
     ReprSql(String),
-    // TODO: maybe route all log::debug and friends here?
-    // Message(String),
+
+    Message(Message),
+    NewStage(Stage),
+}
+
+#[derive(Clone, Serialize)]
+pub struct Message {
+    // TODO: this is inefficient, replace with Cow<'static, str>
+    pub level: String,
+    pub file: Option<String>,
+    pub line: Option<u32>,
+    pub module_path: Option<String>,
+
+    pub text: String,
 }
 
 #[derive(Clone, Copy, Serialize, AsRefStr)]
 pub enum Stage {
-    Initial,
     Parsing(StageParsing),
     Semantic(StageSemantic),
     Sql,
@@ -111,7 +115,6 @@ pub enum Stage {
 impl Stage {
     pub(super) fn sub_stage(&self) -> Option<&'_ str> {
         match self {
-            Stage::Initial => None,
             Stage::Parsing(s) => Some(s.as_ref()),
             Stage::Semantic(s) => Some(s.as_ref()),
             Stage::Sql => None,
@@ -130,4 +133,28 @@ pub enum StageSemantic {
     AstExpand,
     Resolver,
     Lowering,
+}
+
+pub struct LogSuppressLock(PhantomData<usize>);
+
+impl LogSuppressLock {
+    fn new() -> Option<Self> {
+        let mut lock = CURRENT_LOG.write().unwrap();
+        if let Some(log) = lock.as_mut() {
+            log.suppress_count += 1;
+
+            Some(LogSuppressLock(PhantomData))
+        } else {
+            None
+        }
+    }
+}
+
+impl Drop for LogSuppressLock {
+    fn drop(&mut self) {
+        let mut lock = CURRENT_LOG.write().unwrap();
+        if let Some(log) = lock.as_mut() {
+            log.suppress_count -= 1;
+        }
+    }
 }

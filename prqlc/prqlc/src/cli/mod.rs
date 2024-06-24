@@ -36,10 +36,14 @@ use prqlc::{Options, Target};
 /// Entrypoint called by [`crate::main`]
 pub fn main() -> color_eyre::eyre::Result<()> {
     let mut cli = Cli::parse();
-    env_logger::builder()
-        .filter_level(cli.verbose.log_level_filter())
-        .format_timestamp(None)
-        .init();
+
+    // redirect all log messages into the [debug::DebugLog]
+    static LOGGER: debug::MessageLogger = debug::MessageLogger;
+    log::set_logger(&LOGGER)
+        .map(|()| log::set_max_level(cli.verbose.log_level_filter()))
+        .unwrap();
+
+    //
     color_eyre::install()?;
     cli.color.write_global();
 
