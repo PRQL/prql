@@ -95,7 +95,11 @@ fn convert_arrow_type(ty: &DataType) -> Result<TyKind, Error> {
         | DataType::Decimal128(_, _)
         | DataType::Decimal256(_, _)
         | DataType::Map(_, _)
-        | DataType::RunEndEncoded(_, _) => {
+        | DataType::RunEndEncoded(_, _)
+        | DataType::BinaryView
+        | DataType::Utf8View
+        | DataType::ListView(_)
+        | DataType::LargeListView(_) => {
             return Err(Error::new_simple(format!(
                 "cannot convert arrow type {ty:?} a PRQL type"
             )))
