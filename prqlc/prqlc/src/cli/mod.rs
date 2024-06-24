@@ -525,9 +525,7 @@ impl Command {
                 let res = prql_to_pl_tree(sources)
                     .and_then(|pl| pl_to_rq_tree(pl, &main_path, &[NS_DEFAULT_DB.to_string()]))
                     .and_then(|rq| rq_to_sql(rq, &opts))
-                    .map_err(|e| e.composed(sources))?
-                    .as_bytes()
-                    .to_vec();
+                    .map_err(|e| e.composed(sources));
 
                 if let Some(path) = debug_log {
                     let debug_log = if let Some(debug_log) = debug::log_finish() {
@@ -550,7 +548,7 @@ impl Command {
                     }
                 }
 
-                res
+                res?.as_bytes().to_vec()
             }
 
             Command::SQLPreprocess { .. } => {

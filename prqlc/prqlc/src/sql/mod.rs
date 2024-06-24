@@ -9,6 +9,7 @@ mod operators;
 mod pq;
 
 pub use dialect::{Dialect, SupportLevel};
+pub use pq::ast as pq_ast;
 
 use self::dialect::DialectHandler;
 use self::pq::ast::Cte;
