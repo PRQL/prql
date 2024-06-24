@@ -53,36 +53,26 @@ fn write_debug_log<W: Write>(w: &mut W, debug_log: &DebugLog) -> Result {
     // entries
     writeln!(w, "<div class=entries>")?;
     for (index, entry) in debug_log.entries.iter().enumerate() {
-        let entry_id = format!("entry-{index}");
+        writeln!(w, r#"<div class="entry">"#,)?;
 
-        let stage = entry.stage.as_ref().to_lowercase();
-        let substage = entry
-            .stage
-            .sub_stage()
-            .map(|s| s.to_lowercase())
-            .unwrap_or_default();
-        writeln!(w, r#"<div class="entry {stage} {substage}">"#,)?;
-
-        writeln!(
-            w,
-            "<input id={entry_id} class=entry-collapse type=checkbox>"
-        )?;
-        writeln!(
-            w,
-            r#"<label for={entry_id} class="entry-label clickable">{}</label>"#,
-            entry.kind.as_ref()
-        )?;
-        writeln!(w, r#"<div class="entry-content">"#)?;
         match &entry.kind {
-            DebugEntryKind::ReprPrql(a) => write_repr_prql(w, a)?,
-            DebugEntryKind::ReprLr(a) => write_repr_lr(w, a)?,
-            DebugEntryKind::ReprPr(a) => write_repr_pr(w, a)?,
-            DebugEntryKind::ReprPl(a) => write_repr_pl(w, a)?,
-            DebugEntryKind::ReprDecl(a) => write_repr_decl(w, a)?,
-            DebugEntryKind::ReprRq(a) => write_repr_rq(w, a)?,
-            DebugEntryKind::ReprSql(a) => write_repr_sql(w, a)?,
+            DebugEntryKind::NewStage(stage) => {
+                let substage = stage
+                    .sub_stage()
+                    .map(|s| s.to_lowercase())
+                    .unwrap_or_default();
+                let stage = stage.as_ref().to_lowercase();
+
+                writeln!(w, "<br/><span class=muted>{stage} {substage}</span><hr/>")?;
+            }
+            DebugEntryKind::Message(message) => {
+                write_message(w, message)?;
+            }
+            _ => {
+                write_titled_entry(w, entry, index)?;
+            }
         }
-        writeln!(w, "</div>")?; // collapsible
+
         writeln!(w, "</div>")?; // entry
     }
     writeln!(w, "</div>")?; // entries
@@ -90,6 +80,32 @@ fn write_debug_log<W: Write>(w: &mut W, debug_log: &DebugLog) -> Result {
     writeln!(w, "</body>")?;
 
     Ok(())
+}
+
+fn write_titled_entry<W: Write>(w: &mut W, entry: &DebugEntry, index: usize) -> Result {
+    let entry_id = format!("entry-{index}");
+
+    writeln!(
+        w,
+        "<input id={entry_id} class=entry-collapse type=checkbox>"
+    )?;
+
+    writeln!(w, r#"<label for={entry_id} class="entry-label clickable">"#)?;
+    let kind = entry.kind.as_ref()[4..].to_ascii_uppercase();
+    writeln!(w, r#"[<b>AST</b>] <span class=yellow>{kind}</span>"#,)?;
+    writeln!(w, r#"</label>"#)?;
+    writeln!(w, r#"<div class="entry-content">"#)?;
+    match &entry.kind {
+        DebugEntryKind::ReprPrql(a) => write_repr_prql(w, a)?,
+        DebugEntryKind::ReprLr(a) => write_repr_lr(w, a)?,
+        DebugEntryKind::ReprPr(a) => write_repr_pr(w, a)?,
+        DebugEntryKind::ReprPl(a) => write_repr_pl(w, a)?,
+        DebugEntryKind::ReprDecl(a) => write_repr_decl(w, a)?,
+        DebugEntryKind::ReprRq(a) => write_repr_rq(w, a)?,
+        DebugEntryKind::ReprSql(a) => write_repr_sql(w, a)?,
+        DebugEntryKind::NewStage(_) | DebugEntryKind::Message(_) => unreachable!(),
+    }
+    writeln!(w, "</div>")
 }
 
 fn write_repr_prql<W: Write>(w: &mut W, source_tree: &SourceTree) -> Result {
@@ -178,10 +194,19 @@ fn write_repr_sql<W: Write>(w: &mut W, query: &str) -> Result {
     writeln!(w, "</div>")
 }
 
+fn write_message<W: Write>(w: &mut W, message: &Message) -> Result {
+    write!(w, r#"<div>[<b>{}</b>"#, message.level)?;
+    if let Some(module_path) = &message.module_path {
+        write!(w, r#" {}"#, module_path)?;
+    }
+    writeln!(w, "] {}", message.text)?;
+    writeln!(w, "</div>")
+}
+
 fn write_key_values<W: Write>(w: &mut W, pairs: &[(&'static str, &dyn Debug)]) -> Result {
     writeln!(w, r#"<div class="key-values">"#)?;
     for (k, v) in pairs {
-        writeln!(w, "<div><b>{k}</b>: {v:?}</div>")?;
+        writeln!(w, "<div><b class=blue>{k}</b>: {v:?}</div>")?;
     }
     writeln!(w, "</div>")
 }
@@ -264,8 +289,8 @@ body {
     --text: #CACACA;
     --text-blue: #4ebffc;
     --text-green: #4BBFA7;
-    --text-yellow: #969676;
-    --text-hidden: gray;
+    --text-yellow: #DCDCAA;
+    --text-muted: gray;
 
     background-color: var(--background);
     color: var(--text);
@@ -282,8 +307,14 @@ body {
 .highlight-focus {
     background-color: var(--background-focus);
 }
-b {
+.yellow {
+    color: var(--text-yellow);
+}
+.blue {
     color: var(--text-blue);
+}
+.muted {
+    color: var(--text-muted);
 }
 
 .key-values {
@@ -295,15 +326,8 @@ b {
     direction: flex;
     flex-direction: column;
 }
-
-.entry {
-    direction: block;
-    padding: 0.5em 0 0.5em 0;
-}
 .entry-label {
     margin: 0;
-    font-size: 18px;
-    padding: 1em 0 0 0;
 
     display: block;
 }
@@ -313,7 +337,6 @@ b {
 .entry-collapse:checked + .entry-label + .entry-content {
     display: none;
 }
-
 .entry-content {
     display: flex;
     flex-direction: column;
@@ -336,7 +359,7 @@ code {
     margin: 0;
 }
 .ast-node>.header>span {
-    color: var(--text-hidden);
+    color: var(--text-muted);
     display: inline-block;
     margin-left: 1em;
     font-weight: normal;
@@ -464,7 +487,7 @@ document.addEventListener('DOMContentLoaded', () => {
         ast_node.addEventListener("focus", ast_node_focus);
 
         const h2 = ast_node.querySelector(":scope > .header > h2");
-        ast_node.addEventListener("click", ast_node_title_click);
+        h2.addEventListener("click", ast_node_title_click);
     });
 });
 "#;
