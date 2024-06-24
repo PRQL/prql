@@ -1,9 +1,6 @@
-use chumsky::{
-    error::Cheap,
-    prelude::*,
-    text::{newline, Character},
-};
-use serde::{Deserialize, Serialize};
+use chumsky::error::Cheap;
+use chumsky::prelude::*;
+use chumsky::text::{newline, Character};
 
 use crate::error::{Error, ErrorSource, Reason, WithErrorInfo};
 use crate::lexer::lr::{Literal, Token, TokenKind, ValueAndUnit};
@@ -24,8 +21,8 @@ pub fn lex_string_recovery(source: &str, source_id: u16) -> (Option<Vec<Token>>,
     (tokens, errors)
 }
 
-pub fn lex_source(source: &str) -> Result<TokenVec, Vec<Error>> {
-    lexer().parse(source).map(TokenVec).map_err(|e| {
+pub fn lex_source(source: &str) -> Result<lr::Tokens, Vec<Error>> {
+    lexer().parse(source).map(lr::Tokens).map_err(|e| {
         e.into_iter()
             .map(|x| convert_lexer_error(source, x, 0))
             .collect()
@@ -73,7 +70,7 @@ fn lex_token() -> impl Parser<char, Token, Error = Cheap<char>> {
         just("||").then_ignore(end_expr()).to(TokenKind::Or),
         just("??").to(TokenKind::Coalesce),
         just("//").to(TokenKind::DivInt),
-        // just("**").to(TokenKind::Pow),
+        just("**").to(TokenKind::Pow),
         just("@")
             .then(digits(1).not().rewind())
             .to(TokenKind::Annotate),
@@ -470,6 +467,3 @@ fn end_expr() -> impl Parser<char, (), Error = Cheap<char>> {
     ))
     .rewind()
 }
-
-#[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Eq)]
-pub struct TokenVec(pub Vec<Token>);

@@ -3,7 +3,7 @@ source: prqlc/prqlc/tests/integration/queries.rs
 expression: tokens
 input_file: prqlc/prqlc/tests/integration/queries/distinct.prql
 ---
-TokenVec(
+Tokens(
     [
         0..12: Comment(" mssql:test"),
         12..13: NewLine,

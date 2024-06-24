@@ -364,6 +364,7 @@ _arguments "${_arguments_options[@]}" \
 _arguments "${_arguments_options[@]}" \
 '-t+[Target to compile to]:TARGET: ' \
 '--target=[Target to compile to]:TARGET: ' \
+'--debug-log=[File path into which to write the debug log to]:DEBUG_LOG:_files' \
 '--color=[Controls when to use color]:WHEN:(auto always never)' \
 '--hide-signature-comment[Exclude the signature comment containing the PRQL version]' \
 '--no-format[Emit unformatted, dense SQL]' \

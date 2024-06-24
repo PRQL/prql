@@ -8,6 +8,7 @@ to calculate the alias `circumference` and in the `filter` transform.
 from foo
 select {
   circumference = diameter * 3.14159,
+  area = (diameter / 2) ** 2,
   color,
 }
 filter circumference > 10 && color != "red"
@@ -21,12 +22,12 @@ operations and for function calls (see the discussion below.)
 <!-- markdownlint-disable MD033 — the `|` characters need to be escaped, and surrounded with tags rather than backticks   -->
 
 |          Group | Operators                   | Precedence | Associativity |
-| -------------: | --------------------------- | :--------: | :-----------: | --- | --- |
+| -------------: | --------------------------- | :--------: | :-----------: |
 |    parentheses | `()`                        |     0      |   see below   |
 | identifier dot | `.`                         |     1      |               |
 |          unary | `-` `+` `!` `==`            |     2      |               |
 |          range | `..`                        |     3      |               |
-|           <!-- | pow                         |    `**`    |       4       |     | --> |
+|            pow | `**`                        |     4      | right-to-left |
 |            mul | `*` `/` `//` `%`            |     5      | left-to-right |
 |            add | `+` `-`                     |     6      | left-to-right |
 |        compare | `==` `!=` `<=` `>=` `<` `>` |     7      | left-to-right |

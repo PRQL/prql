@@ -4,9 +4,16 @@ use std::{collections::HashMap, path::Path};
 use itertools::Itertools;
 
 use crate::ast::{ModuleDef, Stmt, StmtKind};
+use crate::debug;
 use crate::{Error, Errors, Result, SourceTree, WithErrorInfo};
 
 pub fn parse(file_tree: &SourceTree) -> Result<ModuleDef, Errors> {
+    // register a new stage of the compiler
+    // (here should register lexer stage first, but that all happens in a single call to prqlc_parser)
+    debug::log_stage(debug::Stage::Initial);
+    debug::log_entry(|| debug::DebugEntryKind::ReprPrql(file_tree.clone()));
+    debug::log_stage(debug::Stage::Parsing(debug::StageParsing::Parser));
+
     let source_files = linearize_tree(file_tree)?;
 
     // reverse the id->file_path map
@@ -38,6 +45,7 @@ pub fn parse(file_tree: &SourceTree) -> Result<ModuleDef, Errors> {
         }
     }
     if errors.is_empty() {
+        debug::log_entry(|| debug::DebugEntryKind::ReprPr(root.clone()));
         Ok(root)
     } else {
         Err(Errors(errors))

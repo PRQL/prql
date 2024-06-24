@@ -1277,6 +1277,56 @@ fn test_func_call() {
 }
 
 #[test]
+fn test_right_assoc() {
+    assert_yaml_snapshot!(parse_expr(r#"2 ** 3 ** 4"#).unwrap(), @r###"
+    ---
+    Binary:
+      left:
+        Literal:
+          Integer: 2
+      op: Pow
+      right:
+        Binary:
+          left:
+            Literal:
+              Integer: 3
+          op: Pow
+          right:
+            Literal:
+              Integer: 4
+    "###);
+    assert_yaml_snapshot!(parse_expr(r#"1 + 2 ** (3 + 4) ** 4"#).unwrap(), @r###"
+    ---
+    Binary:
+      left:
+        Literal:
+          Integer: 1
+      op: Add
+      right:
+        Binary:
+          left:
+            Literal:
+              Integer: 2
+          op: Pow
+          right:
+            Binary:
+              left:
+                Binary:
+                  left:
+                    Literal:
+                      Integer: 3
+                  op: Add
+                  right:
+                    Literal:
+                      Integer: 4
+              op: Pow
+              right:
+                Literal:
+                  Integer: 4
+    "###);
+}
+
+#[test]
 fn test_op_precedence() {
     assert_yaml_snapshot!(parse_expr(r#"1 + 2 - 3 - 4"#).unwrap(), @r###"
         ---

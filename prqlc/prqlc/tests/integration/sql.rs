@@ -76,8 +76,9 @@ fn test_stdlib_math_module() {
       salary_tan = math.tan salary,
       salary_atan = math.atan salary,
       salary_pow = salary | math.pow 2,
+      salary_pow_op = salary ** 2,
     }
-    "#).unwrap(), @r#"
+    "#).unwrap(), @r###"
     SELECT
       ABS(salary) AS salary_abs,
       FLOOR(salary) AS salary_floor,
@@ -96,10 +97,11 @@ fn test_stdlib_math_module() {
       ASIN(salary) AS salary_asin,
       TAN(salary) AS salary_tan,
       ATAN(salary) AS salary_atan,
-      POW(salary, 2) AS salary_pow
+      POW(salary, 2) AS salary_pow,
+      POW(salary, 2) AS salary_pow_op
     FROM
       employees
-    "#
+    "###
     );
 }
 

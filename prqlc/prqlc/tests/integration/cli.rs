@@ -135,6 +135,11 @@ fn compile_help() {
               [env: PRQLC_TARGET=]
               [default: sql.any]
 
+          --debug-log <DEBUG_LOG>
+              File path into which to write the debug log to
+              
+              [env: PRQLC_DEBUG_LOG=]
+
           --color <WHEN>
               Controls when to use color
               

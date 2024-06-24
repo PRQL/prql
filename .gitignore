@@ -35,6 +35,8 @@ _*.sql
 *.snap.new
 
 *.my.csv
+log*.json
+log*.html
 
 cobertura.xml
 codecov.json
