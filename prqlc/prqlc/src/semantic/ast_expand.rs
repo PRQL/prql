@@ -17,18 +17,18 @@ pub fn expand_expr(expr: ast::Expr) -> Result<pl::Expr> {
         ast::ExprKind::FieldLookup { base, field } => {
             let field_as_name = match field {
                 ast::FieldLookupKind::Name(n) => n,
-                ast::FieldLookupKind::Position(_) => Err(Error::new_simple(
-                    "Positional indirection not supported yet",
-                )
-                .with_span(expr.span))?,
+                ast::FieldLookupKind::Position(_) => {
+                    Err(Error::new_simple("Positional lookup not supported yet")
+                        .with_span(expr.span))?
+                }
                 ast::FieldLookupKind::Star => "*".to_string(),
             };
 
-            // convert indirections into ident
-            // (in the future, resolve will support proper indirection handling)
+            // convert lookups into ident
+            // (in the future, resolve will support proper lookup handling)
             let base = expand_expr_box(base)?;
             let base_ident = base.kind.into_ident().map_err(|_| {
-                Error::new_simple("Indirection (the dot) is supported only on names.")
+                Error::new_simple("lookup (the dot) is supported only on names.")
                     .with_span(expr.span)
             })?;
 

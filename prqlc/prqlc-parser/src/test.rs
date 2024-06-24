@@ -2428,7 +2428,7 @@ fn test_module() {
 }
 
 #[test]
-fn test_indirection_01() {
+fn test_lookup_01() {
     assert_yaml_snapshot!(parse_expr(
     r#"
       {a = {x = 2}}.a.x
@@ -2453,7 +2453,7 @@ fn test_indirection_01() {
 }
 
 #[test]
-fn test_indirection_02() {
+fn test_lookup_02() {
     assert_yaml_snapshot!(parse_expr(
     r#"
       hello.*
