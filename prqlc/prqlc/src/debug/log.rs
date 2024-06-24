@@ -6,9 +6,9 @@ use serde::Serialize;
 use std::{sync::RwLock, time::SystemTime};
 use strum_macros::AsRefStr;
 
+use crate::ir::{decl, pl, rq};
 use prqlc_parser::lexer::lr;
 use prqlc_parser::parser::pr;
-use crate::ir::{decl, pl, rq};
 
 /// Stores debug info about current compilation.
 /// Is reset by [log_start] and [log_finish].
