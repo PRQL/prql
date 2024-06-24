@@ -15,5 +15,6 @@ select {
     total_sin = math.sin total | math.asin | math.round 2,
     total_tan = math.tan total | math.atan | math.round 2,
     total_deg = total | math.degrees | math.radians | math.round 2,
-    total_square = total | math.pow 2| math.round 2,
+    total_square = total | math.pow 2 | math.round 2,
+    total_square_op = (total ** 2) | math.round 2,
 }

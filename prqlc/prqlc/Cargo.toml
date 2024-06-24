@@ -56,7 +56,7 @@ serde_json = {workspace = true}
 serde_yaml = {workspace = true, optional = true}
 sqlformat = "0.2.4"
 sqlparser = {version = "0.47.0", features = ["serde"]}
-strum = {version = "0.26.2", features = ["std", "derive"]}
+strum = {version = "0.26.3", features = ["std", "derive"]}
 strum_macros = "0.26.4"
 
 [target.'cfg(not(target_family="wasm"))'.dependencies]

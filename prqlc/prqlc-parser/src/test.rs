@@ -249,7 +249,7 @@ fn test_ranges() {
         Literal:
           Float: 1.6
       end:
-        Indirection:
+        FieldLookup:
           base:
             Ident: rel
           field:
@@ -531,7 +531,7 @@ fn test_s_string() {
       - String: SUM(
       - Expr:
           expr:
-            Indirection:
+            FieldLookup:
               base:
                 Ident: rel
               field:
@@ -693,7 +693,7 @@ fn test_number() {
     // We don't allow trailing periods
     assert!(parse_expr(r#"add 1. (2, 3)"#).is_err());
 
-    assert!(parse_expr("_2.3").unwrap().kind.is_indirection());
+    assert!(parse_expr("_2.3").unwrap().kind.is_field_lookup());
 
     assert_yaml_snapshot!(parse_expr(r#"2e3"#).unwrap(), @r###"
         ---
@@ -743,7 +743,7 @@ fn test_filter() {
                   left:
                     FuncCall:
                       name:
-                        Indirection:
+                        FieldLookup:
                           base:
                             Ident: text
                           field:
@@ -1277,6 +1277,56 @@ fn test_func_call() {
 }
 
 #[test]
+fn test_right_assoc() {
+    assert_yaml_snapshot!(parse_expr(r#"2 ** 3 ** 4"#).unwrap(), @r###"
+    ---
+    Binary:
+      left:
+        Literal:
+          Integer: 2
+      op: Pow
+      right:
+        Binary:
+          left:
+            Literal:
+              Integer: 3
+          op: Pow
+          right:
+            Literal:
+              Integer: 4
+    "###);
+    assert_yaml_snapshot!(parse_expr(r#"1 + 2 ** (3 + 4) ** 4"#).unwrap(), @r###"
+    ---
+    Binary:
+      left:
+        Literal:
+          Integer: 1
+      op: Add
+      right:
+        Binary:
+          left:
+            Literal:
+              Integer: 2
+          op: Pow
+          right:
+            Binary:
+              left:
+                Binary:
+                  left:
+                    Literal:
+                      Integer: 3
+                  op: Add
+                  right:
+                    Literal:
+                      Integer: 4
+              op: Pow
+              right:
+                Literal:
+                  Integer: 4
+    "###);
+}
+
+#[test]
 fn test_op_precedence() {
     assert_yaml_snapshot!(parse_expr(r#"1 + 2 - 3 - 4"#).unwrap(), @r###"
         ---
@@ -1680,9 +1730,9 @@ join `my-proj`.`dataset`.`table`
                   name:
                     Ident: join
                   args:
-                    - Indirection:
+                    - FieldLookup:
                         base:
-                          Indirection:
+                          FieldLookup:
                             base:
                               Ident: my-proj
                             field:
@@ -1941,7 +1991,7 @@ fn test_allowed_idents() {
                     Ident: select
                   args:
                     - Tuple:
-                        - Indirection:
+                        - FieldLookup:
                             base:
                               Ident: _employees
                             field:
@@ -2367,7 +2417,7 @@ fn test_module() {
               kind: Let
               name: man
               value:
-                Indirection:
+                FieldLookup:
                   base:
                     Ident: module
                   field:
@@ -2378,16 +2428,16 @@ fn test_module() {
 }
 
 #[test]
-fn test_indirection_01() {
+fn test_lookup_01() {
     assert_yaml_snapshot!(parse_expr(
     r#"
       {a = {x = 2}}.a.x
     "#,
     ).unwrap(), @r###"
     ---
-    Indirection:
+    FieldLookup:
       base:
-        Indirection:
+        FieldLookup:
           base:
             Tuple:
               - Tuple:
@@ -2403,14 +2453,14 @@ fn test_indirection_01() {
 }
 
 #[test]
-fn test_indirection_02() {
+fn test_lookup_02() {
     assert_yaml_snapshot!(parse_expr(
     r#"
       hello.*
     "#,
     ).unwrap(), @r###"
     ---
-    Indirection:
+    FieldLookup:
       base:
         Ident: hello
       field: Star

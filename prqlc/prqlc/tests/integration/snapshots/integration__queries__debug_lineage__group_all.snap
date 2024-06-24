@@ -269,11 +269,11 @@ ast:
                 Ident: group
               args:
               - Tuple:
-                - Indirection:
+                - FieldLookup:
                     base:
                       Ident: a
                     field: !Name album_id
-                - Indirection:
+                - FieldLookup:
                     base:
                       Ident: a
                     field: !Name title
@@ -287,13 +287,13 @@ ast:
                           name:
                             Ident: sum
                           args:
-                          - Indirection:
+                          - FieldLookup:
                               base:
                                 Ident: tracks
                               field: !Name unit_price
                       - FuncCall:
                           name:
-                            Indirection:
+                            FieldLookup:
                               base:
                                 Ident: math
                               field: !Name round

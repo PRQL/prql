@@ -32,96 +32,11 @@ pub fn expr() -> impl Parser<TokenKind, Expr, Error = PError> + Clone {
 
         let nested_expr = pipeline(lambda_func(expr.clone()).or(func_call(expr.clone()))).boxed();
 
-        let tuple = ident_part()
-            .then_ignore(ctrl('='))
-            .or_not()
-            .then(nested_expr.clone())
-            .map(|(alias, mut expr)| {
-                expr.alias = alias.or(expr.alias);
-                expr
-            })
-            .padded_by(new_line().repeated())
-            .separated_by(ctrl(','))
-            .allow_trailing()
-            .then_ignore(new_line().repeated())
-            .delimited_by(ctrl('{'), ctrl('}'))
-            .recover_with(nested_delimiters(
-                TokenKind::Control('{'),
-                TokenKind::Control('}'),
-                [
-                    (TokenKind::Control('{'), TokenKind::Control('}')),
-                    (TokenKind::Control('('), TokenKind::Control(')')),
-                    (TokenKind::Control('['), TokenKind::Control(']')),
-                ],
-                |_| vec![],
-            ))
-            .map(ExprKind::Tuple)
-            .labelled("tuple");
-
-        let array = nested_expr
-            .clone()
-            .padded_by(new_line().repeated())
-            .separated_by(ctrl(','))
-            .allow_trailing()
-            .then_ignore(new_line().repeated())
-            .delimited_by(ctrl('['), ctrl(']'))
-            .recover_with(nested_delimiters(
-                TokenKind::Control('['),
-                TokenKind::Control(']'),
-                [
-                    (TokenKind::Control('{'), TokenKind::Control('}')),
-                    (TokenKind::Control('('), TokenKind::Control(')')),
-                    (TokenKind::Control('['), TokenKind::Control(']')),
-                ],
-                |_| vec![],
-            ))
-            .map(ExprKind::Array)
-            .labelled("array");
-
-        let pipeline =
-            nested_expr
-                .delimited_by(ctrl('('), ctrl(')'))
-                .recover_with(nested_delimiters(
-                    TokenKind::Control('('),
-                    TokenKind::Control(')'),
-                    [
-                        (TokenKind::Control('['), TokenKind::Control(']')),
-                        (TokenKind::Control('('), TokenKind::Control(')')),
-                    ],
-                    |_| Expr::new(ExprKind::Literal(Literal::Null)),
-                ));
-
-        let interpolation = select! {
-            TokenKind::Interpolation('s', string) => (ExprKind::SString as fn(_) -> _, string),
-            TokenKind::Interpolation('f', string) => (ExprKind::FString as fn(_) -> _, string),
-        }
-        .validate(|(finish, string), span: Span, emit| {
-            match interpolation::parse(string, span + 2) {
-                Ok(items) => finish(items),
-                Err(errors) => {
-                    for err in errors {
-                        emit(err)
-                    }
-                    finish(vec![])
-                }
-            }
-        })
-        .labelled("interpolated string");
-
-        let case = keyword("case")
-            .ignore_then(
-                func_call(expr.clone())
-                    .map(Box::new)
-                    .then_ignore(just(TokenKind::ArrowFat))
-                    .then(func_call(expr.clone()).map(Box::new))
-                    .map(|(condition, value)| SwitchCase { condition, value })
-                    .padded_by(new_line().repeated())
-                    .separated_by(ctrl(','))
-                    .allow_trailing()
-                    .then_ignore(new_line().repeated())
-                    .delimited_by(ctrl('['), ctrl(']')),
-            )
-            .map(ExprKind::Case);
+        let tuple = tuple(nested_expr.clone());
+        let array = array(nested_expr.clone());
+        let pipeline_expr = pipeline_expr(nested_expr.clone());
+        let interpolation = interpolation();
+        let case = case(expr.clone());
 
         let param = select! { TokenKind::Param(id) => ExprKind::Param(id) };
 
@@ -136,92 +51,16 @@ pub fn expr() -> impl Parser<TokenKind, Expr, Error = PError> + Clone {
             param,
         ))
         .map_with_span(ExprKind::into_expr)
-        .or(pipeline)
+        .or(pipeline_expr)
         .boxed();
 
-        // indirections
-        let term = term
-            .then(
-                ctrl('.')
-                    .ignore_then(choice((
-                        ident_part().map(IndirectionKind::Name),
-                        ctrl('*').to(IndirectionKind::Star),
-                        select! {
-                            TokenKind::Literal(Literal::Integer(i)) => IndirectionKind::Position(i)
-                        },
-                    )))
-                    .map_with_span(|f, s| (f, s))
-                    .repeated(),
-            )
-            .foldl(|base, (field, span)| {
-                let base = Box::new(base);
-                ExprKind::Indirection { base, field }.into_expr(span)
-            })
-            .boxed();
-
-        // Unary operators
-        let term = term
-            .clone()
-            .or(operator_unary()
-                .then(term.map(Box::new))
-                .map(|(op, expr)| ExprKind::Unary(UnaryExpr { op, expr }))
-                .map_with_span(ExprKind::into_expr))
-            .boxed();
-
-        // Ranges have five cases we need to parse:
-        // x..y (bounded)
-        // x..  (only start bound)
-        // x    (no-op)
-        //  ..y (only end bound)
-        //  ..  (unbounded)
-        #[derive(Clone)]
-        enum RangeCase {
-            NoOp(Expr),
-            Range(Option<Expr>, Option<Expr>),
-        }
-        let term = choice((
-            // with start bound (first 3 cases)
-            term.clone()
-                .then(choice((
-                    // range and end bound
-                    just(TokenKind::range(true, true))
-                        .ignore_then(term.clone())
-                        .map(|x| Some(Some(x))),
-                    // range and no end bound
-                    select! { TokenKind::Range { bind_left: true, .. } => Some(None) },
-                    // no range
-                    empty().to(None),
-                )))
-                .map(|(start, range)| {
-                    if let Some(end) = range {
-                        RangeCase::Range(Some(start), end)
-                    } else {
-                        RangeCase::NoOp(start)
-                    }
-                }),
-            // only end bound
-            select! { TokenKind::Range { bind_right: true, .. } => () }
-                .ignore_then(term)
-                .map(|range| RangeCase::Range(None, Some(range))),
-            // unbounded
-            select! { TokenKind::Range { .. } => RangeCase::Range(None, None) },
-        ))
-        .map_with_span(|case, span| match case {
-            RangeCase::NoOp(x) => x,
-            RangeCase::Range(start, end) => {
-                let kind = ExprKind::Range(Range {
-                    start: start.map(Box::new),
-                    end: end.map(Box::new),
-                });
-                kind.into_expr(span)
-            }
-        })
-        .boxed();
+        let term = field_lookup(term);
+        let term = unary(term);
+        let term = range(term);
 
         // Binary operators
         let expr = term;
-        // TODO: for `operator_pow` we need to do right-associative parsing
-        // let expr = binary_op_parser_right(expr, operator_pow());
+        let expr = binary_op_parser_right(expr, operator_pow());
         let expr = binary_op_parser(expr, operator_mul());
         let expr = binary_op_parser(expr, operator_add());
         let expr = binary_op_parser(expr, operator_compare());
@@ -232,9 +71,199 @@ pub fn expr() -> impl Parser<TokenKind, Expr, Error = PError> + Clone {
     })
 }
 
-pub fn pipeline<E>(expr: E) -> impl Parser<TokenKind, Expr, Error = PError> + Clone
+fn tuple(
+    nested_expr: impl Parser<TokenKind, Expr, Error = PError> + Clone,
+) -> impl Parser<TokenKind, ExprKind, Error = PError> + Clone {
+    ident_part()
+        .then_ignore(ctrl('='))
+        .or_not()
+        .then(nested_expr)
+        .map(|(alias, expr)| Expr { alias, ..expr })
+        .padded_by(new_line().repeated())
+        .separated_by(ctrl(','))
+        .allow_trailing()
+        .then_ignore(new_line().repeated())
+        .delimited_by(ctrl('{'), ctrl('}'))
+        .recover_with(nested_delimiters(
+            TokenKind::Control('{'),
+            TokenKind::Control('}'),
+            [
+                (TokenKind::Control('{'), TokenKind::Control('}')),
+                (TokenKind::Control('('), TokenKind::Control(')')),
+                (TokenKind::Control('['), TokenKind::Control(']')),
+            ],
+            |_| vec![],
+        ))
+        .map(ExprKind::Tuple)
+        .labelled("tuple")
+}
+
+fn array(
+    expr: impl Parser<TokenKind, Expr, Error = PError> + Clone,
+) -> impl Parser<TokenKind, ExprKind, Error = PError> + Clone {
+    expr.padded_by(new_line().repeated())
+        .separated_by(ctrl(','))
+        .allow_trailing()
+        .then_ignore(new_line().repeated())
+        .delimited_by(ctrl('['), ctrl(']'))
+        .recover_with(nested_delimiters(
+            TokenKind::Control('['),
+            TokenKind::Control(']'),
+            [
+                (TokenKind::Control('{'), TokenKind::Control('}')),
+                (TokenKind::Control('('), TokenKind::Control(')')),
+                (TokenKind::Control('['), TokenKind::Control(']')),
+            ],
+            |_| vec![],
+        ))
+        .map(ExprKind::Array)
+        .labelled("array")
+}
+
+fn pipeline_expr(
+    expr: impl Parser<TokenKind, Expr, Error = PError> + Clone,
+) -> impl Parser<TokenKind, Expr, Error = PError> + Clone {
+    expr.delimited_by(ctrl('('), ctrl(')'))
+        .recover_with(nested_delimiters(
+            TokenKind::Control('('),
+            TokenKind::Control(')'),
+            [
+                (TokenKind::Control('['), TokenKind::Control(']')),
+                (TokenKind::Control('('), TokenKind::Control(')')),
+            ],
+            |_| Expr::new(ExprKind::Literal(Literal::Null)),
+        ))
+}
+
+fn interpolation() -> impl Parser<TokenKind, ExprKind, Error = PError> + Clone {
+    select! {
+        TokenKind::Interpolation('s', string) => (ExprKind::SString as fn(_) -> _, string),
+        TokenKind::Interpolation('f', string) => (ExprKind::FString as fn(_) -> _, string),
+    }
+    .validate(
+        |(finish, string), span: Span, emit| match interpolation::parse(string, span + 2) {
+            Ok(items) => finish(items),
+            Err(errors) => {
+                for err in errors {
+                    emit(err)
+                }
+                finish(vec![])
+            }
+        },
+    )
+    .labelled("interpolated string")
+}
+
+fn case(
+    expr: impl Parser<TokenKind, Expr, Error = PError> + Clone,
+) -> impl Parser<TokenKind, ExprKind, Error = PError> + Clone {
+    keyword("case")
+        .ignore_then(
+            func_call(expr.clone())
+                .map(Box::new)
+                .then_ignore(just(TokenKind::ArrowFat))
+                .then(func_call(expr).map(Box::new))
+                .map(|(condition, value)| SwitchCase { condition, value })
+                .padded_by(new_line().repeated())
+                .separated_by(ctrl(','))
+                .allow_trailing()
+                .then_ignore(new_line().repeated())
+                .delimited_by(ctrl('['), ctrl(']')),
+        )
+        .map(ExprKind::Case)
+}
+
+fn unary<'a, E>(expr: E) -> impl Parser<TokenKind, Expr, Error = PError> + Clone + 'a
 where
-    E: Parser<TokenKind, Expr, Error = PError> + Clone,
+    E: Parser<TokenKind, Expr, Error = PError> + Clone + 'a,
+{
+    expr.clone()
+        .or(operator_unary()
+            .then(expr.map(Box::new))
+            .map(|(op, expr)| ExprKind::Unary(UnaryExpr { op, expr }))
+            .map_with_span(ExprKind::into_expr))
+        .boxed()
+}
+
+fn field_lookup<'a, E>(expr: E) -> impl Parser<TokenKind, Expr, Error = PError> + Clone + 'a
+where
+    E: Parser<TokenKind, Expr, Error = PError> + Clone + 'a,
+{
+    expr.then(
+        ctrl('.')
+            .ignore_then(choice((
+                ident_part().map(FieldLookupKind::Name),
+                ctrl('*').to(FieldLookupKind::Star),
+                select! {
+                    TokenKind::Literal(Literal::Integer(i)) => FieldLookupKind::Position(i)
+                },
+            )))
+            .map_with_span(|f, s| (f, s))
+            .repeated(),
+    )
+    .foldl(|base, (field, span)| {
+        let base = Box::new(base);
+        ExprKind::FieldLookup { base, field }.into_expr(span)
+    })
+}
+
+fn range<'a, E>(expr: E) -> impl Parser<TokenKind, Expr, Error = PError> + Clone + 'a
+where
+    E: Parser<TokenKind, Expr, Error = PError> + Clone + 'a,
+{
+    // Ranges have five cases we need to parse:
+    // x..y (bounded)
+    // x..  (only start bound)
+    // x    (no-op)
+    //  ..y (only end bound)
+    //  ..  (unbounded)
+    #[derive(Clone)]
+    enum RangeCase {
+        NoOp(Expr),
+        Range(Option<Expr>, Option<Expr>),
+    }
+    choice((
+        // with start bound (first 3 cases)
+        expr.clone()
+            .then(choice((
+                // range and end bound
+                just(TokenKind::range(true, true))
+                    .ignore_then(expr.clone())
+                    .map(|x| Some(Some(x))),
+                // range and no end bound
+                select! { TokenKind::Range { bind_left: true, .. } => Some(None) },
+                // no range
+                empty().to(None),
+            )))
+            .map(|(start, range)| {
+                if let Some(end) = range {
+                    RangeCase::Range(Some(start), end)
+                } else {
+                    RangeCase::NoOp(start)
+                }
+            }),
+        // only end bound
+        select! { TokenKind::Range { bind_right: true, .. } => () }
+            .ignore_then(expr)
+            .map(|range| RangeCase::Range(None, Some(range))),
+        // unbounded
+        select! { TokenKind::Range { .. } => RangeCase::Range(None, None) },
+    ))
+    .map_with_span(|case, span| match case {
+        RangeCase::NoOp(x) => x,
+        RangeCase::Range(start, end) => {
+            let kind = ExprKind::Range(Range {
+                start: start.map(Box::new),
+                end: end.map(Box::new),
+            });
+            kind.into_expr(span)
+        }
+    })
+}
+
+pub(crate) fn pipeline<'a, E>(expr: E) -> impl Parser<TokenKind, Expr, Error = PError> + Clone + 'a
+where
+    E: Parser<TokenKind, Expr, Error = PError> + Clone + 'a,
 {
     // expr has to be a param, because it can be either a normal expr() or a
     // recursive expr called from within expr(), which causes a stack overflow
@@ -267,17 +296,17 @@ where
         .labelled("pipeline")
 }
 
-pub fn binary_op_parser<'a, Term, Op>(
+fn binary_op_parser<'a, Term, Op>(
     term: Term,
     op: Op,
 ) -> impl Parser<TokenKind, Expr, Error = PError> + 'a + Clone
 where
-    Term: Parser<TokenKind, Expr, Error = PError> + 'a,
-    Op: Parser<TokenKind, BinOp, Error = PError> + 'a,
+    Term: Parser<TokenKind, Expr, Error = PError> + 'a + Clone,
+    Op: Parser<TokenKind, BinOp, Error = PError> + 'a + Clone,
 {
     let term = term.map_with_span(|e, s| (e, s)).boxed();
 
-    (term.clone())
+    term.clone()
         .then(op.then(term).repeated())
         .foldl(|left, (op, right)| {
             let span = Span {
@@ -291,6 +320,60 @@ where
                 right: Box::new(right.0),
             });
             (ExprKind::into_expr(kind, span), span)
+        })
+        .map(|(e, _)| e)
+        .boxed()
+}
+
+pub fn binary_op_parser_right<'a, Term, Op>(
+    term: Term,
+    op: Op,
+) -> impl Parser<TokenKind, Expr, Error = PError> + Clone + 'a
+where
+    Term: Parser<TokenKind, Expr, Error = PError> + Clone + 'a,
+    Op: Parser<TokenKind, BinOp, Error = PError> + Clone + 'a,
+{
+    let term = term.map_with_span(|e, s| (e, s)).boxed();
+
+    (term.clone())
+        .then(op.then(term).repeated())
+        .map(|(first, others)| {
+            // A transformation from this:
+            // ```
+            // first: e1
+            // others: [(op1 e2) (op2 e3)]
+            // ```
+            // ... into:
+            // ```
+            // r: [(e1 op1) (e2 op2)]
+            // e3
+            // ```
+            // .. so we can use foldr for right associativity.
+            // We could use `(term.then(op)).repeated().then(term)` instead,
+            // and have the correct structure from the get-go, but that would
+            // perform miserably with simple expressions without operators, because
+            // it would re-parse the term twice for each level of precedence we have.
+
+            let mut free = first;
+            let mut r = Vec::new();
+            for (op, expr) in others {
+                r.push((free, op));
+                free = expr;
+            }
+            (r, free)
+        })
+        .foldr(|(left, op), right| {
+            let span = Span {
+                start: left.1.start,
+                end: right.1.end,
+                source_id: left.1.source_id,
+            };
+            let kind = ExprKind::Binary(BinaryExpr {
+                left: Box::new(left.0),
+                op,
+                right: Box::new(right.0),
+            });
+            (kind.into_expr(span), span)
         })
         .map(|(e, _)| e)
         .boxed()
@@ -326,13 +409,18 @@ where
 
             let mut named_args = HashMap::new();
             let mut positional = Vec::new();
+
             for (name, arg) in args {
                 if let Some(name) = name {
-                    if named_args.contains_key(&name) {
-                        let err = PError::custom(span, "argument is used multiple times");
-                        emit(err)
+                    match named_args.entry(name) {
+                        std::collections::hash_map::Entry::Occupied(entry) => emit(PError::custom(
+                            span,
+                            format!("argument '{}' is used multiple times", entry.key()),
+                        )),
+                        std::collections::hash_map::Entry::Vacant(entry) => {
+                            entry.insert(arg);
+                        }
                     }
-                    named_args.insert(name, arg);
                 } else {
                     positional.push(arg);
                 }
@@ -407,32 +495,32 @@ where
     .labelled("function definition")
 }
 
-pub fn ident() -> impl Parser<TokenKind, Ident, Error = PError> + Clone {
+pub(crate) fn ident() -> impl Parser<TokenKind, Ident, Error = PError> + Clone {
     ident_part()
         .separated_by(ctrl('.'))
         .at_least(1)
         .map(Ident::from_path::<String>)
 }
 
-fn operator_unary() -> impl Parser<TokenKind, UnOp, Error = PError> {
+fn operator_unary() -> impl Parser<TokenKind, UnOp, Error = PError> + Clone {
     (ctrl('+').to(UnOp::Add))
         .or(ctrl('-').to(UnOp::Neg))
         .or(ctrl('!').to(UnOp::Not))
         .or(just(TokenKind::Eq).to(UnOp::EqSelf))
 }
-// fn operator_pow() -> impl Parser<TokenKind, BinOp, Error = PError> {
-//     just(TokenKind::Pow).to(BinOp::Pow)
-// }
-fn operator_mul() -> impl Parser<TokenKind, BinOp, Error = PError> {
+fn operator_pow() -> impl Parser<TokenKind, BinOp, Error = PError> + Clone {
+    just(TokenKind::Pow).to(BinOp::Pow)
+}
+fn operator_mul() -> impl Parser<TokenKind, BinOp, Error = PError> + Clone {
     (just(TokenKind::DivInt).to(BinOp::DivInt))
         .or(ctrl('*').to(BinOp::Mul))
         .or(ctrl('/').to(BinOp::DivFloat))
         .or(ctrl('%').to(BinOp::Mod))
 }
-fn operator_add() -> impl Parser<TokenKind, BinOp, Error = PError> {
+fn operator_add() -> impl Parser<TokenKind, BinOp, Error = PError> + Clone {
     (ctrl('+').to(BinOp::Add)).or(ctrl('-').to(BinOp::Sub))
 }
-fn operator_compare() -> impl Parser<TokenKind, BinOp, Error = PError> {
+fn operator_compare() -> impl Parser<TokenKind, BinOp, Error = PError> + Clone {
     choice((
         just(TokenKind::Eq).to(BinOp::Eq),
         just(TokenKind::Ne).to(BinOp::Ne),
@@ -443,12 +531,12 @@ fn operator_compare() -> impl Parser<TokenKind, BinOp, Error = PError> {
         ctrl('>').to(BinOp::Gt),
     ))
 }
-fn operator_and() -> impl Parser<TokenKind, BinOp, Error = PError> {
+fn operator_and() -> impl Parser<TokenKind, BinOp, Error = PError> + Clone {
     just(TokenKind::And).to(BinOp::And)
 }
-pub fn operator_or() -> impl Parser<TokenKind, BinOp, Error = PError> {
+fn operator_or() -> impl Parser<TokenKind, BinOp, Error = PError> + Clone {
     just(TokenKind::Or).to(BinOp::Or)
 }
-fn operator_coalesce() -> impl Parser<TokenKind, BinOp, Error = PError> {
+fn operator_coalesce() -> impl Parser<TokenKind, BinOp, Error = PError> + Clone {
     just(TokenKind::Coalesce).to(BinOp::Coalesce)
 }
