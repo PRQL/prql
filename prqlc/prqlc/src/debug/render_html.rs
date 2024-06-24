@@ -50,7 +50,7 @@ fn write_debug_log<W: Write>(w: &mut W, debug_log: &DebugLog) -> Result {
 
     writeln!(w, "</header>")?;
 
-    // entires
+    // entries
     writeln!(w, "<div class=entries>")?;
     for (index, entry) in debug_log.entries.iter().enumerate() {
         let entry_id = format!("entry-{index}");
