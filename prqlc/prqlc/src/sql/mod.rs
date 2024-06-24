@@ -13,11 +13,15 @@ pub use dialect::{Dialect, SupportLevel};
 use self::dialect::DialectHandler;
 use self::pq::ast::Cte;
 use self::pq::context::AnchorContext;
+use crate::debug;
+use crate::ir::rq;
 use crate::Result;
-use crate::{compiler_version, ir::rq::RelationalQuery, Options};
+use crate::{compiler_version, Options};
 
 /// Translate a PRQL AST into a SQL string.
-pub fn compile(query: RelationalQuery, options: &Options) -> Result<String> {
+pub fn compile(query: rq::RelationalQuery, options: &Options) -> Result<String> {
+    debug::log_stage(debug::Stage::Sql);
+
     let crate::Target::Sql(dialect) = options.target;
     let sql_ast = gen_query::translate_query(query, dialect)?;
 
@@ -35,6 +39,8 @@ pub fn compile(query: RelationalQuery, options: &Options) -> Result<String> {
     } else {
         sql
     };
+
+    debug::log_entry(|| debug::DebugEntryKind::ReprSql(sql.clone()));
 
     // signature
     let sql = if options.signature_comment {
@@ -63,7 +69,7 @@ pub mod internal {
     use crate::ir::rq::Transform;
     use crate::Error;
 
-    fn init(query: RelationalQuery) -> Result<(Vec<Transform>, Context)> {
+    fn init(query: rq::RelationalQuery) -> Result<(Vec<Transform>, Context)> {
         let (ctx, relation) = AnchorContext::of(query);
         let ctx = Context::new(dialect::Dialect::Generic, ctx);
 
@@ -73,14 +79,14 @@ pub mod internal {
     }
 
     /// Applies preprocessing to the main relation in RQ. Meant for debugging purposes.
-    pub fn preprocess(query: RelationalQuery) -> Result<Vec<SqlTransform>> {
+    pub fn preprocess(query: rq::RelationalQuery) -> Result<Vec<SqlTransform>> {
         let (pipeline, mut ctx) = init(query)?;
 
         pq::preprocess::preprocess(pipeline, &mut ctx)
     }
 
     /// Applies preprocessing and anchoring to the main relation in RQ. Meant for debugging purposes.
-    pub fn anchor(query: RelationalQuery) -> Result<pq::ast::SqlQuery> {
+    pub fn anchor(query: rq::RelationalQuery) -> Result<pq::ast::SqlQuery> {
         let (query, _ctx) = pq::compile_query(query, Some(dialect::Dialect::Generic))?;
         Ok(query)
     }

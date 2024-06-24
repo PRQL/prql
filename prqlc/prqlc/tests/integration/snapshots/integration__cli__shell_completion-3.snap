@@ -282,6 +282,7 @@ Register-ArgumentCompleter -Native -CommandName 'prqlc' -ScriptBlock {
         'prqlc;compile' {
             [CompletionResult]::new('-t', 't', [CompletionResultType]::ParameterName, 'Target to compile to')
             [CompletionResult]::new('--target', 'target', [CompletionResultType]::ParameterName, 'Target to compile to')
+            [CompletionResult]::new('--debug-log', 'debug-log', [CompletionResultType]::ParameterName, 'File path into which to write the debug log to')
             [CompletionResult]::new('--color', 'color', [CompletionResultType]::ParameterName, 'Controls when to use color')
             [CompletionResult]::new('--hide-signature-comment', 'hide-signature-comment', [CompletionResultType]::ParameterName, 'Exclude the signature comment containing the PRQL version')
             [CompletionResult]::new('--no-format', 'no-format', [CompletionResultType]::ParameterName, 'Emit unformatted, dense SQL')

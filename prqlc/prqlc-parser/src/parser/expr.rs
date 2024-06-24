@@ -6,7 +6,7 @@ use itertools::Itertools;
 use super::interpolation;
 use crate::error::parse_error::PError;
 use crate::lexer::lr::{Literal, TokenKind};
-use crate::parser::common::{ctrl, ident_part, into_expr, keyword, new_line};
+use crate::parser::common::{ctrl, ident_part, keyword, new_line};
 use crate::parser::pr::Ident;
 use crate::parser::pr::*;
 use crate::parser::pr::{BinOp, UnOp};
@@ -135,7 +135,7 @@ pub fn expr() -> impl Parser<TokenKind, Expr, Error = PError> + Clone {
             case,
             param,
         ))
-        .map_with_span(into_expr)
+        .map_with_span(ExprKind::into_expr)
         .or(pipeline)
         .boxed();
 
@@ -155,7 +155,7 @@ pub fn expr() -> impl Parser<TokenKind, Expr, Error = PError> + Clone {
             )
             .foldl(|base, (field, span)| {
                 let base = Box::new(base);
-                into_expr(ExprKind::Indirection { base, field }, span)
+                ExprKind::Indirection { base, field }.into_expr(span)
             })
             .boxed();
 
@@ -165,7 +165,7 @@ pub fn expr() -> impl Parser<TokenKind, Expr, Error = PError> + Clone {
             .or(operator_unary()
                 .then(term.map(Box::new))
                 .map(|(op, expr)| ExprKind::Unary(UnaryExpr { op, expr }))
-                .map_with_span(into_expr))
+                .map_with_span(ExprKind::into_expr))
             .boxed();
 
         // Ranges have five cases we need to parse:
@@ -213,7 +213,7 @@ pub fn expr() -> impl Parser<TokenKind, Expr, Error = PError> + Clone {
                     start: start.map(Box::new),
                     end: end.map(Box::new),
                 });
-                into_expr(kind, span)
+                kind.into_expr(span)
             }
         })
         .boxed();
@@ -256,12 +256,10 @@ where
                     // in a pipeline — just return the lone expr. Otherwise,
                     // wrap them in a pipeline.
                     exprs.into_iter().exactly_one().unwrap_or_else(|exprs| {
-                        into_expr(
-                            ExprKind::Pipeline(Pipeline {
-                                exprs: exprs.collect(),
-                            }),
-                            span,
-                        )
+                        ExprKind::Pipeline(Pipeline {
+                            exprs: exprs.collect(),
+                        })
+                        .into_expr(span)
                     })
                 }),
         )
@@ -292,7 +290,7 @@ where
                 op,
                 right: Box::new(right.0),
             });
-            (into_expr(kind, span), span)
+            (ExprKind::into_expr(kind, span), span)
         })
         .map(|(e, _)| e)
         .boxed()
@@ -346,18 +344,17 @@ where
                 named_args,
             })
         })
-        .map_with_span(into_expr)
+        .map_with_span(ExprKind::into_expr)
         .labelled("function call")
 }
 
 fn lambda_func<E>(expr: E) -> impl Parser<TokenKind, Expr, Error = PError> + Clone
 where
-    E: Parser<TokenKind, Expr, Error = PError> + Clone + 'static,
+    E: Parser<TokenKind, Expr, Error = PError> + Clone,
 {
     let param = ident_part()
         .then(type_expr().delimited_by(ctrl('<'), ctrl('>')).or_not())
-        .then(ctrl(':').ignore_then(expr.clone().map(Box::new)).or_not())
-        .boxed();
+        .then(ctrl(':').ignore_then(expr.clone().map(Box::new)).or_not());
 
     let generic_args = ident_part()
         .then_ignore(ctrl(':'))
@@ -406,7 +403,7 @@ where
         })
     })
     .map(ExprKind::Func)
-    .map_with_span(into_expr)
+    .map_with_span(ExprKind::into_expr)
     .labelled("function definition")
 }
 

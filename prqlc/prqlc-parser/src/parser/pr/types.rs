@@ -50,6 +50,16 @@ pub enum TyKind {
     GenericArg((usize, String)),
 }
 
+impl TyKind {
+    pub fn into_ty(self: TyKind, span: Span) -> Ty {
+        Ty {
+            kind: self,
+            span: Some(span),
+            name: None,
+        }
+    }
+}
+
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize, EnumAsInner)]
 pub enum TyTupleField {
     /// Named tuple element.

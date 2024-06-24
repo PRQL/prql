@@ -2,7 +2,7 @@ use chumsky::prelude::*;
 
 use crate::error::parse_error::PError;
 use crate::lexer::lr::TokenKind;
-use crate::parser::pr::{Annotation, Expr, ExprKind, Stmt, StmtKind, Ty, TyKind};
+use crate::parser::pr::{Annotation, Stmt, StmtKind};
 use crate::span::Span;
 
 pub fn ident_part() -> impl Parser<TokenKind, String, Error = PError> + Clone {
@@ -36,19 +36,5 @@ pub fn into_stmt((annotations, kind): (Vec<Annotation>, StmtKind), span: Span) -
         kind,
         span: Some(span),
         annotations,
-    }
-}
-
-pub fn into_expr(kind: ExprKind, span: Span) -> Expr {
-    Expr {
-        span: Some(span),
-        ..Expr::new(kind)
-    }
-}
-
-pub fn into_ty(kind: TyKind, span: Span) -> Ty {
-    Ty {
-        span: Some(span),
-        ..Ty::new(kind)
     }
 }

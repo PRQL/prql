@@ -23,6 +23,7 @@ concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}-${{ github.event_name }}
   cancel-in-progress: true
 
+# We need consistent env vars across all workflows for the cache to work
 env:
   CARGO_TERM_COLOR: always
   CLICOLOR_FORCE: 1
@@ -648,8 +649,7 @@ jobs:
           target: ${{ matrix.target }}
           profile: dev
           features: ${{ matrix.features }}
-    # These are the same env variables as in `test-rust.yaml`. Custom actions
-    # don't allow setting env variables for the whole job, so we do it here.
+    # We need consistent env vars across all workflows for the cache to work
     env:
       CARGO_TERM_COLOR: always
       CLICOLOR_FORCE: 1
@@ -682,8 +682,7 @@ jobs:
           target: ${{ matrix.target }}
           profile: dev
           features: ${{ matrix.features }}
-    # These are the same env variables as in `test-rust.yaml`. Custom actions
-    # don't allow setting env variables for the whole job, so we do it here.
+    # We need consistent env vars across all workflows for the cache to work
     env:
       CARGO_TERM_COLOR: always
       CLICOLOR_FORCE: 1

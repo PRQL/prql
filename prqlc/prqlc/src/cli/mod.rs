@@ -6,9 +6,10 @@ mod watch;
 
 use std::collections::HashMap;
 use std::env;
-use std::io::{Read, Write};
+use std::fs::File;
+use std::io::{BufWriter, Read, Write};
 use std::ops::Range;
-use std::path::Path;
+use std::path::{Path, PathBuf};
 use std::process::exit;
 use std::str::FromStr;
 
@@ -23,10 +24,10 @@ use clio::has_extension;
 use clio::Output;
 use is_terminal::IsTerminal;
 use itertools::Itertools;
-use prqlc::debug::pl_to_lineage;
-use prqlc::semantic;
+use prqlc::internal::pl_to_lineage;
 use prqlc::semantic::reporting::{collect_frames, label_references};
 use prqlc::semantic::NS_DEFAULT_DB;
+use prqlc::{debug, semantic};
 use prqlc::{ir::pl::Lineage, ir::Span};
 use prqlc::{pl_to_prql, pl_to_rq_tree, prql_to_pl, prql_to_pl_tree, rq_to_sql, SourceTree};
 use prqlc::{pr, prql_to_tokens};
@@ -155,6 +156,10 @@ enum Command {
         /// Target to compile to
         #[arg(short, long, default_value = "sql.any", env = "PRQLC_TARGET")]
         target: String,
+
+        /// File path into which to write the debug log to.
+        #[arg(long, env = "PRQLC_DEBUG_LOG")]
+        debug_log: Option<PathBuf>,
     },
 
     /// Watch a directory and compile .prql files to .sql files
@@ -501,19 +506,47 @@ impl Command {
                 signature_comment,
                 format,
                 target,
+                debug_log,
                 ..
             } => {
+                if debug_log.is_some() {
+                    debug::log_start();
+                }
+
                 let opts = Options::default()
                     .with_target(Target::from_str(target).map_err(prqlc::ErrorMessages::from)?)
                     .with_signature_comment(*signature_comment)
                     .with_format(*format);
 
-                prql_to_pl_tree(sources)
+                let res = prql_to_pl_tree(sources)
                     .and_then(|pl| pl_to_rq_tree(pl, &main_path, &[NS_DEFAULT_DB.to_string()]))
                     .and_then(|rq| rq_to_sql(rq, &opts))
                     .map_err(|e| e.composed(sources))?
                     .as_bytes()
-                    .to_vec()
+                    .to_vec();
+
+                if let Some(path) = debug_log {
+                    let debug_log = if let Some(debug_log) = debug::log_finish() {
+                        debug_log
+                    } else {
+                        return Err(anyhow!(
+                            "debug log was started, but it cannot be found after compilation"
+                        ));
+                    };
+                    match path.extension().and_then(|s| s.to_str()) {
+                        Some("json") => {
+                            let file = BufWriter::new(File::create(path)?);
+                            serde_json::to_writer(file, &debug_log)?;
+                        }
+                        Some("html") => {
+                            let file = BufWriter::new(File::create(path)?);
+                            debug::render_log_to_html(file, &debug_log)?;
+                        }
+                        _ => return Err(anyhow!("unknown debug log format for file {path:?}")),
+                    }
+                }
+
+                res
             }
 
             Command::SQLPreprocess { .. } => {
@@ -721,7 +754,7 @@ sort full
 
     /// Check we get an error on a bad input
     #[test]
-    fn compile() {
+    fn compile_bad() {
         anstream::ColorChoice::Never.write_global();
 
         let result = Command::execute(
@@ -730,6 +763,7 @@ sort full
                 signature_comment: false,
                 format: true,
                 target: "sql.any".to_string(),
+                debug_log: None,
             },
             &mut "asdf".into(),
             "",
@@ -747,13 +781,14 @@ sort full
     }
 
     #[test]
-    fn compile_multiple() {
+    fn compile() {
         let result = Command::execute(
             &Command::SQLCompile {
                 io_args: IoArgs::default(),
                 signature_comment: false,
                 format: true,
                 target: "sql.any".to_string(),
+                debug_log: Some(PathBuf::from_str("./log_test.html").unwrap()),
             },
             &mut SourceTree::new(
                 [
@@ -781,6 +816,9 @@ sort full
         FROM
           x
         "###);
+
+        // don't check the contents, they are very prone to change
+        assert!(PathBuf::from_str("./log_test.html").unwrap().is_file());
     }
 
     #[test]
