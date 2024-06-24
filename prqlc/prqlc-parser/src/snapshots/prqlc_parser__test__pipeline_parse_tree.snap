@@ -11,118 +11,181 @@ expression: "parse_single(r#\"\nfrom employees\nfilter country == \"USA\"       
           - FuncCall:
               name:
                 Ident: from
+                span: "0:1-5"
               args:
                 - Ident: employees
+                  span: "0:6-15"
+            span: "0:1-15"
           - FuncCall:
               name:
                 Ident: filter
+                span: "0:16-22"
               args:
                 - Binary:
                     left:
                       Ident: country
+                      span: "0:23-30"
                     op: Eq
                     right:
                       Literal:
                         String: USA
+                      span: "0:34-39"
+                  span: "0:23-39"
+            span: "0:16-39"
           - FuncCall:
               name:
                 Ident: derive
+                span: "0:105-111"
               args:
                 - Tuple:
                     - Binary:
                         left:
                           Ident: salary
+                          span: "0:200-206"
                         op: Add
                         right:
                           Ident: payroll_tax
+                          span: "0:209-220"
+                      span: "0:200-220"
                       alias: gross_salary
                     - Binary:
                         left:
                           Ident: gross_salary
+                          span: "0:237-249"
                         op: Add
                         right:
                           Ident: benefits_cost
+                          span: "0:252-265"
+                      span: "0:237-265"
                       alias: gross_cost
+                  span: "0:112-305"
+            span: "0:105-305"
           - FuncCall:
               name:
                 Ident: filter
+                span: "0:306-312"
               args:
                 - Binary:
                     left:
                       Ident: gross_cost
+                      span: "0:313-323"
                     op: Gt
                     right:
                       Literal:
                         Integer: 0
+                      span: "0:326-327"
+                  span: "0:313-327"
+            span: "0:306-327"
           - FuncCall:
               name:
                 Ident: group
+                span: "0:328-333"
               args:
                 - Tuple:
                     - Ident: title
+                      span: "0:335-340"
                     - Ident: country
+                      span: "0:342-349"
+                  span: "0:334-350"
                 - FuncCall:
                     name:
                       Ident: aggregate
+                      span: "0:414-423"
                     args:
                       - Tuple:
                           - FuncCall:
                               name:
                                 Ident: average
+                                span: "0:500-507"
                               args:
                                 - Ident: salary
+                                  span: "0:508-514"
+                            span: "0:500-514"
                           - FuncCall:
                               name:
                                 Ident: average
+                                span: "0:520-527"
                               args:
                                 - Ident: gross_salary
+                                  span: "0:528-540"
+                            span: "0:520-540"
                           - FuncCall:
                               name:
                                 Ident: sum
+                                span: "0:546-549"
                               args:
                                 - Ident: salary
+                                  span: "0:550-556"
+                            span: "0:546-556"
                           - FuncCall:
                               name:
                                 Ident: sum
+                                span: "0:562-565"
                               args:
                                 - Ident: gross_salary
+                                  span: "0:566-578"
+                            span: "0:562-578"
                           - FuncCall:
                               name:
                                 Ident: average
+                                span: "0:584-591"
                               args:
                                 - Ident: gross_cost
+                                  span: "0:592-602"
+                            span: "0:584-602"
                           - FuncCall:
                               name:
                                 Ident: sum
+                                span: "0:625-628"
                               args:
                                 - Ident: gross_cost
+                                  span: "0:629-639"
+                            span: "0:625-639"
                             alias: sum_gross_cost
                           - FuncCall:
                               name:
                                 Ident: count
+                                span: "0:650-655"
                               args:
                                 - Ident: salary
+                                  span: "0:656-662"
+                            span: "0:650-662"
                             alias: ct
+                        span: "0:424-667"
+                  span: "0:414-667"
+            span: "0:328-669"
           - FuncCall:
               name:
                 Ident: sort
+                span: "0:670-674"
               args:
                 - Ident: sum_gross_cost
+                  span: "0:675-689"
+            span: "0:670-689"
           - FuncCall:
               name:
                 Ident: filter
+                span: "0:690-696"
               args:
                 - Binary:
                     left:
                       Ident: ct
+                      span: "0:697-699"
                     op: Gt
                     right:
                       Literal:
                         Integer: 200
+                      span: "0:702-705"
+                  span: "0:697-705"
+            span: "0:690-705"
           - FuncCall:
               name:
                 Ident: take
+                span: "0:706-710"
               args:
                 - Literal:
                     Integer: 20
+                  span: "0:711-713"
+            span: "0:706-713"
+      span: "0:1-713"
   span: "0:1-714"

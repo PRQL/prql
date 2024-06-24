@@ -241,22 +241,31 @@ ast:
           - FuncCall:
               name:
                 Ident: from
+                span: 1:166-170
               args:
               - Ident: tracks
+                span: 1:171-177
+            span: 1:166-177
           - FuncCall:
               name:
                 Ident: filter
+                span: 1:179-185
               args:
               - Binary:
                   left:
                     Ident: name
+                    span: 1:187-191
                   op: RegexSearch
                   right:
                     Literal:
                       String: Love
+                    span: 1:195-201
+                span: 1:187-201
+            span: 1:179-202
           - FuncCall:
               name:
                 Ident: filter
+                span: 1:203-209
               args:
               - Pipeline:
                   exprs:
@@ -265,46 +274,72 @@ ast:
                         Binary:
                           left:
                             Ident: milliseconds
+                            span: 1:212-224
                           op: DivFloat
                           right:
                             Literal:
                               Integer: 1000
+                            span: 1:227-231
+                        span: 1:212-231
                       op: DivFloat
                       right:
                         Literal:
                           Integer: 60
+                        span: 1:234-236
+                    span: 1:211-237
                   - FuncCall:
                       name:
                         Ident: in
+                        span: 1:240-242
                       args:
                       - Range:
                           start:
                             Literal:
                               Integer: 3
+                            span: 1:243-244
                           end:
                             Literal:
                               Integer: 4
+                            span: 1:246-247
+                        span: 1:243-247
+                    span: 1:240-247
+                span: 1:211-247
+            span: 1:203-248
           - FuncCall:
               name:
                 Ident: sort
+                span: 1:249-253
               args:
               - Ident: track_id
+                span: 1:254-262
+            span: 1:249-262
           - FuncCall:
               name:
                 Ident: take
+                span: 1:263-267
               args:
               - Range:
                   start:
                     Literal:
                       Integer: 1
+                    span: 1:268-269
                   end:
                     Literal:
                       Integer: 15
+                    span: 1:271-273
+                span: 1:268-273
+            span: 1:263-273
           - FuncCall:
               name:
                 Ident: select
+                span: 1:274-280
               args:
               - Tuple:
                 - Ident: name
+                  span: 1:282-286
                 - Ident: composer
+                  span: 1:288-296
+                span: 1:281-297
+            span: 1:274-297
+        span: 1:166-297
     span: 1:166-298

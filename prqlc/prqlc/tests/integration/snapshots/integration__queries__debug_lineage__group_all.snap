@@ -246,64 +246,97 @@ ast:
           - FuncCall:
               name:
                 Ident: from
+                span: 1:13-17
               args:
               - Ident: albums
+                span: 1:20-26
                 alias: a
+            span: 1:13-26
           - FuncCall:
               name:
                 Ident: take
+                span: 1:27-31
               args:
               - Literal:
                   Integer: 10
+                span: 1:32-34
+            span: 1:27-34
           - FuncCall:
               name:
                 Ident: join
+                span: 1:35-39
               args:
               - Ident: tracks
+                span: 1:40-46
               - Unary:
                   op: EqSelf
                   expr:
                     Ident: album_id
+                    span: 1:50-58
+                span: 1:48-58
+            span: 1:35-59
           - FuncCall:
               name:
                 Ident: group
+                span: 1:60-65
               args:
               - Tuple:
                 - FieldLookup:
                     base:
                       Ident: a
+                      span: 1:67-68
                     field: !Name album_id
+                  span: 1:67-77
                 - FieldLookup:
                     base:
                       Ident: a
+                      span: 1:79-80
                     field: !Name title
+                  span: 1:79-86
+                span: 1:66-87
               - FuncCall:
                   name:
                     Ident: aggregate
+                    span: 1:89-98
                   args:
                   - Pipeline:
                       exprs:
                       - FuncCall:
                           name:
                             Ident: sum
+                            span: 1:108-111
                           args:
                           - FieldLookup:
                               base:
                                 Ident: tracks
+                                span: 1:112-118
                               field: !Name unit_price
+                            span: 1:118-129
+                        span: 1:108-129
                       - FuncCall:
                           name:
                             FieldLookup:
                               base:
                                 Ident: math
+                                span: 1:132-136
                               field: !Name round
+                            span: 1:136-142
                           args:
                           - Literal:
                               Integer: 2
+                            span: 1:143-144
+                        span: 1:132-144
+                    span: 1:108-144
                     alias: price
+                span: 1:89-145
+            span: 1:60-146
           - FuncCall:
               name:
                 Ident: sort
+                span: 1:147-151
               args:
               - Ident: album_id
+                span: 1:152-160
+            span: 1:147-160
+        span: 1:13-160
     span: 1:13-161

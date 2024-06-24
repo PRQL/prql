@@ -80,26 +80,40 @@ ast:
           - FuncCall:
               name:
                 Ident: from
+                span: 1:13-17
               args:
               - Ident: tracks
+                span: 1:18-24
+            span: 1:13-24
           - FuncCall:
               name:
                 Ident: sort
+                span: 1:25-29
               args:
               - Tuple:
                 - Unary:
                     op: Add
                     expr:
                       Ident: track_id
+                      span: 1:32-40
+                  span: 1:31-40
+                span: 1:30-41
+            span: 1:25-41
           - FuncCall:
               name:
                 Ident: take
+                span: 1:42-46
               args:
               - Range:
                   start:
                     Literal:
                       Integer: 3
+                    span: 1:47-48
                   end:
                     Literal:
                       Integer: 5
+                    span: 1:50-51
+                span: 1:47-51
+            span: 1:42-51
+        span: 1:13-51
     span: 1:13-52

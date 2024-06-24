@@ -521,31 +521,44 @@ ast:
           - FuncCall:
               name:
                 Ident: from
+                span: 1:82-86
               args:
               - Ident: invoices
+                span: 1:87-95
+            span: 1:82-95
           - FuncCall:
               name:
                 Ident: take
+                span: 1:96-100
               args:
               - Literal:
                   Integer: 5
+                span: 1:101-102
+            span: 1:96-102
           - FuncCall:
               name:
                 Ident: select
+                span: 1:103-109
               args:
               - Tuple:
                 - Pipeline:
                     exprs:
                     - Ident: total
+                      span: 1:133-138
                     - FuncCall:
                         name:
                           FieldLookup:
                             base:
                               Ident: math
+                              span: 1:141-145
                             field: !Name round
+                          span: 1:145-151
                         args:
                         - Literal:
                             Integer: 2
+                          span: 1:152-153
+                      span: 1:141-153
+                  span: 1:133-153
                   alias: total_original
                 - Pipeline:
                     exprs:
@@ -554,41 +567,60 @@ ast:
                           FieldLookup:
                             base:
                               Ident: math
+                              span: 1:169-173
                             field: !Name pi
+                          span: 1:173-176
                         op: Sub
                         right:
                           Ident: total
+                          span: 1:179-184
+                      span: 1:169-184
                     - FuncCall:
                         name:
                           FieldLookup:
                             base:
                               Ident: math
+                              span: 1:187-191
                             field: !Name round
+                          span: 1:191-197
                         args:
                         - Literal:
                             Integer: 2
+                          span: 1:198-199
+                      span: 1:187-199
                     - FieldLookup:
                         base:
                           Ident: math
+                          span: 1:202-206
                         field: !Name abs
+                      span: 1:202-210
+                  span: 1:169-210
                   alias: total_x
                 - FuncCall:
                     name:
                       FieldLookup:
                         base:
                           Ident: math
+                          span: 1:230-234
                         field: !Name floor
+                      span: 1:234-240
                     args:
                     - Ident: total
+                      span: 1:241-246
+                  span: 1:230-246
                   alias: total_floor
                 - FuncCall:
                     name:
                       FieldLookup:
                         base:
                           Ident: math
+                          span: 1:265-269
                         field: !Name ceil
+                      span: 1:269-274
                     args:
                     - Ident: total
+                      span: 1:275-280
+                  span: 1:265-280
                   alias: total_ceil
                 - Pipeline:
                     exprs:
@@ -597,18 +629,27 @@ ast:
                           FieldLookup:
                             base:
                               Ident: math
+                              span: 1:300-304
                             field: !Name log10
+                          span: 1:304-310
                         args:
                         - Ident: total
+                          span: 1:311-316
+                      span: 1:300-316
                     - FuncCall:
                         name:
                           FieldLookup:
                             base:
                               Ident: math
+                              span: 1:319-323
                             field: !Name round
+                          span: 1:323-329
                         args:
                         - Literal:
                             Integer: 3
+                          span: 1:330-331
+                      span: 1:319-331
+                  span: 1:300-331
                   alias: total_log10
                 - Pipeline:
                     exprs:
@@ -617,20 +658,30 @@ ast:
                           FieldLookup:
                             base:
                               Ident: math
+                              span: 1:350-354
                             field: !Name log
+                          span: 1:354-358
                         args:
                         - Literal:
                             Integer: 2
+                          span: 1:359-360
                         - Ident: total
+                          span: 1:361-366
+                      span: 1:350-366
                     - FuncCall:
                         name:
                           FieldLookup:
                             base:
                               Ident: math
+                              span: 1:369-373
                             field: !Name round
+                          span: 1:373-379
                         args:
                         - Literal:
                             Integer: 3
+                          span: 1:380-381
+                      span: 1:369-381
+                  span: 1:350-381
                   alias: total_log2
                 - Pipeline:
                     exprs:
@@ -639,18 +690,27 @@ ast:
                           FieldLookup:
                             base:
                               Ident: math
+                              span: 1:400-404
                             field: !Name sqrt
+                          span: 1:404-409
                         args:
                         - Ident: total
+                          span: 1:410-415
+                      span: 1:400-415
                     - FuncCall:
                         name:
                           FieldLookup:
                             base:
                               Ident: math
+                              span: 1:418-422
                             field: !Name round
+                          span: 1:422-428
                         args:
                         - Literal:
                             Integer: 3
+                          span: 1:429-430
+                      span: 1:418-430
+                  span: 1:400-430
                   alias: total_sqrt
                 - Pipeline:
                     exprs:
@@ -659,22 +719,33 @@ ast:
                           FieldLookup:
                             base:
                               Ident: math
+                              span: 1:447-451
                             field: !Name ln
+                          span: 1:451-454
                         args:
                         - Ident: total
+                          span: 1:455-460
+                      span: 1:447-460
                     - FieldLookup:
                         base:
                           Ident: math
+                          span: 1:463-467
                         field: !Name exp
+                      span: 1:463-471
                     - FuncCall:
                         name:
                           FieldLookup:
                             base:
                               Ident: math
+                              span: 1:474-478
                             field: !Name round
+                          span: 1:478-484
                         args:
                         - Literal:
                             Integer: 2
+                          span: 1:485-486
+                      span: 1:474-486
+                  span: 1:447-486
                   alias: total_ln
                 - Pipeline:
                     exprs:
@@ -683,22 +754,33 @@ ast:
                           FieldLookup:
                             base:
                               Ident: math
+                              span: 1:504-508
                             field: !Name cos
+                          span: 1:508-512
                         args:
                         - Ident: total
+                          span: 1:513-518
+                      span: 1:504-518
                     - FieldLookup:
                         base:
                           Ident: math
+                          span: 1:521-525
                         field: !Name acos
+                      span: 1:521-530
                     - FuncCall:
                         name:
                           FieldLookup:
                             base:
                               Ident: math
+                              span: 1:533-537
                             field: !Name round
+                          span: 1:537-543
                         args:
                         - Literal:
                             Integer: 2
+                          span: 1:544-545
+                      span: 1:533-545
+                  span: 1:504-545
                   alias: total_cos
                 - Pipeline:
                     exprs:
@@ -707,22 +789,33 @@ ast:
                           FieldLookup:
                             base:
                               Ident: math
+                              span: 1:563-567
                             field: !Name sin
+                          span: 1:567-571
                         args:
                         - Ident: total
+                          span: 1:572-577
+                      span: 1:563-577
                     - FieldLookup:
                         base:
                           Ident: math
+                          span: 1:580-584
                         field: !Name asin
+                      span: 1:580-589
                     - FuncCall:
                         name:
                           FieldLookup:
                             base:
                               Ident: math
+                              span: 1:592-596
                             field: !Name round
+                          span: 1:596-602
                         args:
                         - Literal:
                             Integer: 2
+                          span: 1:603-604
+                      span: 1:592-604
+                  span: 1:563-604
                   alias: total_sin
                 - Pipeline:
                     exprs:
@@ -731,83 +824,125 @@ ast:
                           FieldLookup:
                             base:
                               Ident: math
+                              span: 1:622-626
                             field: !Name tan
+                          span: 1:626-630
                         args:
                         - Ident: total
+                          span: 1:631-636
+                      span: 1:622-636
                     - FieldLookup:
                         base:
                           Ident: math
+                          span: 1:639-643
                         field: !Name atan
+                      span: 1:639-648
                     - FuncCall:
                         name:
                           FieldLookup:
                             base:
                               Ident: math
+                              span: 1:651-655
                             field: !Name round
+                          span: 1:655-661
                         args:
                         - Literal:
                             Integer: 2
+                          span: 1:662-663
+                      span: 1:651-663
+                  span: 1:622-663
                   alias: total_tan
                 - Pipeline:
                     exprs:
                     - Ident: total
+                      span: 1:681-686
                     - FieldLookup:
                         base:
                           Ident: math
+                          span: 1:689-693
                         field: !Name degrees
+                      span: 1:689-701
                     - FieldLookup:
                         base:
                           Ident: math
+                          span: 1:704-708
                         field: !Name radians
+                      span: 1:704-716
                     - FuncCall:
                         name:
                           FieldLookup:
                             base:
                               Ident: math
+                              span: 1:719-723
                             field: !Name round
+                          span: 1:723-729
                         args:
                         - Literal:
                             Integer: 2
+                          span: 1:730-731
+                      span: 1:719-731
+                  span: 1:681-731
                   alias: total_deg
                 - Pipeline:
                     exprs:
                     - Ident: total
+                      span: 1:752-757
                     - FuncCall:
                         name:
                           FieldLookup:
                             base:
                               Ident: math
+                              span: 1:760-764
                             field: !Name pow
+                          span: 1:764-768
                         args:
                         - Literal:
                             Integer: 2
+                          span: 1:769-770
+                      span: 1:760-770
                     - FuncCall:
                         name:
                           FieldLookup:
                             base:
                               Ident: math
+                              span: 1:773-777
                             field: !Name round
+                          span: 1:777-783
                         args:
                         - Literal:
                             Integer: 2
+                          span: 1:784-785
+                      span: 1:773-785
+                  span: 1:752-785
                   alias: total_square
                 - Pipeline:
                     exprs:
                     - Binary:
                         left:
                           Ident: total
+                          span: 1:810-815
                         op: Pow
                         right:
                           Literal:
                             Integer: 2
+                          span: 1:819-820
+                      span: 1:809-821
                     - FuncCall:
                         name:
                           FieldLookup:
                             base:
                               Ident: math
+                              span: 1:824-828
                             field: !Name round
+                          span: 1:828-834
                         args:
                         - Literal:
                             Integer: 2
+                          span: 1:835-836
+                      span: 1:824-836
+                  span: 1:809-836
                   alias: total_square_op
+                span: 1:110-839
+            span: 1:103-839
+        span: 1:82-839
     span: 1:82-840

@@ -849,13 +849,20 @@ sort full
                 - FuncCall:
                     name:
                       Ident: from
+                      span: 1:0-4
                     args:
                     - Ident: x
+                      span: 1:5-6
+                  span: 1:0-6
                 - FuncCall:
                     name:
                       Ident: select
+                      span: 1:9-15
                     args:
                     - Ident: y
+                      span: 1:16-17
+                  span: 1:9-17
+              span: 1:0-17
           span: 1:0-17
         "###);
     }
