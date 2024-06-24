@@ -343,7 +343,7 @@ where
                 op,
                 right: Box::new(right.0),
             });
-            (into_expr(kind, span), span)
+            (kind.into_expr(span), span)
         })
         .map(|(e, _)| e)
         .boxed()
