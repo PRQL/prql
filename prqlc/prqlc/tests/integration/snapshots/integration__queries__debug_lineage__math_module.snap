@@ -1,6 +1,6 @@
 ---
 source: prqlc/prqlc/tests/integration/queries.rs
-expression: "# mssql:test\n# sqlite:skip (see https://github.com/rusqlite/rusqlite/issues/1211)\nfrom invoices\ntake 5\nselect {\n    total_original = total | math.round 2,\n    total_x = math.pi - total | math.round 2 | math.abs,\n    total_floor = math.floor total,\n    total_ceil = math.ceil total,\n    total_log10 = math.log10 total | math.round 3,\n    total_log2 = math.log 2 total | math.round 3,\n    total_sqrt = math.sqrt total | math.round 3,\n    total_ln = math.ln total | math.exp | math.round 2,\n    total_cos = math.cos total | math.acos | math.round 2,\n    total_sin = math.sin total | math.asin | math.round 2,\n    total_tan = math.tan total | math.atan | math.round 2,\n    total_deg = total | math.degrees | math.radians | math.round 2,\n    total_square = total | math.pow 2| math.round 2,\n}\n"
+expression: "# mssql:test\n# sqlite:skip (see https://github.com/rusqlite/rusqlite/issues/1211)\nfrom invoices\ntake 5\nselect {\n    total_original = total | math.round 2,\n    total_x = math.pi - total | math.round 2 | math.abs,\n    total_floor = math.floor total,\n    total_ceil = math.ceil total,\n    total_log10 = math.log10 total | math.round 3,\n    total_log2 = math.log 2 total | math.round 3,\n    total_sqrt = math.sqrt total | math.round 3,\n    total_ln = math.ln total | math.exp | math.round 2,\n    total_cos = math.cos total | math.acos | math.round 2,\n    total_sin = math.sin total | math.asin | math.round 2,\n    total_tan = math.tan total | math.atan | math.round 2,\n    total_deg = total | math.degrees | math.radians | math.round 2,\n    total_square = total | math.pow 2 | math.round 2,\n    total_square_op = (total ** 2) | math.round 2,\n}\n"
 input_file: prqlc/prqlc/tests/integration/queries/math_module.prql
 ---
 frames:
@@ -15,7 +15,7 @@ frames:
       table:
       - default_db
       - invoices
-- - 1:103-787
+- - 1:103-839
   - columns:
     - !Single
       name:
@@ -82,6 +82,11 @@ frames:
       - total_square
       target_id: 215
       target_name: null
+    - !Single
+      name:
+      - total_square_op
+      target_id: 224
+      target_name: null
     inputs:
     - id: 121
       name: invoices
@@ -102,7 +107,7 @@ nodes:
   children:
   - 121
   - 125
-  parent: 225
+  parent: 233
 - id: 125
   kind: Literal
   parent: 124
@@ -113,7 +118,7 @@ nodes:
   targets:
   - 129
   - 130
-  parent: 224
+  parent: 232
 - id: 129
   kind: Literal
   span: 1:152-153
@@ -132,7 +137,7 @@ nodes:
   alias: total_x
   targets:
   - 133
-  parent: 224
+  parent: 232
 - id: 133
   kind: RqOperator
   span: 1:187-199
@@ -166,7 +171,7 @@ nodes:
   alias: total_floor
   targets:
   - 144
-  parent: 224
+  parent: 232
 - id: 144
   kind: Ident
   span: 1:241-246
@@ -182,7 +187,7 @@ nodes:
   alias: total_ceil
   targets:
   - 147
-  parent: 224
+  parent: 232
 - id: 147
   kind: Ident
   span: 1:275-280
@@ -199,7 +204,7 @@ nodes:
   targets:
   - 151
   - 152
-  parent: 224
+  parent: 232
 - id: 151
   kind: Literal
   span: 1:330-331
@@ -224,7 +229,7 @@ nodes:
   targets:
   - 158
   - 159
-  parent: 224
+  parent: 232
 - id: 158
   kind: Literal
   span: 1:380-381
@@ -253,7 +258,7 @@ nodes:
   targets:
   - 166
   - 167
-  parent: 224
+  parent: 232
 - id: 166
   kind: Literal
   span: 1:429-430
@@ -278,7 +283,7 @@ nodes:
   targets:
   - 173
   - 174
-  parent: 224
+  parent: 232
 - id: 173
   kind: Literal
   span: 1:485-486
@@ -308,7 +313,7 @@ nodes:
   targets:
   - 182
   - 183
-  parent: 224
+  parent: 232
 - id: 182
   kind: Literal
   span: 1:544-545
@@ -338,7 +343,7 @@ nodes:
   targets:
   - 191
   - 192
-  parent: 224
+  parent: 232
 - id: 191
   kind: Literal
   span: 1:603-604
@@ -368,7 +373,7 @@ nodes:
   targets:
   - 200
   - 201
-  parent: 224
+  parent: 232
 - id: 200
   kind: Literal
   span: 1:662-663
@@ -398,7 +403,7 @@ nodes:
   targets:
   - 209
   - 210
-  parent: 224
+  parent: 232
 - id: 209
   kind: Literal
   span: 1:730-731
@@ -423,15 +428,15 @@ nodes:
   - 121
 - id: 215
   kind: RqOperator
-  span: 1:772-784
+  span: 1:773-785
   alias: total_square
   targets:
   - 218
   - 219
-  parent: 224
+  parent: 232
 - id: 218
   kind: Literal
-  span: 1:783-784
+  span: 1:784-785
 - id: 219
   kind: RqOperator
   span: 1:760-770
@@ -451,8 +456,37 @@ nodes:
   targets:
   - 121
 - id: 224
+  kind: RqOperator
+  span: 1:824-836
+  alias: total_square_op
+  targets:
+  - 227
+  - 228
+  parent: 232
+- id: 227
+  kind: Literal
+  span: 1:835-836
+- id: 228
+  kind: RqOperator
+  span: 1:809-821
+  targets:
+  - 230
+  - 231
+- id: 230
+  kind: Literal
+  span: 1:819-820
+- id: 231
+  kind: Ident
+  span: 1:810-815
+  ident: !Ident
+  - this
+  - invoices
+  - total
+  targets:
+  - 121
+- id: 232
   kind: Tuple
-  span: 1:110-787
+  span: 1:110-839
   children:
   - 126
   - 131
@@ -467,13 +501,14 @@ nodes:
   - 197
   - 206
   - 215
-  parent: 225
-- id: 225
+  - 224
+  parent: 233
+- id: 233
   kind: 'TransformCall: Select'
-  span: 1:103-787
+  span: 1:103-839
   children:
   - 124
-  - 224
+  - 232
 ast:
   name: Project
   stmts:
@@ -756,4 +791,23 @@ ast:
                         - Literal:
                             Integer: 2
                   alias: total_square
-    span: 1:82-788
+                - Pipeline:
+                    exprs:
+                    - Binary:
+                        left:
+                          Ident: total
+                        op: Pow
+                        right:
+                          Literal:
+                            Integer: 2
+                    - FuncCall:
+                        name:
+                          Indirection:
+                            base:
+                              Ident: math
+                            field: !Name round
+                        args:
+                        - Literal:
+                            Integer: 2
+                  alias: total_square_op
+    span: 1:82-840

@@ -202,24 +202,36 @@ fn expand_binary(ast::BinaryExpr { op, left, right }: ast::BinaryExpr) -> Result
     let left = expand_expr(*left)?;
     let right = expand_expr(*right)?;
 
-    let func_name = match op {
-        ast::BinOp::Mul => ["std", "mul"],
-        ast::BinOp::DivInt => ["std", "div_i"],
-        ast::BinOp::DivFloat => ["std", "div_f"],
-        ast::BinOp::Mod => ["std", "mod"],
-        ast::BinOp::Pow => ["std", "pow"],
-        ast::BinOp::Add => ["std", "add"],
-        ast::BinOp::Sub => ["std", "sub"],
-        ast::BinOp::Eq => ["std", "eq"],
-        ast::BinOp::Ne => ["std", "ne"],
-        ast::BinOp::Gt => ["std", "gt"],
-        ast::BinOp::Lt => ["std", "lt"],
-        ast::BinOp::Gte => ["std", "gte"],
-        ast::BinOp::Lte => ["std", "lte"],
-        ast::BinOp::RegexSearch => ["std", "regex_search"],
-        ast::BinOp::And => ["std", "and"],
-        ast::BinOp::Or => ["std", "or"],
-        ast::BinOp::Coalesce => ["std", "coalesce"],
+    let func_name: Vec<&str> = match op {
+        ast::BinOp::Mul => vec!["std", "mul"],
+        ast::BinOp::DivInt => vec!["std", "div_i"],
+        ast::BinOp::DivFloat => vec!["std", "div_f"],
+        ast::BinOp::Mod => vec!["std", "mod"],
+        ast::BinOp::Pow => vec!["std", "math", "pow"],
+        ast::BinOp::Add => vec!["std", "add"],
+        ast::BinOp::Sub => vec!["std", "sub"],
+        ast::BinOp::Eq => vec!["std", "eq"],
+        ast::BinOp::Ne => vec!["std", "ne"],
+        ast::BinOp::Gt => vec!["std", "gt"],
+        ast::BinOp::Lt => vec!["std", "lt"],
+        ast::BinOp::Gte => vec!["std", "gte"],
+        ast::BinOp::Lte => vec!["std", "lte"],
+        ast::BinOp::RegexSearch => vec!["std", "regex_search"],
+        ast::BinOp::And => vec!["std", "and"],
+        ast::BinOp::Or => vec!["std", "or"],
+        ast::BinOp::Coalesce => vec!["std", "coalesce"],
+    };
+
+    // For the power operator, we need to reverse the order, since `math.pow a
+    // b` is equivalent to `b ** a`. (but for example `sub a b` is equivalent to
+    // `a - b`).
+    //
+    // (I think this is the most globally consistent approach, since final
+    // arguments should be the "data", which in the case of `pow` would be the
+    // base; but it's not perfect, we could change it...)
+    let (left, right) = match op {
+        ast::BinOp::Pow => (right, left),
+        _ => (left, right),
     };
     Ok(new_binop(left, &func_name, right).kind)
 }

@@ -70,7 +70,7 @@ fn lex_token() -> impl Parser<char, Token, Error = Cheap<char>> {
         just("||").then_ignore(end_expr()).to(TokenKind::Or),
         just("??").to(TokenKind::Coalesce),
         just("//").to(TokenKind::DivInt),
-        // just("**").to(TokenKind::Pow),
+        just("**").to(TokenKind::Pow),
         just("@")
             .then(digits(1).not().rewind())
             .to(TokenKind::Annotate),

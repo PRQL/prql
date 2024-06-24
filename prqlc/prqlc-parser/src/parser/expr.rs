@@ -220,8 +220,7 @@ pub fn expr() -> impl Parser<TokenKind, Expr, Error = PError> + Clone {
 
         // Binary operators
         let expr = term;
-        // TODO: for `operator_pow` we need to do right-associative parsing
-        // let expr = binary_op_parser_right(expr, operator_pow());
+        let expr = binary_op_parser_right(expr, operator_pow());
         let expr = binary_op_parser(expr, operator_mul());
         let expr = binary_op_parser(expr, operator_add());
         let expr = binary_op_parser(expr, operator_compare());
@@ -277,7 +276,7 @@ where
 {
     let term = term.map_with_span(|e, s| (e, s)).boxed();
 
-    (term.clone())
+    term.clone()
         .then(op.then(term).repeated())
         .foldl(|left, (op, right)| {
             let span = Span {
@@ -291,6 +290,60 @@ where
                 right: Box::new(right.0),
             });
             (ExprKind::into_expr(kind, span), span)
+        })
+        .map(|(e, _)| e)
+        .boxed()
+}
+
+pub fn binary_op_parser_right<'a, Term, Op>(
+    term: Term,
+    op: Op,
+) -> impl Parser<TokenKind, Expr, Error = PError> + 'a
+where
+    Term: Parser<TokenKind, Expr, Error = PError> + 'a,
+    Op: Parser<TokenKind, BinOp, Error = PError> + 'a,
+{
+    let term = term.map_with_span(|e, s| (e, s)).boxed();
+
+    (term.clone())
+        .then(op.then(term).repeated())
+        .map(|(first, others)| {
+            // A transformation from this:
+            // ```
+            // first: e1
+            // others: [(op1 e2) (op2 e3)]
+            // ```
+            // ... into:
+            // ```
+            // r: [(e1 op1) (e2 op2)]
+            // e3
+            // ```
+            // .. so we can use foldr for right associativity.
+            // We could use `(term.then(op)).repeated().then(term)` instead,
+            // and have the correct structure from the get-go, but that would
+            // perform miserably with simple expressions without operators, because
+            // it would re-parse the term twice for each level of precedence we have.
+
+            let mut free = first;
+            let mut r = Vec::new();
+            for (op, expr) in others {
+                r.push((free, op));
+                free = expr;
+            }
+            (r, free)
+        })
+        .foldr(|(left, op), right| {
+            let span = Span {
+                start: left.1.start,
+                end: right.1.end,
+                source_id: left.1.source_id,
+            };
+            let kind = ExprKind::Binary(BinaryExpr {
+                left: Box::new(left.0),
+                op,
+                right: Box::new(right.0),
+            });
+            (into_expr(kind, span), span)
         })
         .map(|(e, _)| e)
         .boxed()
@@ -420,9 +473,9 @@ fn operator_unary() -> impl Parser<TokenKind, UnOp, Error = PError> {
         .or(ctrl('!').to(UnOp::Not))
         .or(just(TokenKind::Eq).to(UnOp::EqSelf))
 }
-// fn operator_pow() -> impl Parser<TokenKind, BinOp, Error = PError> {
-//     just(TokenKind::Pow).to(BinOp::Pow)
-// }
+fn operator_pow() -> impl Parser<TokenKind, BinOp, Error = PError> {
+    just(TokenKind::Pow).to(BinOp::Pow)
+}
 fn operator_mul() -> impl Parser<TokenKind, BinOp, Error = PError> {
     (just(TokenKind::DivInt).to(BinOp::DivInt))
         .or(ctrl('*').to(BinOp::Mul))

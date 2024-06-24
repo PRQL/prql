@@ -87,6 +87,7 @@ module math {
   let asin = column -> s"ASIN({column:0})"
   let tan = column -> s"TAN({column:0})"
   let atan = column -> s"ATAN({column:0})"
+  # Note exponent goes first, so `pow 2 3` is 2^3
   let pow = exponent column -> s"POW({column:0}, {exponent:0})"
   let round = n_digits column -> s"ROUND({column:0}, {n_digits:0})"
 }
