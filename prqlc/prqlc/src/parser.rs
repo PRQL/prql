@@ -10,7 +10,6 @@ use crate::{Error, Errors, Result, SourceTree, WithErrorInfo};
 pub fn parse(file_tree: &SourceTree) -> Result<ModuleDef, Errors> {
     // register a new stage of the compiler
     // (here should register lexer stage first, but that all happens in a single call to prqlc_parser)
-    debug::log_stage(debug::Stage::Initial);
     debug::log_entry(|| debug::DebugEntryKind::ReprPrql(file_tree.clone()));
     debug::log_stage(debug::Stage::Parsing(debug::StageParsing::Parser));
 

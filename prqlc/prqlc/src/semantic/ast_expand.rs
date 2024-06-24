@@ -14,21 +14,21 @@ use crate::{Error, Result};
 pub fn expand_expr(expr: pr::Expr) -> Result<pl::Expr> {
     let kind = match expr.kind {
         pr::ExprKind::Ident(v) => pl::ExprKind::Ident(pr::Ident::from_name(v)),
-        pr::ExprKind::Indirection { base, field } => {
+        pr::ExprKind::FieldLookup { base, field } => {
             let field_as_name = match field {
-                pr::IndirectionKind::Name(n) => n,
-                pr::IndirectionKind::Position(_) => Err(Error::new_simple(
+                pr::FieldLookupKind::Name(n) => n,
+                pr::FieldLookupKind::Position(_) => Err(Error::new_simple(
                     "Positional indirection not supported yet",
                 )
                 .with_span(expr.span))?,
-                pr::IndirectionKind::Star => "*".to_string(),
+                pr::FieldLookupKind::Star => "*".to_string(),
             };
 
-            // convert indirections into ident
-            // (in the future, resolve will support proper indirection handling)
+            // convert lookups into ident
+            // (in the future, resolve will support proper lookup handling)
             let base = expand_expr_box(base)?;
             let base_ident = base.kind.into_ident().map_err(|_| {
-                Error::new_simple("Indirection (the dot) is supported only on names.")
+                Error::new_simple("lookup (the dot) is supported only on names.")
                     .with_span(expr.span)
             })?;
 
@@ -202,24 +202,36 @@ fn expand_binary(pr::BinaryExpr { op, left, right }: pr::BinaryExpr) -> Result<p
     let left = expand_expr(*left)?;
     let right = expand_expr(*right)?;
 
-    let func_name = match op {
-        pr::BinOp::Mul => ["std", "mul"],
-        pr::BinOp::DivInt => ["std", "div_i"],
-        pr::BinOp::DivFloat => ["std", "div_f"],
-        pr::BinOp::Mod => ["std", "mod"],
-        pr::BinOp::Pow => ["std", "pow"],
-        pr::BinOp::Add => ["std", "add"],
-        pr::BinOp::Sub => ["std", "sub"],
-        pr::BinOp::Eq => ["std", "eq"],
-        pr::BinOp::Ne => ["std", "ne"],
-        pr::BinOp::Gt => ["std", "gt"],
-        pr::BinOp::Lt => ["std", "lt"],
-        pr::BinOp::Gte => ["std", "gte"],
-        pr::BinOp::Lte => ["std", "lte"],
-        pr::BinOp::RegexSearch => ["std", "regex_search"],
-        pr::BinOp::And => ["std", "and"],
-        pr::BinOp::Or => ["std", "or"],
-        pr::BinOp::Coalesce => ["std", "coalesce"],
+    let func_name: Vec<&str> = match op {
+        pr::BinOp::Mul => vec!["std", "mul"],
+        pr::BinOp::DivInt => vec!["std", "div_i"],
+        pr::BinOp::DivFloat => vec!["std", "div_f"],
+        pr::BinOp::Mod => vec!["std", "mod"],
+        pr::BinOp::Pow => vec!["std", "math", "pow"],
+        pr::BinOp::Add => vec!["std", "add"],
+        pr::BinOp::Sub => vec!["std", "sub"],
+        pr::BinOp::Eq => vec!["std", "eq"],
+        pr::BinOp::Ne => vec!["std", "ne"],
+        pr::BinOp::Gt => vec!["std", "gt"],
+        pr::BinOp::Lt => vec!["std", "lt"],
+        pr::BinOp::Gte => vec!["std", "gte"],
+        pr::BinOp::Lte => vec!["std", "lte"],
+        pr::BinOp::RegexSearch => vec!["std", "regex_search"],
+        pr::BinOp::And => vec!["std", "and"],
+        pr::BinOp::Or => vec!["std", "or"],
+        pr::BinOp::Coalesce => vec!["std", "coalesce"],
+    };
+
+    // For the power operator, we need to reverse the order, since `math.pow a
+    // b` is equivalent to `b ** a`. (but for example `sub a b` is equivalent to
+    // `a - b`).
+    //
+    // (I think this is the most globally consistent approach, since final
+    // arguments should be the "data", which in the case of `pow` would be the
+    // base; but it's not perfect, we could change it...)
+    let (left, right) = match op {
+        pr::BinOp::Pow => (right, left),
+        _ => (left, right),
     };
     Ok(new_binop(left, &func_name, right).kind)
 }
@@ -310,8 +322,8 @@ fn restrict_expr_kind(value: pl::ExprKind) -> pr::ExprKind {
             let mut parts = v.into_iter();
             let mut base = Box::new(pr::Expr::new(pr::ExprKind::Ident(parts.next().unwrap())));
             for part in parts {
-                let field = pr::IndirectionKind::Name(part);
-                base = Box::new(pr::Expr::new(pr::ExprKind::Indirection { base, field }))
+                let field = pr::FieldLookupKind::Name(part);
+                base = Box::new(pr::Expr::new(pr::ExprKind::FieldLookup { base, field }))
             }
             base.kind
         }

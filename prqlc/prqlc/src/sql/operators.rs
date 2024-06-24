@@ -16,7 +16,7 @@ use crate::{Error, WithErrorInfo};
 fn std() -> &'static decl::Module {
     static STD: OnceLock<decl::Module> = OnceLock::new();
     STD.get_or_init(|| {
-        debug::log_set_suppress(true);
+        let _suppressed = debug::log_suppress();
 
         let std_lib = crate::SourceTree::new(
             [(
@@ -29,7 +29,6 @@ fn std() -> &'static decl::Module {
         let options = semantic::ResolverOptions {};
         let context = semantic::resolve(ast, options).unwrap();
 
-        debug::log_set_suppress(false);
         context.module
     })
 }

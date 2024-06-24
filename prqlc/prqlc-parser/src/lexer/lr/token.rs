@@ -42,8 +42,8 @@ pub enum TokenKind {
     Or,          // ||
     Coalesce,    // ??
     DivInt,      // //
-    // Pow,         // **
-    Annotate, // @
+    Pow,         // **
+    Annotate,    // @
 
     // Aesthetics only
     Comment(String),
@@ -191,7 +191,7 @@ impl std::fmt::Display for TokenKind {
             TokenKind::Or => f.write_str("||"),
             TokenKind::Coalesce => f.write_str("??"),
             TokenKind::DivInt => f.write_str("//"),
-            // TokenKind::Pow => f.write_str("**"),
+            TokenKind::Pow => f.write_str("**"),
             TokenKind::Annotate => f.write_str("@{"),
 
             TokenKind::Param(id) => write!(f, "${id}"),

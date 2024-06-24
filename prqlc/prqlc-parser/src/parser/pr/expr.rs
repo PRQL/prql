@@ -38,9 +38,9 @@ pub struct Expr {
 #[derive(Debug, EnumAsInner, PartialEq, Clone, Serialize, Deserialize, strum::AsRefStr)]
 pub enum ExprKind {
     Ident(String),
-    Indirection {
+    FieldLookup {
         base: Box<Expr>,
-        field: IndirectionKind,
+        field: FieldLookupKind,
     },
     #[cfg_attr(
         feature = "serde_yaml",
@@ -79,7 +79,7 @@ impl ExprKind {
 }
 
 #[derive(Debug, EnumAsInner, PartialEq, Clone, Serialize, Deserialize)]
-pub enum IndirectionKind {
+pub enum FieldLookupKind {
     Name(String),
     Position(i64),
     Star,

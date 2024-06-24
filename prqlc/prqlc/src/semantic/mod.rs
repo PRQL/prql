@@ -65,6 +65,8 @@ pub fn resolve(mut module_tree: pr::ModuleDef, options: ResolverOptions) -> Resu
 /// Preferred way of injecting std module.
 pub fn load_std_lib(module_tree: &mut pr::ModuleDef) {
     if !module_tree.stmts.iter().any(|s| is_mod_def_for(s, NS_STD)) {
+        let _suppressed = debug::log_suppress();
+
         let std_source = include_str!("std.prql");
         match prqlc_parser::parse_source(std_source, 0) {
             Ok(stmts) => {

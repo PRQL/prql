@@ -91,19 +91,19 @@ impl WriteSource for pr::ExprKind {
 
         match &self {
             Ident(ident) => Some(write_ident_part(ident)),
-            Indirection { base, field } => {
+            FieldLookup { base, field } => {
                 let mut r = base.write(opt.clone())?;
                 opt.consume_width(r.len() as u16)?;
 
                 r += opt.consume(".")?;
                 match field {
-                    pr::IndirectionKind::Name(n) => {
+                    pr::FieldLookupKind::Name(n) => {
                         r += opt.consume(n)?;
                     }
-                    pr::IndirectionKind::Position(i) => {
+                    pr::FieldLookupKind::Position(i) => {
                         r += &opt.consume(i.to_string())?;
                     }
-                    pr::IndirectionKind::Star => r += "*",
+                    pr::FieldLookupKind::Star => r += "*",
                 }
                 Some(r)
             }
@@ -625,9 +625,8 @@ mod test {
         assert_is_formatted(r#"let a = 5 / 2 / 2"#);
         assert_is_formatted(r#"let a = 5 / (2 / 2)"#);
 
-        // TODO: parsing for pow operator
-        // assert_is_formatted(r#"let a = (5 ** 2) ** 2"#);
-        // assert_is_formatted(r#"let a = 5 ** 2 ** 2"#);
+        assert_is_formatted(r#"let a = (5 ** 2) ** 2"#);
+        assert_is_formatted(r#"let a = 5 ** 2 ** 2"#);
     }
 
     #[test]
