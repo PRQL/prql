@@ -766,12 +766,12 @@ ast:
                 Ident: derive
               args:
               - Tuple:
-                - Indirection:
+                - FieldLookup:
                     base:
                       Ident: i
                     field: !Name billing_city
                   alias: city
-                - Indirection:
+                - FieldLookup:
                     base:
                       Ident: i
                     field: !Name billing_address
@@ -791,13 +791,13 @@ ast:
                       args:
                       - Binary:
                           left:
-                            Indirection:
+                            FieldLookup:
                               base:
                                 Ident: ii
                               field: !Name unit_price
                           op: Mul
                           right:
-                            Indirection:
+                            FieldLookup:
                               base:
                                 Ident: ii
                               field: !Name quantity
@@ -811,7 +811,7 @@ ast:
                             name:
                               Ident: count_distinct
                             args:
-                            - Indirection:
+                            - FieldLookup:
                                 base:
                                   Ident: i
                                 field: !Name invoice_id
@@ -820,7 +820,7 @@ ast:
                             name:
                               Ident: sum
                             args:
-                            - Indirection:
+                            - FieldLookup:
                                 base:
                                   Ident: ii
                                 field: !Name quantity

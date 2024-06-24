@@ -539,7 +539,7 @@ ast:
                     - Ident: total
                     - FuncCall:
                         name:
-                          Indirection:
+                          FieldLookup:
                             base:
                               Ident: math
                             field: !Name round
@@ -551,7 +551,7 @@ ast:
                     exprs:
                     - Binary:
                         left:
-                          Indirection:
+                          FieldLookup:
                             base:
                               Ident: math
                             field: !Name pi
@@ -560,21 +560,21 @@ ast:
                           Ident: total
                     - FuncCall:
                         name:
-                          Indirection:
+                          FieldLookup:
                             base:
                               Ident: math
                             field: !Name round
                         args:
                         - Literal:
                             Integer: 2
-                    - Indirection:
+                    - FieldLookup:
                         base:
                           Ident: math
                         field: !Name abs
                   alias: total_x
                 - FuncCall:
                     name:
-                      Indirection:
+                      FieldLookup:
                         base:
                           Ident: math
                         field: !Name floor
@@ -583,7 +583,7 @@ ast:
                   alias: total_floor
                 - FuncCall:
                     name:
-                      Indirection:
+                      FieldLookup:
                         base:
                           Ident: math
                         field: !Name ceil
@@ -594,7 +594,7 @@ ast:
                     exprs:
                     - FuncCall:
                         name:
-                          Indirection:
+                          FieldLookup:
                             base:
                               Ident: math
                             field: !Name log10
@@ -602,7 +602,7 @@ ast:
                         - Ident: total
                     - FuncCall:
                         name:
-                          Indirection:
+                          FieldLookup:
                             base:
                               Ident: math
                             field: !Name round
@@ -614,7 +614,7 @@ ast:
                     exprs:
                     - FuncCall:
                         name:
-                          Indirection:
+                          FieldLookup:
                             base:
                               Ident: math
                             field: !Name log
@@ -624,7 +624,7 @@ ast:
                         - Ident: total
                     - FuncCall:
                         name:
-                          Indirection:
+                          FieldLookup:
                             base:
                               Ident: math
                             field: !Name round
@@ -636,7 +636,7 @@ ast:
                     exprs:
                     - FuncCall:
                         name:
-                          Indirection:
+                          FieldLookup:
                             base:
                               Ident: math
                             field: !Name sqrt
@@ -644,7 +644,7 @@ ast:
                         - Ident: total
                     - FuncCall:
                         name:
-                          Indirection:
+                          FieldLookup:
                             base:
                               Ident: math
                             field: !Name round
@@ -656,19 +656,19 @@ ast:
                     exprs:
                     - FuncCall:
                         name:
-                          Indirection:
+                          FieldLookup:
                             base:
                               Ident: math
                             field: !Name ln
                         args:
                         - Ident: total
-                    - Indirection:
+                    - FieldLookup:
                         base:
                           Ident: math
                         field: !Name exp
                     - FuncCall:
                         name:
-                          Indirection:
+                          FieldLookup:
                             base:
                               Ident: math
                             field: !Name round
@@ -680,19 +680,19 @@ ast:
                     exprs:
                     - FuncCall:
                         name:
-                          Indirection:
+                          FieldLookup:
                             base:
                               Ident: math
                             field: !Name cos
                         args:
                         - Ident: total
-                    - Indirection:
+                    - FieldLookup:
                         base:
                           Ident: math
                         field: !Name acos
                     - FuncCall:
                         name:
-                          Indirection:
+                          FieldLookup:
                             base:
                               Ident: math
                             field: !Name round
@@ -704,19 +704,19 @@ ast:
                     exprs:
                     - FuncCall:
                         name:
-                          Indirection:
+                          FieldLookup:
                             base:
                               Ident: math
                             field: !Name sin
                         args:
                         - Ident: total
-                    - Indirection:
+                    - FieldLookup:
                         base:
                           Ident: math
                         field: !Name asin
                     - FuncCall:
                         name:
-                          Indirection:
+                          FieldLookup:
                             base:
                               Ident: math
                             field: !Name round
@@ -728,19 +728,19 @@ ast:
                     exprs:
                     - FuncCall:
                         name:
-                          Indirection:
+                          FieldLookup:
                             base:
                               Ident: math
                             field: !Name tan
                         args:
                         - Ident: total
-                    - Indirection:
+                    - FieldLookup:
                         base:
                           Ident: math
                         field: !Name atan
                     - FuncCall:
                         name:
-                          Indirection:
+                          FieldLookup:
                             base:
                               Ident: math
                             field: !Name round
@@ -751,17 +751,17 @@ ast:
                 - Pipeline:
                     exprs:
                     - Ident: total
-                    - Indirection:
+                    - FieldLookup:
                         base:
                           Ident: math
                         field: !Name degrees
-                    - Indirection:
+                    - FieldLookup:
                         base:
                           Ident: math
                         field: !Name radians
                     - FuncCall:
                         name:
-                          Indirection:
+                          FieldLookup:
                             base:
                               Ident: math
                             field: !Name round
@@ -774,7 +774,7 @@ ast:
                     - Ident: total
                     - FuncCall:
                         name:
-                          Indirection:
+                          FieldLookup:
                             base:
                               Ident: math
                             field: !Name pow
@@ -783,7 +783,7 @@ ast:
                             Integer: 2
                     - FuncCall:
                         name:
-                          Indirection:
+                          FieldLookup:
                             base:
                               Ident: math
                             field: !Name round
@@ -802,7 +802,7 @@ ast:
                             Integer: 2
                     - FuncCall:
                         name:
-                          Indirection:
+                          FieldLookup:
                             base:
                               Ident: math
                             field: !Name round

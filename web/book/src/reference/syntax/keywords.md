@@ -1,8 +1,8 @@
 # Identifiers & keywords
 
 Identifiers can contain alphanumeric characters and `_` and must not start with
-a number. They can be chained together with the `.` indirection operator, used
-to retrieve a tuple from a field or a variable from a module.
+a number. They can be chained together with the `.` lookup operator, used to
+retrieve a tuple from a field or a variable from a module.
 
 ```prql no-eval
 hello
