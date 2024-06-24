@@ -3,7 +3,7 @@ source: prqlc/prqlc/tests/integration/queries.rs
 expression: tokens
 input_file: prqlc/prqlc/tests/integration/queries/genre_counts.prql
 ---
-TokenVec(
+Tokens(
     [
         0..103: Comment(" clickhouse:skip (ClickHouse prefers aliases to column names https://github.com/PRQL/prql/issues/2827)"),
         103..104: NewLine,

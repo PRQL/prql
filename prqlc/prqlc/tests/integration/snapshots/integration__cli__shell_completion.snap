@@ -231,7 +231,7 @@ _prqlc() {
             return 0
             ;;
         prqlc__compile)
-            opts="-t -v -q -h --hide-signature-comment --no-format --target --color --verbose --quiet --help [INPUT] [OUTPUT] [MAIN_PATH]"
+            opts="-t -v -q -h --hide-signature-comment --no-format --target --debug-log --color --verbose --quiet --help [INPUT] [OUTPUT] [MAIN_PATH]"
             if [[ ${cur} == -* || ${COMP_CWORD} -eq 2 ]] ; then
                 COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
                 return 0
@@ -242,6 +242,10 @@ _prqlc() {
                     return 0
                     ;;
                 -t)
+                    COMPREPLY=($(compgen -f "${cur}"))
+                    return 0
+                    ;;
+                --debug-log)
                     COMPREPLY=($(compgen -f "${cur}"))
                     return 0
                     ;;

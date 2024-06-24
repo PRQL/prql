@@ -122,6 +122,7 @@ complete -c prqlc -n "__fish_seen_subcommand_from sql:anchor" -s v -l verbose -d
 complete -c prqlc -n "__fish_seen_subcommand_from sql:anchor" -s q -l quiet -d 'Silences logging output'
 complete -c prqlc -n "__fish_seen_subcommand_from sql:anchor" -s h -l help -d 'Print help (see more with \'--help\')'
 complete -c prqlc -n "__fish_seen_subcommand_from compile" -s t -l target -d 'Target to compile to' -r
+complete -c prqlc -n "__fish_seen_subcommand_from compile" -l debug-log -d 'File path into which to write the debug log to' -r -F
 complete -c prqlc -n "__fish_seen_subcommand_from compile" -l color -d 'Controls when to use color' -r -f -a "{auto	'',always	'',never	''}"
 complete -c prqlc -n "__fish_seen_subcommand_from compile" -l hide-signature-comment -d 'Exclude the signature comment containing the PRQL version'
 complete -c prqlc -n "__fish_seen_subcommand_from compile" -l no-format -d 'Emit unformatted, dense SQL'

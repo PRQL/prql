@@ -79,7 +79,7 @@ mod debug_lineage {
         let prql = fs::read_to_string(prql_path).unwrap();
 
         let pl = prqlc::prql_to_pl(&prql).unwrap();
-        let fc = prqlc::debug::pl_to_lineage(pl).unwrap();
+        let fc = prqlc::internal::pl_to_lineage(pl).unwrap();
 
         let lineage = serde_yaml::to_string(&fc).unwrap();
 

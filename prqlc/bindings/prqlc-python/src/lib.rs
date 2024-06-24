@@ -63,16 +63,16 @@ mod debug {
     #[pyfunction]
     pub fn prql_lineage(prql_query: &str) -> PyResult<String> {
         prqlc_lib::prql_to_pl(prql_query)
-            .and_then(prqlc_lib::debug::pl_to_lineage)
-            .and_then(|x| prqlc_lib::debug::json::from_lineage(&x))
+            .and_then(prqlc_lib::internal::pl_to_lineage)
+            .and_then(|x| prqlc_lib::internal::json::from_lineage(&x))
             .map_err(|err| (PyErr::new::<exceptions::PyValueError, _>(err.to_json())))
     }
 
     #[pyfunction]
     pub fn pl_to_lineage(pl_json: &str) -> PyResult<String> {
         prqlc_lib::json::to_pl(pl_json)
-            .and_then(prqlc_lib::debug::pl_to_lineage)
-            .and_then(|x| prqlc_lib::debug::json::from_lineage(&x))
+            .and_then(prqlc_lib::internal::pl_to_lineage)
+            .and_then(|x| prqlc_lib::internal::json::from_lineage(&x))
             .map_err(|err| (PyErr::new::<exceptions::PyValueError, _>(err.to_json())))
     }
 }

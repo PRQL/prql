@@ -13,11 +13,14 @@ pub use dialect::{Dialect, SupportLevel};
 use self::dialect::DialectHandler;
 use self::srq::ast::Cte;
 use self::srq::context::AnchorContext;
-use crate::Result;
-use crate::{compiler_version, ir::rq::RelationalQuery, Options};
+use crate::debug;
+use crate::ir::rq::RelationalQuery;
+use crate::{compiler_version, Options, Result};
 
 /// Translate a PRQL AST into a SQL string.
 pub fn compile(query: RelationalQuery, options: &Options) -> Result<String> {
+    debug::log_stage(debug::Stage::Sql);
+
     let crate::Target::Sql(dialect) = options.target;
     let sql_ast = gen_query::translate_query(query, dialect)?;
 
@@ -35,6 +38,8 @@ pub fn compile(query: RelationalQuery, options: &Options) -> Result<String> {
     } else {
         sql
     };
+
+    debug::log_entry(|| debug::DebugEntryKind::ReprSql(sql.clone()));
 
     // signature
     let sql = if options.signature_comment {
