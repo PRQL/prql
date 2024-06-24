@@ -261,13 +261,13 @@ ast:
                 alias: manager
               - Binary:
                   left:
-                    Property:
+                    FieldLookup:
                       base:
                         Ident: e
                       field: !Name reports_to
                   op: Eq
                   right:
-                    Property:
+                    FieldLookup:
                       base:
                         Ident: manager
                       field: !Name employee_id
@@ -279,15 +279,15 @@ ast:
                 Ident: select
               args:
               - Tuple:
-                - Property:
+                - FieldLookup:
                     base:
                       Ident: e
                     field: !Name first_name
-                - Property:
+                - FieldLookup:
                     base:
                       Ident: e
                     field: !Name last_name
-                - Property:
+                - FieldLookup:
                     base:
                       Ident: manager
                     field: !Name first_name

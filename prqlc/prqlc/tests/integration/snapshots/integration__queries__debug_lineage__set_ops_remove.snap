@@ -250,7 +250,7 @@ ast:
                   name:
                     Ident: from
                   args:
-                  - Property:
+                  - FieldLookup:
                       base:
                         Ident: _param
                       field: !Name rel
@@ -260,7 +260,7 @@ ast:
                     Ident: group
                   args:
                   - Tuple:
-                    - Property:
+                    - FieldLookup:
                         base:
                           Ident: t
                         field: Star

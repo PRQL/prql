@@ -14,14 +14,14 @@ use crate::{Error, Result};
 pub fn expand_expr(expr: ast::Expr) -> Result<pl::Expr> {
     let kind = match expr.kind {
         ast::ExprKind::Ident(v) => pl::ExprKind::Ident(ast::Ident::from_name(v)),
-        ast::ExprKind::Property { base, field } => {
+        ast::ExprKind::FieldLookup { base, field } => {
             let field_as_name = match field {
-                ast::IndirectionKind::Name(n) => n,
-                ast::IndirectionKind::Position(_) => Err(Error::new_simple(
+                ast::FieldLookupKind::Name(n) => n,
+                ast::FieldLookupKind::Position(_) => Err(Error::new_simple(
                     "Positional indirection not supported yet",
                 )
                 .with_span(expr.span))?,
-                ast::IndirectionKind::Star => "*".to_string(),
+                ast::FieldLookupKind::Star => "*".to_string(),
             };
 
             // convert indirections into ident
@@ -322,8 +322,8 @@ fn restrict_expr_kind(value: pl::ExprKind) -> ast::ExprKind {
             let mut parts = v.into_iter();
             let mut base = Box::new(ast::Expr::new(ast::ExprKind::Ident(parts.next().unwrap())));
             for part in parts {
-                let field = ast::IndirectionKind::Name(part);
-                base = Box::new(ast::Expr::new(ast::ExprKind::Property { base, field }))
+                let field = ast::FieldLookupKind::Name(part);
+                base = Box::new(ast::Expr::new(ast::ExprKind::FieldLookup { base, field }))
             }
             base.kind
         }

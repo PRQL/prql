@@ -502,7 +502,7 @@ ast:
                 - Pipeline:
                     exprs:
                     - Ident: title
-                    - Property:
+                    - FieldLookup:
                         base:
                           Ident: text
                         field: !Name lower
@@ -510,7 +510,7 @@ ast:
                 - Pipeline:
                     exprs:
                     - Ident: title
-                    - Property:
+                    - FieldLookup:
                         base:
                           Ident: text
                         field: !Name upper
@@ -518,7 +518,7 @@ ast:
                 - Pipeline:
                     exprs:
                     - Ident: title
-                    - Property:
+                    - FieldLookup:
                         base:
                           Ident: text
                         field: !Name ltrim
@@ -526,7 +526,7 @@ ast:
                 - Pipeline:
                     exprs:
                     - Ident: title
-                    - Property:
+                    - FieldLookup:
                         base:
                           Ident: text
                         field: !Name rtrim
@@ -534,7 +534,7 @@ ast:
                 - Pipeline:
                     exprs:
                     - Ident: title
-                    - Property:
+                    - FieldLookup:
                         base:
                           Ident: text
                         field: !Name trim
@@ -542,7 +542,7 @@ ast:
                 - Pipeline:
                     exprs:
                     - Ident: title
-                    - Property:
+                    - FieldLookup:
                         base:
                           Ident: text
                         field: !Name length
@@ -552,7 +552,7 @@ ast:
                     - Ident: title
                     - FuncCall:
                         name:
-                          Property:
+                          FieldLookup:
                             base:
                               Ident: text
                             field: !Name extract
@@ -567,7 +567,7 @@ ast:
                     - Ident: title
                     - FuncCall:
                         name:
-                          Property:
+                          FieldLookup:
                             base:
                               Ident: text
                             field: !Name replace
@@ -596,7 +596,7 @@ ast:
                           - Ident: title
                           - FuncCall:
                               name:
-                                Property:
+                                FieldLookup:
                                   base:
                                     Ident: text
                                   field: !Name starts_with
@@ -610,7 +610,7 @@ ast:
                           - Ident: title
                           - FuncCall:
                               name:
-                                Property:
+                                FieldLookup:
                                   base:
                                     Ident: text
                                   field: !Name contains
@@ -624,7 +624,7 @@ ast:
                       - Ident: title
                       - FuncCall:
                           name:
-                            Property:
+                            FieldLookup:
                               base:
                                 Ident: text
                               field: !Name ends_with

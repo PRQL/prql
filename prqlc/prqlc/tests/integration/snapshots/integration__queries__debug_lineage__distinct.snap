@@ -190,7 +190,7 @@ ast:
               name:
                 Ident: group
               args:
-              - Property:
+              - FieldLookup:
                   base:
                     Ident: tracks
                   field: Star
@@ -204,7 +204,7 @@ ast:
               name:
                 Ident: sort
               args:
-              - Property:
+              - FieldLookup:
                   base:
                     Ident: tracks
                   field: Star

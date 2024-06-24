@@ -54,7 +54,7 @@ pub fn expr() -> impl Parser<TokenKind, Expr, Error = PError> + Clone {
         .or(pipeline_expr)
         .boxed();
 
-        let term = property(term);
+        let term = field_lookup(term);
         let term = unary(term);
         let term = range(term);
 
@@ -185,17 +185,17 @@ where
         .boxed()
 }
 
-fn property<'a, E>(expr: E) -> impl Parser<TokenKind, Expr, Error = PError> + Clone + 'a
+fn field_lookup<'a, E>(expr: E) -> impl Parser<TokenKind, Expr, Error = PError> + Clone + 'a
 where
     E: Parser<TokenKind, Expr, Error = PError> + Clone + 'a,
 {
     expr.then(
         ctrl('.')
             .ignore_then(choice((
-                ident_part().map(IndirectionKind::Name),
-                ctrl('*').to(IndirectionKind::Star),
+                ident_part().map(FieldLookupKind::Name),
+                ctrl('*').to(FieldLookupKind::Star),
                 select! {
-                    TokenKind::Literal(Literal::Integer(i)) => IndirectionKind::Position(i)
+                    TokenKind::Literal(Literal::Integer(i)) => FieldLookupKind::Position(i)
                 },
             )))
             .map_with_span(|f, s| (f, s))
@@ -203,7 +203,7 @@ where
     )
     .foldl(|base, (field, span)| {
         let base = Box::new(base);
-        ExprKind::Property { base, field }.into_expr(span)
+        ExprKind::FieldLookup { base, field }.into_expr(span)
     })
 }
 

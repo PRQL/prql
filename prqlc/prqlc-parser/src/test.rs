@@ -249,7 +249,7 @@ fn test_ranges() {
         Literal:
           Float: 1.6
       end:
-        Property:
+        FieldLookup:
           base:
             Ident: rel
           field:
@@ -531,7 +531,7 @@ fn test_s_string() {
       - String: SUM(
       - Expr:
           expr:
-            Property:
+            FieldLookup:
               base:
                 Ident: rel
               field:
@@ -693,7 +693,7 @@ fn test_number() {
     // We don't allow trailing periods
     assert!(parse_expr(r#"add 1. (2, 3)"#).is_err());
 
-    assert!(parse_expr("_2.3").unwrap().kind.is_property());
+    assert!(parse_expr("_2.3").unwrap().kind.is_field_lookup());
 
     assert_yaml_snapshot!(parse_expr(r#"2e3"#).unwrap(), @r###"
         ---
@@ -743,7 +743,7 @@ fn test_filter() {
                   left:
                     FuncCall:
                       name:
-                        Property:
+                        FieldLookup:
                           base:
                             Ident: text
                           field:
@@ -1730,9 +1730,9 @@ join `my-proj`.`dataset`.`table`
                   name:
                     Ident: join
                   args:
-                    - Property:
+                    - FieldLookup:
                         base:
-                          Property:
+                          FieldLookup:
                             base:
                               Ident: my-proj
                             field:
@@ -1991,7 +1991,7 @@ fn test_allowed_idents() {
                     Ident: select
                   args:
                     - Tuple:
-                        - Property:
+                        - FieldLookup:
                             base:
                               Ident: _employees
                             field:
@@ -2417,7 +2417,7 @@ fn test_module() {
               kind: Let
               name: man
               value:
-                Property:
+                FieldLookup:
                   base:
                     Ident: module
                   field:
@@ -2435,9 +2435,9 @@ fn test_indirection_01() {
     "#,
     ).unwrap(), @r###"
     ---
-    Property:
+    FieldLookup:
       base:
-        Property:
+        FieldLookup:
           base:
             Tuple:
               - Tuple:
@@ -2460,7 +2460,7 @@ fn test_indirection_02() {
     "#,
     ).unwrap(), @r###"
     ---
-    Property:
+    FieldLookup:
       base:
         Ident: hello
       field: Star

@@ -39,8 +39,8 @@ fn interpolated_parser() -> impl Parser<char, Vec<InterpolateItem>, Error = Chum
             let mut base = Box::new(ExprKind::Ident(first).into_expr(first_span));
 
             for (part, span) in parts {
-                let field = IndirectionKind::Name(part);
-                base = Box::new(ExprKind::Property { base, field }.into_expr(span));
+                let field = FieldLookupKind::Name(part);
+                base = Box::new(ExprKind::FieldLookup { base, field }.into_expr(span));
             }
             base
         })
