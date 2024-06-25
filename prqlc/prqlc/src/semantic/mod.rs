@@ -12,7 +12,6 @@ pub use lowering::lower_to_ir;
 
 use self::resolver::Resolver;
 pub use self::resolver::ResolverOptions;
-use crate::debug;
 use crate::ir::constant::ConstExpr;
 use crate::ir::decl::{Module, RootModule};
 use crate::ir::pl::{self, Expr, ImportDef, ModuleDef, Stmt, StmtKind, TypeDef, VarDef};
@@ -20,6 +19,7 @@ use crate::ir::rq::RelationalQuery;
 use crate::parser::is_mod_def_for;
 use crate::pr;
 use crate::WithErrorInfo;
+use crate::{debug, parser};
 use crate::{Error, Reason, Result};
 
 /// Runs semantic analysis on the query and lowers PL to RQ.
@@ -68,7 +68,7 @@ pub fn load_std_lib(module_tree: &mut pr::ModuleDef) {
         let _suppressed = debug::log_suppress();
 
         let std_source = include_str!("std.prql");
-        match prqlc_parser::parse_source(std_source, 0) {
+        match parser::parse_source(std_source, 0) {
             Ok(stmts) => {
                 let stmt = pr::Stmt::new(pr::StmtKind::ModuleDef(pr::ModuleDef {
                     name: "std".to_string(),

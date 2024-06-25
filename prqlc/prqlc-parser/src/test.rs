@@ -2,11 +2,20 @@ use insta::{assert_debug_snapshot, assert_yaml_snapshot};
 use itertools::Itertools;
 
 use crate::error::Error;
+use crate::lexer;
+use crate::parser;
 use crate::parser::pr::{Expr, FuncCall, Stmt};
 
 /// Helper that does not track source_ids
 fn parse_single(source: &str) -> Result<Vec<Stmt>, Vec<Error>> {
-    crate::parse_source(source, 0)
+    let tokens = lexer::lex_source(source)?;
+
+    let (ast, parse_errors) = parser::parse_lr_to_pr(source, 0, tokens.0);
+
+    if !parse_errors.is_empty() {
+        return Err(parse_errors);
+    }
+    Ok(ast.unwrap_or_default())
 }
 
 fn parse_expr(source: &str) -> Result<Expr, Vec<Error>> {
@@ -30,42 +39,31 @@ fn test_error_unicode_string() {
 
     let source = "Mississippi has four S’s and four I’s.";
     assert_debug_snapshot!(parse_single(source).unwrap_err(), @r###"
-        [
-            Error {
-                kind: Error,
-                span: Some(
-                    0:22-23,
-                ),
-                reason: Unexpected {
-                    found: "’",
-                },
-                hints: [],
-                code: None,
+    [
+        Error {
+            kind: Error,
+            span: Some(
+                0:22-23,
+            ),
+            reason: Unexpected {
+                found: "’",
             },
-            Error {
-                kind: Error,
-                span: Some(
-                    0:35-36,
-                ),
-                reason: Unexpected {
-                    found: "’",
-                },
-                hints: [],
-                code: None,
+            hints: [],
+            code: None,
+        },
+        Error {
+            kind: Error,
+            span: Some(
+                0:35-36,
+            ),
+            reason: Unexpected {
+                found: "’",
             },
-            Error {
-                kind: Error,
-                span: Some(
-                    0:37-38,
-                ),
-                reason: Simple(
-                    "Expected * or an identifier, but didn't find anything before the end.",
-                ),
-                hints: [],
-                code: None,
-            },
-        ]
-        "###);
+            hints: [],
+            code: None,
+        },
+    ]
+    "###);
 }
 
 #[test]
