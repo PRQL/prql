@@ -474,6 +474,63 @@ fn debug() {
 
     ----- stderr -----
     "###);
+
+    assert_cmd_snapshot!(prqlc_command()
+        .args(["debug", "ast"]), @r###"
+    success: true
+    exit_code: 0
+    ----- stdout -----
+    Annotation      = 8
+    BinaryExpr      = 24
+    BinOp           = 1
+    ColumnSort      = 16
+    decl::Decl      = 232
+    decl::DeclKind  = 184
+    decl::Module    = 80
+    decl::TableDecl = 160
+    decl::TableExpr = 24
+    ErrorMessage    = 176
+    ErrorMessages   = 24
+    ExprKind        = 80
+    Func            = 336
+    FuncCall        = 80
+    FuncParam       = 168
+    generic::SortDirection= 1
+    generic::WindowKind= 1
+    InterpolateItem = 32
+    JoinSide        = 1
+    Lineage         = 72
+    LineageColumn   = 88
+    LineageInput    = 80
+    ModuleDef       = 48
+    pl::Expr        = 384
+    PrimitiveSet    = 1
+    QueryDef        = 72
+    Range           = 16
+    rq::Expr        = 88
+    rq::RelationalQuery= 176
+    rq::TableRef    = 56
+    SourceTree      = 120
+    Span            = 24
+    Stmt            = 240
+    StmtKind        = 168
+    SwitchCase      = 16
+    TableExternRef  = 48
+    TransformCall   = 72
+    TransformKind   = 32
+    TupleField      = 160
+    Ty              = 136
+    TyFunc          = 80
+    TyKind          = 80
+    TyOrExpr        = 136
+    TypeDef         = 160
+    UnaryExpr       = 16
+    UnOp            = 1
+    VarDef          = 168
+    WindowFrame     = 24
+
+    ----- stderr -----
+    "###);
 }
 
 #[test]

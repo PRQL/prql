@@ -93,7 +93,10 @@ fn write_titled_entry<W: Write>(w: &mut W, entry: &DebugEntry, index: usize) -> 
 
     writeln!(w, r#"<label for={entry_id} class="entry-label clickable">"#)?;
     let kind = entry.kind.as_ref()[4..].to_ascii_uppercase();
-    writeln!(w, r#"[<b>REPRESENTATION</b>] <span class=yellow>{kind}</span>"#,)?;
+    writeln!(
+        w,
+        r#"[<b>REPRESENTATION</b>] <span class=yellow>{kind}</span>"#,
+    )?;
     writeln!(w, r#"</label>"#)?;
     writeln!(w, r#"<div class="entry-content">"#)?;
     match &entry.kind {

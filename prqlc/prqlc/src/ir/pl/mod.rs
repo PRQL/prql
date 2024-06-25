@@ -31,7 +31,6 @@ pub fn print_mem_sizes() {
 
     use crate::ir::{decl, generic, pl, rq};
     use crate::pr::{PrimitiveSet, Ty, TyFunc, TyKind, TyTupleField};
-    use crate::sql::internal::SqlTransform;
     use crate::{ErrorMessage, ErrorMessages, SourceTree, Span};
 
     println!("{:16}= {}", "Annotation", size_of::<Annotation>());
@@ -78,7 +77,6 @@ pub fn print_mem_sizes() {
     println!("{:16}= {}", "rq::TableRef", size_of::<rq::TableRef>());
     println!("{:16}= {}", "SourceTree", size_of::<SourceTree>());
     println!("{:16}= {}", "Span", size_of::<Span>());
-    println!("{:16}= {}", "SqlTransform", size_of::<SqlTransform>());
     println!("{:16}= {}", "Stmt", size_of::<Stmt>());
     println!("{:16}= {}", "StmtKind", size_of::<StmtKind>());
     println!("{:16}= {}", "SwitchCase", size_of::<SwitchCase>());
