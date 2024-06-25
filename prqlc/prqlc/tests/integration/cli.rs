@@ -484,6 +484,7 @@ fn debug() {
     ----- stderr -----
     "###);
 
+    #[cfg(not(windows))] // Windows weirdly has a different size for `SourceTree`
     assert_cmd_snapshot!(prqlc_command()
         .args(["debug", "ast"]), @r###"
     success: true
