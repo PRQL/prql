@@ -51,9 +51,6 @@ tasks:
     desc: |
       A full test of prqlc (excluding --test-dbs-external).
       Generates coverage report.
-    env:
-      # Use a different target dir so we don't poison the cache
-      CARGO_LLVM_COV_TARGET_DIR: ../target-cov
     cmds:
       - cmd: |
           cargo \
