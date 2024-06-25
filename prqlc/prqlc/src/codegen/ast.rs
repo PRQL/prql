@@ -4,21 +4,25 @@ use std::sync::OnceLock;
 use regex::Regex;
 
 use super::{WriteOpt, WriteSource};
-use crate::ast::*;
 use crate::codegen::SeparatedExprs;
+use crate::pr;
 
-pub(crate) fn write_expr(expr: &Expr) -> String {
+pub(crate) fn write_expr(expr: &pr::Expr) -> String {
     expr.write(WriteOpt::new_width(u16::MAX)).unwrap()
 }
 
-fn write_within<T: WriteSource>(node: &T, parent: &ExprKind, mut opt: WriteOpt) -> Option<String> {
+fn write_within<T: WriteSource>(
+    node: &T,
+    parent: &pr::ExprKind,
+    mut opt: WriteOpt,
+) -> Option<String> {
     let parent_strength = binding_strength(parent);
     opt.context_strength = opt.context_strength.max(parent_strength);
 
     node.write(opt)
 }
 
-impl WriteSource for Expr {
+impl WriteSource for pr::Expr {
     fn write(&self, mut opt: WriteOpt) -> Option<String> {
         let mut r = String::new();
 
@@ -43,7 +47,7 @@ impl WriteSource for Expr {
     }
 }
 
-fn needs_parenthesis(this: &Expr, opt: &WriteOpt) -> bool {
+fn needs_parenthesis(this: &pr::Expr, opt: &WriteOpt) -> bool {
     if opt.unbound_expr && can_bind_left(&this.kind) {
         return true;
     }
@@ -81,9 +85,9 @@ fn needs_parenthesis(this: &Expr, opt: &WriteOpt) -> bool {
     !assoc_matches
 }
 
-impl WriteSource for ExprKind {
+impl WriteSource for pr::ExprKind {
     fn write(&self, mut opt: WriteOpt) -> Option<String> {
-        use ExprKind::*;
+        use pr::ExprKind::*;
 
         match &self {
             Ident(ident) => Some(write_ident_part(ident)),
@@ -93,13 +97,13 @@ impl WriteSource for ExprKind {
 
                 r += opt.consume(".")?;
                 match field {
-                    FieldLookupKind::Name(n) => {
+                    pr::FieldLookupKind::Name(n) => {
                         r += opt.consume(n)?;
                     }
-                    FieldLookupKind::Position(i) => {
+                    pr::FieldLookupKind::Position(i) => {
                         r += &opt.consume(i.to_string())?;
                     }
-                    FieldLookupKind::Star => r += "*",
+                    pr::FieldLookupKind::Star => r += "*",
                 }
                 Some(r)
             }
@@ -139,7 +143,7 @@ impl WriteSource for ExprKind {
                 }
                 Some(r)
             }
-            Binary(BinaryExpr { op, left, right }) => {
+            Binary(pr::BinaryExpr { op, left, right }) => {
                 let mut r = String::new();
 
                 let mut opt_left = opt.clone();
@@ -156,7 +160,7 @@ impl WriteSource for ExprKind {
                 r += &write_within(right.as_ref(), self, opt_right)?;
                 Some(r)
             }
-            Unary(UnaryExpr { op, expr }) => {
+            Unary(pr::UnaryExpr { op, expr }) => {
                 let mut r = String::new();
 
                 r += opt.consume(&op.to_string())?;
@@ -272,57 +276,57 @@ fn break_line_within_parenthesis<T: WriteSource>(expr: &T, mut opt: WriteOpt) ->
     Some(r)
 }
 
-fn binding_strength(expr: &ExprKind) -> u8 {
+fn binding_strength(expr: &pr::ExprKind) -> u8 {
     match expr {
         // For example, if it's an Ident, it's basically infinite — a simple
         // ident never needs parentheses around it.
-        ExprKind::Ident(_) => 100,
+        pr::ExprKind::Ident(_) => 100,
 
         // Stronger than a range, since `-1..2` is `(-1)..2`
         // Stronger than binary op, since `-x == y` is `(-x) == y`
         // Stronger than a func call, since `exists !y` is `exists (!y)`
-        ExprKind::Unary(..) => 20,
+        pr::ExprKind::Unary(..) => 20,
 
-        ExprKind::Range(_) => 19,
+        pr::ExprKind::Range(_) => 19,
 
-        ExprKind::Binary(BinaryExpr { op, .. }) => match op {
-            BinOp::Pow => 19,
-            BinOp::Mul | BinOp::DivInt | BinOp::DivFloat | BinOp::Mod => 18,
-            BinOp::Add | BinOp::Sub => 17,
-            BinOp::Eq
-            | BinOp::Ne
-            | BinOp::Gt
-            | BinOp::Lt
-            | BinOp::Gte
-            | BinOp::Lte
-            | BinOp::RegexSearch => 16,
-            BinOp::Coalesce => 15,
-            BinOp::And => 14,
-            BinOp::Or => 13,
+        pr::ExprKind::Binary(pr::BinaryExpr { op, .. }) => match op {
+            pr::BinOp::Pow => 19,
+            pr::BinOp::Mul | pr::BinOp::DivInt | pr::BinOp::DivFloat | pr::BinOp::Mod => 18,
+            pr::BinOp::Add | pr::BinOp::Sub => 17,
+            pr::BinOp::Eq
+            | pr::BinOp::Ne
+            | pr::BinOp::Gt
+            | pr::BinOp::Lt
+            | pr::BinOp::Gte
+            | pr::BinOp::Lte
+            | pr::BinOp::RegexSearch => 16,
+            pr::BinOp::Coalesce => 15,
+            pr::BinOp::And => 14,
+            pr::BinOp::Or => 13,
         },
 
         // Weaker than a child assign, since `select x = 1`
         // Weaker than a binary operator, since `filter x == 1`
-        ExprKind::FuncCall(_) => 10,
+        pr::ExprKind::FuncCall(_) => 10,
         // ExprKind::FuncCall(_) if !is_parent => 2,
-        ExprKind::Func(_) => 7,
+        pr::ExprKind::Func(_) => 7,
 
         // other nodes should not contain any inner exprs
         _ => 100,
     }
 }
 
-fn associativity(expr: &ExprKind) -> super::Position {
+fn associativity(expr: &pr::ExprKind) -> super::Position {
     match expr {
-        ExprKind::Binary(BinaryExpr { op, .. }) => match op {
-            BinOp::Pow => super::Position::Right,
-            BinOp::Eq
-            | BinOp::Ne
-            | BinOp::Gt
-            | BinOp::Lt
-            | BinOp::Gte
-            | BinOp::Lte
-            | BinOp::RegexSearch => super::Position::Unspecified,
+        pr::ExprKind::Binary(pr::BinaryExpr { op, .. }) => match op {
+            pr::BinOp::Pow => super::Position::Right,
+            pr::BinOp::Eq
+            | pr::BinOp::Ne
+            | pr::BinOp::Gt
+            | pr::BinOp::Lt
+            | pr::BinOp::Gte
+            | pr::BinOp::Lte
+            | pr::BinOp::RegexSearch => super::Position::Unspecified,
             _ => super::Position::Left,
         },
 
@@ -331,17 +335,17 @@ fn associativity(expr: &ExprKind) -> super::Position {
 }
 
 /// True if this expression could be mistakenly bound with an expression on the left.
-fn can_bind_left(expr: &ExprKind) -> bool {
+fn can_bind_left(expr: &pr::ExprKind) -> bool {
     matches!(
         expr,
-        ExprKind::Unary(UnaryExpr {
-            op: UnOp::EqSelf | UnOp::Add | UnOp::Neg,
+        pr::ExprKind::Unary(pr::UnaryExpr {
+            op: pr::UnOp::EqSelf | pr::UnOp::Add | pr::UnOp::Neg,
             ..
         })
     )
 }
 
-impl WriteSource for Ident {
+impl WriteSource for pr::Ident {
     fn write(&self, mut opt: WriteOpt) -> Option<String> {
         let width = self.path.iter().map(|p| p.len() + 1).sum::<usize>() + self.name.len();
         opt.consume_width(width as u16)?;
@@ -382,7 +386,7 @@ pub fn write_ident_part(s: &str) -> String {
     }
 }
 
-impl WriteSource for Vec<Stmt> {
+impl WriteSource for Vec<pr::Stmt> {
     fn write(&self, mut opt: WriteOpt) -> Option<String> {
         opt.reset_line()?;
 
@@ -399,7 +403,7 @@ impl WriteSource for Vec<Stmt> {
     }
 }
 
-impl WriteSource for Stmt {
+impl WriteSource for pr::Stmt {
     fn write(&self, mut opt: WriteOpt) -> Option<String> {
         let mut r = String::new();
 
@@ -412,7 +416,7 @@ impl WriteSource for Stmt {
         }
 
         match &self.kind {
-            StmtKind::QueryDef(query) => {
+            pr::StmtKind::QueryDef(query) => {
                 r += "prql";
                 if let Some(version) = &query.version {
                     r += &format!(r#" version:"{}""#, version);
@@ -422,7 +426,7 @@ impl WriteSource for Stmt {
                 }
                 r += "\n";
             }
-            StmtKind::VarDef(var_def) => match var_def.kind {
+            pr::StmtKind::VarDef(var_def) => match var_def.kind {
                 _ if var_def.value.is_none() || var_def.ty.is_some() => {
                     let typ = if let Some(ty) = &var_def.ty {
                         format!("<{}> ", ty.write(opt.clone())?)
@@ -439,16 +443,16 @@ impl WriteSource for Stmt {
                     r += "\n";
                 }
 
-                VarDefKind::Let => {
+                pr::VarDefKind::Let => {
                     r += opt.consume(&format!("let {} = ", var_def.name))?;
 
                     r += &var_def.value.as_ref().unwrap().write(opt)?;
                     r += "\n";
                 }
-                VarDefKind::Into | VarDefKind::Main => {
+                pr::VarDefKind::Into | pr::VarDefKind::Main => {
                     let val = var_def.value.as_ref().unwrap();
                     match &val.kind {
-                        ExprKind::Pipeline(pipeline) => {
+                        pr::ExprKind::Pipeline(pipeline) => {
                             for expr in &pipeline.exprs {
                                 r += &expr.write(opt.clone())?;
                                 r += "\n";
@@ -460,13 +464,13 @@ impl WriteSource for Stmt {
                         }
                     }
 
-                    if var_def.kind == VarDefKind::Into {
+                    if var_def.kind == pr::VarDefKind::Into {
                         r += &format!("into {}", var_def.name);
                         r += "\n";
                     }
                 }
             },
-            StmtKind::TypeDef(type_def) => {
+            pr::StmtKind::TypeDef(type_def) => {
                 r += opt.consume(&format!("type {}", type_def.name))?;
 
                 if let Some(ty) = &type_def.value {
@@ -475,7 +479,7 @@ impl WriteSource for Stmt {
                 }
                 r += "\n";
             }
-            StmtKind::ModuleDef(module_def) => {
+            pr::StmtKind::ModuleDef(module_def) => {
                 r += &format!("module {} {{\n", module_def.name);
                 opt.indent += 1;
 
@@ -485,7 +489,7 @@ impl WriteSource for Stmt {
                 r += &opt.write_indent();
                 r += "}\n";
             }
-            StmtKind::ImportDef(import_def) => {
+            pr::StmtKind::ImportDef(import_def) => {
                 r += "import ";
                 if let Some(alias) = &import_def.alias {
                     r += &write_ident_part(alias);
@@ -499,15 +503,19 @@ impl WriteSource for Stmt {
     }
 }
 
-fn display_interpolation(prefix: &str, parts: &[InterpolateItem], opt: WriteOpt) -> Option<String> {
+fn display_interpolation(
+    prefix: &str,
+    parts: &[pr::InterpolateItem],
+    opt: WriteOpt,
+) -> Option<String> {
     let mut r = String::new();
     r += prefix;
     r += "\"";
     for part in parts {
         match &part {
             // We use double braces to escape braces
-            InterpolateItem::String(s) => r += s.replace('{', "{{").replace('}', "}}").as_str(),
-            InterpolateItem::Expr { expr, .. } => {
+            pr::InterpolateItem::String(s) => r += s.replace('{', "{{").replace('}', "}}").as_str(),
+            pr::InterpolateItem::Expr { expr, .. } => {
                 r += "{";
                 r += &expr.write(opt.clone())?;
                 r += "}"
@@ -518,7 +526,7 @@ fn display_interpolation(prefix: &str, parts: &[InterpolateItem], opt: WriteOpt)
     Some(r)
 }
 
-impl WriteSource for SwitchCase {
+impl WriteSource for pr::SwitchCase {
     fn write(&self, opt: WriteOpt) -> Option<String> {
         let mut r = String::new();
         r += &self.condition.write(opt.clone())?;
@@ -553,8 +561,8 @@ mod test {
 
     #[test]
     fn test_pipeline() {
-        let short = Expr::new(ExprKind::Ident("short".to_string()));
-        let long = Expr::new(ExprKind::Ident(
+        let short = pr::Expr::new(pr::ExprKind::Ident("short".to_string()));
+        let long = pr::Expr::new(pr::ExprKind::Ident(
             "some_really_long_and_really_long_name".to_string(),
         ));
 
@@ -564,13 +572,13 @@ mod test {
         };
 
         // short pipelines should be inlined
-        let pipeline = Expr::new(ExprKind::Pipeline(Pipeline {
+        let pipeline = pr::Expr::new(pr::ExprKind::Pipeline(pr::Pipeline {
             exprs: vec![short.clone(), short.clone(), short.clone()],
         }));
         assert_snapshot!(pipeline.write(opt.clone()).unwrap(), @"(short | short | short)");
 
         // long pipelines should be indented
-        let pipeline = Expr::new(ExprKind::Pipeline(Pipeline {
+        let pipeline = pr::Expr::new(pr::ExprKind::Pipeline(pr::Pipeline {
             exprs: vec![short.clone(), long.clone(), long, short.clone()],
         }));
         // colons are a workaround to avoid trimming
@@ -586,7 +594,7 @@ mod test {
         // sometimes, there is just not enough space
         opt.rem_width = 4;
         opt.indent = 100;
-        let pipeline = Expr::new(ExprKind::Pipeline(Pipeline { exprs: vec![short] }));
+        let pipeline = pr::Expr::new(pr::ExprKind::Pipeline(pr::Pipeline { exprs: vec![short] }));
         assert!(pipeline.write(opt).is_none());
     }
 

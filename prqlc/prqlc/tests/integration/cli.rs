@@ -18,14 +18,14 @@ fn help() {
 
     Commands:
       parse             Parse into PL AST
-      lex               Lex into Tokens
+      lex               Lex into Lexer Representation
       fmt               Parse & generate PRQL code back
       collect           Parse the whole project and collect it into a single PRQL source file
       debug             Commands for meant for debugging, prone to change
       experimental      Experimental commands are prone to change
       resolve           Parse, resolve & lower into RQ
-      sql:preprocess    Parse, resolve, lower into RQ & preprocess SRQ
-      sql:anchor        Parse, resolve, lower into RQ & preprocess & anchor SRQ
+      sql:preprocess    Parse, resolve, lower into RQ & preprocess PQ
+      sql:anchor        Parse, resolve, lower into RQ & preprocess & anchor PQ
       compile           Parse, resolve, lower into RQ & compile to SQL
       watch             Watch a directory and compile .prql files to .sql files
       list-targets      Show available compile target names

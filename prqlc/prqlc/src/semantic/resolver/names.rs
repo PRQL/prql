@@ -3,9 +3,9 @@ use std::collections::HashSet;
 use itertools::Itertools;
 
 use super::Resolver;
-use crate::ast::Ident;
 use crate::ir::decl::{Decl, DeclKind, Module};
 use crate::ir::pl::{Expr, ExprKind};
+use crate::pr::Ident;
 use crate::semantic::{NS_INFER, NS_INFER_MODULE, NS_SELF, NS_THAT, NS_THIS};
 use crate::Error;
 use crate::Result;

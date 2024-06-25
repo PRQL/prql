@@ -88,12 +88,12 @@ impl RelationStatus {
 pub enum RelationAdapter {
     Rq(Relation),
     Preprocessed(Vec<SqlTransform>, Vec<RelationColumn>),
-    Srq(SqlRelation),
+    Pq(SqlRelation),
 }
 
 impl From<SqlRelation> for RelationAdapter {
     fn from(rel: SqlRelation) -> Self {
-        RelationAdapter::Srq(rel)
+        RelationAdapter::Pq(rel)
     }
 }
 

@@ -6,19 +6,20 @@ mod gen_projection;
 mod gen_query;
 mod keywords;
 mod operators;
-mod srq;
+mod pq;
 
 pub use dialect::{Dialect, SupportLevel};
 
 use self::dialect::DialectHandler;
-use self::srq::ast::Cte;
-use self::srq::context::AnchorContext;
+use self::pq::ast::Cte;
+use self::pq::context::AnchorContext;
 use crate::debug;
-use crate::ir::rq::RelationalQuery;
-use crate::{compiler_version, Options, Result};
+use crate::ir::rq;
+use crate::Result;
+use crate::{compiler_version, Options};
 
 /// Translate a PRQL AST into a SQL string.
-pub fn compile(query: RelationalQuery, options: &Options) -> Result<String> {
+pub fn compile(query: rq::RelationalQuery, options: &Options) -> Result<String> {
     debug::log_stage(debug::Stage::Sql);
 
     let crate::Target::Sql(dialect) = options.target;
@@ -63,12 +64,12 @@ pub fn compile(query: RelationalQuery, options: &Options) -> Result<String> {
 
 /// This module gives access to internal machinery that gives no stability guarantees.
 pub mod internal {
-    pub use super::srq::ast::SqlTransform;
+    pub use super::pq::ast::SqlTransform;
     use super::*;
     use crate::ir::rq::Transform;
     use crate::Error;
 
-    fn init(query: RelationalQuery) -> Result<(Vec<Transform>, Context)> {
+    fn init(query: rq::RelationalQuery) -> Result<(Vec<Transform>, Context)> {
         let (ctx, relation) = AnchorContext::of(query);
         let ctx = Context::new(dialect::Dialect::Generic, ctx);
 
@@ -78,15 +79,15 @@ pub mod internal {
     }
 
     /// Applies preprocessing to the main relation in RQ. Meant for debugging purposes.
-    pub fn preprocess(query: RelationalQuery) -> Result<Vec<SqlTransform>> {
+    pub fn preprocess(query: rq::RelationalQuery) -> Result<Vec<SqlTransform>> {
         let (pipeline, mut ctx) = init(query)?;
 
-        srq::preprocess::preprocess(pipeline, &mut ctx)
+        pq::preprocess::preprocess(pipeline, &mut ctx)
     }
 
     /// Applies preprocessing and anchoring to the main relation in RQ. Meant for debugging purposes.
-    pub fn anchor(query: RelationalQuery) -> Result<srq::ast::SqlQuery> {
-        let (query, _ctx) = srq::compile_query(query, Some(dialect::Dialect::Generic))?;
+    pub fn anchor(query: rq::RelationalQuery) -> Result<pq::ast::SqlQuery> {
+        let (query, _ctx) = pq::compile_query(query, Some(dialect::Dialect::Generic))?;
         Ok(query)
     }
 }

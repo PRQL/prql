@@ -12,7 +12,7 @@ use crate::ir::pl::{JoinSide, Literal};
 use crate::ir::rq::{
     self, maybe_binop, new_binop, CId, Compute, Expr, ExprKind, RqFold, TableRef, Transform, Window,
 };
-use crate::sql::srq::context::ColumnDecl;
+use crate::sql::pq::context::ColumnDecl;
 use crate::sql::Context;
 use crate::{Error, Result, WithErrorInfo};
 use prqlc_parser::generic::{InterpolateItem, Range};

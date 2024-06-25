@@ -8,9 +8,9 @@
 //!
 //! Top-level construct is a list of statements [`Vec<Stmt>`].
 
-pub use crate::ast::Literal;
-pub use crate::ast::QueryDef;
-pub use crate::ast::{BinOp, BinaryExpr, Ident, UnOp, UnaryExpr};
+pub use crate::pr::Literal;
+pub use crate::pr::QueryDef;
+pub use crate::pr::{BinOp, BinaryExpr, Ident, UnOp, UnaryExpr};
 
 pub use self::expr::*;
 pub use self::extra::*;
@@ -29,8 +29,8 @@ mod utils;
 pub fn print_mem_sizes() {
     use std::mem::size_of;
 
-    use crate::ast::{PrimitiveSet, Ty, TyFunc, TyKind, TyTupleField};
     use crate::ir::{decl, generic, pl, rq};
+    use crate::pr::{PrimitiveSet, Ty, TyFunc, TyKind, TyTupleField};
     use crate::sql::internal::SqlTransform;
     use crate::{ErrorMessage, ErrorMessages, SourceTree, Span};
 

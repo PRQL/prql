@@ -1,9 +1,9 @@
 use enum_as_inner::EnumAsInner;
 use serde::{Deserialize, Serialize};
 
-use crate::ast::Ty;
 use crate::ir::generic::WindowKind;
 use crate::ir::pl::{Expr, ExprKind, Func, FuncCall, Ident, Range};
+use crate::pr::Ty;
 
 impl FuncCall {
     pub fn new_simple(name: Expr, args: Vec<Expr>) -> Self {

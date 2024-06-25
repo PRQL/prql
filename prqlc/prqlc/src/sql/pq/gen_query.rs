@@ -1,4 +1,4 @@
-//! This module is responsible for translating RQ to SRQ.
+//! This module is responsible for translating RQ to PQ.
 
 use std::str::FromStr;
 
@@ -7,8 +7,8 @@ use itertools::Itertools;
 use super::super::{Context, Dialect};
 use super::anchor::{self, anchor_split};
 use super::ast::{
-    fold_sql_transform, Cte, CteKind, RelationExpr, RelationExprKind, SqlQuery, SqlRelation,
-    SqlTransform, SrqMapper,
+    fold_sql_transform, Cte, CteKind, PqMapper, RelationExpr, RelationExprKind, SqlQuery,
+    SqlRelation, SqlTransform,
 };
 use super::context::{AnchorContext, RIId, RelationAdapter, RelationStatus};
 use super::{postprocess, preprocess};
@@ -87,7 +87,7 @@ fn compile_relation(relation: RelationAdapter, ctx: &mut Context) -> Result<SqlR
             compile_pipeline(pipeline, ctx)?
         }
 
-        RelationAdapter::Srq(rel) => rel,
+        RelationAdapter::Pq(rel) => rel,
     })
 }
 
@@ -122,7 +122,7 @@ struct TransformCompiler<'a> {
 
 impl<'a> RqFold for TransformCompiler<'a> {}
 
-impl<'a> SrqMapper<RIId, RelationExpr, Transform, ()> for TransformCompiler<'a> {
+impl<'a> PqMapper<RIId, RelationExpr, Transform, ()> for TransformCompiler<'a> {
     fn fold_rel(&mut self, rel: RIId) -> Result<RelationExpr> {
         compile_relation_instance(rel, self.ctx)
     }

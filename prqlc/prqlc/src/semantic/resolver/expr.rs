@@ -1,16 +1,17 @@
 use itertools::Itertools;
 
-use crate::ast::{Ty, TyKind, TyTupleField};
 use crate::ir::decl::{DeclKind, Module};
-use crate::ir::pl::*;
+use crate::ir::pl;
+use crate::ir::pl::PlFold;
+use crate::pr::{Ty, TyKind, TyTupleField};
 use crate::semantic::resolver::{flatten, types, Resolver};
 use crate::semantic::{NS_INFER, NS_SELF, NS_THAT, NS_THIS};
 use crate::utils::IdGenerator;
 use crate::Result;
 use crate::{Error, Reason, Span, WithErrorInfo};
 
-impl PlFold for Resolver<'_> {
-    fn fold_stmts(&mut self, _: Vec<Stmt>) -> Result<Vec<Stmt>> {
+impl pl::PlFold for Resolver<'_> {
+    fn fold_stmts(&mut self, _: Vec<pl::Stmt>) -> Result<Vec<pl::Stmt>> {
         unreachable!()
     }
 
@@ -38,26 +39,26 @@ impl PlFold for Resolver<'_> {
 
                 ty
             }
-            _ => fold_type(self, ty)?,
+            _ => pl::fold_type(self, ty)?,
         })
     }
 
-    fn fold_var_def(&mut self, var_def: VarDef) -> Result<VarDef> {
+    fn fold_var_def(&mut self, var_def: pl::VarDef) -> Result<pl::VarDef> {
         let value = match var_def.value {
-            Some(value) if matches!(value.kind, ExprKind::Func(_)) => Some(value),
+            Some(value) if matches!(value.kind, pl::ExprKind::Func(_)) => Some(value),
             Some(value) => Some(Box::new(flatten::Flattener::fold(self.fold_expr(*value)?))),
             None => None,
         };
 
-        Ok(VarDef {
+        Ok(pl::VarDef {
             name: var_def.name,
             value,
             ty: var_def.ty.map(|x| self.fold_type(x)).transpose()?,
         })
     }
 
-    fn fold_expr(&mut self, node: Expr) -> Result<Expr> {
-        if node.id.is_some() && !matches!(node.kind, ExprKind::Func(_)) {
+    fn fold_expr(&mut self, node: pl::Expr) -> Result<pl::Expr> {
+        if node.id.is_some() && !matches!(node.kind, pl::ExprKind::Func(_)) {
             return Ok(node);
         }
 
@@ -72,7 +73,7 @@ impl PlFold for Resolver<'_> {
         log::trace!("folding expr [{id:?}] {node:?}");
 
         let r = match node.kind {
-            ExprKind::Ident(ident) => {
+            pl::ExprKind::Ident(ident) => {
                 log::debug!("resolving ident {ident}...");
                 let fq_ident = self.resolve_ident(&ident).with_span(node.span)?;
                 log::debug!("... resolved to {fq_ident}");
@@ -80,13 +81,13 @@ impl PlFold for Resolver<'_> {
                 log::debug!("... which is {entry}");
 
                 match &entry.kind {
-                    DeclKind::Infer(_) => Expr {
-                        kind: ExprKind::Ident(fq_ident),
+                    DeclKind::Infer(_) => pl::Expr {
+                        kind: pl::ExprKind::Ident(fq_ident),
                         target_id: entry.declared_at,
                         ..node
                     },
-                    DeclKind::Column(target_id) => Expr {
-                        kind: ExprKind::Ident(fq_ident),
+                    DeclKind::Column(target_id) => pl::Expr {
+                        kind: pl::ExprKind::Ident(fq_ident),
                         target_id: Some(*target_id),
                         ..node
                     },
@@ -96,8 +97,8 @@ impl PlFold for Resolver<'_> {
 
                         let lineage = self.lineage_of_table_decl(&fq_ident, input_name, id);
 
-                        Expr {
-                            kind: ExprKind::Ident(fq_ident),
+                        pl::Expr {
+                            kind: pl::ExprKind::Ident(fq_ident),
                             ty: Some(ty_of_lineage(&lineage)),
                             lineage: Some(lineage),
                             alias: None,
@@ -106,10 +107,10 @@ impl PlFold for Resolver<'_> {
                     }
 
                     DeclKind::Expr(expr) => match &expr.kind {
-                        ExprKind::Func(closure) => {
+                        pl::ExprKind::Func(closure) => {
                             let closure = self.fold_function_types(closure.clone(), id)?;
 
-                            let expr = Expr::new(ExprKind::Func(closure));
+                            let expr = pl::Expr::new(pl::ExprKind::Func(closure));
 
                             if self.in_func_call_name {
                                 expr
@@ -125,8 +126,8 @@ impl PlFold for Resolver<'_> {
 
                         let fields = self.construct_wildcard_include(&fq_ident);
 
-                        Expr {
-                            kind: ExprKind::Tuple(fields),
+                        pl::Expr {
+                            kind: pl::ExprKind::Tuple(fields),
                             ty,
                             ..node
                         }
@@ -141,22 +142,22 @@ impl PlFold for Resolver<'_> {
                         .with_span(*span));
                     }
 
-                    _ => Expr {
-                        kind: ExprKind::Ident(fq_ident),
+                    _ => pl::Expr {
+                        kind: pl::ExprKind::Ident(fq_ident),
                         ..node
                     },
                 }
             }
 
-            ExprKind::FuncCall(FuncCall { name, args, .. })
+            pl::ExprKind::FuncCall(pl::FuncCall { name, args, .. })
                 if (name.kind.as_ident()).map_or(false, |i| i.to_string() == "std.not")
-                    && matches!(args[0].kind, ExprKind::Tuple(_)) =>
+                    && matches!(args[0].kind, pl::ExprKind::Tuple(_)) =>
             {
                 let arg = args.into_iter().exactly_one().unwrap();
                 self.resolve_column_exclusion(arg)?
             }
 
-            ExprKind::FuncCall(FuncCall {
+            pl::ExprKind::FuncCall(pl::FuncCall {
                 name,
                 args,
                 named_args,
@@ -175,28 +176,28 @@ impl PlFold for Resolver<'_> {
                 self.fold_function(func, id, *span)?
             }
 
-            ExprKind::Func(closure) => self.fold_function(closure, id, *span)?,
+            pl::ExprKind::Func(closure) => self.fold_function(closure, id, *span)?,
 
-            ExprKind::Tuple(exprs) => {
+            pl::ExprKind::Tuple(exprs) => {
                 let exprs = self.fold_exprs(exprs)?;
 
                 // flatten
                 let exprs = exprs
                     .into_iter()
                     .flat_map(|e| match e.kind {
-                        ExprKind::Tuple(items) if e.flatten => items,
+                        pl::ExprKind::Tuple(items) if e.flatten => items,
                         _ => vec![e],
                     })
                     .collect_vec();
 
-                Expr {
-                    kind: ExprKind::Tuple(exprs),
+                pl::Expr {
+                    kind: pl::ExprKind::Tuple(exprs),
                     ..node
                 }
             }
 
-            item => Expr {
-                kind: fold_expr_kind(self, item)?,
+            item => pl::Expr {
+                kind: pl::fold_expr_kind(self, item)?,
                 ..node
             },
         };
@@ -207,11 +208,11 @@ impl PlFold for Resolver<'_> {
 impl Resolver<'_> {
     fn finish_expr_resolve(
         &mut self,
-        expr: Expr,
+        expr: pl::Expr,
         id: usize,
         alias: Option<String>,
         span: Option<Span>,
-    ) -> Result<Expr> {
+    ) -> Result<pl::Expr> {
         let mut r = Box::new(self.maybe_static_eval(expr)?);
 
         r.id = r.id.or(Some(id));
@@ -222,7 +223,7 @@ impl Resolver<'_> {
             r.ty = Resolver::infer_type(&r)?;
         }
         if r.lineage.is_none() {
-            if let ExprKind::TransformCall(call) = &r.kind {
+            if let pl::ExprKind::TransformCall(call) = &r.kind {
                 r.lineage = Some(call.infer_lineage()?);
             } else if let Some(relation_columns) = r.ty.as_ref().and_then(|t| t.as_relation()) {
                 // lineage from ty
@@ -246,17 +247,17 @@ impl Resolver<'_> {
         Ok(*r)
     }
 
-    pub fn resolve_column_exclusion(&mut self, expr: Expr) -> Result<Expr> {
+    pub fn resolve_column_exclusion(&mut self, expr: pl::Expr) -> Result<pl::Expr> {
         let expr = self.fold_expr(expr)?;
         let except = self.coerce_into_tuple(expr)?;
 
-        self.fold_expr(Expr::new(ExprKind::All {
-            within: Box::new(Expr::new(Ident::from_name(NS_THIS))),
+        self.fold_expr(pl::Expr::new(pl::ExprKind::All {
+            within: Box::new(pl::Expr::new(pl::Ident::from_name(NS_THIS))),
             except: Box::new(except),
         }))
     }
 
-    pub fn construct_wildcard_include(&mut self, module_fq_self: &Ident) -> Vec<Expr> {
+    pub fn construct_wildcard_include(&mut self, module_fq_self: &pl::Ident) -> Vec<pl::Expr> {
         let module_fq = module_fq_self.clone().pop().unwrap();
 
         let decl = self.root_mod.module.get(&module_fq).unwrap();
@@ -270,16 +271,16 @@ impl Resolver<'_> {
         id: &mut IdGenerator<usize>,
         prefix: &[&String],
         module: &Module,
-    ) -> Vec<Expr> {
+    ) -> Vec<pl::Expr> {
         let mut res = Vec::new();
 
         if let Some(decl) = module.names.get(NS_INFER) {
-            let wildcard_field = Expr {
+            let wildcard_field = pl::Expr {
                 id: Some(id.gen()),
                 target_id: decl.declared_at,
                 flatten: true,
                 ty: Some(Ty::new(TyKind::Tuple(vec![TyTupleField::Wildcard(None)]))),
-                ..Expr::new(Ident::from_name(NS_SELF))
+                ..pl::Expr::new(pl::Ident::from_name(NS_SELF))
             };
             return vec![wildcard_field];
         }
@@ -289,17 +290,17 @@ impl Resolver<'_> {
                 DeclKind::Module(submodule) => {
                     let prefix = [prefix.to_vec(), vec![name]].concat();
                     let sub_fields = Self::construct_tuple_from_module(id, &prefix, submodule);
-                    Expr {
+                    pl::Expr {
                         id: Some(id.gen()),
                         alias: Some(name.clone()),
-                        ..Expr::new(ExprKind::Tuple(sub_fields))
+                        ..pl::Expr::new(pl::ExprKind::Tuple(sub_fields))
                     }
                 }
-                DeclKind::Column(target_id) => Expr {
+                DeclKind::Column(target_id) => pl::Expr {
                     id: Some(id.gen()),
                     target_id: Some(*target_id),
                     // alias: Some(name.clone()),
-                    ..Expr::new(Ident::from_path([prefix.to_vec(), vec![name]].concat()))
+                    ..pl::Expr::new(pl::Ident::from_path([prefix.to_vec(), vec![name]].concat()))
                 },
                 _ => continue,
             });
@@ -308,16 +309,16 @@ impl Resolver<'_> {
     }
 }
 
-fn ty_of_lineage(lineage: &Lineage) -> Ty {
+fn ty_of_lineage(lineage: &pl::Lineage) -> Ty {
     Ty::relation(
         lineage
             .columns
             .iter()
             .map(|col| match col {
-                LineageColumn::All { .. } => TyTupleField::Wildcard(None),
-                LineageColumn::Single { name, .. } => TyTupleField::Single(
+                pl::LineageColumn::All { .. } => TyTupleField::Wildcard(None),
+                pl::LineageColumn::Single { name, .. } => TyTupleField::Single(
                     name.as_ref().map(|i| i.name.clone()),
-                    Some(Ty::new(Literal::Null)),
+                    Some(Ty::new(pl::Literal::Null)),
                 ),
             })
             .collect(),

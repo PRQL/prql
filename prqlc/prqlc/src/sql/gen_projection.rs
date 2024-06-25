@@ -8,7 +8,7 @@ use sqlparser::ast::{
 
 use super::dialect::ColumnExclude;
 use super::gen_expr::*;
-use super::srq::context::{AnchorContext, ColumnDecl};
+use super::pq::context::{AnchorContext, ColumnDecl};
 use super::Context;
 use crate::ir::pl::Ident;
 use crate::ir::rq::{CId, RelationColumn};

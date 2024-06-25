@@ -1,9 +1,9 @@
 use enum_as_inner::EnumAsInner;
 use serde::{Deserialize, Serialize};
 
-use crate::ast::Ident;
-use crate::ast::QueryDef;
-use crate::ast::{Span, Ty};
+use crate::pr::Ident;
+use crate::pr::QueryDef;
+use crate::pr::{Span, Ty};
 
 use super::expr::Expr;
 
