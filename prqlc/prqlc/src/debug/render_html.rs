@@ -140,19 +140,20 @@ fn write_repr_prql<W: Write>(w: &mut W, source_tree: &SourceTree) -> Result {
 }
 
 fn write_repr_lr<W: Write>(w: &mut W, tokens: &lr::Tokens) -> Result {
-    writeln!(w, r#"<div class="lr repr">"#)?;
+    writeln!(w, r#"<table class="lr repr">"#)?;
 
     for token in &tokens.0 {
+        writeln!(w, r#"<tr class="token">"#,)?;
+        writeln!(w, "<td>{:?}</td>", token.kind)?;
         writeln!(
             w,
-            r#"<token span="{}:{}">"#,
+            r#"<td><span class="span">{}:{}</span></td>"#,
             token.span.start, token.span.end
         )?;
-        writeln!(w, "{:?}", token.kind)?;
-        writeln!(w, "</token>")?;
+        writeln!(w, "</tr>")?;
     }
 
-    writeln!(w, "</div>")
+    writeln!(w, "</table>")
 }
 
 fn write_repr_pr<W: Write>(w: &mut W, ast: &pr::ModuleDef) -> Result {
@@ -272,14 +273,16 @@ fn write_json_ast_node<W: Write>(
             Ok(())
         }
         serde_json::Value::Object(mut map) => {
-            let span = map.remove("span").and_then(|s| match s {
+            let span: Option<String> = map.remove("span").and_then(|s| match s {
                 serde_json::Value::Null => None,
                 serde_json::Value::String(s) => Some(s),
                 _ => unreachable!("expected span to be string, got: {}", s),
             });
 
-            if !is_node_contents && map.len() == 1 {
-                let (name, inner) = map.into_iter().next().unwrap();
+            if span.is_some() || (!is_node_contents && map.len() == 1) {
+                let first_item = map.into_iter().next();
+                let (name, inner) =
+                    first_item.unwrap_or_else(|| ("<empty>".into(), serde_json::Value::Null));
                 return write_ast_node(w, &name, span, inner);
             }
 
@@ -388,6 +391,16 @@ code {
     margin-top: 2px;
     border-left: 1px solid gray;
 }
+.span {
+    color: var(--text-muted);
+    display: inline-block;
+    margin-left: 1em;
+}
+table.repr.lr {
+    border-collapse: collapse;
+    width: min-content;
+}
+
 .ast-node>.header {
     display: flex;
 }
@@ -395,12 +408,6 @@ code {
     font-size: inherit;
     color: var(--text-green);
     margin: 0;
-}
-.ast-node>.header>span {
-    color: var(--text-muted);
-    display: inline-block;
-    margin-left: 1em;
-    font-weight: normal;
 }
 .ast-node.collapsed>.header::after {
     content: '...';

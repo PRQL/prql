@@ -3,6 +3,7 @@
 use std::env::current_dir;
 use std::path::PathBuf;
 use std::process::Command;
+use std::str::FromStr;
 
 use insta_cmd::assert_cmd_snapshot;
 use insta_cmd::get_cargo_bin;
@@ -163,7 +164,7 @@ fn compile_help() {
 #[test]
 fn long_query() {
     assert_cmd_snapshot!(prqlc_command()
-        .args(["compile", "--hide-signature-comment"])
+        .args(["compile", "--hide-signature-comment", "-vvv", "--debug-log=log_test.html"])
         .pass_stdin(r#"
 let long_query = (
   from employees
@@ -254,6 +255,9 @@ from long_query
 
     ----- stderr -----
     "###);
+
+    // don't check the contents, they are very prone to change
+    assert!(PathBuf::from_str("./log_test.html").unwrap().is_file());
 }
 
 #[test]
@@ -262,6 +266,7 @@ fn compile_project() {
     cmd.args([
         "compile",
         "--hide-signature-comment",
+        "--debug-log=log_test.json",
         project_path().to_str().unwrap(),
         "-",
         "main",
@@ -310,6 +315,9 @@ fn compile_project() {
 
     ----- stderr -----
     "###);
+
+    // don't check the contents, they are very prone to change
+    assert!(PathBuf::from_str("./log_test.json").unwrap().is_file());
 
     assert_cmd_snapshot!(prqlc_command()
       .args([

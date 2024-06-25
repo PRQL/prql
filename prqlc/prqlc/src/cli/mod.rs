@@ -665,7 +665,7 @@ sort full
                 signature_comment: false,
                 format: true,
                 target: "sql.any".to_string(),
-                debug_log: Some(PathBuf::from_str("./log_test.html").unwrap()),
+                debug_log: None,
             },
             &mut SourceTree::new(
                 [
@@ -693,9 +693,6 @@ sort full
         FROM
           x
         "###);
-
-        // don't check the contents, they are very prone to change
-        assert!(PathBuf::from_str("./log_test.html").unwrap().is_file());
     }
 
     #[test]

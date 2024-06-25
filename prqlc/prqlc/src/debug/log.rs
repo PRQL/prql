@@ -111,7 +111,7 @@ pub struct Message {
 
 #[derive(Clone, Copy, Serialize, AsRefStr)]
 pub enum Stage {
-    Parsing(StageParsing),
+    Parsing,
     Semantic(StageSemantic),
     Sql(StageSql),
 }
@@ -119,17 +119,11 @@ pub enum Stage {
 impl Stage {
     pub(super) fn sub_stage(&self) -> Option<&'_ str> {
         match self {
-            Stage::Parsing(s) => Some(s.as_ref()),
+            Stage::Parsing => None,
             Stage::Semantic(s) => Some(s.as_ref()),
             Stage::Sql(s) => Some(s.as_ref()),
         }
     }
-}
-
-#[derive(Clone, Copy, Serialize, AsRefStr)]
-pub enum StageParsing {
-    Lexer,
-    Parser,
 }
 
 #[derive(Clone, Copy, Serialize, AsRefStr)]
