@@ -44,10 +44,10 @@ pub fn resolve(mut module_tree: pr::ModuleDef, options: ResolverOptions) -> Resu
     load_std_lib(&mut module_tree);
 
     // expand AST into PL
+    debug::log_stage(debug::Stage::Semantic(debug::StageSemantic::AstExpand));
     let root_module_def = ast_expand::expand_module_def(module_tree)?;
     debug::log_entry(|| debug::DebugEntryKind::ReprPl(root_module_def.clone()));
 
-    debug::log_stage(debug::Stage::Semantic(debug::StageSemantic::Resolver));
     // init new root module
     let mut root_module = RootModule {
         module: Module::new_root(),
@@ -56,6 +56,7 @@ pub fn resolve(mut module_tree: pr::ModuleDef, options: ResolverOptions) -> Resu
     let mut resolver = Resolver::new(&mut root_module, options);
 
     // resolve the module def into the root module
+    debug::log_stage(debug::Stage::Semantic(debug::StageSemantic::Resolver));
     resolver.fold_statements(root_module_def.stmts)?;
     debug::log_entry(|| debug::DebugEntryKind::ReprDecl(root_module.clone()));
 
@@ -65,6 +66,7 @@ pub fn resolve(mut module_tree: pr::ModuleDef, options: ResolverOptions) -> Resu
 /// Preferred way of injecting std module.
 pub fn load_std_lib(module_tree: &mut pr::ModuleDef) {
     if !module_tree.stmts.iter().any(|s| is_mod_def_for(s, NS_STD)) {
+        log::debug!("loading std.prql");
         let _suppressed = debug::log_suppress();
 
         let std_source = include_str!("std.prql");

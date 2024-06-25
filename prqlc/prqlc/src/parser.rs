@@ -4,6 +4,7 @@ use std::{collections::HashMap, path::Path};
 use itertools::Itertools;
 
 use crate::debug;
+use crate::lr;
 use crate::pr;
 use crate::{Error, Errors, Result, SourceTree, WithErrorInfo};
 
@@ -11,7 +12,7 @@ pub fn parse(file_tree: &SourceTree) -> Result<pr::ModuleDef, Errors> {
     // register a new stage of the compiler
     // (here should register lexer stage first, but that all happens in a single call to prqlc_parser)
     debug::log_entry(|| debug::DebugEntryKind::ReprPrql(file_tree.clone()));
-    debug::log_stage(debug::Stage::Parsing(debug::StageParsing::Parser));
+    debug::log_stage(debug::Stage::Parsing);
 
     let source_files = linearize_tree(file_tree)?;
 
@@ -56,6 +57,8 @@ pub(crate) fn parse_source(source: &str, source_id: u16) -> Result<Vec<pr::Stmt>
     let (tokens, mut errors) = prqlc_parser::lexer::lex_source_recovery(source, source_id);
 
     let ast = if let Some(tokens) = tokens {
+        debug::log_entry(|| debug::DebugEntryKind::ReprLr(lr::Tokens(tokens.clone())));
+
         let (ast, parse_errors) = prqlc_parser::parser::parse_lr_to_pr(source, source_id, tokens);
         errors.extend(parse_errors);
         ast
