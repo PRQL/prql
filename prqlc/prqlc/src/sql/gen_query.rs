@@ -14,6 +14,7 @@ use super::gen_projection::*;
 use super::operators::translate_operator;
 use super::pq::ast::{Cte, CteKind, RelationExpr, RelationExprKind, SqlRelation, SqlTransform};
 use super::{Context, Dialect};
+use crate::debug;
 use crate::ir::pl::{JoinSide, Literal};
 use crate::ir::rq::{CId, Expr, ExprKind, RelationLiteral, RelationalQuery};
 use crate::utils::{BreakUp, Pluck};
@@ -26,6 +27,7 @@ pub fn translate_query(query: RelationalQuery, dialect: Option<Dialect>) -> Resu
     // compile from RQ to PQ
     let (pq_query, mut ctx) = super::pq::compile_query(query, dialect)?;
 
+    debug::log_stage(debug::Stage::Sql(debug::StageSql::Main));
     let mut query = translate_relation(pq_query.main_relation, &mut ctx)?;
 
     if !pq_query.ctes.is_empty() {
@@ -43,6 +45,7 @@ pub fn translate_query(query: RelationalQuery, dialect: Option<Dialect>) -> Resu
         });
     }
 
+    debug::log_entry(|| debug::DebugEntryKind::ReprSqlParser(query.clone()));
     Ok(query)
 }
 

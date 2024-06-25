@@ -9,6 +9,7 @@ mod operators;
 mod pq;
 
 pub use dialect::{Dialect, SupportLevel};
+pub use pq::ast as pq_ast;
 
 use self::dialect::DialectHandler;
 use self::pq::ast::Cte;
@@ -20,8 +21,6 @@ use crate::{compiler_version, Options};
 
 /// Translate a PRQL AST into a SQL string.
 pub fn compile(query: rq::RelationalQuery, options: &Options) -> Result<String> {
-    debug::log_stage(debug::Stage::Sql);
-
     let crate::Target::Sql(dialect) = options.target;
     let sql_ast = gen_query::translate_query(query, dialect)?;
 
@@ -60,36 +59,6 @@ pub fn compile(query: rq::RelationalQuery, options: &Options) -> Result<String> 
     };
 
     Ok(sql)
-}
-
-/// This module gives access to internal machinery that gives no stability guarantees.
-pub mod internal {
-    pub use super::pq::ast::SqlTransform;
-    use super::*;
-    use crate::ir::rq::Transform;
-    use crate::Error;
-
-    fn init(query: rq::RelationalQuery) -> Result<(Vec<Transform>, Context)> {
-        let (ctx, relation) = AnchorContext::of(query);
-        let ctx = Context::new(dialect::Dialect::Generic, ctx);
-
-        let pipeline = (relation.kind.into_pipeline())
-            .map_err(|_| Error::new_simple("Main RQ relation is not a pipeline."))?;
-        Ok((pipeline, ctx))
-    }
-
-    /// Applies preprocessing to the main relation in RQ. Meant for debugging purposes.
-    pub fn preprocess(query: rq::RelationalQuery) -> Result<Vec<SqlTransform>> {
-        let (pipeline, mut ctx) = init(query)?;
-
-        pq::preprocess::preprocess(pipeline, &mut ctx)
-    }
-
-    /// Applies preprocessing and anchoring to the main relation in RQ. Meant for debugging purposes.
-    pub fn anchor(query: rq::RelationalQuery) -> Result<pq::ast::SqlQuery> {
-        let (query, _ctx) = pq::compile_query(query, Some(dialect::Dialect::Generic))?;
-        Ok(query)
-    }
 }
 
 #[derive(Debug)]

@@ -1,6 +1,7 @@
 use std::collections::HashMap;
 use std::fmt::{Debug, Result, Write};
 
+use crate::sql::pq_ast;
 use crate::SourceTree;
 
 use super::log::*;
@@ -92,7 +93,10 @@ fn write_titled_entry<W: Write>(w: &mut W, entry: &DebugEntry, index: usize) -> 
 
     writeln!(w, r#"<label for={entry_id} class="entry-label clickable">"#)?;
     let kind = entry.kind.as_ref()[4..].to_ascii_uppercase();
-    writeln!(w, r#"[<b>AST</b>] <span class=yellow>{kind}</span>"#,)?;
+    writeln!(
+        w,
+        r#"[<b>REPRESENTATION</b>] <span class=yellow>{kind}</span>"#,
+    )?;
     writeln!(w, r#"</label>"#)?;
     writeln!(w, r#"<div class="entry-content">"#)?;
     match &entry.kind {
@@ -102,6 +106,9 @@ fn write_titled_entry<W: Write>(w: &mut W, entry: &DebugEntry, index: usize) -> 
         DebugEntryKind::ReprPl(a) => write_repr_pl(w, a)?,
         DebugEntryKind::ReprDecl(a) => write_repr_decl(w, a)?,
         DebugEntryKind::ReprRq(a) => write_repr_rq(w, a)?,
+        DebugEntryKind::ReprPqEarly(a) => write_repr_pq_early(w, a)?,
+        DebugEntryKind::ReprPq(a) => write_repr_pq(w, a)?,
+        DebugEntryKind::ReprSqlParser(a) => write_repr_sql_parser(w, a)?,
         DebugEntryKind::ReprSql(a) => write_repr_sql(w, a)?,
         DebugEntryKind::NewStage(_) | DebugEntryKind::Message(_) => unreachable!(),
     }
@@ -180,6 +187,36 @@ fn write_repr_decl<W: Write>(w: &mut W, ast: &decl::RootModule) -> Result {
 
 fn write_repr_rq<W: Write>(w: &mut W, ast: &rq::RelationalQuery) -> Result {
     writeln!(w, r#"<div class="rq repr">"#)?;
+
+    let json = serde_json::to_string(ast).unwrap();
+    let json_node: serde_json::Value = serde_json::from_str(&json).unwrap();
+    write_json_ast_node(w, json_node, false)?;
+
+    writeln!(w, "</div>")
+}
+
+fn write_repr_pq_early<W: Write>(w: &mut W, ast: &[pq_ast::SqlTransform]) -> Result {
+    writeln!(w, r#"<div class="pq repr">"#)?;
+
+    let json = serde_json::to_string(ast).unwrap();
+    let json_node: serde_json::Value = serde_json::from_str(&json).unwrap();
+    write_json_ast_node(w, json_node, false)?;
+
+    writeln!(w, "</div>")
+}
+
+fn write_repr_pq<W: Write>(w: &mut W, ast: &pq_ast::SqlQuery) -> Result {
+    writeln!(w, r#"<div class="pq repr">"#)?;
+
+    let json = serde_json::to_string(ast).unwrap();
+    let json_node: serde_json::Value = serde_json::from_str(&json).unwrap();
+    write_json_ast_node(w, json_node, false)?;
+
+    writeln!(w, "</div>")
+}
+
+fn write_repr_sql_parser<W: Write>(w: &mut W, ast: &sqlparser::ast::Query) -> Result {
+    writeln!(w, r#"<div class="sql-parser repr">"#)?;
 
     let json = serde_json::to_string(ast).unwrap();
     let json_node: serde_json::Value = serde_json::from_str(&json).unwrap();
@@ -348,6 +385,7 @@ code {
 }
 .indent {
     padding-left: 1em;
+    margin-top: 2px;
     border-left: 1px solid gray;
 }
 .ast-node>.header {

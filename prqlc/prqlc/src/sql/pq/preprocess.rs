@@ -14,7 +14,7 @@ use crate::ir::rq::{
 };
 use crate::sql::pq::context::ColumnDecl;
 use crate::sql::Context;
-use crate::{Error, Result, WithErrorInfo};
+use crate::{debug, Error, Result, WithErrorInfo};
 use prqlc_parser::generic::{InterpolateItem, Range};
 
 /// Converts RQ AST into SqlRQ AST and applies a few preprocessing operations.
@@ -34,6 +34,10 @@ pub(in crate::sql) fn preprocess(
         .and_then(|p| except(p, ctx))
         .and_then(|p| intersect(p, ctx))
         .map(reorder)
+        .map(|p| {
+            debug::log_entry(|| debug::DebugEntryKind::ReprPqEarly(p.clone()));
+            p
+        })
 }
 
 // This function was disabled because it changes semantics of the pipeline in some cases.

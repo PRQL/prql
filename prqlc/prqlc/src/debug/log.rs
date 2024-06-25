@@ -8,6 +8,7 @@ use std::{sync::RwLock, time::SystemTime};
 use strum_macros::AsRefStr;
 
 use crate::ir::{decl, pl, rq};
+use crate::sql::pq_ast;
 use prqlc_parser::lexer::lr;
 use prqlc_parser::parser::pr;
 
@@ -88,6 +89,9 @@ pub enum DebugEntryKind {
     ReprPl(pl::ModuleDef),
     ReprDecl(decl::RootModule),
     ReprRq(rq::RelationalQuery),
+    ReprPqEarly(Vec<pq_ast::SqlTransform>),
+    ReprPq(pq_ast::SqlQuery),
+    ReprSqlParser(sqlparser::ast::Query),
     ReprSql(String),
 
     Message(Message),
@@ -109,7 +113,7 @@ pub struct Message {
 pub enum Stage {
     Parsing(StageParsing),
     Semantic(StageSemantic),
-    Sql,
+    Sql(StageSql),
 }
 
 impl Stage {
@@ -117,7 +121,7 @@ impl Stage {
         match self {
             Stage::Parsing(s) => Some(s.as_ref()),
             Stage::Semantic(s) => Some(s.as_ref()),
-            Stage::Sql => None,
+            Stage::Sql(s) => Some(s.as_ref()),
         }
     }
 }
@@ -133,6 +137,13 @@ pub enum StageSemantic {
     AstExpand,
     Resolver,
     Lowering,
+}
+
+#[derive(Clone, Copy, Serialize, AsRefStr)]
+pub enum StageSql {
+    Anchor,
+    Postprocess,
+    Main,
 }
 
 pub struct LogSuppressLock(PhantomData<usize>);

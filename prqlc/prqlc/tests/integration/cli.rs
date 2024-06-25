@@ -23,9 +23,6 @@ fn help() {
       collect           Parse the whole project and collect it into a single PRQL source file
       debug             Commands for meant for debugging, prone to change
       experimental      Experimental commands are prone to change
-      resolve           Parse, resolve & lower into RQ
-      sql:preprocess    Parse, resolve, lower into RQ & preprocess PQ
-      sql:anchor        Parse, resolve, lower into RQ & preprocess & anchor PQ
       compile           Parse, resolve, lower into RQ & compile to SQL
       watch             Watch a directory and compile .prql files to .sql files
       list-targets      Show available compile target names
@@ -385,10 +382,6 @@ fn format() {
 #[test]
 fn debug() {
     assert_cmd_snapshot!(prqlc_command()
-        .args(["debug", "resolve"])
-        .pass_stdin("from tracks"));
-
-    assert_cmd_snapshot!(prqlc_command()
         .args(["debug", "lineage"])
         .pass_stdin("from tracks | select {artist, album}"), @r###"
     success: true
@@ -492,71 +485,59 @@ fn debug() {
     "###);
 
     assert_cmd_snapshot!(prqlc_command()
-        .args(["debug", "expand-pl"])
-        .pass_stdin("from tracks"), @r###"
+        .args(["debug", "ast"]), @r###"
     success: true
     exit_code: 0
     ----- stdout -----
-    let main = from tracks
+    Annotation      = 8
+    BinaryExpr      = 24
+    BinOp           = 1
+    ColumnSort      = 16
+    decl::Decl      = 232
+    decl::DeclKind  = 184
+    decl::Module    = 80
+    decl::TableDecl = 160
+    decl::TableExpr = 24
+    ErrorMessage    = 176
+    ErrorMessages   = 24
+    ExprKind        = 80
+    Func            = 336
+    FuncCall        = 80
+    FuncParam       = 168
+    generic::SortDirection= 1
+    generic::WindowKind= 1
+    InterpolateItem = 32
+    JoinSide        = 1
+    Lineage         = 72
+    LineageColumn   = 88
+    LineageInput    = 80
+    ModuleDef       = 48
+    pl::Expr        = 384
+    PrimitiveSet    = 1
+    QueryDef        = 72
+    Range           = 16
+    rq::Expr        = 88
+    rq::RelationalQuery= 176
+    rq::TableRef    = 56
+    SourceTree      = 120
+    Span            = 24
+    Stmt            = 240
+    StmtKind        = 168
+    SwitchCase      = 16
+    TableExternRef  = 48
+    TransformCall   = 72
+    TransformKind   = 32
+    TupleField      = 160
+    Ty              = 136
+    TyFunc          = 80
+    TyKind          = 80
+    TyOrExpr        = 136
+    TypeDef         = 160
+    UnaryExpr       = 16
+    UnOp            = 1
+    VarDef          = 168
+    WindowFrame     = 24
 
-    ----- stderr -----
-    "###);
-
-    assert_cmd_snapshot!(prqlc_command()
-        .args(["debug", "eval"])
-        .pass_stdin("2 + 2"), @r###"
-    success: true
-    exit_code: 0
-    ----- stdout -----
-    ## main
-    4
-
-
-    ----- stderr -----
-    "###);
-}
-
-#[test]
-fn preprocess() {
-    assert_cmd_snapshot!(prqlc_command().args(["sql:preprocess"]).pass_stdin("from tracks | take 20"), @r###"
-    success: true
-    exit_code: 0
-    ----- stdout -----
-    [
-        From(
-            RIId(
-                0,
-            ),
-        ),
-        Super(
-            Take(
-                Take {
-                    range: Range {
-                        start: None,
-                        end: Some(
-                            Expr {
-                                kind: Literal(
-                                    Integer(
-                                        20,
-                                    ),
-                                ),
-                                span: None,
-                            },
-                        ),
-                    },
-                    partition: [],
-                    sort: [],
-                },
-            ),
-        ),
-        Super(
-            Select(
-                [
-                    column-0,
-                ],
-            ),
-        ),
-    ]
     ----- stderr -----
     "###);
 }
