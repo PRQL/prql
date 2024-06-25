@@ -21,8 +21,6 @@ use crate::{compiler_version, Options};
 
 /// Translate a PRQL AST into a SQL string.
 pub fn compile(query: rq::RelationalQuery, options: &Options) -> Result<String> {
-    debug::log_stage(debug::Stage::Sql);
-
     let crate::Target::Sql(dialect) = options.target;
     let sql_ast = gen_query::translate_query(query, dialect)?;
 

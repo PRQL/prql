@@ -24,14 +24,14 @@ use clio::has_extension;
 use clio::Output;
 use is_terminal::IsTerminal;
 use itertools::Itertools;
+
+use prqlc::debug;
 use prqlc::internal::pl_to_lineage;
-use prqlc::semantic::reporting::{collect_frames, label_references};
-use prqlc::semantic::NS_DEFAULT_DB;
-use prqlc::{debug, semantic};
-use prqlc::{ir::pl::Lineage, ir::Span};
-use prqlc::{pl_to_prql, pl_to_rq_tree, prql_to_pl, prql_to_pl_tree, rq_to_sql, SourceTree};
-use prqlc::{pr, prql_to_tokens};
-use prqlc::{Options, Target};
+use prqlc::ir::pl;
+use prqlc::pr;
+use prqlc::semantic;
+use prqlc::{pl_to_prql, pl_to_rq_tree, prql_to_pl, prql_to_pl_tree, prql_to_tokens, rq_to_sql};
+use prqlc::{Options, SourceTree, Target};
 
 /// Entrypoint called by [`crate::main`]
 pub fn main() -> color_eyre::eyre::Result<()> {
@@ -43,7 +43,6 @@ pub fn main() -> color_eyre::eyre::Result<()> {
         .map(|()| log::set_max_level(cli.verbose.log_level_filter()))
         .unwrap();
 
-    //
     color_eyre::install()?;
     cli.color.write_global();
 
@@ -117,35 +116,11 @@ enum Command {
     #[command(subcommand)]
     Experimental(ExperimentalCommand),
 
-    /// Parse, resolve & lower into RQ
-    Resolve {
-        #[command(flatten)]
-        io_args: IoArgs,
-        #[arg(value_enum, long, default_value = "yaml")]
-        format: Format,
-    },
-
-    /// Parse, resolve, lower into RQ & preprocess PQ
-    #[command(name = "sql:preprocess")]
-    SQLPreprocess(IoArgs),
-
-    /// Parse, resolve, lower into RQ & preprocess & anchor PQ
-    ///
-    /// Only displays the main pipeline.
-    #[command(name = "sql:anchor")]
-    SQLAnchor {
-        #[command(flatten)]
-        io_args: IoArgs,
-
-        #[arg(value_enum, long, default_value = "yaml")]
-        format: Format,
-    },
-
     /// Parse, resolve, lower into RQ & compile to SQL
     ///
     /// Only displays the main pipeline and does not handle loop.
-    #[command(name = "compile", alias = "sql:compile")]
-    SQLCompile {
+    #[command(name = "compile")]
+    Compile {
         #[command(flatten)]
         io_args: IoArgs,
 
@@ -184,18 +159,6 @@ enum Command {
 /// Commands for meant for debugging, prone to change
 #[derive(Subcommand, Debug, Clone)]
 enum DebugCommand {
-    /// Parse & and expand into PL, but don't resolve
-    ExpandPL(IoArgs),
-
-    /// Parse & resolve, but don't lower into RQ
-    Resolve(IoArgs),
-
-    /// Parse & evaluate expression down to a value
-    ///
-    /// Cannot contain references to tables or any other outside sources.
-    /// Meant as a playground for testing out language design decisions.
-    Eval(IoArgs),
-
     /// Parse, resolve & combine source with comments annotating relation type
     Annotate(IoArgs),
 
@@ -404,39 +367,6 @@ impl Command {
 
                 pl_to_prql(&root_module_def)?.into_bytes()
             }
-            Command::Debug(DebugCommand::ExpandPL(_)) => {
-                let root_module_def = prql_to_pl_tree(sources)?;
-
-                let expanded = prqlc::semantic::ast_expand::expand_module_def(root_module_def)?;
-
-                let mut restricted = prqlc::semantic::ast_expand::restrict_module_def(expanded);
-
-                drop_module_def(&mut restricted.stmts, "std");
-
-                pl_to_prql(&restricted)?.into_bytes()
-            }
-            Command::Debug(DebugCommand::Resolve(_)) => {
-                let stmts = prql_to_pl_tree(sources)?;
-
-                let root_module = semantic::resolve(stmts, Default::default())
-                    .map_err(|e| prqlc::ErrorMessages::from(e).composed(sources))?;
-
-                // debug output of the PL
-                let mut out = format!("{root_module:#?}\n").into_bytes();
-
-                // labelled sources
-                for (source_id, source) in &sources.sources {
-                    let source_id = source_id.to_str().unwrap().to_string();
-                    out.extend(label_references(&root_module, source_id, source.clone()));
-                }
-
-                // resolved PL, restricted back into AST
-                let mut root_module = semantic::ast_expand::restrict_module(root_module.module);
-                drop_module_def(&mut root_module.stmts, "std");
-                out.extend(pl_to_prql(&root_module)?.into_bytes());
-
-                out
-            }
             Command::Debug(DebugCommand::Annotate(_)) => {
                 let (_, source) = sources.sources.clone().into_iter().exactly_one().or_else(
                     |_| bail!(
@@ -458,7 +388,8 @@ impl Command {
                 let ctx = semantic::resolve(root_mod, Default::default())?;
 
                 let frames = if let Ok((main, _)) = ctx.find_main_rel(&[]) {
-                    collect_frames(*main.clone().into_relation_var().unwrap()).frames
+                    semantic::reporting::collect_frames(*main.clone().into_relation_var().unwrap())
+                        .frames
                 } else {
                     vec![]
                 };
@@ -475,38 +406,12 @@ impl Command {
                     Format::Yaml => serde_yaml::to_string(&fc)?.into_bytes(),
                 }
             }
-            Command::Debug(DebugCommand::Eval(_)) => {
-                let root_mod = prql_to_pl_tree(sources)?;
-
-                let mut res = String::new();
-                for stmt in root_mod.stmts {
-                    if let pr::StmtKind::VarDef(def) = stmt.kind {
-                        res += &format!("## {}\n", def.name);
-
-                        let val = semantic::eval(*def.value.unwrap())
-                            .map_err(|e| prqlc::ErrorMessages::from(e).composed(sources))?;
-                        res += &semantic::write_pl(val);
-                        res += "\n\n";
-                    }
-                }
-
-                res.into_bytes()
-            }
             Command::Experimental(ExperimentalCommand::GenerateDocs(_)) => {
                 let module_ref = prql_to_pl_tree(sources)?;
 
                 docs_generator::generate_markdown_docs(module_ref.stmts).into_bytes()
             }
-            Command::Resolve { format, .. } => {
-                let ast = prql_to_pl_tree(sources)?;
-                let ir = pl_to_rq_tree(ast, &main_path, &[NS_DEFAULT_DB.to_string()])?;
-
-                match format {
-                    Format::Json => serde_json::to_string_pretty(&ir)?.into_bytes(),
-                    Format::Yaml => serde_yaml::to_string(&ir)?.into_bytes(),
-                }
-            }
-            Command::SQLCompile {
+            Command::Compile {
                 signature_comment,
                 format,
                 target,
@@ -523,56 +428,18 @@ impl Command {
                     .with_format(*format);
 
                 let res = prql_to_pl_tree(sources)
-                    .and_then(|pl| pl_to_rq_tree(pl, &main_path, &[NS_DEFAULT_DB.to_string()]))
+                    .and_then(|pl| {
+                        pl_to_rq_tree(pl, &main_path, &[semantic::NS_DEFAULT_DB.to_string()])
+                    })
                     .and_then(|rq| rq_to_sql(rq, &opts))
                     .map_err(|e| e.composed(sources));
 
                 if let Some(path) = debug_log {
-                    let debug_log = if let Some(debug_log) = debug::log_finish() {
-                        debug_log
-                    } else {
-                        return Err(anyhow!(
-                            "debug log was started, but it cannot be found after compilation"
-                        ));
-                    };
-                    match path.extension().and_then(|s| s.to_str()) {
-                        Some("json") => {
-                            let file = BufWriter::new(File::create(path)?);
-                            serde_json::to_writer(file, &debug_log)?;
-                        }
-                        Some("html") => {
-                            let file = BufWriter::new(File::create(path)?);
-                            debug::render_log_to_html(file, &debug_log)?;
-                        }
-                        _ => return Err(anyhow!("unknown debug log format for file {path:?}")),
-                    }
+                    write_log(path)?;
                 }
 
                 res?.as_bytes().to_vec()
             }
-
-            Command::SQLPreprocess { .. } => {
-                let ast = prql_to_pl_tree(sources)?;
-                let rq = pl_to_rq_tree(ast, &main_path, &[NS_DEFAULT_DB.to_string()])?;
-                let pq = prqlc::sql::internal::preprocess(rq)?;
-                format!("{pq:#?}").as_bytes().to_vec()
-            }
-            Command::SQLAnchor { format, .. } => {
-                let ast = prql_to_pl_tree(sources)?;
-                let rq = pl_to_rq_tree(ast, &main_path, &[NS_DEFAULT_DB.to_string()])?;
-                let pq = prqlc::sql::internal::anchor(rq)?;
-
-                let json = serde_json::to_string_pretty(&pq)?;
-
-                match format {
-                    Format::Json => json.into_bytes(),
-                    Format::Yaml => {
-                        let val: serde_yaml::Value = serde_yaml::from_str(&json)?;
-                        serde_yaml::to_string(&val)?.into_bytes()
-                    }
-                }
-            }
-
             _ => unreachable!("Other commands shouldn't reach `execute`"),
         })
     }
@@ -587,17 +454,10 @@ impl Command {
             Parse { io_args, .. }
             | Lex { io_args, .. }
             | Collect(io_args)
-            | Resolve { io_args, .. }
-            | SQLCompile { io_args, .. }
-            | SQLPreprocess(io_args)
-            | SQLAnchor { io_args, .. }
-            | Debug(
-                DebugCommand::Resolve(io_args)
-                | DebugCommand::ExpandPL(io_args)
-                | DebugCommand::Annotate(io_args)
-                | DebugCommand::Lineage { io_args, .. }
-                | DebugCommand::Eval(io_args),
-            ) => io_args,
+            | Compile { io_args, .. }
+            | Debug(DebugCommand::Annotate(io_args) | DebugCommand::Lineage { io_args, .. }) => {
+                io_args
+            }
             Experimental(ExperimentalCommand::GenerateDocs(io_args)) => io_args,
             _ => unreachable!(),
         };
@@ -624,29 +484,44 @@ impl Command {
     }
 
     fn write_output(&mut self, data: &[u8]) -> std::io::Result<()> {
-        use Command::{
-            Collect, Debug, Experimental, Lex, Parse, Resolve, SQLAnchor, SQLCompile, SQLPreprocess,
-        };
+        use Command::{Collect, Compile, Debug, Experimental, Lex, Parse};
         let mut output = match self {
             Parse { io_args, .. }
             | Lex { io_args, .. }
             | Collect(io_args)
-            | Resolve { io_args, .. }
-            | SQLCompile { io_args, .. }
-            | SQLAnchor { io_args, .. }
-            | SQLPreprocess(io_args)
-            | Debug(
-                DebugCommand::Resolve(io_args)
-                | DebugCommand::ExpandPL(io_args)
-                | DebugCommand::Annotate(io_args)
-                | DebugCommand::Lineage { io_args, .. }
-                | DebugCommand::Eval(io_args),
-            ) => io_args.output.clone(),
+            | Compile { io_args, .. }
+            | Debug(DebugCommand::Annotate(io_args) | DebugCommand::Lineage { io_args, .. }) => {
+                io_args.output.clone()
+            }
             Experimental(ExperimentalCommand::GenerateDocs(io_args)) => io_args.output.clone(),
             _ => unreachable!(),
         };
         output.write_all(data)
     }
+}
+
+pub fn write_log(path: &std::path::Path) -> Result<()> {
+    let debug_log = if let Some(debug_log) = debug::log_finish() {
+        debug_log
+    } else {
+        return Err(anyhow!(
+            "debug log was started, but it cannot be found after compilation"
+        ));
+    };
+    match path.extension().and_then(|s| s.to_str()) {
+        Some("json") => {
+            let file = BufWriter::new(File::create(path)?);
+            serde_json::to_writer(file, &debug_log)?;
+        }
+        Some("html") => {
+            let file = BufWriter::new(File::create(path)?);
+            debug::render_log_to_html(file, &debug_log)?;
+        }
+        _ => {
+            return Err(anyhow!("unknown debug log format for file {path:?}"));
+        }
+    }
+    Ok(())
 }
 
 fn drop_module_def(stmts: &mut Vec<pr::Stmt>, name: &str) {
@@ -669,7 +544,7 @@ fn read_files(input: &mut clio::ClioPath) -> Result<SourceTree> {
     Ok(SourceTree::new(sources, Some(root.to_path_buf())))
 }
 
-fn combine_prql_and_frames(source: &str, frames: Vec<(Option<Span>, Lineage)>) -> String {
+fn combine_prql_and_frames(source: &str, frames: Vec<(Option<pr::Span>, pl::Lineage)>) -> String {
     let source = Source::from(source);
     let lines = source.lines().collect_vec();
     let width = lines.iter().map(|l| l.len()).max().unwrap_or(0);
@@ -760,7 +635,7 @@ sort full
         anstream::ColorChoice::Never.write_global();
 
         let result = Command::execute(
-            &Command::SQLCompile {
+            &Command::Compile {
                 io_args: IoArgs::default(),
                 signature_comment: false,
                 format: true,
@@ -785,7 +660,7 @@ sort full
     #[test]
     fn compile() {
         let result = Command::execute(
-            &Command::SQLCompile {
+            &Command::Compile {
                 io_args: IoArgs::default(),
                 signature_comment: false,
                 format: true,
@@ -857,119 +732,6 @@ sort full
           span: 1:0-17
         "###);
     }
-    #[test]
-    fn resolve() {
-        let output = Command::execute(
-            &Command::Resolve {
-                io_args: IoArgs::default(),
-                format: Format::Yaml,
-            },
-            &mut "from x | select y".into(),
-            "",
-        )
-        .unwrap();
-
-        assert_snapshot!(String::from_utf8(output).unwrap().trim(), @r###"
-        def:
-          version: null
-          other: {}
-        tables:
-        - id: 0
-          name: null
-          relation:
-            kind: !ExternRef
-              LocalTable:
-              - x
-            columns:
-            - !Single y
-            - Wildcard
-        relation:
-          kind: !Pipeline
-          - !From
-            source: 0
-            columns:
-            - - !Single y
-              - 0
-            - - Wildcard
-              - 1
-            name: x
-          - !Select
-            - 0
-          - !Select
-            - 0
-          columns:
-          - !Single y
-        "###);
-    }
-
-    #[test]
-    fn sql_anchor() {
-        let output = Command::execute(
-            &Command::SQLAnchor {
-                io_args: IoArgs::default(),
-                format: Format::Yaml,
-            },
-            &mut "from employees | sort salary | take 3 | filter salary > 0".into(),
-            "",
-        )
-        .unwrap();
-
-        assert_snapshot!(String::from_utf8(output).unwrap().trim(), @r###"
-        ctes:
-        - tid: 1
-          kind:
-            Normal:
-              AtomicPipeline:
-              - Select:
-                - 0
-                - 1
-              - From:
-                  kind:
-                    Ref: 0
-                  riid: 0
-              - Sort:
-                - direction: Asc
-                  column: 0
-              - Take:
-                  range:
-                    start: null
-                    end:
-                      kind:
-                        Literal:
-                          Integer: 3
-                      span: null
-                  partition: []
-                  sort:
-                  - direction: Asc
-                    column: 0
-        main_relation:
-          AtomicPipeline:
-          - From:
-              kind:
-                Ref: 1
-              riid: 1
-          - Select:
-            - 2
-            - 3
-          - Filter:
-              kind:
-                Operator:
-                  name: std.gt
-                  args:
-                  - kind:
-                      ColumnRef: 2
-                    span: 1:47-53
-                  - kind:
-                      Literal:
-                        Integer: 0
-                    span: 1:56-57
-              span: 1:47-57
-          - Sort:
-            - direction: Asc
-              column: 2
-        "###);
-    }
-
     #[test]
     fn lex() {
         let output = Command::execute(

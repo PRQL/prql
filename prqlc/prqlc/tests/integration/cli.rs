@@ -23,9 +23,6 @@ fn help() {
       collect           Parse the whole project and collect it into a single PRQL source file
       debug             Commands for meant for debugging, prone to change
       experimental      Experimental commands are prone to change
-      resolve           Parse, resolve & lower into RQ
-      sql:preprocess    Parse, resolve, lower into RQ & preprocess PQ
-      sql:anchor        Parse, resolve, lower into RQ & preprocess & anchor PQ
       compile           Parse, resolve, lower into RQ & compile to SQL
       watch             Watch a directory and compile .prql files to .sql files
       list-targets      Show available compile target names
@@ -385,10 +382,6 @@ fn format() {
 #[test]
 fn debug() {
     assert_cmd_snapshot!(prqlc_command()
-        .args(["debug", "resolve"])
-        .pass_stdin("from tracks"));
-
-    assert_cmd_snapshot!(prqlc_command()
         .args(["debug", "lineage"])
         .pass_stdin("from tracks | select {artist, album}"), @r###"
     success: true
@@ -479,75 +472,6 @@ fn debug() {
                     - Ident: album
         span: 1:0-36
 
-    ----- stderr -----
-    "###);
-
-    assert_cmd_snapshot!(prqlc_command()
-        .args(["debug", "expand-pl"])
-        .pass_stdin("from tracks"), @r###"
-    success: true
-    exit_code: 0
-    ----- stdout -----
-    let main = from tracks
-
-    ----- stderr -----
-    "###);
-
-    assert_cmd_snapshot!(prqlc_command()
-        .args(["debug", "eval"])
-        .pass_stdin("2 + 2"), @r###"
-    success: true
-    exit_code: 0
-    ----- stdout -----
-    ## main
-    4
-
-
-    ----- stderr -----
-    "###);
-}
-
-#[test]
-fn preprocess() {
-    assert_cmd_snapshot!(prqlc_command().args(["sql:preprocess"]).pass_stdin("from tracks | take 20"), @r###"
-    success: true
-    exit_code: 0
-    ----- stdout -----
-    [
-        From(
-            RIId(
-                0,
-            ),
-        ),
-        Super(
-            Take(
-                Take {
-                    range: Range {
-                        start: None,
-                        end: Some(
-                            Expr {
-                                kind: Literal(
-                                    Integer(
-                                        20,
-                                    ),
-                                ),
-                                span: None,
-                            },
-                        ),
-                    },
-                    partition: [],
-                    sort: [],
-                },
-            ),
-        ),
-        Super(
-            Select(
-                [
-                    column-0,
-                ],
-            ),
-        ),
-    ]
     ----- stderr -----
     "###);
 }
