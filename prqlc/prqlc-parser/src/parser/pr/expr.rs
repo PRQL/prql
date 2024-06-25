@@ -28,7 +28,7 @@ pub struct Expr {
     #[serde(flatten)]
     pub kind: ExprKind,
 
-    #[serde(skip)]
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub span: Option<Span>,
 
     #[serde(skip_serializing_if = "Option::is_none")]

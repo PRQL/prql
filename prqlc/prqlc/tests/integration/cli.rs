@@ -468,15 +468,24 @@ fn debug() {
               - FuncCall:
                   name:
                     Ident: from
+                    span: 1:0-4
                   args:
                   - Ident: tracks
+                    span: 1:5-11
+                span: 1:0-11
               - FuncCall:
                   name:
                     Ident: select
+                    span: 1:14-20
                   args:
                   - Tuple:
                     - Ident: artist
+                      span: 1:22-28
                     - Ident: album
+                      span: 1:30-35
+                    span: 1:21-36
+                span: 1:14-36
+            span: 1:0-36
         span: 1:0-36
 
     ----- stderr -----

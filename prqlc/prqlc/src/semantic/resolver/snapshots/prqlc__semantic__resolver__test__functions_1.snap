@@ -9,10 +9,13 @@ expression: "resolve_derive(r#\"\n            let subtract = a b -> a - b\n\n   
           - this
           - employees
           - gross_salary
+        span: "1:128-140"
       - Ident:
           - this
           - employees
           - tax
+        span: "1:141-144"
+  span: "1:119-144"
   alias: net_salary
   ty:
     kind:
@@ -39,4 +42,3 @@ expression: "resolve_derive(r#\"\n            let subtract = a b -> a - b\n\n   
             name: ~
     span: "0:970-1003"
     name: ~
-

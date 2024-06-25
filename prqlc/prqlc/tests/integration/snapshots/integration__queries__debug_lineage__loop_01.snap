@@ -267,68 +267,100 @@ ast:
           - FuncCall:
               name:
                 Ident: from
+                span: 1:162-166
               args:
               - Array:
                 - Tuple:
                   - Literal:
                       Integer: 1
+                    span: 1:173-174
                     alias: n
+                  span: 1:168-175
+                span: 1:167-176
+            span: 1:162-176
           - FuncCall:
               name:
                 Ident: select
+                span: 1:177-183
               args:
               - Binary:
                   left:
                     Ident: n
+                    span: 1:188-189
                   op: Sub
                   right:
                     Literal:
                       Integer: 2
+                    span: 1:192-193
+                span: 1:188-193
                 alias: n
+            span: 1:177-193
           - FuncCall:
               name:
                 Ident: loop
+                span: 1:194-198
               args:
               - Pipeline:
                   exprs:
                   - FuncCall:
                       name:
                         Ident: filter
+                        span: 1:200-206
                       args:
                       - Binary:
                           left:
                             Ident: n
+                            span: 1:207-208
                           op: Lt
                           right:
                             Literal:
                               Integer: 4
+                            span: 1:211-212
+                        span: 1:207-212
+                    span: 1:200-212
                   - FuncCall:
                       name:
                         Ident: select
+                        span: 1:215-221
                       args:
                       - Binary:
                           left:
                             Ident: n
+                            span: 1:226-227
                           op: Add
                           right:
                             Literal:
                               Integer: 1
+                            span: 1:230-231
+                        span: 1:226-231
                         alias: n
+                    span: 1:215-231
+                span: 1:200-231
+            span: 1:194-232
           - FuncCall:
               name:
                 Ident: select
+                span: 1:233-239
               args:
               - Binary:
                   left:
                     Ident: n
+                    span: 1:244-245
                   op: Mul
                   right:
                     Literal:
                       Integer: 2
+                    span: 1:248-249
+                span: 1:244-249
                 alias: n
+            span: 1:233-249
           - FuncCall:
               name:
                 Ident: sort
+                span: 1:250-254
               args:
               - Ident: n
+                span: 1:255-256
+            span: 1:250-256
+        span: 1:162-256
     span: 1:162-257
