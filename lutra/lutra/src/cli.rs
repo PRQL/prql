@@ -30,6 +30,7 @@ fn main() {
 #[cfg(not(target_family = "wasm"))]
 mod inner {
     use clap::{Parser, Subcommand};
+    use connector_arrow::arrow;
     use lutra::{CompileParams, DiscoverParams, ExecuteParams, PullSchemaParams};
 
     #[derive(Parser)]

@@ -4,6 +4,7 @@ use std::{path::PathBuf, str::FromStr};
 
 use anyhow::Result;
 use arrow::record_batch::RecordBatch;
+use connector_arrow::arrow;
 use insta::{assert_debug_snapshot, assert_snapshot};
 use itertools::Itertools;
 use lutra::{DiscoverParams, ExecuteParams};

@@ -2117,7 +2117,6 @@ name = "lutra"
 version = "0.12.3"
 dependencies = [
  "anyhow",
- "arrow",
  "clap 4.4.18",
  "connector_arrow",
  "env_logger",

@@ -1,6 +1,6 @@
 use anyhow::Result;
-use arrow::datatypes::{DataType, SchemaRef};
 use connector_arrow::api::SchemaGet;
+use connector_arrow::arrow::datatypes::{DataType, SchemaRef};
 use itertools::Itertools;
 use prqlc::pr::{PrimitiveSet, Stmt, Ty, TyKind, TyTupleField, VarDef};
 use prqlc::{Error, WithErrorInfo};

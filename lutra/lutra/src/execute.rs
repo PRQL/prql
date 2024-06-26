@@ -1,4 +1,5 @@
 use anyhow::Result;
+use connector_arrow::arrow;
 use prqlc::{ir::pl::Ident, Error};
 
 use super::ProjectCompiled;
