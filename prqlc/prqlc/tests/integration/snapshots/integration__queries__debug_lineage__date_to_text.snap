@@ -402,7 +402,7 @@ ast:
                       span: 1:98-110
                     - FuncCall:
                         name:
-                          FieldLookup:
+                          Indirection:
                             base:
                               Ident: date
                               span: 1:113-117
@@ -421,7 +421,7 @@ ast:
                       span: 1:149-161
                     - FuncCall:
                         name:
-                          FieldLookup:
+                          Indirection:
                             base:
                               Ident: date
                               span: 1:164-168
@@ -440,7 +440,7 @@ ast:
                       span: 1:194-206
                     - FuncCall:
                         name:
-                          FieldLookup:
+                          Indirection:
                             base:
                               Ident: date
                               span: 1:209-213
@@ -459,7 +459,7 @@ ast:
                       span: 1:239-251
                     - FuncCall:
                         name:
-                          FieldLookup:
+                          Indirection:
                             base:
                               Ident: date
                               span: 1:254-258
@@ -478,7 +478,7 @@ ast:
                       span: 1:293-305
                     - FuncCall:
                         name:
-                          FieldLookup:
+                          Indirection:
                             base:
                               Ident: date
                               span: 1:308-312
@@ -497,7 +497,7 @@ ast:
                       span: 1:338-350
                     - FuncCall:
                         name:
-                          FieldLookup:
+                          Indirection:
                             base:
                               Ident: date
                               span: 1:353-357
@@ -516,7 +516,7 @@ ast:
                       span: 1:393-405
                     - FuncCall:
                         name:
-                          FieldLookup:
+                          Indirection:
                             base:
                               Ident: date
                               span: 1:408-412
@@ -535,7 +535,7 @@ ast:
                       span: 1:464-476
                     - FuncCall:
                         name:
-                          FieldLookup:
+                          Indirection:
                             base:
                               Ident: date
                               span: 1:479-483
@@ -554,7 +554,7 @@ ast:
                       span: 1:509-521
                     - FuncCall:
                         name:
-                          FieldLookup:
+                          Indirection:
                             base:
                               Ident: date
                               span: 1:524-528
@@ -573,7 +573,7 @@ ast:
                       span: 1:563-575
                     - FuncCall:
                         name:
-                          FieldLookup:
+                          Indirection:
                             base:
                               Ident: date
                               span: 1:578-582
@@ -592,7 +592,7 @@ ast:
                       span: 1:617-629
                     - FuncCall:
                         name:
-                          FieldLookup:
+                          Indirection:
                             base:
                               Ident: date
                               span: 1:632-636
@@ -611,7 +611,7 @@ ast:
                       span: 1:668-680
                     - FuncCall:
                         name:
-                          FieldLookup:
+                          Indirection:
                             base:
                               Ident: date
                               span: 1:683-687

@@ -281,13 +281,13 @@ ast:
                 span: 1:60-65
               args:
               - Tuple:
-                - FieldLookup:
+                - Indirection:
                     base:
                       Ident: a
                       span: 1:67-68
                     field: !Name album_id
                   span: 1:67-77
-                - FieldLookup:
+                - Indirection:
                     base:
                       Ident: a
                       span: 1:79-80
@@ -306,7 +306,7 @@ ast:
                             Ident: sum
                             span: 1:108-111
                           args:
-                          - FieldLookup:
+                          - Indirection:
                               base:
                                 Ident: tracks
                                 span: 1:112-118
@@ -315,7 +315,7 @@ ast:
                         span: 1:108-129
                       - FuncCall:
                           name:
-                            FieldLookup:
+                            Indirection:
                               base:
                                 Ident: math
                                 span: 1:132-136

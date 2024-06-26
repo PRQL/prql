@@ -276,7 +276,7 @@ ast:
                 alias: manager
               - Binary:
                   left:
-                    FieldLookup:
+                    Indirection:
                       base:
                         Ident: e
                         span: 1:179-180
@@ -284,7 +284,7 @@ ast:
                     span: 1:180-191
                   op: Eq
                   right:
-                    FieldLookup:
+                    Indirection:
                       base:
                         Ident: manager
                         span: 1:195-202
@@ -302,19 +302,19 @@ ast:
                 span: 1:217-223
               args:
               - Tuple:
-                - FieldLookup:
+                - Indirection:
                     base:
                       Ident: e
                       span: 1:225-226
                     field: !Name first_name
                   span: 1:225-237
-                - FieldLookup:
+                - Indirection:
                     base:
                       Ident: e
                       span: 1:239-240
                     field: !Name last_name
                   span: 1:239-250
-                - FieldLookup:
+                - Indirection:
                     base:
                       Ident: manager
                       span: 1:252-259

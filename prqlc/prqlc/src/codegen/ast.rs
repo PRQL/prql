@@ -91,19 +91,19 @@ impl WriteSource for pr::ExprKind {
 
         match &self {
             Ident(ident) => Some(write_ident_part(ident)),
-            FieldLookup { base, field } => {
+            Indirection { base, field } => {
                 let mut r = base.write(opt.clone())?;
                 opt.consume_width(r.len() as u16)?;
 
                 r += opt.consume(".")?;
                 match field {
-                    pr::FieldLookupKind::Name(n) => {
+                    pr::IndirectionKind::Name(n) => {
                         r += opt.consume(n)?;
                     }
-                    pr::FieldLookupKind::Position(i) => {
+                    pr::IndirectionKind::Position(i) => {
                         r += &opt.consume(i.to_string())?;
                     }
-                    pr::FieldLookupKind::Star => r += "*",
+                    pr::IndirectionKind::Star => r += "*",
                 }
                 Some(r)
             }

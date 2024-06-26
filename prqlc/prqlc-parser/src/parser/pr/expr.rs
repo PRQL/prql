@@ -38,9 +38,12 @@ pub struct Expr {
 #[derive(Debug, EnumAsInner, PartialEq, Clone, Serialize, Deserialize, strum::AsRefStr)]
 pub enum ExprKind {
     Ident(String),
-    FieldLookup {
+
+    /// A lookup into an object by name or position.
+    /// Currently, this includes only tuple field lookups, primarily by name.
+    Indirection {
         base: Box<Expr>,
-        field: FieldLookupKind,
+        field: IndirectionKind,
     },
     #[cfg_attr(
         feature = "serde_yaml",
@@ -79,7 +82,7 @@ impl ExprKind {
 }
 
 #[derive(Debug, EnumAsInner, PartialEq, Clone, Serialize, Deserialize)]
-pub enum FieldLookupKind {
+pub enum IndirectionKind {
     Name(String),
     Position(i64),
     Star,

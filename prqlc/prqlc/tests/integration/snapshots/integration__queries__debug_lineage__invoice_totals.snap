@@ -775,14 +775,14 @@ ast:
                 span: 1:184-190
               args:
               - Tuple:
-                - FieldLookup:
+                - Indirection:
                     base:
                       Ident: i
                       span: 1:204-205
                     field: !Name billing_city
                   span: 1:204-218
                   alias: city
-                - FieldLookup:
+                - Indirection:
                     base:
                       Ident: i
                       span: 1:233-234
@@ -811,7 +811,7 @@ ast:
                       args:
                       - Binary:
                           left:
-                            FieldLookup:
+                            Indirection:
                               base:
                                 Ident: ii
                                 span: 1:296-298
@@ -819,7 +819,7 @@ ast:
                             span: 1:298-309
                           op: Mul
                           right:
-                            FieldLookup:
+                            Indirection:
                               base:
                                 Ident: ii
                                 span: 1:312-314
@@ -839,7 +839,7 @@ ast:
                               Ident: count_distinct
                               span: 1:361-375
                             args:
-                            - FieldLookup:
+                            - Indirection:
                                 base:
                                   Ident: i
                                   span: 1:376-377
@@ -852,7 +852,7 @@ ast:
                               Ident: sum
                               span: 1:411-414
                             args:
-                            - FieldLookup:
+                            - Indirection:
                                 base:
                                   Ident: ii
                                   span: 1:415-417
