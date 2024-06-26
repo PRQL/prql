@@ -280,7 +280,7 @@ fn test_ranges() {
           Float: 1.6
         span: "0:14-17"
       end:
-        FieldLookup:
+        Indirection:
           base:
             Ident: rel
             span: "0:19-22"
@@ -632,7 +632,7 @@ fn test_s_string() {
       - String: SUM(
       - Expr:
           expr:
-            FieldLookup:
+            Indirection:
               base:
                 Ident: rel
                 span: "0:21-24"
@@ -840,7 +840,7 @@ fn test_number() {
     // We don't allow trailing periods
     assert!(parse_expr(r#"add 1. (2, 3)"#).is_err());
 
-    assert!(parse_expr("_2.3").unwrap().kind.is_field_lookup());
+    assert!(parse_expr("_2.3").unwrap().kind.is_indirection());
 
     assert_yaml_snapshot!(parse_expr(r#"2e3"#).unwrap(), @r###"
     ---
@@ -897,7 +897,7 @@ fn test_filter() {
                   left:
                     FuncCall:
                       name:
-                        FieldLookup:
+                        Indirection:
                           base:
                             Ident: text
                             span: "0:8-12"
@@ -2138,9 +2138,9 @@ join `my-proj`.`dataset`.`table`
                     Ident: join
                     span: "0:94-98"
                   args:
-                    - FieldLookup:
+                    - Indirection:
                         base:
-                          FieldLookup:
+                          Indirection:
                             base:
                               Ident: my-proj
                               span: "0:99-108"
@@ -2474,7 +2474,7 @@ fn test_allowed_idents() {
                     span: "0:133-139"
                   args:
                     - Tuple:
-                        - FieldLookup:
+                        - Indirection:
                             base:
                               Ident: _employees
                               span: "0:141-151"
@@ -2983,7 +2983,7 @@ fn test_module() {
               kind: Let
               name: man
               value:
-                FieldLookup:
+                Indirection:
                   base:
                     Ident: module
                     span: "0:74-80"
@@ -3003,9 +3003,9 @@ fn test_lookup_01() {
     "#,
     ).unwrap(), @r###"
     ---
-    FieldLookup:
+    Indirection:
       base:
-        FieldLookup:
+        Indirection:
           base:
             Tuple:
               - Tuple:
@@ -3033,7 +3033,7 @@ fn test_lookup_02() {
     "#,
     ).unwrap(), @r###"
     ---
-    FieldLookup:
+    Indirection:
       base:
         Ident: hello
         span: "0:21-26"

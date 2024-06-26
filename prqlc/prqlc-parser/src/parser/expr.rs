@@ -192,10 +192,10 @@ where
     expr.then(
         ctrl('.')
             .ignore_then(choice((
-                ident_part().map(FieldLookupKind::Name),
-                ctrl('*').to(FieldLookupKind::Star),
+                ident_part().map(IndirectionKind::Name),
+                ctrl('*').to(IndirectionKind::Star),
                 select! {
-                    TokenKind::Literal(Literal::Integer(i)) => FieldLookupKind::Position(i)
+                    TokenKind::Literal(Literal::Integer(i)) => IndirectionKind::Position(i)
                 },
             )))
             .map_with_span(|f, s| (f, s))
@@ -203,7 +203,7 @@ where
     )
     .foldl(|base, (field, span)| {
         let base = Box::new(base);
-        ExprKind::FieldLookup { base, field }.into_expr(span)
+        ExprKind::Indirection { base, field }.into_expr(span)
     })
 }
 

@@ -251,7 +251,7 @@ ast:
                     Ident: from
                     span: 1:36-40
                   args:
-                  - FieldLookup:
+                  - Indirection:
                       base:
                         Ident: _param
                         span: 1:45-51
@@ -265,7 +265,7 @@ ast:
                     span: 1:58-63
                   args:
                   - Tuple:
-                    - FieldLookup:
+                    - Indirection:
                         base:
                           Ident: t
                           span: 1:65-66

@@ -510,7 +510,7 @@ ast:
                     exprs:
                     - Ident: title
                       span: 1:194-199
-                    - FieldLookup:
+                    - Indirection:
                         base:
                           Ident: text
                           span: 1:202-206
@@ -522,7 +522,7 @@ ast:
                     exprs:
                     - Ident: title
                       span: 1:223-228
-                    - FieldLookup:
+                    - Indirection:
                         base:
                           Ident: text
                           span: 1:231-235
@@ -534,7 +534,7 @@ ast:
                     exprs:
                     - Ident: title
                       span: 1:258-263
-                    - FieldLookup:
+                    - Indirection:
                         base:
                           Ident: text
                           span: 1:266-270
@@ -546,7 +546,7 @@ ast:
                     exprs:
                     - Ident: title
                       span: 1:293-298
-                    - FieldLookup:
+                    - Indirection:
                         base:
                           Ident: text
                           span: 1:301-305
@@ -558,7 +558,7 @@ ast:
                     exprs:
                     - Ident: title
                       span: 1:327-332
-                    - FieldLookup:
+                    - Indirection:
                         base:
                           Ident: text
                           span: 1:335-339
@@ -570,7 +570,7 @@ ast:
                     exprs:
                     - Ident: title
                       span: 1:356-361
-                    - FieldLookup:
+                    - Indirection:
                         base:
                           Ident: text
                           span: 1:364-368
@@ -584,7 +584,7 @@ ast:
                       span: 1:388-393
                     - FuncCall:
                         name:
-                          FieldLookup:
+                          Indirection:
                             base:
                               Ident: text
                               span: 1:396-400
@@ -606,7 +606,7 @@ ast:
                       span: 1:428-433
                     - FuncCall:
                         name:
-                          FieldLookup:
+                          Indirection:
                             base:
                               Ident: text
                               span: 1:436-440
@@ -649,7 +649,7 @@ ast:
                             span: 1:485-490
                           - FuncCall:
                               name:
-                                FieldLookup:
+                                Indirection:
                                   base:
                                     Ident: text
                                     span: 1:493-497
@@ -669,7 +669,7 @@ ast:
                             span: 1:523-528
                           - FuncCall:
                               name:
-                                FieldLookup:
+                                Indirection:
                                   base:
                                     Ident: text
                                     span: 1:531-535
@@ -690,7 +690,7 @@ ast:
                         span: 1:560-565
                       - FuncCall:
                           name:
-                            FieldLookup:
+                            Indirection:
                               base:
                                 Ident: text
                                 span: 1:568-572

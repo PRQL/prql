@@ -199,7 +199,7 @@ ast:
                 Ident: group
                 span: 1:53-58
               args:
-              - FieldLookup:
+              - Indirection:
                   base:
                     Ident: tracks
                     span: 1:59-65
@@ -220,7 +220,7 @@ ast:
                 Ident: sort
                 span: 1:77-81
               args:
-              - FieldLookup:
+              - Indirection:
                   base:
                     Ident: tracks
                     span: 1:82-88
