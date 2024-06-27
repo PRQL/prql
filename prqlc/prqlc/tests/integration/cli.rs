@@ -492,7 +492,7 @@ fn debug() {
     ----- stderr -----
     "###);
 
-    // Don't test the ouput of this, since on one min-versions check it had
+    // Don't test the output of this, since on one min-versions check it had
     // different results, and didn't repro on Mac. It having different results
     // makes it difficult to debug, and we get most of the value by just
     // checking it runs successfully.
