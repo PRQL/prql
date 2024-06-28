@@ -3,10 +3,17 @@ use std::{collections::HashMap, path::Path};
 
 use itertools::Itertools;
 
-use crate::ast::{ModuleDef, Stmt, StmtKind};
+use crate::debug;
+use crate::lr;
+use crate::pr;
 use crate::{Error, Errors, Result, SourceTree, WithErrorInfo};
 
-pub fn parse(file_tree: &SourceTree) -> Result<ModuleDef, Errors> {
+pub fn parse(file_tree: &SourceTree) -> Result<pr::ModuleDef, Errors> {
+    // register a new stage of the compiler
+    // (here should register lexer stage first, but that all happens in a single call to prqlc_parser)
+    debug::log_entry(|| debug::DebugEntryKind::ReprPrql(file_tree.clone()));
+    debug::log_stage(debug::Stage::Parsing);
+
     let source_files = linearize_tree(file_tree)?;
 
     // reverse the id->file_path map
@@ -17,7 +24,7 @@ pub fn parse(file_tree: &SourceTree) -> Result<ModuleDef, Errors> {
         .collect();
 
     // init the root module def
-    let mut root = ModuleDef {
+    let mut root = pr::ModuleDef {
         name: "Project".to_string(),
         stmts: Vec::new(),
     };
@@ -30,7 +37,7 @@ pub fn parse(file_tree: &SourceTree) -> Result<ModuleDef, Errors> {
             .map(|x| **x)
             .expect("source tree has malformed ids");
 
-        match prqlc_parser::parse_source(source_file.content, id) {
+        match parse_source(source_file.content, id) {
             Ok(stmts) => {
                 insert_stmts_at_path(&mut root, source_file.module_path, stmts);
             }
@@ -38,9 +45,31 @@ pub fn parse(file_tree: &SourceTree) -> Result<ModuleDef, Errors> {
         }
     }
     if errors.is_empty() {
+        debug::log_entry(|| debug::DebugEntryKind::ReprPr(root.clone()));
         Ok(root)
     } else {
         Err(Errors(errors))
+    }
+}
+
+/// Build PRQL AST from a PRQL query string.
+pub(crate) fn parse_source(source: &str, source_id: u16) -> Result<Vec<pr::Stmt>, Vec<Error>> {
+    let (tokens, mut errors) = prqlc_parser::lexer::lex_source_recovery(source, source_id);
+
+    let ast = if let Some(tokens) = tokens {
+        debug::log_entry(|| debug::DebugEntryKind::ReprLr(lr::Tokens(tokens.clone())));
+
+        let (ast, parse_errors) = prqlc_parser::parser::parse_lr_to_pr(source, source_id, tokens);
+        errors.extend(parse_errors);
+        ast
+    } else {
+        None
+    };
+
+    if errors.is_empty() {
+        Ok(ast.unwrap_or_default())
+    } else {
+        Err(errors)
     }
 }
 
@@ -117,7 +146,7 @@ fn linearize_tree(tree: &SourceTree) -> Result<Vec<SourceFile>> {
     Ok(sources)
 }
 
-fn insert_stmts_at_path(module: &mut ModuleDef, mut path: Vec<String>, stmts: Vec<Stmt>) {
+fn insert_stmts_at_path(module: &mut pr::ModuleDef, mut path: Vec<String>, stmts: Vec<pr::Stmt>) {
     if path.is_empty() {
         module.stmts.extend(stmts);
         return;
@@ -131,7 +160,7 @@ fn insert_stmts_at_path(module: &mut ModuleDef, mut path: Vec<String>, stmts: Ve
         sm
     } else {
         // insert new module def
-        let new_stmt = Stmt::new(StmtKind::ModuleDef(ModuleDef {
+        let new_stmt = pr::Stmt::new(pr::StmtKind::ModuleDef(pr::ModuleDef {
             name: step,
             stmts: Vec::new(),
         }));
@@ -143,7 +172,7 @@ fn insert_stmts_at_path(module: &mut ModuleDef, mut path: Vec<String>, stmts: Ve
     insert_stmts_at_path(submodule, path, stmts);
 }
 
-pub(crate) fn is_mod_def_for(stmt: &Stmt, name: &str) -> bool {
+pub(crate) fn is_mod_def_for(stmt: &pr::Stmt, name: &str) -> bool {
     stmt.kind.as_module_def().map_or(false, |x| x.name == name)
 }
 

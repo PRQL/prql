@@ -1,32 +1,79 @@
-//! A very simple benchmark for a single example, basically copied from the
-//! [criterion quick
-//! start](https://github.com/bheisler/criterion.rs#quickstart). At time of
-//! writing, this ran at 300mics on my laptop.
+use criterion::{criterion_group, criterion_main, BenchmarkId, Criterion};
+use glob::glob;
+use prqlc::{compile, pl_to_prql, pl_to_rq, prql_to_pl, Options};
+use std::collections::BTreeMap;
+use std::fs;
 
-// TODO: add a small GHA workflow for this to run on "full tests".
+type Queries = BTreeMap<String, String>;
 
-// While benchmarks could run on wasm, the default features use Rayon, which
-// isn't supported. We're hardly using benchmarks so it's fine to exclude one
-// target.
-
-cfg_if::cfg_if! {
-    if #[cfg(target_family = "wasm")] {
-        fn main() {    panic!("Not used in wasm (but it seems cargo insists we have a `main` function).")}
-    } else {
-        use criterion::{criterion_group, criterion_main, Criterion};
-        use prqlc::{ErrorMessages, Options, compile};
-
-        const CONTENT: &str = include_str!("../examples/compile-files/queries/variables.prql");
-        fn compile_query() -> Result<String, ErrorMessages> {
-            compile(CONTENT, &Options::default())
-        }
-
-        fn criterion_benchmark(c: &mut Criterion) {
-            c.bench_function("variables-query", |b| b.iter(compile_query));
-        }
-
-        criterion_group!(benches, criterion_benchmark);
-        criterion_main!(benches);
-
-    }
+fn load_queries() -> Queries {
+    glob("tests/integration/queries/**/*.prql")
+        .unwrap()
+        .filter_map(|entry| {
+            let path = entry.ok()?;
+            let name = path.file_stem()?.to_string_lossy().into_owned();
+            let content = fs::read_to_string(&path).ok()?;
+            Some((name, content))
+        })
+        .collect()
 }
+
+fn bench_compile(c: &mut Criterion) {
+    let queries = load_queries();
+    let options = Options::default();
+    let mut group = c.benchmark_group("compile");
+
+    for (name, content) in queries.iter() {
+        group.bench_with_input(BenchmarkId::from_parameter(name), content, |b, content| {
+            b.iter(|| compile(content, &options));
+        });
+    }
+    group.finish();
+}
+
+fn bench_prql_to_pl(c: &mut Criterion) {
+    let queries = load_queries();
+    let mut group = c.benchmark_group("prql_to_pl");
+
+    for (name, content) in queries.iter() {
+        group.bench_with_input(BenchmarkId::from_parameter(name), content, |b, content| {
+            b.iter(|| prql_to_pl(content));
+        });
+    }
+    group.finish();
+}
+
+fn bench_pl_to_rq(c: &mut Criterion) {
+    let queries = load_queries();
+    let mut group = c.benchmark_group("pl_to_rq");
+
+    for (name, content) in queries.iter() {
+        let pl = prql_to_pl(content).unwrap();
+        group.bench_with_input(BenchmarkId::from_parameter(name), &pl, |b, pl| {
+            b.iter(|| pl_to_rq(pl.clone()));
+        });
+    }
+    group.finish();
+}
+
+fn bench_pl_to_prql(c: &mut Criterion) {
+    let queries = load_queries();
+    let mut group = c.benchmark_group("pl_to_prql");
+
+    for (name, content) in queries.iter() {
+        let pl = prql_to_pl(content).unwrap();
+        group.bench_with_input(BenchmarkId::from_parameter(name), &pl, |b, pl| {
+            b.iter(|| pl_to_prql(pl));
+        });
+    }
+    group.finish();
+}
+
+criterion_group!(
+    benches,
+    bench_compile,
+    bench_prql_to_pl,
+    bench_pl_to_rq,
+    bench_pl_to_prql
+);
+criterion_main!(benches);

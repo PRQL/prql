@@ -1,10 +1,11 @@
 use enum_as_inner::EnumAsInner;
 use serde::{Deserialize, Serialize};
 
+use crate::pr::Ident;
+use crate::pr::QueryDef;
+use crate::pr::{Span, Ty};
+
 use super::expr::Expr;
-pub use crate::ast::stmt::QueryDef;
-use crate::ast::Ident;
-use crate::ast::{Span, Ty};
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct Stmt {

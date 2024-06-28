@@ -37,6 +37,8 @@
   It had been deprecated for a few versions and will no longer be updated.
   (@max-sixty)
 
+- New benchmarks (@max-sixty, #4654)
+
 **New Contributors**:
 
 ## 0.12.2 — 2024-06-10

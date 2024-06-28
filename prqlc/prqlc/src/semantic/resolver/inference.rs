@@ -1,9 +1,9 @@
 use itertools::Itertools;
 
 use super::Resolver;
-use crate::ast::{Ident, Ty, TyTupleField};
 use crate::ir::decl::{Decl, TableDecl, TableExpr};
 use crate::ir::pl::{Lineage, LineageColumn, LineageInput};
+use crate::pr::{Ident, Ty, TyTupleField};
 use crate::semantic::{NS_DEFAULT_DB, NS_INFER};
 use crate::Result;
 

@@ -1,8 +1,8 @@
 use std::collections::HashMap;
 
-use crate::ast::{Ty, TyKind, TyTupleField};
 use crate::ir::decl::{Decl, DeclKind, Module, TableDecl, TableExpr};
 use crate::ir::pl::*;
+use crate::pr::{Ty, TyKind, TyTupleField};
 use crate::Result;
 use crate::WithErrorInfo;
 

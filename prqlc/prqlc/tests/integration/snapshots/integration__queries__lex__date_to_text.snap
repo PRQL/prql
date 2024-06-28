@@ -3,7 +3,7 @@ source: prqlc/prqlc/tests/integration/queries.rs
 expression: tokens
 input_file: prqlc/prqlc/tests/integration/queries/date_to_text.prql
 ---
-TokenVec(
+Tokens(
     [
         0..14: Comment(" generic:skip"),
         14..15: NewLine,

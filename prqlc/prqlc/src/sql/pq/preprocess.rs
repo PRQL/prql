@@ -7,15 +7,15 @@ use itertools::Itertools;
 use super::anchor::{infer_complexity, CidCollector, Complexity};
 use super::ast::*;
 use super::context::RIId;
-use crate::ast::generic::{InterpolateItem, Range};
 use crate::ir::generic::{ColumnSort, SortDirection, WindowFrame, WindowKind};
 use crate::ir::pl::{JoinSide, Literal};
 use crate::ir::rq::{
     self, maybe_binop, new_binop, CId, Compute, Expr, ExprKind, RqFold, TableRef, Transform, Window,
 };
-use crate::sql::srq::context::ColumnDecl;
+use crate::sql::pq::context::ColumnDecl;
 use crate::sql::Context;
-use crate::{Error, Result, WithErrorInfo};
+use crate::{debug, Error, Result, WithErrorInfo};
+use prqlc_parser::generic::{InterpolateItem, Range};
 
 /// Converts RQ AST into SqlRQ AST and applies a few preprocessing operations.
 ///
@@ -34,6 +34,10 @@ pub(in crate::sql) fn preprocess(
         .and_then(|p| except(p, ctx))
         .and_then(|p| intersect(p, ctx))
         .map(reorder)
+        .map(|p| {
+            debug::log_entry(|| debug::DebugEntryKind::ReprPqEarly(p.clone()));
+            p
+        })
 }
 
 // This function was disabled because it changes semantics of the pipeline in some cases.

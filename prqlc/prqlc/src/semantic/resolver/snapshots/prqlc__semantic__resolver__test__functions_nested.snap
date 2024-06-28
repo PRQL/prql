@@ -15,6 +15,7 @@ expression: "resolve_derive(r#\"\n            let lag_day = x -> s\"lag_day_todo
                       - this
                       - a
                       - b
+                    span: "1:179-180"
                   - SString:
                       - String: lag_day_todo(
                       - Expr:
@@ -23,8 +24,11 @@ expression: "resolve_derive(r#\"\n            let lag_day = x -> s\"lag_day_todo
                               - this
                               - a
                               - b
+                            span: "1:179-180"
                           format: ~
                       - String: )
+                    span: "1:102-111"
+              span: "1:97-112"
               ty:
                 kind:
                   Union:
@@ -42,11 +46,13 @@ expression: "resolve_derive(r#\"\n            let lag_day = x -> s\"lag_day_todo
                 name: ~
             - Literal:
                 Integer: 1
+              span: "1:115-116"
               ty:
                 kind:
                   Primitive: Int
                 span: ~
                 name: ~
+        span: "1:97-116"
         ty:
           kind:
             Union:
@@ -76,6 +82,8 @@ expression: "resolve_derive(r#\"\n            let lag_day = x -> s\"lag_day_todo
           - this
           - a
           - c
+        span: "1:181-182"
+  span: "1:175-182"
   ty:
     kind:
       Union:
@@ -101,4 +109,3 @@ expression: "resolve_derive(r#\"\n            let lag_day = x -> s\"lag_day_todo
             name: ~
     span: "0:893-926"
     name: ~
-

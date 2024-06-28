@@ -111,10 +111,8 @@ mod inner {
 
         let stmts = lutra::pull_schema(&project, cmd.execute)?;
 
-        use prqlc::ast::*;
-
         let db_mod_name = project.database_module.path.last().cloned();
-        let new_module_def = ModuleDef {
+        let new_module_def = prqlc::pr::ModuleDef {
             name: db_mod_name.unwrap_or_default(),
             stmts,
         };

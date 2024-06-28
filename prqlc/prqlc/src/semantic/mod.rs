@@ -12,35 +12,41 @@ pub use lowering::lower_to_ir;
 
 use self::resolver::Resolver;
 pub use self::resolver::ResolverOptions;
-use crate::ast;
 use crate::ir::constant::ConstExpr;
 use crate::ir::decl::{Module, RootModule};
 use crate::ir::pl::{self, Expr, ImportDef, ModuleDef, Stmt, StmtKind, TypeDef, VarDef};
 use crate::ir::rq::RelationalQuery;
 use crate::parser::is_mod_def_for;
+use crate::pr;
 use crate::WithErrorInfo;
+use crate::{debug, parser};
 use crate::{Error, Reason, Result};
 
 /// Runs semantic analysis on the query and lowers PL to RQ.
 pub fn resolve_and_lower(
-    file_tree: ast::ModuleDef,
+    file_tree: pr::ModuleDef,
     main_path: &[String],
     database_module_path: Option<&[String]>,
 ) -> Result<RelationalQuery> {
     let root_mod = resolve(file_tree, Default::default())?;
 
+    debug::log_stage(debug::Stage::Semantic(debug::StageSemantic::Lowering));
     let default_db = [NS_DEFAULT_DB.to_string()];
     let database_module_path = database_module_path.unwrap_or(&default_db);
     let (query, _) = lowering::lower_to_ir(root_mod, main_path, database_module_path)?;
+
+    debug::log_entry(|| debug::DebugEntryKind::ReprRq(query.clone()));
     Ok(query)
 }
 
 /// Runs semantic analysis on the query.
-pub fn resolve(mut module_tree: ast::ModuleDef, options: ResolverOptions) -> Result<RootModule> {
+pub fn resolve(mut module_tree: pr::ModuleDef, options: ResolverOptions) -> Result<RootModule> {
     load_std_lib(&mut module_tree);
 
     // expand AST into PL
+    debug::log_stage(debug::Stage::Semantic(debug::StageSemantic::AstExpand));
     let root_module_def = ast_expand::expand_module_def(module_tree)?;
+    debug::log_entry(|| debug::DebugEntryKind::ReprPl(root_module_def.clone()));
 
     // init new root module
     let mut root_module = RootModule {
@@ -50,18 +56,23 @@ pub fn resolve(mut module_tree: ast::ModuleDef, options: ResolverOptions) -> Res
     let mut resolver = Resolver::new(&mut root_module, options);
 
     // resolve the module def into the root module
+    debug::log_stage(debug::Stage::Semantic(debug::StageSemantic::Resolver));
     resolver.fold_statements(root_module_def.stmts)?;
+    debug::log_entry(|| debug::DebugEntryKind::ReprDecl(root_module.clone()));
 
     Ok(root_module)
 }
 
 /// Preferred way of injecting std module.
-pub fn load_std_lib(module_tree: &mut ast::ModuleDef) {
+pub fn load_std_lib(module_tree: &mut pr::ModuleDef) {
     if !module_tree.stmts.iter().any(|s| is_mod_def_for(s, NS_STD)) {
+        log::debug!("loading std.prql");
+        let _suppressed = debug::log_suppress();
+
         let std_source = include_str!("std.prql");
-        match prqlc_parser::parse_source(std_source, 0) {
+        match parser::parse_source(std_source, 0) {
             Ok(stmts) => {
-                let stmt = ast::Stmt::new(ast::StmtKind::ModuleDef(ast::ModuleDef {
+                let stmt = pr::Stmt::new(pr::StmtKind::ModuleDef(pr::ModuleDef {
                     name: "std".to_string(),
                     stmts,
                 }));
@@ -80,7 +91,7 @@ pub fn static_eval(expr: Expr, root_mod: &mut RootModule) -> Result<ConstExpr> {
     resolver.static_eval_to_constant(expr)
 }
 
-pub fn is_ident_or_func_call(expr: &pl::Expr, name: &ast::Ident) -> bool {
+pub fn is_ident_or_func_call(expr: &pl::Expr, name: &pr::Ident) -> bool {
     match &expr.kind {
         pl::ExprKind::Ident(i) if i == name => true,
         pl::ExprKind::FuncCall(pl::FuncCall { name: n_expr, .. })

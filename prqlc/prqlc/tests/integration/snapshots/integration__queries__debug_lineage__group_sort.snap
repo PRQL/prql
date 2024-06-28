@@ -248,54 +248,83 @@ ast:
           - FuncCall:
               name:
                 Ident: from
+                span: 1:13-17
               args:
               - Ident: tracks
+                span: 1:18-24
+            span: 1:13-24
           - FuncCall:
               name:
                 Ident: derive
+                span: 1:25-31
               args:
               - Binary:
                   left:
                     Ident: album_id
+                    span: 1:36-44
                   op: Add
                   right:
                     Literal:
                       Integer: 1
+                    span: 1:47-48
+                span: 1:36-48
                 alias: d
+            span: 1:25-48
           - FuncCall:
               name:
                 Ident: group
+                span: 1:49-54
               args:
               - Ident: d
+                span: 1:55-56
               - FuncCall:
                   name:
                     Ident: aggregate
+                    span: 1:63-72
                   args:
                   - Tuple:
                     - Pipeline:
                         exprs:
                         - Ident: track_id
+                          span: 1:89-97
                         - Ident: sum
+                          span: 1:100-103
+                      span: 1:88-104
                       alias: n1
+                    span: 1:73-111
+                span: 1:63-111
+            span: 1:49-113
           - FuncCall:
               name:
                 Ident: sort
+                span: 1:114-118
               args:
               - Ident: d
+                span: 1:119-120
+            span: 1:114-120
           - FuncCall:
               name:
                 Ident: take
+                span: 1:121-125
               args:
               - Literal:
                   Integer: 10
+                span: 1:126-128
+            span: 1:121-128
           - FuncCall:
               name:
                 Ident: select
+                span: 1:129-135
               args:
               - Tuple:
                 - Ident: d
+                  span: 1:143-144
                   alias: d1
                 - Ident: n1
+                  span: 1:146-148
+                span: 1:136-150
+            span: 1:129-150
+        span: 1:13-150
     span: 1:13-151
     aesthetics_before:
     - !Comment ' mssql:test'

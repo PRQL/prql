@@ -5,7 +5,7 @@
 
 use enum_as_inner::EnumAsInner;
 use itertools::Itertools;
-use prqlc_parser::parser::generic::InterpolateItem;
+use prqlc_parser::generic::InterpolateItem;
 use serde::Serialize;
 
 use super::context::RIId;
@@ -71,16 +71,16 @@ pub enum SqlTransform<Rel = RIId, Super = rq::Transform> {
     /// For example, initial an RQ Append transform is wrapped as such:
     ///
     /// ```ignore
-    /// rq::Transform::Append(x) -> srq::SqlTransform::Super(rq::Transform::Append(x))
+    /// rq::Transform::Append(x) -> pq::SqlTransform::Super(rq::Transform::Append(x))
     /// ```
     ///
     /// During preprocessing it is compiled to:
     /// ```ignore
-    /// srq::SqlTransform::Super(rq::Transform::Append(_)) -> srq::SqlTransform::Union { .. }
+    /// pq::SqlTransform::Super(rq::Transform::Append(_)) -> pq::SqlTransform::Union { .. }
     /// ```
     ///
-    /// At the end of SRQ compilation, all `Super()` are either discarded or converted to their
-    /// SRQ equivalents.
+    /// At the end of PQ compilation, all `Super()` are either discarded or converted to their
+    /// PQ equivalents.
     Super(Super),
 
     From(Rel),
@@ -131,7 +131,7 @@ impl<Rel> SqlTransform<Rel> {
     }
 }
 
-pub trait SrqMapper<RelIn, RelOut, SuperIn, SuperOut>: RqFold {
+pub trait PqMapper<RelIn, RelOut, SuperIn, SuperOut>: RqFold {
     fn fold_rel(&mut self, rel: RelIn) -> Result<RelOut>;
 
     fn fold_super(&mut self, sup: SuperIn) -> Result<SuperOut>;
@@ -159,7 +159,7 @@ pub fn fold_sql_transform<
     RelOut,
     SuperIn,
     SuperOut,
-    F: ?Sized + SrqMapper<RelIn, RelOut, SuperIn, SuperOut>,
+    F: ?Sized + PqMapper<RelIn, RelOut, SuperIn, SuperOut>,
 >(
     fold: &mut F,
     transform: SqlTransform<RelIn, SuperIn>,
@@ -203,7 +203,7 @@ pub fn fold_sql_transform<
     })
 }
 
-pub trait SrqFold: SrqMapper<RelationExpr, RelationExpr, (), ()> {
+pub trait PqFold: PqMapper<RelationExpr, RelationExpr, (), ()> {
     fn fold_sql_query(&mut self, query: SqlQuery) -> Result<SqlQuery> {
         Ok(SqlQuery {
             ctes: query

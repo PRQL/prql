@@ -21,7 +21,6 @@ cli = [
   "clio",
   "color-eyre",
   "colorchoice-clap",
-  "env_logger",
   "is-terminal",
   "minijinja",
   "notify",
@@ -35,8 +34,8 @@ serde_yaml = [
 ]
 # Technically tokio could be limited to external tests, but its types are in
 # signatures which would require lots of conditional compilation.
-test-dbs = ["anyhow", "duckdb", "glob", "rusqlite", "tokio"]
-test-dbs-external = ["anyhow", "duckdb", "glob", "mysql", "pg_bigdecimal", "postgres", "rusqlite", "tiberius", "tokio", "tokio-util"]
+test-dbs = ["anyhow", "duckdb", "rusqlite", "tokio"]
+test-dbs-external = ["mysql", "pg_bigdecimal", "postgres", "test-dbs", "tiberius", "tokio-util"]
 
 [dependencies]
 prqlc-parser = {path = "../prqlc-parser", version = "0.12.3"}
@@ -57,7 +56,7 @@ serde_json = {workspace = true}
 serde_yaml = {workspace = true, optional = true}
 sqlformat = "0.2.4"
 sqlparser = {version = "0.47.0", features = ["serde"]}
-strum = {version = "0.26.2", features = ["std", "derive"]}
+strum = {version = "0.26.3", features = ["std", "derive"]}
 strum_macros = "0.26.4"
 
 [target.'cfg(not(target_family="wasm"))'.dependencies]
@@ -72,7 +71,6 @@ clap-verbosity-flag = {version = "=2.1.2", optional = true}
 clio = {version = "0.3.3", features = ['clap-parse'], optional = true}
 color-eyre = {version = "0.6.3", optional = true}
 colorchoice-clap = {version = "1.0.0", optional = true}
-env_logger = {version = "0.10.2", features = ["color"], optional = true}
 is-terminal = {version = "0.4.12", optional = true}
 notify = {version = "6.1.1", optional = true}
 walkdir = {version = "2.5.0", optional = true}
@@ -91,7 +89,6 @@ minijinja = {version = "2.0.2", features = ["unstable_machinery"], optional = tr
 # rather than dev-dependencies, because dev-dependencies can't be optional.
 
 duckdb = {version = "0.10.2", optional = true, features = ["bundled", "chrono"]}
-glob = {version = "0.3.1", optional = true}
 mysql = {version = "25", optional = true}
 pg_bigdecimal = {version = "0.1.0", optional = true}
 postgres = {version = "0.19.7", optional = true}
@@ -101,7 +98,10 @@ tokio = {version = "1.37.0", optional = true, features = ["full"]}
 tokio-util = {version = "0.7", optional = true, features = ["compat"]}
 
 [dev-dependencies]
-cfg-if = "1.0"
+# default-features=false required to allow wasm compilation (which we don't use
+# for benchmarks but simplifies the code)
+criterion = {version = "0.5.1", default-features = false}
+glob = {version = "0.3.1"}
 insta = {workspace = true}
 insta-cmd = {workspace = true}
 rstest = "0.21.0"
@@ -109,9 +109,14 @@ similar = {version = "2.5.0"}
 similar-asserts = "1.5.0"
 test_each_file = "0.3.2"
 
-[target.'cfg(not(target_family="wasm"))'.dev-dependencies]
-criterion = {version = "0.5.1"}
-
+# We use `benches/bench.rs` for the benchmark harness so disable searching for
+# benchmarks in bin & lib here to simplify using criterion
+# https://bheisler.github.io/criterion.rs/book/faq.html#cargo-bench-gives-unrecognized-option-errors-for-valid-command-line-options
+[lib]
+bench = false
+[[bin]]
+bench = false
+name = "prqlc"
 [[bench]]
 harness = false
 name = "bench"

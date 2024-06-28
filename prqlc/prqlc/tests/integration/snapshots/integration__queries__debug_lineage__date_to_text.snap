@@ -376,175 +376,257 @@ ast:
           - FuncCall:
               name:
                 Ident: from
+                span: 1:57-61
               args:
               - Ident: invoices
+                span: 1:62-70
+            span: 1:57-70
           - FuncCall:
               name:
                 Ident: take
+                span: 1:71-75
               args:
               - Literal:
                   Integer: 20
+                span: 1:76-78
+            span: 1:71-78
           - FuncCall:
               name:
                 Ident: select
+                span: 1:79-85
               args:
               - Tuple:
                 - Pipeline:
                     exprs:
                     - Ident: invoice_date
+                      span: 1:98-110
                     - FuncCall:
                         name:
                           Indirection:
                             base:
                               Ident: date
+                              span: 1:113-117
                             field: !Name to_text
+                          span: 1:117-125
                         args:
                         - Literal:
                             String: '%Y/%m/%d'
+                          span: 1:126-136
+                      span: 1:113-136
+                  span: 1:97-137
                   alias: d1
                 - Pipeline:
                     exprs:
                     - Ident: invoice_date
+                      span: 1:149-161
                     - FuncCall:
                         name:
                           Indirection:
                             base:
                               Ident: date
+                              span: 1:164-168
                             field: !Name to_text
+                          span: 1:168-176
                         args:
                         - Literal:
                             String: '%F'
+                          span: 1:177-181
+                      span: 1:164-181
+                  span: 1:148-182
                   alias: d2
                 - Pipeline:
                     exprs:
                     - Ident: invoice_date
+                      span: 1:194-206
                     - FuncCall:
                         name:
                           Indirection:
                             base:
                               Ident: date
+                              span: 1:209-213
                             field: !Name to_text
+                          span: 1:213-221
                         args:
                         - Literal:
                             String: '%D'
+                          span: 1:222-226
+                      span: 1:209-226
+                  span: 1:193-227
                   alias: d3
                 - Pipeline:
                     exprs:
                     - Ident: invoice_date
+                      span: 1:239-251
                     - FuncCall:
                         name:
                           Indirection:
                             base:
                               Ident: date
+                              span: 1:254-258
                             field: !Name to_text
+                          span: 1:258-266
                         args:
                         - Literal:
                             String: '%H:%M:%S.%f'
+                          span: 1:267-280
+                      span: 1:254-280
+                  span: 1:238-281
                   alias: d4
                 - Pipeline:
                     exprs:
                     - Ident: invoice_date
+                      span: 1:293-305
                     - FuncCall:
                         name:
                           Indirection:
                             base:
                               Ident: date
+                              span: 1:308-312
                             field: !Name to_text
+                          span: 1:312-320
                         args:
                         - Literal:
                             String: '%r'
+                          span: 1:321-325
+                      span: 1:308-325
+                  span: 1:292-326
                   alias: d5
                 - Pipeline:
                     exprs:
                     - Ident: invoice_date
+                      span: 1:338-350
                     - FuncCall:
                         name:
                           Indirection:
                             base:
                               Ident: date
+                              span: 1:353-357
                             field: !Name to_text
+                          span: 1:357-365
                         args:
                         - Literal:
                             String: '%A %B %-d %Y'
+                          span: 1:366-380
+                      span: 1:353-380
+                  span: 1:337-381
                   alias: d6
                 - Pipeline:
                     exprs:
                     - Ident: invoice_date
+                      span: 1:393-405
                     - FuncCall:
                         name:
                           Indirection:
                             base:
                               Ident: date
+                              span: 1:408-412
                             field: !Name to_text
+                          span: 1:412-420
                         args:
                         - Literal:
                             String: '%a, %-d %b %Y at %I:%M:%S %p'
+                          span: 1:421-451
+                      span: 1:408-451
+                  span: 1:392-452
                   alias: d7
                 - Pipeline:
                     exprs:
                     - Ident: invoice_date
+                      span: 1:464-476
                     - FuncCall:
                         name:
                           Indirection:
                             base:
                               Ident: date
+                              span: 1:479-483
                             field: !Name to_text
+                          span: 1:483-491
                         args:
                         - Literal:
                             String: '%+'
+                          span: 1:492-496
+                      span: 1:479-496
+                  span: 1:463-497
                   alias: d8
                 - Pipeline:
                     exprs:
                     - Ident: invoice_date
+                      span: 1:509-521
                     - FuncCall:
                         name:
                           Indirection:
                             base:
                               Ident: date
+                              span: 1:524-528
                             field: !Name to_text
+                          span: 1:528-536
                         args:
                         - Literal:
                             String: '%-d/%-m/%y'
+                          span: 1:537-549
+                      span: 1:524-549
+                  span: 1:508-550
                   alias: d9
                 - Pipeline:
                     exprs:
                     - Ident: invoice_date
+                      span: 1:563-575
                     - FuncCall:
                         name:
                           Indirection:
                             base:
                               Ident: date
+                              span: 1:578-582
                             field: !Name to_text
+                          span: 1:582-590
                         args:
                         - Literal:
                             String: '%-Hh %Mmin'
+                          span: 1:591-603
+                      span: 1:578-603
+                  span: 1:562-604
                   alias: d10
                 - Pipeline:
                     exprs:
                     - Ident: invoice_date
+                      span: 1:617-629
                     - FuncCall:
                         name:
                           Indirection:
                             base:
                               Ident: date
+                              span: 1:632-636
                             field: !Name to_text
+                          span: 1:636-644
                         args:
                         - Literal:
                             String: '%M''%S"'
+                          span: 1:645-654
+                      span: 1:632-654
+                  span: 1:616-655
                   alias: d11
                 - Pipeline:
                     exprs:
                     - Ident: invoice_date
+                      span: 1:668-680
                     - FuncCall:
                         name:
                           Indirection:
                             base:
                               Ident: date
+                              span: 1:683-687
                             field: !Name to_text
+                          span: 1:687-695
                         args:
                         - Literal:
                             String: 100%% in %d days
+                          span: 1:696-714
+                      span: 1:683-714
+                  span: 1:667-715
                   alias: d12
+                span: 1:86-718
+            span: 1:79-718
+        span: 1:57-718
     span: 1:57-719
     aesthetics_before:
     - !Comment ' generic:skip'

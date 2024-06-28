@@ -166,51 +166,74 @@ ast:
           - FuncCall:
               name:
                 Ident: from
+                span: 1:89-93
               args:
               - Ident: tracks
+                span: 1:94-100
+            span: 1:89-100
           - FuncCall:
               name:
                 Ident: sort
+                span: 1:101-105
               args:
               - Ident: milliseconds
+                span: 1:106-118
+            span: 1:101-118
           - FuncCall:
               name:
                 Ident: select
+                span: 1:119-125
               args:
               - Case:
                 - condition:
                     Binary:
                       left:
                         Ident: composer
+                        span: 1:147-155
                       op: Ne
                       right:
                         Literal: 'Null'
+                        span: 1:159-163
+                    span: 1:147-163
                   value:
                     Ident: composer
+                    span: 1:167-175
                 - condition:
                     Binary:
                       left:
                         Ident: genre_id
+                        span: 1:181-189
                       op: Lt
                       right:
                         Literal:
                           Integer: 17
+                        span: 1:192-194
+                    span: 1:181-194
                   value:
                     Literal:
                       String: no composer
+                    span: 1:198-211
                 - condition:
                     Literal:
                       Boolean: true
+                    span: 1:217-221
                   value:
                     FString:
                     - !String unknown composer
+                    span: 1:225-244
+                span: 1:136-246
                 alias: display
+            span: 1:119-246
           - FuncCall:
               name:
                 Ident: take
+                span: 1:247-251
               args:
               - Literal:
                   Integer: 10
+                span: 1:252-254
+            span: 1:247-254
+        span: 1:89-254
     span: 1:89-255
     aesthetics_before:
     - !Comment ' glaredb:skip (May be a bag of String type conversion for Postgres Client)'

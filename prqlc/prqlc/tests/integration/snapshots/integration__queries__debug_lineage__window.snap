@@ -387,77 +387,121 @@ ast:
           - FuncCall:
               name:
                 Ident: from
+                span: 1:762-766
               args:
               - Ident: tracks
+                span: 1:767-773
+            span: 1:762-773
           - FuncCall:
               name:
                 Ident: group
+                span: 1:774-779
               args:
               - Ident: genre_id
+                span: 1:780-788
               - Pipeline:
                   exprs:
                   - FuncCall:
                       name:
                         Ident: sort
+                        span: 1:793-797
                       args:
                       - Ident: milliseconds
+                        span: 1:798-810
+                    span: 1:793-810
                   - FuncCall:
                       name:
                         Ident: derive
+                        span: 1:813-819
                       args:
                       - Tuple:
                         - FuncCall:
                             name:
                               Ident: row_number
+                              span: 1:832-842
                             args:
                             - Ident: this
+                              span: 1:843-847
+                          span: 1:832-847
                           alias: num
                         - FuncCall:
                             name:
                               Ident: count
+                              span: 1:861-866
                             args:
                             - Ident: this
+                              span: 1:867-871
+                          span: 1:861-871
                           alias: total
                         - FuncCall:
                             name:
                               Ident: last
+                              span: 1:888-892
                             args:
                             - Ident: track_id
+                              span: 1:893-901
+                          span: 1:888-901
                           alias: last_val
+                        span: 1:820-906
+                    span: 1:813-906
                   - FuncCall:
                       name:
                         Ident: take
+                        span: 1:909-913
                       args:
                       - Literal:
                           Integer: 10
+                        span: 1:914-916
+                    span: 1:909-916
+                span: 1:793-916
+            span: 1:774-918
           - FuncCall:
               name:
                 Ident: sort
+                span: 1:919-923
               args:
               - Tuple:
                 - Ident: genre_id
+                  span: 1:925-933
                 - Ident: milliseconds
+                  span: 1:935-947
+                span: 1:924-948
+            span: 1:919-948
           - FuncCall:
               name:
                 Ident: select
+                span: 1:949-955
               args:
               - Tuple:
                 - Ident: track_id
+                  span: 1:957-965
                 - Ident: genre_id
+                  span: 1:967-975
                 - Ident: num
+                  span: 1:977-980
                 - Ident: total
+                  span: 1:982-987
                 - Ident: last_val
+                  span: 1:989-997
+                span: 1:956-998
+            span: 1:949-998
           - FuncCall:
               name:
                 Ident: filter
+                span: 1:999-1005
               args:
               - Binary:
                   left:
                     Ident: genre_id
+                    span: 1:1006-1014
                   op: Gte
                   right:
                     Literal:
                       Integer: 22
+                    span: 1:1018-1020
+                span: 1:1006-1020
+            span: 1:999-1020
+        span: 1:762-1020
     span: 1:762-1021
     aesthetics_before:
     - !Comment ' mssql:skip Conversion("cannot interpret I64(Some(1)) as an i32 value")'', connection.rs:200:34'

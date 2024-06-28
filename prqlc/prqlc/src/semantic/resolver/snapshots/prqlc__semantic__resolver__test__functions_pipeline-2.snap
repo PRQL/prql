@@ -7,6 +7,7 @@ expression: "resolve_derive(r#\"\n            let plus_one = x -> x + 1\n       
     args:
       - Literal:
           Integer: 2
+        span: "1:146-147"
         ty:
           kind:
             Primitive: Int
@@ -22,6 +23,7 @@ expression: "resolve_derive(r#\"\n            let plus_one = x -> x + 1\n       
                       - this
                       - a
                       - foo
+                    span: "1:124-127"
                     ty:
                       kind:
                         Array:
@@ -30,6 +32,7 @@ expression: "resolve_derive(r#\"\n            let plus_one = x -> x + 1\n       
                           name: ~
                       span: "0:1928-1937"
                       name: array
+              span: "1:120-127"
               ty:
                 kind:
                   Union:
@@ -47,11 +50,13 @@ expression: "resolve_derive(r#\"\n            let plus_one = x -> x + 1\n       
                 name: ~
             - Literal:
                 Integer: 1
+              span: "1:37-38"
               ty:
                 kind:
                   Primitive: Int
                 span: ~
                 name: ~
+        span: "1:130-138"
         ty:
           kind:
             Union:
@@ -77,6 +82,7 @@ expression: "resolve_derive(r#\"\n            let plus_one = x -> x + 1\n       
                   name: ~
           span: "0:893-926"
           name: ~
+  span: "1:141-147"
   alias: b
   ty:
     kind:

@@ -102,19 +102,29 @@ ast:
           - FuncCall:
               name:
                 Ident: from
+                span: 1:141-145
               args:
               - Ident: genres
+                span: 1:146-152
+            span: 1:141-152
           - FuncCall:
               name:
                 Ident: aggregate
+                span: 1:157-166
               args:
               - Tuple:
                 - FuncCall:
                     name:
                       Ident: count
+                      span: 1:172-177
                     args:
                     - Ident: name
+                      span: 1:178-182
+                  span: 1:172-182
                   alias: a
+                span: 1:167-183
+            span: 1:157-183
+        span: 1:135-185
     span: 1:117-185
     aesthetics_before:
     - !Comment ' clickhouse:skip (ClickHouse prefers aliases to column names https://github.com/PRQL/prql/issues/2827)'
@@ -128,26 +138,39 @@ ast:
           - FuncCall:
               name:
                 Ident: from
+                span: 1:187-191
               args:
               - Ident: genre_count
+                span: 1:192-203
+            span: 1:187-203
           - FuncCall:
               name:
                 Ident: filter
+                span: 1:204-210
               args:
               - Binary:
                   left:
                     Ident: a
+                    span: 1:211-212
                   op: Gt
                   right:
                     Literal:
                       Integer: 0
+                    span: 1:215-216
+                span: 1:211-216
+            span: 1:204-216
           - FuncCall:
               name:
                 Ident: select
+                span: 1:217-223
               args:
               - Unary:
                   op: Neg
                   expr:
                     Ident: a
+                    span: 1:229-230
+                span: 1:228-230
                 alias: a
+            span: 1:217-230
+        span: 1:187-230
     span: 1:187-231

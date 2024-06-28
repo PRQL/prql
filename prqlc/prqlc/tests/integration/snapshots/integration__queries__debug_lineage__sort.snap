@@ -232,67 +232,103 @@ ast:
           - FuncCall:
               name:
                 Ident: from
+                span: 1:13-17
               args:
               - Ident: employees
+                span: 1:20-29
                 alias: e
+            span: 1:13-29
           - FuncCall:
               name:
                 Ident: filter
+                span: 1:30-36
               args:
               - Binary:
                   left:
                     Ident: first_name
+                    span: 1:37-47
                   op: Ne
                   right:
                     Literal:
                       String: Mitchell
+                    span: 1:51-61
+                span: 1:37-61
+            span: 1:30-61
           - FuncCall:
               name:
                 Ident: sort
+                span: 1:62-66
               args:
               - Tuple:
                 - Ident: first_name
+                  span: 1:68-78
                 - Ident: last_name
+                  span: 1:80-89
+                span: 1:67-90
+            span: 1:62-90
           - FuncCall:
               name:
                 Ident: join
+<<<<<<< HEAD
                 aesthetics_before:
                 - !Comment ' joining may use HashMerge, which can undo ORDER BY'
+||||||| 566e6f14
+=======
+                span: 1:145-149
+>>>>>>> main
               args:
               - Ident: employees
+                span: 1:158-167
                 alias: manager
               - Binary:
                   left:
                     Indirection:
                       base:
                         Ident: e
+                        span: 1:179-180
                       field: !Name reports_to
+                    span: 1:180-191
                   op: Eq
                   right:
                     Indirection:
                       base:
                         Ident: manager
+                        span: 1:195-202
                       field: !Name employee_id
+                    span: 1:202-214
+                span: 1:179-214
               named_args:
                 side:
                   Ident: left
+                  span: 1:173-177
+            span: 1:145-215
           - FuncCall:
               name:
                 Ident: select
+                span: 1:217-223
               args:
               - Tuple:
                 - Indirection:
                     base:
                       Ident: e
+                      span: 1:225-226
                     field: !Name first_name
+                  span: 1:225-237
                 - Indirection:
                     base:
                       Ident: e
+                      span: 1:239-240
                     field: !Name last_name
+                  span: 1:239-250
                 - Indirection:
                     base:
                       Ident: manager
+                      span: 1:252-259
                     field: !Name first_name
+                  span: 1:252-270
+                span: 1:224-271
+            span: 1:217-271
+        span: 1:13-271
     span: 1:13-272
     aesthetics_before:
     - !Comment ' mssql:test'

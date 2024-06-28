@@ -2,7 +2,7 @@ use chumsky::prelude::*;
 
 use crate::error::parse_error::PError;
 use crate::lexer::lr::TokenKind;
-use crate::parser::pr::{Annotation, Expr, ExprKind, Stmt, StmtKind, Ty, TyKind};
+use crate::parser::pr::{Annotation, Stmt, StmtKind};
 use crate::parser::WithAesthetics;
 use crate::span::Span;
 
@@ -42,20 +42,6 @@ pub fn into_stmt((annotations, kind): (Vec<Annotation>, StmtKind), span: Span) -
     }
 }
 
-pub fn into_expr(kind: ExprKind, span: Span) -> Expr {
-    Expr {
-        span: Some(span),
-        ..Expr::new(kind)
-    }
-}
-
-pub fn into_ty(kind: TyKind, span: Span) -> Ty {
-    Ty {
-        span: Some(span),
-        ..Ty::new(kind)
-    }
-}
-
 pub fn aesthetic() -> impl Parser<TokenKind, TokenKind, Error = PError> + Clone {
     select! {
         TokenKind::Comment(comment) =>         TokenKind::Comment(comment),
@@ -64,10 +50,12 @@ pub fn aesthetic() -> impl Parser<TokenKind, TokenKind, Error = PError> + Clone 
     }
 }
 
-pub fn with_aesthetics<P, O>(parser: P) -> impl Parser<TokenKind, O, Error = PError> + Clone
+pub fn with_aesthetics<'a, P, O>(
+    parser: P,
+) -> impl Parser<TokenKind, O, Error = PError> + Clone + 'a
 where
-    P: Parser<TokenKind, O, Error = PError> + Clone,
-    O: WithAesthetics,
+    P: Parser<TokenKind, O, Error = PError> + Clone + 'a,
+    O: WithAesthetics + 'a,
 {
     // We can safely remove newlines following the `aesthetics_before`, to cover
     // a case like `# foo` here:

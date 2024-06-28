@@ -1,9 +1,9 @@
-//! Contains functions that compile [crate::ast::pl] nodes into [sqlparser] nodes.
+//! Contains functions that compile [crate::pr::pl] nodes into [sqlparser] nodes.
 
 use std::cmp::Ordering;
 
 use itertools::Itertools;
-use prqlc_parser::parser::generic::{InterpolateItem, Range};
+use prqlc_parser::generic::{InterpolateItem, Range};
 use regex::Regex;
 use sqlparser::ast::{
     self as sql_ast, BinaryOperator, DateTimeField, Fetch, Function, FunctionArg, FunctionArgExpr,
@@ -15,19 +15,19 @@ use super::gen_projection::try_into_exprs;
 use super::{keywords, Context};
 use crate::ir::generic::{ColumnSort, SortDirection, WindowFrame, WindowKind};
 use crate::ir::pl::{self, Ident, Literal};
-use crate::ir::rq::*;
-use crate::sql::srq::context::ColumnDecl;
+use crate::ir::rq;
+use crate::sql::pq::context::ColumnDecl;
 use crate::utils::{valid_ident, OrMap};
 use crate::{Error, Reason, Result, Span, WithErrorInfo};
 
-pub(super) fn translate_expr(expr: Expr, ctx: &mut Context) -> Result<ExprOrSource> {
+pub(super) fn translate_expr(expr: rq::Expr, ctx: &mut Context) -> Result<ExprOrSource> {
     Ok(match expr.kind {
-        ExprKind::ColumnRef(cid) => translate_cid(cid, ctx)?,
+        rq::ExprKind::ColumnRef(cid) => translate_cid(cid, ctx)?,
 
         // Fairly hacky — convert everything to a string, then concat it,
         // then convert to sql_ast::Expr. We can't use the `Item::sql_ast::Expr` code above
         // since we don't want to intersperse with spaces.
-        ExprKind::SString(s_string_items) => {
+        rq::ExprKind::SString(s_string_items) => {
             let text = translate_sstring(s_string_items, ctx)?;
 
             ExprOrSource::Source(SourceExpr {
@@ -36,19 +36,19 @@ pub(super) fn translate_expr(expr: Expr, ctx: &mut Context) -> Result<ExprOrSour
                 window_frame: false,
             })
         }
-        ExprKind::Param(id) => ExprOrSource::Source(SourceExpr {
+        rq::ExprKind::Param(id) => ExprOrSource::Source(SourceExpr {
             text: format!("${id}"),
             binding_strength: 100,
             window_frame: false,
         }),
-        ExprKind::Literal(l) => translate_literal(l, ctx)?.into(),
-        ExprKind::Case(mut cases) => {
+        rq::ExprKind::Literal(l) => translate_literal(l, ctx)?.into(),
+        rq::ExprKind::Case(mut cases) => {
             let default = cases
                 .last()
                 .filter(|last| {
                     matches!(
                         last.condition.kind,
-                        ExprKind::Literal(Literal::Boolean(true))
+                        rq::ExprKind::Literal(Literal::Boolean(true))
                     )
                 })
                 .map(|def| translate_expr(def.value.clone(), ctx))
@@ -81,7 +81,7 @@ pub(super) fn translate_expr(expr: Expr, ctx: &mut Context) -> Result<ExprOrSour
             }
             .into()
         }
-        ExprKind::Operator { ref name, ref args } => {
+        rq::ExprKind::Operator { ref name, ref args } => {
             // A few special cases and then fall-through to the standard approach.
             match name.as_str() {
                 // See notes in `std.rs` re whether we use names vs.
@@ -92,8 +92,8 @@ pub(super) fn translate_expr(expr: Expr, ctx: &mut Context) -> Result<ExprOrSour
                 // with the wrong number of args).
                 "std.eq" | "std.ne" => {
                     if let [a, b] = args.as_slice() {
-                        if a.kind == ExprKind::Literal(Literal::Null)
-                            || b.kind == ExprKind::Literal(Literal::Null)
+                        if a.kind == rq::ExprKind::Literal(Literal::Null)
+                            || b.kind == rq::ExprKind::Literal(Literal::Null)
                         {
                             return Ok(process_null(name, args, ctx)?.into());
                         } else {
@@ -120,7 +120,7 @@ pub(super) fn translate_expr(expr: Expr, ctx: &mut Context) -> Result<ExprOrSour
             }
             super::operators::translate_operator_expr(expr, ctx)?
         }
-        ExprKind::Array(_) => {
+        rq::ExprKind::Array(_) => {
             return Err(Error::new(Reason::Unexpected {
                 found: "array of values (not supported here)".to_string(),
             })
@@ -130,9 +130,9 @@ pub(super) fn translate_expr(expr: Expr, ctx: &mut Context) -> Result<ExprOrSour
 }
 
 /// Translates into IS NULL if possible
-fn process_null(name: &str, args: &[Expr], ctx: &mut Context) -> Result<sql_ast::Expr> {
+fn process_null(name: &str, args: &[rq::Expr], ctx: &mut Context) -> Result<sql_ast::Expr> {
     let (a, b) = (&args[0], &args[1]);
-    let operand = if matches!(a.kind, ExprKind::Literal(Literal::Null)) {
+    let operand = if matches!(a.kind, rq::ExprKind::Literal(Literal::Null)) {
         b
     } else {
         a
@@ -157,18 +157,22 @@ fn process_null(name: &str, args: &[Expr], ctx: &mut Context) -> Result<sql_ast:
 }
 
 /// Translates into IN (v1, v2, ...) if possible
-fn process_array_in(expr: &Expr, args: &[Expr], ctx: &mut Context) -> Result<sql_ast::Expr> {
+fn process_array_in(
+    expr: &rq::Expr,
+    args: &[rq::Expr],
+    ctx: &mut Context,
+) -> Result<sql_ast::Expr> {
     match args {
-        [col_expr @ Expr {
+        [col_expr @ rq::Expr {
             kind:
-                ExprKind::ColumnRef(_)
-                | ExprKind::Literal(_)
-                | ExprKind::SString(_)
-                | ExprKind::Param(_)
-                | ExprKind::Operator { name: _, args: _ },
+                rq::ExprKind::ColumnRef(_)
+                | rq::ExprKind::Literal(_)
+                | rq::ExprKind::SString(_)
+                | rq::ExprKind::Param(_)
+                | rq::ExprKind::Operator { name: _, args: _ },
             ..
-        }, Expr {
-            kind: ExprKind::Array(in_values),
+        }, rq::Expr {
+            kind: rq::ExprKind::Array(in_values),
             ..
         }] => {
             if in_values.is_empty() {
@@ -197,22 +201,22 @@ fn process_array_in(expr: &Expr, args: &[Expr], ctx: &mut Context) -> Result<sql
 /// Translates PRQL date format (based on `chrono` crate) to dialect specific date format
 /// For now only date format as string literal is supported
 fn process_date_to_text(
-    expr: &Expr,
+    expr: &rq::Expr,
     op_name: &str,
-    args: &[Expr],
+    args: &[rq::Expr],
     ctx: &mut Context,
 ) -> Result<sql_ast::Expr> {
-    if let [date_format_exp @ Expr {
-        kind: ExprKind::Literal(Literal::String(date_format)),
+    if let [date_format_exp @ rq::Expr {
+        kind: rq::ExprKind::Literal(Literal::String(date_format)),
         ..
     }, col_expr] = args
     {
-        let expr = Expr {
-            kind: ExprKind::Operator {
+        let expr = rq::Expr {
+            kind: rq::ExprKind::Operator {
                 name: op_name.to_string(),
                 args: vec![
-                    Expr {
-                        kind: ExprKind::Literal(Literal::String(
+                    rq::Expr {
+                        kind: rq::ExprKind::Literal(Literal::String(
                             ctx.dialect
                                 .translate_prql_date_format(date_format)
                                 .map_err(|e| e.with_span(date_format_exp.span))?,
@@ -233,7 +237,7 @@ fn process_date_to_text(
     }
 }
 
-fn process_concat(expr: &Expr, ctx: &mut Context) -> Result<sql_ast::Expr> {
+fn process_concat(expr: &rq::Expr, ctx: &mut Context) -> Result<sql_ast::Expr> {
     if ctx.dialect.has_concat_function() {
         let concat_args = collect_concat_args(expr);
 
@@ -280,8 +284,8 @@ fn process_concat(expr: &Expr, ctx: &mut Context) -> Result<sql_ast::Expr> {
 }
 
 fn translate_binary_operator(
-    left: &Expr,
-    right: &Expr,
+    left: &rq::Expr,
+    right: &rq::Expr,
     op: BinaryOperator,
     ctx: &mut Context,
 ) -> Result<sql_ast::Expr> {
@@ -296,9 +300,9 @@ fn translate_binary_operator(
     Ok(sql_ast::Expr::BinaryOp { left, op, right })
 }
 
-fn collect_concat_args(expr: &Expr) -> Vec<&Expr> {
+fn collect_concat_args(expr: &rq::Expr) -> Vec<&rq::Expr> {
     match &expr.kind {
-        ExprKind::Operator { name, args } if name == "std.concat" => {
+        rq::ExprKind::Operator { name, args } if name == "std.concat" => {
             args.iter().flat_map(collect_concat_args).collect()
         }
         _ => vec![expr],
@@ -306,18 +310,18 @@ fn collect_concat_args(expr: &Expr) -> Vec<&Expr> {
 }
 
 /// Translate expr into a BETWEEN statement if possible, otherwise returns the expr unchanged.
-fn try_into_between(expr: Expr, ctx: &mut Context) -> Result<Option<sql_ast::Expr>> {
+fn try_into_between(expr: rq::Expr, ctx: &mut Context) -> Result<Option<sql_ast::Expr>> {
     match expr.kind {
-        ExprKind::Operator { name, args } if name == "std.and" => {
+        rq::ExprKind::Operator { name, args } if name == "std.and" => {
             let [a, b]: [_; 2] = args.try_into().unwrap();
 
             match (a.kind, b.kind) {
                 (
-                    ExprKind::Operator {
+                    rq::ExprKind::Operator {
                         name: a_name,
                         args: a_args,
                     },
-                    ExprKind::Operator {
+                    rq::ExprKind::Operator {
                         name: b_name,
                         args: b_args,
                     },
@@ -498,7 +502,7 @@ fn translate_datetime_literal_with_sqlite_function(
     })
 }
 
-pub(super) fn translate_cid(cid: CId, ctx: &mut Context) -> Result<ExprOrSource> {
+pub(super) fn translate_cid(cid: rq::CId, ctx: &mut Context) -> Result<ExprOrSource> {
     if ctx.query.pre_projection {
         log::debug!("translating {cid:?} pre projection");
         let decl = ctx.anchor.column_decls.get(&cid).expect("bad RQ ids");
@@ -521,8 +525,8 @@ pub(super) fn translate_cid(cid: CId, ctx: &mut Context) -> Result<ExprOrSource>
             }
             ColumnDecl::RelationColumn(riid, _, col) => {
                 let column = match col.clone() {
-                    RelationColumn::Wildcard => translate_star(ctx, None)?,
-                    RelationColumn::Single(name) => name.unwrap(),
+                    rq::RelationColumn::Wildcard => translate_star(ctx, None)?,
+                    rq::RelationColumn::Single(name) => name.unwrap(),
                 };
                 let t = &ctx.anchor.relation_instances[riid];
 
@@ -543,7 +547,7 @@ pub(super) fn translate_cid(cid: CId, ctx: &mut Context) -> Result<ExprOrSource>
         };
 
         let column = match &column_decl {
-            ColumnDecl::RelationColumn(_, _, RelationColumn::Wildcard) => {
+            ColumnDecl::RelationColumn(_, _, rq::RelationColumn::Wildcard) => {
                 translate_star(ctx, None)?
             }
 
@@ -574,7 +578,7 @@ pub(super) fn translate_star(ctx: &Context, span: Option<Span>) -> Result<String
 }
 
 pub(super) fn translate_sstring(
-    items: Vec<InterpolateItem<Expr>>,
+    items: Vec<InterpolateItem<rq::Expr>>,
     ctx: &mut Context,
 ) -> Result<String> {
     Ok(items
@@ -592,7 +596,7 @@ pub(super) fn translate_sstring(
 /// Aggregate several ordered ranges into one, computing the intersection.
 ///
 /// Returns a tuple of `(start, end)`, where `end` is optional.
-pub(super) fn range_of_ranges(ranges: Vec<Range<Expr>>) -> Result<Range<i64>> {
+pub(super) fn range_of_ranges(ranges: Vec<Range<rq::Expr>>) -> Result<Range<i64>> {
     let mut current = Range::default();
     for range in ranges {
         let mut range = try_range_into_int(range)?;
@@ -617,14 +621,14 @@ pub(super) fn range_of_ranges(ranges: Vec<Range<Expr>>) -> Result<Range<i64>> {
     Ok(current)
 }
 
-fn unpack_as_int_literal(bound: Expr) -> Result<i64> {
+fn unpack_as_int_literal(bound: rq::Expr) -> Result<i64> {
     Some(bound.kind)
         .and_then(|x| x.into_literal().ok())
         .and_then(|x| x.into_integer().ok())
         .ok_or_else(|| Error::new_simple("expected an integer literal").with_span(bound.span))
 }
 
-fn try_range_into_int(range: Range<Expr>) -> Result<Range<i64>> {
+fn try_range_into_int(range: Range<rq::Expr>) -> Result<Range<i64>> {
     Ok(Range {
         start: range.start.map(unpack_as_int_literal).transpose()?,
         end: range.end.map(unpack_as_int_literal).transpose()?,
@@ -639,8 +643,8 @@ pub(super) fn expr_of_i64(number: i64) -> sql_ast::Expr {
 }
 
 pub(super) fn fetch_of_i64(take: i64, ctx: &mut Context) -> Fetch {
-    let kind = ExprKind::Literal(Literal::Integer(take));
-    let expr = Expr { kind, span: None };
+    let kind = rq::ExprKind::Literal(Literal::Integer(take));
+    let expr = rq::Expr { kind, span: None };
     Fetch {
         quantity: Some(translate_expr(expr, ctx).unwrap().into_ast()),
         with_ties: false,
@@ -648,7 +652,7 @@ pub(super) fn fetch_of_i64(take: i64, ctx: &mut Context) -> Fetch {
     }
 }
 
-pub(super) fn translate_select_item(cid: CId, ctx: &mut Context) -> Result<SelectItem> {
+pub(super) fn translate_select_item(cid: rq::CId, ctx: &mut Context) -> Result<SelectItem> {
     let expr = translate_cid(cid, ctx)?.into_ast();
 
     let inferred_name = match &expr {
@@ -679,7 +683,7 @@ pub(super) fn translate_select_item(cid: CId, ctx: &mut Context) -> Result<Selec
 
 fn translate_windowed(
     expr: ExprOrSource,
-    window: Window,
+    window: rq::Window,
     ctx: &mut Context,
     span: Option<Span>,
 ) -> Result<ExprOrSource> {
@@ -691,8 +695,8 @@ fn translate_windowed(
                 WindowKind::Range,
                 Range {
                     start: None,
-                    end: Some(Expr {
-                        kind: ExprKind::Literal(Literal::Integer(0)),
+                    end: Some(rq::Expr {
+                        kind: rq::ExprKind::Literal(Literal::Integer(0)),
                         span: None,
                     }),
                 },
@@ -731,8 +735,8 @@ fn translate_windowed(
     }))
 }
 
-fn try_into_window_frame(frame: WindowFrame<Expr>) -> Result<sql_ast::WindowFrame> {
-    fn parse_bound(bound: Expr) -> Result<WindowFrameBound> {
+fn try_into_window_frame(frame: WindowFrame<rq::Expr>) -> Result<sql_ast::WindowFrame> {
+    fn parse_bound(bound: rq::Expr) -> Result<WindowFrameBound> {
         let as_int = unpack_as_int_literal(bound)?;
         Ok(match as_int {
             0 => WindowFrameBound::CurrentRow,
@@ -764,7 +768,7 @@ fn try_into_window_frame(frame: WindowFrame<Expr>) -> Result<sql_ast::WindowFram
 }
 
 pub(super) fn translate_column_sort(
-    sort: &ColumnSort<CId>,
+    sort: &ColumnSort<rq::CId>,
     ctx: &mut Context,
 ) -> Result<OrderByExpr> {
     Ok(OrderByExpr {
@@ -814,7 +818,7 @@ pub(super) fn translate_ident_part(ident: String, ctx: &Context) -> sql_ast::Ide
 }
 
 pub(super) fn translate_operand(
-    expr: Expr,
+    expr: rq::Expr,
     is_left: bool,
     parent_strength: i32,
     parent_associativity: Associativity,
@@ -1046,13 +1050,13 @@ mod test {
 
     #[test]
     fn test_range_of_ranges() -> Result<()> {
-        fn from_ints(start: Option<i64>, end: Option<i64>) -> Range<Expr> {
-            let start = start.map(|x| Expr {
-                kind: ExprKind::Literal(Literal::Integer(x)),
+        fn from_ints(start: Option<i64>, end: Option<i64>) -> Range<rq::Expr> {
+            let start = start.map(|x| rq::Expr {
+                kind: rq::ExprKind::Literal(Literal::Integer(x)),
                 span: None,
             });
-            let end = end.map(|x| Expr {
-                kind: ExprKind::Literal(Literal::Integer(x)),
+            let end = end.map(|x| rq::Expr {
+                kind: rq::ExprKind::Literal(Literal::Integer(x)),
                 span: None,
             });
             Range { start, end }

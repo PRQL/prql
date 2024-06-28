@@ -1,4 +1,4 @@
-//! This module is responsible for translating RQ to SRQ.
+//! This module is responsible for translating RQ to PQ.
 
 use std::str::FromStr;
 
@@ -6,21 +6,20 @@ use itertools::Itertools;
 
 use super::super::{Context, Dialect};
 use super::anchor::{self, anchor_split};
-use super::ast::{
-    fold_sql_transform, Cte, CteKind, RelationExpr, RelationExprKind, SqlQuery, SqlRelation,
-    SqlTransform, SrqMapper,
-};
+use super::ast::{self as pq, fold_sql_transform, PqMapper};
 use super::context::{AnchorContext, RIId, RelationAdapter, RelationStatus};
 use super::{postprocess, preprocess};
-use crate::ir::rq::{RelationKind, RelationalQuery, RqFold, Transform};
+use crate::debug;
+use crate::ir::rq::{self, RqFold};
 use crate::utils::BreakUp;
-use crate::Result;
-use crate::Target;
+use crate::{Result, Target};
 
 pub(in super::super) fn compile_query(
-    query: RelationalQuery,
+    query: rq::RelationalQuery,
     dialect: Option<Dialect>,
-) -> Result<(SqlQuery, Context)> {
+) -> Result<(pq::SqlQuery, Context)> {
+    debug::log_stage(debug::Stage::Sql(debug::StageSql::Anchor));
+
     let dialect = if let Some(dialect) = dialect {
         dialect
     } else {
@@ -42,24 +41,27 @@ pub(in super::super) fn compile_query(
     // attach CTEs
     let ctes = ctx.ctes.drain(..).collect_vec();
 
-    let query = SqlQuery {
+    let query = pq::SqlQuery {
         main_relation,
         ctes,
     };
+    debug::log_entry(|| debug::DebugEntryKind::ReprPq(query.clone()));
 
+    debug::log_stage(debug::Stage::Sql(debug::StageSql::Postprocess));
     let query = postprocess::postprocess(query, &mut ctx);
+    debug::log_entry(|| debug::DebugEntryKind::ReprPq(query.clone()));
 
     Ok((query, ctx))
 }
 
-fn compile_relation(relation: RelationAdapter, ctx: &mut Context) -> Result<SqlRelation> {
+fn compile_relation(relation: RelationAdapter, ctx: &mut Context) -> Result<pq::SqlRelation> {
     log::trace!("compiling relation {relation:#?}");
 
     Ok(match relation {
         RelationAdapter::Rq(rel) => {
             match rel.kind {
                 // base case
-                RelationKind::Pipeline(pipeline) => {
+                rq::RelationKind::Pipeline(pipeline) => {
                     // preprocess
                     let pipeline = preprocess::preprocess(pipeline, ctx)?;
 
@@ -69,14 +71,14 @@ fn compile_relation(relation: RelationAdapter, ctx: &mut Context) -> Result<SqlR
                     compile_pipeline(pipeline, ctx)?
                 }
 
-                RelationKind::Literal(lit) => SqlRelation::Literal(lit),
-                RelationKind::SString(items) => SqlRelation::SString(items),
-                RelationKind::BuiltInFunction { name, args } => {
-                    SqlRelation::Operator { name, args }
+                rq::RelationKind::Literal(lit) => pq::SqlRelation::Literal(lit),
+                rq::RelationKind::SString(items) => pq::SqlRelation::SString(items),
+                rq::RelationKind::BuiltInFunction { name, args } => {
+                    pq::SqlRelation::Operator { name, args }
                 }
 
                 // ref cannot be converted directly into query and does not need it's own CTE
-                RelationKind::ExternRef(_) => unreachable!(),
+                rq::RelationKind::ExternRef(_) => unreachable!(),
             }
         }
 
@@ -87,17 +89,20 @@ fn compile_relation(relation: RelationAdapter, ctx: &mut Context) -> Result<SqlR
             compile_pipeline(pipeline, ctx)?
         }
 
-        RelationAdapter::Srq(rel) => rel,
+        RelationAdapter::Pq(rel) => rel,
     })
 }
 
-fn compile_pipeline(mut pipeline: Vec<SqlTransform>, ctx: &mut Context) -> Result<SqlRelation> {
-    use SqlTransform::Super;
+fn compile_pipeline(
+    mut pipeline: Vec<pq::SqlTransform>,
+    ctx: &mut Context,
+) -> Result<pq::SqlRelation> {
+    use pq::SqlTransform::Super;
 
     // special case: loop
     if pipeline
         .iter()
-        .any(|t| matches!(t, Super(Transform::Loop(_))))
+        .any(|t| matches!(t, Super(rq::Transform::Loop(_))))
     {
         pipeline = compile_loop(pipeline, ctx)?;
     }
@@ -113,7 +118,7 @@ fn compile_pipeline(mut pipeline: Vec<SqlTransform>, ctx: &mut Context) -> Resul
     let mut c = TransformCompiler { ctx };
     let pipeline = c.fold_sql_transforms(pipeline)?;
 
-    Ok(SqlRelation::AtomicPipeline(pipeline))
+    Ok(pq::SqlRelation::AtomicPipeline(pipeline))
 }
 
 struct TransformCompiler<'a> {
@@ -122,44 +127,46 @@ struct TransformCompiler<'a> {
 
 impl<'a> RqFold for TransformCompiler<'a> {}
 
-impl<'a> SrqMapper<RIId, RelationExpr, Transform, ()> for TransformCompiler<'a> {
-    fn fold_rel(&mut self, rel: RIId) -> Result<RelationExpr> {
+impl<'a> PqMapper<RIId, pq::RelationExpr, rq::Transform, ()> for TransformCompiler<'a> {
+    fn fold_rel(&mut self, rel: RIId) -> Result<pq::RelationExpr> {
         compile_relation_instance(rel, self.ctx)
     }
 
-    fn fold_super(&mut self, _: Transform) -> Result<()> {
+    fn fold_super(&mut self, _: rq::Transform) -> Result<()> {
         unreachable!()
     }
 
     fn fold_sql_transforms(
         &mut self,
-        transforms: Vec<SqlTransform<RIId, Transform>>,
-    ) -> Result<Vec<SqlTransform<RelationExpr, ()>>> {
+        transforms: Vec<pq::SqlTransform<RIId, rq::Transform>>,
+    ) -> Result<Vec<pq::SqlTransform<pq::RelationExpr, ()>>> {
         transforms
             .into_iter()
             .map(|transform| {
                 Ok(Some(match transform {
-                    SqlTransform::From(v) => SqlTransform::From(self.fold_rel(v)?),
-                    SqlTransform::Join { side, with, filter } => SqlTransform::Join {
+                    pq::SqlTransform::From(v) => pq::SqlTransform::From(self.fold_rel(v)?),
+                    pq::SqlTransform::Join { side, with, filter } => pq::SqlTransform::Join {
                         side,
                         with: self.fold_rel(with)?,
                         filter,
                     },
 
-                    SqlTransform::Super(sup) => {
+                    pq::SqlTransform::Super(sup) => {
                         match sup {
-                            Transform::Select(v) => SqlTransform::Select(v),
-                            Transform::Filter(v) => SqlTransform::Filter(v),
-                            Transform::Aggregate { partition, compute } => {
-                                SqlTransform::Aggregate { partition, compute }
+                            rq::Transform::Select(v) => pq::SqlTransform::Select(v),
+                            rq::Transform::Filter(v) => pq::SqlTransform::Filter(v),
+                            rq::Transform::Aggregate { partition, compute } => {
+                                pq::SqlTransform::Aggregate { partition, compute }
                             }
-                            Transform::Sort(v) => SqlTransform::Sort(v),
-                            Transform::Take(v) => SqlTransform::Take(v),
-                            Transform::Compute(_) | Transform::Append(_) | Transform::Loop(_) => {
+                            rq::Transform::Sort(v) => pq::SqlTransform::Sort(v),
+                            rq::Transform::Take(v) => pq::SqlTransform::Take(v),
+                            rq::Transform::Compute(_)
+                            | rq::Transform::Append(_)
+                            | rq::Transform::Loop(_) => {
                                 // these are not used from here on
                                 return Ok(None);
                             }
-                            Transform::From(_) | Transform::Join { .. } => unreachable!(),
+                            rq::Transform::From(_) | rq::Transform::Join { .. } => unreachable!(),
                         }
                     }
                     _ => fold_sql_transform(self, transform)?,
@@ -170,7 +177,7 @@ impl<'a> SrqMapper<RIId, RelationExpr, Transform, ()> for TransformCompiler<'a> 
     }
 }
 
-pub(super) fn compile_relation_instance(riid: RIId, ctx: &mut Context) -> Result<RelationExpr> {
+pub(super) fn compile_relation_instance(riid: RIId, ctx: &mut Context) -> Result<pq::RelationExpr> {
     let table_ref = &ctx.anchor.relation_instances.get(&riid).unwrap().table_ref;
     let source = table_ref.source;
     let decl = ctx.anchor.table_decls.get_mut(&table_ref.source).unwrap();
@@ -184,29 +191,32 @@ pub(super) fn compile_relation_instance(riid: RIId, ctx: &mut Context) -> Result
 
             // return a sub-query
             let relation = compile_relation(sql_relation, ctx)?;
-            return Ok(RelationExpr {
-                kind: RelationExprKind::SubQuery(relation),
+            return Ok(pq::RelationExpr {
+                kind: pq::RelationExprKind::SubQuery(relation),
                 riid,
             });
         }
 
         let relation = compile_relation(sql_relation, ctx)?;
-        ctx.ctes.push(Cte {
+        ctx.ctes.push(pq::Cte {
             tid: source,
-            kind: CteKind::Normal(relation),
+            kind: pq::CteKind::Normal(relation),
         });
     }
 
-    Ok(RelationExpr {
-        kind: RelationExprKind::Ref(source),
+    Ok(pq::RelationExpr {
+        kind: pq::RelationExprKind::Ref(source),
         riid,
     })
 }
 
-fn compile_loop(pipeline: Vec<SqlTransform>, ctx: &mut Context) -> Result<Vec<SqlTransform>> {
+fn compile_loop(
+    pipeline: Vec<pq::SqlTransform>,
+    ctx: &mut Context,
+) -> Result<Vec<pq::SqlTransform>> {
     // split the pipeline
     let (mut initial, mut following) =
-        pipeline.break_up(|t| matches!(t, SqlTransform::Super(Transform::Loop(_))));
+        pipeline.break_up(|t| matches!(t, pq::SqlTransform::Super(rq::Transform::Loop(_))));
     let loop_ = following.remove(0);
     let step = loop_.into_super_and(|t| t.into_loop()).unwrap();
     let step = preprocess::preprocess(step, ctx)?;
@@ -216,7 +226,7 @@ fn compile_loop(pipeline: Vec<SqlTransform>, ctx: &mut Context) -> Result<Vec<Sq
 
     // do the same thing we do when splitting a pipeline
     // (defining new columns, redirecting cids)
-    let recursive_columns = SqlTransform::Super(Transform::Select(recursive_columns));
+    let recursive_columns = pq::SqlTransform::Super(rq::Transform::Select(recursive_columns));
     initial.push(recursive_columns.clone());
     let step = anchor_split(&mut ctx.anchor, initial, step);
     let from = step.first().unwrap().as_from().unwrap();
@@ -255,17 +265,19 @@ fn compile_loop(pipeline: Vec<SqlTransform>, ctx: &mut Context) -> Result<Vec<Sq
     loop_decl.relation = RelationStatus::Defined;
 
     // push the whole thing into WITH of the main query
-    ctx.ctes.push(Cte {
+    ctx.ctes.push(pq::Cte {
         tid: from.source,
-        kind: CteKind::Loop { initial, step },
+        kind: pq::CteKind::Loop { initial, step },
     });
 
     Ok(following)
 }
 
-fn ensure_names(transforms: &[SqlTransform], ctx: &mut AnchorContext) {
+fn ensure_names(transforms: &[pq::SqlTransform], ctx: &mut AnchorContext) {
     for t in transforms {
-        if let SqlTransform::Super(Transform::Sort(columns)) | SqlTransform::Sort(columns) = t {
+        if let pq::SqlTransform::Super(rq::Transform::Sort(columns))
+        | pq::SqlTransform::Sort(columns) = t
+        {
             for r in columns {
                 ctx.ensure_column_name(r.column);
             }

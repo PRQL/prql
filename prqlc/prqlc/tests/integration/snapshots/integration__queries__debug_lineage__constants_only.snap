@@ -140,37 +140,56 @@ ast:
           - FuncCall:
               name:
                 Ident: from
+                span: 1:0-4
               args:
               - Ident: genres
+                span: 1:5-11
+            span: 1:0-11
           - FuncCall:
               name:
                 Ident: take
+                span: 1:12-16
               args:
               - Literal:
                   Integer: 10
+                span: 1:17-19
+            span: 1:12-19
           - FuncCall:
               name:
                 Ident: filter
+                span: 1:20-26
               args:
               - Literal:
                   Boolean: true
+                span: 1:27-31
+            span: 1:20-31
           - FuncCall:
               name:
                 Ident: take
+                span: 1:32-36
               args:
               - Literal:
                   Integer: 20
+                span: 1:37-39
+            span: 1:32-39
           - FuncCall:
               name:
                 Ident: filter
+                span: 1:40-46
               args:
               - Literal:
                   Boolean: true
+                span: 1:47-51
+            span: 1:40-51
           - FuncCall:
               name:
                 Ident: select
+                span: 1:52-58
               args:
               - Literal:
                   Integer: 10
+                span: 1:63-65
                 alias: d
+            span: 1:52-65
+        span: 1:0-65
     span: 1:0-66

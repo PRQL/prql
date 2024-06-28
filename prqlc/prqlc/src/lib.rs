@@ -99,28 +99,28 @@
 // yak-shaving exercise in the future.
 #![allow(clippy::result_large_err)]
 
+use std::sync::OnceLock;
+use std::{collections::HashMap, path::PathBuf, str::FromStr};
+
+use anstream::adapter::strip_str;
+use semver::Version;
+use serde::{Deserialize, Serialize};
+use strum::VariantNames;
+
+pub use error_message::{ErrorMessage, ErrorMessages, SourceLocation};
+pub use prqlc_parser::error::{Error, ErrorSource, Errors, MessageKind, Reason, WithErrorInfo};
+pub use prqlc_parser::lexer::lr;
+pub use prqlc_parser::parser::pr;
+pub use prqlc_parser::span::Span;
+
 mod codegen;
+pub mod debug;
 mod error_message;
 pub mod ir;
 pub mod parser;
 pub mod semantic;
 pub mod sql;
 mod utils;
-
-use std::sync::OnceLock;
-use std::{collections::HashMap, path::PathBuf, str::FromStr};
-
-use anstream::adapter::strip_str;
-pub use error_message::{ErrorMessage, ErrorMessages, SourceLocation};
-pub use prqlc_parser::error as parser_error;
-use prqlc_parser::error::{Error, ErrorSource};
-pub use prqlc_parser::error::{Errors, MessageKind, Reason, WithErrorInfo};
-pub use prqlc_parser::parser::pr as ast;
-pub use prqlc_parser::span::Span;
-use prqlc_parser::TokenVec;
-use semver::Version;
-use serde::{Deserialize, Serialize};
-use strum::VariantNames;
 
 pub type Result<T, E = Error> = core::result::Result<T, E>;
 
@@ -324,8 +324,8 @@ pub enum DisplayOptions {
 #[cfg(doctest)]
 pub struct ReadmeDoctests;
 
-/// Lex PRQL source into tokens.
-pub fn prql_to_tokens(prql: &str) -> Result<TokenVec, ErrorMessages> {
+/// Lex PRQL source into Lexer Representation.
+pub fn prql_to_tokens(prql: &str) -> Result<lr::Tokens, ErrorMessages> {
     prqlc_parser::lexer::lex_source(prql).map_err(|e| {
         e.into_iter()
             .map(|e| e.into())
@@ -336,26 +336,26 @@ pub fn prql_to_tokens(prql: &str) -> Result<TokenVec, ErrorMessages> {
 
 /// Parse PRQL into a PL AST
 // TODO: rename this to `prql_to_pl_simple`
-pub fn prql_to_pl(prql: &str) -> Result<ast::ModuleDef, ErrorMessages> {
+pub fn prql_to_pl(prql: &str) -> Result<pr::ModuleDef, ErrorMessages> {
     let source_tree = SourceTree::from(prql);
     prql_to_pl_tree(&source_tree)
 }
 
 /// Parse PRQL into a PL AST
-pub fn prql_to_pl_tree(prql: &SourceTree) -> Result<ast::ModuleDef, ErrorMessages> {
+pub fn prql_to_pl_tree(prql: &SourceTree) -> Result<pr::ModuleDef, ErrorMessages> {
     parser::parse(prql).map_err(|e| ErrorMessages::from(e).composed(prql))
 }
 
 /// Perform semantic analysis and convert PL to RQ.
 // TODO: rename this to `pl_to_rq_simple`
-pub fn pl_to_rq(pl: ast::ModuleDef) -> Result<ir::rq::RelationalQuery, ErrorMessages> {
+pub fn pl_to_rq(pl: pr::ModuleDef) -> Result<ir::rq::RelationalQuery, ErrorMessages> {
     semantic::resolve_and_lower(pl, &[], None)
         .map_err(|e| e.with_source(ErrorSource::NameResolver).into())
 }
 
 /// Perform semantic analysis and convert PL to RQ.
 pub fn pl_to_rq_tree(
-    pl: ast::ModuleDef,
+    pl: pr::ModuleDef,
     main_path: &[String],
     database_module_path: &[String],
 ) -> Result<ir::rq::RelationalQuery, ErrorMessages> {
@@ -369,7 +369,7 @@ pub fn rq_to_sql(rq: ir::rq::RelationalQuery, options: &Options) -> Result<Strin
 }
 
 /// Generate PRQL code from PL AST
-pub fn pl_to_prql(pl: &ast::ModuleDef) -> Result<String, ErrorMessages> {
+pub fn pl_to_prql(pl: &pr::ModuleDef) -> Result<String, ErrorMessages> {
     Ok(codegen::WriteSource::write(&pl.stmts, codegen::WriteOpt::default()).unwrap())
 }
 
@@ -378,12 +378,12 @@ pub mod json {
     use super::*;
 
     /// JSON serialization
-    pub fn from_pl(pl: &ast::ModuleDef) -> Result<String, ErrorMessages> {
+    pub fn from_pl(pl: &pr::ModuleDef) -> Result<String, ErrorMessages> {
         serde_json::to_string(pl).map_err(convert_json_err)
     }
 
     /// JSON deserialization
-    pub fn to_pl(json: &str) -> Result<ast::ModuleDef, ErrorMessages> {
+    pub fn to_pl(json: &str) -> Result<pr::ModuleDef, ErrorMessages> {
         serde_json::from_str(json).map_err(convert_json_err)
     }
 
@@ -465,12 +465,12 @@ impl<S: ToString> From<S> for SourceTree {
 }
 
 /// Debugging and unstable API functions
-pub mod debug {
+pub mod internal {
     use super::*;
 
     /// Create column-level lineage graph
     pub fn pl_to_lineage(
-        pl: ast::ModuleDef,
+        pl: pr::ModuleDef,
     ) -> Result<semantic::reporting::FrameCollector, ErrorMessages> {
         let ast = Some(pl.clone());
 
@@ -506,7 +506,7 @@ mod tests {
 
     use insta::assert_debug_snapshot;
 
-    use crate::ast::Ident;
+    use crate::pr::Ident;
     use crate::Target;
 
     pub fn compile(prql: &str) -> Result<String, super::ErrorMessages> {

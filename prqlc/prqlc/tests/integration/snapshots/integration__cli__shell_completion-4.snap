@@ -125,49 +125,7 @@ _arguments "${_arguments_options[@]}" \
         (( CURRENT += 1 ))
         curcontext="${curcontext%:*:*}:prqlc-debug-command-$line[1]:"
         case $line[1] in
-            (expand-pl)
-_arguments "${_arguments_options[@]}" \
-'--color=[Controls when to use color]:WHEN:(auto always never)' \
-'*-v[Increase logging verbosity]' \
-'*--verbose[Increase logging verbosity]' \
-'(-v --verbose)*-q[Silences logging output]' \
-'(-v --verbose)*--quiet[Silences logging output]' \
-'-h[Print help (see more with '\''--help'\'')]' \
-'--help[Print help (see more with '\''--help'\'')]' \
-'::input:_files' \
-'::output:_files' \
-'::main_path -- Identifier of the main pipeline:' \
-&& ret=0
-;;
-(resolve)
-_arguments "${_arguments_options[@]}" \
-'--color=[Controls when to use color]:WHEN:(auto always never)' \
-'*-v[Increase logging verbosity]' \
-'*--verbose[Increase logging verbosity]' \
-'(-v --verbose)*-q[Silences logging output]' \
-'(-v --verbose)*--quiet[Silences logging output]' \
-'-h[Print help (see more with '\''--help'\'')]' \
-'--help[Print help (see more with '\''--help'\'')]' \
-'::input:_files' \
-'::output:_files' \
-'::main_path -- Identifier of the main pipeline:' \
-&& ret=0
-;;
-(eval)
-_arguments "${_arguments_options[@]}" \
-'--color=[Controls when to use color]:WHEN:(auto always never)' \
-'*-v[Increase logging verbosity]' \
-'*--verbose[Increase logging verbosity]' \
-'(-v --verbose)*-q[Silences logging output]' \
-'(-v --verbose)*--quiet[Silences logging output]' \
-'-h[Print help (see more with '\''--help'\'')]' \
-'--help[Print help (see more with '\''--help'\'')]' \
-'::input:_files' \
-'::output:_files' \
-'::main_path -- Identifier of the main pipeline:' \
-&& ret=0
-;;
-(annotate)
+            (annotate)
 _arguments "${_arguments_options[@]}" \
 '--color=[Controls when to use color]:WHEN:(auto always never)' \
 '*-v[Increase logging verbosity]' \
@@ -219,19 +177,7 @@ _arguments "${_arguments_options[@]}" \
         (( CURRENT += 1 ))
         curcontext="${curcontext%:*:*}:prqlc-debug-help-command-$line[1]:"
         case $line[1] in
-            (expand-pl)
-_arguments "${_arguments_options[@]}" \
-&& ret=0
-;;
-(resolve)
-_arguments "${_arguments_options[@]}" \
-&& ret=0
-;;
-(eval)
-_arguments "${_arguments_options[@]}" \
-&& ret=0
-;;
-(annotate)
+            (annotate)
 _arguments "${_arguments_options[@]}" \
 && ret=0
 ;;
@@ -316,54 +262,11 @@ esac
     ;;
 esac
 ;;
-(resolve)
-_arguments "${_arguments_options[@]}" \
-'--format=[]:FORMAT:(json yaml)' \
-'--color=[Controls when to use color]:WHEN:(auto always never)' \
-'*-v[Increase logging verbosity]' \
-'*--verbose[Increase logging verbosity]' \
-'(-v --verbose)*-q[Silences logging output]' \
-'(-v --verbose)*--quiet[Silences logging output]' \
-'-h[Print help (see more with '\''--help'\'')]' \
-'--help[Print help (see more with '\''--help'\'')]' \
-'::input:_files' \
-'::output:_files' \
-'::main_path -- Identifier of the main pipeline:' \
-&& ret=0
-;;
-(sql:preprocess)
-_arguments "${_arguments_options[@]}" \
-'--color=[Controls when to use color]:WHEN:(auto always never)' \
-'*-v[Increase logging verbosity]' \
-'*--verbose[Increase logging verbosity]' \
-'(-v --verbose)*-q[Silences logging output]' \
-'(-v --verbose)*--quiet[Silences logging output]' \
-'-h[Print help (see more with '\''--help'\'')]' \
-'--help[Print help (see more with '\''--help'\'')]' \
-'::input:_files' \
-'::output:_files' \
-'::main_path -- Identifier of the main pipeline:' \
-&& ret=0
-;;
-(sql:anchor)
-_arguments "${_arguments_options[@]}" \
-'--format=[]:FORMAT:(json yaml)' \
-'--color=[Controls when to use color]:WHEN:(auto always never)' \
-'*-v[Increase logging verbosity]' \
-'*--verbose[Increase logging verbosity]' \
-'(-v --verbose)*-q[Silences logging output]' \
-'(-v --verbose)*--quiet[Silences logging output]' \
-'-h[Print help (see more with '\''--help'\'')]' \
-'--help[Print help (see more with '\''--help'\'')]' \
-'::input:_files' \
-'::output:_files' \
-'::main_path -- Identifier of the main pipeline:' \
-&& ret=0
-;;
 (compile)
 _arguments "${_arguments_options[@]}" \
 '-t+[Target to compile to]:TARGET: ' \
 '--target=[Target to compile to]:TARGET: ' \
+'--debug-log=[File path into which to write the debug log to]:DEBUG_LOG:_files' \
 '--color=[Controls when to use color]:WHEN:(auto always never)' \
 '--hide-signature-comment[Exclude the signature comment containing the PRQL version]' \
 '--no-format[Emit unformatted, dense SQL]' \
@@ -455,19 +358,7 @@ _arguments "${_arguments_options[@]}" \
         (( CURRENT += 1 ))
         curcontext="${curcontext%:*:*}:prqlc-help-debug-command-$line[1]:"
         case $line[1] in
-            (expand-pl)
-_arguments "${_arguments_options[@]}" \
-&& ret=0
-;;
-(resolve)
-_arguments "${_arguments_options[@]}" \
-&& ret=0
-;;
-(eval)
-_arguments "${_arguments_options[@]}" \
-&& ret=0
-;;
-(annotate)
+            (annotate)
 _arguments "${_arguments_options[@]}" \
 && ret=0
 ;;
@@ -503,18 +394,6 @@ _arguments "${_arguments_options[@]}" \
     ;;
 esac
 ;;
-(resolve)
-_arguments "${_arguments_options[@]}" \
-&& ret=0
-;;
-(sql:preprocess)
-_arguments "${_arguments_options[@]}" \
-&& ret=0
-;;
-(sql:anchor)
-_arguments "${_arguments_options[@]}" \
-&& ret=0
-;;
 (compile)
 _arguments "${_arguments_options[@]}" \
 && ret=0
@@ -548,14 +427,11 @@ esac
 _prqlc_commands() {
     local commands; commands=(
 'parse:Parse into PL AST' \
-'lex:Lex into Tokens' \
+'lex:Lex into Lexer Representation' \
 'fmt:Parse & generate PRQL code back' \
 'collect:Parse the whole project and collect it into a single PRQL source file' \
 'debug:Commands for meant for debugging, prone to change' \
 'experimental:Experimental commands are prone to change' \
-'resolve:Parse, resolve & lower into RQ' \
-'sql:preprocess:Parse, resolve, lower into RQ & preprocess SRQ' \
-'sql:anchor:Parse, resolve, lower into RQ & preprocess & anchor SRQ' \
 'compile:Parse, resolve, lower into RQ & compile to SQL' \
 'watch:Watch a directory and compile .prql files to .sql files' \
 'list-targets:Show available compile target names' \
@@ -617,9 +493,6 @@ _prqlc__help__compile_commands() {
 (( $+functions[_prqlc__debug_commands] )) ||
 _prqlc__debug_commands() {
     local commands; commands=(
-'expand-pl:Parse & and expand into PL, but don'\''t resolve' \
-'resolve:Parse & resolve, but don'\''t lower into RQ' \
-'eval:Parse & evaluate expression down to a value' \
 'annotate:Parse, resolve & combine source with comments annotating relation type' \
 'lineage:Output column-level lineage graph' \
 'ast:Print info about the AST data structure' \
@@ -630,9 +503,6 @@ _prqlc__debug_commands() {
 (( $+functions[_prqlc__help__debug_commands] )) ||
 _prqlc__help__debug_commands() {
     local commands; commands=(
-'expand-pl:Parse & and expand into PL, but don'\''t resolve' \
-'resolve:Parse & resolve, but don'\''t lower into RQ' \
-'eval:Parse & evaluate expression down to a value' \
 'annotate:Parse, resolve & combine source with comments annotating relation type' \
 'lineage:Output column-level lineage graph' \
 'ast:Print info about the AST data structure' \
@@ -653,36 +523,6 @@ _prqlc__experimental__help__doc_commands() {
 _prqlc__help__experimental__doc_commands() {
     local commands; commands=()
     _describe -t commands 'prqlc help experimental doc commands' commands "$@"
-}
-(( $+functions[_prqlc__debug__eval_commands] )) ||
-_prqlc__debug__eval_commands() {
-    local commands; commands=()
-    _describe -t commands 'prqlc debug eval commands' commands "$@"
-}
-(( $+functions[_prqlc__debug__help__eval_commands] )) ||
-_prqlc__debug__help__eval_commands() {
-    local commands; commands=()
-    _describe -t commands 'prqlc debug help eval commands' commands "$@"
-}
-(( $+functions[_prqlc__help__debug__eval_commands] )) ||
-_prqlc__help__debug__eval_commands() {
-    local commands; commands=()
-    _describe -t commands 'prqlc help debug eval commands' commands "$@"
-}
-(( $+functions[_prqlc__debug__expand-pl_commands] )) ||
-_prqlc__debug__expand-pl_commands() {
-    local commands; commands=()
-    _describe -t commands 'prqlc debug expand-pl commands' commands "$@"
-}
-(( $+functions[_prqlc__debug__help__expand-pl_commands] )) ||
-_prqlc__debug__help__expand-pl_commands() {
-    local commands; commands=()
-    _describe -t commands 'prqlc debug help expand-pl commands' commands "$@"
-}
-(( $+functions[_prqlc__help__debug__expand-pl_commands] )) ||
-_prqlc__help__debug__expand-pl_commands() {
-    local commands; commands=()
-    _describe -t commands 'prqlc help debug expand-pl commands' commands "$@"
 }
 (( $+functions[_prqlc__experimental_commands] )) ||
 _prqlc__experimental_commands() {
@@ -712,9 +552,6 @@ _prqlc__help__fmt_commands() {
 (( $+functions[_prqlc__debug__help_commands] )) ||
 _prqlc__debug__help_commands() {
     local commands; commands=(
-'expand-pl:Parse & and expand into PL, but don'\''t resolve' \
-'resolve:Parse & resolve, but don'\''t lower into RQ' \
-'eval:Parse & evaluate expression down to a value' \
 'annotate:Parse, resolve & combine source with comments annotating relation type' \
 'lineage:Output column-level lineage graph' \
 'ast:Print info about the AST data structure' \
@@ -744,14 +581,11 @@ _prqlc__experimental__help__help_commands() {
 _prqlc__help_commands() {
     local commands; commands=(
 'parse:Parse into PL AST' \
-'lex:Lex into Tokens' \
+'lex:Lex into Lexer Representation' \
 'fmt:Parse & generate PRQL code back' \
 'collect:Parse the whole project and collect it into a single PRQL source file' \
 'debug:Commands for meant for debugging, prone to change' \
 'experimental:Experimental commands are prone to change' \
-'resolve:Parse, resolve & lower into RQ' \
-'sql:preprocess:Parse, resolve, lower into RQ & preprocess SRQ' \
-'sql:anchor:Parse, resolve, lower into RQ & preprocess & anchor SRQ' \
 'compile:Parse, resolve, lower into RQ & compile to SQL' \
 'watch:Watch a directory and compile .prql files to .sql files' \
 'list-targets:Show available compile target names' \
@@ -810,31 +644,6 @@ _prqlc__parse_commands() {
     local commands; commands=()
     _describe -t commands 'prqlc parse commands' commands "$@"
 }
-(( $+functions[_prqlc__debug__help__resolve_commands] )) ||
-_prqlc__debug__help__resolve_commands() {
-    local commands; commands=()
-    _describe -t commands 'prqlc debug help resolve commands' commands "$@"
-}
-(( $+functions[_prqlc__debug__resolve_commands] )) ||
-_prqlc__debug__resolve_commands() {
-    local commands; commands=()
-    _describe -t commands 'prqlc debug resolve commands' commands "$@"
-}
-(( $+functions[_prqlc__help__debug__resolve_commands] )) ||
-_prqlc__help__debug__resolve_commands() {
-    local commands; commands=()
-    _describe -t commands 'prqlc help debug resolve commands' commands "$@"
-}
-(( $+functions[_prqlc__help__resolve_commands] )) ||
-_prqlc__help__resolve_commands() {
-    local commands; commands=()
-    _describe -t commands 'prqlc help resolve commands' commands "$@"
-}
-(( $+functions[_prqlc__resolve_commands] )) ||
-_prqlc__resolve_commands() {
-    local commands; commands=()
-    _describe -t commands 'prqlc resolve commands' commands "$@"
-}
 (( $+functions[_prqlc__help__shell-completion_commands] )) ||
 _prqlc__help__shell-completion_commands() {
     local commands; commands=()
@@ -844,26 +653,6 @@ _prqlc__help__shell-completion_commands() {
 _prqlc__shell-completion_commands() {
     local commands; commands=()
     _describe -t commands 'prqlc shell-completion commands' commands "$@"
-}
-(( $+functions[_prqlc__help__sql:anchor_commands] )) ||
-_prqlc__help__sql:anchor_commands() {
-    local commands; commands=()
-    _describe -t commands 'prqlc help sql:anchor commands' commands "$@"
-}
-(( $+functions[_prqlc__sql:anchor_commands] )) ||
-_prqlc__sql:anchor_commands() {
-    local commands; commands=()
-    _describe -t commands 'prqlc sql:anchor commands' commands "$@"
-}
-(( $+functions[_prqlc__help__sql:preprocess_commands] )) ||
-_prqlc__help__sql:preprocess_commands() {
-    local commands; commands=()
-    _describe -t commands 'prqlc help sql:preprocess commands' commands "$@"
-}
-(( $+functions[_prqlc__sql:preprocess_commands] )) ||
-_prqlc__sql:preprocess_commands() {
-    local commands; commands=()
-    _describe -t commands 'prqlc sql:preprocess commands' commands "$@"
 }
 (( $+functions[_prqlc__help__watch_commands] )) ||
 _prqlc__help__watch_commands() {

@@ -3,8 +3,8 @@ use std::collections::HashMap;
 use enum_as_inner::EnumAsInner;
 use serde::{Deserialize, Serialize};
 
+use crate::generic;
 use crate::lexer::lr::Literal;
-use crate::parser::generic;
 use crate::parser::pr::ops::{BinOp, UnOp};
 use crate::parser::pr::Ty;
 use crate::parser::WithAesthetics;
@@ -32,7 +32,7 @@ pub struct Expr {
     #[serde(flatten)]
     pub kind: ExprKind,
 
-    #[serde(skip)]
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub span: Option<Span>,
 
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -60,6 +60,9 @@ impl WithAesthetics for Expr {
 #[derive(Debug, EnumAsInner, PartialEq, Clone, Serialize, Deserialize, strum::AsRefStr)]
 pub enum ExprKind {
     Ident(String),
+
+    /// A lookup into an object by name or position.
+    /// Currently, this includes only tuple field lookups, primarily by name.
     Indirection {
         base: Box<Expr>,
         field: IndirectionKind,
@@ -88,6 +91,18 @@ pub enum ExprKind {
     /// When used instead of function body, the function will be translated to a RQ operator.
     /// Contains ident of the RQ operator.
     Internal(String),
+}
+
+impl ExprKind {
+    pub fn into_expr(self, span: Span) -> Expr {
+        Expr {
+            span: Some(span),
+            kind: self,
+            alias: None,
+            aesthetics_after: Vec::new(),
+            aesthetics_before: Vec::new(),
+        }
+    }
 }
 
 #[derive(Debug, EnumAsInner, PartialEq, Clone, Serialize, Deserialize)]

@@ -1,12 +1,12 @@
 use std::collections::HashMap;
 
 use enum_as_inner::EnumAsInner;
-use prqlc_parser::parser::generic;
+use prqlc_parser::generic;
 use serde::{Deserialize, Serialize};
 
 use super::{Lineage, TransformCall};
-use crate::ast::{GenericTypeParam, Ident, Literal, Span, Ty};
 use crate::codegen::write_ty;
+use crate::pr::{GenericTypeParam, Ident, Literal, Span, Ty};
 
 /// Expr is anything that has a value and thus a type.
 /// Most of these can contain other [Expr] themselves; literals should be [ExprKind::Literal].
@@ -15,7 +15,7 @@ pub struct Expr {
     #[serde(flatten)]
     pub kind: ExprKind,
 
-    #[serde(skip)]
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub span: Option<Span>,
 
     #[serde(skip_serializing_if = "Option::is_none")]

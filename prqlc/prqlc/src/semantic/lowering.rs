@@ -4,10 +4,9 @@ use std::iter::zip;
 
 use enum_as_inner::EnumAsInner;
 use itertools::Itertools;
+use prqlc_parser::generic::{InterpolateItem, Range, SwitchCase};
 use prqlc_parser::lexer::lr::Literal;
-use prqlc_parser::parser::generic::{InterpolateItem, Range, SwitchCase};
 
-use crate::ast::TyTupleField;
 use crate::compiler_version;
 use crate::ir::decl::{self, DeclKind, Module, RootModule, TableExpr};
 use crate::ir::generic::{ColumnSort, WindowFrame};
@@ -16,6 +15,7 @@ use crate::ir::pl::{self, Ident, Lineage, LineageColumn, PlFold, QueryDef};
 use crate::ir::rq::{
     self, CId, RelationColumn, RelationLiteral, RelationalQuery, TId, TableDecl, Transform,
 };
+use crate::pr::TyTupleField;
 use crate::semantic::write_pl;
 use crate::utils::{toposort, IdGenerator};
 use crate::{Error, Reason, Result, Span, WithErrorInfo};
@@ -143,7 +143,7 @@ struct Lowerer {
     /// describes what has certain id has been lowered to
     node_mapping: HashMap<usize, LoweredTarget>,
 
-    /// mapping from [Ident] of [crate::ast::TableDef] into [TId]s
+    /// mapping from [Ident] of [crate::pr::TableDef] into [TId]s
     table_mapping: HashMap<Ident, TId>,
 
     // current window for any new column defs

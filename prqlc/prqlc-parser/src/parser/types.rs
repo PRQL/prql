@@ -126,7 +126,7 @@ pub fn type_expr() -> impl Parser<TokenKind, Ty, Error = PError> + Clone {
             .labelled("array");
 
         let term = choice((basic, ident, func, tuple, array, enum_))
-            .map_with_span(into_ty)
+            .map_with_span(TyKind::into_ty)
             .boxed();
 
         // exclude
@@ -158,7 +158,7 @@ pub fn type_expr() -> impl Parser<TokenKind, Ty, Error = PError> + Clone {
                     let mut all = Vec::with_capacity(following.len() + 1);
                     all.push((None, first));
                     all.extend(following.into_iter().map(|x| (None, x)));
-                    into_ty(TyKind::Union(all), span)
+                    TyKind::Union(all).into_ty(span)
                 }
             })
     })

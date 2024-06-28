@@ -9,13 +9,16 @@ expression: "resolve_derive(r#\"\n            let add_one = x to:1 -> x + to\n\n
           - this
           - foo_table
           - bar
+        span: "1:125-128"
       - Literal:
           Integer: 3
+        span: "1:132-133"
         ty:
           kind:
             Primitive: Int
           span: ~
           name: ~
+  span: "1:117-133"
   alias: added
   ty:
     kind:
@@ -49,13 +52,16 @@ expression: "resolve_derive(r#\"\n            let add_one = x to:1 -> x + to\n\n
           - this
           - foo_table
           - bar
+        span: "1:175-178"
       - Literal:
           Integer: 1
+        span: "1:32-33"
         ty:
           kind:
             Primitive: Int
           span: ~
           name: ~
+  span: "1:167-178"
   alias: added_default
   ty:
     kind:
@@ -82,4 +88,3 @@ expression: "resolve_derive(r#\"\n            let add_one = x to:1 -> x + to\n\n
             name: ~
     span: "0:893-926"
     name: ~
-

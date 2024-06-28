@@ -148,44 +148,67 @@ ast:
           - FuncCall:
               name:
                 Ident: from
+                span: 1:13-17
               args:
               - Ident: tracks
+                span: 1:18-24
+            span: 1:13-24
           - FuncCall:
               name:
                 Ident: sort
+                span: 1:25-29
               args:
               - Tuple:
                 - Unary:
                     op: Neg
                     expr:
                       Ident: bytes
+                      span: 1:32-37
+                  span: 1:31-37
+                span: 1:30-38
+            span: 1:25-38
           - FuncCall:
               name:
                 Ident: select
+                span: 1:39-45
               args:
               - Tuple:
                 - Ident: name
+                  span: 1:52-56
                 - Binary:
                     left:
                       Pipeline:
                         exprs:
                         - Ident: album_id
+                          span: 1:70-78
                         - FuncCall:
                             name:
                               Ident: as
+                              span: 1:81-83
                             args:
                             - Ident: REAL
+                              span: 1:84-88
+                          span: 1:81-88
+                      span: 1:70-88
                     op: Mul
                     right:
                       Literal:
                         Integer: 99
+                      span: 1:92-94
+                  span: 1:68-95
                   alias: bin
+                span: 1:46-97
+            span: 1:39-97
           - FuncCall:
               name:
                 Ident: take
+                span: 1:98-102
               args:
               - Literal:
                   Integer: 20
+                span: 1:103-105
+            span: 1:98-105
+        span: 1:13-105
     span: 1:13-106
     aesthetics_before:
     - !Comment ' mssql:test'
