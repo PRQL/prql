@@ -18,7 +18,8 @@ max-threads = 1
 
 [[profile.default.overrides]]
 filter = 'package(mdbook-prql)'
-slow-timeout = {period = "8s", terminate-after = 2}
+# These are testing dozens of queries, so we give them more time.
+slow-timeout = {period = "20s", terminate-after = 2}
 test-group = 'docs-mdbook'
 
 [test-groups.docs-mdbook]
