@@ -17,6 +17,11 @@ test-group = 'test-dbs'
 max-threads = 1
 
 [[profile.default.overrides]]
+# cli tests take a bit longer
+filter = 'test(cli)'
+slow-timeout = {period = "1s"}
+
+[[profile.default.overrides]]
 filter = 'package(mdbook-prql)'
 # These are testing dozens of queries, so we give them more time.
 slow-timeout = {period = "20s", terminate-after = 2}
