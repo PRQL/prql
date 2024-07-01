@@ -473,11 +473,7 @@ pub(super) fn translate_query_sstring(
     let string = translate_sstring(items, ctx)?;
 
     let re = Regex::new(r"(?i)^SELECT\b").unwrap();
-    let prefix = if let Some(string) = string.trim().get(0..7) {
-        string
-    } else {
-        ""
-    };
+    let prefix = string.trim().get(0..7).unwrap_or_default();
 
     if re.is_match(prefix) {
         if let Some(string) = string.trim().strip_prefix(prefix) {
