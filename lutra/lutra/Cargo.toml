@@ -13,10 +13,12 @@ cli = ["clap"]
 default = ["cli"]
 
 [lib]
+bench = false
 doctest = false
 test = false
 
 [[bin]]
+bench = false
 name = "lutra"
 path = "src/cli.rs"
 required-features = ["cli"]

@@ -52,7 +52,10 @@ jobs:
       - uses: clechasseur/rs-cargo@v2
         with:
           command: bench
-          args: -p prqlc
+          # GH Actions is fairly noisy, so the precise details don't matter that
+          # much. We do want to check the benchmarks run, and possibly we can
+          # use this to identify and big changes in performance.
+          args: -- --warm-up-time=0.3 --measurement-time=1
 
   time-compilation:
     runs-on: ubuntu-latest
