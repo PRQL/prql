@@ -157,27 +157,24 @@ mod results {
                     },
                 ];
 
-                let mut connections = Vec::new();
-                for cfg in configs {
-                    if !matches!(
-                        cfg.dialect.support_level(),
-                        SupportLevel::Supported | SupportLevel::Unsupported
-                    ) {
-                        continue;
-                    }
-
+                configs
+                    .into_iter()
+                    .filter(|cfg| {
+                        matches!(
+                            cfg.dialect.support_level(),
+                            SupportLevel::Supported | SupportLevel::Unsupported
+                        )
+                    })
                     // The filtering is not a great design, since it doesn't proactively
                     // check that we can get connections; but it's a compromise given we
                     // implement the external_dbs feature using this.
-                    let Some(mut connection) = DbConnection::new(cfg) else {
-                        continue;
-                    };
+                    .filter_map(DbConnection::new)
+                    .map(|mut conn| {
+                        conn.setup();
 
-                    connection.setup();
-
-                    connections.push(connection);
-                }
-                connections
+                        conn
+                    })
+                    .collect()
             })
         })
     }
