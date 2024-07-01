@@ -2894,6 +2894,7 @@ dependencies = [
  "sqlparser",
  "strum 0.26.3",
  "strum_macros 0.26.4",
+ "tempfile",
  "test_each_file",
  "tiberius",
  "tokio",
