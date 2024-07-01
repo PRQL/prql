@@ -167,7 +167,6 @@ pub fn get_targets() -> Vec<String> {
     prqlc_lib::Target::names()
 }
 
-#[cfg(not(feature = "extension-module"))]
 #[cfg(test)]
 mod test {
     use insta::assert_snapshot;
