@@ -104,7 +104,7 @@ mod results {
         static CONNECTIONS: OnceLock<Mutex<Vec<DbConnection>>> = OnceLock::new();
         CONNECTIONS.get_or_init(|| {
             Mutex::new({
-                let configs = [
+                [
                     ConnectionCfg {
                         dialect: Dialect::SQLite,
                         data_file_root: "tests/integration/data/chinook".to_string(),
@@ -155,29 +155,20 @@ mod results {
 
                         protocol: DbProtocol::MsSql,
                     },
-                ];
-
-                let mut connections = Vec::new();
-                for cfg in configs {
-                    if !matches!(
+                ]
+                .into_iter()
+                .filter(|cfg| {
+                    matches!(
                         cfg.dialect.support_level(),
                         SupportLevel::Supported | SupportLevel::Unsupported
-                    ) {
-                        continue;
-                    }
-
-                    // The filtering is not a great design, since it doesn't proactively
-                    // check that we can get connections; but it's a compromise given we
-                    // implement the external_dbs feature using this.
-                    let Some(mut connection) = DbConnection::new(cfg) else {
-                        continue;
-                    };
-
-                    connection.setup();
-
-                    connections.push(connection);
-                }
-                connections
+                    )
+                })
+                // The filtering is not a great design, since it doesn't proactively
+                // check that we can get connections; but it's a compromise given we
+                // implement the external_dbs feature using this.
+                .filter_map(DbConnection::new)
+                .map(|conn| conn.setup())
+                .collect()
             })
         })
     }
