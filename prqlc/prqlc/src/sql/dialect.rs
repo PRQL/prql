@@ -92,7 +92,7 @@ impl Dialect {
             Dialect::MsSql | Dialect::Ansi | Dialect::BigQuery | Dialect::Snowflake => {
                 SupportLevel::Unsupported
             },
-            Dialect::GlareDb => {SupportLevel::Unsupported}
+            Dialect::GlareDb => {SupportLevel::Nascent}
         }
     }
 
