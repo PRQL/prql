@@ -371,7 +371,7 @@ fn format() {
     let temp_dir = TempDir::new().expect("Failed to create temp directory");
 
     // Copy files from project_path() to temp_dir
-    copy_dir_contents(&project_path(), temp_dir.path()).expect("Failed to copy directory contents");
+    copy_dir(&project_path(), temp_dir.path());
 
     // Run fmt command on the temp directory
     let _result = prqlc_command()
@@ -383,19 +383,17 @@ fn format() {
     compare_directories(&project_path(), temp_dir.path());
 }
 
-fn copy_dir_contents(src: &Path, dst: &Path) -> std::io::Result<()> {
-    for entry in WalkDir::new(src).into_iter().filter_map(|e| e.ok()) {
+fn copy_dir(src: &Path, dst: &Path) {
+    for entry in WalkDir::new(src) {
+        let entry = entry.unwrap();
         let path = entry.path();
         if path.is_file() {
             let relative_path = path.strip_prefix(src).unwrap();
-            let dst_path = dst.join(relative_path);
-            if let Some(parent) = dst_path.parent() {
-                fs::create_dir_all(parent)?;
-            }
-            fs::copy(path, dst_path)?;
+            let target_path = dst.join(relative_path);
+            fs::create_dir_all(target_path.parent().unwrap()).unwrap();
+            fs::copy(path, target_path).unwrap();
         }
     }
-    Ok(())
 }
 
 fn compare_directories(dir1: &Path, dir2: &Path) {
@@ -405,7 +403,12 @@ fn compare_directories(dir1: &Path, dir2: &Path) {
             let relative_path = path1.strip_prefix(dir1).unwrap();
             let path2 = dir2.join(relative_path);
 
-            assert!(path2.exists());
+            assert!(
+                path2.exists(),
+                "File {:?} doesn't exist in the formatted directory",
+                relative_path
+            );
+
             similar_asserts::assert_eq!(
                 fs::read_to_string(path1).unwrap(),
                 fs::read_to_string(path2).unwrap()
