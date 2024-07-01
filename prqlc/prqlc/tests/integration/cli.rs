@@ -356,7 +356,7 @@ fn compile_project() {
 
 #[test]
 fn format() {
-    // Test stdin formatting (unchanged)
+    // Test stdin formatting
     assert_cmd_snapshot!(prqlc_command().args(["fmt"]).pass_stdin("from tracks | take 20"), @r###"
     success: true
     exit_code: 0
@@ -366,6 +366,8 @@ fn format() {
 
     ----- stderr -----
     "###);
+
+    // Test formatting a path:
 
     // Create a temporary directory
     let temp_dir = TempDir::new().expect("Failed to create temp directory");
