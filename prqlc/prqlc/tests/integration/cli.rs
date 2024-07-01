@@ -1,12 +1,16 @@
 #![cfg(all(not(target_family = "wasm"), feature = "cli"))]
 
 use std::env::current_dir;
+use std::fs;
+use std::path::Path;
 use std::path::PathBuf;
 use std::process::Command;
 use std::str::FromStr;
 
 use insta_cmd::assert_cmd_snapshot;
 use insta_cmd::get_cargo_bin;
+use tempfile::TempDir;
+use walkdir::WalkDir;
 
 #[cfg(not(windows))] // Windows has slightly different output (e.g. `prqlc.exe`), so we exclude.
 #[test]
@@ -352,7 +356,7 @@ fn compile_project() {
 
 #[test]
 fn format() {
-    // stdin
+    // Test stdin formatting
     assert_cmd_snapshot!(prqlc_command().args(["fmt"]).pass_stdin("from tracks | take 20"), @r###"
     success: true
     exit_code: 0
@@ -363,28 +367,56 @@ fn format() {
     ----- stderr -----
     "###);
 
-    // TODO: not good tests, since they don't actually test that the code was
-    // formatted (though we would see the files changed after running the tests
-    // if they weren't formatted). Ideally we would have a simulated
-    // environment, like a fixture.
+    // Test formatting a path:
 
-    // Single file
-    assert_cmd_snapshot!(prqlc_command().args(["fmt", project_path().join("artists.prql").to_str().unwrap()]), @r###"
-    success: true
-    exit_code: 0
-    ----- stdout -----
+    // Create a temporary directory
+    let temp_dir = TempDir::new().expect("Failed to create temp directory");
 
-    ----- stderr -----
-    "###);
+    // Copy files from project_path() to temp_dir
+    copy_dir(&project_path(), temp_dir.path());
 
-    // Project
-    assert_cmd_snapshot!(prqlc_command().args(["fmt", project_path().to_str().unwrap()]), @r###"
-    success: true
-    exit_code: 0
-    ----- stdout -----
+    // Run fmt command on the temp directory
+    let _result = prqlc_command()
+        .args(["fmt", temp_dir.path().to_str().unwrap()])
+        .status()
+        .unwrap();
 
-    ----- stderr -----
-    "###);
+    // Check if files in temp_dir match the original files
+    compare_directories(&project_path(), temp_dir.path());
+}
+
+fn copy_dir(src: &Path, dst: &Path) {
+    for entry in WalkDir::new(src) {
+        let entry = entry.unwrap();
+        let path = entry.path();
+        if path.is_file() {
+            let relative_path = path.strip_prefix(src).unwrap();
+            let target_path = dst.join(relative_path);
+            fs::create_dir_all(target_path.parent().unwrap()).unwrap();
+            fs::copy(path, target_path).unwrap();
+        }
+    }
+}
+
+fn compare_directories(dir1: &Path, dir2: &Path) {
+    for entry in WalkDir::new(dir1).into_iter().filter_map(|e| e.ok()) {
+        let path1 = entry.path();
+        if path1.is_file() {
+            let relative_path = path1.strip_prefix(dir1).unwrap();
+            let path2 = dir2.join(relative_path);
+
+            assert!(
+                path2.exists(),
+                "File {:?} doesn't exist in the formatted directory",
+                relative_path
+            );
+
+            similar_asserts::assert_eq!(
+                fs::read_to_string(path1).unwrap(),
+                fs::read_to_string(path2).unwrap()
+            );
+        }
+    }
 }
 
 #[test]
