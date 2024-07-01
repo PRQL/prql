@@ -628,8 +628,3 @@ ast:
             span: 1:79-718
         span: 1:57-718
     span: 1:57-719
-    aesthetics_before:
-    - !Comment ' generic:skip'
-    - !Comment ' glaredb:skip'
-    - !Comment ' sqlite:skip'
-    - !Comment ' mssql:test'

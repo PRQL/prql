@@ -915,14 +915,6 @@ ast:
                       span: 1:773-785
                   span: 1:752-785
                   alias: total_square
-<<<<<<< HEAD
-    span: 1:82-788
-    aesthetics_before:
-    - !Comment ' mssql:test'
-    - !Comment ' sqlite:skip (see https://github.com/rusqlite/rusqlite/issues/1211)'
-||||||| 566e6f14
-    span: 1:82-788
-=======
                 - Pipeline:
                     exprs:
                     - Binary:
@@ -954,4 +946,3 @@ ast:
             span: 1:103-839
         span: 1:82-839
     span: 1:82-840
->>>>>>> main

@@ -20,13 +20,13 @@ pub fn parse_lr_to_pr(
 ) -> (Option<Vec<pr::Stmt>>, Vec<Error>) {
     // We don't want comments in the AST (but we do intend to use them as part of
     // formatting)
-    // let semantic_tokens = lr_iter.into_iter().filter(|token| {
-    //     !matches!(
-    //         token.kind,
-    //         lr::TokenKind::Comment(_) | lr::TokenKind::LineWrap(_) | lr::TokenKind::DocComment(_)
-    //     )
-    // });
-    let semantic_tokens = lr_iter.into_iter();
+    let semantic_tokens = lr_iter.into_iter().filter(|token| {
+        !matches!(
+            token.kind,
+            lr::TokenKind::Comment(_) | lr::TokenKind::LineWrap(_) //| lr::TokenKind::DocComment(_)
+        )
+    });
+    // let semantic_tokens = lr_iter.into_iter();
 
     let stream = prepare_stream(semantic_tokens, source, source_id);
     let (pr, parse_errors) = ::chumsky::Parser::parse_recovery(&stmt::source(), stream);

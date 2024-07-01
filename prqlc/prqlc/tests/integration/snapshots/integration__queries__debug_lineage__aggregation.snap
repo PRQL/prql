@@ -287,8 +287,3 @@ ast:
             span: 1:168-243
         span: 1:102-243
     span: 1:102-244
-    aesthetics_before:
-    - !Comment ' mssql:skip'
-    - !Comment ' mysql:skip'
-    - !Comment ' clickhouse:skip'
-    - !Comment ' glaredb:skip (the string_agg function is not supported)'

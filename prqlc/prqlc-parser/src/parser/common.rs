@@ -44,8 +44,8 @@ pub fn into_stmt((annotations, kind): (Vec<Annotation>, StmtKind), span: Span) -
 
 pub fn aesthetic() -> impl Parser<TokenKind, TokenKind, Error = PError> + Clone {
     select! {
-        TokenKind::Comment(comment) =>         TokenKind::Comment(comment),
-        TokenKind::LineWrap(lw) =>         TokenKind::LineWrap(lw),
+        // TokenKind::Comment(comment) =>         TokenKind::Comment(comment),
+        // TokenKind::LineWrap(lw) =>         TokenKind::LineWrap(lw),
         TokenKind::DocComment(dc) => TokenKind::DocComment(dc),
     }
 }

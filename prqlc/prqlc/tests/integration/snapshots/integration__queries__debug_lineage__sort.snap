@@ -26,7 +26,7 @@ frames:
       table:
       - default_db
       - employees
-- - 1:92-215
+- - 1:145-215
   - columns:
     - !All
       input_id: 128
@@ -170,7 +170,7 @@ nodes:
   - 119
 - id: 143
   kind: 'TransformCall: Join'
-  span: 1:92-215
+  span: 1:145-215
   children:
   - 138
   - 119
@@ -269,13 +269,7 @@ ast:
           - FuncCall:
               name:
                 Ident: join
-<<<<<<< HEAD
-                aesthetics_before:
-                - !Comment ' joining may use HashMerge, which can undo ORDER BY'
-||||||| 566e6f14
-=======
                 span: 1:145-149
->>>>>>> main
               args:
               - Ident: employees
                 span: 1:158-167
@@ -330,5 +324,3 @@ ast:
             span: 1:217-271
         span: 1:13-271
     span: 1:13-272
-    aesthetics_before:
-    - !Comment ' mssql:test'

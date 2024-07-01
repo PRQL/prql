@@ -364,6 +364,3 @@ ast:
             span: 1:250-256
         span: 1:162-256
     span: 1:162-257
-    aesthetics_before:
-    - !Comment ' clickhouse:skip (DB::Exception: Syntax error)'
-    - !Comment ' glaredb:skip (DataFusion does not support recursive CTEs https://github.com/apache/arrow-datafusion/issues/462)'
