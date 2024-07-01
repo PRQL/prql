@@ -237,7 +237,7 @@ fn collect_book_examples() -> Result<Vec<Example>> {
         })
         .flatten()
         // Add an index suffix to each path's examples (so we group by the path).
-        .group_by(|e| e.name.clone())
+        .chunk_by(|e| e.name.clone())
         .into_iter()
         .flat_map(|(path, blocks)| {
             blocks.into_iter().enumerate().map(move |(i, e)| Example {

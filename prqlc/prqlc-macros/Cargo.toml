@@ -10,7 +10,7 @@ version.workspace = true
 
 [lib]
 doctest = false
-proc_macro = true
+proc-macro = true
 test = false
 
 [dependencies]

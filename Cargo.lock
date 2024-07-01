@@ -425,7 +425,7 @@ dependencies = [
  "bitflags 2.5.0",
  "cexpr",
  "clang-sys",
- "itertools 0.12.1",
+ "itertools 0.10.5",
  "lazy_static",
  "lazycell",
  "proc-macro2",
@@ -1857,15 +1857,6 @@ dependencies = [
 
 [[package]]
 name = "itertools"
-version = "0.12.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "ba291022dbbd398a455acf126c1e341954079855bc60dfdda641363bd6922569"
-dependencies = [
- "either",
-]
-
-[[package]]
-name = "itertools"
 version = "0.13.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "413ee7dfc52ee1a4949ceeb7dbc8a33f2d6c088194d9f922fb8318faf1f01186"
@@ -2122,7 +2113,7 @@ dependencies = [
  "connector_arrow",
  "env_logger",
  "insta",
- "itertools 0.12.1",
+ "itertools 0.13.0",
  "log",
  "prqlc",
  "rusqlite",
@@ -2134,7 +2125,7 @@ name = "lutra-python"
 version = "0.12.3"
 dependencies = [
  "arrow",
- "itertools 0.12.1",
+ "itertools 0.13.0",
  "lutra",
  "pyo3",
  "pyo3-build-config 0.21.2",
@@ -2199,7 +2190,7 @@ dependencies = [
  "anyhow",
  "globset",
  "insta",
- "itertools 0.12.1",
+ "itertools 0.13.0",
  "log",
  "mdbook",
  "mdbook-preprocessor-boilerplate",
@@ -2873,7 +2864,7 @@ dependencies = [
  "insta",
  "insta-cmd",
  "is-terminal",
- "itertools 0.12.1",
+ "itertools 0.13.0",
  "log",
  "minijinja",
  "mysql",
@@ -2936,7 +2927,7 @@ dependencies = [
  "chumsky",
  "enum-as-inner",
  "insta",
- "itertools 0.12.1",
+ "itertools 0.13.0",
  "log",
  "semver",
  "serde",
