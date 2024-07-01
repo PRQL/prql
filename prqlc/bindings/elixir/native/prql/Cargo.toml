@@ -11,14 +11,15 @@ rust-version.workspace = true
 version.workspace = true
 
 [lib]
+bench = false
 crate-type = ["cdylib"]
+doc = false
 doctest = false
 name = "prql"
 path = "src/lib.rs"
 test = false
-doc = false
 
 # See Readme for details on Mac
 [target.'cfg(not(any(target_family="wasm", target_os = "macos")))'.dependencies]
-prqlc = {path = "../../../../prqlc", default-features = false, version = "0.12.3" }
+prqlc = {path = "../../../../prqlc", default-features = false, version = "0.12.3"}
 rustler = "0.32.1"
