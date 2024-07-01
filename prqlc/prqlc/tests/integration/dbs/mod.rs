@@ -75,7 +75,7 @@ impl DbConnection {
         })
     }
 
-    pub fn setup(&mut self) {
+    pub fn setup(mut self) -> Self {
         let schema = include_str!("../data/chinook/schema.sql");
         schema
             .split(';')
@@ -92,6 +92,7 @@ impl DbConnection {
             let path = format!("{}/{}.csv", self.cfg.data_file_root, stem);
             self.runner.import_csv(&mut *self.protocol, &path, stem);
         }
+        self
     }
 
     // If it's supported, test unless it has `duckdb:skip`. If it's not
