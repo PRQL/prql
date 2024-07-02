@@ -431,15 +431,22 @@ fn translate_relation_literal(data: RelationLiteral, ctx: &Context) -> Result<sq
     //       where they really matter.
 
     if data.rows.is_empty() {
+        let mut nulls: Vec<_> = (data.columns.iter())
+            .map(|col_name| SelectItem::ExprWithAlias {
+                expr: sql_ast::Expr::Value(sql_ast::Value::Null),
+                alias: translate_ident_part(col_name.clone(), ctx),
+            })
+            .collect();
+
+        // empty projection is a parse error in some dialects, let's inject a NULL
+        if nulls.is_empty() {
+            nulls.push(SelectItem::UnnamedExpr(sql_ast::Expr::Value(
+                sql_ast::Value::Null,
+            )));
+        }
+
         return Ok(default_query(sql_ast::SetExpr::Select(Box::new(Select {
-            projection: data
-                .columns
-                .iter()
-                .map(|col_name| SelectItem::ExprWithAlias {
-                    expr: sql_ast::Expr::Value(sql_ast::Value::Null),
-                    alias: translate_ident_part(col_name.clone(), ctx),
-                })
-                .collect(),
+            projection: nulls,
             selection: Some(sql_ast::Expr::Value(sql_ast::Value::Boolean(false))),
             ..default_select()
         }))));

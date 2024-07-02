@@ -334,8 +334,8 @@ impl RqFold for QueryLoader {
     }
 
     fn fold_table_ref(&mut self, table_ref: TableRef) -> Result<TableRef> {
-        self.context
-            .create_relation_instance(table_ref.clone(), HashMap::new());
+        // self.context
+        // .create_relation_instance(table_ref.clone(), HashMap::new());
 
         Ok(table_ref)
     }
