@@ -425,6 +425,25 @@ fn translate_cte(cte: Cte, ctx: &mut Context) -> Result<(sql_ast::Cte, bool)> {
 fn translate_relation_literal(data: RelationLiteral, ctx: &Context) -> Result<sql_ast::Query> {
     // TODO: this could be made to use VALUES instead of SELECT UNION ALL SELECT
     //       I'm not sure about compatibility though.
+    // edit: probably not, because VALUES has no way of setting names of the columns
+    //       Postgres will just name them column1, column2 as so on.
+    //       Which means we can use VALUES, but only if this is not the top-level statement,
+    //       where they really matter.
+
+    if data.rows.is_empty() {
+        return Ok(default_query(sql_ast::SetExpr::Select(Box::new(Select {
+            projection: data
+                .columns
+                .iter()
+                .map(|col_name| SelectItem::ExprWithAlias {
+                    expr: sql_ast::Expr::Value(sql_ast::Value::Null),
+                    alias: translate_ident_part(col_name.clone(), ctx),
+                })
+                .collect(),
+            selection: Some(sql_ast::Expr::Value(sql_ast::Value::Boolean(false))),
+            ..default_select()
+        }))));
+    }
 
     let mut selects = Vec::with_capacity(data.rows.len());
 
@@ -442,15 +461,6 @@ fn translate_relation_literal(data: RelationLiteral, ctx: &Context) -> Result<sq
         }));
 
         selects.push(body)
-    }
-
-    if selects.is_empty() {
-        return Err(
-            Error::new_simple("No rows provided for `from_text`".to_string()).push_hint(
-                "add a newline, then a row of data following the column. If using \
-                the json format, ensure `data` isn't empty",
-            ),
-        );
     }
 
     let mut body = selects.remove(0);
