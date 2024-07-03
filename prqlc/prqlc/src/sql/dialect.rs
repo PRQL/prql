@@ -85,14 +85,11 @@ impl Dialect {
             | Dialect::Postgres
             | Dialect::MySql
             | Dialect::Generic
-            // TODO revert to Supported when its `install.sh` is fixed
-            // https://github.com/GlareDB/glaredb/issues/3063
-            // | Dialect::GlareDb
+            | Dialect::GlareDb
             | Dialect::ClickHouse => SupportLevel::Supported,
             Dialect::MsSql | Dialect::Ansi | Dialect::BigQuery | Dialect::Snowflake => {
                 SupportLevel::Unsupported
-            },
-            Dialect::GlareDb => {SupportLevel::Nascent}
+            }
         }
     }
 
