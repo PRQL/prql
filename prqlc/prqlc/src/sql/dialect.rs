@@ -199,6 +199,10 @@ pub(super) trait DialectHandler: Any + Debug {
             "Date formatting is not yet supported for this dialect",
         ))
     }
+
+    fn supports_zero_columns(&self) -> bool {
+        false
+    }
 }
 
 impl dyn DialectHandler {
@@ -263,6 +267,10 @@ impl DialectHandler for PostgresDialect {
                 ))
             }
         })
+    }
+
+    fn supports_zero_columns(&self) -> bool {
+        true
     }
 }
 

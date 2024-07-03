@@ -4309,7 +4309,10 @@ fn test_from_text_04() {
       table_0
     "###
     );
+}
 
+#[test]
+fn test_from_text_05() {
     assert_snapshot!(compile(r#"
     std.from_text format:json '''{"columns": ["a", "b", "c"], "data": []}'''
     "#).unwrap(),
@@ -4326,6 +4329,46 @@ fn test_from_text_04() {
       a,
       b,
       c
+    FROM
+      table_0
+    "###
+    );
+}
+
+#[test]
+fn test_from_text_06() {
+    assert_snapshot!(compile(r#"
+    std.from_text ''
+    "#).unwrap(),
+        @r###"
+    WITH table_0 AS (
+      SELECT
+        NULL
+      WHERE
+        false
+    )
+    SELECT
+      NULL
+    FROM
+      table_0
+    "###
+    );
+}
+
+#[test]
+fn test_from_text_07() {
+    assert_snapshot!(compile(r#"
+    std.from_text format:json '''{"columns": [], "data": [[], []]}'''
+    "#).unwrap(),
+        @r###"
+    WITH table_0 AS (
+      SELECT
+      UNION
+      ALL
+      SELECT
+    )
+    SELECT
+      NULL
     FROM
       table_0
     "###
