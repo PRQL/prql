@@ -528,7 +528,12 @@ fn debug() {
     // different results, and didn't repro on Mac. It having different results
     // makes it difficult to debug, and we get most of the value by just
     // checking it runs successfully.
-    prqlc_command().args(["debug", "ast"]).status().unwrap();
+    prqlc_command()
+        .args(["debug", "ast"])
+        .stdout(std::process::Stdio::null())
+        .stderr(std::process::Stdio::null())
+        .status()
+        .unwrap();
 }
 
 #[test]
