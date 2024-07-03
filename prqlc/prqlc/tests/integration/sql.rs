@@ -4194,7 +4194,7 @@ fn test_name_inference() {
 }
 
 #[test]
-fn test_from_text() {
+fn test_from_text_01() {
     assert_snapshot!(compile(r#"
     from_text format:csv """
 a,b,c
@@ -4223,7 +4223,10 @@ a,b,c
       table_0
     "###
     );
+}
 
+#[test]
+fn test_from_text_02() {
     assert_snapshot!(compile(r#"
     from_text format:json '''
       [{"a": 1, "b": "x", "c": false }, {"a": 4, "b": "y", "c": null }]
@@ -4250,7 +4253,10 @@ a,b,c
       table_0
     "###
     );
+}
 
+#[test]
+fn test_from_text_03() {
     assert_snapshot!(compile(r#"
     std.from_text format:json '''{
         "columns": ["a", "b", "c"],
@@ -4275,6 +4281,49 @@ a,b,c
         NULL AS c
     )
     SELECT
+      b,
+      c
+    FROM
+      table_0
+    "###
+    );
+}
+
+#[test]
+fn test_from_text_04() {
+    assert_snapshot!(compile(r#"
+    std.from_text 'a,b'
+    "#).unwrap(),
+        @r###"
+    WITH table_0 AS (
+      SELECT
+        NULL AS a,
+        NULL AS b
+      WHERE
+        false
+    )
+    SELECT
+      a,
+      b
+    FROM
+      table_0
+    "###
+    );
+
+    assert_snapshot!(compile(r#"
+    std.from_text format:json '''{"columns": ["a", "b", "c"], "data": []}'''
+    "#).unwrap(),
+        @r###"
+    WITH table_0 AS (
+      SELECT
+        NULL AS a,
+        NULL AS b,
+        NULL AS c
+      WHERE
+        false
+    )
+    SELECT
+      a,
       b,
       c
     FROM

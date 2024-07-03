@@ -8,10 +8,12 @@ repository.workspace = true
 version.workspace = true
 
 [lib]
+bench = false
 doc = false
 doctest = false
 
 [[bin]]
+bench = false
 name = "mdbook-prql"
 test = false
 
