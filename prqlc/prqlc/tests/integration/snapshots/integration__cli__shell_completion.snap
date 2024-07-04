@@ -71,6 +71,9 @@ _prqlc() {
             prqlc__debug,help)
                 cmd="prqlc__debug__help"
                 ;;
+            prqlc__debug,json-schema)
+                cmd="prqlc__debug__json__schema"
+                ;;
             prqlc__debug,lineage)
                 cmd="prqlc__debug__lineage"
                 ;;
@@ -82,6 +85,9 @@ _prqlc() {
                 ;;
             prqlc__debug__help,help)
                 cmd="prqlc__debug__help__help"
+                ;;
+            prqlc__debug__help,json-schema)
+                cmd="prqlc__debug__help__json__schema"
                 ;;
             prqlc__debug__help,lineage)
                 cmd="prqlc__debug__help__lineage"
@@ -136,6 +142,9 @@ _prqlc() {
                 ;;
             prqlc__help__debug,ast)
                 cmd="prqlc__help__debug__ast"
+                ;;
+            prqlc__help__debug,json-schema)
+                cmd="prqlc__help__debug__json__schema"
                 ;;
             prqlc__help__debug,lineage)
                 cmd="prqlc__help__debug__lineage"
@@ -216,7 +225,7 @@ _prqlc() {
             return 0
             ;;
         prqlc__debug)
-            opts="-v -q -h --color --verbose --quiet --help annotate lineage ast help"
+            opts="-v -q -h --color --verbose --quiet --help annotate lineage ast json-schema help"
             if [[ ${cur} == -* || ${COMP_CWORD} -eq 2 ]] ; then
                 COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
                 return 0
@@ -270,7 +279,7 @@ _prqlc() {
             return 0
             ;;
         prqlc__debug__help)
-            opts="annotate lineage ast help"
+            opts="annotate lineage ast json-schema help"
             if [[ ${cur} == -* || ${COMP_CWORD} -eq 3 ]] ; then
                 COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
                 return 0
@@ -325,6 +334,20 @@ _prqlc() {
             COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
             return 0
             ;;
+        prqlc__debug__help__json__schema)
+            opts=""
+            if [[ ${cur} == -* || ${COMP_CWORD} -eq 4 ]] ; then
+                COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
+                return 0
+            fi
+            case "${prev}" in
+                *)
+                    COMPREPLY=()
+                    ;;
+            esac
+            COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
+            return 0
+            ;;
         prqlc__debug__help__lineage)
             opts=""
             if [[ ${cur} == -* || ${COMP_CWORD} -eq 4 ]] ; then
@@ -332,6 +355,28 @@ _prqlc() {
                 return 0
             fi
             case "${prev}" in
+                *)
+                    COMPREPLY=()
+                    ;;
+            esac
+            COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
+            return 0
+            ;;
+        prqlc__debug__json__schema)
+            opts="-v -q -h --schema-type --color --verbose --quiet --help"
+            if [[ ${cur} == -* || ${COMP_CWORD} -eq 3 ]] ; then
+                COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
+                return 0
+            fi
+            case "${prev}" in
+                --schema-type)
+                    COMPREPLY=($(compgen -W "pl rq lineage" -- "${cur}"))
+                    return 0
+                    ;;
+                --color)
+                    COMPREPLY=($(compgen -W "auto always never" -- "${cur}"))
+                    return 0
+                    ;;
                 *)
                     COMPREPLY=()
                     ;;
@@ -500,7 +545,7 @@ _prqlc() {
             return 0
             ;;
         prqlc__help__debug)
-            opts="annotate lineage ast"
+            opts="annotate lineage ast json-schema"
             if [[ ${cur} == -* || ${COMP_CWORD} -eq 3 ]] ; then
                 COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
                 return 0
@@ -528,6 +573,20 @@ _prqlc() {
             return 0
             ;;
         prqlc__help__debug__ast)
+            opts=""
+            if [[ ${cur} == -* || ${COMP_CWORD} -eq 4 ]] ; then
+                COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
+                return 0
+            fi
+            case "${prev}" in
+                *)
+                    COMPREPLY=()
+                    ;;
+            esac
+            COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
+            return 0
+            ;;
+        prqlc__help__debug__json__schema)
             opts=""
             if [[ ${cur} == -* || ${COMP_CWORD} -eq 4 ]] ; then
                 COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )

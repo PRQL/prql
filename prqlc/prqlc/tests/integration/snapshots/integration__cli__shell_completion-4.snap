@@ -165,6 +165,18 @@ _arguments "${_arguments_options[@]}" \
 '--help[Print help (see more with '\''--help'\'')]' \
 && ret=0
 ;;
+(json-schema)
+_arguments "${_arguments_options[@]}" \
+'--schema-type=[]:SCHEMA_TYPE:(pl rq lineage)' \
+'--color=[Controls when to use color]:WHEN:(auto always never)' \
+'*-v[Increase logging verbosity]' \
+'*--verbose[Increase logging verbosity]' \
+'(-v --verbose)*-q[Silences logging output]' \
+'(-v --verbose)*--quiet[Silences logging output]' \
+'-h[Print help (see more with '\''--help'\'')]' \
+'--help[Print help (see more with '\''--help'\'')]' \
+&& ret=0
+;;
 (help)
 _arguments "${_arguments_options[@]}" \
 ":: :_prqlc__debug__help_commands" \
@@ -186,6 +198,10 @@ _arguments "${_arguments_options[@]}" \
 && ret=0
 ;;
 (ast)
+_arguments "${_arguments_options[@]}" \
+&& ret=0
+;;
+(json-schema)
 _arguments "${_arguments_options[@]}" \
 && ret=0
 ;;
@@ -370,6 +386,10 @@ _arguments "${_arguments_options[@]}" \
 _arguments "${_arguments_options[@]}" \
 && ret=0
 ;;
+(json-schema)
+_arguments "${_arguments_options[@]}" \
+&& ret=0
+;;
         esac
     ;;
 esac
@@ -496,6 +516,7 @@ _prqlc__debug_commands() {
 'annotate:Parse, resolve & combine source with comments annotating relation type' \
 'lineage:Output column-level lineage graph' \
 'ast:Print info about the AST data structure' \
+'json-schema:Print JSON Schema' \
 'help:Print this message or the help of the given subcommand(s)' \
     )
     _describe -t commands 'prqlc debug commands' commands "$@"
@@ -506,6 +527,7 @@ _prqlc__help__debug_commands() {
 'annotate:Parse, resolve & combine source with comments annotating relation type' \
 'lineage:Output column-level lineage graph' \
 'ast:Print info about the AST data structure' \
+'json-schema:Print JSON Schema' \
     )
     _describe -t commands 'prqlc help debug commands' commands "$@"
 }
@@ -555,6 +577,7 @@ _prqlc__debug__help_commands() {
 'annotate:Parse, resolve & combine source with comments annotating relation type' \
 'lineage:Output column-level lineage graph' \
 'ast:Print info about the AST data structure' \
+'json-schema:Print JSON Schema' \
 'help:Print this message or the help of the given subcommand(s)' \
     )
     _describe -t commands 'prqlc debug help commands' commands "$@"
@@ -598,6 +621,21 @@ _prqlc__help_commands() {
 _prqlc__help__help_commands() {
     local commands; commands=()
     _describe -t commands 'prqlc help help commands' commands "$@"
+}
+(( $+functions[_prqlc__debug__help__json-schema_commands] )) ||
+_prqlc__debug__help__json-schema_commands() {
+    local commands; commands=()
+    _describe -t commands 'prqlc debug help json-schema commands' commands "$@"
+}
+(( $+functions[_prqlc__debug__json-schema_commands] )) ||
+_prqlc__debug__json-schema_commands() {
+    local commands; commands=()
+    _describe -t commands 'prqlc debug json-schema commands' commands "$@"
+}
+(( $+functions[_prqlc__help__debug__json-schema_commands] )) ||
+_prqlc__help__debug__json-schema_commands() {
+    local commands; commands=()
+    _describe -t commands 'prqlc help debug json-schema commands' commands "$@"
 }
 (( $+functions[_prqlc__help__lex_commands] )) ||
 _prqlc__help__lex_commands() {
