@@ -1,12 +1,13 @@
 use enum_as_inner::EnumAsInner;
 use serde::{Deserialize, Serialize};
 use strum::AsRefStr;
+use schemars::JsonSchema;
 
 use crate::lexer::lr::Literal;
 use crate::parser::pr::ident::Ident;
 use crate::span::Span;
 
-#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize, JsonSchema)]
 pub struct Ty {
     pub kind: TyKind,
 
@@ -16,7 +17,7 @@ pub struct Ty {
     pub name: Option<String>,
 }
 
-#[derive(Debug, Clone, PartialEq, Serialize, Deserialize, EnumAsInner, AsRefStr)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize, EnumAsInner, AsRefStr, JsonSchema)]
 pub enum TyKind {
     /// Identifier that still needs to be resolved.
     Ident(Ident),
@@ -60,7 +61,7 @@ impl TyKind {
     }
 }
 
-#[derive(Debug, Clone, PartialEq, Serialize, Deserialize, EnumAsInner)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize, EnumAsInner, JsonSchema)]
 pub enum TyTupleField {
     /// Named tuple element.
     Single(Option<String>, Option<Ty>),
@@ -72,7 +73,7 @@ pub enum TyTupleField {
 
 /// Built-in sets.
 #[derive(
-    Debug, Clone, Serialize, Deserialize, PartialEq, Eq, strum::EnumString, strum::Display,
+    Debug, Clone, Serialize, Deserialize, PartialEq, Eq, strum::EnumString, strum::Display, JsonSchema,
 )]
 pub enum PrimitiveSet {
     #[strum(to_string = "int")]
@@ -92,7 +93,7 @@ pub enum PrimitiveSet {
 }
 
 // Type of a function
-#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize, JsonSchema)]
 pub struct TyFunc {
     pub name_hint: Option<Ident>,
     pub params: Vec<Option<Ty>>,

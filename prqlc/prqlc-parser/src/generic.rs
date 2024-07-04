@@ -5,10 +5,11 @@
 // could consider rolling back to only concrete implementations to delayer the
 // code.
 use serde::{Deserialize, Serialize};
+use schemars::JsonSchema;
 
 /// Inclusive-inclusive range.
 /// Missing bound means unbounded range.
-#[derive(Debug, Clone, Default, Serialize, Deserialize, PartialEq, Eq)]
+#[derive(Debug, Clone, Default, Serialize, Deserialize, PartialEq, Eq, JsonSchema)]
 pub struct Range<T> {
     pub start: Option<T>,
     pub end: Option<T>,
@@ -37,7 +38,7 @@ impl<T> Range<T> {
     }
 }
 
-#[derive(Debug, PartialEq, Eq, Clone, Serialize, Deserialize)]
+#[derive(Debug, PartialEq, Eq, Clone, Serialize, Deserialize, JsonSchema)]
 pub enum InterpolateItem<T> {
     String(String),
     Expr {
@@ -68,7 +69,7 @@ impl<T> InterpolateItem<T> {
     }
 }
 
-#[derive(Debug, PartialEq, Eq, Clone, Serialize, Deserialize)]
+#[derive(Debug, PartialEq, Eq, Clone, Serialize, Deserialize, JsonSchema)]
 pub struct SwitchCase<T> {
     pub condition: T,
     pub value: T,

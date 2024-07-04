@@ -1,12 +1,13 @@
 use enum_as_inner::EnumAsInner;
 use prqlc_parser::lexer::lr::Literal;
 use serde::{Deserialize, Serialize};
+use schemars::JsonSchema;
 
 use super::CId;
 use crate::{pr, Span};
 
 /// Analogous to [crate::ir::pl::Expr], but with fewer kinds.
-#[derive(Debug, PartialEq, Clone, Serialize, Deserialize)]
+#[derive(Debug, PartialEq, Clone, Serialize, Deserialize, JsonSchema)]
 pub struct Expr {
     pub kind: ExprKind,
     pub span: Option<Span>,
@@ -16,14 +17,15 @@ pub(super) type Range = pr::generic::Range<Expr>;
 pub(super) type InterpolateItem = pr::generic::InterpolateItem<Expr>;
 pub(super) type SwitchCase = pr::generic::SwitchCase<Expr>;
 
-#[derive(Debug, PartialEq, Clone, Serialize, Deserialize, EnumAsInner)]
+#[derive(Debug, PartialEq, Clone, Serialize, Deserialize, EnumAsInner, JsonSchema)]
 pub enum ExprKind {
     ColumnRef(CId),
     // https://github.com/dtolnay/serde-yaml/issues/363
     // We should repeat this if we encounter any other nested enums.
     #[cfg_attr(
         feature = "serde_yaml",
-        serde(with = "serde_yaml::with::singleton_map")
+        serde(with = "serde_yaml::with::singleton_map"),
+        schemars(with = "Literal")
     )]
     Literal(Literal),
 
@@ -42,7 +44,7 @@ pub enum ExprKind {
     Array(Vec<Expr>),
 }
 
-#[derive(Debug, PartialEq, Eq, Clone, Serialize, Deserialize)]
+#[derive(Debug, PartialEq, Eq, Clone, Serialize, Deserialize, JsonSchema)]
 pub enum UnOp {
     Neg,
     Not,

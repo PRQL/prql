@@ -4,8 +4,9 @@ use std::ops::{Add, Range, Sub};
 use chumsky::Stream;
 use serde::de::Visitor;
 use serde::{Deserialize, Serialize};
+use schemars::JsonSchema;
 
-#[derive(Clone, PartialEq, Eq, Copy)]
+#[derive(Clone, PartialEq, Eq, Copy, JsonSchema)]
 pub struct Span {
     pub start: usize,
     pub end: usize,

@@ -1,4 +1,5 @@
 use serde::{Deserialize, Serialize};
+use schemars::JsonSchema;
 
 #[derive(
     Debug,
@@ -11,6 +12,7 @@ use serde::{Deserialize, Serialize};
     Deserialize,
     strum::Display,
     strum::EnumString,
+    JsonSchema,
 )]
 pub enum UnOp {
     #[strum(to_string = "-")]
@@ -34,6 +36,7 @@ pub enum UnOp {
     Deserialize,
     strum::Display,
     strum::EnumString,
+    JsonSchema,
 )]
 pub enum BinOp {
     #[strum(to_string = "*")]

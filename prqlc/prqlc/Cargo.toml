@@ -48,6 +48,7 @@ enum-as-inner = {workspace = true}
 itertools = {workspace = true}
 log = {workspace = true}
 regex = "1.10.5"
+schemars = {workspace = true}
 semver = {workspace = true}
 # serde is required for the `from_text` feature of PRQL, so we can't really put
 # it behind a feature.

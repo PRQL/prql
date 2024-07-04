@@ -7,7 +7,7 @@ mod watch;
 use std::collections::HashMap;
 use std::env;
 use std::fs::File;
-use std::io::{BufWriter, Read, Write};
+use std::io::{self, BufWriter, Read, Write};
 use std::ops::Range;
 use std::path::{Path, PathBuf};
 use std::process::exit;
@@ -24,12 +24,14 @@ use clio::has_extension;
 use clio::Output;
 use is_terminal::IsTerminal;
 use itertools::Itertools;
+use schemars::schema_for;
 
 use prqlc::debug;
 use prqlc::internal::pl_to_lineage;
-use prqlc::ir::pl;
+use prqlc::ir::{pl, rq};
 use prqlc::pr;
 use prqlc::semantic;
+use prqlc::semantic::reporting::FrameCollector;
 use prqlc::{pl_to_prql, pl_to_rq_tree, prql_to_pl, prql_to_pl_tree, prql_to_tokens, rq_to_sql};
 use prqlc::{Options, SourceTree, Target};
 
@@ -206,6 +208,12 @@ enum DebugCommand {
 
     /// Print info about the AST data structure
     Ast,
+
+    /// Print JSON Schema
+    JsonSchema {
+        #[arg(value_enum, long)]
+        schema_type: SchemaType,
+    },
 }
 
 /// Experimental commands are prone to change
@@ -266,6 +274,13 @@ enum Format {
     Yaml,
 }
 
+#[derive(clap::ValueEnum, Clone, Debug)]
+enum SchemaType {
+    Pl,
+    Rq,
+    Lineage,
+}
+
 impl Command {
     /// Entrypoint called by [`main`]
     pub fn run(&mut self) -> Result<()> {
@@ -307,6 +322,17 @@ impl Command {
             }
             Command::Debug(DebugCommand::Ast) => {
                 prqlc::ir::pl::print_mem_sizes();
+                Ok(())
+            }
+            Command::Debug(DebugCommand::JsonSchema { schema_type }) => {
+                let schema = match schema_type {
+                    SchemaType::Pl => schema_for!(pl::ModuleDef),
+                    SchemaType::Rq => schema_for!(rq::RelationalQuery),
+                    SchemaType::Lineage => schema_for!(FrameCollector),
+                };
+                io::stdout().write_all(
+                    &serde_json::to_string_pretty(&schema)?.into_bytes()
+                )?;
                 Ok(())
             }
             _ => self.run_io_command(),

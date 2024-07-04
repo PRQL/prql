@@ -1,13 +1,14 @@
 use enum_as_inner::EnumAsInner;
 use serde::{Deserialize, Serialize};
+use schemars::JsonSchema;
 
-#[derive(Clone, PartialEq, Serialize, Deserialize, Eq)]
+#[derive(Clone, PartialEq, Serialize, Deserialize, Eq, JsonSchema)]
 pub struct Token {
     pub kind: TokenKind,
     pub span: std::ops::Range<usize>,
 }
 
-#[derive(Clone, PartialEq, Debug, Serialize, Deserialize)]
+#[derive(Clone, PartialEq, Debug, Serialize, Deserialize, JsonSchema)]
 pub enum TokenKind {
     NewLine,
 
@@ -15,7 +16,8 @@ pub enum TokenKind {
     Keyword(String),
     #[cfg_attr(
         feature = "serde_yaml",
-        serde(with = "serde_yaml::with::singleton_map")
+        serde(with = "serde_yaml::with::singleton_map"),
+        schemars(with = "Literal"),
     )]
     Literal(Literal),
     Param(String),
@@ -64,7 +66,7 @@ pub enum TokenKind {
     LineWrap(Vec<TokenKind>),
 }
 
-#[derive(Debug, EnumAsInner, PartialEq, Clone, Serialize, Deserialize, strum::AsRefStr)]
+#[derive(Debug, EnumAsInner, PartialEq, Clone, Serialize, Deserialize, strum::AsRefStr, JsonSchema)]
 pub enum Literal {
     Null,
     Integer(i64),
@@ -86,7 +88,7 @@ impl TokenKind {
     }
 }
 // Compound units, such as "2 days 3 hours" can be represented as `2days + 3hours`
-#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq, JsonSchema)]
 pub struct ValueAndUnit {
     pub n: i64,       // Do any DBs use floats or decimals for this?
     pub unit: String, // Could be an enum IntervalType,

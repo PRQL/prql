@@ -3,6 +3,7 @@ use std::collections::HashMap;
 use enum_as_inner::EnumAsInner;
 use prqlc_parser::generic;
 use serde::{Deserialize, Serialize};
+use schemars::JsonSchema;
 
 use super::{Lineage, TransformCall};
 use crate::codegen::write_ty;
@@ -10,7 +11,7 @@ use crate::pr::{GenericTypeParam, Ident, Literal, Span, Ty};
 
 /// Expr is anything that has a value and thus a type.
 /// Most of these can contain other [Expr] themselves; literals should be [ExprKind::Literal].
-#[derive(Clone, PartialEq, Serialize, Deserialize)]
+#[derive(Clone, PartialEq, Serialize, Deserialize, JsonSchema)]
 pub struct Expr {
     #[serde(flatten)]
     pub kind: ExprKind,
@@ -51,7 +52,7 @@ pub struct Expr {
     pub flatten: bool,
 }
 
-#[derive(Debug, EnumAsInner, PartialEq, Clone, Serialize, Deserialize, strum::AsRefStr)]
+#[derive(Debug, EnumAsInner, PartialEq, Clone, Serialize, Deserialize, strum::AsRefStr, JsonSchema)]
 pub enum ExprKind {
     Ident(Ident),
     All {
@@ -82,7 +83,7 @@ pub enum ExprKind {
 }
 
 /// Function call.
-#[derive(Debug, PartialEq, Clone, Serialize, Deserialize)]
+#[derive(Debug, PartialEq, Clone, Serialize, Deserialize, JsonSchema)]
 pub struct FuncCall {
     pub name: Box<Expr>,
     pub args: Vec<Expr>,
@@ -92,7 +93,7 @@ pub struct FuncCall {
 
 /// Function called with possibly missing positional arguments.
 /// May also contain environment that is needed to evaluate the body.
-#[derive(Debug, PartialEq, Clone, Serialize, Deserialize)]
+#[derive(Debug, PartialEq, Clone, Serialize, Deserialize, JsonSchema)]
 pub struct Func {
     /// Name of the function. Used for user-facing messages only.
     pub name_hint: Option<Ident>,
@@ -120,7 +121,7 @@ pub struct Func {
     pub env: HashMap<String, Expr>,
 }
 
-#[derive(Debug, PartialEq, Clone, Serialize, Deserialize)]
+#[derive(Debug, PartialEq, Clone, Serialize, Deserialize, JsonSchema)]
 pub struct FuncParam {
     pub name: String,
 
