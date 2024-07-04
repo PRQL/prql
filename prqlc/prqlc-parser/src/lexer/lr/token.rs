@@ -1,6 +1,6 @@
 use enum_as_inner::EnumAsInner;
-use serde::{Deserialize, Serialize};
 use schemars::JsonSchema;
+use serde::{Deserialize, Serialize};
 
 #[derive(Clone, PartialEq, Serialize, Deserialize, Eq, JsonSchema)]
 pub struct Token {
@@ -17,7 +17,7 @@ pub enum TokenKind {
     #[cfg_attr(
         feature = "serde_yaml",
         serde(with = "serde_yaml::with::singleton_map"),
-        schemars(with = "Literal"),
+        schemars(with = "Literal")
     )]
     Literal(Literal),
     Param(String),
@@ -66,7 +66,9 @@ pub enum TokenKind {
     LineWrap(Vec<TokenKind>),
 }
 
-#[derive(Debug, EnumAsInner, PartialEq, Clone, Serialize, Deserialize, strum::AsRefStr, JsonSchema)]
+#[derive(
+    Debug, EnumAsInner, PartialEq, Clone, Serialize, Deserialize, strum::AsRefStr, JsonSchema,
+)]
 pub enum Literal {
     Null,
     Integer(i64),

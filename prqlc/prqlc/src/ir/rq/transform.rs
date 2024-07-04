@@ -1,6 +1,6 @@
 use enum_as_inner::EnumAsInner;
-use serde::{Deserialize, Serialize};
 use schemars::JsonSchema;
+use serde::{Deserialize, Serialize};
 
 use super::*;
 use crate::ir::generic::ColumnSort;
@@ -8,7 +8,9 @@ use crate::ir::generic::WindowFrame;
 use crate::ir::pl::JoinSide;
 
 /// Transformation of a table.
-#[derive(Debug, PartialEq, Clone, Serialize, Deserialize, strum::AsRefStr, EnumAsInner, JsonSchema)]
+#[derive(
+    Debug, PartialEq, Clone, Serialize, Deserialize, strum::AsRefStr, EnumAsInner, JsonSchema,
+)]
 pub enum Transform {
     From(TableRef),
     Compute(Compute),

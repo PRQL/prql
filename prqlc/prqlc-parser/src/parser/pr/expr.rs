@@ -1,8 +1,8 @@
 use std::collections::HashMap;
 
 use enum_as_inner::EnumAsInner;
-use serde::{Deserialize, Serialize};
 use schemars::JsonSchema;
+use serde::{Deserialize, Serialize};
 
 use crate::generic;
 use crate::lexer::lr::Literal;
@@ -36,7 +36,9 @@ pub struct Expr {
     pub alias: Option<String>,
 }
 
-#[derive(Debug, EnumAsInner, PartialEq, Clone, Serialize, Deserialize, strum::AsRefStr, JsonSchema)]
+#[derive(
+    Debug, EnumAsInner, PartialEq, Clone, Serialize, Deserialize, strum::AsRefStr, JsonSchema,
+)]
 pub enum ExprKind {
     Ident(String),
 
@@ -49,7 +51,7 @@ pub enum ExprKind {
     #[cfg_attr(
         feature = "serde_yaml",
         serde(with = "serde_yaml::with::singleton_map"),
-        schemars(with = "Literal"),
+        schemars(with = "Literal")
     )]
     Literal(Literal),
     Pipeline(Pipeline),

@@ -1,7 +1,7 @@
 use enum_as_inner::EnumAsInner;
 use prqlc_parser::lexer::lr::Literal;
-use serde::{Deserialize, Serialize};
 use schemars::JsonSchema;
+use serde::{Deserialize, Serialize};
 
 use super::CId;
 use crate::{pr, Span};

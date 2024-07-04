@@ -1,6 +1,6 @@
 use enum_as_inner::EnumAsInner;
-use serde::{Deserialize, Serialize};
 use schemars::JsonSchema;
+use serde::{Deserialize, Serialize};
 
 use crate::pr::Ident;
 use crate::pr::QueryDef;

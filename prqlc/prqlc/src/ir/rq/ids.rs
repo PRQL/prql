@@ -1,5 +1,5 @@
-use serde::{Deserialize, Serialize};
 use schemars::JsonSchema;
+use serde::{Deserialize, Serialize};
 
 /// Column id
 #[derive(Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize, Ord, PartialOrd, JsonSchema)]

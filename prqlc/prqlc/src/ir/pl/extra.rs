@@ -1,6 +1,6 @@
 use enum_as_inner::EnumAsInner;
-use serde::{Deserialize, Serialize};
 use schemars::JsonSchema;
+use serde::{Deserialize, Serialize};
 
 use crate::ir::generic::WindowKind;
 use crate::ir::pl::{Expr, ExprKind, Func, FuncCall, Ident, Range};
@@ -54,7 +54,9 @@ pub struct TransformCall {
     pub sort: Vec<ColumnSort>,
 }
 
-#[derive(Debug, PartialEq, Clone, Serialize, Deserialize, strum::AsRefStr, EnumAsInner, JsonSchema)]
+#[derive(
+    Debug, PartialEq, Clone, Serialize, Deserialize, strum::AsRefStr, EnumAsInner, JsonSchema,
+)]
 pub enum TransformKind {
     Derive {
         assigns: Box<Expr>,

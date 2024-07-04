@@ -1,7 +1,7 @@
 use enum_as_inner::EnumAsInner;
+use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 use strum::AsRefStr;
-use schemars::JsonSchema;
 
 use crate::lexer::lr::Literal;
 use crate::parser::pr::ident::Ident;
@@ -73,7 +73,15 @@ pub enum TyTupleField {
 
 /// Built-in sets.
 #[derive(
-    Debug, Clone, Serialize, Deserialize, PartialEq, Eq, strum::EnumString, strum::Display, JsonSchema,
+    Debug,
+    Clone,
+    Serialize,
+    Deserialize,
+    PartialEq,
+    Eq,
+    strum::EnumString,
+    strum::Display,
+    JsonSchema,
 )]
 pub enum PrimitiveSet {
     #[strum(to_string = "int")]

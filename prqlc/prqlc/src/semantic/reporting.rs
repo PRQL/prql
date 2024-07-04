@@ -2,8 +2,8 @@ use std::collections::HashMap;
 use std::ops::Range;
 
 use ariadne::{Color, Label, Report, ReportBuilder, ReportKind, Source};
-use serde::Serialize;
 use schemars::JsonSchema;
+use serde::Serialize;
 
 use crate::ir::decl::{DeclKind, Module, RootModule, TableDecl, TableExpr};
 use crate::ir::pl;

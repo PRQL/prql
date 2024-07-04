@@ -1,7 +1,7 @@
 use std::fmt::Write;
 
-use serde::{ser::SerializeSeq, Deserialize, Deserializer, Serialize, Serializer};
 use schemars::JsonSchema;
+use serde::{ser::SerializeSeq, Deserialize, Deserializer, Serialize, Serializer};
 
 /// A name. Generally columns, tables, functions, variables.
 /// This is glorified way of writing a "vec with at least one element".

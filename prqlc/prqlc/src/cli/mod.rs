@@ -330,9 +330,7 @@ impl Command {
                     SchemaType::Rq => schema_for!(rq::RelationalQuery),
                     SchemaType::Lineage => schema_for!(FrameCollector),
                 };
-                io::stdout().write_all(
-                    &serde_json::to_string_pretty(&schema)?.into_bytes()
-                )?;
+                io::stdout().write_all(&serde_json::to_string_pretty(&schema)?.into_bytes())?;
                 Ok(())
             }
             _ => self.run_io_command(),

@@ -3,8 +3,8 @@
 //! Strictly typed AST for describing relational queries.
 
 use enum_as_inner::EnumAsInner;
-use serde::{Deserialize, Serialize};
 use schemars::JsonSchema;
+use serde::{Deserialize, Serialize};
 
 pub use expr::{Expr, ExprKind, UnOp};
 use expr::{InterpolateItem, Range, SwitchCase};

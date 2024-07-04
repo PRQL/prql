@@ -1,9 +1,9 @@
 use std::collections::HashMap;
 
 use enum_as_inner::EnumAsInner;
+use schemars::JsonSchema;
 use semver::VersionReq;
 use serde::{Deserialize, Serialize};
-use schemars::JsonSchema;
 
 use crate::parser::pr::ident::Ident;
 use crate::parser::pr::{Expr, Ty};

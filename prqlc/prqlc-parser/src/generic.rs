@@ -4,8 +4,8 @@
 // hasn't been used much since, and I'm not sure carries its weight. So we
 // could consider rolling back to only concrete implementations to delayer the
 // code.
-use serde::{Deserialize, Serialize};
 use schemars::JsonSchema;
+use serde::{Deserialize, Serialize};
 
 /// Inclusive-inclusive range.
 /// Missing bound means unbounded range.

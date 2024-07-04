@@ -2,8 +2,8 @@ use std::collections::HashMap;
 
 use enum_as_inner::EnumAsInner;
 use prqlc_parser::generic;
-use serde::{Deserialize, Serialize};
 use schemars::JsonSchema;
+use serde::{Deserialize, Serialize};
 
 use super::{Lineage, TransformCall};
 use crate::codegen::write_ty;
@@ -52,7 +52,9 @@ pub struct Expr {
     pub flatten: bool,
 }
 
-#[derive(Debug, EnumAsInner, PartialEq, Clone, Serialize, Deserialize, strum::AsRefStr, JsonSchema)]
+#[derive(
+    Debug, EnumAsInner, PartialEq, Clone, Serialize, Deserialize, strum::AsRefStr, JsonSchema,
+)]
 pub enum ExprKind {
     Ident(Ident),
     All {

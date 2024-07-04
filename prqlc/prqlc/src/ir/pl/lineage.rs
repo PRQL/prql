@@ -3,8 +3,8 @@ use std::fmt::{Debug, Display, Formatter};
 
 use enum_as_inner::EnumAsInner;
 use itertools::{Itertools, Position};
-use serde::{Deserialize, Serialize};
 use schemars::JsonSchema;
+use serde::{Deserialize, Serialize};
 
 use super::Ident;
 
