@@ -113,6 +113,7 @@ Register-ArgumentCompleter -Native -CommandName 'prqlc' -ScriptBlock {
             [CompletionResult]::new('annotate', 'annotate', [CompletionResultType]::ParameterValue, 'Parse, resolve & combine source with comments annotating relation type')
             [CompletionResult]::new('lineage', 'lineage', [CompletionResultType]::ParameterValue, 'Output column-level lineage graph')
             [CompletionResult]::new('ast', 'ast', [CompletionResultType]::ParameterValue, 'Print info about the AST data structure')
+            [CompletionResult]::new('json-schema', 'json-schema', [CompletionResultType]::ParameterValue, 'Print JSON Schema')
             [CompletionResult]::new('help', 'help', [CompletionResultType]::ParameterValue, 'Print this message or the help of the given subcommand(s)')
             break
         }
@@ -147,10 +148,22 @@ Register-ArgumentCompleter -Native -CommandName 'prqlc' -ScriptBlock {
             [CompletionResult]::new('--help', 'help', [CompletionResultType]::ParameterName, 'Print help (see more with ''--help'')')
             break
         }
+        'prqlc;debug;json-schema' {
+            [CompletionResult]::new('--ir-type', 'ir-type', [CompletionResultType]::ParameterName, 'ir-type')
+            [CompletionResult]::new('--color', 'color', [CompletionResultType]::ParameterName, 'Controls when to use color')
+            [CompletionResult]::new('-v', 'v', [CompletionResultType]::ParameterName, 'Increase logging verbosity')
+            [CompletionResult]::new('--verbose', 'verbose', [CompletionResultType]::ParameterName, 'Increase logging verbosity')
+            [CompletionResult]::new('-q', 'q', [CompletionResultType]::ParameterName, 'Silences logging output')
+            [CompletionResult]::new('--quiet', 'quiet', [CompletionResultType]::ParameterName, 'Silences logging output')
+            [CompletionResult]::new('-h', 'h', [CompletionResultType]::ParameterName, 'Print help (see more with ''--help'')')
+            [CompletionResult]::new('--help', 'help', [CompletionResultType]::ParameterName, 'Print help (see more with ''--help'')')
+            break
+        }
         'prqlc;debug;help' {
             [CompletionResult]::new('annotate', 'annotate', [CompletionResultType]::ParameterValue, 'Parse, resolve & combine source with comments annotating relation type')
             [CompletionResult]::new('lineage', 'lineage', [CompletionResultType]::ParameterValue, 'Output column-level lineage graph')
             [CompletionResult]::new('ast', 'ast', [CompletionResultType]::ParameterValue, 'Print info about the AST data structure')
+            [CompletionResult]::new('json-schema', 'json-schema', [CompletionResultType]::ParameterValue, 'Print JSON Schema')
             [CompletionResult]::new('help', 'help', [CompletionResultType]::ParameterValue, 'Print this message or the help of the given subcommand(s)')
             break
         }
@@ -161,6 +174,9 @@ Register-ArgumentCompleter -Native -CommandName 'prqlc' -ScriptBlock {
             break
         }
         'prqlc;debug;help;ast' {
+            break
+        }
+        'prqlc;debug;help;json-schema' {
             break
         }
         'prqlc;debug;help;help' {
@@ -276,6 +292,7 @@ Register-ArgumentCompleter -Native -CommandName 'prqlc' -ScriptBlock {
             [CompletionResult]::new('annotate', 'annotate', [CompletionResultType]::ParameterValue, 'Parse, resolve & combine source with comments annotating relation type')
             [CompletionResult]::new('lineage', 'lineage', [CompletionResultType]::ParameterValue, 'Output column-level lineage graph')
             [CompletionResult]::new('ast', 'ast', [CompletionResultType]::ParameterValue, 'Print info about the AST data structure')
+            [CompletionResult]::new('json-schema', 'json-schema', [CompletionResultType]::ParameterValue, 'Print JSON Schema')
             break
         }
         'prqlc;help;debug;annotate' {
@@ -285,6 +302,9 @@ Register-ArgumentCompleter -Native -CommandName 'prqlc' -ScriptBlock {
             break
         }
         'prqlc;help;debug;ast' {
+            break
+        }
+        'prqlc;help;debug;json-schema' {
             break
         }
         'prqlc;help;experimental' {

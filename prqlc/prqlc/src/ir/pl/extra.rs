@@ -1,4 +1,5 @@
 use enum_as_inner::EnumAsInner;
+use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 
 use crate::ir::generic::WindowKind;
@@ -16,7 +17,7 @@ impl FuncCall {
 }
 
 /// An expression that may have already been converted to a type.
-#[derive(Debug, PartialEq, Clone, Serialize, Deserialize, EnumAsInner)]
+#[derive(Debug, PartialEq, Clone, Serialize, Deserialize, EnumAsInner, JsonSchema)]
 pub enum TyOrExpr {
     Ty(Ty),
     Expr(Box<Expr>),
@@ -34,7 +35,7 @@ pub type WindowFrame = crate::ir::generic::WindowFrame<Box<Expr>>;
 pub type ColumnSort = crate::ir::generic::ColumnSort<Box<Expr>>;
 
 /// FuncCall with better typing. Returns the modified table.
-#[derive(Debug, PartialEq, Clone, Serialize, Deserialize)]
+#[derive(Debug, PartialEq, Clone, Serialize, Deserialize, JsonSchema)]
 pub struct TransformCall {
     pub input: Box<Expr>,
 
@@ -53,7 +54,9 @@ pub struct TransformCall {
     pub sort: Vec<ColumnSort>,
 }
 
-#[derive(Debug, PartialEq, Clone, Serialize, Deserialize, strum::AsRefStr, EnumAsInner)]
+#[derive(
+    Debug, PartialEq, Clone, Serialize, Deserialize, strum::AsRefStr, EnumAsInner, JsonSchema,
+)]
 pub enum TransformKind {
     Derive {
         assigns: Box<Expr>,
@@ -92,7 +95,7 @@ pub enum TransformKind {
 }
 
 /// A reference to a table that is not in scope of this query.
-#[derive(Debug, PartialEq, Eq, Clone, Serialize, Deserialize)]
+#[derive(Debug, PartialEq, Eq, Clone, Serialize, Deserialize, JsonSchema)]
 pub enum TableExternRef {
     /// Actual table in a database, that we can refer to by name in SQL
     LocalTable(Ident),
@@ -104,7 +107,7 @@ pub enum TableExternRef {
     // TODO: add other sources such as files, URLs
 }
 
-#[derive(Debug, PartialEq, Eq, Clone, Serialize, Deserialize)]
+#[derive(Debug, PartialEq, Eq, Clone, Serialize, Deserialize, JsonSchema)]
 pub enum JoinSide {
     Inner,
     Left,

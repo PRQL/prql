@@ -2,6 +2,7 @@ use std::collections::HashMap;
 use std::ops::Range;
 
 use ariadne::{Color, Label, Report, ReportBuilder, ReportKind, Source};
+use schemars::JsonSchema;
 use serde::Serialize;
 
 use crate::ir::decl::{DeclKind, Module, RootModule, TableDecl, TableExpr};
@@ -162,7 +163,7 @@ pub fn collect_frames(expr: pl::Expr) -> FrameCollector {
     collector
 }
 
-#[derive(Debug, Clone, PartialEq, Serialize)]
+#[derive(Debug, Clone, PartialEq, Serialize, JsonSchema)]
 pub struct ExprGraphNode {
     /// Node unique ID
     pub id: usize,
@@ -195,7 +196,7 @@ pub struct ExprGraphNode {
     pub parent: Option<usize>,
 }
 
-#[derive(Serialize)]
+#[derive(Serialize, JsonSchema)]
 pub struct FrameCollector {
     /// Each transformation step in the main pipeline corresponds to a single
     /// frame. This holds the output columns at each frame, as well as the span
