@@ -534,6 +534,29 @@ fn debug() {
         .stderr(std::process::Stdio::null())
         .status()
         .unwrap();
+
+}
+
+// The output of `prqlc debug json-schema` is long, so rather than
+// comparing the full output as a snapshot, we just verify that the
+// standard output parses as JSON and check a couple top-level keys.
+#[test]
+fn debug_json_schema() {
+    use serde_json::Value;
+    
+    let output = prqlc_command()
+        .args(["debug", "json-schema", "--ir-type", "pl"])
+        .output()
+        .unwrap();
+
+    assert!(output.status.success());
+
+    let stdout = std::str::from_utf8(&output.stdout).unwrap();
+    let parsed: Value = serde_json::from_str(stdout).unwrap();
+
+    assert_eq!(parsed["$schema"], "https://json-schema.org/draft/2020-12/schema");
+    assert_eq!(parsed["type"], "object");
+    assert_eq!(parsed["title"], "ModuleDef");
 }
 
 #[test]

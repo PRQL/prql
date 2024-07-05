@@ -212,7 +212,7 @@ enum DebugCommand {
     /// Print JSON Schema
     JsonSchema {
         #[arg(value_enum, long)]
-        schema_type: SchemaType,
+        ir_type: IntermediateRepr,
     },
 }
 
@@ -275,7 +275,7 @@ enum Format {
 }
 
 #[derive(clap::ValueEnum, Clone, Debug)]
-enum SchemaType {
+enum IntermediateRepr {
     Pl,
     Rq,
     Lineage,
@@ -324,11 +324,11 @@ impl Command {
                 prqlc::ir::pl::print_mem_sizes();
                 Ok(())
             }
-            Command::Debug(DebugCommand::JsonSchema { schema_type }) => {
-                let schema = match schema_type {
-                    SchemaType::Pl => schema_for!(pl::ModuleDef),
-                    SchemaType::Rq => schema_for!(rq::RelationalQuery),
-                    SchemaType::Lineage => schema_for!(FrameCollector),
+            Command::Debug(DebugCommand::JsonSchema { ir_type }) => {
+                let schema = match ir_type {
+                    IntermediateRepr::Pl => schema_for!(pl::ModuleDef),
+                    IntermediateRepr::Rq => schema_for!(rq::RelationalQuery),
+                    IntermediateRepr::Lineage => schema_for!(FrameCollector),
                 };
                 io::stdout().write_all(&serde_json::to_string_pretty(&schema)?.into_bytes())?;
                 Ok(())

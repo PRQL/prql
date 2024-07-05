@@ -149,7 +149,7 @@ Register-ArgumentCompleter -Native -CommandName 'prqlc' -ScriptBlock {
             break
         }
         'prqlc;debug;json-schema' {
-            [CompletionResult]::new('--schema-type', 'schema-type', [CompletionResultType]::ParameterName, 'schema-type')
+            [CompletionResult]::new('--ir-type', 'ir-type', [CompletionResultType]::ParameterName, 'ir-type')
             [CompletionResult]::new('--color', 'color', [CompletionResultType]::ParameterName, 'Controls when to use color')
             [CompletionResult]::new('-v', 'v', [CompletionResultType]::ParameterName, 'Increase logging verbosity')
             [CompletionResult]::new('--verbose', 'verbose', [CompletionResultType]::ParameterName, 'Increase logging verbosity')

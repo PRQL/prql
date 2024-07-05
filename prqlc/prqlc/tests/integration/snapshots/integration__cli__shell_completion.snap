@@ -363,13 +363,13 @@ _prqlc() {
             return 0
             ;;
         prqlc__debug__json__schema)
-            opts="-v -q -h --schema-type --color --verbose --quiet --help"
+            opts="-v -q -h --ir-type --color --verbose --quiet --help"
             if [[ ${cur} == -* || ${COMP_CWORD} -eq 3 ]] ; then
                 COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
                 return 0
             fi
             case "${prev}" in
-                --schema-type)
+                --ir-type)
                     COMPREPLY=($(compgen -W "pl rq lineage" -- "${cur}"))
                     return 0
                     ;;

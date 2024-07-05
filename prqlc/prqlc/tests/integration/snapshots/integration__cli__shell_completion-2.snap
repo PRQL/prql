@@ -71,7 +71,7 @@ complete -c prqlc -n "__fish_seen_subcommand_from debug; and __fish_seen_subcomm
 complete -c prqlc -n "__fish_seen_subcommand_from debug; and __fish_seen_subcommand_from ast" -s v -l verbose -d 'Increase logging verbosity'
 complete -c prqlc -n "__fish_seen_subcommand_from debug; and __fish_seen_subcommand_from ast" -s q -l quiet -d 'Silences logging output'
 complete -c prqlc -n "__fish_seen_subcommand_from debug; and __fish_seen_subcommand_from ast" -s h -l help -d 'Print help (see more with \'--help\')'
-complete -c prqlc -n "__fish_seen_subcommand_from debug; and __fish_seen_subcommand_from json-schema" -l schema-type -r -f -a "{pl	'',rq	'',lineage	''}"
+complete -c prqlc -n "__fish_seen_subcommand_from debug; and __fish_seen_subcommand_from json-schema" -l ir-type -r -f -a "{pl	'',rq	'',lineage	''}"
 complete -c prqlc -n "__fish_seen_subcommand_from debug; and __fish_seen_subcommand_from json-schema" -l color -d 'Controls when to use color' -r -f -a "{auto	'',always	'',never	''}"
 complete -c prqlc -n "__fish_seen_subcommand_from debug; and __fish_seen_subcommand_from json-schema" -s v -l verbose -d 'Increase logging verbosity'
 complete -c prqlc -n "__fish_seen_subcommand_from debug; and __fish_seen_subcommand_from json-schema" -s q -l quiet -d 'Silences logging output'

@@ -167,7 +167,7 @@ _arguments "${_arguments_options[@]}" \
 ;;
 (json-schema)
 _arguments "${_arguments_options[@]}" \
-'--schema-type=[]:SCHEMA_TYPE:(pl rq lineage)' \
+'--ir-type=[]:IR_TYPE:(pl rq lineage)' \
 '--color=[Controls when to use color]:WHEN:(auto always never)' \
 '*-v[Increase logging verbosity]' \
 '*--verbose[Increase logging verbosity]' \
