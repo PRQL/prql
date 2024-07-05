@@ -534,7 +534,6 @@ fn debug() {
         .stderr(std::process::Stdio::null())
         .status()
         .unwrap();
-
 }
 
 // The output of `prqlc debug json-schema` is long, so rather than
@@ -543,7 +542,7 @@ fn debug() {
 #[test]
 fn debug_json_schema() {
     use serde_json::Value;
-    
+
     let output = prqlc_command()
         .args(["debug", "json-schema", "--ir-type", "pl"])
         .output()
@@ -554,7 +553,10 @@ fn debug_json_schema() {
     let stdout = std::str::from_utf8(&output.stdout).unwrap();
     let parsed: Value = serde_json::from_str(stdout).unwrap();
 
-    assert_eq!(parsed["$schema"], "https://json-schema.org/draft/2020-12/schema");
+    assert_eq!(
+        parsed["$schema"],
+        "https://json-schema.org/draft/2020-12/schema"
+    );
     assert_eq!(parsed["type"], "object");
     assert_eq!(parsed["title"], "ModuleDef");
 }
