@@ -1,6 +1,6 @@
 use core::fmt;
 use std::collections::HashSet;
-use std::fmt::Display;
+use std::fmt::{Debug, Display};
 use std::hash::Hash;
 
 use crate::error::{Error, ErrorSource, Reason, WithErrorInfo};
@@ -8,7 +8,7 @@ use crate::lexer::lr::TokenKind;
 use crate::span::Span;
 
 #[derive(Clone, Debug)]
-pub struct ChumError<T: Hash + Eq> {
+pub struct ChumError<T: Hash + Eq + Debug> {
     span: Span,
     reason: Option<String>,
     expected: HashSet<Option<T>>,
@@ -18,7 +18,7 @@ pub struct ChumError<T: Hash + Eq> {
 
 pub type PError = ChumError<TokenKind>;
 
-impl<T: Hash + Eq> ChumError<T> {
+impl<T: Hash + Eq + Debug> ChumError<T> {
     ///Create an error with a custom error message.
     pub fn custom<M: ToString>(span: Span, msg: M) -> Self {
         Self {
@@ -59,7 +59,7 @@ impl<T: Hash + Eq> ChumError<T> {
     ///
     /// This can be used to unify the errors between parsing stages that operate upon two forms of input (for example,
     /// the initial lexing stage and the parsing stage in most compilers).
-    pub fn map<U: Hash + Eq, F: FnMut(T) -> U>(self, mut f: F) -> ChumError<U> {
+    pub fn map<U: Hash + Eq + Debug, F: FnMut(T) -> U>(self, mut f: F) -> ChumError<U> {
         ChumError {
             span: self.span,
             reason: self.reason,
@@ -70,7 +70,7 @@ impl<T: Hash + Eq> ChumError<T> {
     }
 }
 
-impl<T: Hash + Eq + Display + std::fmt::Debug> chumsky::Error<T> for ChumError<T> {
+impl<T: Hash + Eq + Display + Debug> chumsky::Error<T> for ChumError<T> {
     type Span = Span;
     type Label = &'static str;
 
@@ -143,7 +143,7 @@ impl<T: Hash + Eq + Display + std::fmt::Debug> chumsky::Error<T> for ChumError<T
     }
 }
 
-impl<T: Hash + Eq> PartialEq for ChumError<T> {
+impl<T: Hash + Eq + Debug> PartialEq for ChumError<T> {
     fn eq(&self, other: &Self) -> bool {
         self.span == other.span
             && self.found == other.found
@@ -152,9 +152,9 @@ impl<T: Hash + Eq> PartialEq for ChumError<T> {
             && self.label == other.label
     }
 }
-impl<T: Hash + Eq> Eq for ChumError<T> {}
+impl<T: Hash + Eq + Debug> Eq for ChumError<T> {}
 
-impl<T: fmt::Display + Hash + Eq> fmt::Display for ChumError<T> {
+impl<T: fmt::Display + Hash + Eq + Debug> fmt::Display for ChumError<T> {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         // TODO: Take `self.reason` into account
 
