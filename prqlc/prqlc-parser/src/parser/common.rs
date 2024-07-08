@@ -24,7 +24,7 @@ pub fn keyword(kw: &'static str) -> impl Parser<TokenKind, (), Error = PError> +
 }
 
 pub fn new_line() -> impl Parser<TokenKind, (), Error = PError> + Clone {
-    just(TokenKind::NewLine).ignored().labelled("new line")
+    just(TokenKind::NewLine).ignored()
 }
 
 pub fn ctrl(char: char) -> impl Parser<TokenKind, (), Error = PError> + Clone {
