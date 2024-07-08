@@ -28,7 +28,7 @@ fn module_contents() -> impl Parser<TokenKind, Vec<Stmt>, Error = PError> {
 
         let annotation = just(TokenKind::Annotate)
             .ignore_then(expr())
-            .then_ignore(new_line().repeated().at_least(1))
+            .then_ignore(new_line().repeated())
             .map(|expr| Annotation {
                 expr: Box::new(expr),
                 aesthetics_before: Vec::new(),
