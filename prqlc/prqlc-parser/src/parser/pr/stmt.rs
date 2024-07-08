@@ -41,14 +41,6 @@ pub struct Stmt {
     pub doc_comment: Option<String>,
 }
 
-// impl WithAesthetics for Stmt {
-//     fn with_aesthetics(self, aesthetics_before: Vec<TokenKind>) -> Self {
-//         Stmt {
-//             aesthetics_before,
-//             ..self
-//         }
-//     }
-// }
 impl SupportsDocComment for Stmt {
     fn with_doc_comment(self, doc_comment: Option<String>) -> Self {
         Stmt {

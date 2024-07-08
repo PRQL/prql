@@ -8,17 +8,18 @@ use crate::span::Span;
 use super::SupportsDocComment;
 
 pub fn ident_part() -> impl Parser<TokenKind, String, Error = PError> + Clone {
-    return select! {
+    select! {
         TokenKind::Ident(ident) => ident,
         TokenKind::Keyword(ident) if &ident == "module" => ident,
     }
     .map_err(|e: PError| {
+        dbg!(e.clone());
         PError::expected_input_found(
             e.span(),
             [Some(TokenKind::Ident("".to_string()))],
             e.found().cloned(),
         )
-    });
+    })
 }
 
 pub fn keyword(kw: &'static str) -> impl Parser<TokenKind, (), Error = PError> + Clone {
@@ -51,6 +52,7 @@ pub fn doc_comment() -> impl Parser<TokenKind, String, Error = PError> + Clone {
     .at_least(1)
     .collect()
     .map(|lines: Vec<String>| lines.join("\n"))
+    .labelled("doc comment")
 }
 
 pub fn with_doc_comment<'a, P, O>(
