@@ -1,10 +1,11 @@
 use std::fmt::Write;
 
+use schemars::JsonSchema;
 use serde::{ser::SerializeSeq, Deserialize, Deserializer, Serialize, Serializer};
 
 /// A name. Generally columns, tables, functions, variables.
 /// This is glorified way of writing a "vec with at least one element".
-#[derive(PartialEq, Eq, PartialOrd, Ord, Hash, Clone)]
+#[derive(PartialEq, Eq, PartialOrd, Ord, Hash, Clone, JsonSchema)]
 pub struct Ident {
     pub path: Vec<String>,
     pub name: String,

@@ -1,6 +1,7 @@
 use std::collections::HashMap;
 
 use enum_as_inner::EnumAsInner;
+use schemars::JsonSchema;
 use semver::VersionReq;
 use serde::{Deserialize, Serialize};
 
@@ -10,14 +11,15 @@ use crate::parser::WithAesthetics;
 use crate::span::Span;
 use crate::TokenKind;
 
-#[derive(Debug, PartialEq, Eq, Clone, Serialize, Deserialize, Default)]
+#[derive(Debug, PartialEq, Eq, Clone, Serialize, Deserialize, Default, JsonSchema)]
 pub struct QueryDef {
+    #[schemars(with = "String")]
     pub version: Option<VersionReq>,
     #[serde(default)]
     pub other: HashMap<String, String>,
 }
 
-#[derive(Debug, PartialEq, Eq, Clone, Serialize, Deserialize)]
+#[derive(Debug, PartialEq, Eq, Clone, Serialize, Deserialize, JsonSchema)]
 pub enum VarDefKind {
     Let,
     Into,
@@ -26,7 +28,7 @@ pub enum VarDefKind {
 
 // The following code is tested by the tests_misc crate to match stmt.rs in prql_compiler.
 
-#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize, JsonSchema)]
 pub struct Stmt {
     #[serde(flatten)]
     pub kind: StmtKind,
@@ -57,7 +59,7 @@ impl WithAesthetics for Stmt {
     }
 }
 
-#[derive(Debug, EnumAsInner, PartialEq, Clone, Serialize, Deserialize)]
+#[derive(Debug, EnumAsInner, PartialEq, Clone, Serialize, Deserialize, JsonSchema)]
 pub enum StmtKind {
     QueryDef(Box<QueryDef>),
     VarDef(VarDef),
@@ -66,7 +68,7 @@ pub enum StmtKind {
     ImportDef(ImportDef),
 }
 
-#[derive(Debug, PartialEq, Clone, Serialize, Deserialize)]
+#[derive(Debug, PartialEq, Clone, Serialize, Deserialize, JsonSchema)]
 pub struct VarDef {
     pub kind: VarDefKind,
     pub name: String,
@@ -76,25 +78,25 @@ pub struct VarDef {
     pub ty: Option<Ty>,
 }
 
-#[derive(Debug, PartialEq, Clone, Serialize, Deserialize)]
+#[derive(Debug, PartialEq, Clone, Serialize, Deserialize, JsonSchema)]
 pub struct TypeDef {
     pub name: String,
     pub value: Option<Ty>,
 }
 
-#[derive(Debug, PartialEq, Clone, Serialize, Deserialize)]
+#[derive(Debug, PartialEq, Clone, Serialize, Deserialize, JsonSchema)]
 pub struct ModuleDef {
     pub name: String,
     pub stmts: Vec<Stmt>,
 }
 
-#[derive(Debug, PartialEq, Clone, Serialize, Deserialize)]
+#[derive(Debug, PartialEq, Clone, Serialize, Deserialize, JsonSchema)]
 pub struct ImportDef {
     pub alias: Option<String>,
     pub name: Ident,
 }
 
-#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize, JsonSchema)]
 pub struct Annotation {
     pub expr: Box<Expr>,
     #[serde(skip_serializing_if = "Vec::is_empty")]

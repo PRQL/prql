@@ -6,6 +6,10 @@
 
 **Features**:
 
+- Added `prqlc debug json-schema` command to auto-generate JSON Schema
+  representations of commonly exposed IR types such as PL and RQ. (@kgutwin,
+  #4698)
+
 **Fixes**:
 
 - Using `in` with an empty array pattern (e.g. `expr | in []`) will now output a

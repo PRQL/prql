@@ -3,6 +3,7 @@
 //! Strictly typed AST for describing relational queries.
 
 use enum_as_inner::EnumAsInner;
+use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 
 pub use expr::{Expr, ExprKind, UnOp};
@@ -22,7 +23,7 @@ mod ids;
 mod transform;
 mod utils;
 
-#[derive(Debug, PartialEq, Clone, Serialize, Deserialize)]
+#[derive(Debug, PartialEq, Clone, Serialize, Deserialize, JsonSchema)]
 pub struct RelationalQuery {
     pub def: QueryDef,
 
@@ -30,7 +31,7 @@ pub struct RelationalQuery {
     pub relation: Relation,
 }
 
-#[derive(Debug, PartialEq, Clone, Serialize, Deserialize)]
+#[derive(Debug, PartialEq, Clone, Serialize, Deserialize, JsonSchema)]
 pub struct Relation {
     pub kind: RelationKind,
 
@@ -39,11 +40,12 @@ pub struct Relation {
     pub columns: Vec<RelationColumn>,
 }
 
-#[derive(Debug, PartialEq, Clone, Serialize, Deserialize, EnumAsInner)]
+#[derive(Debug, PartialEq, Clone, Serialize, Deserialize, EnumAsInner, JsonSchema)]
 pub enum RelationKind {
     #[cfg_attr(
         feature = "serde_yaml",
-        serde(with = "serde_yaml::with::singleton_map")
+        serde(with = "serde_yaml::with::singleton_map"),
+        schemars(with = "TableExternRef")
     )]
     ExternRef(TableExternRef),
     Pipeline(Vec<Transform>),
@@ -55,7 +57,7 @@ pub enum RelationKind {
     },
 }
 
-#[derive(Debug, PartialEq, Clone, Serialize, Deserialize)]
+#[derive(Debug, PartialEq, Clone, Serialize, Deserialize, JsonSchema)]
 pub struct RelationLiteral {
     /// Column names
     pub columns: Vec<String>,
@@ -63,7 +65,7 @@ pub struct RelationLiteral {
     pub rows: Vec<Vec<lr::Literal>>,
 }
 
-#[derive(Debug, PartialEq, Clone, Eq, Hash, Serialize, Deserialize, EnumAsInner)]
+#[derive(Debug, PartialEq, Clone, Eq, Hash, Serialize, Deserialize, EnumAsInner, JsonSchema)]
 pub enum RelationColumn {
     /// A single column that may have a name.
     /// Unnamed columns cannot be referenced.
@@ -73,7 +75,7 @@ pub enum RelationColumn {
     Wildcard,
 }
 
-#[derive(Debug, PartialEq, Clone, Serialize, Deserialize)]
+#[derive(Debug, PartialEq, Clone, Serialize, Deserialize, JsonSchema)]
 pub struct TableDecl {
     /// An id for this table, unique within all tables in this query.
     pub id: TId,
@@ -85,7 +87,7 @@ pub struct TableDecl {
     pub relation: Relation,
 }
 
-#[derive(Debug, PartialEq, Eq, Clone, Serialize, Deserialize)]
+#[derive(Debug, PartialEq, Eq, Clone, Serialize, Deserialize, JsonSchema)]
 pub struct TableRef {
     /// Referenced table
     pub source: TId,

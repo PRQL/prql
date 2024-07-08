@@ -85,14 +85,11 @@ impl Dialect {
             | Dialect::Postgres
             | Dialect::MySql
             | Dialect::Generic
-            // TODO revert to Supported when its `install.sh` is fixed
-            // https://github.com/GlareDB/glaredb/issues/3063
-            // | Dialect::GlareDb
+            | Dialect::GlareDb
             | Dialect::ClickHouse => SupportLevel::Supported,
             Dialect::MsSql | Dialect::Ansi | Dialect::BigQuery | Dialect::Snowflake => {
                 SupportLevel::Unsupported
-            },
-            Dialect::GlareDb => {SupportLevel::Nascent}
+            }
         }
     }
 
@@ -199,6 +196,10 @@ pub(super) trait DialectHandler: Any + Debug {
             "Date formatting is not yet supported for this dialect",
         ))
     }
+
+    fn supports_zero_columns(&self) -> bool {
+        false
+    }
 }
 
 impl dyn DialectHandler {
@@ -263,6 +264,10 @@ impl DialectHandler for PostgresDialect {
                 ))
             }
         })
+    }
+
+    fn supports_zero_columns(&self) -> bool {
+        true
     }
 }
 
