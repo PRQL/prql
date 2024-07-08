@@ -76,7 +76,7 @@ fn test_error_unexpected() {
                 0:6-7,
             ),
             reason: Simple(
-                "unexpected : while parsing function call",
+                "unexpected :",
             ),
             hints: [],
             code: None,

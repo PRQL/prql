@@ -98,7 +98,7 @@ fn test_errors() {
        │
      1 │ Answer: T-H-A-T!
        │       ┬
-       │       ╰── unexpected : while parsing function call
+       │       ╰── unexpected :
     ───╯
     "###);
 }
