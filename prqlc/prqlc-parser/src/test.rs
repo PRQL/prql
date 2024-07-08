@@ -3041,3 +3041,47 @@ fn test_lookup_02() {
     span: "0:13-35"
     "###);
 }
+
+#[test]
+fn doc_comment() {
+    use insta::assert_yaml_snapshot;
+
+    assert_yaml_snapshot!(parse_single(r###"
+    #! This is a doc comment
+    from artists
+    "###).unwrap(), @r###"
+    ---
+    - VarDef:
+        kind: Main
+        name: main
+        value:
+          FuncCall:
+            name:
+              Ident: from
+              span: "0:34-38"
+            args:
+              - Ident: artists
+                span: "0:39-46"
+          span: "0:34-46"
+      span: "0:34-47"
+      doc_comment: " This is a doc comment"
+    "###);
+
+    assert_debug_snapshot!(parse_single(r###"
+    from artists #! This is a doc comment
+    "###).unwrap_err(), @r###"
+    [
+        Error {
+            kind: Error,
+            span: Some(
+                0:18-42,
+            ),
+            reason: Simple(
+                "unexpected #! This is a doc comment\n while parsing function call",
+            ),
+            hints: [],
+            code: None,
+        },
+    ]
+    "###);
+}

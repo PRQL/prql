@@ -75,7 +75,3 @@ ast:
             span: 1:92-110
         span: 1:43-110
     span: 1:43-111
-    aesthetics_before:
-    - !Comment ' sqlite:skip'
-    - !Comment ' postgres:skip'
-    - !Comment ' mysql:skip'

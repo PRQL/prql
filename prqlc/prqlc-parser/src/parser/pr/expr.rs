@@ -8,9 +8,8 @@ use crate::generic;
 use crate::lexer::lr::Literal;
 use crate::parser::pr::ops::{BinOp, UnOp};
 use crate::parser::pr::Ty;
-use crate::parser::WithAesthetics;
+use crate::parser::SupportsDocComment;
 use crate::span::Span;
-use crate::TokenKind;
 
 impl Expr {
     pub fn new<K: Into<ExprKind>>(kind: K) -> Self {
@@ -18,8 +17,7 @@ impl Expr {
             kind: kind.into(),
             span: None,
             alias: None,
-            aesthetics_before: Vec::new(),
-            aesthetics_after: Vec::new(),
+            doc_comment: None,
         }
     }
 }
@@ -39,22 +37,16 @@ pub struct Expr {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub alias: Option<String>,
 
-    // Maybe should be Token?
-    #[serde(skip_serializing_if = "Vec::is_empty")]
-    pub aesthetics_before: Vec<TokenKind>,
-    #[serde(skip_serializing_if = "Vec::is_empty")]
-    pub aesthetics_after: Vec<TokenKind>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub doc_comment: Option<String>,
 }
 
-impl WithAesthetics for Expr {
-    fn with_aesthetics(
-        mut self,
-        aesthetics_before: Vec<TokenKind>,
-        aesthetics_after: Vec<TokenKind>,
-    ) -> Self {
-        self.aesthetics_before = aesthetics_before;
-        self.aesthetics_after = aesthetics_after;
-        self
+impl SupportsDocComment for Expr {
+    fn with_doc_comment(self, doc_comment: Option<String>) -> Self {
+        Self {
+            doc_comment,
+            ..self
+        }
     }
 }
 
@@ -103,8 +95,7 @@ impl ExprKind {
             span: Some(span),
             kind: self,
             alias: None,
-            aesthetics_after: Vec::new(),
-            aesthetics_before: Vec::new(),
+            doc_comment: None,
         }
     }
 }

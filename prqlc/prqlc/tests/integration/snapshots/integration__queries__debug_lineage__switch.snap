@@ -235,6 +235,3 @@ ast:
             span: 1:247-254
         span: 1:89-254
     span: 1:89-255
-    aesthetics_before:
-    - !Comment ' glaredb:skip (May be a bag of String type conversion for Postgres Client)'
-    - !Comment ' mssql:test'

@@ -126,9 +126,6 @@ ast:
             span: 1:157-183
         span: 1:135-185
     span: 1:117-185
-    aesthetics_before:
-    - !Comment ' clickhouse:skip (ClickHouse prefers aliases to column names https://github.com/PRQL/prql/issues/2827)'
-    - !Comment ' mssql:test'
   - VarDef:
       kind: Main
       name: main

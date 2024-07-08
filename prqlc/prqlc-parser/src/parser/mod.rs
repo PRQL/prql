@@ -56,10 +56,6 @@ fn prepare_stream(
     Stream::from_iter(eoi, tokens)
 }
 
-pub trait WithAesthetics {
-    fn with_aesthetics(
-        self,
-        aesthetics_before: Vec<lr::TokenKind>,
-        aethetics_after: Vec<lr::TokenKind>,
-    ) -> Self;
+pub trait SupportsDocComment {
+    fn with_doc_comment(self, doc_comment: Option<String>) -> Self;
 }

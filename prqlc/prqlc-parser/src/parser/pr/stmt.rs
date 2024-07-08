@@ -5,9 +5,8 @@ use schemars::JsonSchema;
 use semver::VersionReq;
 use serde::{Deserialize, Serialize};
 
-use crate::parser::pr::ident::Ident;
 use crate::parser::pr::{Expr, Ty};
-use crate::parser::WithAesthetics;
+use crate::parser::{pr::ident::Ident, SupportsDocComment};
 use crate::span::Span;
 use crate::TokenKind;
 
@@ -38,22 +37,22 @@ pub struct Stmt {
     #[serde(skip_serializing_if = "Vec::is_empty", default)]
     pub annotations: Vec<Annotation>,
 
-    // Maybe should be Token?
-    #[serde(skip_serializing_if = "Vec::is_empty")]
-    pub aesthetics_before: Vec<TokenKind>,
-    #[serde(skip_serializing_if = "Vec::is_empty")]
-    pub aesthetics_after: Vec<TokenKind>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub doc_comment: Option<String>,
 }
 
-impl WithAesthetics for Stmt {
-    fn with_aesthetics(
-        self,
-        aesthetics_before: Vec<TokenKind>,
-        aesthetics_after: Vec<TokenKind>,
-    ) -> Self {
+// impl WithAesthetics for Stmt {
+//     fn with_aesthetics(self, aesthetics_before: Vec<TokenKind>) -> Self {
+//         Stmt {
+//             aesthetics_before,
+//             ..self
+//         }
+//     }
+// }
+impl SupportsDocComment for Stmt {
+    fn with_doc_comment(self, doc_comment: Option<String>) -> Self {
         Stmt {
-            aesthetics_before,
-            aesthetics_after,
+            doc_comment,
             ..self
         }
     }
@@ -99,24 +98,8 @@ pub struct ImportDef {
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize, JsonSchema)]
 pub struct Annotation {
     pub expr: Box<Expr>,
-    #[serde(skip_serializing_if = "Vec::is_empty")]
+    #[serde(skip_serializing_if = "Vec::is_empty", default)]
     pub aesthetics_before: Vec<TokenKind>,
-    #[serde(skip_serializing_if = "Vec::is_empty")]
-    pub aesthetics_after: Vec<TokenKind>,
-}
-
-impl WithAesthetics for Annotation {
-    fn with_aesthetics(
-        self,
-        aesthetics_before: Vec<TokenKind>,
-        aesthetics_after: Vec<TokenKind>,
-    ) -> Self {
-        Annotation {
-            aesthetics_before,
-            aesthetics_after,
-            ..self
-        }
-    }
 }
 
 impl Stmt {
@@ -125,8 +108,7 @@ impl Stmt {
             kind,
             span: None,
             annotations: Vec::new(),
-            aesthetics_before: Vec::new(),
-            aesthetics_after: Vec::new(),
+            doc_comment: None,
         }
     }
 }

@@ -29,15 +29,9 @@ expression: "parse_single(r#\"\nfrom employees\nfilter country == \"USA\"       
                     right:
                       Literal:
                         String: USA
-<<<<<<< HEAD
-                      aesthetics_after:
-                        - Comment: " Each line transforms the previous result."
-||||||| 566e6f14
-=======
                       span: "0:34-39"
                   span: "0:23-39"
             span: "0:16-39"
->>>>>>> main
           - FuncCall:
               name:
                 Ident: derive
@@ -54,8 +48,6 @@ expression: "parse_single(r#\"\nfrom employees\nfilter country == \"USA\"       
                           span: "0:209-220"
                       span: "0:200-220"
                       alias: gross_salary
-                      aesthetics_before:
-                        - Comment: " This adds columns / variables."
                     - Binary:
                         left:
                           Ident: gross_salary
@@ -63,14 +55,8 @@ expression: "parse_single(r#\"\nfrom employees\nfilter country == \"USA\"       
                         op: Add
                         right:
                           Ident: benefits_cost
-<<<<<<< HEAD
-                          aesthetics_after:
-                            - Comment: " Variables can use other variables."
-||||||| 566e6f14
-=======
                           span: "0:252-265"
                       span: "0:237-265"
->>>>>>> main
                       alias: gross_cost
                   span: "0:112-305"
             span: "0:105-305"
@@ -113,14 +99,8 @@ expression: "parse_single(r#\"\nfrom employees\nfilter country == \"USA\"       
                                 span: "0:500-507"
                               args:
                                 - Ident: salary
-<<<<<<< HEAD
-                            aesthetics_before:
-                              - Comment: " Aggregate each group to a single row"
-||||||| 566e6f14
-=======
                                   span: "0:508-514"
                             span: "0:500-514"
->>>>>>> main
                           - FuncCall:
                               name:
                                 Ident: average

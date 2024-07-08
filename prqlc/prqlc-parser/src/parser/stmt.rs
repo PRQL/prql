@@ -4,16 +4,15 @@ use chumsky::prelude::*;
 use itertools::Itertools;
 use semver::VersionReq;
 
-use super::common::{ctrl, ident_part, into_stmt, keyword, new_line};
+use super::common::{ctrl, ident_part, into_stmt, keyword, new_line, with_doc_comment};
 use super::expr::{expr, expr_call, ident, pipeline};
 use crate::error::parse_error::PError;
 use crate::lexer::lr::{Literal, TokenKind};
-use crate::parser::common::with_aesthetics;
 use crate::parser::pr::*;
 use crate::parser::types::type_expr;
 
 pub fn source() -> impl Parser<TokenKind, Vec<Stmt>, Error = PError> {
-    with_aesthetics(query_def())
+    with_doc_comment(query_def())
         .or_not()
         .chain(module_contents())
         .then_ignore(end())
@@ -33,7 +32,6 @@ fn module_contents() -> impl Parser<TokenKind, Vec<Stmt>, Error = PError> {
             .map(|expr| Annotation {
                 expr: Box::new(expr),
                 aesthetics_before: Vec::new(),
-                aesthetics_after: Vec::new(),
             });
 
         // TODO: I think some duplication here; we allow for potential
@@ -50,8 +48,9 @@ fn module_contents() -> impl Parser<TokenKind, Vec<Stmt>, Error = PError> {
         // Two wrapping of `with_aesthetics` — the first for the whole block,
         // and the second for just the annotation; if there's a comment between
         // the annotation and the code.
-        with_aesthetics(
-            with_aesthetics(annotation)
+        with_doc_comment(
+            // with_aesthetics(annotation)
+            annotation
                 .repeated()
                 // TODO: do we need this? I think possibly we get an additional
                 // error when we remove it; check (because it seems redundant...).

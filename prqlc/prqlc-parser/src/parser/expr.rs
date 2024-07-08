@@ -3,10 +3,10 @@ use std::collections::HashMap;
 use chumsky::prelude::*;
 use itertools::Itertools;
 
-use super::interpolation;
+use super::{common::with_doc_comment, interpolation};
 use crate::error::parse_error::PError;
 use crate::lexer::lr::{Literal, TokenKind};
-use crate::parser::common::{ctrl, ident_part, keyword, new_line, with_aesthetics};
+use crate::parser::common::{ctrl, ident_part, keyword, new_line};
 use crate::parser::pr::*;
 use crate::parser::types::type_expr;
 use crate::span::Span;
@@ -28,7 +28,7 @@ pub fn expr<'a>() -> impl Parser<TokenKind, Expr, Error = PError> + Clone + 'a {
             .map(|x| x.to_string())
             .map(ExprKind::Internal);
 
-        let nested_expr = with_aesthetics(
+        let nested_expr = with_doc_comment(
             pipeline(lambda_func(expr.clone()).or(func_call(expr.clone()))).boxed(),
         );
 
@@ -40,7 +40,7 @@ pub fn expr<'a>() -> impl Parser<TokenKind, Expr, Error = PError> + Clone + 'a {
 
         let param = select! { TokenKind::Param(id) => ExprKind::Param(id) };
 
-        let term = with_aesthetics(
+        let term = with_doc_comment(
             choice((
                 literal,
                 internal,

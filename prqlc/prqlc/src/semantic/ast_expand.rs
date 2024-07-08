@@ -304,8 +304,7 @@ pub fn restrict_expr(expr: pl::Expr) -> pr::Expr {
         kind: restrict_expr_kind(expr.kind),
         span: expr.span,
         alias: expr.alias,
-        aesthetics_before: vec![],
-        aesthetics_after: vec![],
+        doc_comment: None,
     }
 }
 
@@ -469,8 +468,7 @@ fn restrict_stmt(stmt: pl::Stmt) -> pr::Stmt {
             .into_iter()
             .map(restrict_annotation)
             .collect(),
-        aesthetics_before: vec![],
-        aesthetics_after: vec![],
+        doc_comment: None,
     }
 }
 
@@ -478,7 +476,6 @@ pub fn restrict_annotation(value: pl::Annotation) -> pr::Annotation {
     pr::Annotation {
         expr: restrict_expr_box(value.expr),
         aesthetics_before: vec![],
-        aesthetics_after: vec![],
     }
 }
 

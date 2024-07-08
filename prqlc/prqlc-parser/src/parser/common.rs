@@ -3,8 +3,9 @@ use chumsky::prelude::*;
 use crate::error::parse_error::PError;
 use crate::lexer::lr::TokenKind;
 use crate::parser::pr::{Annotation, Stmt, StmtKind};
-use crate::parser::WithAesthetics;
 use crate::span::Span;
+
+use super::SupportsDocComment;
 
 pub fn ident_part() -> impl Parser<TokenKind, String, Error = PError> + Clone {
     return select! {
@@ -37,46 +38,30 @@ pub fn into_stmt((annotations, kind): (Vec<Annotation>, StmtKind), span: Span) -
         kind,
         span: Some(span),
         annotations,
-        aesthetics_before: Vec::new(),
-        aesthetics_after: Vec::new(),
+        doc_comment: None,
     }
 }
 
-pub fn aesthetic() -> impl Parser<TokenKind, TokenKind, Error = PError> + Clone {
+pub fn doc_comment() -> impl Parser<TokenKind, String, Error = PError> + Clone {
     select! {
-        // TokenKind::Comment(comment) =>         TokenKind::Comment(comment),
-        // TokenKind::LineWrap(lw) =>         TokenKind::LineWrap(lw),
-        TokenKind::DocComment(dc) => TokenKind::DocComment(dc),
+        TokenKind::DocComment(dc) => dc,
     }
+    .then_ignore(new_line().repeated())
+    .repeated()
+    .at_least(1)
+    .collect()
+    .map(|lines: Vec<String>| lines.join("\n"))
 }
 
-pub fn with_aesthetics<'a, P, O>(
+pub fn with_doc_comment<'a, P, O>(
     parser: P,
 ) -> impl Parser<TokenKind, O, Error = PError> + Clone + 'a
 where
     P: Parser<TokenKind, O, Error = PError> + Clone + 'a,
-    O: WithAesthetics + 'a,
+    O: SupportsDocComment + 'a,
 {
-    // We can safely remove newlines following the `aesthetics_before`, to cover
-    // a case like `# foo` here:
-    //
-    // ```prql
-    // # foo
-    //
-    // from bar
-    // # baz
-    // select artists
-    // ```
-    //
-    // ...but not following the `aesthetics_after`; since that would eat all
-    // newlines between `from_bar` and `select_artists`.
-    //
-    let aesthetics_before = aesthetic().then_ignore(new_line().repeated()).repeated();
-    let aesthetics_after = aesthetic().separated_by(new_line());
-
-    aesthetics_before.then(parser).then(aesthetics_after).map(
-        |((aesthetics_before, inner), aesthetics_after)| {
-            inner.with_aesthetics(aesthetics_before, aesthetics_after)
-        },
-    )
+    doc_comment()
+        .or_not()
+        .then(parser)
+        .map(|(doc_comment, inner)| inner.with_doc_comment(doc_comment))
 }

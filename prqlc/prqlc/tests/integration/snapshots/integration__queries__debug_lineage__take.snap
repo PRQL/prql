@@ -117,5 +117,3 @@ ast:
             span: 1:42-51
         span: 1:13-51
     span: 1:13-52
-    aesthetics_before:
-    - !Comment ' mssql:test'

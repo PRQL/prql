@@ -985,6 +985,4 @@ ast:
             span: 1:784-791
         span: 1:131-791
     span: 1:131-792
-    aesthetics_before:
-    - !Comment ' clickhouse:skip (clickhouse doesn''t have lag function)'
-    - !DocComment ' Calculate a number of metrics about the sales of tracks in each city.'
+    doc_comment: ' Calculate a number of metrics about the sales of tracks in each city.'
