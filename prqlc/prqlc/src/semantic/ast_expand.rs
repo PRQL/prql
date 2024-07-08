@@ -475,7 +475,6 @@ fn restrict_stmt(stmt: pl::Stmt) -> pr::Stmt {
 pub fn restrict_annotation(value: pl::Annotation) -> pr::Annotation {
     pr::Annotation {
         expr: restrict_expr_box(value.expr),
-        aesthetics_before: vec![],
     }
 }
 

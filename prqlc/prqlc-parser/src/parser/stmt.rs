@@ -31,7 +31,6 @@ fn module_contents() -> impl Parser<TokenKind, Vec<Stmt>, Error = PError> {
             .then_ignore(new_line().repeated())
             .map(|expr| Annotation {
                 expr: Box::new(expr),
-                aesthetics_before: Vec::new(),
             });
 
         // TODO: I think some duplication here; we allow for potential

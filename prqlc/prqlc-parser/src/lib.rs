@@ -5,5 +5,3 @@ pub mod parser;
 pub mod span;
 #[cfg(test)]
 mod test;
-
-use crate::lexer::lr::TokenKind;

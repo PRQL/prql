@@ -8,7 +8,6 @@ use serde::{Deserialize, Serialize};
 use crate::parser::pr::{Expr, Ty};
 use crate::parser::{pr::ident::Ident, SupportsDocComment};
 use crate::span::Span;
-use crate::TokenKind;
 
 #[derive(Debug, PartialEq, Eq, Clone, Serialize, Deserialize, Default, JsonSchema)]
 pub struct QueryDef {
@@ -90,8 +89,6 @@ pub struct ImportDef {
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize, JsonSchema)]
 pub struct Annotation {
     pub expr: Box<Expr>,
-    #[serde(skip_serializing_if = "Vec::is_empty", default)]
-    pub aesthetics_before: Vec<TokenKind>,
 }
 
 impl Stmt {
