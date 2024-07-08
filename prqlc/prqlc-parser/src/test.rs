@@ -3074,10 +3074,10 @@ fn doc_comment() {
         Error {
             kind: Error,
             span: Some(
-                0:18-42,
+                0:46-47,
             ),
             reason: Simple(
-                "unexpected #! This is a doc comment\n while parsing function call",
+                "Expected one of (, [, an identifier, keyword case, keyword internal or {, but didn't find anything before the end.",
             ),
             hints: [],
             code: None,
