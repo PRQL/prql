@@ -4,9 +4,9 @@ use chumsky::prelude::*;
 use itertools::Itertools;
 
 use super::interpolation;
-use crate::error::parse_error::PError;
 use crate::lexer::lr::{Literal, TokenKind};
 use crate::parser::common::{ctrl, ident_part, keyword, new_line};
+use crate::parser::perror::PError;
 use crate::parser::pr::Ident;
 use crate::parser::pr::*;
 use crate::parser::pr::{BinOp, UnOp};

@@ -1,6 +1,10 @@
+use serde::{Deserialize, Serialize};
+
 use enum_as_inner::EnumAsInner;
 use schemars::JsonSchema;
-use serde::{Deserialize, Serialize};
+
+#[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Eq)]
+pub struct Tokens(pub Vec<Token>);
 
 #[derive(Clone, PartialEq, Serialize, Deserialize, Eq, JsonSchema)]
 pub struct Token {
