@@ -1,9 +1,9 @@
 use chumsky::prelude::*;
 
 use super::common::*;
-use crate::error::parse_error::PError;
 use crate::lexer::lr::TokenKind;
 use crate::parser::expr::ident;
+use crate::parser::perror::PError;
 use crate::parser::pr::*;
 
 pub fn type_expr() -> impl Parser<TokenKind, Ty, Error = PError> + Clone {

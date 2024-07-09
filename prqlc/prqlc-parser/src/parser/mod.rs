@@ -1,17 +1,18 @@
-mod common;
-mod expr;
-mod interpolation;
-pub mod pr;
-pub(crate) mod stmt;
-#[cfg(test)]
-mod test;
-mod types;
-
 use chumsky::{prelude::*, Stream};
 
 use crate::error::Error;
 use crate::lexer::lr;
 use crate::span::Span;
+
+mod common;
+mod expr;
+mod interpolation;
+pub(crate) mod perror;
+pub mod pr;
+pub(crate) mod stmt;
+#[cfg(test)]
+mod test;
+mod types;
 
 pub fn parse_lr_to_pr(
     source: &str,

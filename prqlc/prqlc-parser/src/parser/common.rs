@@ -1,8 +1,8 @@
 use chumsky::prelude::*;
 
-use crate::error::parse_error::PError;
+use super::perror::PError;
+use super::pr::{Annotation, Stmt, StmtKind};
 use crate::lexer::lr::TokenKind;
-use crate::parser::pr::{Annotation, Stmt, StmtKind};
 use crate::span::Span;
 
 pub fn ident_part() -> impl Parser<TokenKind, String, Error = PError> + Clone {
