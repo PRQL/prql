@@ -1,10 +1,10 @@
 use std::fmt::Debug;
 
-use crate::span::Span;
 use chumsky::error::Cheap;
 use serde::Serialize;
 
 use super::parser::error::PError;
+use crate::span::Span;
 
 /// A prqlc error. Used internally, exposed as prqlc::ErrorMessage.
 #[derive(Debug, Clone)]
