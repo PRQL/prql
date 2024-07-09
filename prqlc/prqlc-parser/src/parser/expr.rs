@@ -6,7 +6,7 @@ use itertools::Itertools;
 use super::interpolation;
 use crate::lexer::lr::{Literal, TokenKind};
 use crate::parser::common::{ctrl, ident_part, keyword, new_line};
-use crate::parser::error::PError;
+use crate::parser::perror::PError;
 use crate::parser::pr::Ident;
 use crate::parser::pr::*;
 use crate::parser::pr::{BinOp, UnOp};

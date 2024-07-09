@@ -5,9 +5,9 @@ use crate::lexer::lr;
 use crate::span::Span;
 
 mod common;
-pub(crate) mod error;
 mod expr;
 mod interpolation;
+pub(crate) mod perror;
 pub mod pr;
 pub(crate) mod stmt;
 #[cfg(test)]

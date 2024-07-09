@@ -3,7 +3,7 @@ use std::fmt::Debug;
 use chumsky::error::Cheap;
 use serde::Serialize;
 
-use super::parser::error::PError;
+use super::parser::perror::PError;
 use crate::span::Span;
 
 /// A prqlc error. Used internally, exposed as prqlc::ErrorMessage.
