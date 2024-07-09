@@ -1,16 +1,10 @@
 use std::fmt::Debug;
 
+use crate::span::Span;
 use chumsky::error::Cheap;
 use serde::Serialize;
 
-use crate::error::parse_error::PError;
-use crate::span::Span;
-
-/// Error message produced by the compiler.
-pub mod parse_error;
-
-#[cfg(test)]
-mod test;
+use super::parser::error::PError;
 
 /// A prqlc error. Used internally, exposed as prqlc::ErrorMessage.
 #[derive(Debug, Clone)]

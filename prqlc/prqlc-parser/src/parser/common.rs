@@ -1,7 +1,7 @@
 use chumsky::prelude::*;
 
-use crate::error::parse_error::PError;
 use crate::lexer::lr::TokenKind;
+use crate::parser::error::PError;
 use crate::parser::pr::{Annotation, Stmt, StmtKind};
 use crate::span::Span;
 
