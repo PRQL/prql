@@ -272,6 +272,10 @@ impl From<PError> for Error {
     }
 }
 
+// Vendored from
+// https://github.com/zesterer/chumsky/pull/238/files#diff-97e25e2a0e41c578875856e97b659be2719a65227c104b992e3144efa000c35eR184
+// since it's private in chumsky
+
 /// A type representing zero, one, or many labels applied to an error
 #[derive(Clone, Copy, Debug, PartialEq)]
 enum SimpleLabel {
