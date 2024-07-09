@@ -2350,6 +2350,47 @@ fn test_multiline_string() {
 }
 
 #[test]
+fn test_empty_lines() {
+    // The span of the Pipeline shouldn't include the empty lines; the VarDef
+    // should have a larger span
+    assert_yaml_snapshot!(parse_single(r#"
+from artists
+derive x = 5
+
+ 
+
+"#).unwrap(), @r###"
+    ---
+    - VarDef:
+        kind: Main
+        name: main
+        value:
+          Pipeline:
+            exprs:
+              - FuncCall:
+                  name:
+                    Ident: from
+                    span: "0:1-5"
+                  args:
+                    - Ident: artists
+                      span: "0:6-13"
+                span: "0:1-13"
+              - FuncCall:
+                  name:
+                    Ident: derive
+                    span: "0:14-20"
+                  args:
+                    - Literal:
+                        Integer: 5
+                      span: "0:25-26"
+                      alias: x
+                span: "0:14-26"
+          span: "0:1-26"
+      span: "0:1-31"
+    "### )
+}
+
+#[test]
 fn test_coalesce() {
     assert_yaml_snapshot!(parse_single(r###"
         from employees

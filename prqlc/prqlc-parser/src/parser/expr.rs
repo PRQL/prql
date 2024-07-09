@@ -123,7 +123,8 @@ fn array(
 fn pipeline_expr(
     expr: impl Parser<TokenKind, Expr, Error = PError> + Clone,
 ) -> impl Parser<TokenKind, Expr, Error = PError> + Clone {
-    expr.delimited_by(ctrl('('), ctrl(')'))
+    expr.then_ignore(new_line().repeated())
+        .delimited_by(ctrl('('), ctrl(')'))
         .recover_with(nested_delimiters(
             TokenKind::Control('('),
             TokenKind::Control(')'),
@@ -268,7 +269,10 @@ where
     // expr has to be a param, because it can be either a normal expr() or a
     // recursive expr called from within expr(), which causes a stack overflow
 
-    let pipe = ctrl('|').or(new_line().repeated().at_least(1).ignored());
+    let pipe = choice((
+        ctrl('|').ignored(),
+        new_line().repeated().at_least(1).ignored(),
+    ));
 
     new_line()
         .repeated()
@@ -292,7 +296,6 @@ where
                     })
                 }),
         )
-        .then_ignore(new_line().repeated())
         .labelled("pipeline")
 }
 
