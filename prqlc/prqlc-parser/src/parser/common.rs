@@ -44,17 +44,23 @@ pub fn into_stmt((annotations, kind): (Vec<Annotation>, StmtKind), span: Span) -
 }
 
 pub fn doc_comment() -> impl Parser<TokenKind, String, Error = PError> + Clone {
-    select! {
-        TokenKind::DocComment(dc) => dc,
-    }
-    .then_ignore(new_line().repeated())
-    .repeated()
-    .at_least(1)
-    .collect()
-    .map(|lines: Vec<String>| lines.join("\n"))
-    .labelled("doc comment")
+    // doc comments must start on a new line, so we enforce a new line before
+    // the doc comment (but how to handle the start of a file?)
+    new_line()
+        .repeated()
+        .at_least(1)
+        .ignore_then(
+            select! {
+                TokenKind::DocComment(dc) => dc,
+            }
+            .then_ignore(new_line().repeated())
+            .repeated()
+            .at_least(1)
+            .collect(),
+        )
+        .map(|lines: Vec<String>| lines.join("\n"))
+        .labelled("doc comment")
 }
-
 pub fn with_doc_comment<'a, P, O>(
     parser: P,
 ) -> impl Parser<TokenKind, O, Error = PError> + Clone + 'a
@@ -66,4 +72,39 @@ where
         .or_not()
         .then(parser)
         .map(|(doc_comment, inner)| inner.with_doc_comment(doc_comment))
+}
+
+#[cfg(test)]
+mod tests {
+    use insta::assert_yaml_snapshot;
+
+    use super::*;
+    use crate::parser::prepare_stream;
+
+    fn parse_with_parser<O>(
+        source: &str,
+        parser: impl Parser<TokenKind, O, Error = PError>,
+    ) -> Result<O, Vec<PError>> {
+        let tokens = crate::lexer::lex_source(source).unwrap();
+        let stream = prepare_stream(tokens.0.into_iter(), source, 0);
+
+        let (ast, parse_errors) = parser.parse_recovery(stream);
+
+        if !parse_errors.is_empty() {
+            return Err(parse_errors);
+        }
+        Ok(ast.unwrap())
+    }
+
+    #[test]
+    fn test_doc_comment() {
+        assert_yaml_snapshot!(parse_with_parser(r#"
+        #! doc comment
+        #! another line
+
+        "#, doc_comment()), @r###"
+        ---
+        Ok: " doc comment\n another line"
+        "###);
+    }
 }
