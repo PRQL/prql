@@ -22,7 +22,7 @@ pub fn parse_lr_to_pr(
     // We don't want comments in the AST (but we do intend to use them as part of
     // formatting)
     let stream = prepare_stream(lr.into_iter(), source, source_id);
-    let (pr, parse_errors) = ::chumsky::Parser::parse_recovery(&stmt::source(), stream);
+    let (pr, parse_errors) = stmt::source().parse_recovery(stream);
 
     let errors = parse_errors.into_iter().map(|e| e.into()).collect();
     log::debug!("parse errors: {errors:?}");
