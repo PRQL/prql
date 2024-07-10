@@ -52,7 +52,7 @@ pub fn parse(file_tree: &SourceTree) -> Result<pr::ModuleDef, Errors> {
     }
 }
 
-/// Build PRQL AST from a PRQL query string.
+/// Build PR AST from a PRQL query string.
 pub(crate) fn parse_source(source: &str, source_id: u16) -> Result<Vec<pr::Stmt>, Vec<Error>> {
     let (tokens, mut errors) = prqlc_parser::lexer::lex_source_recovery(source, source_id);
 
