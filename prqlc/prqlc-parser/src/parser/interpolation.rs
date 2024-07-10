@@ -1,8 +1,8 @@
 use chumsky::prelude::*;
 use itertools::Itertools;
 
-use crate::error::parse_error::{ChumError, PError};
 use crate::lexer::lr::{Literal, TokenKind};
+use crate::parser::perror::{ChumError, PError};
 use crate::parser::pr::*;
 use crate::span::{string_stream, Span};
 

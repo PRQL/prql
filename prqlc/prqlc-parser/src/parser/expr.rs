@@ -3,10 +3,10 @@ use std::collections::HashMap;
 use chumsky::prelude::*;
 use itertools::Itertools;
 
-use super::{common::with_doc_comment, interpolation};
-use crate::error::parse_error::PError;
 use crate::lexer::lr::{Literal, TokenKind};
-use crate::parser::common::{ctrl, ident_part, keyword, new_line};
+use crate::parser::common::{ctrl, ident_part, keyword, new_line, with_doc_comment};
+use crate::parser::interpolation;
+use crate::parser::perror::PError;
 use crate::parser::pr::*;
 use crate::parser::types::type_expr;
 use crate::span::Span;
@@ -125,7 +125,8 @@ fn array(
 fn pipeline_expr(
     expr: impl Parser<TokenKind, Expr, Error = PError> + Clone,
 ) -> impl Parser<TokenKind, Expr, Error = PError> + Clone {
-    expr.delimited_by(ctrl('('), ctrl(')'))
+    expr.then_ignore(new_line().repeated())
+        .delimited_by(ctrl('('), ctrl(')'))
         .recover_with(nested_delimiters(
             TokenKind::Control('('),
             TokenKind::Control(')'),
@@ -270,7 +271,10 @@ where
     // expr has to be a param, because it can be either a normal expr() or a
     // recursive expr called from within expr(), which causes a stack overflow
 
-    let pipe = ctrl('|').or(new_line().repeated().at_least(1).ignored());
+    let pipe = choice((
+        ctrl('|').ignored(),
+        new_line().repeated().at_least(1).ignored(),
+    ));
 
     new_line()
         .repeated()
@@ -294,7 +298,6 @@ where
                     })
                 }),
         )
-        .then_ignore(new_line().repeated())
         .labelled("pipeline")
 }
 

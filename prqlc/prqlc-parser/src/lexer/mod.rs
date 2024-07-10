@@ -2,8 +2,8 @@ use chumsky::error::Cheap;
 use chumsky::prelude::*;
 use chumsky::text::{newline, Character};
 
+use self::lr::{Literal, Token, TokenKind, ValueAndUnit};
 use crate::error::{Error, ErrorSource, Reason, WithErrorInfo};
-use crate::lexer::lr::{Literal, Token, TokenKind, ValueAndUnit};
 use crate::span::Span;
 
 pub mod lr;
