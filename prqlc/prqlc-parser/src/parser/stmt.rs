@@ -128,6 +128,7 @@ fn var_def() -> impl Parser<TokenKind, StmtKind, Error = PError> + Clone {
         .labelled("variable definition");
 
     let main_or_into = pipeline(expr_call())
+        .then_ignore(new_line().repeated())
         .map(Box::new)
         .then(keyword("into").ignore_then(ident_part()).or_not())
         .map(|(value, name)| {
