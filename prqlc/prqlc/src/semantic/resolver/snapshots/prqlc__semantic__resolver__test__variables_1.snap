@@ -9,10 +9,13 @@ expression: "resolve_derive(r#\"\n            from employees\n            derive
           - this
           - employees
           - salary
+        span: "1:80-86"
       - Ident:
           - this
           - employees
           - payroll_tax
+        span: "1:89-100"
+  span: "1:80-100"
   alias: gross_salary
   ty:
     kind:
@@ -45,10 +48,13 @@ expression: "resolve_derive(r#\"\n            from employees\n            derive
       - Ident:
           - this
           - gross_salary
+        span: "1:133-145"
       - Ident:
           - this
           - employees
           - benefits_cost
+        span: "1:148-161"
+  span: "1:133-161"
   alias: gross_cost
   ty:
     kind:
@@ -75,4 +81,3 @@ expression: "resolve_derive(r#\"\n            from employees\n            derive
             name: ~
     span: "0:893-926"
     name: ~
-

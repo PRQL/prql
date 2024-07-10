@@ -12,8 +12,9 @@ use sqlparser::ast::{
 use super::gen_expr::*;
 use super::gen_projection::*;
 use super::operators::translate_operator;
-use super::srq::ast::{Cte, CteKind, RelationExpr, RelationExprKind, SqlRelation, SqlTransform};
+use super::pq::ast::{Cte, CteKind, RelationExpr, RelationExprKind, SqlRelation, SqlTransform};
 use super::{Context, Dialect};
+use crate::debug;
 use crate::ir::pl::{JoinSide, Literal};
 use crate::ir::rq::{CId, Expr, ExprKind, RelationLiteral, RelationalQuery};
 use crate::utils::{BreakUp, Pluck};
@@ -23,16 +24,17 @@ use prqlc_parser::generic::InterpolateItem;
 type Transform = SqlTransform<RelationExpr, ()>;
 
 pub fn translate_query(query: RelationalQuery, dialect: Option<Dialect>) -> Result<sql_ast::Query> {
-    // compile from RQ to SRQ
-    let (srq_query, mut ctx) = super::srq::compile_query(query, dialect)?;
+    // compile from RQ to PQ
+    let (pq_query, mut ctx) = super::pq::compile_query(query, dialect)?;
 
-    let mut query = translate_relation(srq_query.main_relation, &mut ctx)?;
+    debug::log_stage(debug::Stage::Sql(debug::StageSql::Main));
+    let mut query = translate_relation(pq_query.main_relation, &mut ctx)?;
 
-    if !srq_query.ctes.is_empty() {
+    if !pq_query.ctes.is_empty() {
         // attach CTEs
         let mut cte_tables = Vec::new();
         let mut recursive = false;
-        for cte in srq_query.ctes {
+        for cte in pq_query.ctes {
             let (cte, rec) = translate_cte(cte, &mut ctx)?;
             cte_tables.push(cte);
             recursive = recursive || rec;
@@ -43,6 +45,7 @@ pub fn translate_query(query: RelationalQuery, dialect: Option<Dialect>) -> Resu
         });
     }
 
+    debug::log_entry(|| debug::DebugEntryKind::ReprSqlParser(query.clone()));
     Ok(query)
 }
 
@@ -422,6 +425,32 @@ fn translate_cte(cte: Cte, ctx: &mut Context) -> Result<(sql_ast::Cte, bool)> {
 fn translate_relation_literal(data: RelationLiteral, ctx: &Context) -> Result<sql_ast::Query> {
     // TODO: this could be made to use VALUES instead of SELECT UNION ALL SELECT
     //       I'm not sure about compatibility though.
+    // edit: probably not, because VALUES has no way of setting names of the columns
+    //       Postgres will just name them column1, column2 as so on.
+    //       Which means we can use VALUES, but only if this is not the top-level statement,
+    //       where they really matter.
+
+    if data.rows.is_empty() {
+        let mut nulls: Vec<_> = (data.columns.iter())
+            .map(|col_name| SelectItem::ExprWithAlias {
+                expr: sql_ast::Expr::Value(sql_ast::Value::Null),
+                alias: translate_ident_part(col_name.clone(), ctx),
+            })
+            .collect();
+
+        // empty projection is a parse error in some dialects, let's inject a NULL
+        if nulls.is_empty() {
+            nulls.push(SelectItem::UnnamedExpr(sql_ast::Expr::Value(
+                sql_ast::Value::Null,
+            )));
+        }
+
+        return Ok(default_query(sql_ast::SetExpr::Select(Box::new(Select {
+            projection: nulls,
+            selection: Some(sql_ast::Expr::Value(sql_ast::Value::Boolean(false))),
+            ..default_select()
+        }))));
+    }
 
     let mut selects = Vec::with_capacity(data.rows.len());
 
@@ -439,15 +468,6 @@ fn translate_relation_literal(data: RelationLiteral, ctx: &Context) -> Result<sq
         }));
 
         selects.push(body)
-    }
-
-    if selects.is_empty() {
-        return Err(
-            Error::new_simple("No rows provided for `from_text`".to_string()).push_hint(
-                "add a newline, then a row of data following the column. If using \
-                the json format, ensure `data` isn't empty",
-            ),
-        );
     }
 
     let mut body = selects.remove(0);
@@ -470,11 +490,7 @@ pub(super) fn translate_query_sstring(
     let string = translate_sstring(items, ctx)?;
 
     let re = Regex::new(r"(?i)^SELECT\b").unwrap();
-    let prefix = if let Some(string) = string.trim().get(0..7) {
-        string
-    } else {
-        ""
-    };
+    let prefix = string.trim().get(0..7).unwrap_or_default();
 
     if re.is_match(prefix) {
         if let Some(string) = string.trim().strip_prefix(prefix) {

@@ -1,6 +1,7 @@
 use std::collections::HashMap;
 
 use enum_as_inner::EnumAsInner;
+use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 
 use crate::generic;
@@ -23,28 +24,34 @@ impl Expr {
 
 /// Expr is anything that has a value and thus a type.
 /// Most of these can contain other [Expr] themselves; literals should be [ExprKind::Literal].
-#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize, JsonSchema)]
 pub struct Expr {
     #[serde(flatten)]
     pub kind: ExprKind,
 
-    #[serde(skip)]
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub span: Option<Span>,
 
     #[serde(skip_serializing_if = "Option::is_none")]
     pub alias: Option<String>,
 }
 
-#[derive(Debug, EnumAsInner, PartialEq, Clone, Serialize, Deserialize, strum::AsRefStr)]
+#[derive(
+    Debug, EnumAsInner, PartialEq, Clone, Serialize, Deserialize, strum::AsRefStr, JsonSchema,
+)]
 pub enum ExprKind {
     Ident(String),
+
+    /// A lookup into an object by name or position.
+    /// Currently, this includes only tuple field lookups, primarily by name.
     Indirection {
         base: Box<Expr>,
         field: IndirectionKind,
     },
     #[cfg_attr(
         feature = "serde_yaml",
-        serde(with = "serde_yaml::with::singleton_map")
+        serde(with = "serde_yaml::with::singleton_map"),
+        schemars(with = "Literal")
     )]
     Literal(Literal),
     Pipeline(Pipeline),
@@ -78,28 +85,28 @@ impl ExprKind {
     }
 }
 
-#[derive(Debug, EnumAsInner, PartialEq, Clone, Serialize, Deserialize)]
+#[derive(Debug, EnumAsInner, PartialEq, Clone, Serialize, Deserialize, JsonSchema)]
 pub enum IndirectionKind {
     Name(String),
     Position(i64),
     Star,
 }
 
-#[derive(Debug, PartialEq, Clone, Serialize, Deserialize)]
+#[derive(Debug, PartialEq, Clone, Serialize, Deserialize, JsonSchema)]
 pub struct BinaryExpr {
     pub left: Box<Expr>,
     pub op: BinOp,
     pub right: Box<Expr>,
 }
 
-#[derive(Debug, PartialEq, Clone, Serialize, Deserialize)]
+#[derive(Debug, PartialEq, Clone, Serialize, Deserialize, JsonSchema)]
 pub struct UnaryExpr {
     pub op: UnOp,
     pub expr: Box<Expr>,
 }
 
 /// Function call.
-#[derive(Debug, PartialEq, Clone, Serialize, Deserialize)]
+#[derive(Debug, PartialEq, Clone, Serialize, Deserialize, JsonSchema)]
 pub struct FuncCall {
     pub name: Box<Expr>,
     pub args: Vec<Expr>,
@@ -109,7 +116,7 @@ pub struct FuncCall {
 
 /// Function called with possibly missing positional arguments.
 /// May also contain environment that is needed to evaluate the body.
-#[derive(Debug, PartialEq, Clone, Serialize, Deserialize)]
+#[derive(Debug, PartialEq, Clone, Serialize, Deserialize, JsonSchema)]
 pub struct Func {
     /// Type requirement for the function body expression.
     pub return_ty: Option<Ty>,
@@ -127,7 +134,7 @@ pub struct Func {
     pub generic_type_params: Vec<GenericTypeParam>,
 }
 
-#[derive(Debug, PartialEq, Clone, Serialize, Deserialize)]
+#[derive(Debug, PartialEq, Clone, Serialize, Deserialize, JsonSchema)]
 pub struct FuncParam {
     pub name: String,
 
@@ -137,7 +144,7 @@ pub struct FuncParam {
     pub default_value: Option<Box<Expr>>,
 }
 
-#[derive(Debug, PartialEq, Clone, Serialize, Deserialize)]
+#[derive(Debug, PartialEq, Clone, Serialize, Deserialize, JsonSchema)]
 pub struct GenericTypeParam {
     /// Assigned name of this generic type argument.
     pub name: String,
@@ -146,7 +153,7 @@ pub struct GenericTypeParam {
 }
 
 /// A value and a series of functions that are to be applied to that value one after another.
-#[derive(Debug, PartialEq, Clone, Serialize, Deserialize)]
+#[derive(Debug, PartialEq, Clone, Serialize, Deserialize, JsonSchema)]
 pub struct Pipeline {
     pub exprs: Vec<Expr>,
 }

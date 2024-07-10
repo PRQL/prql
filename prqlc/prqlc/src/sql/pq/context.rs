@@ -88,12 +88,12 @@ impl RelationStatus {
 pub enum RelationAdapter {
     Rq(Relation),
     Preprocessed(Vec<SqlTransform>, Vec<RelationColumn>),
-    Srq(SqlRelation),
+    Pq(SqlRelation),
 }
 
 impl From<SqlRelation> for RelationAdapter {
     fn from(rel: SqlRelation) -> Self {
-        RelationAdapter::Srq(rel)
+        RelationAdapter::Pq(rel)
     }
 }
 
@@ -334,9 +334,6 @@ impl RqFold for QueryLoader {
     }
 
     fn fold_table_ref(&mut self, table_ref: TableRef) -> Result<TableRef> {
-        self.context
-            .create_relation_instance(table_ref.clone(), HashMap::new());
-
         Ok(table_ref)
     }
 }

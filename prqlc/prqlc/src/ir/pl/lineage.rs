@@ -3,13 +3,14 @@ use std::fmt::{Debug, Display, Formatter};
 
 use enum_as_inner::EnumAsInner;
 use itertools::{Itertools, Position};
+use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 
 use super::Ident;
 
 /// Represents the object that is manipulated by the pipeline transforms.
 /// Similar to a view in a database or a data frame.
-#[derive(Debug, Clone, Default, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, Default, PartialEq, Eq, Serialize, Deserialize, JsonSchema)]
 pub struct Lineage {
     pub columns: Vec<LineageColumn>,
 
@@ -20,7 +21,7 @@ pub struct Lineage {
     pub prev_columns: Vec<LineageColumn>,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, JsonSchema)]
 pub struct LineageInput {
     /// Id of the node in AST that declares this input.
     pub id: usize,
@@ -32,7 +33,7 @@ pub struct LineageInput {
     pub table: Ident,
 }
 
-#[derive(Debug, Clone, Eq, PartialEq, Serialize, Deserialize, EnumAsInner)]
+#[derive(Debug, Clone, Eq, PartialEq, Serialize, Deserialize, EnumAsInner, JsonSchema)]
 pub enum LineageColumn {
     Single {
         name: Option<Ident>,

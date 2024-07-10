@@ -11,6 +11,7 @@ rust-version.workspace = true
 version.workspace = true
 
 [lib]
+bench = false
 crate-type = ["cdylib"]
 doc = false
 doctest = false

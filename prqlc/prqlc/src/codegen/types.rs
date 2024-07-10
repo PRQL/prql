@@ -1,16 +1,18 @@
-use super::{WriteOpt, WriteSource};
-use crate::ast::*;
+use prqlc_parser::parser::pr;
+
 use crate::codegen::SeparatedExprs;
 
-pub(crate) fn write_ty(ty: &Ty) -> String {
+use super::{WriteOpt, WriteSource};
+
+pub(crate) fn write_ty(ty: &pr::Ty) -> String {
     ty.write(WriteOpt::new_width(u16::MAX)).unwrap()
 }
 
-pub(crate) fn write_ty_kind(ty: &TyKind) -> String {
+pub(crate) fn write_ty_kind(ty: &pr::TyKind) -> String {
     ty.write(WriteOpt::new_width(u16::MAX)).unwrap()
 }
 
-impl WriteSource for Ty {
+impl WriteSource for pr::Ty {
     fn write(&self, opt: WriteOpt) -> Option<String> {
         if let Some(name) = &self.name {
             Some(name.clone())
@@ -20,7 +22,7 @@ impl WriteSource for Ty {
     }
 }
 
-impl WriteSource for Option<&Ty> {
+impl WriteSource for Option<&pr::Ty> {
     fn write(&self, opt: WriteOpt) -> Option<String> {
         match self {
             Some(ty) => ty.write(opt),
@@ -29,9 +31,9 @@ impl WriteSource for Option<&Ty> {
     }
 }
 
-impl WriteSource for TyKind {
+impl WriteSource for pr::TyKind {
     fn write(&self, opt: WriteOpt) -> Option<String> {
-        use TyKind::*;
+        use pr::TyKind::*;
 
         match &self {
             Ident(ident) => ident.write(opt),
@@ -87,7 +89,7 @@ impl WriteSource for TyKind {
     }
 }
 
-impl WriteSource for TyTupleField {
+impl WriteSource for pr::TyTupleField {
     fn write(&self, opt: WriteOpt) -> Option<String> {
         match self {
             Self::Wildcard(generic_el) => match generic_el {
@@ -112,7 +114,7 @@ impl WriteSource for TyTupleField {
     }
 }
 
-struct UnionVariant<'a>(&'a Option<String>, &'a Ty);
+struct UnionVariant<'a>(&'a Option<String>, &'a pr::Ty);
 
 impl WriteSource for UnionVariant<'_> {
     fn write(&self, mut opt: WriteOpt) -> Option<String> {

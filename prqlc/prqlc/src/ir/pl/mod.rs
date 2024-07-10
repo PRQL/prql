@@ -8,9 +8,9 @@
 //!
 //! Top-level construct is a list of statements [`Vec<Stmt>`].
 
-pub use crate::ast::Literal;
-pub use crate::ast::QueryDef;
-pub use crate::ast::{BinOp, BinaryExpr, Ident, UnOp, UnaryExpr};
+pub use crate::pr::Literal;
+pub use crate::pr::QueryDef;
+pub use crate::pr::{BinOp, BinaryExpr, Ident, UnOp, UnaryExpr};
 
 pub use self::expr::*;
 pub use self::extra::*;
@@ -29,9 +29,8 @@ mod utils;
 pub fn print_mem_sizes() {
     use std::mem::size_of;
 
-    use crate::ast::{PrimitiveSet, Ty, TyFunc, TyKind, TyTupleField};
     use crate::ir::{decl, generic, pl, rq};
-    use crate::sql::internal::SqlTransform;
+    use crate::pr::{PrimitiveSet, Ty, TyFunc, TyKind, TyTupleField};
     use crate::{ErrorMessage, ErrorMessages, SourceTree, Span};
 
     println!("{:16}= {}", "Annotation", size_of::<Annotation>());
@@ -78,7 +77,6 @@ pub fn print_mem_sizes() {
     println!("{:16}= {}", "rq::TableRef", size_of::<rq::TableRef>());
     println!("{:16}= {}", "SourceTree", size_of::<SourceTree>());
     println!("{:16}= {}", "Span", size_of::<Span>());
-    println!("{:16}= {}", "SqlTransform", size_of::<SqlTransform>());
     println!("{:16}= {}", "Stmt", size_of::<Stmt>());
     println!("{:16}= {}", "StmtKind", size_of::<StmtKind>());
     println!("{:16}= {}", "SwitchCase", size_of::<SwitchCase>());

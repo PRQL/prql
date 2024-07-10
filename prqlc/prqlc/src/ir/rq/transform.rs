@@ -1,4 +1,5 @@
 use enum_as_inner::EnumAsInner;
+use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 
 use super::*;
@@ -7,7 +8,9 @@ use crate::ir::generic::WindowFrame;
 use crate::ir::pl::JoinSide;
 
 /// Transformation of a table.
-#[derive(Debug, PartialEq, Clone, Serialize, Deserialize, strum::AsRefStr, EnumAsInner)]
+#[derive(
+    Debug, PartialEq, Clone, Serialize, Deserialize, strum::AsRefStr, EnumAsInner, JsonSchema,
+)]
 pub enum Transform {
     From(TableRef),
     Compute(Compute),
@@ -28,14 +31,14 @@ pub enum Transform {
     Loop(Vec<Transform>),
 }
 
-#[derive(Debug, PartialEq, Clone, Serialize, Deserialize)]
+#[derive(Debug, PartialEq, Clone, Serialize, Deserialize, JsonSchema)]
 pub struct Take {
     pub range: Range,
     pub partition: Vec<CId>,
     pub sort: Vec<ColumnSort<CId>>,
 }
 
-#[derive(Debug, PartialEq, Clone, Serialize, Deserialize)]
+#[derive(Debug, PartialEq, Clone, Serialize, Deserialize, JsonSchema)]
 pub struct Compute {
     pub id: CId,
     pub expr: Expr,
@@ -50,7 +53,7 @@ pub struct Compute {
 }
 
 /// Transformation of a table.
-#[derive(Debug, PartialEq, Clone, Serialize, Deserialize, Default)]
+#[derive(Debug, PartialEq, Clone, Serialize, Deserialize, Default, JsonSchema)]
 pub struct Window {
     pub frame: WindowFrame<Expr>,
     pub partition: Vec<CId>,

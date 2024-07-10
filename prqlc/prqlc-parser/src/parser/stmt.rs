@@ -6,8 +6,8 @@ use semver::VersionReq;
 
 use super::common::{ctrl, ident_part, into_stmt, keyword, new_line};
 use super::expr::{expr, expr_call, ident, pipeline};
-use crate::error::parse_error::PError;
 use crate::lexer::lr::{Literal, TokenKind};
+use crate::parser::perror::PError;
 use crate::parser::pr::*;
 use crate::parser::types::type_expr;
 
@@ -128,6 +128,7 @@ fn var_def() -> impl Parser<TokenKind, StmtKind, Error = PError> + Clone {
         .labelled("variable definition");
 
     let main_or_into = pipeline(expr_call())
+        .then_ignore(new_line().repeated())
         .map(Box::new)
         .then(keyword("into").ignore_then(ident_part()).or_not())
         .map(|(value, name)| {

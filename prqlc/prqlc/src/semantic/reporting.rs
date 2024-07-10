@@ -2,11 +2,13 @@ use std::collections::HashMap;
 use std::ops::Range;
 
 use ariadne::{Color, Label, Report, ReportBuilder, ReportKind, Source};
+use schemars::JsonSchema;
 use serde::Serialize;
 
-use crate::ast;
 use crate::ir::decl::{DeclKind, Module, RootModule, TableDecl, TableExpr};
-use crate::ir::pl::*;
+use crate::ir::pl;
+use crate::ir::pl::PlFold;
+use crate::pr;
 use crate::{Result, Span};
 
 pub fn label_references(root_mod: &RootModule, source_id: String, source: String) -> Vec<u8> {
@@ -65,8 +67,8 @@ impl<'a> Labeler<'a> {
     }
 }
 
-impl<'a> PlFold for Labeler<'a> {
-    fn fold_expr(&mut self, node: Expr) -> Result<Expr> {
+impl<'a> pl::PlFold for Labeler<'a> {
+    fn fold_expr(&mut self, node: pl::Expr) -> Result<pl::Expr> {
         if let Some(ident) = node.kind.as_ident() {
             if let Some(span) = node.span {
                 let decl = self.root_mod.module.get(ident);
@@ -122,7 +124,7 @@ impl<'a> PlFold for Labeler<'a> {
                 );
             }
         }
-        Ok(Expr {
+        Ok(pl::Expr {
             kind: self.fold_expr_kind(node.kind)?,
             ..node
         })
@@ -130,7 +132,7 @@ impl<'a> PlFold for Labeler<'a> {
 }
 
 /// Traverses AST and collects all node.frame
-pub fn collect_frames(expr: Expr) -> FrameCollector {
+pub fn collect_frames(expr: pl::Expr) -> FrameCollector {
     let mut collector = FrameCollector {
         frames: vec![],
         nodes: vec![],
@@ -161,7 +163,7 @@ pub fn collect_frames(expr: Expr) -> FrameCollector {
     collector
 }
 
-#[derive(Debug, Clone, PartialEq, Serialize)]
+#[derive(Debug, Clone, PartialEq, Serialize, JsonSchema)]
 pub struct ExprGraphNode {
     /// Node unique ID
     pub id: usize,
@@ -179,7 +181,7 @@ pub struct ExprGraphNode {
 
     /// When kind is Ident, this holds the referenced name
     #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub ident: Option<ExprKind>,
+    pub ident: Option<pl::ExprKind>,
 
     /// Upstream sources of data for this expr as node IDs
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
@@ -194,80 +196,80 @@ pub struct ExprGraphNode {
     pub parent: Option<usize>,
 }
 
-#[derive(Serialize)]
+#[derive(Serialize, JsonSchema)]
 pub struct FrameCollector {
     /// Each transformation step in the main pipeline corresponds to a single
     /// frame. This holds the output columns at each frame, as well as the span
     /// position of the frame.
-    pub frames: Vec<(Option<Span>, Lineage)>,
+    pub frames: Vec<(Option<Span>, pl::Lineage)>,
 
     /// A mapping of expression graph node IDs to their node definitions.
     pub nodes: Vec<ExprGraphNode>,
 
     /// The parsed AST from the provided query.
-    pub ast: Option<ast::ModuleDef>,
+    pub ast: Option<pr::ModuleDef>,
 }
 
 impl PlFold for FrameCollector {
-    fn fold_expr(&mut self, expr: Expr) -> Result<Expr> {
+    fn fold_expr(&mut self, expr: pl::Expr) -> Result<pl::Expr> {
         if let Some(id) = expr.id {
             let targets = match &expr.kind {
-                ExprKind::Ident(_) => {
+                pl::ExprKind::Ident(_) => {
                     if let Some(target_id) = expr.target_id {
                         vec![target_id]
                     } else {
                         vec![]
                     }
                 }
-                ExprKind::RqOperator { args, .. } => args.iter().filter_map(|e| e.id).collect(),
-                ExprKind::Case(switch) => switch
+                pl::ExprKind::RqOperator { args, .. } => args.iter().filter_map(|e| e.id).collect(),
+                pl::ExprKind::Case(switch) => switch
                     .iter()
                     .flat_map(|c| vec![c.condition.id.unwrap(), c.value.id.unwrap()])
                     .collect(),
-                ExprKind::SString(iv) | ExprKind::FString(iv) => iv
+                pl::ExprKind::SString(iv) | pl::ExprKind::FString(iv) => iv
                     .iter()
                     .filter_map(|i| match i {
-                        InterpolateItem::Expr { expr: e, .. } => e.id,
+                        pl::InterpolateItem::Expr { expr: e, .. } => e.id,
                         _ => None,
                     })
                     .collect(),
                 _ => vec![],
             };
 
-            let ident = if matches!(&expr.kind, ExprKind::Ident(_)) {
+            let ident = if matches!(&expr.kind, pl::ExprKind::Ident(_)) {
                 Some(expr.kind.clone())
             } else {
                 None
             };
 
             let children = match &expr.kind {
-                ExprKind::Tuple(args) | ExprKind::Array(args) => {
+                pl::ExprKind::Tuple(args) | pl::ExprKind::Array(args) => {
                     args.iter().filter_map(|e| e.id).collect()
                 }
-                ExprKind::TransformCall(tc) => {
+                pl::ExprKind::TransformCall(tc) => {
                     let mut tcc = vec![tc.input.id.unwrap()];
 
                     match *tc.kind {
-                        TransformKind::Derive { assigns: ref e }
-                        | TransformKind::Select { assigns: ref e }
-                        | TransformKind::Filter { filter: ref e }
-                        | TransformKind::Append(ref e)
-                        | TransformKind::Loop(ref e)
-                        | TransformKind::Group {
+                        pl::TransformKind::Derive { assigns: ref e }
+                        | pl::TransformKind::Select { assigns: ref e }
+                        | pl::TransformKind::Filter { filter: ref e }
+                        | pl::TransformKind::Append(ref e)
+                        | pl::TransformKind::Loop(ref e)
+                        | pl::TransformKind::Group {
                             pipeline: ref e, ..
                         }
-                        | TransformKind::Window {
+                        | pl::TransformKind::Window {
                             pipeline: ref e, ..
                         } => {
                             tcc.push(e.id.unwrap());
                         }
-                        TransformKind::Aggregate { assigns: ref e } => {
+                        pl::TransformKind::Aggregate { assigns: ref e } => {
                             tcc.push(e.id.unwrap());
                             if let Some(p) = &tc.partition {
                                 tcc.push(p.id.unwrap())
                             }
                         }
-                        TransformKind::Join {
+                        pl::TransformKind::Join {
                             ref with,
                             ref filter,
                             ..
@@ -275,7 +277,7 @@ impl PlFold for FrameCollector {
                             tcc.push(with.id.unwrap());
                             tcc.push(filter.id.unwrap());
                         }
-                        TransformKind::Take { ref range } => {
+                        pl::TransformKind::Take { ref range } => {
                             if let Some(e) = &range.start {
                                 tcc.push(e.id.unwrap());
                             }
@@ -283,7 +285,7 @@ impl PlFold for FrameCollector {
                                 tcc.push(e.id.unwrap());
                             }
                         }
-                        TransformKind::Sort { ref by } => {
+                        pl::TransformKind::Sort { ref by } => {
                             for c in by {
                                 tcc.push(c.column.id.unwrap());
                             }
@@ -296,7 +298,7 @@ impl PlFold for FrameCollector {
             };
 
             let kind = match &expr.kind {
-                ExprKind::TransformCall(tc) => {
+                pl::ExprKind::TransformCall(tc) => {
                     let tc_kind = tc.kind.as_ref().as_ref().to_string();
 
                     format!("TransformCall: {tc_kind}")
@@ -319,14 +321,14 @@ impl PlFold for FrameCollector {
         self.nodes.sort_by(|a, b| a.id.cmp(&b.id));
         self.nodes.dedup();
 
-        if matches!(expr.kind, ExprKind::TransformCall(_)) {
+        if matches!(expr.kind, pl::ExprKind::TransformCall(_)) {
             let lineage = expr.lineage.clone();
             if let Some(lineage) = lineage {
                 self.frames.push((expr.span, lineage));
             }
         }
 
-        Ok(Expr {
+        Ok(pl::Expr {
             kind: self.fold_expr_kind(expr.kind)?,
             ..expr
         })

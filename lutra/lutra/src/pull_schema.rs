@@ -2,7 +2,7 @@ use anyhow::Result;
 use arrow::datatypes::{DataType, SchemaRef};
 use connector_arrow::api::SchemaGet;
 use itertools::Itertools;
-use prqlc::ast::{PrimitiveSet, Stmt, Ty, TyKind, TyTupleField, VarDef};
+use prqlc::pr::{PrimitiveSet, Stmt, Ty, TyKind, TyTupleField, VarDef};
 use prqlc::{Error, WithErrorInfo};
 
 use crate::ProjectCompiled;
@@ -45,7 +45,7 @@ fn convert_arrow_schema_to_table_def(table_name: String, schema: SchemaRef) -> R
         .try_collect()?;
 
     let def = VarDef {
-        kind: prqlc::ast::VarDefKind::Let,
+        kind: prqlc::pr::VarDefKind::Let,
         name: table_name,
         value: None,
         ty: Some(Ty::new(TyKind::Array(Box::new(Ty::new(TyKind::Tuple(
@@ -53,7 +53,7 @@ fn convert_arrow_schema_to_table_def(table_name: String, schema: SchemaRef) -> R
         )))))),
     };
 
-    let stmt = Stmt::new(prqlc::ast::StmtKind::VarDef(def));
+    let stmt = Stmt::new(prqlc::pr::StmtKind::VarDef(def));
 
     Ok(stmt)
 }
@@ -95,7 +95,11 @@ fn convert_arrow_type(ty: &DataType) -> Result<TyKind, Error> {
         | DataType::Decimal128(_, _)
         | DataType::Decimal256(_, _)
         | DataType::Map(_, _)
-        | DataType::RunEndEncoded(_, _) => {
+        | DataType::RunEndEncoded(_, _)
+        | DataType::BinaryView
+        | DataType::Utf8View
+        | DataType::ListView(_)
+        | DataType::LargeListView(_) => {
             return Err(Error::new_simple(format!(
                 "cannot convert arrow type {ty:?} a PRQL type"
             )))

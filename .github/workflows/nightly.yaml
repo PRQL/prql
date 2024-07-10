@@ -52,7 +52,10 @@ jobs:
       - uses: clechasseur/rs-cargo@v2
         with:
           command: bench
-          args: -p prqlc
+          # GH Actions is fairly noisy, so the precise details don't matter that
+          # much. We do want to check the benchmarks run, and possibly we can
+          # use this to identify and big changes in performance.
+          args: -- --warm-up-time=0.3 --measurement-time=1
 
   time-compilation:
     runs-on: ubuntu-latest
@@ -65,13 +68,19 @@ jobs:
       - uses: ./.github/actions/time-compilation
         with:
           use_cache: ${{ matrix.use_cache }}
+    # We need consistent env vars across all workflows for the cache to work
+    env:
+      CARGO_TERM_COLOR: always
+      CLICOLOR_FORCE: 1
+      RUSTFLAGS: "-C debuginfo=0"
+      RUSTDOCFLAGS: "-Dwarnings"
 
   check-unused-dependencies:
     runs-on: ubuntu-latest
     steps:
       - name: 📂 Checkout code
         uses: actions/checkout@v4
-      - run: rustup override set nightly-2023-11-22
+      - run: rustup override set nightly-2024-06-30
       - uses: baptiste0928/cargo-install@v3
         with:
           crate: cargo-udeps

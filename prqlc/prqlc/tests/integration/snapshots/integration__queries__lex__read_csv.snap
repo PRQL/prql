@@ -3,7 +3,7 @@ source: prqlc/prqlc/tests/integration/queries.rs
 expression: tokens
 input_file: prqlc/prqlc/tests/integration/queries/read_csv.prql
 ---
-TokenVec(
+Tokens(
     [
         0..13: Comment(" sqlite:skip"),
         13..14: NewLine,

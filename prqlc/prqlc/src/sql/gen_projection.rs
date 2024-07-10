@@ -8,7 +8,7 @@ use sqlparser::ast::{
 
 use super::dialect::ColumnExclude;
 use super::gen_expr::*;
-use super::srq::context::{AnchorContext, ColumnDecl};
+use super::pq::context::{AnchorContext, ColumnDecl};
 use super::Context;
 use crate::ir::pl::Ident;
 use crate::ir::rq::{CId, RelationColumn};
@@ -156,9 +156,14 @@ pub(super) fn translate_select_items(
         })
         .try_collect()?;
 
-    if res.is_empty() {
-        // in some cases, no columns will appear in the projection
+    if res.is_empty() && !ctx.dialect.supports_zero_columns() {
+        // In some cases, no columns will appear in the projection
         // for SQL to parse correctly, we inject a `NULL`.
+        // This is not strictly correct and should probably generate an error
+        // instead.
+        // Example: `from x | take 10 | aggregate { count this }`.
+        // Here, first SELECT does not need to emit any columns as we don't need
+        // any since we just count the number of rows.
         res.push(SelectItem::UnnamedExpr(sql_ast::Expr::Value(
             sql_ast::Value::Null,
         )));

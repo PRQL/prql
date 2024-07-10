@@ -21,7 +21,6 @@ cli = [
   "clio",
   "color-eyre",
   "colorchoice-clap",
-  "env_logger",
   "is-terminal",
   "minijinja",
   "notify",
@@ -49,6 +48,7 @@ enum-as-inner = {workspace = true}
 itertools = {workspace = true}
 log = {workspace = true}
 regex = "1.10.5"
+schemars = {workspace = true}
 semver = {workspace = true}
 # serde is required for the `from_text` feature of PRQL, so we can't really put
 # it behind a feature.
@@ -57,7 +57,7 @@ serde_json = {workspace = true}
 serde_yaml = {workspace = true, optional = true}
 sqlformat = "0.2.4"
 sqlparser = {version = "0.47.0", features = ["serde"]}
-strum = {version = "0.26.2", features = ["std", "derive"]}
+strum = {version = "0.26.3", features = ["std", "derive"]}
 strum_macros = "0.26.4"
 
 [target.'cfg(not(target_family="wasm"))'.dependencies]
@@ -72,7 +72,6 @@ clap-verbosity-flag = {version = "=2.1.2", optional = true}
 clio = {version = "0.3.3", features = ['clap-parse'], optional = true}
 color-eyre = {version = "0.6.3", optional = true}
 colorchoice-clap = {version = "1.0.0", optional = true}
-env_logger = {version = "0.10.2", features = ["color"], optional = true}
 is-terminal = {version = "0.4.12", optional = true}
 notify = {version = "6.1.1", optional = true}
 walkdir = {version = "2.5.0", optional = true}
@@ -85,7 +84,7 @@ clap_complete_fig = {version = "=4.4.2", optional = true}
 
 # We use minijinja just for the Jinja lexer, which is not part of the
 # public interface which is covered by semver guarantees.
-minijinja = {version = "2.0.2", features = ["unstable_machinery"], optional = true}
+minijinja = {version = "2.0.3", features = ["unstable_machinery"], optional = true}
 
 # For integration tests. These are gated by the `test-dbs` and `test-dbs-external` features,
 # rather than dev-dependencies, because dev-dependencies can't be optional.
@@ -109,7 +108,8 @@ insta-cmd = {workspace = true}
 rstest = "0.21.0"
 similar = {version = "2.5.0"}
 similar-asserts = "1.5.0"
-test_each_file = "0.3.2"
+tempfile = {version = "3.10.0"}
+test_each_file = "0.3.3"
 
 # We use `benches/bench.rs` for the benchmark harness so disable searching for
 # benchmarks in bin & lib here to simplify using criterion

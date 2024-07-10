@@ -7,7 +7,7 @@ use super::ast_expand;
 use crate::ir::pl::{Expr, ExprKind, Func, FuncParam, Ident, PlFold};
 use crate::{Error, Result, Span, WithErrorInfo};
 
-pub fn eval(expr: crate::ast::Expr) -> Result<Expr> {
+pub fn eval(expr: crate::pr::Expr) -> Result<Expr> {
     let expr = ast_expand::expand_expr(expr)?;
 
     Evaluator::new().fold_expr(expr)

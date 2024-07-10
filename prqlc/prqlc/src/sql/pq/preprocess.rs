@@ -1,20 +1,19 @@
 use std::cmp::Ordering;
 use std::collections::hash_map::RandomState;
-use std::collections::HashSet;
+use std::collections::{HashMap, HashSet};
 
 use itertools::Itertools;
 
 use super::anchor::{infer_complexity, CidCollector, Complexity};
 use super::ast::*;
-use super::context::RIId;
+
 use crate::ir::generic::{ColumnSort, SortDirection, WindowFrame, WindowKind};
 use crate::ir::pl::{JoinSide, Literal};
 use crate::ir::rq::{
-    self, maybe_binop, new_binop, CId, Compute, Expr, ExprKind, RqFold, TableRef, Transform, Window,
+    self, maybe_binop, new_binop, CId, Compute, Expr, ExprKind, RqFold, Transform, Window,
 };
-use crate::sql::srq::context::ColumnDecl;
 use crate::sql::Context;
-use crate::{Error, Result, WithErrorInfo};
+use crate::{debug, Error, Result, WithErrorInfo};
 use prqlc_parser::generic::{InterpolateItem, Range};
 
 /// Converts RQ AST into SqlRQ AST and applies a few preprocessing operations.
@@ -34,6 +33,10 @@ pub(in crate::sql) fn preprocess(
         .and_then(|p| except(p, ctx))
         .and_then(|p| intersect(p, ctx))
         .map(reorder)
+        .map(|p| {
+            debug::log_entry(|| debug::DebugEntryKind::ReprPqEarly(p.clone()));
+            p
+        })
 }
 
 // This function was disabled because it changes semantics of the pipeline in some cases.
@@ -92,21 +95,6 @@ pub(in crate::sql) fn prune_inputs(
     Ok(res)
 }
 
-fn lookup_riid(table_ref: &TableRef, ctx: &mut Context) -> Result<RIId> {
-    // table ref should have already been loaded into context
-    // now we can look it up and replace with its RIId
-
-    let Some((_, cid)) = table_ref.columns.first() else {
-        return Err(Error::new_simple("invalid RQ: table ref without columns"));
-    };
-
-    let ColumnDecl::RelationColumn(riid, _, _) = ctx.anchor.column_decls[cid] else {
-        unreachable!();
-    };
-
-    Ok(riid)
-}
-
 pub(in crate::sql) fn wrap(pipe: Vec<Transform>, ctx: &mut Context) -> Result<Vec<SqlTransform>> {
     // We map From and Join into SqlTransforms, because we need to change their RIIds.
     // Others we just wrap into SqlTransform::Super.
@@ -115,11 +103,13 @@ pub(in crate::sql) fn wrap(pipe: Vec<Transform>, ctx: &mut Context) -> Result<Ve
         .map(|x| {
             Ok(match x {
                 Transform::From(table_ref) => {
-                    let riid = lookup_riid(&table_ref, ctx)?;
+                    let riid = ctx
+                        .anchor
+                        .create_relation_instance(table_ref, HashMap::new());
                     SqlTransform::From(riid)
                 }
                 Transform::Join { with, side, filter } => {
-                    let with = lookup_riid(&with, ctx)?;
+                    let with = ctx.anchor.create_relation_instance(with, HashMap::new());
                     SqlTransform::Join { with, side, filter }
                 }
                 x => SqlTransform::Super(x),
@@ -300,7 +290,7 @@ pub(in crate::sql) fn union(
             res.push(t);
             continue;
         };
-        let bottom = lookup_riid(&bottom, ctx)?;
+        let bottom = ctx.anchor.create_relation_instance(bottom, HashMap::new());
 
         let distinct = if let Some(Distinct) = &pipeline.peek() {
             pipeline.next();

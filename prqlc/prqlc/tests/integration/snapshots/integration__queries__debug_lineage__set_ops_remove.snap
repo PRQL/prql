@@ -249,32 +249,46 @@ ast:
               - FuncCall:
                   name:
                     Ident: from
+                    span: 1:36-40
                   args:
                   - Indirection:
                       base:
                         Ident: _param
+                        span: 1:45-51
                       field: !Name rel
+                    span: 1:51-55
                     alias: t
+                span: 1:36-55
               - FuncCall:
                   name:
                     Ident: group
+                    span: 1:58-63
                   args:
                   - Tuple:
                     - Indirection:
                         base:
                           Ident: t
+                          span: 1:65-66
                         field: Star
+                      span: 1:65-68
+                    span: 1:64-69
                   - FuncCall:
                       name:
                         Ident: take
+                        span: 1:71-75
                       args:
                       - Literal:
                           Integer: 1
+                        span: 1:76-77
+                    span: 1:71-77
+                span: 1:58-78
+            span: 1:35-79
           params:
           - name: rel
             default_value: null
           named_params: []
           generic_type_params: []
+        span: 1:28-79
     span: 1:13-79
   - VarDef:
       kind: Main
@@ -285,29 +299,44 @@ ast:
           - FuncCall:
               name:
                 Ident: from_text
+                span: 1:81-90
               args:
               - Literal:
                   String: '{ "columns": ["a"], "data": [[1], [2], [2], [3]] }'
+                span: 1:103-155
               named_args:
                 format:
                   Ident: json
+                  span: 1:98-102
+            span: 1:81-155
           - Ident: distinct
+            span: 1:156-164
           - FuncCall:
               name:
                 Ident: remove
+                span: 1:165-171
               args:
               - FuncCall:
                   name:
                     Ident: from_text
+                    span: 1:173-182
                   args:
                   - Literal:
                       String: '{ "columns": ["a"], "data": [[1], [2]] }'
+                    span: 1:195-237
                   named_args:
                     format:
                       Ident: json
+                      span: 1:190-194
+                span: 1:173-237
+            span: 1:165-238
           - FuncCall:
               name:
                 Ident: sort
+                span: 1:239-243
               args:
               - Ident: a
+                span: 1:244-245
+            span: 1:239-245
+        span: 1:81-245
     span: 1:81-246

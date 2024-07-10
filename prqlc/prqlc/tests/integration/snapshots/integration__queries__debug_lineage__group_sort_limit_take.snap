@@ -311,65 +311,104 @@ ast:
           - FuncCall:
               name:
                 Ident: from
+                span: 1:76-80
               args:
               - Ident: tracks
+                span: 1:81-87
+            span: 1:76-87
           - FuncCall:
               name:
                 Ident: select
+                span: 1:88-94
               args:
               - Tuple:
                 - Ident: genre_id
+                  span: 1:96-104
                 - Ident: milliseconds
+                  span: 1:105-117
+                span: 1:95-118
+            span: 1:88-118
           - FuncCall:
               name:
                 Ident: group
+                span: 1:119-124
               args:
               - Tuple:
                 - Ident: genre_id
+                  span: 1:126-134
+                span: 1:125-135
               - Pipeline:
                   exprs:
                   - FuncCall:
                       name:
                         Ident: sort
+                        span: 1:140-144
                       args:
                       - Tuple:
                         - Unary:
                             op: Neg
                             expr:
                               Ident: milliseconds
+                              span: 1:147-159
+                          span: 1:146-159
+                        span: 1:145-160
+                    span: 1:140-160
                   - FuncCall:
                       name:
                         Ident: take
+                        span: 1:163-167
                       args:
                       - Literal:
                           Integer: 3
+                        span: 1:168-169
+                    span: 1:163-169
+                span: 1:140-169
+            span: 1:119-171
           - FuncCall:
               name:
                 Ident: join
+                span: 1:172-176
               args:
               - Ident: genres
+                span: 1:177-183
               - Unary:
                   op: EqSelf
                   expr:
                     Ident: genre_id
+                    span: 1:187-195
+                span: 1:185-195
+            span: 1:172-196
           - FuncCall:
               name:
                 Ident: select
+                span: 1:197-203
               args:
               - Tuple:
                 - Ident: name
+                  span: 1:205-209
                 - Ident: milliseconds
+                  span: 1:211-223
+                span: 1:204-224
+            span: 1:197-224
           - FuncCall:
               name:
                 Ident: sort
+                span: 1:225-229
               args:
               - Tuple:
                 - Unary:
                     op: Add
                     expr:
                       Ident: name
+                      span: 1:232-236
+                  span: 1:231-236
                 - Unary:
                     op: Neg
                     expr:
                       Ident: milliseconds
+                      span: 1:238-250
+                  span: 1:237-250
+                span: 1:230-251
+            span: 1:225-251
+        span: 1:76-251
     span: 1:76-252

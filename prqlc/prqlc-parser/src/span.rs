@@ -2,10 +2,11 @@ use std::fmt::{self, Debug, Formatter};
 use std::ops::{Add, Range, Sub};
 
 use chumsky::Stream;
+use schemars::JsonSchema;
 use serde::de::Visitor;
 use serde::{Deserialize, Serialize};
 
-#[derive(Clone, PartialEq, Eq, Copy)]
+#[derive(Clone, PartialEq, Eq, Copy, JsonSchema)]
 pub struct Span {
     pub start: usize,
     pub end: usize,

@@ -53,16 +53,25 @@ ast:
           - FuncCall:
               name:
                 Ident: from
+                span: 1:43-47
               args:
               - FuncCall:
                   name:
                     Ident: read_csv
+                    span: 1:49-57
                   args:
                   - Literal:
                       String: data_file_root/media_types.csv
+                    span: 1:58-90
+                span: 1:49-90
+            span: 1:43-91
           - FuncCall:
               name:
                 Ident: sort
+                span: 1:92-96
               args:
               - Ident: media_type_id
+                span: 1:97-110
+            span: 1:92-110
+        span: 1:43-110
     span: 1:43-111

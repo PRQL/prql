@@ -9,13 +9,14 @@ rust-version.workspace = true
 version.workspace = true
 
 [lib]
+bench = false
 doctest = false
-proc_macro = true
+proc-macro = true
 test = false
 
 [dependencies]
 prqlc = {path = "../prqlc", default-features = false, version = "0.12.3"}
-syn = "2.0.66"
+syn = "2.0.69"
 
 [package.metadata.release]
 tag-name = "{{version}}"

@@ -76,8 +76,9 @@ fn test_stdlib_math_module() {
       salary_tan = math.tan salary,
       salary_atan = math.atan salary,
       salary_pow = salary | math.pow 2,
+      salary_pow_op = salary ** 2,
     }
-    "#).unwrap(), @r#"
+    "#).unwrap(), @r###"
     SELECT
       ABS(salary) AS salary_abs,
       FLOOR(salary) AS salary_floor,
@@ -96,10 +97,11 @@ fn test_stdlib_math_module() {
       ASIN(salary) AS salary_asin,
       TAN(salary) AS salary_tan,
       ATAN(salary) AS salary_atan,
-      POW(salary, 2) AS salary_pow
+      POW(salary, 2) AS salary_pow,
+      POW(salary, 2) AS salary_pow_op
     FROM
       employees
-    "#
+    "###
     );
 }
 
@@ -4192,7 +4194,7 @@ fn test_name_inference() {
 }
 
 #[test]
-fn test_from_text() {
+fn test_from_text_01() {
     assert_snapshot!(compile(r#"
     from_text format:csv """
 a,b,c
@@ -4221,7 +4223,10 @@ a,b,c
       table_0
     "###
     );
+}
 
+#[test]
+fn test_from_text_02() {
     assert_snapshot!(compile(r#"
     from_text format:json '''
       [{"a": 1, "b": "x", "c": false }, {"a": 4, "b": "y", "c": null }]
@@ -4248,7 +4253,10 @@ a,b,c
       table_0
     "###
     );
+}
 
+#[test]
+fn test_from_text_03() {
     assert_snapshot!(compile(r#"
     std.from_text format:json '''{
         "columns": ["a", "b", "c"],
@@ -4275,6 +4283,92 @@ a,b,c
     SELECT
       b,
       c
+    FROM
+      table_0
+    "###
+    );
+}
+
+#[test]
+fn test_from_text_04() {
+    assert_snapshot!(compile(r#"
+    std.from_text 'a,b'
+    "#).unwrap(),
+        @r###"
+    WITH table_0 AS (
+      SELECT
+        NULL AS a,
+        NULL AS b
+      WHERE
+        false
+    )
+    SELECT
+      a,
+      b
+    FROM
+      table_0
+    "###
+    );
+}
+
+#[test]
+fn test_from_text_05() {
+    assert_snapshot!(compile(r#"
+    std.from_text format:json '''{"columns": ["a", "b", "c"], "data": []}'''
+    "#).unwrap(),
+        @r###"
+    WITH table_0 AS (
+      SELECT
+        NULL AS a,
+        NULL AS b,
+        NULL AS c
+      WHERE
+        false
+    )
+    SELECT
+      a,
+      b,
+      c
+    FROM
+      table_0
+    "###
+    );
+}
+
+#[test]
+fn test_from_text_06() {
+    assert_snapshot!(compile(r#"
+    std.from_text ''
+    "#).unwrap(),
+        @r###"
+    WITH table_0 AS (
+      SELECT
+        NULL
+      WHERE
+        false
+    )
+    SELECT
+      NULL
+    FROM
+      table_0
+    "###
+    );
+}
+
+#[test]
+fn test_from_text_07() {
+    assert_snapshot!(compile(r#"
+    std.from_text format:json '''{"columns": [], "data": [[], []]}'''
+    "#).unwrap(),
+        @r###"
+    WITH table_0 AS (
+      SELECT
+      UNION
+      ALL
+      SELECT
+    )
+    SELECT
+      NULL
     FROM
       table_0
     "###

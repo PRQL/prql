@@ -338,9 +338,9 @@ tasks:
       Code's [Coverage
       Gutters](https://marketplace.visualstudio.com/items?itemName=ryanluker.vscode-coverage-gutters)
       extension.
-    env:
-      # Use a different target dir so we don't poison the cache
-      CARGO_TARGET_DIR: "./target-cov"
+      # We previously had a different target dir, but the default seems to use `target/llvm-cov` as its target already, so we can remove this assuming it works OK
+      # env:
+      # CARGO_TARGET_DIR: "./target-cov"
     cmds:
       - cargo llvm-cov --lcov --output-path lcov.info
         --features=default,test-dbs

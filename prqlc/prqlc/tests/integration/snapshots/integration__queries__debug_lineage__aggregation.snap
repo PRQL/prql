@@ -207,54 +207,83 @@ ast:
           - FuncCall:
               name:
                 Ident: from
+                span: 1:102-106
               args:
               - Ident: tracks
+                span: 1:107-113
+            span: 1:102-113
           - FuncCall:
               name:
                 Ident: filter
+                span: 1:114-120
               args:
               - Binary:
                   left:
                     Ident: genre_id
+                    span: 1:121-129
                   op: Eq
                   right:
                     Literal:
                       Integer: 100
+                    span: 1:133-136
+                span: 1:121-136
+            span: 1:114-136
           - FuncCall:
               name:
                 Ident: derive
+                span: 1:137-143
               args:
               - Binary:
                   left:
                     Ident: name
+                    span: 1:157-161
                   op: Eq
                   right:
                     Literal:
                       String: ''
+                    span: 1:165-167
+                span: 1:157-167
                 alias: empty_name
+            span: 1:137-167
           - FuncCall:
               name:
                 Ident: aggregate
+                span: 1:168-177
               args:
               - Tuple:
                 - FuncCall:
                     name:
                       Ident: sum
+                      span: 1:179-182
                     args:
                     - Ident: track_id
+                      span: 1:183-191
+                  span: 1:179-191
                 - FuncCall:
                     name:
                       Ident: concat_array
+                      span: 1:193-205
                     args:
                     - Ident: name
+                      span: 1:206-210
+                  span: 1:193-210
                 - FuncCall:
                     name:
                       Ident: all
+                      span: 1:212-215
                     args:
                     - Ident: empty_name
+                      span: 1:216-226
+                  span: 1:212-226
                 - FuncCall:
                     name:
                       Ident: any
+                      span: 1:228-231
                     args:
                     - Ident: empty_name
+                      span: 1:232-242
+                  span: 1:228-242
+                span: 1:178-243
+            span: 1:168-243
+        span: 1:102-243
     span: 1:102-244

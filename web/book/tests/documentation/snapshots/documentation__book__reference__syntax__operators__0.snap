@@ -1,20 +1,21 @@
 ---
 source: web/book/tests/documentation/book.rs
-expression: "from foo\nselect {\n  circumference = diameter * 3.14159,\n  color,\n}\nfilter circumference > 10 && color != \"red\"\n"
+expression: "from foo\nselect {\n  circumference = diameter * 3.14159,\n  area = (diameter / 2) ** 2,\n  color,\n}\nfilter circumference > 10 && color != \"red\"\n"
 ---
 WITH table_0 AS (
   SELECT
     diameter * 3.14159 AS circumference,
+    POW(diameter / 2, 2) AS area,
     color
   FROM
     foo
 )
 SELECT
   circumference,
+  area,
   color
 FROM
   table_0
 WHERE
   circumference > 10
   AND color <> 'red'
-

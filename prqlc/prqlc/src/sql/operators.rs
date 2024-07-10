@@ -8,14 +8,16 @@ use itertools::Itertools;
 use super::gen_expr::{translate_operand, ExprOrSource, SourceExpr};
 use super::{Context, Dialect};
 use crate::ir::{decl, pl, rq};
-use crate::semantic;
 use crate::utils::Pluck;
 use crate::Result;
+use crate::{debug, semantic};
 use crate::{Error, WithErrorInfo};
 
 fn std() -> &'static decl::Module {
     static STD: OnceLock<decl::Module> = OnceLock::new();
     STD.get_or_init(|| {
+        let _suppressed = debug::log_suppress();
+
         let std_lib = crate::SourceTree::new(
             [(
                 PathBuf::from("std.prql"),
@@ -26,6 +28,7 @@ fn std() -> &'static decl::Module {
         let ast = crate::parser::parse(&std_lib).unwrap();
         let options = semantic::ResolverOptions {};
         let context = semantic::resolve(ast, options).unwrap();
+
         context.module
     })
 }

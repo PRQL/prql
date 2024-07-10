@@ -9,16 +9,18 @@ rust-version.workspace = true
 version.workspace = true
 
 [lib]
+bench = false
 doctest = false
 
 [dependencies]
 enum-as-inner = {workspace = true}
 itertools = {workspace = true}
 log = {workspace = true}
+schemars = {workspace = true}
+semver = {version = "1.0.23", features = ["serde"]}
 serde = {workspace = true}
 serde_yaml = {workspace = true, optional = true}
-semver = {version = "1.0.23", features = ["serde"]}
-strum = {version = "0.26.2", features = ["std", "derive"]}
+strum = {version = "0.26.3", features = ["std", "derive"]}
 
 # Chumsky's default features have issues when running in wasm (though we only
 # see it when compiling on macOS), so we only include features when running

@@ -415,6 +415,8 @@ jobs:
         with:
           save-if: ${{ github.ref == 'refs/heads/main' }}
           prefix-key: ${{ env.version }}
+      # Ensure nothing remains from caching
+      - run: cargo llvm-cov clean --workspace
       - run:
           # We considered moving to using `codecov.json` with
           # `--codecov --output-path=codecov.json` since that has branch & region
@@ -474,7 +476,7 @@ jobs:
       - name: 📂 Checkout code
         uses: actions/checkout@v4
       - name: 🧅 Setup Bun
-        uses: oven-sh/setup-bun@v1
+        uses: oven-sh/setup-bun@v2
         with:
           bun-version: latest
       - name: Install dependencies
@@ -526,7 +528,7 @@ jobs:
     steps:
       - name: 📂 Checkout code
         uses: actions/checkout@v4
-      - run: rustup override set nightly-2023-11-22
+      - run: rustup override set nightly-2024-06-30
       - uses: baptiste0928/cargo-install@v3
         with:
           crate: cargo-hack
@@ -649,8 +651,7 @@ jobs:
           target: ${{ matrix.target }}
           profile: dev
           features: ${{ matrix.features }}
-    # These are the same env variables as in `test-rust.yaml`. Custom actions
-    # don't allow setting env variables for the whole job, so we do it here.
+    # We need consistent env vars across all workflows for the cache to work
     env:
       CARGO_TERM_COLOR: always
       CLICOLOR_FORCE: 1
@@ -683,8 +684,7 @@ jobs:
           target: ${{ matrix.target }}
           profile: dev
           features: ${{ matrix.features }}
-    # These are the same env variables as in `test-rust.yaml`. Custom actions
-    # don't allow setting env variables for the whole job, so we do it here.
+    # We need consistent env vars across all workflows for the cache to work
     env:
       CARGO_TERM_COLOR: always
       CLICOLOR_FORCE: 1

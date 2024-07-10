@@ -2,14 +2,14 @@ use std::collections::{HashMap, HashSet};
 
 use itertools::Itertools;
 
-use super::ast::{SqlTransform, SrqMapper};
+use super::ast::{PqMapper, SqlTransform};
 use super::context::{AnchorContext, ColumnDecl, RIId, RelationStatus, SqlTableDecl};
 use crate::ir::generic::ColumnSort;
 use crate::ir::rq::{
     self, fold_column_sorts, fold_transform, CId, Compute, Expr, RelationColumn, RqFold, TableRef,
     Transform,
 };
-use crate::sql::srq::context::RelationAdapter;
+use crate::sql::pq::context::RelationAdapter;
 use crate::Result;
 
 /// Extract last part of pipeline that is able to "fit" into a single SELECT statement.
@@ -666,7 +666,7 @@ impl<'a> RqFold for CidRedirector<'a> {
     }
 }
 
-impl<'a> SrqMapper<RIId, RIId, Transform, Transform> for CidRedirector<'a> {
+impl<'a> PqMapper<RIId, RIId, Transform, Transform> for CidRedirector<'a> {
     fn fold_rel(&mut self, rel: RIId) -> Result<RIId> {
         Ok(rel)
     }

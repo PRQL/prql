@@ -177,35 +177,55 @@ ast:
           - FuncCall:
               name:
                 Ident: from
+                span: 1:13-17
               args:
               - Ident: tracks
+                span: 1:18-24
+            span: 1:13-24
           - FuncCall:
               name:
                 Ident: select
+                span: 1:25-31
               args:
               - Tuple:
                 - Ident: album_id
+                  span: 1:33-41
                 - Ident: genre_id
+                  span: 1:43-51
+                span: 1:32-52
+            span: 1:25-52
           - FuncCall:
               name:
                 Ident: group
+                span: 1:53-58
               args:
               - Indirection:
                   base:
                     Ident: tracks
+                    span: 1:59-65
                   field: Star
+                span: 1:65-67
               - FuncCall:
                   name:
                     Ident: take
+                    span: 1:69-73
                   args:
                   - Literal:
                       Integer: 1
+                    span: 1:74-75
+                span: 1:69-75
+            span: 1:53-76
           - FuncCall:
               name:
                 Ident: sort
+                span: 1:77-81
               args:
               - Indirection:
                   base:
                     Ident: tracks
+                    span: 1:82-88
                   field: Star
+                span: 1:88-90
+            span: 1:77-90
+        span: 1:13-90
     span: 1:13-91

@@ -9,6 +9,7 @@ expression: "resolve_derive(r#\"\n            from a\n            derive one = (
           - this
           - a
           - foo
+        span: "1:46-49"
         ty:
           kind:
             Array:
@@ -17,6 +18,7 @@ expression: "resolve_derive(r#\"\n            from a\n            derive one = (
               name: ~
           span: "0:1928-1937"
           name: array
+  span: "1:52-55"
   alias: one
   ty:
     kind:

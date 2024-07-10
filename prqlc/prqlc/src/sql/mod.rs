@@ -6,18 +6,21 @@ mod gen_projection;
 mod gen_query;
 mod keywords;
 mod operators;
-mod srq;
+mod pq;
 
 pub use dialect::{Dialect, SupportLevel};
+pub use pq::ast as pq_ast;
 
 use self::dialect::DialectHandler;
-use self::srq::ast::Cte;
-use self::srq::context::AnchorContext;
+use self::pq::ast::Cte;
+use self::pq::context::AnchorContext;
+use crate::debug;
+use crate::ir::rq;
 use crate::Result;
-use crate::{compiler_version, ir::rq::RelationalQuery, Options};
+use crate::{compiler_version, Options};
 
 /// Translate a PRQL AST into a SQL string.
-pub fn compile(query: RelationalQuery, options: &Options) -> Result<String> {
+pub fn compile(query: rq::RelationalQuery, options: &Options) -> Result<String> {
     let crate::Target::Sql(dialect) = options.target;
     let sql_ast = gen_query::translate_query(query, dialect)?;
 
@@ -35,6 +38,8 @@ pub fn compile(query: RelationalQuery, options: &Options) -> Result<String> {
     } else {
         sql
     };
+
+    debug::log_entry(|| debug::DebugEntryKind::ReprSql(sql.clone()));
 
     // signature
     let sql = if options.signature_comment {
@@ -54,36 +59,6 @@ pub fn compile(query: RelationalQuery, options: &Options) -> Result<String> {
     };
 
     Ok(sql)
-}
-
-/// This module gives access to internal machinery that gives no stability guarantees.
-pub mod internal {
-    pub use super::srq::ast::SqlTransform;
-    use super::*;
-    use crate::ir::rq::Transform;
-    use crate::Error;
-
-    fn init(query: RelationalQuery) -> Result<(Vec<Transform>, Context)> {
-        let (ctx, relation) = AnchorContext::of(query);
-        let ctx = Context::new(dialect::Dialect::Generic, ctx);
-
-        let pipeline = (relation.kind.into_pipeline())
-            .map_err(|_| Error::new_simple("Main RQ relation is not a pipeline."))?;
-        Ok((pipeline, ctx))
-    }
-
-    /// Applies preprocessing to the main relation in RQ. Meant for debugging purposes.
-    pub fn preprocess(query: RelationalQuery) -> Result<Vec<SqlTransform>> {
-        let (pipeline, mut ctx) = init(query)?;
-
-        srq::preprocess::preprocess(pipeline, &mut ctx)
-    }
-
-    /// Applies preprocessing and anchoring to the main relation in RQ. Meant for debugging purposes.
-    pub fn anchor(query: RelationalQuery) -> Result<srq::ast::SqlQuery> {
-        let (query, _ctx) = srq::compile_query(query, Some(dialect::Dialect::Generic))?;
-        Ok(query)
-    }
 }
 
 #[derive(Debug)]
