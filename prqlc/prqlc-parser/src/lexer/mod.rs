@@ -44,13 +44,13 @@ pub fn lex_source(source: &str) -> Result<lr::Tokens, Vec<Error>> {
 }
 
 /// Insert a start token so later stages can treat the start of a file like a newline
-fn insert_start(mut tokens: Vec<Token>) -> Vec<Token> {
-    let start = Token {
+fn insert_start(tokens: Vec<Token>) -> Vec<Token> {
+    std::iter::once(Token {
         kind: TokenKind::Start,
-        span: std::ops::Range { start: 0, end: 0 },
-    };
-    tokens.insert(0, start);
-    tokens
+        span: 0..0,
+    })
+    .chain(tokens)
+    .collect()
 }
 
 fn convert_lexer_error(source: &str, e: chumsky::error::Cheap<char>, source_id: u16) -> Error {
