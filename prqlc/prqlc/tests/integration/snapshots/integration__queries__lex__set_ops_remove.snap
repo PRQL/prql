@@ -5,6 +5,7 @@ input_file: prqlc/prqlc/tests/integration/queries/set_ops_remove.prql
 ---
 Tokens(
     [
+        0..0: Start,
         0..12: Comment(" mssql:test"),
         12..13: NewLine,
         13..16: Keyword("let"),

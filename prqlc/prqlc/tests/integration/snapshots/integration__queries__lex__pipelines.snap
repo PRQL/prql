@@ -5,6 +5,7 @@ input_file: prqlc/prqlc/tests/integration/queries/pipelines.prql
 ---
 Tokens(
     [
+        0..0: Start,
         0..76: Comment(" sqlite:skip (Only works on Sqlite implementations which have the extension"),
         76..77: NewLine,
         77..88: Comment(" installed"),

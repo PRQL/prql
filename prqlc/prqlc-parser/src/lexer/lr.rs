@@ -68,6 +68,10 @@ pub enum TokenKind {
     // - Change the functionality. But it's very nice to be able to comment
     //   something out and have line-wraps still work.
     LineWrap(Vec<TokenKind>),
+
+    /// A token we manually insert at the start of the input, which later stages
+    /// can treat as a newline.
+    Start,
 }
 
 #[derive(
@@ -229,6 +233,7 @@ impl std::fmt::Display for TokenKind {
                 }
                 Ok(())
             }
+            TokenKind::Start => write!(f, "start of input"),
         }
     }
 }

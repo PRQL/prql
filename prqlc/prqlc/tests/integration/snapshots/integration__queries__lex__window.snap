@@ -5,6 +5,7 @@ input_file: prqlc/prqlc/tests/integration/queries/window.prql
 ---
 Tokens(
     [
+        0..0: Start,
         0..95: Comment(" mssql:skip Conversion(\"cannot interpret I64(Some(1)) as an i32 value\")', connection.rs:200:34"),
         95..96: NewLine,
         96..251: Comment(" duckdb:skip problems with DISTINCT ON (duckdb internal error: [with INPUT_TYPE = int; RESULT_TYPE = unsigned char]: Assertion `min_val <= input' failed.)"),
