@@ -4,14 +4,12 @@ use std::fmt::Debug;
 use std::fmt::Display;
 use std::hash::Hash;
 
-use serde::{Deserialize, Serialize};
-
 use crate::error::WithErrorInfo;
 use crate::error::{Error, ErrorSource, Reason};
 use crate::lexer::lr::TokenKind;
 use crate::span::Span;
 
-#[derive(Clone, Debug, Serialize)]
+#[derive(Clone, Debug)]
 pub struct ChumError<T: Hash + Eq + Debug> {
     span: Span,
     reason: Option<String>,
@@ -285,7 +283,7 @@ impl From<PError> for Error {
 // since it's private in chumsky
 
 /// A type representing zero, one, or many labels applied to an error
-#[derive(Clone, Copy, Debug, PartialEq, Serialize, Deserialize)]
+#[derive(Clone, Copy, Debug, PartialEq)]
 enum SimpleLabel {
     Some(&'static str),
     None,

@@ -27,7 +27,7 @@ pub fn keyword(kw: &'static str) -> impl Parser<TokenKind, (), Error = PError> +
 }
 
 pub fn new_line() -> impl Parser<TokenKind, (), Error = PError> + Clone {
-    just(TokenKind::NewLine).ignored().labelled("new line")
+    just(TokenKind::NewLine).ignored()
 }
 
 pub fn ctrl(char: char) -> impl Parser<TokenKind, (), Error = PError> + Clone {
@@ -76,7 +76,7 @@ where
 
 #[cfg(test)]
 mod tests {
-    use insta::assert_yaml_snapshot;
+    use insta::assert_debug_snapshot;
 
     use super::*;
     use crate::parser::prepare_stream;
@@ -98,13 +98,14 @@ mod tests {
 
     #[test]
     fn test_doc_comment() {
-        assert_yaml_snapshot!(parse_with_parser(r#"
+        assert_debug_snapshot!(parse_with_parser(r#"
         #! doc comment
         #! another line
 
         "#, doc_comment()), @r###"
-        ---
-        Ok: " doc comment\n another line"
+        Ok(
+            " doc comment\n another line",
+        )
         "###);
     }
 }

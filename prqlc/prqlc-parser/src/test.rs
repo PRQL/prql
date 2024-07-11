@@ -1821,13 +1821,12 @@ fn doc_comment() {
           FuncCall:
             name:
               Ident: from
-              span: "0:34-38"
+              span: "0:37-41"
             args:
               - Ident: artists
-                span: "0:39-46"
-          span: "0:34-46"
-      span: "0:34-47"
-      doc_comment: " This is a doc comment"
+                span: "0:42-49"
+          span: "0:37-49"
+      span: "0:37-50"
     "###);
 
     assert_debug_snapshot!(parse_single(r###"
@@ -1837,10 +1836,10 @@ fn doc_comment() {
         Error {
             kind: Error,
             span: Some(
-                0:46-47,
+                0:18-42,
             ),
             reason: Simple(
-                "Expected one of (, [, an identifier, keyword case, keyword internal or {, but didn't find anything before the end.",
+                "unexpected #! This is a doc comment\n",
             ),
             hints: [],
             code: None,
