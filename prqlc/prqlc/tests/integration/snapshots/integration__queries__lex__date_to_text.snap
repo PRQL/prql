@@ -5,6 +5,7 @@ input_file: prqlc/prqlc/tests/integration/queries/date_to_text.prql
 ---
 Tokens(
     [
+        0..0: Start,
         0..14: Comment(" generic:skip"),
         14..15: NewLine,
         15..29: Comment(" glaredb:skip"),

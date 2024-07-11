@@ -10,8 +10,16 @@ pub mod lr;
 #[cfg(test)]
 mod test;
 
+// TODO: we have `lex_source` and `lex_source_recovery` and don't have the same
+// structure for LR. Probably we should have a single approach to the inclusion
+// and naming of a function which returns both the tokens & errors, and a
+// function that returns both.
+
+/// Lex PRQL into LR, returning both the LR and any errors encountered
 pub fn lex_source_recovery(source: &str, source_id: u16) -> (Option<Vec<Token>>, Vec<Error>) {
-    let (tokens, lex_errors) = ::chumsky::Parser::parse_recovery(&lexer(), source);
+    let (tokens, lex_errors) = lexer().parse_recovery(source);
+
+    let tokens = tokens.map(insert_start);
 
     let errors = lex_errors
         .into_iter()
@@ -22,12 +30,27 @@ pub fn lex_source_recovery(source: &str, source_id: u16) -> (Option<Vec<Token>>,
     (tokens, errors)
 }
 
+/// Lex PRQL into LR, returning either the LR or the errors encountered
 pub fn lex_source(source: &str) -> Result<lr::Tokens, Vec<Error>> {
-    lexer().parse(source).map(lr::Tokens).map_err(|e| {
-        e.into_iter()
-            .map(|x| convert_lexer_error(source, x, 0))
-            .collect()
-    })
+    lexer()
+        .parse(source)
+        .map(insert_start)
+        .map(lr::Tokens)
+        .map_err(|e| {
+            e.into_iter()
+                .map(|x| convert_lexer_error(source, x, 0))
+                .collect()
+        })
+}
+
+/// Insert a start token so later stages can treat the start of a file like a newline
+fn insert_start(mut tokens: Vec<Token>) -> Vec<Token> {
+    let start = Token {
+        kind: TokenKind::Start,
+        span: std::ops::Range { start: 0, end: 0 },
+    };
+    tokens.insert(0, start);
+    tokens
 }
 
 fn convert_lexer_error(source: &str, e: chumsky::error::Cheap<char>, source_id: u16) -> Error {
