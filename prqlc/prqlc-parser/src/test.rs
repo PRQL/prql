@@ -1,5 +1,6 @@
 use chumsky::Parser;
 use insta::{assert_debug_snapshot, assert_yaml_snapshot};
+use std::fmt::Debug;
 
 use crate::parser::pr::Stmt;
 use crate::parser::prepare_stream;
@@ -9,16 +10,17 @@ use crate::{error::Error, lexer::lr::TokenKind, parser::perror::PError};
 /// Parse source code based on the supplied parser.
 ///
 /// Use this to test any parser!
-pub(crate) fn parse_with_parser<O>(
+pub(crate) fn parse_with_parser<O: Debug>(
     source: &str,
     parser: impl Parser<TokenKind, O, Error = PError>,
 ) -> Result<O, Vec<Error>> {
     let tokens = crate::lexer::lex_source(source)?;
     let stream = prepare_stream(tokens.0.into_iter(), source, 0);
 
-    let (ast, parse_errors) = parser.parse_recovery(stream);
+    let (ast, parse_errors) = parser.parse_recovery_verbose(stream);
 
     if !parse_errors.is_empty() {
+        dbg!(&ast);
         return Err(parse_errors.into_iter().map(|e| e.into()).collect());
     }
     Ok(ast.unwrap())
@@ -1810,8 +1812,44 @@ fn doc_comment() {
     use insta::assert_yaml_snapshot;
 
     assert_yaml_snapshot!(parse_single(r###"
-    #! This is a doc comment
     from artists
+    derive x = 5
+    "###).unwrap(), @r###"
+    ---
+    - VarDef:
+        kind: Main
+        name: main
+        value:
+          Pipeline:
+            exprs:
+              - FuncCall:
+                  name:
+                    Ident: from
+                    span: "0:5-9"
+                  args:
+                    - Ident: artists
+                      span: "0:10-17"
+                span: "0:5-17"
+              - FuncCall:
+                  name:
+                    Ident: derive
+                    span: "0:22-28"
+                  args:
+                    - Literal:
+                        Integer: 5
+                      span: "0:33-34"
+                      alias: x
+                span: "0:22-34"
+          span: "0:5-34"
+      span: "0:0-35"
+    "###);
+
+    assert_yaml_snapshot!(parse_single(r###"
+    from artists
+
+    #! This is a doc comment
+
+    derive x = 5
     "###).unwrap(), @r###"
     ---
     - VarDef:
@@ -1821,12 +1859,47 @@ fn doc_comment() {
           FuncCall:
             name:
               Ident: from
-              span: "0:37-41"
+              span: "0:5-9"
             args:
               - Ident: artists
-                span: "0:42-49"
-          span: "0:37-49"
-      span: "0:37-50"
+                span: "0:10-17"
+              - Ident: derive
+                span: "0:51-57"
+                doc_comment: " This is a doc comment"
+              - Literal:
+                  Integer: 5
+                span: "0:62-63"
+                alias: x
+          span: "0:5-63"
+      span: "0:5-64"
+    "###);
+
+    assert_yaml_snapshot!(parse_single(r###"
+    #! This is a doc comment
+    from artists
+    derive x = 5
+    "###).unwrap(), @r###"
+    ---
+    - VarDef:
+        kind: Main
+        name: main
+        value:
+          FuncCall:
+            name:
+              Ident: from
+              span: "0:5-9"
+            args:
+              - Ident: artists
+                span: "0:10-17"
+              - Ident: derive
+                span: "0:51-57"
+                doc_comment: " This is a doc comment"
+              - Literal:
+                  Integer: 5
+                span: "0:62-63"
+                alias: x
+          span: "0:5-63"
+      span: "0:5-64"
     "###);
 
     assert_debug_snapshot!(parse_single(r###"
@@ -1839,7 +1912,7 @@ fn doc_comment() {
                 0:18-42,
             ),
             reason: Simple(
-                "unexpected #! This is a doc comment\n",
+                "unexpected #! This is a doc comment\n while parsing function call",
             ),
             hints: [],
             code: None,

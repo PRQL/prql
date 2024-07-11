@@ -31,35 +31,29 @@ fn module_contents() -> impl Parser<TokenKind, Vec<Stmt>, Error = PError> {
             .then_ignore(new_line().repeated())
             .map(|expr| Annotation {
                 expr: Box::new(expr),
-            });
+            })
+            .labelled("annotation");
 
-        // TODO: I think some duplication here; we allow for potential
-        // newlines before each item here, but then also have `.allow_leading`
-        // below — since now we can get newlines after a comment between the
-        // aesthetic item and the stmt... So a bit messy
-        let stmt_kind = new_line().repeated().ignore_then(choice((
+        // Also need to handle new_line vs. start of file here
+        let stmt_kind = new_line().repeated().at_least(1).ignore_then(choice((
             module_def,
             type_def(),
             import_def(),
             var_def(),
         )));
 
-        // Two wrapping of `with_aesthetics` — the first for the whole block,
-        // and the second for just the annotation; if there's a comment between
-        // the annotation and the code.
+        // Currently doc comments need to be before the annotation; probably
+        // should relax this?
         with_doc_comment(
-            // with_aesthetics(annotation)
             annotation
                 .repeated()
-                // TODO: do we need this? I think possibly we get an additional
-                // error when we remove it; check (because it seems redundant...).
-                .then_ignore(new_line().repeated())
                 .then(stmt_kind)
                 .map_with_span(into_stmt),
         )
-        .separated_by(new_line().repeated().at_least(1))
-        .allow_leading()
-        .allow_trailing()
+        .repeated()
+        // .separated_by(new_line().repeated().at_least(1))
+        // .allow_leading()
+        // .allow_trailing()
     })
 }
 
@@ -187,4 +181,80 @@ fn import_def() -> impl Parser<TokenKind, StmtKind, Error = PError> + Clone {
         .then(ident())
         .map(|(alias, name)| StmtKind::ImportDef(ImportDef { name, alias }))
         .labelled("import statement")
+}
+
+#[cfg(test)]
+mod tests {
+    use insta::assert_yaml_snapshot;
+
+    use super::*;
+    use crate::test::parse_with_parser;
+
+    #[test]
+    fn test_doc_comment_module() {
+        assert_yaml_snapshot!(parse_with_parser(r#"
+
+        #! first doc comment
+        from foo
+
+        "#, module_contents()).unwrap(), @r###"
+        ---
+        - VarDef:
+            kind: Main
+            name: main
+            value:
+              FuncCall:
+                name:
+                  Ident: from
+                  span: "0:39-43"
+                args:
+                  - Ident: foo
+                    span: "0:44-47"
+              span: "0:39-47"
+          span: "0:30-49"
+          doc_comment: " first doc comment"
+        "###);
+
+        assert_yaml_snapshot!(parse_with_parser(r#"
+
+
+        #! first doc comment
+        from foo
+        into x
+
+        #! second doc comment
+        from bar
+
+        "#, module_contents()).unwrap(), @r###"
+        ---
+        - VarDef:
+            kind: Into
+            name: x
+            value:
+              FuncCall:
+                name:
+                  Ident: from
+                  span: "0:40-44"
+                args:
+                  - Ident: foo
+                    span: "0:45-48"
+              span: "0:40-48"
+          span: "0:31-63"
+          doc_comment: " first doc comment"
+        - VarDef:
+            kind: Main
+            name: main
+            value:
+              FuncCall:
+                name:
+                  Ident: from
+                  span: "0:103-107"
+                args:
+                  - Ident: bar
+                    span: "0:108-111"
+              span: "0:103-111"
+          span: "0:94-113"
+          doc_comment: " second doc comment"
+        "###);
+    }
 }

@@ -46,21 +46,23 @@ pub fn into_stmt((annotations, kind): (Vec<Annotation>, StmtKind), span: Span) -
 pub fn doc_comment() -> impl Parser<TokenKind, String, Error = PError> + Clone {
     // doc comments must start on a new line, so we enforce a new line before
     // the doc comment (but how to handle the start of a file?)
+    //
+    // TODO: we currently lose any empty newlines between doc comments;
+    // eventually we want to retain them
     new_line()
         .repeated()
         .at_least(1)
-        .ignore_then(
-            select! {
-                TokenKind::DocComment(dc) => dc,
-            }
-            .then_ignore(new_line().repeated())
-            .repeated()
-            .at_least(1)
-            .collect(),
-        )
+        .ignore_then(select! {
+            TokenKind::DocComment(dc) => dc,
+        })
+        .repeated()
+        .at_least(1)
+        .collect()
+        .debug("doc_comment")
         .map(|lines: Vec<String>| lines.join("\n"))
         .labelled("doc comment")
 }
+
 pub fn with_doc_comment<'a, P, O>(
     parser: P,
 ) -> impl Parser<TokenKind, O, Error = PError> + Clone + 'a
@@ -79,22 +81,7 @@ mod tests {
     use insta::assert_debug_snapshot;
 
     use super::*;
-    use crate::parser::prepare_stream;
-
-    fn parse_with_parser<O>(
-        source: &str,
-        parser: impl Parser<TokenKind, O, Error = PError>,
-    ) -> Result<O, Vec<PError>> {
-        let tokens = crate::lexer::lex_source(source).unwrap();
-        let stream = prepare_stream(tokens.0.into_iter(), source, 0);
-
-        let (ast, parse_errors) = parser.parse_recovery(stream);
-
-        if !parse_errors.is_empty() {
-            return Err(parse_errors);
-        }
-        Ok(ast.unwrap())
-    }
+    use crate::test::parse_with_parser;
 
     #[test]
     fn test_doc_comment() {
