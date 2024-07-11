@@ -11,7 +11,7 @@ pub mod lr;
 mod test;
 
 // TODO: we have `lex_source` and `lex_source_recovery` and don't have the same
-// structure for LR. Probably we should have a single approach to the inclusion
+// structure for PR. Probably we should have a single approach to the inclusion
 // and naming of a function which returns both the tokens & errors, and a
 // function that returns both.
 
