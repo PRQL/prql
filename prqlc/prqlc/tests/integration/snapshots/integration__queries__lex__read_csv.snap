@@ -5,6 +5,7 @@ input_file: prqlc/prqlc/tests/integration/queries/read_csv.prql
 ---
 Tokens(
     [
+        0..0: Start,
         0..13: Comment(" sqlite:skip"),
         13..14: NewLine,
         14..29: Comment(" postgres:skip"),

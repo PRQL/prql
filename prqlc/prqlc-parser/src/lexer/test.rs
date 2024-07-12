@@ -197,6 +197,7 @@ fn test_lex_source() {
     Ok(
         Tokens(
             [
+                0..0: Start,
                 0..1: Literal(Integer(5)),
                 2..3: Control('+'),
                 4..5: Literal(Integer(3)),
