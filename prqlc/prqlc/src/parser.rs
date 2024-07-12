@@ -53,6 +53,10 @@ pub fn parse(file_tree: &SourceTree) -> Result<pr::ModuleDef, Errors> {
 }
 
 /// Build PR AST from a PRQL query string.
+// We have this function in `prqlc` rather than in `prqlc-parser` crate since
+// our logging is in `prqlc` and we want to log the LR. (We could split the logging
+// out into a separate crate, but it has dependencies on `prqlc` internals and
+// would be an effort)
 pub(crate) fn parse_source(source: &str, source_id: u16) -> Result<Vec<pr::Stmt>, Vec<Error>> {
     let (tokens, mut errors) = prqlc_parser::lexer::lex_source_recovery(source, source_id);
 
