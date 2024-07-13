@@ -43,8 +43,7 @@ pub(crate) fn prepare_stream(
     let semantic_tokens = tokens.filter(|token| {
         !matches!(
             token.kind,
-            lr::TokenKind::Comment(_) | lr::TokenKind::LineWrap(_) // | lr::TokenKind::DocComment(_)
-                                                                   // | lr::TokenKind::Start
+            lr::TokenKind::Comment(_) | lr::TokenKind::LineWrap(_)
         )
     });
 
