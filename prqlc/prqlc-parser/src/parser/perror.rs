@@ -82,8 +82,6 @@ impl<T: Hash + Eq + Display + Debug> chumsky::Error<T> for ChumError<T> {
         found: Option<T>,
     ) -> Self {
         let exp = expected.into_iter().collect();
-        let msg = format!("expected {:?} but found {:?}", exp, found);
-        msg;
         log::trace!("looking for {:?} but found {:?} at: {:?}", exp, found, span);
         Self {
             span,
