@@ -1,13 +1,12 @@
 use chumsky::Parser;
 use insta::assert_yaml_snapshot;
 
-use crate::parser::prepare_stream;
+use super::prepare_stream;
+use super::{new_line, pr::Expr};
 use crate::span::Span;
 use crate::test::parse_with_parser;
 use crate::{error::Error, lexer::lex_source};
 use crate::{lexer::lr::TokenKind, parser::pr::FuncCall};
-
-use super::{common::new_line, pr::Expr};
 
 fn parse_expr(source: &str) -> Result<Expr, Vec<Error>> {
     parse_with_parser(

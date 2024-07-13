@@ -4,14 +4,12 @@ use chumsky::prelude::*;
 use itertools::Itertools;
 
 use crate::lexer::lr::{Literal, TokenKind};
-use crate::parser::common::{ctrl, ident_part, keyword, new_line, with_doc_comment};
 use crate::parser::interpolation;
 use crate::parser::perror::PError;
 use crate::parser::pr::*;
 use crate::parser::types::type_expr;
+use crate::parser::{ctrl, ident_part, keyword, new_line, sequence, with_doc_comment};
 use crate::span::Span;
-
-use super::common::sequence;
 
 pub fn expr_call() -> impl Parser<TokenKind, Expr, Error = PError> + Clone {
     let expr = expr();

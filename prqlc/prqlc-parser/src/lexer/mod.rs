@@ -202,7 +202,7 @@ fn comment() -> impl Parser<char, TokenKind, Error = Cheap<char>> {
     )))
 }
 
-pub fn ident_part() -> impl Parser<char, String, Error = Cheap<char>> + Clone {
+pub(crate) fn ident_part() -> impl Parser<char, String, Error = Cheap<char>> + Clone {
     let plain = filter(|c: &char| c.is_alphabetic() || *c == '_')
         .chain(filter(|c: &char| c.is_alphanumeric() || *c == '_').repeated());
 

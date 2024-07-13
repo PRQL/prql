@@ -4,12 +4,11 @@ use enum_as_inner::EnumAsInner;
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 
-use crate::generic;
 use crate::lexer::lr::Literal;
 use crate::parser::pr::ops::{BinOp, UnOp};
 use crate::parser::pr::Ty;
-use crate::parser::SupportsDocComment;
 use crate::span::Span;
+use crate::{generic, parser::SupportsDocComment};
 
 impl Expr {
     pub fn new<K: Into<ExprKind>>(kind: K) -> Self {
