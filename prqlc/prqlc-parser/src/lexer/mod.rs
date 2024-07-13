@@ -184,6 +184,9 @@ fn line_wrap() -> impl Parser<char, TokenKind, Error = Cheap<char>> {
 
 fn comment() -> impl Parser<char, TokenKind, Error = Cheap<char>> {
     just('#').ignore_then(choice((
+        // One option would be to check that doc comments have new lines in the
+        // lexer (we currently do in the parser); which would give better error
+        // messages?
         just('!').ignore_then(
             newline()
                 .not()

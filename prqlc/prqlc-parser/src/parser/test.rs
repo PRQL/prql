@@ -1,3 +1,4 @@
+use chumsky::Parser;
 use insta::assert_yaml_snapshot;
 
 use crate::parser::prepare_stream;
@@ -6,10 +7,13 @@ use crate::test::parse_with_parser;
 use crate::{error::Error, lexer::lex_source};
 use crate::{lexer::lr::TokenKind, parser::pr::FuncCall};
 
-use super::pr::Expr;
+use super::{common::new_line, pr::Expr};
 
 fn parse_expr(source: &str) -> Result<Expr, Vec<Error>> {
-    parse_with_parser(source, super::expr::expr_call())
+    parse_with_parser(
+        source,
+        new_line().repeated().ignore_then(super::expr::expr_call()),
+    )
 }
 
 #[test]
@@ -22,6 +26,8 @@ fn test_prepare_stream() {
     let mut stream = prepare_stream(tokens.0.into_iter(), input, 0);
     assert_yaml_snapshot!(stream.fetch_tokens().collect::<Vec<(TokenKind, Span)>>(), @r###"
     ---
+    - - Start
+      - "0:0-0"
     - - Ident: from
       - "0:0-4"
     - - Ident: artists
@@ -1249,33 +1255,35 @@ fn test_ident_with_keywords() {
 
 #[test]
 fn test_case() {
-    assert_yaml_snapshot!(parse_expr(r#"case [
+    assert_yaml_snapshot!(parse_expr(r#"
+        case [
             nickname != null => nickname,
             true => null
-        ]"#).unwrap(), @r###"
+        ]
+        "#).unwrap(), @r###"
     ---
     Case:
       - condition:
           Binary:
             left:
               Ident: nickname
-              span: "0:19-27"
+              span: "0:28-36"
             op: Ne
             right:
               Literal: "Null"
-              span: "0:31-35"
-          span: "0:19-35"
+              span: "0:40-44"
+          span: "0:28-44"
         value:
           Ident: nickname
-          span: "0:39-47"
+          span: "0:48-56"
       - condition:
           Literal:
             Boolean: true
-          span: "0:61-65"
+          span: "0:70-74"
         value:
           Literal: "Null"
-          span: "0:69-73"
-    span: "0:0-83"
+          span: "0:78-82"
+    span: "0:9-92"
     "###);
 }
 

@@ -5,8 +5,8 @@ use schemars::JsonSchema;
 use semver::VersionReq;
 use serde::{Deserialize, Serialize};
 
-use crate::parser::pr::ident::Ident;
 use crate::parser::pr::{Expr, Ty};
+use crate::parser::{pr::ident::Ident, SupportsDocComment};
 use crate::span::Span;
 
 #[derive(Debug, PartialEq, Eq, Clone, Serialize, Deserialize, Default, JsonSchema)]
@@ -35,6 +35,18 @@ pub struct Stmt {
 
     #[serde(skip_serializing_if = "Vec::is_empty", default)]
     pub annotations: Vec<Annotation>,
+
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub doc_comment: Option<String>,
+}
+
+impl SupportsDocComment for Stmt {
+    fn with_doc_comment(self, doc_comment: Option<String>) -> Self {
+        Stmt {
+            doc_comment,
+            ..self
+        }
+    }
 }
 
 #[derive(Debug, EnumAsInner, PartialEq, Clone, Serialize, Deserialize, JsonSchema)]
@@ -85,6 +97,7 @@ impl Stmt {
             kind,
             span: None,
             annotations: Vec::new(),
+            doc_comment: None,
         }
     }
 }

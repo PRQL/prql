@@ -1,5 +1,6 @@
 use chumsky::{prelude::*, Stream};
 
+pub use self::common::new_line;
 use crate::error::Error;
 use crate::lexer::lr;
 use crate::span::Span;
@@ -43,10 +44,7 @@ pub(crate) fn prepare_stream(
     let semantic_tokens = tokens.filter(|token| {
         !matches!(
             token.kind,
-            lr::TokenKind::Comment(_)
-                | lr::TokenKind::LineWrap(_)
-                | lr::TokenKind::DocComment(_)
-                | lr::TokenKind::Start
+            lr::TokenKind::Comment(_) | lr::TokenKind::LineWrap(_)
         )
     });
 
@@ -60,4 +58,8 @@ pub(crate) fn prepare_stream(
         source_id,
     };
     Stream::from_iter(eoi, tokens)
+}
+
+pub trait SupportsDocComment {
+    fn with_doc_comment(self, doc_comment: Option<String>) -> Self;
 }

@@ -1,6 +1,8 @@
 use chumsky::Parser;
 use insta::{assert_debug_snapshot, assert_yaml_snapshot};
+use std::fmt::Debug;
 
+use crate::parser::new_line;
 use crate::parser::pr::Stmt;
 use crate::parser::prepare_stream;
 use crate::parser::stmt;
@@ -9,24 +11,32 @@ use crate::{error::Error, lexer::lr::TokenKind, parser::perror::PError};
 /// Parse source code based on the supplied parser.
 ///
 /// Use this to test any parser!
-pub(crate) fn parse_with_parser<O>(
+pub(crate) fn parse_with_parser<O: Debug>(
     source: &str,
     parser: impl Parser<TokenKind, O, Error = PError>,
 ) -> Result<O, Vec<Error>> {
     let tokens = crate::lexer::lex_source(source)?;
     let stream = prepare_stream(tokens.0.into_iter(), source, 0);
 
-    let (ast, parse_errors) = parser.parse_recovery(stream);
+    let (ast, parse_errors) = parser.parse_recovery_verbose(stream);
 
     if !parse_errors.is_empty() {
+        log::info!("ast: {ast:?}");
         return Err(parse_errors.into_iter().map(|e| e.into()).collect());
     }
     Ok(ast.unwrap())
 }
 
 /// Parse into statements
-fn parse_single(source: &str) -> Result<Vec<Stmt>, Vec<Error>> {
+pub(crate) fn parse_single(source: &str) -> Result<Vec<Stmt>, Vec<Error>> {
+    // parse_with_parser(source, new_line().repeated().ignore_then(stmt::source()))
     parse_with_parser(source, stmt::source())
+}
+
+// TODO: move to expr singe stmts don't need it?
+/// Remove leading newlines & the start token, for tests
+pub(crate) fn trim_start() -> impl Parser<TokenKind, (), Error = PError> {
+    new_line().repeated().ignored()
 }
 
 #[test]
@@ -79,7 +89,7 @@ fn test_error_unexpected() {
                 0:6-7,
             ),
             reason: Simple(
-                "unexpected : while parsing function call",
+                "unexpected :",
             ),
             hints: [],
             code: None,
@@ -363,7 +373,7 @@ fn test_basic_exprs() {
               - Ident: a
                 span: "0:35-36"
           span: "0:28-36"
-      span: "0:28-36"
+      span: "0:0-36"
     "###);
 }
 
@@ -541,7 +551,7 @@ fn test_function() {
             named_params: []
             generic_type_params: []
           span: "0:0-27"
-      span: "0:0-28"
+      span: "0:0-27"
     "###);
 
     assert_yaml_snapshot!(parse_single(r#"let count = X -> s"SUM({X})"
@@ -633,7 +643,7 @@ fn test_function() {
             named_params: []
             generic_type_params: []
           span: "0:27-147"
-      span: "0:13-147"
+      span: "0:0-147"
     "###);
 
     assert_yaml_snapshot!(parse_single("let add = x to:a ->  x + to\n").unwrap(), @r###"
@@ -774,7 +784,7 @@ fn test_var_def() {
           SString:
             - String: SELECT * FROM employees
           span: "0:21-47"
-      span: "0:13-47"
+      span: "0:0-47"
     "###);
 
     assert_yaml_snapshot!(parse_single(
@@ -826,7 +836,7 @@ fn test_var_def() {
               - Ident: x
                 span: "0:101-102"
           span: "0:96-102"
-      span: "0:96-102"
+      span: "0:84-102"
     "###);
 }
 
@@ -916,7 +926,7 @@ fn test_sql_parameters() {
                       span: "0:37-107"
                 span: "0:30-107"
           span: "0:9-107"
-      span: "0:9-108"
+      span: "0:0-107"
     "###);
 }
 
@@ -1017,7 +1027,7 @@ join `my-proj`.`dataset`.`table`
                       span: "0:118-126"
                 span: "0:94-126"
           span: "0:1-126"
-      span: "0:1-127"
+      span: "0:0-126"
     "###);
 }
 
@@ -1113,7 +1123,7 @@ fn test_sort() {
                       span: "0:136-174"
                 span: "0:131-174"
           span: "0:9-174"
-      span: "0:9-175"
+      span: "0:0-174"
     "###);
 }
 
@@ -1160,7 +1170,7 @@ fn test_dates() {
                       span: "0:39-76"
                 span: "0:32-76"
           span: "0:9-76"
-      span: "0:9-77"
+      span: "0:0-76"
     "###);
 }
 
@@ -1184,7 +1194,7 @@ fn test_multiline_string() {
                 span: "0:20-36"
                 alias: x
           span: "0:9-36"
-      span: "0:9-37"
+      span: "0:0-36"
     "### )
 }
 
@@ -1225,7 +1235,7 @@ derive x = 5
                       alias: x
                 span: "0:14-26"
           span: "0:1-26"
-      span: "0:1-31"
+      span: "0:0-26"
     "### )
 }
 
@@ -1268,7 +1278,7 @@ fn test_coalesce() {
                       alias: amount
                 span: "0:32-59"
           span: "0:9-59"
-      span: "0:9-60"
+      span: "0:0-59"
     "### )
 }
 
@@ -1292,7 +1302,7 @@ fn test_literal() {
                 span: "0:20-24"
                 alias: x
           span: "0:9-24"
-      span: "0:9-25"
+      span: "0:0-24"
     "###)
 }
 
@@ -1364,7 +1374,7 @@ fn test_allowed_idents() {
                       span: "0:140-172"
                 span: "0:133-172"
           span: "0:9-172"
-      span: "0:9-173"
+      span: "0:0-172"
     "###)
 }
 
@@ -1457,7 +1467,7 @@ fn test_gt_lt_gte_lte() {
                       span: "0:127-139"
                 span: "0:120-139"
           span: "0:9-139"
-      span: "0:9-140"
+      span: "0:0-139"
     "###)
 }
 
@@ -1498,7 +1508,7 @@ join s=salaries (==id)
                       span: "0:33-37"
                 span: "0:16-38"
           span: "0:1-38"
-      span: "0:1-39"
+      span: "0:0-38"
     "###);
 }
 
@@ -1537,7 +1547,7 @@ fn test_var_defs() {
         value:
           Ident: x
           span: "0:17-42"
-      span: "0:9-42"
+      span: "0:0-42"
     "###);
 
     assert_yaml_snapshot!(parse_single(r#"
@@ -1551,7 +1561,7 @@ fn test_var_defs() {
         value:
           Ident: x
           span: "0:9-10"
-      span: "0:9-25"
+      span: "0:0-25"
     "###);
 
     assert_yaml_snapshot!(parse_single(r#"
@@ -1564,7 +1574,7 @@ fn test_var_defs() {
         value:
           Ident: x
           span: "0:9-10"
-      span: "0:9-11"
+      span: "0:0-10"
     "###);
 }
 
@@ -1587,7 +1597,7 @@ fn test_array() {
                 Integer: 2
               span: "0:21-22"
           span: "0:17-24"
-      span: "0:9-24"
+      span: "0:0-24"
     - VarDef:
         kind: Let
         name: a
@@ -1600,7 +1610,7 @@ fn test_array() {
                 String: hello
               span: "0:49-56"
           span: "0:41-57"
-      span: "0:33-57"
+      span: "0:24-57"
     "###);
 }
 
@@ -1635,7 +1645,7 @@ fn test_annotation() {
             named_params: []
             generic_type_params: []
           span: "0:49-61"
-      span: "0:9-61"
+      span: "0:0-61"
       annotations:
         - expr:
             Tuple:
@@ -1647,7 +1657,8 @@ fn test_annotation() {
     "###);
     parse_single(
         r#"
-        @{binding_strength=1} let add = a b -> a + b
+        @{binding_strength=1}
+        let add = a b -> a + b
         "#,
     )
     .unwrap();
@@ -1751,7 +1762,7 @@ fn test_target() {
                       span: "0:72-77"
                 span: "0:65-77"
           span: "0:45-77"
-      span: "0:45-78"
+      span: "0:34-77"
     "###);
 }
 
@@ -1777,7 +1788,7 @@ fn test_module() {
                 Literal:
                   Integer: 1
                 span: "0:50-51"
-            span: "0:38-51"
+            span: "0:25-51"
           - VarDef:
               kind: Let
               name: man
@@ -1789,8 +1800,8 @@ fn test_module() {
                   field:
                     Name: world
                 span: "0:74-86"
-            span: "0:64-86"
-      span: "0:11-98"
+            span: "0:51-86"
+      span: "0:0-98"
     "###);
 }
 
@@ -1803,4 +1814,134 @@ fn test_number() {
     derive x = 1."#
     )
     .is_err());
+}
+
+#[test]
+fn doc_comment() {
+    use insta::assert_yaml_snapshot;
+
+    assert_yaml_snapshot!(parse_single(r###"
+    from artists
+    derive x = 5
+    "###).unwrap(), @r###"
+    ---
+    - VarDef:
+        kind: Main
+        name: main
+        value:
+          Pipeline:
+            exprs:
+              - FuncCall:
+                  name:
+                    Ident: from
+                    span: "0:5-9"
+                  args:
+                    - Ident: artists
+                      span: "0:10-17"
+                span: "0:5-17"
+              - FuncCall:
+                  name:
+                    Ident: derive
+                    span: "0:22-28"
+                  args:
+                    - Literal:
+                        Integer: 5
+                      span: "0:33-34"
+                      alias: x
+                span: "0:22-34"
+          span: "0:5-34"
+      span: "0:0-34"
+    "###);
+
+    assert_yaml_snapshot!(parse_single(r###"
+    from artists
+
+    #! This is a doc comment
+
+    derive x = 5
+    "###).unwrap(), @r###"
+    ---
+    - VarDef:
+        kind: Main
+        name: main
+        value:
+          FuncCall:
+            name:
+              Ident: from
+              span: "0:5-9"
+            args:
+              - Ident: artists
+                span: "0:10-17"
+          span: "0:5-17"
+      span: "0:0-17"
+    - VarDef:
+        kind: Main
+        name: main
+        value:
+          FuncCall:
+            name:
+              Ident: derive
+              span: "0:53-59"
+            args:
+              - Literal:
+                  Integer: 5
+                span: "0:64-65"
+                alias: x
+          span: "0:53-65"
+      span: "0:47-65"
+      doc_comment: " This is a doc comment"
+    "###);
+
+    assert_yaml_snapshot!(parse_single(r###"
+    #! This is a doc comment
+    from artists
+    derive x = 5
+    "###).unwrap(), @r###"
+    ---
+    - VarDef:
+        kind: Main
+        name: main
+        value:
+          Pipeline:
+            exprs:
+              - FuncCall:
+                  name:
+                    Ident: from
+                    span: "0:34-38"
+                  args:
+                    - Ident: artists
+                      span: "0:39-46"
+                span: "0:34-46"
+              - FuncCall:
+                  name:
+                    Ident: derive
+                    span: "0:51-57"
+                  args:
+                    - Literal:
+                        Integer: 5
+                      span: "0:62-63"
+                      alias: x
+                span: "0:51-63"
+          span: "0:34-63"
+      span: "0:29-63"
+      doc_comment: " This is a doc comment"
+    "###);
+
+    assert_debug_snapshot!(parse_single(r###"
+    from artists #! This is a doc comment
+    "###).unwrap_err(), @r###"
+    [
+        Error {
+            kind: Error,
+            span: Some(
+                0:18-42,
+            ),
+            reason: Simple(
+                "unexpected #! This is a doc comment\n",
+            ),
+            hints: [],
+            code: None,
+        },
+    ]
+    "###);
 }

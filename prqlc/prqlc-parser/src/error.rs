@@ -46,8 +46,12 @@ pub enum MessageKind {
 pub enum Reason {
     Simple(String),
     Expected {
+        /// Where we were
+        // (could rename to `where` / `location` / `within`?)
         who: Option<String>,
+        /// What we expected
         expected: String,
+        /// What we found
         found: String,
     },
     Unexpected {
