@@ -25,6 +25,10 @@ pub fn keyword(kw: &'static str) -> impl Parser<TokenKind, (), Error = PError> +
     just(TokenKind::Keyword(kw.to_string())).ignored()
 }
 
+/// Our approach to new lines is each item consumes new lines _before_ itself,
+/// but not newlines after itself. This allows us to enforce new lines between
+/// some items. The only place we handle new lines after an item is in the root
+/// parser.
 pub fn new_line() -> impl Parser<TokenKind, (), Error = PError> + Clone {
     just(TokenKind::NewLine)
         // Start is considered a new line, so we can enforce things start on a new
