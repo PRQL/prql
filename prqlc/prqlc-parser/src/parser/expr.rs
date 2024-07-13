@@ -11,13 +11,13 @@ use crate::parser::types::type_expr;
 use crate::parser::{ctrl, ident_part, keyword, new_line, sequence, with_doc_comment};
 use crate::span::Span;
 
-pub fn expr_call() -> impl Parser<TokenKind, Expr, Error = PError> + Clone {
+pub(crate) fn expr_call() -> impl Parser<TokenKind, Expr, Error = PError> + Clone {
     let expr = expr();
 
     lambda_func(expr.clone()).or(func_call(expr))
 }
 
-pub fn expr() -> impl Parser<TokenKind, Expr, Error = PError> + Clone {
+pub(crate) fn expr() -> impl Parser<TokenKind, Expr, Error = PError> + Clone {
     recursive(|expr| {
         let literal = select! { TokenKind::Literal(lit) => ExprKind::Literal(lit) };
 
@@ -321,7 +321,7 @@ where
         .boxed()
 }
 
-pub fn binary_op_parser_right<'a, Term, Op>(
+pub(crate) fn binary_op_parser_right<'a, Term, Op>(
     term: Term,
     op: Op,
 ) -> impl Parser<TokenKind, Expr, Error = PError> + Clone + 'a
