@@ -27,7 +27,10 @@ pub fn keyword(kw: &'static str) -> impl Parser<TokenKind, (), Error = PError> +
 }
 
 pub fn new_line() -> impl Parser<TokenKind, (), Error = PError> + Clone {
-    just(TokenKind::NewLine).ignored()
+    just(TokenKind::NewLine)
+        .or(just(TokenKind::Start))
+        .ignored()
+        .labelled("new line")
 }
 
 pub fn ctrl(char: char) -> impl Parser<TokenKind, (), Error = PError> + Clone {
@@ -44,23 +47,20 @@ pub fn into_stmt((annotations, kind): (Vec<Annotation>, StmtKind), span: Span) -
 }
 
 pub fn doc_comment() -> impl Parser<TokenKind, String, Error = PError> + Clone {
-    // doc comments must start on a new line, so we enforce a new line before
-    // the doc comment (but how to handle the start of a file?)
+    // doc comments must start on a new line, so we enforce a new line (which
+    // can also be a file start) before the doc comment
     //
     // TODO: we currently lose any empty newlines between doc comments;
     // eventually we want to retain them
-    new_line()
-        .repeated()
-        .at_least(1)
-        .ignore_then(select! {
-            TokenKind::DocComment(dc) => dc,
-        })
-        .repeated()
-        .at_least(1)
-        .collect()
-        .debug("doc_comment")
-        .map(|lines: Vec<String>| lines.join("\n"))
-        .labelled("doc comment")
+    (new_line().repeated().at_least(1).ignore_then(select! {
+        TokenKind::DocComment(dc) => dc,
+    }))
+    .repeated()
+    .at_least(1)
+    .collect()
+    .debug("doc_comment")
+    .map(|lines: Vec<String>| lines.join("\n"))
+    .labelled("doc comment")
 }
 
 pub fn with_doc_comment<'a, P, O>(
@@ -94,5 +94,26 @@ mod tests {
             " doc comment\n another line",
         )
         "###);
+    }
+
+    #[test]
+    fn test_doc_comment_or_not() {
+        assert_debug_snapshot!(parse_with_parser(r#"hello"#, doc_comment().or_not()).unwrap(), @"None");
+        assert_debug_snapshot!(parse_with_parser(r#"hello"#, doc_comment().or_not().then_ignore(new_line().repeated()).then(ident_part())).unwrap(), @r###"
+        (
+            None,
+            "hello",
+        )
+        "###);
+    }
+
+    #[test]
+    fn test_no_doc_comment_in_with_doc_comment() {
+        impl SupportsDocComment for String {
+            fn with_doc_comment(self, _doc_comment: Option<String>) -> Self {
+                self
+            }
+        }
+        assert_debug_snapshot!(parse_with_parser(r#"hello"#, with_doc_comment(new_line().ignore_then(ident_part()))).unwrap(), @r###""hello""###);
     }
 }

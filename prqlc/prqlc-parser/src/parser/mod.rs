@@ -1,5 +1,6 @@
 use chumsky::{prelude::*, Stream};
 
+pub use self::common::new_line;
 use crate::error::Error;
 use crate::lexer::lr;
 use crate::span::Span;

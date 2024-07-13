@@ -1,3 +1,4 @@
+use chumsky::Parser;
 use insta::assert_yaml_snapshot;
 
 use crate::parser::prepare_stream;
@@ -6,10 +7,13 @@ use crate::test::parse_with_parser;
 use crate::{error::Error, lexer::lex_source};
 use crate::{lexer::lr::TokenKind, parser::pr::FuncCall};
 
-use super::pr::Expr;
+use super::{common::new_line, pr::Expr};
 
 fn parse_expr(source: &str) -> Result<Expr, Vec<Error>> {
-    parse_with_parser(source, super::expr::expr_call())
+    parse_with_parser(
+        source,
+        new_line().repeated().ignore_then(super::expr::expr_call()),
+    )
 }
 
 #[test]
@@ -22,6 +26,8 @@ fn test_prepare_stream() {
     let mut stream = prepare_stream(tokens.0.into_iter(), input, 0);
     assert_yaml_snapshot!(stream.fetch_tokens().collect::<Vec<(TokenKind, Span)>>(), @r###"
     ---
+    - - Start
+      - "0:0-0"
     - - Ident: from
       - "0:0-4"
     - - Ident: artists

@@ -76,12 +76,16 @@ pub fn expr<'a>() -> impl Parser<TokenKind, Expr, Error = PError> + Clone + 'a {
 fn tuple(
     nested_expr: impl Parser<TokenKind, Expr, Error = PError> + Clone,
 ) -> impl Parser<TokenKind, ExprKind, Error = PError> + Clone {
-    ident_part()
-        .then_ignore(ctrl('='))
-        .or_not()
-        .then(nested_expr)
-        .map(|(alias, expr)| Expr { alias, ..expr })
-        .padded_by(new_line().repeated())
+    new_line()
+        .repeated()
+        .ignore_then(
+            ident_part()
+                .then_ignore(ctrl('='))
+                .or_not()
+                .then(nested_expr)
+                .map(|(alias, expr)| Expr { alias, ..expr }),
+        )
+        // .padded_by(new_line().repeated())
         .separated_by(ctrl(','))
         .allow_trailing()
         .then_ignore(new_line().repeated())
@@ -103,22 +107,27 @@ fn tuple(
 fn array(
     expr: impl Parser<TokenKind, Expr, Error = PError> + Clone,
 ) -> impl Parser<TokenKind, ExprKind, Error = PError> + Clone {
-    expr.padded_by(new_line().repeated())
-        .separated_by(ctrl(','))
-        .allow_trailing()
-        .then_ignore(new_line().repeated())
-        .delimited_by(ctrl('['), ctrl(']'))
-        .recover_with(nested_delimiters(
-            TokenKind::Control('['),
-            TokenKind::Control(']'),
-            [
-                (TokenKind::Control('{'), TokenKind::Control('}')),
-                (TokenKind::Control('('), TokenKind::Control(')')),
-                (TokenKind::Control('['), TokenKind::Control(']')),
-            ],
-            |_| vec![],
-        ))
-        .map(ExprKind::Array)
+    new_line()
+        .repeated()
+        .ignore_then(
+            expr
+                // .padded_by(new_line().repeated())
+                .separated_by(ctrl(','))
+                .allow_trailing()
+                .then_ignore(new_line().repeated())
+                .delimited_by(ctrl('['), ctrl(']'))
+                .recover_with(nested_delimiters(
+                    TokenKind::Control('['),
+                    TokenKind::Control(']'),
+                    [
+                        (TokenKind::Control('{'), TokenKind::Control('}')),
+                        (TokenKind::Control('('), TokenKind::Control(')')),
+                        (TokenKind::Control('['), TokenKind::Control(']')),
+                    ],
+                    |_| vec![],
+                ))
+                .map(ExprKind::Array),
+        )
         .labelled("array")
 }
 
@@ -162,12 +171,16 @@ fn case(
 ) -> impl Parser<TokenKind, ExprKind, Error = PError> + Clone {
     keyword("case")
         .ignore_then(
-            func_call(expr.clone())
-                .map(Box::new)
-                .then_ignore(just(TokenKind::ArrowFat))
-                .then(func_call(expr).map(Box::new))
-                .map(|(condition, value)| SwitchCase { condition, value })
-                .padded_by(new_line().repeated())
+            new_line()
+                .repeated()
+                .ignore_then(
+                    func_call(expr.clone())
+                        .map(Box::new)
+                        .then_ignore(just(TokenKind::ArrowFat))
+                        .then(func_call(expr).map(Box::new))
+                        .map(|(condition, value)| SwitchCase { condition, value }),
+                )
+                // .padded_by(new_line().repeated())
                 .separated_by(ctrl(','))
                 .allow_trailing()
                 .then_ignore(new_line().repeated())
@@ -276,29 +289,29 @@ where
         new_line().repeated().at_least(1).ignored(),
     ));
 
-    new_line()
-        .repeated()
-        .ignore_then(
+    with_doc_comment(
+        new_line().repeated().ignore_then(
             ident_part()
                 .then_ignore(ctrl('='))
                 .or_not()
                 .then(expr)
-                .map(|(alias, expr)| Expr { alias, ..expr })
-                .separated_by(pipe)
-                .at_least(1)
-                .map_with_span(|exprs, span| {
-                    // If there's only one expr, then we don't need to wrap it
-                    // in a pipeline — just return the lone expr. Otherwise,
-                    // wrap them in a pipeline.
-                    exprs.into_iter().exactly_one().unwrap_or_else(|exprs| {
-                        ExprKind::Pipeline(Pipeline {
-                            exprs: exprs.collect(),
-                        })
-                        .into_expr(span)
-                    })
-                }),
-        )
-        .labelled("pipeline")
+                .map(|(alias, expr)| Expr { alias, ..expr }),
+        ),
+    )
+    .separated_by(pipe)
+    .at_least(1)
+    .map_with_span(|exprs, span| {
+        // If there's only one expr, then we don't need to wrap it
+        // in a pipeline — just return the lone expr. Otherwise,
+        // wrap them in a pipeline.
+        exprs.into_iter().exactly_one().unwrap_or_else(|exprs| {
+            ExprKind::Pipeline(Pipeline {
+                exprs: exprs.collect(),
+            })
+            .into_expr(span)
+        })
+    })
+    .labelled("pipeline")
 }
 
 fn binary_op_parser<'a, Term, Op>(
@@ -544,4 +557,76 @@ fn operator_or() -> impl Parser<TokenKind, BinOp, Error = PError> + Clone {
 }
 fn operator_coalesce() -> impl Parser<TokenKind, BinOp, Error = PError> + Clone {
     just(TokenKind::Coalesce).to(BinOp::Coalesce)
+}
+
+#[cfg(test)]
+mod tests {
+
+    use insta::assert_yaml_snapshot;
+
+    use crate::test::{parse_with_parser, trim_start};
+
+    use super::*;
+
+    #[test]
+    fn test_expr() {
+        assert_yaml_snapshot!(
+            parse_with_parser(r#"5+5"#, trim_start().ignore_then(expr())).unwrap(),
+             @r###"
+        ---
+        Binary:
+          left:
+            Literal:
+              Integer: 5
+            span: "0:0-1"
+          op: Add
+          right:
+            Literal:
+              Integer: 5
+            span: "0:2-3"
+        span: "0:0-3"
+        "###);
+
+        assert_yaml_snapshot!(
+            parse_with_parser(r#"derive x = 5"#, trim_start().ignore_then(expr())).unwrap(),
+             @r###"
+        ---
+        Ident: derive
+        span: "0:0-6"
+        "###);
+    }
+
+    #[test]
+    fn test_pipeline() {
+        assert_yaml_snapshot!(
+            parse_with_parser(r#"
+            from artists
+            derive x = 5
+            "#, trim_start().then(pipeline(expr_call()))).unwrap(),
+            @r###"
+        ---
+        - ~
+        - Pipeline:
+            exprs:
+              - FuncCall:
+                  name:
+                    Ident: from
+                    span: "0:13-17"
+                  args:
+                    - Ident: artists
+                      span: "0:18-25"
+                span: "0:13-25"
+              - FuncCall:
+                  name:
+                    Ident: derive
+                    span: "0:38-44"
+                  args:
+                    - Literal:
+                        Integer: 5
+                      span: "0:49-50"
+                      alias: x
+                span: "0:38-50"
+          span: "0:13-50"
+        "###);
+    }
 }

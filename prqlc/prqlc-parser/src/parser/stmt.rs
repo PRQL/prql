@@ -15,6 +15,9 @@ pub fn source() -> impl Parser<TokenKind, Vec<Stmt>, Error = PError> {
     with_doc_comment(query_def())
         .or_not()
         .chain(module_contents())
+        // This is the only instance we can consume newlines at the end of something, since
+        // this is the end of the module
+        .then_ignore(new_line().repeated())
         .then_ignore(end())
 }
 
@@ -26,12 +29,18 @@ fn module_contents() -> impl Parser<TokenKind, Vec<Stmt>, Error = PError> {
             .map(|(name, stmts)| StmtKind::ModuleDef(ModuleDef { name, stmts }))
             .labelled("module definition");
 
-        let annotation = just(TokenKind::Annotate)
-            .ignore_then(expr())
-            .then_ignore(new_line().repeated())
-            .map(|expr| Annotation {
-                expr: Box::new(expr),
-            })
+        let annotation = new_line()
+            .repeated()
+            // TODO: we could enforce annotations starting on a new line?
+            // .at_least(1)
+            .ignore_then(
+                just(TokenKind::Annotate)
+                    .ignore_then(expr())
+                    // .then_ignore(new_line().repeated())
+                    .map(|expr| Annotation {
+                        expr: Box::new(expr),
+                    }),
+            )
             .labelled("annotation");
 
         // Also need to handle new_line vs. start of file here
@@ -60,6 +69,7 @@ fn module_contents() -> impl Parser<TokenKind, Vec<Stmt>, Error = PError> {
 fn query_def() -> impl Parser<TokenKind, Stmt, Error = PError> + Clone {
     new_line()
         .repeated()
+        .at_least(1)
         .ignore_then(keyword("prql"))
         .ignore_then(
             // named arg
@@ -144,9 +154,13 @@ fn var_def() -> impl Parser<TokenKind, StmtKind, Error = PError> + Clone {
         .labelled("variable definition");
 
     let main_or_into = pipeline(expr_call())
-        .then_ignore(new_line().repeated())
         .map(Box::new)
-        .then(keyword("into").ignore_then(ident_part()).or_not())
+        .then(
+            new_line()
+                .repeated()
+                .ignore_then(keyword("into").ignore_then(ident_part()))
+                .or_not(),
+        )
         .map(|(value, name)| {
             let kind = if name.is_none() {
                 VarDefKind::Main
@@ -162,6 +176,8 @@ fn var_def() -> impl Parser<TokenKind, StmtKind, Error = PError> + Clone {
                 ty: None,
             })
         })
+        // TODO: this isn't really accurate, since a standard `from artists`
+        // also counts as this; we should change
         .labelled("variable definition");
 
     let_.or(main_or_into)
@@ -191,6 +207,77 @@ mod tests {
     use crate::test::parse_with_parser;
 
     #[test]
+    fn test_module_def() {
+        assert_yaml_snapshot!(parse_with_parser(r#"module hello {
+
+            let world = 1
+
+            let man = module.world
+
+          }
+        "#, module_contents()).unwrap(), @r###"
+    ---
+    - ModuleDef:
+        name: hello
+        stmts:
+          - VarDef:
+              kind: Let
+              name: world
+              value:
+                Literal:
+                  Integer: 1
+                span: "0:50-51"
+            span: "0:38-51"
+          - VarDef:
+              kind: Let
+              name: man
+              value:
+                Indirection:
+                  base:
+                    Ident: module
+                    span: "0:74-80"
+                  field:
+                    Name: world
+                span: "0:74-86"
+            span: "0:64-86"
+      span: "0:11-98"
+    "###);
+
+        assert_yaml_snapshot!(parse_with_parser(r#"
+          module hello {
+            let world = 1
+            let man = module.world
+          }
+        "#, module_contents()).unwrap(), @r###"
+    ---
+    - ModuleDef:
+        name: hello
+        stmts:
+          - VarDef:
+              kind: Let
+              name: world
+              value:
+                Literal:
+                  Integer: 1
+                span: "0:50-51"
+            span: "0:38-51"
+          - VarDef:
+              kind: Let
+              name: man
+              value:
+                Indirection:
+                  base:
+                    Ident: module
+                    span: "0:74-80"
+                  field:
+                    Name: world
+                span: "0:74-86"
+            span: "0:64-86"
+      span: "0:11-98"
+    "###);
+    }
+
+    #[test]
     fn test_doc_comment_module() {
         assert_yaml_snapshot!(parse_with_parser(r#"
 
@@ -211,7 +298,7 @@ mod tests {
                   - Ident: foo
                     span: "0:44-47"
               span: "0:39-47"
-          span: "0:30-49"
+          span: "0:30-47"
           doc_comment: " first doc comment"
         "###);
 
@@ -253,7 +340,7 @@ mod tests {
                   - Ident: bar
                     span: "0:108-111"
               span: "0:103-111"
-          span: "0:94-113"
+          span: "0:94-111"
           doc_comment: " second doc comment"
         "###);
     }
