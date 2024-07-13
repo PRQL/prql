@@ -10,11 +10,6 @@ pub mod lr;
 #[cfg(test)]
 mod test;
 
-// TODO: we have `lex_source` and `lex_source_recovery` and don't have the same
-// structure for PR. Probably we should have a single approach to the inclusion
-// and naming of a function which returns both the tokens & errors, and a
-// function that returns both.
-
 /// Lex PRQL into LR, returning both the LR and any errors encountered
 pub fn lex_source_recovery(source: &str, source_id: u16) -> (Option<Vec<Token>>, Vec<Error>) {
     let (tokens, lex_errors) = lexer().parse_recovery(source);

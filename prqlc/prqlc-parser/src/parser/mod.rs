@@ -15,13 +15,14 @@ pub(crate) mod stmt;
 mod test;
 mod types;
 
+// Note that `parse_source` is in `prqlc` crate, not in `prqlc-parser` crate,
+// because it logs using the logging framework in `prqlc`.
+
 pub fn parse_lr_to_pr(
     source: &str,
     source_id: u16,
     lr: Vec<lr::Token>,
 ) -> (Option<Vec<pr::Stmt>>, Vec<Error>) {
-    // We don't want comments in the AST (but we do intend to use them as part of
-    // formatting)
     let stream = prepare_stream(lr.into_iter(), source, source_id);
     let (pr, parse_errors) = stmt::source().parse_recovery(stream);
 
