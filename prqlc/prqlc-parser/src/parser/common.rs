@@ -7,7 +7,7 @@ use crate::span::Span;
 
 use super::SupportsDocComment;
 
-pub fn ident_part() -> impl Parser<TokenKind, String, Error = PError> + Clone {
+pub(crate) fn ident_part() -> impl Parser<TokenKind, String, Error = PError> + Clone {
     select! {
         TokenKind::Ident(ident) => ident,
         TokenKind::Keyword(ident) if &ident == "module" => ident,
@@ -21,7 +21,7 @@ pub fn ident_part() -> impl Parser<TokenKind, String, Error = PError> + Clone {
     })
 }
 
-pub fn keyword(kw: &'static str) -> impl Parser<TokenKind, (), Error = PError> + Clone {
+pub(crate) fn keyword(kw: &'static str) -> impl Parser<TokenKind, (), Error = PError> + Clone {
     just(TokenKind::Keyword(kw.to_string())).ignored()
 }
 
@@ -38,7 +38,7 @@ pub fn new_line() -> impl Parser<TokenKind, (), Error = PError> + Clone {
         .labelled("new line")
 }
 
-pub fn ctrl(char: char) -> impl Parser<TokenKind, (), Error = PError> + Clone {
+pub(crate) fn ctrl(char: char) -> impl Parser<TokenKind, (), Error = PError> + Clone {
     just(TokenKind::Control(char)).ignored()
 }
 
@@ -51,7 +51,7 @@ pub fn into_stmt((annotations, kind): (Vec<Annotation>, StmtKind), span: Span) -
     }
 }
 
-pub fn doc_comment() -> impl Parser<TokenKind, String, Error = PError> + Clone {
+pub(crate) fn doc_comment() -> impl Parser<TokenKind, String, Error = PError> + Clone {
     // doc comments must start on a new line, so we enforce a new line (which
     // can also be a file start) before the doc comment
     //
@@ -67,7 +67,7 @@ pub fn doc_comment() -> impl Parser<TokenKind, String, Error = PError> + Clone {
     .labelled("doc comment")
 }
 
-pub fn with_doc_comment<'a, P, O>(
+pub(crate) fn with_doc_comment<'a, P, O>(
     parser: P,
 ) -> impl Parser<TokenKind, O, Error = PError> + Clone + 'a
 where
