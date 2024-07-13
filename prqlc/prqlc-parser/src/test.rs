@@ -1788,7 +1788,7 @@ fn test_module() {
                 Literal:
                   Integer: 1
                 span: "0:50-51"
-            span: "0:38-51"
+            span: "0:25-51"
           - VarDef:
               kind: Let
               name: man
@@ -1800,8 +1800,8 @@ fn test_module() {
                   field:
                     Name: world
                 span: "0:74-86"
-            span: "0:64-86"
-      span: "0:11-98"
+            span: "0:51-86"
+      span: "0:0-98"
     "###);
 }
 

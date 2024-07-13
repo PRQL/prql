@@ -25,7 +25,11 @@ fn module_contents() -> impl Parser<TokenKind, Vec<Stmt>, Error = PError> {
     recursive(|module_contents| {
         let module_def = keyword("module")
             .ignore_then(ident_part())
-            .then(module_contents.delimited_by(ctrl('{'), ctrl('}')))
+            .then(
+                module_contents
+                    .then_ignore(new_line().repeated())
+                    .delimited_by(ctrl('{'), ctrl('}')),
+            )
             .map(|(name, stmts)| StmtKind::ModuleDef(ModuleDef { name, stmts }))
             .labelled("module definition");
 
@@ -44,7 +48,8 @@ fn module_contents() -> impl Parser<TokenKind, Vec<Stmt>, Error = PError> {
             .labelled("annotation");
 
         // Also need to handle new_line vs. start of file here
-        let stmt_kind = new_line().repeated().at_least(1).ignore_then(choice((
+        // let stmt_kind = new_line().repeated().at_least(1).ignore_then(choice((
+        let stmt_kind = new_line().repeated().ignore_then(choice((
             module_def,
             type_def(),
             import_def(),
@@ -207,74 +212,91 @@ mod tests {
     use crate::test::parse_with_parser;
 
     #[test]
-    fn test_module_def() {
-        assert_yaml_snapshot!(parse_with_parser(r#"module hello {
-
+    fn test_module_contents() {
+        assert_yaml_snapshot!(parse_with_parser(r#"
             let world = 1
-
             let man = module.world
-
-          }
         "#, module_contents()).unwrap(), @r###"
-    ---
-    - ModuleDef:
-        name: hello
-        stmts:
-          - VarDef:
-              kind: Let
-              name: world
-              value:
-                Literal:
-                  Integer: 1
-                span: "0:50-51"
-            span: "0:38-51"
-          - VarDef:
-              kind: Let
-              name: man
-              value:
-                Indirection:
-                  base:
-                    Ident: module
-                    span: "0:74-80"
-                  field:
-                    Name: world
-                span: "0:74-86"
-            span: "0:64-86"
-      span: "0:11-98"
-    "###);
+        ---
+        - VarDef:
+            kind: Let
+            name: world
+            value:
+              Literal:
+                Integer: 1
+              span: "0:25-26"
+          span: "0:0-26"
+        - VarDef:
+            kind: Let
+            name: man
+            value:
+              Indirection:
+                base:
+                  Ident: module
+                  span: "0:49-55"
+                field:
+                  Name: world
+              span: "0:49-61"
+          span: "0:26-61"
+        "###);
+    }
+
+    #[test]
+    fn test_module_def() {
+        // Same line
+        assert_yaml_snapshot!(parse_with_parser(r#"module two {let houses = both.alike}
+        "#, module_contents()).unwrap(), @r###"
+        ---
+        - ModuleDef:
+            name: two
+            stmts:
+              - VarDef:
+                  kind: Let
+                  name: houses
+                  value:
+                    Indirection:
+                      base:
+                        Ident: both
+                        span: "0:25-29"
+                      field:
+                        Name: alike
+                    span: "0:25-35"
+                span: "0:12-35"
+          span: "0:0-36"
+        "###);
 
         assert_yaml_snapshot!(parse_with_parser(r#"
-          module hello {
-            let world = 1
-            let man = module.world
-          }
+          module dignity {
+            let fair = 1
+            let verona = we.lay
+         }
         "#, module_contents()).unwrap(), @r###"
-    ---
-    - ModuleDef:
-        name: hello
-        stmts:
-          - VarDef:
-              kind: Let
-              name: world
-              value:
-                Literal:
-                  Integer: 1
-                span: "0:50-51"
-            span: "0:38-51"
-          - VarDef:
-              kind: Let
-              name: man
-              value:
-                Indirection:
-                  base:
-                    Ident: module
-                    span: "0:74-80"
-                  field:
-                    Name: world
-                span: "0:74-86"
-            span: "0:64-86"
-      span: "0:11-98"
-    "###);
+        ---
+        - ModuleDef:
+            name: dignity
+            stmts:
+              - VarDef:
+                  kind: Let
+                  name: fair
+                  value:
+                    Literal:
+                      Integer: 1
+                    span: "0:51-52"
+                span: "0:27-52"
+              - VarDef:
+                  kind: Let
+                  name: verona
+                  value:
+                    Indirection:
+                      base:
+                        Ident: we
+                        span: "0:78-80"
+                      field:
+                        Name: lay
+                    span: "0:78-84"
+                span: "0:52-84"
+          span: "0:0-95"
+        "###);
     }
 
     #[test]
