@@ -40,14 +40,18 @@ fn module_contents() -> impl Parser<TokenKind, Vec<Stmt>, Error = PError> {
             .ignore_then(
                 just(TokenKind::Annotate)
                     .ignore_then(expr())
-                    // .then_ignore(new_line().repeated())
                     .map(|expr| Annotation {
                         expr: Box::new(expr),
                     }),
             )
             .labelled("annotation");
 
-        // Also need to handle new_line vs. start of file here
+        // TODO: we want to confirm that we're not allowing things on the same
+        // line that shoudln't be; e.g. `let foo = 5 let bar = 6`. We can't
+        // enforce a new line here because then `module two {let houses =
+        // both.alike}` fails (though we could force a new line after the
+        // `module` if that were helpful)
+        //
         // let stmt_kind = new_line().repeated().at_least(1).ignore_then(choice((
         let stmt_kind = new_line().repeated().ignore_then(choice((
             module_def,
@@ -65,9 +69,6 @@ fn module_contents() -> impl Parser<TokenKind, Vec<Stmt>, Error = PError> {
                 .map_with_span(into_stmt),
         )
         .repeated()
-        // .separated_by(new_line().repeated().at_least(1))
-        // .allow_leading()
-        // .allow_trailing()
     })
 }
 
