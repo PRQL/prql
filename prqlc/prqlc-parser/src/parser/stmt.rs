@@ -47,7 +47,7 @@ fn module_contents() -> impl Parser<TokenKind, Vec<Stmt>, Error = PError> {
             .labelled("annotation");
 
         // TODO: we want to confirm that we're not allowing things on the same
-        // line that shoudln't be; e.g. `let foo = 5 let bar = 6`. We can't
+        // line that should't be; e.g. `let foo = 5 let bar = 6`. We can't
         // enforce a new line here because then `module two {let houses =
         // both.alike}` fails (though we could force a new line after the
         // `module` if that were helpful)
