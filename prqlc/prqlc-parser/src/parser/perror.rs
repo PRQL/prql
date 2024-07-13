@@ -83,7 +83,7 @@ impl<T: Hash + Eq + Display + Debug> chumsky::Error<T> for ChumError<T> {
     ) -> Self {
         let exp = expected.into_iter().collect();
         let msg = format!("expected {:?} but found {:?}", exp, found);
-        dbg!(msg);
+        msg;
         log::trace!("looking for {:?} but found {:?} at: {:?}", exp, found, span);
         Self {
             span,
@@ -126,7 +126,6 @@ impl<T: Hash + Eq + Display + Debug> chumsky::Error<T> for ChumError<T> {
 
     ///from chumsky::error::Simple
     fn merge(mut self, other: Self) -> Self {
-        dbg!((&self, &other));
         // TODO: Assert that `self.span == other.span` here?
         // self.reason = match (&self.reason, &other.reason) {
         //     (Some(..), None) => self.reason,
@@ -142,10 +141,7 @@ impl<T: Hash + Eq + Display + Debug> chumsky::Error<T> for ChumError<T> {
 
         self.label = self.label.merge(other.label);
         self.expected.extend(other.expected);
-        // for expected in other.expected {
-        //     self.expected.insert(expected);
-        // }
-        dbg!(self)
+        self
     }
 }
 
@@ -162,7 +158,6 @@ impl<T: Hash + Eq + Debug> Eq for ChumError<T> {}
 
 impl<T: fmt::Display + Hash + Eq + Debug> fmt::Display for ChumError<T> {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        dbg!(&self);
         // TODO: Take `self.reason` into account
 
         if let Some(found) = &self.found {
@@ -214,7 +209,6 @@ impl From<PError> for Error {
         }
 
         fn construct_parser_error(e: PError) -> Error {
-            dbg!(e.clone());
             if let Some(message) = e.reason() {
                 return Error::new_simple(message).with_source(ErrorSource::Parser(e));
             }

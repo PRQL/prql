@@ -13,7 +13,6 @@ pub fn ident_part() -> impl Parser<TokenKind, String, Error = PError> + Clone {
         TokenKind::Keyword(ident) if &ident == "module" => ident,
     }
     .map_err(|e: PError| {
-        dbg!(e.clone());
         PError::expected_input_found(
             e.span(),
             [Some(TokenKind::Ident("".to_string()))],
