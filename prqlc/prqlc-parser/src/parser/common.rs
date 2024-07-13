@@ -80,6 +80,21 @@ where
         .map(|(doc_comment, inner)| inner.with_doc_comment(doc_comment))
 }
 
+/// Parse a sequence, allowing commas and new lines between items. Doesn't
+/// include the surrounding delimiters.
+pub(crate) fn sequence<'a, P, O>(
+    parser: P,
+) -> impl Parser<TokenKind, Vec<O>, Error = PError> + Clone + 'a
+where
+    P: Parser<TokenKind, O, Error = PError> + Clone + 'a,
+    O: 'a,
+{
+    parser
+        .separated_by(ctrl(',').then_ignore(new_line().repeated()))
+        .allow_trailing()
+        .padded_by(new_line().repeated())
+}
+
 #[cfg(test)]
 mod tests {
     use insta::assert_debug_snapshot;

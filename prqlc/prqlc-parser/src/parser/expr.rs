@@ -11,6 +11,8 @@ use crate::parser::pr::*;
 use crate::parser::types::type_expr;
 use crate::span::Span;
 
+use super::common::sequence;
+
 pub fn expr_call() -> impl Parser<TokenKind, Expr, Error = PError> + Clone {
     let expr = expr();
 
@@ -73,25 +75,39 @@ pub fn expr() -> impl Parser<TokenKind, Expr, Error = PError> + Clone {
     })
 }
 
-fn tuple(
-    nested_expr: impl Parser<TokenKind, Expr, Error = PError> + Clone,
-) -> impl Parser<TokenKind, ExprKind, Error = PError> + Clone {
-    new_line()
-        .repeated()
-        .ignore_then(
-            ident_part()
-                .then_ignore(ctrl('='))
-                .or_not()
-                .then(nested_expr)
-                .map(|(alias, expr)| Expr { alias, ..expr }),
-        )
-        .separated_by(ctrl(','))
-        .allow_trailing()
-        .then_ignore(new_line().repeated())
-        .delimited_by(ctrl('{'), ctrl('}'))
+fn tuple<'a>(
+    nested_expr: impl Parser<TokenKind, Expr, Error = PError> + Clone + 'a,
+) -> impl Parser<TokenKind, ExprKind, Error = PError> + Clone + 'a {
+    sequence(
+        ident_part()
+            .then_ignore(ctrl('='))
+            .or_not()
+            .then(nested_expr)
+            .map(|(alias, expr)| Expr { alias, ..expr }),
+    )
+    .delimited_by(ctrl('{'), ctrl('}'))
+    .recover_with(nested_delimiters(
+        TokenKind::Control('{'),
+        TokenKind::Control('}'),
+        [
+            (TokenKind::Control('{'), TokenKind::Control('}')),
+            (TokenKind::Control('('), TokenKind::Control(')')),
+            (TokenKind::Control('['), TokenKind::Control(']')),
+        ],
+        |_| vec![],
+    ))
+    .map(ExprKind::Tuple)
+    .labelled("tuple")
+}
+
+fn array<'a>(
+    expr: impl Parser<TokenKind, Expr, Error = PError> + Clone + 'a,
+) -> impl Parser<TokenKind, ExprKind, Error = PError> + Clone + 'a {
+    sequence(expr)
+        .delimited_by(ctrl('['), ctrl(']'))
         .recover_with(nested_delimiters(
-            TokenKind::Control('{'),
-            TokenKind::Control('}'),
+            TokenKind::Control('['),
+            TokenKind::Control(']'),
             [
                 (TokenKind::Control('{'), TokenKind::Control('}')),
                 (TokenKind::Control('('), TokenKind::Control(')')),
@@ -99,32 +115,7 @@ fn tuple(
             ],
             |_| vec![],
         ))
-        .map(ExprKind::Tuple)
-        .labelled("tuple")
-}
-
-fn array(
-    expr: impl Parser<TokenKind, Expr, Error = PError> + Clone,
-) -> impl Parser<TokenKind, ExprKind, Error = PError> + Clone {
-    new_line()
-        .repeated()
-        .ignore_then(
-            expr.separated_by(ctrl(','))
-                .allow_trailing()
-                .then_ignore(new_line().repeated())
-                .delimited_by(ctrl('['), ctrl(']'))
-                .recover_with(nested_delimiters(
-                    TokenKind::Control('['),
-                    TokenKind::Control(']'),
-                    [
-                        (TokenKind::Control('{'), TokenKind::Control('}')),
-                        (TokenKind::Control('('), TokenKind::Control(')')),
-                        (TokenKind::Control('['), TokenKind::Control(']')),
-                    ],
-                    |_| vec![],
-                ))
-                .map(ExprKind::Array),
-        )
+        .map(ExprKind::Array)
         .labelled("array")
 }
 
@@ -163,9 +154,9 @@ fn interpolation() -> impl Parser<TokenKind, ExprKind, Error = PError> + Clone {
     .labelled("interpolated string")
 }
 
-fn case(
-    expr: impl Parser<TokenKind, Expr, Error = PError> + Clone,
-) -> impl Parser<TokenKind, ExprKind, Error = PError> + Clone {
+fn case<'a>(
+    expr: impl Parser<TokenKind, Expr, Error = PError> + Clone + 'a,
+) -> impl Parser<TokenKind, ExprKind, Error = PError> + Clone + 'a {
     // The `nickname != null => nickname,` part
     let mapping = func_call(expr.clone())
         .map(Box::new)
@@ -174,13 +165,7 @@ fn case(
         .map(|(condition, value)| SwitchCase { condition, value });
 
     keyword("case")
-        .ignore_then(
-            mapping
-                .separated_by(ctrl(',').then_ignore(new_line().repeated()))
-                .allow_trailing()
-                .padded_by(new_line().repeated())
-                .delimited_by(ctrl('['), ctrl(']')),
-        )
+        .ignore_then(sequence(mapping).delimited_by(ctrl('['), ctrl(']')))
         .map(ExprKind::Case)
 }
 
