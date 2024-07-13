@@ -17,7 +17,7 @@ pub fn expr_call() -> impl Parser<TokenKind, Expr, Error = PError> + Clone {
     lambda_func(expr.clone()).or(func_call(expr))
 }
 
-pub fn expr<'a>() -> impl Parser<TokenKind, Expr, Error = PError> + Clone + 'a {
+pub fn expr() -> impl Parser<TokenKind, Expr, Error = PError> + Clone {
     recursive(|expr| {
         let literal = select! { TokenKind::Literal(lit) => ExprKind::Literal(lit) };
 
