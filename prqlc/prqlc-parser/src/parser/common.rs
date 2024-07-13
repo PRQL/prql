@@ -27,6 +27,8 @@ pub fn keyword(kw: &'static str) -> impl Parser<TokenKind, (), Error = PError> +
 
 pub fn new_line() -> impl Parser<TokenKind, (), Error = PError> + Clone {
     just(TokenKind::NewLine)
+        // Start is considered a new line, so we can enforce things start on a new
+        // line while allowing them to be at the beginning of a file
         .or(just(TokenKind::Start))
         .ignored()
         .labelled("new line")
@@ -57,7 +59,6 @@ pub fn doc_comment() -> impl Parser<TokenKind, String, Error = PError> + Clone {
     .repeated()
     .at_least(1)
     .collect()
-    .debug("doc_comment")
     .map(|lines: Vec<String>| lines.join("\n"))
     .labelled("doc comment")
 }

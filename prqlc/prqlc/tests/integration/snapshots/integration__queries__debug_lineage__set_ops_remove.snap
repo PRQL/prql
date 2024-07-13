@@ -289,7 +289,7 @@ ast:
           named_params: []
           generic_type_params: []
         span: 1:28-79
-    span: 1:13-79
+    span: 1:0-79
   - VarDef:
       kind: Main
       name: main
@@ -339,4 +339,4 @@ ast:
                 span: 1:244-245
             span: 1:239-245
         span: 1:81-245
-    span: 1:81-246
+    span: 1:79-245

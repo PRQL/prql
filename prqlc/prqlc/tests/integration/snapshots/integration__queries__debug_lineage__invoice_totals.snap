@@ -871,7 +871,7 @@ ast:
                           alias: total_price
                         span: 1:338-466
                     span: 1:328-466
-                span: 1:281-466
+                span: 1:276-466
             span: 1:254-468
           - FuncCall:
               name:
@@ -920,7 +920,7 @@ ast:
                             Boolean: true
                           span: 1:521-525
                     span: 1:504-592
-                span: 1:488-592
+                span: 1:483-592
             span: 1:469-594
           - FuncCall:
               name:
@@ -984,5 +984,5 @@ ast:
                 span: 1:789-791
             span: 1:784-791
         span: 1:131-791
-    span: 1:131-792
+    span: 1:130-791
     doc_comment: ' Calculate a number of metrics about the sales of tracks in each city.'

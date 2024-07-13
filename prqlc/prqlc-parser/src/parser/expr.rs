@@ -85,7 +85,6 @@ fn tuple(
                 .then(nested_expr)
                 .map(|(alias, expr)| Expr { alias, ..expr }),
         )
-        // .padded_by(new_line().repeated())
         .separated_by(ctrl(','))
         .allow_trailing()
         .then_ignore(new_line().repeated())
@@ -110,9 +109,7 @@ fn array(
     new_line()
         .repeated()
         .ignore_then(
-            expr
-                // .padded_by(new_line().repeated())
-                .separated_by(ctrl(','))
+            expr.separated_by(ctrl(','))
                 .allow_trailing()
                 .then_ignore(new_line().repeated())
                 .delimited_by(ctrl('['), ctrl(']'))
@@ -169,21 +166,19 @@ fn interpolation() -> impl Parser<TokenKind, ExprKind, Error = PError> + Clone {
 fn case(
     expr: impl Parser<TokenKind, Expr, Error = PError> + Clone,
 ) -> impl Parser<TokenKind, ExprKind, Error = PError> + Clone {
+    // The `nickname != null => nickname,` part
+    let mapping = func_call(expr.clone())
+        .map(Box::new)
+        .then_ignore(just(TokenKind::ArrowFat))
+        .then(func_call(expr).map(Box::new))
+        .map(|(condition, value)| SwitchCase { condition, value });
+
     keyword("case")
         .ignore_then(
-            new_line()
-                .repeated()
-                .ignore_then(
-                    func_call(expr.clone())
-                        .map(Box::new)
-                        .then_ignore(just(TokenKind::ArrowFat))
-                        .then(func_call(expr).map(Box::new))
-                        .map(|(condition, value)| SwitchCase { condition, value }),
-                )
-                // .padded_by(new_line().repeated())
-                .separated_by(ctrl(','))
+            mapping
+                .separated_by(ctrl(',').then_ignore(new_line().repeated()))
                 .allow_trailing()
-                .then_ignore(new_line().repeated())
+                .padded_by(new_line().repeated())
                 .delimited_by(ctrl('['), ctrl(']')),
         )
         .map(ExprKind::Case)
@@ -627,6 +622,45 @@ mod tests {
                       alias: x
                 span: "0:38-50"
           span: "0:13-50"
+        "###);
+    }
+
+    #[test]
+    fn test_case() {
+        assert_yaml_snapshot!(
+            parse_with_parser(r#"
+
+        case [
+
+            nickname != null => nickname,
+            true => null
+
+        ]
+            "#, trim_start().then(case(expr()))).unwrap(),
+        @r###"
+        ---
+        - ~
+        - Case:
+            - condition:
+                Binary:
+                  left:
+                    Ident: nickname
+                    span: "0:30-38"
+                  op: Ne
+                  right:
+                    Literal: "Null"
+                    span: "0:42-46"
+                span: "0:30-46"
+              value:
+                Ident: nickname
+                span: "0:50-58"
+            - condition:
+                Literal:
+                  Boolean: true
+                span: "0:72-76"
+              value:
+                Literal: "Null"
+                span: "0:80-84"
         "###);
     }
 }

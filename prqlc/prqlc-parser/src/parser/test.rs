@@ -1255,33 +1255,35 @@ fn test_ident_with_keywords() {
 
 #[test]
 fn test_case() {
-    assert_yaml_snapshot!(parse_expr(r#"case [
+    assert_yaml_snapshot!(parse_expr(r#"
+        case [
             nickname != null => nickname,
             true => null
-        ]"#).unwrap(), @r###"
+        ]
+        "#).unwrap(), @r###"
     ---
     Case:
       - condition:
           Binary:
             left:
               Ident: nickname
-              span: "0:19-27"
+              span: "0:28-36"
             op: Ne
             right:
               Literal: "Null"
-              span: "0:31-35"
-          span: "0:19-35"
+              span: "0:40-44"
+          span: "0:28-44"
         value:
           Ident: nickname
-          span: "0:39-47"
+          span: "0:48-56"
       - condition:
           Literal:
             Boolean: true
-          span: "0:61-65"
+          span: "0:70-74"
         value:
           Literal: "Null"
-          span: "0:69-73"
-    span: "0:0-83"
+          span: "0:78-82"
+    span: "0:9-92"
     "###);
 }
 
