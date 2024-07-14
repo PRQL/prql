@@ -157,6 +157,12 @@ where
         .padded_by(new_line().repeated())
 }
 
+fn pipe() -> impl Parser<TokenKind, (), Error = PError> + Clone {
+    ctrl('|')
+        .ignored()
+        .or(new_line().repeated().at_least(1).ignored())
+}
+
 #[cfg(test)]
 mod tests {
     use insta::assert_debug_snapshot;
