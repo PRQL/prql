@@ -121,9 +121,9 @@ use prqlc::pr::{ExprKind, Stmt, StmtKind, TyKind, VarDefKind};
 //             var_def.name, var_def.name
 //         ));
 
-//         //if let Some(docComment) = vardef.DocComment {
-//         //    docs.push_str(&format!("  <p>{docComment}</p>\n"));
-//         //}
+//         if let Some(doc_comment) = stmt.doc_comment {
+//             docs.push_str(&format!("  <p>{doc_comment}</p>\n"));
+//         }
 
 //         if let Some(expr) = &var_def.value {
 //             match &expr.kind {
@@ -261,9 +261,9 @@ Generated with [prqlc](https://prql-lang.org/) {}.
 
         docs.push_str(&format!("### {}\n", var_def.name));
 
-        //if let Some(docComment) = vardef.DocComment {
-        //    docs.push_str(&format!("{docComment}\n"));
-        //}
+        if let Some(doc_comment) = stmt.doc_comment {
+            docs.push_str(&format!("{}\n", doc_comment.trim_start()));
+        }
         docs.push('\n');
 
         if let Some(expr) = &var_def.value {
@@ -319,6 +319,7 @@ mod tests {
     #[test]
     fn generate_markdown_docs() {
         let input = r"
+        #! This is the x function.
         let x = arg1 arg2 -> c
         let fn_returns_array = -> <array> array
         let fn_returns_bool = -> <bool> true
@@ -354,6 +355,7 @@ mod tests {
         * foo
 
         ### x
+        This is the x function.
 
         #### Parameters
         * *arg1*

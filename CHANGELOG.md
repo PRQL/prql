@@ -9,6 +9,8 @@
 - Added `prqlc debug json-schema` command to auto-generate JSON Schema
   representations of commonly exposed IR types such as PL and RQ. (@kgutwin,
   #4698)
+- Add documentation comments to the output of the documentation generator.
+  (@vanillajonathan, #4729)
 
 **Fixes**:
 
