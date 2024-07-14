@@ -61,7 +61,7 @@ pub(crate) fn prepare_stream(
     Stream::from_iter(eoi, tokens)
 }
 
-pub(crate) fn ident_part() -> impl Parser<TokenKind, String, Error = PError> + Clone {
+fn ident_part() -> impl Parser<TokenKind, String, Error = PError> + Clone {
     select! {
         TokenKind::Ident(ident) => ident,
         TokenKind::Keyword(ident) if &ident == "module" => ident,
@@ -75,7 +75,7 @@ pub(crate) fn ident_part() -> impl Parser<TokenKind, String, Error = PError> + C
     })
 }
 
-pub(crate) fn keyword(kw: &'static str) -> impl Parser<TokenKind, (), Error = PError> + Clone {
+fn keyword(kw: &'static str) -> impl Parser<TokenKind, (), Error = PError> + Clone {
     just(TokenKind::Keyword(kw.to_string())).ignored()
 }
 
@@ -92,11 +92,11 @@ pub(crate) fn new_line() -> impl Parser<TokenKind, (), Error = PError> + Clone {
         .labelled("new line")
 }
 
-pub(crate) fn ctrl(char: char) -> impl Parser<TokenKind, (), Error = PError> + Clone {
+fn ctrl(char: char) -> impl Parser<TokenKind, (), Error = PError> + Clone {
     just(TokenKind::Control(char)).ignored()
 }
 
-pub(crate) fn into_stmt((annotations, kind): (Vec<Annotation>, StmtKind), span: Span) -> Stmt {
+fn into_stmt((annotations, kind): (Vec<Annotation>, StmtKind), span: Span) -> Stmt {
     Stmt {
         kind,
         span: Some(span),
@@ -105,7 +105,7 @@ pub(crate) fn into_stmt((annotations, kind): (Vec<Annotation>, StmtKind), span: 
     }
 }
 
-pub(crate) fn doc_comment() -> impl Parser<TokenKind, String, Error = PError> + Clone {
+fn doc_comment() -> impl Parser<TokenKind, String, Error = PError> + Clone {
     // doc comments must start on a new line, so we enforce a new line (which
     // can also be a file start) before the doc comment
     //
@@ -121,9 +121,7 @@ pub(crate) fn doc_comment() -> impl Parser<TokenKind, String, Error = PError> + 
     .labelled("doc comment")
 }
 
-pub(crate) fn with_doc_comment<'a, P, O>(
-    parser: P,
-) -> impl Parser<TokenKind, O, Error = PError> + Clone + 'a
+fn with_doc_comment<'a, P, O>(parser: P) -> impl Parser<TokenKind, O, Error = PError> + Clone + 'a
 where
     P: Parser<TokenKind, O, Error = PError> + Clone + 'a,
     O: SupportsDocComment + 'a,
@@ -138,15 +136,13 @@ where
 /// to be added to the result, as long as the result implements `SupportsDocComment`.
 ///
 /// We could manage without it tbh,
-pub(crate) trait SupportsDocComment {
+trait SupportsDocComment {
     fn with_doc_comment(self, doc_comment: Option<String>) -> Self;
 }
 
 /// Parse a sequence, allowing commas and new lines between items. Doesn't
 /// include the surrounding delimiters.
-pub(crate) fn sequence<'a, P, O>(
-    parser: P,
-) -> impl Parser<TokenKind, Vec<O>, Error = PError> + Clone + 'a
+fn sequence<'a, P, O>(parser: P) -> impl Parser<TokenKind, Vec<O>, Error = PError> + Clone + 'a
 where
     P: Parser<TokenKind, O, Error = PError> + Clone + 'a,
     O: 'a,
