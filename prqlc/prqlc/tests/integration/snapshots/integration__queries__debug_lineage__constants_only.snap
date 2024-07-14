@@ -192,4 +192,4 @@ ast:
                 alias: d
             span: 1:52-65
         span: 1:0-65
-    span: 1:0-66
+    span: 1:0-65

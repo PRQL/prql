@@ -138,9 +138,7 @@ impl<T: Hash + Eq + Display + Debug> chumsky::Error<T> for ChumError<T> {
         });
 
         self.label = self.label.merge(other.label);
-        for expected in other.expected {
-            self.expected.insert(expected);
-        }
+        self.expected.extend(other.expected);
         self
     }
 }

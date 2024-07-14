@@ -1,12 +1,12 @@
 use chumsky::prelude::*;
 
-use super::common::*;
 use super::expr::ident;
 use super::perror::PError;
 use super::pr::*;
+use super::*;
 use crate::lexer::lr::TokenKind;
 
-pub fn type_expr() -> impl Parser<TokenKind, Ty, Error = PError> + Clone {
+pub(crate) fn type_expr() -> impl Parser<TokenKind, Ty, Error = PError> + Clone {
     recursive(|nested_type_expr| {
         let basic = select! {
             TokenKind::Literal(lit) => TyKind::Singleton(lit),

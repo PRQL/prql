@@ -7,7 +7,7 @@ use crate::parser::pr::*;
 use crate::span::{string_stream, Span};
 
 /// Parses interpolated strings
-pub fn parse(string: String, span_base: Span) -> Result<Vec<InterpolateItem>, Vec<PError>> {
+pub(crate) fn parse(string: String, span_base: Span) -> Result<Vec<InterpolateItem>, Vec<PError>> {
     let prepped_stream = string_stream(string, span_base);
 
     let res = interpolated_parser().parse(prepped_stream);
@@ -66,7 +66,8 @@ fn interpolated_parser() -> impl Parser<char, Vec<InterpolateItem>, Error = Chum
     expr.or(string).repeated().then_ignore(end())
 }
 
-pub fn interpolate_ident_part() -> impl Parser<char, String, Error = ChumError<char>> + Clone {
+pub(crate) fn interpolate_ident_part() -> impl Parser<char, String, Error = ChumError<char>> + Clone
+{
     let plain = filter(|c: &char| c.is_alphabetic() || *c == '_')
         .chain(filter(|c: &char| c.is_alphanumeric() || *c == '_').repeated())
         .labelled("interpolated string");
@@ -97,6 +98,7 @@ fn parse_interpolate() {
                     0:8-9,
                 ),
                 alias: None,
+                doc_comment: None,
             },
             format: None,
         },
@@ -142,6 +144,7 @@ fn parse_interpolate() {
                     0:14-15,
                 ),
                 alias: None,
+                doc_comment: None,
             },
             format: None,
         },

@@ -5,6 +5,7 @@ input_file: prqlc/prqlc/tests/integration/queries/loop_01.prql
 ---
 Tokens(
     [
+        0..0: Start,
         0..47: Comment(" clickhouse:skip (DB::Exception: Syntax error)"),
         47..48: NewLine,
         48..161: Comment(" glaredb:skip (DataFusion does not support recursive CTEs https://github.com/apache/arrow-datafusion/issues/462)"),

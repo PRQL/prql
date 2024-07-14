@@ -4,4 +4,4 @@ pub mod lexer;
 pub mod parser;
 pub mod span;
 #[cfg(test)]
-mod test;
+pub(crate) mod test;

@@ -5,6 +5,7 @@ input_file: prqlc/prqlc/tests/integration/queries/aggregation.prql
 ---
 Tokens(
     [
+        0..0: Start,
         0..12: Comment(" mssql:skip"),
         12..13: NewLine,
         13..25: Comment(" mysql:skip"),

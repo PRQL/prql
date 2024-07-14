@@ -5,6 +5,7 @@ input_file: prqlc/prqlc/tests/integration/queries/group_sort_limit_take.prql
 ---
 Tokens(
     [
+        0..0: Start,
         0..62: Comment(" Compute the 3 longest songs for each genre and sort by genre"),
         62..63: NewLine,
         63..75: Comment(" mssql:test"),

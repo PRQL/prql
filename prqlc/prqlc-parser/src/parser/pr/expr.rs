@@ -4,11 +4,11 @@ use enum_as_inner::EnumAsInner;
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 
-use crate::generic;
 use crate::lexer::lr::Literal;
 use crate::parser::pr::ops::{BinOp, UnOp};
 use crate::parser::pr::Ty;
 use crate::span::Span;
+use crate::{generic, parser::SupportsDocComment};
 
 impl Expr {
     pub fn new<K: Into<ExprKind>>(kind: K) -> Self {
@@ -16,6 +16,7 @@ impl Expr {
             kind: kind.into(),
             span: None,
             alias: None,
+            doc_comment: None,
         }
     }
 }
@@ -34,6 +35,18 @@ pub struct Expr {
 
     #[serde(skip_serializing_if = "Option::is_none")]
     pub alias: Option<String>,
+
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub doc_comment: Option<String>,
+}
+
+impl SupportsDocComment for Expr {
+    fn with_doc_comment(self, doc_comment: Option<String>) -> Self {
+        Self {
+            doc_comment,
+            ..self
+        }
+    }
 }
 
 #[derive(
@@ -81,6 +94,7 @@ impl ExprKind {
             span: Some(span),
             kind: self,
             alias: None,
+            doc_comment: None,
         }
     }
 }

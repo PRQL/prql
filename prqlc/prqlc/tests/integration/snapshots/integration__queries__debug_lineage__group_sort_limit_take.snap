@@ -362,7 +362,7 @@ ast:
                           Integer: 3
                         span: 1:168-169
                     span: 1:163-169
-                span: 1:140-169
+                span: 1:137-169
             span: 1:119-171
           - FuncCall:
               name:
@@ -411,4 +411,4 @@ ast:
                 span: 1:230-251
             span: 1:225-251
         span: 1:76-251
-    span: 1:76-252
+    span: 1:0-251
