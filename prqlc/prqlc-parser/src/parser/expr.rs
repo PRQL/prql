@@ -11,6 +11,8 @@ use crate::parser::types::type_expr;
 use crate::parser::{ctrl, ident_part, keyword, new_line, sequence, with_doc_comment};
 use crate::span::Span;
 
+use super::pipe;
+
 pub(crate) fn expr_call() -> impl Parser<TokenKind, Expr, Error = PError> + Clone {
     let expr = expr();
 
@@ -262,11 +264,6 @@ where
     // expr has to be a param, because it can be either a normal expr() or a
     // recursive expr called from within expr(), which causes a stack overflow
 
-    let pipe = choice((
-        ctrl('|').ignored(),
-        new_line().repeated().at_least(1).ignored(),
-    ));
-
     with_doc_comment(
         new_line().repeated().ignore_then(
             ident_part()
@@ -276,7 +273,7 @@ where
                 .map(|(alias, expr)| Expr { alias, ..expr }),
         ),
     )
-    .separated_by(pipe)
+    .separated_by(pipe())
     .at_least(1)
     .map_with_span(|exprs, span| {
         // If there's only one expr, then we don't need to wrap it
