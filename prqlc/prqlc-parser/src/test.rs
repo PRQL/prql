@@ -2,7 +2,6 @@ use chumsky::Parser;
 use insta::{assert_debug_snapshot, assert_yaml_snapshot};
 use std::fmt::Debug;
 
-use crate::parser::new_line;
 use crate::parser::pr::Stmt;
 use crate::parser::prepare_stream;
 use crate::parser::stmt;
@@ -29,14 +28,7 @@ pub(crate) fn parse_with_parser<O: Debug>(
 
 /// Parse into statements
 pub(crate) fn parse_single(source: &str) -> Result<Vec<Stmt>, Vec<Error>> {
-    // parse_with_parser(source, new_line().repeated().ignore_then(stmt::source()))
     parse_with_parser(source, stmt::source())
-}
-
-// TODO: move to expr singe stmts don't need it?
-/// Remove leading newlines & the start token, for tests
-pub(crate) fn trim_start() -> impl Parser<TokenKind, (), Error = PError> {
-    new_line().repeated().ignored()
 }
 
 #[test]
@@ -1763,45 +1755,6 @@ fn test_target() {
                 span: "0:65-77"
           span: "0:45-77"
       span: "0:34-77"
-    "###);
-}
-
-#[test]
-fn test_module() {
-    assert_yaml_snapshot!(parse_single(
-            r#"
-          module hello {
-            let world = 1
-            let man = module.world
-          }
-        "#,
-        )
-        .unwrap(), @r###"
-    ---
-    - ModuleDef:
-        name: hello
-        stmts:
-          - VarDef:
-              kind: Let
-              name: world
-              value:
-                Literal:
-                  Integer: 1
-                span: "0:50-51"
-            span: "0:25-51"
-          - VarDef:
-              kind: Let
-              name: man
-              value:
-                Indirection:
-                  base:
-                    Ident: module
-                    span: "0:74-80"
-                  field:
-                    Name: world
-                span: "0:74-86"
-            span: "0:51-86"
-      span: "0:0-98"
     "###);
 }
 

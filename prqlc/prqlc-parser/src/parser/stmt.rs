@@ -11,12 +11,13 @@ use crate::parser::perror::PError;
 use crate::parser::pr::*;
 use crate::parser::types::type_expr;
 
+/// The top-level parser for a PRQL file
 pub fn source() -> impl Parser<TokenKind, Vec<Stmt>, Error = PError> {
     with_doc_comment(query_def())
         .or_not()
         .chain(module_contents())
         // This is the only instance we can consume newlines at the end of something, since
-        // this is the end of the module
+        // this is the end of the file
         .then_ignore(new_line().repeated())
         .then_ignore(end())
 }
@@ -27,7 +28,7 @@ fn module_contents() -> impl Parser<TokenKind, Vec<Stmt>, Error = PError> {
             .ignore_then(ident_part())
             .then(
                 module_contents
-                    .then_ignore(new_line().repeated())
+                    .padded_by(new_line().repeated())
                     .delimited_by(ctrl('{'), ctrl('}')),
             )
             .map(|(name, stmts)| StmtKind::ModuleDef(ModuleDef { name, stmts }))
@@ -50,7 +51,7 @@ fn module_contents() -> impl Parser<TokenKind, Vec<Stmt>, Error = PError> {
         // line that should't be; e.g. `let foo = 5 let bar = 6`. We can't
         // enforce a new line here because then `module two {let houses =
         // both.alike}` fails (though we could force a new line after the
-        // `module` if that were helpful)
+        // `module` if we wanted to?)
         //
         // let stmt_kind = new_line().repeated().at_least(1).ignore_then(choice((
         let stmt_kind = new_line().repeated().ignore_then(choice((
@@ -240,6 +241,65 @@ mod tests {
     }
 
     #[test]
+    fn test_module() {
+        let parse_module = |s| parse_with_parser(s, module_contents()).unwrap();
+
+        let module_ast = parse_module(
+            r#"
+          module hello {
+            let world = 1
+            let man = module.world
+          }
+        "#,
+        );
+
+        assert_yaml_snapshot!(module_ast, @r###"
+        ---
+        - ModuleDef:
+            name: hello
+            stmts:
+              - VarDef:
+                  kind: Let
+                  name: world
+                  value:
+                    Literal:
+                      Integer: 1
+                    span: "0:50-51"
+                span: "0:38-51"
+              - VarDef:
+                  kind: Let
+                  name: man
+                  value:
+                    Indirection:
+                      base:
+                        Ident: module
+                        span: "0:74-80"
+                      field:
+                        Name: world
+                    span: "0:74-86"
+                span: "0:51-86"
+          span: "0:0-98"
+        "###);
+
+        // Check this parses OK. (We tried comparing it to the AST of the result
+        // above, but the span information was different, so we just check it.
+        // Would be nice to be able to strip spans...)
+        parse_module(
+            r#"
+
+          module hello {
+
+
+            let world = 1
+
+            let man = module.world
+
+          }
+        "#,
+        );
+    }
+
+    #[test]
     fn test_module_def() {
         // Same line
         assert_yaml_snapshot!(parse_with_parser(r#"module two {let houses = both.alike}
@@ -280,7 +340,7 @@ mod tests {
                     Literal:
                       Integer: 1
                     span: "0:51-52"
-                span: "0:27-52"
+                span: "0:40-52"
               - VarDef:
                   kind: Let
                   name: verona

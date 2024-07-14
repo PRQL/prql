@@ -110,7 +110,7 @@ fn doc_comment() -> impl Parser<TokenKind, String, Error = PError> + Clone {
     // can also be a file start) before the doc comment
     //
     // TODO: we currently lose any empty newlines between doc comments;
-    // eventually we want to retain them
+    // eventually we want to retain or restrict them
     (new_line().repeated().at_least(1).ignore_then(select! {
         TokenKind::DocComment(dc) => dc,
     }))
@@ -135,7 +135,8 @@ where
 /// Allows us to surround a parser by `with_doc_comment` and for a doc comment
 /// to be added to the result, as long as the result implements `SupportsDocComment`.
 ///
-/// We could manage without it tbh,
+/// (In retrospect, we could manage without it, though probably not worth the
+/// effort to remove it. We could also use it to also support Span items.)
 trait SupportsDocComment {
     fn with_doc_comment(self, doc_comment: Option<String>) -> Self;
 }
