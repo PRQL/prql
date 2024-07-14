@@ -1,10 +1,11 @@
 use enum_as_inner::EnumAsInner;
+use prqlc_parser::generic;
 use prqlc_parser::lexer::lr::Literal;
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 
 use super::CId;
-use crate::{pr, Span};
+use crate::Span;
 
 /// Analogous to [crate::ir::pl::Expr], but with fewer kinds.
 #[derive(Debug, PartialEq, Clone, Serialize, Deserialize, JsonSchema)]
@@ -13,9 +14,9 @@ pub struct Expr {
     pub span: Option<Span>,
 }
 
-pub(super) type Range = pr::generic::Range<Expr>;
-pub(super) type InterpolateItem = pr::generic::InterpolateItem<Expr>;
-pub(super) type SwitchCase = pr::generic::SwitchCase<Expr>;
+pub(super) type Range = generic::Range<Expr>;
+pub(super) type InterpolateItem = generic::InterpolateItem<Expr>;
+pub(super) type SwitchCase = generic::SwitchCase<Expr>;
 
 #[derive(Debug, PartialEq, Clone, Serialize, Deserialize, EnumAsInner, JsonSchema)]
 pub enum ExprKind {

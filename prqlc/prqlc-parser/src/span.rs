@@ -156,7 +156,7 @@ impl Sub<usize> for Span {
     }
 }
 
-pub fn string_stream<'a>(
+pub(crate) fn string_stream<'a>(
     s: String,
     span_base: Span,
 ) -> Stream<'a, char, Span, Box<dyn Iterator<Item = (char, Span)>>> {
