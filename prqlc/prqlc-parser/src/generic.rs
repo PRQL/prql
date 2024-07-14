@@ -1,4 +1,4 @@
-// Generic definitions of various AST items.
+/// Generic definitions of various AST items.
 //
 // This was added in a big refactor by a generous-but-new contributor, and
 // hasn't been used much since, and I'm not sure carries its weight. So we

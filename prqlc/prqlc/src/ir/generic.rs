@@ -1,7 +1,7 @@
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 
-use crate::pr;
+use prqlc_parser::generic;
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq, JsonSchema)]
 pub struct ColumnSort<T> {
@@ -19,7 +19,7 @@ pub enum SortDirection {
 #[derive(Debug, PartialEq, Eq, Clone, Serialize, Deserialize, JsonSchema)]
 pub struct WindowFrame<T> {
     pub kind: WindowKind,
-    pub range: pr::generic::Range<T>,
+    pub range: generic::Range<T>,
 }
 
 #[derive(Debug, PartialEq, Eq, Clone, Serialize, Deserialize, JsonSchema)]
@@ -34,7 +34,7 @@ impl<T> WindowFrame<T> {
             self,
             WindowFrame {
                 kind: WindowKind::Rows,
-                range: pr::generic::Range {
+                range: generic::Range {
                     start: None,
                     end: None
                 }
@@ -47,7 +47,7 @@ impl<T> Default for WindowFrame<T> {
     fn default() -> Self {
         Self {
             kind: WindowKind::Rows,
-            range: pr::generic::Range::unbounded(),
+            range: generic::Range::unbounded(),
         }
     }
 }
