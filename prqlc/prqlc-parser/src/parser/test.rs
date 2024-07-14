@@ -1,8 +1,8 @@
 use chumsky::Parser;
 use insta::assert_yaml_snapshot;
 
-use super::prepare_stream;
 use super::{new_line, pr::Expr};
+use super::{perror::PError, prepare_stream};
 use crate::span::Span;
 use crate::test::parse_with_parser;
 use crate::{error::Error, lexer::lex_source};
@@ -13,6 +13,11 @@ fn parse_expr(source: &str) -> Result<Expr, Vec<Error>> {
         source,
         new_line().repeated().ignore_then(super::expr::expr_call()),
     )
+}
+
+/// Remove leading newlines & the start token, for tests
+pub(crate) fn trim_start() -> impl Parser<TokenKind, (), Error = PError> {
+    new_line().repeated().ignored()
 }
 
 #[test]

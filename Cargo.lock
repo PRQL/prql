@@ -2941,6 +2941,8 @@ dependencies = [
  "serde",
  "serde_json",
  "serde_yaml",
+ "similar",
+ "similar-asserts",
  "stacker",
  "strum 0.26.3",
 ]

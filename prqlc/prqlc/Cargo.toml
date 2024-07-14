@@ -106,8 +106,8 @@ glob = {version = "0.3.1"}
 insta = {workspace = true}
 insta-cmd = {workspace = true}
 rstest = "0.21.0"
-similar = {version = "2.5.0"}
-similar-asserts = "1.5.0"
+similar = {workspace = true}
+similar-asserts = {workspace = true}
 tempfile = {version = "3.10.0"}
 test_each_file = "0.3.3"
 

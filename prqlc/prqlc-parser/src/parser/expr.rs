@@ -122,7 +122,7 @@ fn array<'a>(
 fn pipeline_expr(
     expr: impl Parser<TokenKind, Expr, Error = PError> + Clone,
 ) -> impl Parser<TokenKind, Expr, Error = PError> + Clone {
-    expr.then_ignore(new_line().repeated())
+    expr.padded_by(new_line().repeated())
         .delimited_by(ctrl('('), ctrl(')'))
         .recover_with(nested_delimiters(
             TokenKind::Control('('),
@@ -429,9 +429,9 @@ where
         .labelled("function call")
 }
 
-fn lambda_func<E>(expr: E) -> impl Parser<TokenKind, Expr, Error = PError> + Clone
+fn lambda_func<'a, E>(expr: E) -> impl Parser<TokenKind, Expr, Error = PError> + Clone + 'a
 where
-    E: Parser<TokenKind, Expr, Error = PError> + Clone,
+    E: Parser<TokenKind, Expr, Error = PError> + Clone + 'a,
 {
     let param = ident_part()
         .then(type_expr().delimited_by(ctrl('<'), ctrl('>')).or_not())
@@ -539,7 +539,8 @@ mod tests {
 
     use insta::assert_yaml_snapshot;
 
-    use crate::test::{parse_with_parser, trim_start};
+    use super::super::test::trim_start;
+    use crate::test::parse_with_parser;
 
     use super::*;
 
