@@ -5,8 +5,9 @@ use schemars::JsonSchema;
 use semver::VersionReq;
 use serde::{Deserialize, Serialize};
 
+use crate::parser::pr::ident::Ident;
 use crate::parser::pr::{Expr, Ty};
-use crate::parser::{pr::ident::Ident, SupportsDocComment};
+use crate::parser::SupportsDocComment;
 use crate::span::Span;
 
 #[derive(Debug, PartialEq, Eq, Clone, Serialize, Deserialize, Default, JsonSchema)]
