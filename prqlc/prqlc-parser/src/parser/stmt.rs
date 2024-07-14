@@ -181,10 +181,7 @@ fn var_def() -> impl Parser<TokenKind, StmtKind, Error = PError> + Clone {
                 value: Some(value),
                 ty: None,
             })
-        })
-        // TODO: this isn't really accurate, since a standard `from artists`
-        // also counts as this; we should change
-        .labelled("variable definition");
+        });
 
     let_.or(main_or_into)
 }
