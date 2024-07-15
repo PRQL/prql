@@ -222,8 +222,13 @@ impl From<PError> for Error {
                 .all(|t| matches!(t, None | Some(TokenKind::NewLine)));
             let expected: Vec<String> = e
                 .expected()
-                // Only include whitespace if we're _only_ expecting whitespace
-                .filter(|t| is_all_whitespace || !matches!(t, None | Some(TokenKind::NewLine)))
+                // Only include whitespace if we're _only_ expecting whitespace,
+                // otherwise we get "expected start of line or new line or }"
+                // when there's no ending `}`, since a new line is allowed.
+                .filter(|t| {
+                    is_all_whitespace
+                        || !matches!(t, None | Some(TokenKind::NewLine) | Some(TokenKind::Start))
+                })
                 .cloned()
                 .map(token_to_string)
                 .collect();
