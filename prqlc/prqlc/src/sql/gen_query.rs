@@ -143,7 +143,7 @@ fn translate_select_pipeline(
     let aggregate = after_agg.pluck(|t| t.into_aggregate()).into_iter().next();
     let group_by: Vec<CId> = aggregate.map(|(part, _)| part).unwrap_or_default();
     ctx.query.allow_stars = ctx.dialect.stars_in_group();
-    let group_by = sql_ast::GroupByExpr::Expressions(try_into_exprs(group_by, ctx, None)?);
+    let group_by = sql_ast::GroupByExpr::Expressions(try_into_exprs(group_by, ctx, None)?, vec![]);
     ctx.query.allow_stars = true;
 
     ctx.query.pre_projection = false;
@@ -563,6 +563,8 @@ fn default_query(body: sql_ast::SetExpr) -> sql_ast::Query {
         locks: Vec::new(),
         limit_by: Vec::new(),
         for_clause: None,
+        settings: None,
+        format_clause: None,
     }
 }
 
@@ -575,7 +577,7 @@ fn default_select() -> Select {
         from: Vec::new(),
         lateral_views: Vec::new(),
         selection: None,
-        group_by: sql_ast::GroupByExpr::Expressions(vec![]),
+        group_by: sql_ast::GroupByExpr::Expressions(vec![], vec![]),
         cluster_by: Vec::new(),
         distribute_by: Vec::new(),
         sort_by: Vec::new(),
@@ -585,6 +587,7 @@ fn default_select() -> Select {
         value_table_mode: None,
         window_before_qualify: false,
         connect_by: None,
+        prewhere: None,
     }
 }
 
