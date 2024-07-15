@@ -36,6 +36,7 @@ fn module_contents() -> impl Parser<TokenKind, Vec<Stmt>, Error = PError> {
 
         let annotation = new_line()
             .repeated()
+            .at_least(1)
             .ignore_then(
                 just(TokenKind::Annotate)
                     .ignore_then(expr())
