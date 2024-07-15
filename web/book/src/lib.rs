@@ -80,11 +80,11 @@ fn replace_examples(text: &str) -> Result<String> {
             continue;
         }
 
-        lang_tags
-            .iter()
-            .filter(|tag| matches!(tag, LangTag::Other(_)))
-            .map(|tag| bail!("Unknown code block language: {}", tag))
-            .try_collect()?;
+        for tag in &lang_tags {
+            if matches!(tag, LangTag::Other(_)) {
+                bail!("Unknown code block language: {}", tag)
+            }
+        }
 
         if lang_tags.contains(&LangTag::NoEval) {
             cmark_acc.push(event.clone());
