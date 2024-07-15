@@ -41,19 +41,6 @@ fn module_contents() -> impl Parser<TokenKind, Vec<Stmt>, Error = PError> {
                 expr: Box::new(expr),
             });
 
-        annotation
-            .repeated()
-            // TODO: we could enforce annotations starting on a new line?
-            // .at_least(1)
-            .ignore_then(
-                just(TokenKind::Annotate)
-                    .ignore_then(expr())
-                    .map(|expr| Annotation {
-                        expr: Box::new(expr),
-                    }),
-            )
-            .labelled("annotation");
-
         // TODO: we want to confirm that we're not allowing things on the same
         // line that should't be; e.g. `let foo = 5 let bar = 6`. We can't
         // enforce a new line here because then `module two {let houses =
