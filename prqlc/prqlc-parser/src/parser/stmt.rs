@@ -5,7 +5,7 @@ use itertools::Itertools;
 use semver::VersionReq;
 
 use super::expr::{expr, expr_call, ident, pipeline};
-use super::{ctrl, ident_part, into_stmt, keyword, new_line, with_doc_comment};
+use super::{ctrl, ident_part, into_stmt, keyword, new_line, pipe, with_doc_comment};
 use crate::lexer::lr::{Literal, TokenKind};
 use crate::parser::perror::PError;
 use crate::parser::pr::*;
@@ -143,6 +143,10 @@ fn query_def() -> impl Parser<TokenKind, Stmt, Error = PError> + Clone {
         .labelled("query header")
 }
 
+/// A variable definition could be any of:
+/// - `let foo = 5`
+/// - `from artists` — captured as a "main"
+/// - `from artists | into x` — captured as an "into"`
 fn var_def() -> impl Parser<TokenKind, StmtKind, Error = PError> + Clone {
     let let_ = new_line()
         .repeated()
@@ -163,8 +167,7 @@ fn var_def() -> impl Parser<TokenKind, StmtKind, Error = PError> + Clone {
     let main_or_into = pipeline(expr_call())
         .map(Box::new)
         .then(
-            new_line()
-                .repeated()
+            pipe()
                 .ignore_then(keyword("into").ignore_then(ident_part()))
                 .or_not(),
         )
@@ -205,7 +208,7 @@ fn import_def() -> impl Parser<TokenKind, StmtKind, Error = PError> + Clone {
 
 #[cfg(test)]
 mod tests {
-    use insta::assert_yaml_snapshot;
+    use insta::{assert_debug_snapshot, assert_yaml_snapshot};
 
     use super::*;
     use crate::test::parse_with_parser;
@@ -237,6 +240,71 @@ mod tests {
                   Name: world
               span: "0:49-61"
           span: "0:26-61"
+        "###);
+    }
+
+    #[test]
+    fn into() {
+        assert_yaml_snapshot!(parse_with_parser(r#"
+            from artists
+            into x
+        "#, var_def()).unwrap(), @r###"
+        ---
+        VarDef:
+          kind: Into
+          name: x
+          value:
+            FuncCall:
+              name:
+                Ident: from
+                span: "0:13-17"
+              args:
+                - Ident: artists
+                  span: "0:18-25"
+            span: "0:13-25"
+        "###);
+
+        assert_yaml_snapshot!(parse_with_parser(r#"
+            from artists | into x
+        "#, var_def()).unwrap(), @r###"
+        ---
+        VarDef:
+          kind: Into
+          name: x
+          value:
+            FuncCall:
+              name:
+                Ident: from
+                span: "0:13-17"
+              args:
+                - Ident: artists
+                  span: "0:18-25"
+            span: "0:13-25"
+        "###);
+    }
+
+    #[test]
+    fn let_into() {
+        // TODO: Error message can probably be better
+        assert_debug_snapshot!(parse_with_parser(r#"
+        let y = (
+            from artists
+            into x
+        )
+        "#, module_contents()).unwrap_err(), @r###"
+        [
+            Error {
+                kind: Error,
+                span: Some(
+                    0:56-60,
+                ),
+                reason: Simple(
+                    "unexpected keyword into while parsing function call",
+                ),
+                hints: [],
+                code: None,
+            },
+        ]
         "###);
     }
 
