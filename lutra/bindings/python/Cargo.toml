@@ -20,10 +20,10 @@ arrow = {version = "51.0", features = ["pyarrow"], default-features = false}
 itertools = {workspace = true}
 # we rename lutra to lutralib here, so we can define a function named lutra
 lutralib = {package = "lutra", path = "../../lutra", default-features = false}
-pyo3 = {version = "0.20.3", features = ["abi3-py37", "anyhow"]}
+pyo3 = {workspace = true}
 
 [build-dependencies]
-pyo3-build-config = "0.22.1"
+pyo3-build-config = {workspace = true}
 
 [package.metadata.release]
 tag-name = "{{version}}"
