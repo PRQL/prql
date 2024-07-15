@@ -34,12 +34,16 @@ fn module_contents() -> impl Parser<TokenKind, Vec<Stmt>, Error = PError> {
             .map(|(name, stmts)| StmtKind::ModuleDef(ModuleDef { name, stmts }))
             .labelled("module definition");
 
-        let annotation = just(TokenKind::Annotate)
-            .ignore_then(expr())
-            .then_ignore(new_line().repeated().at_least(1))
-            .map(|expr| Annotation {
-                expr: Box::new(expr),
-            });
+        let annotation = new_line()
+            .repeated()
+            .ignore_then(
+                just(TokenKind::Annotate)
+                    .ignore_then(expr())
+                    .map(|expr| Annotation {
+                        expr: Box::new(expr),
+                    }),
+            )
+            .labelled("annotation");
 
         // TODO: we want to confirm that we're not allowing things on the same
         // line that should't be; e.g. `let foo = 5 let bar = 6`. We can't
