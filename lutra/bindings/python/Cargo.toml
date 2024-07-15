@@ -23,7 +23,7 @@ lutralib = {package = "lutra", path = "../../lutra", default-features = false}
 pyo3 = {version = "0.20.3", features = ["abi3-py37", "anyhow"]}
 
 [build-dependencies]
-pyo3-build-config = "0.21.2"
+pyo3-build-config = "0.22.1"
 
 [package.metadata.release]
 tag-name = "{{version}}"

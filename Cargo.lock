@@ -2134,7 +2134,7 @@ dependencies = [
  "itertools 0.13.0",
  "lutra",
  "pyo3",
- "pyo3-build-config 0.21.2",
+ "pyo3-build-config 0.22.1",
 ]
 
 [[package]]
@@ -2952,7 +2952,7 @@ dependencies = [
  "insta",
  "prqlc",
  "pyo3",
- "pyo3-build-config 0.21.2",
+ "pyo3-build-config 0.22.1",
 ]
 
 [[package]]
@@ -3046,9 +3046,9 @@ dependencies = [
 
 [[package]]
 name = "pyo3-build-config"
-version = "0.21.2"
+version = "0.22.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "7883df5835fafdad87c0d888b266c8ec0f4c9ca48a5bed6bbb592e8dedee1b50"
+checksum = "7879eb018ac754bba32cb0eec7526391c02c14a093121857ed09fbf1d1057d41"
 dependencies = [
  "once_cell",
  "target-lexicon",
