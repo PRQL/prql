@@ -1,6 +1,10 @@
+use serde::{Deserialize, Serialize};
+
 use enum_as_inner::EnumAsInner;
 use schemars::JsonSchema;
-use serde::{Deserialize, Serialize};
+
+#[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Eq)]
+pub struct Tokens(pub Vec<Token>);
 
 #[derive(Clone, PartialEq, Serialize, Deserialize, Eq, JsonSchema)]
 pub struct Token {
@@ -64,6 +68,10 @@ pub enum TokenKind {
     // - Change the functionality. But it's very nice to be able to comment
     //   something out and have line-wraps still work.
     LineWrap(Vec<TokenKind>),
+
+    /// A token we manually insert at the start of the input, which later stages
+    /// can treat as a newline.
+    Start,
 }
 
 #[derive(
@@ -225,6 +233,7 @@ impl std::fmt::Display for TokenKind {
                 }
                 Ok(())
             }
+            TokenKind::Start => write!(f, "start of input"),
         }
     }
 }

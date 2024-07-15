@@ -5,6 +5,7 @@ input_file: prqlc/prqlc/tests/integration/queries/switch.prql
 ---
 Tokens(
     [
+        0..0: Start,
         0..75: Comment(" glaredb:skip (May be a bag of String type conversion for Postgres Client)"),
         75..76: NewLine,
         76..88: Comment(" mssql:test"),

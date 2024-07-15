@@ -409,7 +409,7 @@ impl Command {
                 let root_mod = prql_to_pl(&source)?;
 
                 // resolve
-                let ctx = semantic::resolve(root_mod, Default::default())?;
+                let ctx = semantic::resolve(root_mod)?;
 
                 let frames = if let Ok((main, _)) = ctx.find_main_rel(&[]) {
                     semantic::reporting::collect_frames(*main.clone().into_relation_var().unwrap())
@@ -775,6 +775,10 @@ sort full
         // TODO: terser output; maybe serialize span as `0..4`? Remove the
         // `!Ident` complication?
         assert_snapshot!(String::from_utf8(output).unwrap().trim(), @r###"
+        - kind: Start
+          span:
+            start: 0
+            end: 0
         - kind: !Ident from
           span:
             start: 0
@@ -814,6 +818,10 @@ sort full
         .unwrap();
 
         assert_snapshot!(String::from_utf8(output).unwrap().trim(), @r###"
+        - kind: Start
+          span:
+            start: 0
+            end: 0
         - kind: NewLine
           span:
             start: 0

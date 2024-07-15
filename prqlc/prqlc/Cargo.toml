@@ -84,7 +84,7 @@ clap_complete_fig = {version = "=4.4.2", optional = true}
 
 # We use minijinja just for the Jinja lexer, which is not part of the
 # public interface which is covered by semver guarantees.
-minijinja = {version = "2.0.2", features = ["unstable_machinery"], optional = true}
+minijinja = {version = "2.0.3", features = ["unstable_machinery"], optional = true}
 
 # For integration tests. These are gated by the `test-dbs` and `test-dbs-external` features,
 # rather than dev-dependencies, because dev-dependencies can't be optional.
@@ -106,8 +106,8 @@ glob = {version = "0.3.1"}
 insta = {workspace = true}
 insta-cmd = {workspace = true}
 rstest = "0.21.0"
-similar = {version = "2.5.0"}
-similar-asserts = "1.5.0"
+similar = {workspace = true}
+similar-asserts = {workspace = true}
 tempfile = {version = "3.10.0"}
 test_each_file = "0.3.3"
 

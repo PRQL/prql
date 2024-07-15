@@ -615,6 +615,10 @@ fn lex() {
     success: true
     exit_code: 0
     ----- stdout -----
+    - kind: Start
+      span:
+        start: 0
+        end: 0
     - kind: !Ident from
       span:
         start: 0
@@ -632,6 +636,13 @@ fn lex() {
     exit_code: 0
     ----- stdout -----
     [
+      {
+        "kind": "Start",
+        "span": {
+          "start": 0,
+          "end": 0
+        }
+      },
       {
         "kind": {
           "Ident": "from"

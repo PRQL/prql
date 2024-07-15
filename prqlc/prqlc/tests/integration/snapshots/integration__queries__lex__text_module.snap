@@ -5,6 +5,7 @@ input_file: prqlc/prqlc/tests/integration/queries/text_module.prql
 ---
 Tokens(
     [
+        0..0: Start,
         0..12: Comment(" mssql:test"),
         12..13: NewLine,
         13..93: Comment(" glaredb:skip — TODO: started raising an error on 2024-05-20; see `window.prql`"),

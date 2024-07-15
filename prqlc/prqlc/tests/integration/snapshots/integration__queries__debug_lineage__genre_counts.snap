@@ -125,7 +125,7 @@ ast:
                 span: 1:167-183
             span: 1:157-183
         span: 1:135-185
-    span: 1:117-185
+    span: 1:0-185
   - VarDef:
       kind: Main
       name: main
@@ -170,4 +170,4 @@ ast:
                 alias: a
             span: 1:217-230
         span: 1:187-230
-    span: 1:187-231
+    span: 1:185-230

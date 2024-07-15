@@ -5,6 +5,7 @@ input_file: prqlc/prqlc/tests/integration/queries/constants_only.prql
 ---
 Tokens(
     [
+        0..0: Start,
         0..4: Ident("from"),
         5..11: Ident("genres"),
         11..12: NewLine,

@@ -304,6 +304,7 @@ pub fn restrict_expr(expr: pl::Expr) -> pr::Expr {
         kind: restrict_expr_kind(expr.kind),
         span: expr.span,
         alias: expr.alias,
+        doc_comment: None,
     }
 }
 
@@ -467,6 +468,7 @@ fn restrict_stmt(stmt: pl::Stmt) -> pr::Stmt {
             .into_iter()
             .map(restrict_annotation)
             .collect(),
+        doc_comment: None,
     }
 }
 

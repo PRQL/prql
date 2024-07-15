@@ -2,16 +2,19 @@ use chumsky::error::Cheap;
 use chumsky::prelude::*;
 use chumsky::text::{newline, Character};
 
+use self::lr::{Literal, Token, TokenKind, ValueAndUnit};
 use crate::error::{Error, ErrorSource, Reason, WithErrorInfo};
-use crate::lexer::lr::{Literal, Token, TokenKind, ValueAndUnit};
 use crate::span::Span;
 
 pub mod lr;
 #[cfg(test)]
 mod test;
 
+/// Lex PRQL into LR, returning both the LR and any errors encountered
 pub fn lex_source_recovery(source: &str, source_id: u16) -> (Option<Vec<Token>>, Vec<Error>) {
-    let (tokens, lex_errors) = ::chumsky::Parser::parse_recovery(&lexer(), source);
+    let (tokens, lex_errors) = lexer().parse_recovery(source);
+
+    let tokens = tokens.map(insert_start);
 
     let errors = lex_errors
         .into_iter()
@@ -22,12 +25,27 @@ pub fn lex_source_recovery(source: &str, source_id: u16) -> (Option<Vec<Token>>,
     (tokens, errors)
 }
 
+/// Lex PRQL into LR, returning either the LR or the errors encountered
 pub fn lex_source(source: &str) -> Result<lr::Tokens, Vec<Error>> {
-    lexer().parse(source).map(lr::Tokens).map_err(|e| {
-        e.into_iter()
-            .map(|x| convert_lexer_error(source, x, 0))
-            .collect()
+    lexer()
+        .parse(source)
+        .map(insert_start)
+        .map(lr::Tokens)
+        .map_err(|e| {
+            e.into_iter()
+                .map(|x| convert_lexer_error(source, x, 0))
+                .collect()
+        })
+}
+
+/// Insert a start token so later stages can treat the start of a file like a newline
+fn insert_start(tokens: Vec<Token>) -> Vec<Token> {
+    std::iter::once(Token {
+        kind: TokenKind::Start,
+        span: 0..0,
     })
+    .chain(tokens)
+    .collect()
 }
 
 fn convert_lexer_error(source: &str, e: chumsky::error::Cheap<char>, source_id: u16) -> Error {
@@ -166,6 +184,9 @@ fn line_wrap() -> impl Parser<char, TokenKind, Error = Cheap<char>> {
 
 fn comment() -> impl Parser<char, TokenKind, Error = Cheap<char>> {
     just('#').ignore_then(choice((
+        // One option would be to check that doc comments have new lines in the
+        // lexer (we currently do in the parser); which would give better error
+        // messages?
         just('!').ignore_then(
             newline()
                 .not()
@@ -181,7 +202,7 @@ fn comment() -> impl Parser<char, TokenKind, Error = Cheap<char>> {
     )))
 }
 
-pub fn ident_part() -> impl Parser<char, String, Error = Cheap<char>> + Clone {
+pub(crate) fn ident_part() -> impl Parser<char, String, Error = Cheap<char>> + Clone {
     let plain = filter(|c: &char| c.is_alphabetic() || *c == '_')
         .chain(filter(|c: &char| c.is_alphanumeric() || *c == '_').repeated());
 

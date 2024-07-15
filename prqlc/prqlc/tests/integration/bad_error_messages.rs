@@ -220,11 +220,12 @@ fn just_std() {
     std
     "###).unwrap_err(), @r###"
     Error:
-       ╭─[:2:5]
+       ╭─[:1:1]
        │
-     2 │     std
-       │     ──┬─
-       │       ╰─── internal compiler error; tracked at https://github.com/PRQL/prql/issues/4474
+     1 │ ╭─▶
+     2 │ ├─▶     std
+       │ │
+       │ ╰───────────── internal compiler error; tracked at https://github.com/PRQL/prql/issues/4474
     ───╯
     "###);
 }
