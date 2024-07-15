@@ -7,7 +7,7 @@ fn resolve(prql_source: &str) -> Result<String, ErrorMessages> {
     let sources = prqlc::SourceTree::single("".into(), prql_source.to_string());
     let stmts = prqlc::prql_to_pl_tree(&sources)?;
 
-    let root_module = prqlc::semantic::resolve(stmts, Default::default())
+    let root_module = prqlc::semantic::resolve(stmts)
         .map_err(|e| prqlc::ErrorMessages::from(e).composed(&sources))?;
 
     // resolved PL, restricted back into AST

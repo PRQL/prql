@@ -2,7 +2,6 @@ use chumsky::Parser;
 use insta::{assert_debug_snapshot, assert_yaml_snapshot};
 use std::fmt::Debug;
 
-use crate::parser::new_line;
 use crate::parser::pr::Stmt;
 use crate::parser::prepare_stream;
 use crate::parser::stmt;
@@ -28,30 +27,23 @@ pub(crate) fn parse_with_parser<O: Debug>(
 }
 
 /// Parse into statements
-pub(crate) fn parse_single(source: &str) -> Result<Vec<Stmt>, Vec<Error>> {
-    // parse_with_parser(source, new_line().repeated().ignore_then(stmt::source()))
+pub(crate) fn parse_source(source: &str) -> Result<Vec<Stmt>, Vec<Error>> {
     parse_with_parser(source, stmt::source())
-}
-
-// TODO: move to expr singe stmts don't need it?
-/// Remove leading newlines & the start token, for tests
-pub(crate) fn trim_start() -> impl Parser<TokenKind, (), Error = PError> {
-    new_line().repeated().ignored()
 }
 
 #[test]
 fn test_error_unicode_string() {
     // Test various unicode strings successfully parse errors. We were
     // getting loops in the lexer before.
-    parse_single("s’ ").unwrap_err();
-    parse_single("s’").unwrap_err();
-    parse_single(" s’").unwrap_err();
-    parse_single(" ’ s").unwrap_err();
-    parse_single("’s").unwrap_err();
-    parse_single("👍 s’").unwrap_err();
+    parse_source("s’ ").unwrap_err();
+    parse_source("s’").unwrap_err();
+    parse_source(" s’").unwrap_err();
+    parse_source(" ’ s").unwrap_err();
+    parse_source("’s").unwrap_err();
+    parse_source("👍 s’").unwrap_err();
 
     let source = "Mississippi has four S’s and four I’s.";
-    assert_debug_snapshot!(parse_single(source).unwrap_err(), @r###"
+    assert_debug_snapshot!(parse_source(source).unwrap_err(), @r###"
     [
         Error {
             kind: Error,
@@ -81,7 +73,7 @@ fn test_error_unicode_string() {
 
 #[test]
 fn test_error_unexpected() {
-    assert_debug_snapshot!(parse_single("Answer: T-H-A-T!").unwrap_err(), @r###"
+    assert_debug_snapshot!(parse_source("Answer: T-H-A-T!").unwrap_err(), @r###"
     [
         Error {
             kind: Error,
@@ -100,7 +92,7 @@ fn test_error_unexpected() {
 
 #[test]
 fn test_pipeline_parse_tree() {
-    assert_yaml_snapshot!(parse_single(
+    assert_yaml_snapshot!(parse_source(
         r#"
 from employees
 filter country == "USA"                      # Each line transforms the previous result.
@@ -130,9 +122,9 @@ take 20
 
 #[test]
 fn test_take() {
-    parse_single("take 10").unwrap();
+    parse_source("take 10").unwrap();
 
-    assert_yaml_snapshot!(parse_single(r#"take 10"#).unwrap(), @r###"
+    assert_yaml_snapshot!(parse_source(r#"take 10"#).unwrap(), @r###"
     ---
     - VarDef:
         kind: Main
@@ -150,7 +142,7 @@ fn test_take() {
       span: "0:0-7"
     "###);
 
-    assert_yaml_snapshot!(parse_single(r#"take ..10"#).unwrap(), @r###"
+    assert_yaml_snapshot!(parse_source(r#"take ..10"#).unwrap(), @r###"
     ---
     - VarDef:
         kind: Main
@@ -172,7 +164,7 @@ fn test_take() {
       span: "0:0-9"
     "###);
 
-    assert_yaml_snapshot!(parse_single(r#"take 1..10"#).unwrap(), @r###"
+    assert_yaml_snapshot!(parse_source(r#"take 1..10"#).unwrap(), @r###"
     ---
     - VarDef:
         kind: Main
@@ -201,7 +193,7 @@ fn test_take() {
 #[test]
 fn test_filter() {
     assert_yaml_snapshot!(
-            parse_single(r#"filter country == "USA""#).unwrap(), @r###"
+            parse_source(r#"filter country == "USA""#).unwrap(), @r###"
     ---
     - VarDef:
         kind: Main
@@ -227,7 +219,7 @@ fn test_filter() {
     "###);
 
     assert_yaml_snapshot!(
-        parse_single(r#"filter (text.upper country) == "USA""#).unwrap(), @r###"
+        parse_source(r#"filter (text.upper country) == "USA""#).unwrap(), @r###"
     ---
     - VarDef:
         kind: Main
@@ -267,7 +259,7 @@ fn test_filter() {
 
 #[test]
 fn test_aggregate() {
-    let aggregate = parse_single(
+    let aggregate = parse_source(
         r"group {title} (
                 aggregate {sum salary, count}
               )",
@@ -310,7 +302,7 @@ fn test_aggregate() {
           span: "0:0-77"
       span: "0:0-77"
     "###);
-    let aggregate = parse_single(
+    let aggregate = parse_source(
         r"group {title} (
                 aggregate {sum salary}
               )",
@@ -356,7 +348,7 @@ fn test_aggregate() {
 #[test]
 fn test_basic_exprs() {
     // Currently not putting comments in our parse tree, so this is blank.
-    assert_yaml_snapshot!(parse_single(
+    assert_yaml_snapshot!(parse_source(
             r#"# this is a comment
         select a"#
         ).unwrap(), @r###"
@@ -379,7 +371,7 @@ fn test_basic_exprs() {
 
 #[test]
 fn test_function() {
-    assert_yaml_snapshot!(parse_single("let plus_one = x ->  x + 1\n").unwrap(), @r###"
+    assert_yaml_snapshot!(parse_source("let plus_one = x ->  x + 1\n").unwrap(), @r###"
     ---
     - VarDef:
         kind: Let
@@ -406,7 +398,7 @@ fn test_function() {
           span: "0:15-26"
       span: "0:0-26"
     "###);
-    assert_yaml_snapshot!(parse_single("let identity = x ->  x\n").unwrap()
+    assert_yaml_snapshot!(parse_source("let identity = x ->  x\n").unwrap()
         , @r###"
     ---
     - VarDef:
@@ -426,7 +418,7 @@ fn test_function() {
           span: "0:15-22"
       span: "0:0-22"
     "###);
-    assert_yaml_snapshot!(parse_single("let plus_one = x ->  (x + 1)\n").unwrap()
+    assert_yaml_snapshot!(parse_source("let plus_one = x ->  (x + 1)\n").unwrap()
         , @r###"
     ---
     - VarDef:
@@ -454,7 +446,7 @@ fn test_function() {
           span: "0:15-28"
       span: "0:0-28"
     "###);
-    assert_yaml_snapshot!(parse_single("let plus_one = x ->  x + 1\n").unwrap()
+    assert_yaml_snapshot!(parse_source("let plus_one = x ->  x + 1\n").unwrap()
         , @r###"
     ---
     - VarDef:
@@ -483,7 +475,7 @@ fn test_function() {
       span: "0:0-26"
     "###);
 
-    assert_yaml_snapshot!(parse_single("let foo = x -> some_func (foo bar + 1) (plax) - baz\n").unwrap()
+    assert_yaml_snapshot!(parse_source("let foo = x -> some_func (foo bar + 1) (plax) - baz\n").unwrap()
         , @r###"
     ---
     - VarDef:
@@ -533,7 +525,7 @@ fn test_function() {
       span: "0:0-51"
     "###);
 
-    assert_yaml_snapshot!(parse_single("func return_constant ->  42\n").unwrap(), @r###"
+    assert_yaml_snapshot!(parse_source("func return_constant ->  42\n").unwrap(), @r###"
     ---
     - VarDef:
         kind: Main
@@ -554,7 +546,7 @@ fn test_function() {
       span: "0:0-27"
     "###);
 
-    assert_yaml_snapshot!(parse_single(r#"let count = X -> s"SUM({X})"
+    assert_yaml_snapshot!(parse_source(r#"let count = X -> s"SUM({X})"
         "#).unwrap(), @r###"
     ---
     - VarDef:
@@ -582,7 +574,7 @@ fn test_function() {
       span: "0:0-28"
     "###);
 
-    assert_yaml_snapshot!(parse_single(
+    assert_yaml_snapshot!(parse_source(
             r#"
             let lag_day = x ->  (
                 window x
@@ -646,7 +638,7 @@ fn test_function() {
       span: "0:0-147"
     "###);
 
-    assert_yaml_snapshot!(parse_single("let add = x to:a ->  x + to\n").unwrap(), @r###"
+    assert_yaml_snapshot!(parse_source("let add = x to:a ->  x + to\n").unwrap(), @r###"
     ---
     - VarDef:
         kind: Let
@@ -680,7 +672,7 @@ fn test_function() {
 
 #[test]
 fn test_var_def() {
-    assert_yaml_snapshot!(parse_single(
+    assert_yaml_snapshot!(parse_source(
             "let newest_employees = (from employees)"
         ).unwrap(), @r###"
     ---
@@ -699,7 +691,7 @@ fn test_var_def() {
       span: "0:0-39"
     "###);
 
-    assert_yaml_snapshot!(parse_single(
+    assert_yaml_snapshot!(parse_source(
             r#"
         let newest_employees = (
           from employees
@@ -773,7 +765,7 @@ fn test_var_def() {
       span: "0:0-231"
     "###);
 
-    assert_yaml_snapshot!(parse_single(r#"
+    assert_yaml_snapshot!(parse_source(r#"
             let e = s"SELECT * FROM employees"
             "#).unwrap(), @r###"
     ---
@@ -787,7 +779,7 @@ fn test_var_def() {
       span: "0:0-47"
     "###);
 
-    assert_yaml_snapshot!(parse_single(
+    assert_yaml_snapshot!(parse_source(
           "let x = (
 
             from x_table
@@ -842,7 +834,7 @@ fn test_var_def() {
 
 #[test]
 fn test_inline_pipeline() {
-    assert_yaml_snapshot!(parse_single("let median = x -> (x | percentile 50)\n").unwrap(), @r###"
+    assert_yaml_snapshot!(parse_source("let median = x -> (x | percentile 50)\n").unwrap(), @r###"
     ---
     - VarDef:
         kind: Let
@@ -877,7 +869,7 @@ fn test_inline_pipeline() {
 
 #[test]
 fn test_sql_parameters() {
-    assert_yaml_snapshot!(parse_single(r#"
+    assert_yaml_snapshot!(parse_source(r#"
         from mytable
         filter {
           first_name == $1,
@@ -933,7 +925,7 @@ fn test_sql_parameters() {
 #[test]
 fn test_tab_characters() {
     // #284
-    parse_single(
+    parse_source(
         "from c_invoice
 join doc:c_doctype (==c_invoice_id)
 select [
@@ -954,7 +946,7 @@ join `my-proj.dataset.table`
 join `my-proj`.`dataset`.`table`
 ";
 
-    assert_yaml_snapshot!(parse_single(prql).unwrap(), @r###"
+    assert_yaml_snapshot!(parse_source(prql).unwrap(), @r###"
     ---
     - VarDef:
         kind: Main
@@ -1033,7 +1025,7 @@ join `my-proj`.`dataset`.`table`
 
 #[test]
 fn test_sort() {
-    assert_yaml_snapshot!(parse_single("
+    assert_yaml_snapshot!(parse_source("
         from invoices
         sort issued_at
         sort (-issued_at)
@@ -1129,7 +1121,7 @@ fn test_sort() {
 
 #[test]
 fn test_dates() {
-    assert_yaml_snapshot!(parse_single("
+    assert_yaml_snapshot!(parse_source("
         from employees
         derive {age_plus_two_years = (age + 2years)}
         ").unwrap(), @r###"
@@ -1176,7 +1168,7 @@ fn test_dates() {
 
 #[test]
 fn test_multiline_string() {
-    assert_yaml_snapshot!(parse_single(r##"
+    assert_yaml_snapshot!(parse_source(r##"
         derive x = r"r-string test"
         "##).unwrap(), @r###"
     ---
@@ -1202,7 +1194,7 @@ fn test_multiline_string() {
 fn test_empty_lines() {
     // The span of the Pipeline shouldn't include the empty lines; the VarDef
     // should have a larger span
-    assert_yaml_snapshot!(parse_single(r#"
+    assert_yaml_snapshot!(parse_source(r#"
 from artists
 derive x = 5
 
@@ -1241,7 +1233,7 @@ derive x = 5
 
 #[test]
 fn test_coalesce() {
-    assert_yaml_snapshot!(parse_single(r###"
+    assert_yaml_snapshot!(parse_source(r###"
         from employees
         derive amount = amount ?? 0
         "###).unwrap(), @r###"
@@ -1284,7 +1276,7 @@ fn test_coalesce() {
 
 #[test]
 fn test_literal() {
-    assert_yaml_snapshot!(parse_single(r###"
+    assert_yaml_snapshot!(parse_source(r###"
         derive x = true
         "###).unwrap(), @r###"
     ---
@@ -1308,7 +1300,7 @@ fn test_literal() {
 
 #[test]
 fn test_allowed_idents() {
-    assert_yaml_snapshot!(parse_single(r###"
+    assert_yaml_snapshot!(parse_source(r###"
         from employees
         join _salary (==employee_id) # table with leading underscore
         filter first_name == $1
@@ -1380,7 +1372,7 @@ fn test_allowed_idents() {
 
 #[test]
 fn test_gt_lt_gte_lte() {
-    assert_yaml_snapshot!(parse_single(r###"
+    assert_yaml_snapshot!(parse_source(r###"
         from people
         filter age >= 100
         filter num_grandchildren <= 10
@@ -1473,7 +1465,7 @@ fn test_gt_lt_gte_lte() {
 
 #[test]
 fn test_assign() {
-    assert_yaml_snapshot!(parse_single(r###"
+    assert_yaml_snapshot!(parse_source(r###"
 from employees
 join s=salaries (==id)
         "###).unwrap(), @r###"
@@ -1515,7 +1507,7 @@ join s=salaries (==id)
 #[test]
 fn test_unicode() {
     let source = "from tète";
-    assert_yaml_snapshot!(parse_single(source).unwrap(), @r###"
+    assert_yaml_snapshot!(parse_source(source).unwrap(), @r###"
     ---
     - VarDef:
         kind: Main
@@ -1535,7 +1527,7 @@ fn test_unicode() {
 
 #[test]
 fn test_var_defs() {
-    assert_yaml_snapshot!(parse_single(r#"
+    assert_yaml_snapshot!(parse_source(r#"
         let a = (
             x
         )
@@ -1550,7 +1542,7 @@ fn test_var_defs() {
       span: "0:0-42"
     "###);
 
-    assert_yaml_snapshot!(parse_single(r#"
+    assert_yaml_snapshot!(parse_source(r#"
         x
         into a
         "#).unwrap(), @r###"
@@ -1564,7 +1556,7 @@ fn test_var_defs() {
       span: "0:0-25"
     "###);
 
-    assert_yaml_snapshot!(parse_single(r#"
+    assert_yaml_snapshot!(parse_source(r#"
         x
         "#).unwrap(), @r###"
     ---
@@ -1580,7 +1572,7 @@ fn test_var_defs() {
 
 #[test]
 fn test_array() {
-    assert_yaml_snapshot!(parse_single(r#"
+    assert_yaml_snapshot!(parse_source(r#"
         let a = [1, 2,]
         let a = [false, "hello"]
         "#).unwrap(), @r###"
@@ -1616,7 +1608,7 @@ fn test_array() {
 
 #[test]
 fn test_annotation() {
-    assert_yaml_snapshot!(parse_single(r#"
+    assert_yaml_snapshot!(parse_source(r#"
         @{binding_strength=1}
         let add = a b -> a + b
         "#).unwrap(), @r###"
@@ -1655,7 +1647,7 @@ fn test_annotation() {
                 alias: binding_strength
             span: "0:10-30"
     "###);
-    parse_single(
+    parse_source(
         r#"
         @{binding_strength=1}
         let add = a b -> a + b
@@ -1663,7 +1655,7 @@ fn test_annotation() {
     )
     .unwrap();
 
-    parse_single(
+    parse_source(
         r#"
         @{binding_strength=1}
         # comment
@@ -1672,7 +1664,7 @@ fn test_annotation() {
     )
     .unwrap();
 
-    parse_single(
+    parse_source(
         r#"
         @{binding_strength=1}
 
@@ -1691,7 +1683,7 @@ fn check_valid_version() {
         "#,
         env!("CARGO_PKG_VERSION_MAJOR")
     );
-    assert!(parse_single(&stmt).is_ok());
+    assert!(parse_source(&stmt).is_ok());
 
     let stmt = format!(
         r#"
@@ -1700,7 +1692,7 @@ fn check_valid_version() {
         env!("CARGO_PKG_VERSION_MAJOR"),
         env!("CARGO_PKG_VERSION_MINOR")
     );
-    assert!(parse_single(&stmt).is_ok());
+    assert!(parse_source(&stmt).is_ok());
 
     let stmt = format!(
         r#"
@@ -1710,7 +1702,7 @@ fn check_valid_version() {
         env!("CARGO_PKG_VERSION_MINOR"),
         env!("CARGO_PKG_VERSION_PATCH"),
     );
-    assert!(parse_single(&stmt).is_ok());
+    assert!(parse_source(&stmt).is_ok());
 }
 
 #[test]
@@ -1719,12 +1711,12 @@ fn check_invalid_version() {
         "prql version:{}\n",
         env!("CARGO_PKG_VERSION_MAJOR").parse::<usize>().unwrap() + 1
     );
-    assert!(parse_single(&stmt).is_err());
+    assert!(parse_source(&stmt).is_err());
 }
 
 #[test]
 fn test_target() {
-    assert_yaml_snapshot!(parse_single(
+    assert_yaml_snapshot!(parse_source(
             r#"
           prql target:sql.sqlite
 
@@ -1767,48 +1759,9 @@ fn test_target() {
 }
 
 #[test]
-fn test_module() {
-    assert_yaml_snapshot!(parse_single(
-            r#"
-          module hello {
-            let world = 1
-            let man = module.world
-          }
-        "#,
-        )
-        .unwrap(), @r###"
-    ---
-    - ModuleDef:
-        name: hello
-        stmts:
-          - VarDef:
-              kind: Let
-              name: world
-              value:
-                Literal:
-                  Integer: 1
-                span: "0:50-51"
-            span: "0:25-51"
-          - VarDef:
-              kind: Let
-              name: man
-              value:
-                Indirection:
-                  base:
-                    Ident: module
-                    span: "0:74-80"
-                  field:
-                    Name: world
-                span: "0:74-86"
-            span: "0:51-86"
-      span: "0:0-98"
-    "###);
-}
-
-#[test]
 fn test_number() {
     // We don't allow trailing periods
-    assert!(parse_single(
+    assert!(parse_source(
         r#"
     from artists
     derive x = 1."#
@@ -1820,7 +1773,7 @@ fn test_number() {
 fn doc_comment() {
     use insta::assert_yaml_snapshot;
 
-    assert_yaml_snapshot!(parse_single(r###"
+    assert_yaml_snapshot!(parse_source(r###"
     from artists
     derive x = 5
     "###).unwrap(), @r###"
@@ -1853,7 +1806,7 @@ fn doc_comment() {
       span: "0:0-34"
     "###);
 
-    assert_yaml_snapshot!(parse_single(r###"
+    assert_yaml_snapshot!(parse_source(r###"
     from artists
 
     #! This is a doc comment
@@ -1892,7 +1845,7 @@ fn doc_comment() {
       doc_comment: " This is a doc comment"
     "###);
 
-    assert_yaml_snapshot!(parse_single(r###"
+    assert_yaml_snapshot!(parse_source(r###"
     #! This is a doc comment
     from artists
     derive x = 5
@@ -1927,7 +1880,7 @@ fn doc_comment() {
       doc_comment: " This is a doc comment"
     "###);
 
-    assert_debug_snapshot!(parse_single(r###"
+    assert_debug_snapshot!(parse_source(r###"
     from artists #! This is a doc comment
     "###).unwrap_err(), @r###"
     [

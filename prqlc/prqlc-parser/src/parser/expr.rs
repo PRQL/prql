@@ -122,7 +122,7 @@ fn array<'a>(
 fn pipeline_expr(
     expr: impl Parser<TokenKind, Expr, Error = PError> + Clone,
 ) -> impl Parser<TokenKind, Expr, Error = PError> + Clone {
-    expr.then_ignore(new_line().repeated())
+    expr.padded_by(new_line().repeated())
         .delimited_by(ctrl('('), ctrl(')'))
         .recover_with(nested_delimiters(
             TokenKind::Control('('),
@@ -429,9 +429,9 @@ where
         .labelled("function call")
 }
 
-fn lambda_func<E>(expr: E) -> impl Parser<TokenKind, Expr, Error = PError> + Clone
+fn lambda_func<'a, E>(expr: E) -> impl Parser<TokenKind, Expr, Error = PError> + Clone + 'a
 where
-    E: Parser<TokenKind, Expr, Error = PError> + Clone,
+    E: Parser<TokenKind, Expr, Error = PError> + Clone + 'a,
 {
     let param = ident_part()
         .then(type_expr().delimited_by(ctrl('<'), ctrl('>')).or_not())
@@ -537,11 +537,55 @@ fn operator_coalesce() -> impl Parser<TokenKind, BinOp, Error = PError> + Clone 
 #[cfg(test)]
 mod tests {
 
-    use insta::assert_yaml_snapshot;
+    use insta::{assert_debug_snapshot, assert_yaml_snapshot};
 
-    use crate::test::{parse_with_parser, trim_start};
+    use super::super::test::trim_start;
+    use crate::test::parse_with_parser;
 
     use super::*;
+
+    #[test]
+    fn test_tuple() {
+        let tuple = || trim_start().ignore_then(tuple(expr()));
+        assert_yaml_snapshot!(
+            parse_with_parser(r#"{a = 5, b = 6}"#, tuple()).unwrap(),
+            @r###"
+        ---
+        Tuple:
+          - Literal:
+              Integer: 5
+            span: "0:5-6"
+            alias: a
+          - Literal:
+              Integer: 6
+            span: "0:12-13"
+            alias: b
+        "###);
+
+        assert_debug_snapshot!(
+            parse_with_parser(r#"
+            {a = 5
+             b = 6}"#, tuple()).unwrap_err(),
+            @r###"
+        [
+            Error {
+                kind: Error,
+                span: Some(
+                    0:33-34,
+                ),
+                reason: Expected {
+                    who: Some(
+                        "new line",
+                    ),
+                    expected: "}",
+                    found: "b",
+                },
+                hints: [],
+                code: None,
+            },
+        ]
+        "###);
+    }
 
     #[test]
     fn test_expr() {

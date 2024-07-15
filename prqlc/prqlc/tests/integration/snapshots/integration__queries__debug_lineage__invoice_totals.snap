@@ -871,7 +871,7 @@ ast:
                           alias: total_price
                         span: 1:338-466
                     span: 1:328-466
-                span: 1:276-466
+                span: 1:281-466
             span: 1:254-468
           - FuncCall:
               name:
@@ -920,7 +920,7 @@ ast:
                             Boolean: true
                           span: 1:521-525
                     span: 1:504-592
-                span: 1:483-592
+                span: 1:488-592
             span: 1:469-594
           - FuncCall:
               name:

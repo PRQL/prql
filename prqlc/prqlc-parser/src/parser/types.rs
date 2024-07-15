@@ -39,7 +39,7 @@ pub(crate) fn type_expr() -> impl Parser<TokenKind, Ty, Error = PError> + Clone 
             )
             .map(TyKind::Function);
 
-        let tuple = choice((
+        let tuple = sequence(choice((
             select! { TokenKind::Range { bind_right: true, bind_left: _ } => () }
                 .ignore_then(nested_type_expr.clone())
                 .map(|ty| TyTupleField::Wildcard(Some(ty))),
@@ -48,10 +48,7 @@ pub(crate) fn type_expr() -> impl Parser<TokenKind, Ty, Error = PError> + Clone 
                 .or_not()
                 .then(nested_type_expr.clone())
                 .map(|(name, ty)| TyTupleField::Single(name, Some(ty))),
-        ))
-        .padded_by(new_line().repeated())
-        .separated_by(ctrl(','))
-        .allow_trailing()
+        )))
         .delimited_by(ctrl('{'), ctrl('}'))
         .recover_with(nested_delimiters(
             TokenKind::Control('{'),
@@ -81,29 +78,28 @@ pub(crate) fn type_expr() -> impl Parser<TokenKind, Ty, Error = PError> + Clone 
 
         let enum_ = keyword("enum")
             .ignore_then(
-                ident_part()
-                    .then(ctrl('=').ignore_then(nested_type_expr.clone()).or_not())
-                    .map(|(name, ty)| {
-                        (
-                            Some(name),
-                            ty.unwrap_or_else(|| Ty::new(TyKind::Tuple(vec![]))),
-                        )
-                    })
-                    .padded_by(new_line().repeated())
-                    .separated_by(ctrl(','))
-                    .allow_trailing()
-                    .then_ignore(new_line().repeated())
-                    .delimited_by(ctrl('{'), ctrl('}'))
-                    .recover_with(nested_delimiters(
-                        TokenKind::Control('{'),
-                        TokenKind::Control('}'),
-                        [
-                            (TokenKind::Control('{'), TokenKind::Control('}')),
-                            (TokenKind::Control('('), TokenKind::Control(')')),
-                            (TokenKind::Control('['), TokenKind::Control(']')),
-                        ],
-                        |_| vec![],
-                    )),
+                sequence(
+                    ident_part()
+                        .then(ctrl('=').ignore_then(nested_type_expr.clone()).or_not())
+                        .map(|(name, ty)| {
+                            (
+                                Some(name),
+                                ty.unwrap_or_else(|| Ty::new(TyKind::Tuple(vec![]))),
+                            )
+                        }),
+                )
+                .padded_by(new_line().repeated())
+                .delimited_by(ctrl('{'), ctrl('}'))
+                .recover_with(nested_delimiters(
+                    TokenKind::Control('{'),
+                    TokenKind::Control('}'),
+                    [
+                        (TokenKind::Control('{'), TokenKind::Control('}')),
+                        (TokenKind::Control('('), TokenKind::Control(')')),
+                        (TokenKind::Control('['), TokenKind::Control(']')),
+                    ],
+                    |_| vec![],
+                )),
             )
             .map(TyKind::Union)
             .labelled("union");

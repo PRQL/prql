@@ -409,7 +409,7 @@ impl Command {
                 let root_mod = prql_to_pl(&source)?;
 
                 // resolve
-                let ctx = semantic::resolve(root_mod, Default::default())?;
+                let ctx = semantic::resolve(root_mod)?;
 
                 let frames = if let Ok((main, _)) = ctx.find_main_rel(&[]) {
                     semantic::reporting::collect_frames(*main.clone().into_relation_var().unwrap())

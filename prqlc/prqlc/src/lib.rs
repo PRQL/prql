@@ -474,7 +474,7 @@ pub mod internal {
     ) -> Result<semantic::reporting::FrameCollector, ErrorMessages> {
         let ast = Some(pl.clone());
 
-        let root_module = semantic::resolve(pl, Default::default()).map_err(ErrorMessages::from)?;
+        let root_module = semantic::resolve(pl).map_err(ErrorMessages::from)?;
 
         let (main, _) = root_module.find_main_rel(&[]).unwrap();
         let mut fc =
