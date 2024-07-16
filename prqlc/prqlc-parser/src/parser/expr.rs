@@ -30,9 +30,7 @@ pub(crate) fn expr() -> impl Parser<TokenKind, Expr, Error = PError> + Clone {
             .map(|x| x.to_string())
             .map(ExprKind::Internal);
 
-        let nested_expr = with_doc_comment(
-            pipeline(lambda_func(expr.clone()).or(func_call(expr.clone()))).boxed(),
-        );
+        let nested_expr = with_doc_comment(pipeline(func_call(expr.clone()))).boxed();
 
         let tuple = tuple(nested_expr.clone());
         let array = array(nested_expr.clone());
