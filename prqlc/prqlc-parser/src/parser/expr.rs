@@ -375,9 +375,23 @@ where
         .boxed()
 }
 
-fn func_call<E>(expr: E) -> impl Parser<TokenKind, Expr, Error = PError> + Clone
+fn maybe_aliased<'a, E>(expr: E) -> impl Parser<TokenKind, Expr, Error = PError> + Clone + 'a
 where
-    E: Parser<TokenKind, Expr, Error = PError> + Clone,
+    E: Parser<TokenKind, Expr, Error = PError> + Clone + 'a,
+{
+    ident_part()
+        .then_ignore(ctrl('='))
+        .or_not()
+        .then(expr)
+        .map(|(alias, mut expr)| {
+            expr.alias = alias.or(expr.alias);
+            expr
+        })
+}
+
+fn func_call<'a, E>(expr: E) -> impl Parser<TokenKind, Expr, Error = PError> + Clone + 'a
+where
+    E: Parser<TokenKind, Expr, Error = PError> + Clone + 'a,
 {
     let func_name = expr.clone();
 
@@ -386,15 +400,22 @@ where
         .then_ignore(ctrl(':'))
         .then(expr.clone());
 
-    let positional_arg =
-        ident_part()
-            .then_ignore(ctrl('='))
-            .or_not()
-            .then(expr)
-            .map(|(alias, mut expr)| {
-                expr.alias = alias.or(expr.alias);
-                (None, expr)
-            });
+    // TODO: I think this possibly should be restructured. Currently in the case
+    // of `derive x = 5`, the `x` is an alias of a single positional argument.
+    // That then means we incorrectly allow something like `derive x = 5 y = 6`,
+    // since there are two positional arguments each with an alias. This then
+    // leads to quite confusing error messages.
+    //
+    // Instead, we could only allow a single alias per function call as the
+    // first positional argument? (I worry that not simple though...).
+    // Alternatively we could change the language to enforce tuples, so `derive
+    // {x = 5}` were required. But we still need to account for the `join`
+    // example below, which doesn't work so well in a tuple; so I'm not sure
+    // this helps much.
+    //
+    // As a reminder, we need to account for `derive x = 5` and `join a=artists
+    // (id==album_id)`.
+    let positional_arg = maybe_aliased(expr).map(|expr| (None, expr));
 
     func_name
         .then(named_arg.or(positional_arg).repeated())
@@ -720,6 +741,35 @@ mod tests {
               value:
                 Literal: "Null"
                 span: "0:80-84"
+        "###);
+    }
+
+    // this should return an error but doesn't yet
+    #[should_panic]
+    #[test]
+    fn should_error_01() {
+        assert_debug_snapshot!(
+            parse_with_parser(r#"
+            derive {x = y z = 3}
+            "#.trim(), trim_start().ignore_then(expr_call()).then_ignore(end())).unwrap_err(),
+            @r###"
+        "###);
+    }
+
+    // this should return an error but doesn't yet
+    #[should_panic]
+    #[test]
+    fn should_error_02() {
+        assert_debug_snapshot!(
+            // Missing comma
+            parse_with_parser(r#"
+            from artists
+            derive {
+                x = y
+                z = 3
+            }
+            "#, trim_start().ignore_then(expr_call())).unwrap_err(),
+            @r###"
         "###);
     }
 }
