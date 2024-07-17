@@ -151,6 +151,17 @@ where
     parser
         .separated_by(ctrl(',').then_ignore(new_line().repeated()))
         .allow_trailing()
+        // Note because we pad rather than only take the ending new line, we
+        // can't put items that require a new line in a tuple, like:
+        //
+        // ```
+        // {
+        //   !# doc comment
+        //   a,
+        // }
+        // ```
+        // ...but I'm not sure there's a way around it, since we do need to
+        // consume newlines in tuples...
         .padded_by(new_line().repeated())
 }
 
