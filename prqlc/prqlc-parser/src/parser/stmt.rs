@@ -28,7 +28,7 @@ fn module_contents() -> impl Parser<TokenKind, Vec<Stmt>, Error = PError> {
             .ignore_then(ident_part())
             .then(
                 module_contents
-                    .padded_by(new_line().repeated())
+                    .then_ignore(new_line().repeated())
                     .delimited_by(ctrl('{'), ctrl('}')),
             )
             .map(|(name, stmts)| StmtKind::ModuleDef(ModuleDef { name, stmts }))
@@ -36,8 +36,7 @@ fn module_contents() -> impl Parser<TokenKind, Vec<Stmt>, Error = PError> {
 
         let annotation = new_line()
             .repeated()
-            // TODO: we could enforce annotations starting on a new line?
-            // .at_least(1)
+            .at_least(1)
             .ignore_then(
                 just(TokenKind::Annotate)
                     .ignore_then(expr())
@@ -333,7 +332,7 @@ mod tests {
                     Literal:
                       Integer: 1
                     span: "0:50-51"
-                span: "0:38-51"
+                span: "0:25-51"
               - VarDef:
                   kind: Let
                   name: man
@@ -408,7 +407,7 @@ mod tests {
                     Literal:
                       Integer: 1
                     span: "0:51-52"
-                span: "0:40-52"
+                span: "0:27-52"
               - VarDef:
                   kind: Let
                   name: verona
@@ -426,7 +425,7 @@ mod tests {
     }
 
     #[test]
-    fn test_doc_comment_module() {
+    fn doc_comment_module() {
         assert_yaml_snapshot!(parse_with_parser(r#"
 
         #! first doc comment
@@ -490,6 +489,38 @@ mod tests {
               span: "0:103-111"
           span: "0:94-111"
           doc_comment: " second doc comment"
+        "###);
+    }
+
+    #[test]
+    fn doc_comment_inline_module() {
+        // Check the newline doesn't get eated by the `{}` of the module
+        // TODO: could give a better error when we forget the module name
+        assert_yaml_snapshot!(parse_with_parser(r#"
+        module bar {
+          #! first doc comment
+          from foo
+        }
+        "#, module_contents()).unwrap(), @r###"
+        ---
+        - ModuleDef:
+            name: bar
+            stmts:
+              - VarDef:
+                  kind: Main
+                  name: main
+                  value:
+                    FuncCall:
+                      name:
+                        Ident: from
+                        span: "0:63-67"
+                      args:
+                        - Ident: foo
+                          span: "0:68-71"
+                    span: "0:63-71"
+                span: "0:52-71"
+                doc_comment: " first doc comment"
+          span: "0:0-81"
         "###);
     }
 }

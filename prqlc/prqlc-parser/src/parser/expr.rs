@@ -125,7 +125,7 @@ fn array<'a>(
 fn pipeline_expr(
     expr: impl Parser<TokenKind, Expr, Error = PError> + Clone,
 ) -> impl Parser<TokenKind, Expr, Error = PError> + Clone {
-    expr.padded_by(new_line().repeated())
+    expr.then_ignore(new_line().repeated())
         .delimited_by(ctrl('('), ctrl(')'))
         .recover_with(nested_delimiters(
             TokenKind::Control('('),
@@ -771,5 +771,23 @@ mod tests {
             "#, trim_start().ignore_then(expr_call())).unwrap_err(),
             @r###"
         "###);
+    }
+
+    #[test]
+    fn forced_new_lines() {
+        // Not sure whether this is possible to adjust, putting a test here
+        // as a note.
+        //
+        // Check the opening new lines aren't consumed
+        assert!(parse_with_parser(
+            r#"
+            {
+            #! doc comment
+            derive x = 5
+            }
+            "#,
+            trim_start().ignore_then(tuple(expr())),
+        )
+        .is_err());
     }
 }

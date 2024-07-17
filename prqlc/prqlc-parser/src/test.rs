@@ -1673,6 +1673,14 @@ fn test_annotation() {
         "#,
     )
     .unwrap();
+
+    parse_source(
+        r#"
+        @{binding_strength=1}@{binding_strength=2}
+        let add = a b -> a + b
+        "#,
+    )
+    .unwrap_err();
 }
 
 #[test]
