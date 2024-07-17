@@ -1,4 +1,4 @@
-use std::collections::HashMap;
+use std::collections::{hash_map::Entry, HashMap};
 
 use chumsky::prelude::*;
 use itertools::Itertools;
@@ -119,6 +119,9 @@ fn array<'a>(
         .labelled("array")
 }
 
+/// A pipeline within parentheses.
+///
+/// See also [pipeline]
 fn pipeline_expr(
     expr: impl Parser<TokenKind, Expr, Error = PError> + Clone,
 ) -> impl Parser<TokenKind, Expr, Error = PError> + Clone {
@@ -372,9 +375,23 @@ where
         .boxed()
 }
 
-fn func_call<E>(expr: E) -> impl Parser<TokenKind, Expr, Error = PError> + Clone
+fn maybe_aliased<'a, E>(expr: E) -> impl Parser<TokenKind, Expr, Error = PError> + Clone + 'a
 where
-    E: Parser<TokenKind, Expr, Error = PError> + Clone,
+    E: Parser<TokenKind, Expr, Error = PError> + Clone + 'a,
+{
+    ident_part()
+        .then_ignore(ctrl('='))
+        .or_not()
+        .then(expr)
+        .map(|(alias, mut expr)| {
+            expr.alias = alias.or(expr.alias);
+            expr
+        })
+}
+
+fn func_call<'a, E>(expr: E) -> impl Parser<TokenKind, Expr, Error = PError> + Clone + 'a
+where
+    E: Parser<TokenKind, Expr, Error = PError> + Clone + 'a,
 {
     let func_name = expr.clone();
 
@@ -383,15 +400,22 @@ where
         .then_ignore(ctrl(':'))
         .then(expr.clone());
 
-    let positional_arg =
-        ident_part()
-            .then_ignore(ctrl('='))
-            .or_not()
-            .then(expr)
-            .map(|(alias, mut expr)| {
-                expr.alias = alias.or(expr.alias);
-                (None, expr)
-            });
+    // TODO: I think this possibly should be restructured. Currently in the case
+    // of `derive x = 5`, the `x` is an alias of a single positional argument.
+    // That then means we incorrectly allow something like `derive x = 5 y = 6`,
+    // since there are two positional arguments each with an alias. This then
+    // leads to quite confusing error messages.
+    //
+    // Instead, we could only allow a single alias per function call as the
+    // first positional argument? (I worry that not simple though...).
+    // Alternatively we could change the language to enforce tuples, so `derive
+    // {x = 5}` were required. But we still need to account for the `join`
+    // example below, which doesn't work so well in a tuple; so I'm not sure
+    // this helps much.
+    //
+    // As a reminder, we need to account for `derive x = 5` and `join a=artists
+    // (id==album_id)`.
+    let positional_arg = maybe_aliased(expr).map(|expr| (None, expr));
 
     func_name
         .then(named_arg.or(positional_arg).repeated())
@@ -406,11 +430,11 @@ where
             for (name, arg) in args {
                 if let Some(name) = name {
                     match named_args.entry(name) {
-                        std::collections::hash_map::Entry::Occupied(entry) => emit(PError::custom(
+                        Entry::Occupied(entry) => emit(PError::custom(
                             span,
                             format!("argument '{}' is used multiple times", entry.key()),
                         )),
-                        std::collections::hash_map::Entry::Vacant(entry) => {
+                        Entry::Vacant(entry) => {
                             entry.insert(arg);
                         }
                     }
@@ -545,6 +569,47 @@ mod tests {
     use super::*;
 
     #[test]
+    fn test_expr_call() {
+        assert_yaml_snapshot!(
+            parse_with_parser(r#"derive x = 5"#, trim_start().ignore_then(expr_call())).unwrap(),
+             @r###"
+        ---
+        FuncCall:
+          name:
+            Ident: derive
+            span: "0:0-6"
+          args:
+            - Literal:
+                Integer: 5
+              span: "0:11-12"
+              alias: x
+        span: "0:0-12"
+        "###);
+
+        assert_yaml_snapshot!(
+            parse_with_parser(r#"aggregate {sum salary}"#, trim_start().ignore_then(expr_call())).unwrap(),
+             @r###"
+        ---
+        FuncCall:
+          name:
+            Ident: aggregate
+            span: "0:0-9"
+          args:
+            - Tuple:
+                - FuncCall:
+                    name:
+                      Ident: sum
+                      span: "0:11-14"
+                    args:
+                      - Ident: salary
+                        span: "0:15-21"
+                  span: "0:11-21"
+              span: "0:10-22"
+        span: "0:0-22"
+        "###);
+    }
+
+    #[test]
     fn test_tuple() {
         let tuple = || trim_start().ignore_then(tuple(expr()));
         assert_yaml_snapshot!(
@@ -605,14 +670,6 @@ mod tests {
             span: "0:2-3"
         span: "0:0-3"
         "###);
-
-        assert_yaml_snapshot!(
-            parse_with_parser(r#"derive x = 5"#, trim_start().ignore_then(expr())).unwrap(),
-             @r###"
-        ---
-        Ident: derive
-        span: "0:0-6"
-        "###);
     }
 
     #[test]
@@ -621,31 +678,30 @@ mod tests {
             parse_with_parser(r#"
             from artists
             derive x = 5
-            "#, trim_start().then(pipeline(expr_call()))).unwrap(),
+            "#, trim_start().ignore_then(pipeline(expr_call()))).unwrap(),
             @r###"
         ---
-        - ~
-        - Pipeline:
-            exprs:
-              - FuncCall:
-                  name:
-                    Ident: from
-                    span: "0:13-17"
-                  args:
-                    - Ident: artists
-                      span: "0:18-25"
-                span: "0:13-25"
-              - FuncCall:
-                  name:
-                    Ident: derive
-                    span: "0:38-44"
-                  args:
-                    - Literal:
-                        Integer: 5
-                      span: "0:49-50"
-                      alias: x
-                span: "0:38-50"
-          span: "0:13-50"
+        Pipeline:
+          exprs:
+            - FuncCall:
+                name:
+                  Ident: from
+                  span: "0:13-17"
+                args:
+                  - Ident: artists
+                    span: "0:18-25"
+              span: "0:13-25"
+            - FuncCall:
+                name:
+                  Ident: derive
+                  span: "0:38-44"
+                args:
+                  - Literal:
+                      Integer: 5
+                    span: "0:49-50"
+                    alias: x
+              span: "0:38-50"
+        span: "0:13-50"
         "###);
     }
 
@@ -685,6 +741,35 @@ mod tests {
               value:
                 Literal: "Null"
                 span: "0:80-84"
+        "###);
+    }
+
+    // this should return an error but doesn't yet
+    #[should_panic]
+    #[test]
+    fn should_error_01() {
+        assert_debug_snapshot!(
+            parse_with_parser(r#"
+            derive {x = y z = 3}
+            "#.trim(), trim_start().ignore_then(expr_call()).then_ignore(end())).unwrap_err(),
+            @r###"
+        "###);
+    }
+
+    // this should return an error but doesn't yet
+    #[should_panic]
+    #[test]
+    fn should_error_02() {
+        assert_debug_snapshot!(
+            // Missing comma
+            parse_with_parser(r#"
+            from artists
+            derive {
+                x = y
+                z = 3
+            }
+            "#, trim_start().ignore_then(expr_call())).unwrap_err(),
+            @r###"
         "###);
     }
 }
