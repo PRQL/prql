@@ -24,6 +24,7 @@ pub enum TokenKind {
         schemars(with = "Literal")
     )]
     Literal(Literal),
+    /// A parameter such as `$1`
     Param(String),
 
     Range {
