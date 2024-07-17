@@ -5,10 +5,9 @@ input_file: prqlc/prqlc/tests/integration/queries/genre_counts.prql
 ---
 let genre_count = (
   from genres
-  aggregate {a = count name}
+  aggregate {a=(count name)}
 )
 
 from genre_count
 filter a > 0
-select a = -a
-
+select a=-a

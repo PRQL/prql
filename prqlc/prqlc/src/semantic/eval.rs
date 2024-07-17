@@ -482,7 +482,7 @@ mod test {
         assert_snapshot!(eval(r"
               {{a_a = 4, a_b = false}, b = 2.1 + 3.6, c = [false, true, false]}
         ").unwrap(),
-            @"{{a_a = 4, a_b = false}, b = 5.7, c = [false, true, false]}"
+            @"{{a_a=4, a_b=false}, b=5.7, c=[false, true, false]}"
         );
     }
 
@@ -507,7 +507,7 @@ mod test {
             std.derive {d = 42}
             std.filter c
         ").unwrap(),
-            @"[{c = true, 7, d = 42}, {c = true, 14, d = 42}]"
+            @"[{c=true, 7, d=42}, {c=true, 14, d=42}]"
         );
     }
 
@@ -521,7 +521,7 @@ mod test {
             ]
             std.window {d = std.sum b}
         ").unwrap(),
-            @"[{d = 4}, {d = 9}, {d = 17}]"
+            @"[{d=4}, {d=9}, {d=17}]"
         );
     }
 
@@ -535,7 +535,7 @@ mod test {
             ]
             std.columnar {g = std.lag b}
         ").unwrap(),
-            @"[{g = null}, {g = 4}, {g = 5}]"
+            @"[{g=null}, {g=4}, {g=5}]"
         );
     }
 }

@@ -28,7 +28,7 @@ impl WriteSource for pr::Expr {
 
         if let Some(alias) = &self.alias {
             r += opt.consume(alias)?;
-            r += opt.consume(" = ")?;
+            r += opt.consume("=")?;
             opt.unbound_expr = false;
         }
 
@@ -48,6 +48,12 @@ impl WriteSource for pr::Expr {
 }
 
 fn needs_parenthesis(this: &pr::Expr, opt: &WriteOpt) -> bool {
+    // If we have an alias, we use parentheses if we contain multiple items, so
+    // we get `a=(b + c)` instead of `a=b + c`.
+    if this.alias.is_some() && this.kind.is_multiple_items() {
+        return true;
+    }
+
     if opt.unbound_expr && can_bind_left(&this.kind) {
         return true;
     }
@@ -474,7 +480,7 @@ impl WriteSource for pr::Stmt {
                 r += opt.consume(&format!("type {}", type_def.name))?;
 
                 if let Some(ty) = &type_def.value {
-                    r += opt.consume(" = ")?;
+                    r += opt.consume("=")?;
                     r += &ty.kind.write(opt)?;
                 }
                 r += "\n";
@@ -493,7 +499,7 @@ impl WriteSource for pr::Stmt {
                 r += "import ";
                 if let Some(alias) = &import_def.alias {
                     r += &write_ident_part(alias);
-                    r += " = ";
+                    r += "=";
                 }
                 r += &import_def.name.write(opt)?;
                 r += "\n";
@@ -614,7 +620,7 @@ mod test {
     fn test_unary() {
         assert_is_formatted(r#"sort {-duration}"#);
 
-        assert_is_formatted(r#"select a = -b"#);
+        assert_is_formatted(r#"select a=-b"#);
         assert_is_formatted(r#"join `project-bar.dataset.table` (==col_bax)"#);
     }
 
@@ -638,9 +644,8 @@ mod test {
     fn test_simple() {
         assert_is_formatted(
             r#"
-aggregate average_country_salary = (
-  average salary
-)"#,
+aggregate average_country_salary=(average salary)
+"#,
         );
     }
 
@@ -654,8 +659,8 @@ group {title, country} (aggregate {
   sum salary,
   sum gross_salary,
   average gross_cost,
-  sum_gross_cost = sum gross_cost,
-  ct = count salary,
+  sum_gross_cost=(sum gross_cost),
+  ct=(count salary),
 })"#,
         );
     }

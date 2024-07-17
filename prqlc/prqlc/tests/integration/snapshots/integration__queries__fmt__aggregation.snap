@@ -5,11 +5,10 @@ input_file: prqlc/prqlc/tests/integration/queries/aggregation.prql
 ---
 from tracks
 filter genre_id == 100
-derive empty_name = name == ""
+derive empty_name=(name == "")
 aggregate {
   sum track_id,
   concat_array name,
   all empty_name,
   any empty_name,
 }
-

@@ -2836,8 +2836,8 @@ aggregate  {                                 # `by` are the columns to group by.
     average gross_salary,
     sum     gross_salary,
     average gross_cost,
-    sum_gross_cost = sum gross_cost,
-    ct = count salary,
+    sum_gross_cost=(sum gross_cost),
+    ct=(count salary),
 }
 )
 sort sum_gross_cost

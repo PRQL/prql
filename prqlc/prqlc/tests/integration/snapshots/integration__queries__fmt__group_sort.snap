@@ -4,9 +4,8 @@ expression: "# mssql:test\nfrom tracks\nderive d = album_id + 1\ngroup d (\n    
 input_file: prqlc/prqlc/tests/integration/queries/group_sort.prql
 ---
 from tracks
-derive d = album_id + 1
-group d (aggregate {n1 = (track_id | sum)})
+derive d=(album_id + 1)
+group d (aggregate {n1=(track_id | sum)})
 sort d
 take 10
-select {d1 = d, n1}
-
+select {d1=d, n1}
