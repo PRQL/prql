@@ -399,22 +399,6 @@ where
         .map(Some)
         .then_ignore(ctrl(':'))
         .then(expr.clone());
-
-    // TODO: I think this possibly should be restructured. Currently in the case
-    // of `derive x = 5`, the `x` is an alias of a single positional argument.
-    // That then means we incorrectly allow something like `derive x = 5 y = 6`,
-    // since there are two positional arguments each with an alias. This then
-    // leads to quite confusing error messages.
-    //
-    // Instead, we could only allow a single alias per function call as the
-    // first positional argument? (I worry that not simple though...).
-    // Alternatively we could change the language to enforce tuples, so `derive
-    // {x = 5}` were required. But we still need to account for the `join`
-    // example below, which doesn't work so well in a tuple; so I'm not sure
-    // this helps much.
-    //
-    // As a reminder, we need to account for `derive x = 5` and `join a=artists
-    // (id==album_id)`.
     let positional_arg = maybe_aliased(expr).map(|expr| (None, expr));
 
     func_name
@@ -744,15 +728,72 @@ mod tests {
         "###);
     }
 
-    // this should return an error but doesn't yet
-    #[should_panic]
     #[test]
-    fn should_error_01() {
-        assert_debug_snapshot!(
+    fn multiple_aliases() {
+        // TODO: I think this possibly should be restructured. Currently in the case
+        // of `derive x = 5`, the `x` is an alias of a single positional argument.
+        // That then means we incorrectly allow something like `derive x = 5 y = 6`,
+        // since there are two positional arguments each with an alias. This then
+        // leads to quite confusing error messages.
+        //
+        // Instead, we could only allow a single alias per function call as the
+        // first positional argument? (I worry that's not simple though...).
+        // Alternatively we could change the language to enforce tuples, so `derive
+        // {x = 5}` were required over `derive x = 5`. But we still need to account
+        // for the `join a=artists (id==album_id)` which doesn't work so well in a
+        // tuple; so I'm not sure this helps much.
+        //
+        assert_yaml_snapshot!(
             parse_with_parser(r#"
-            derive {x = y z = 3}
-            "#.trim(), trim_start().ignore_then(expr_call()).then_ignore(end())).unwrap_err(),
+            derive x=y z=3
+            "#.trim(), trim_start().ignore_then(expr_call()).then_ignore(end())).unwrap(),
             @r###"
+        ---
+        FuncCall:
+          name:
+            Ident: derive
+            span: "0:0-6"
+          args:
+            - Ident: y
+              span: "0:9-10"
+              alias: x
+            - Literal:
+                Integer: 3
+              span: "0:13-14"
+              alias: z
+        span: "0:0-14"
+        "###);
+
+        // OTOH if we place the same expression into a tuple, we get it parsed
+        // as x=(y z=3).
+        //
+        // It seems bad to have it parse successfully-but-differently based on
+        // whether it's inside a tuple...
+        assert_yaml_snapshot!(
+            parse_with_parser(r#"
+            derive {x=y z=3}
+            "#.trim(), trim_start().ignore_then(expr_call()).then_ignore(end())).unwrap(),
+            @r###"
+        ---
+        FuncCall:
+          name:
+            Ident: derive
+            span: "0:0-6"
+          args:
+            - Tuple:
+                - FuncCall:
+                    name:
+                      Ident: y
+                      span: "0:10-11"
+                    args:
+                      - Literal:
+                          Integer: 3
+                        span: "0:14-15"
+                        alias: z
+                  span: "0:10-15"
+                  alias: x
+              span: "0:7-16"
+        span: "0:0-16"
         "###);
     }
 
