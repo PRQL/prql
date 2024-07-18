@@ -28,7 +28,7 @@ impl WriteSource for pr::Expr {
         let mut r = String::new();
 
         // If there's an alias, then the expr can't be unbound on its left (we
-        // set this before evaluating paretheses)
+        // set this before evaluating parentheses)
         if self.alias.is_some() {
             opt.unbound_expr = false;
         }
