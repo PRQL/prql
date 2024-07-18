@@ -1,6 +1,7 @@
 use std::collections::HashSet;
 use std::sync::OnceLock;
 
+use prqlc_parser::parser::pr::FuncCall;
 use regex::Regex;
 
 use super::{WriteOpt, WriteSource};
@@ -26,23 +27,49 @@ impl WriteSource for pr::Expr {
     fn write(&self, mut opt: WriteOpt) -> Option<String> {
         let mut r = String::new();
 
-        if let Some(alias) = &self.alias {
-            r += opt.consume(alias)?;
-            r += opt.consume("=")?;
+        // If there's an alias, then the expr can't be unbound on its left (we
+        // set this before evaluating paretheses)
+        if self.alias.is_some() {
             opt.unbound_expr = false;
         }
 
-        if !needs_parenthesis(self, &opt) {
-            r += &self.kind.write(opt.clone())?;
+        // We need to know before we print the alias whether our `.kind` needs
+        // parentheses, because a parethenized value is a single_expr and
+        // doesn't need a space around the alias' `=`.
+        let kind_needs_parens = needs_parenthesis(self, &opt.clone());
+        let single_expr = kind_needs_parens || !self.kind.is_multiple_items();
+
+        if let Some(alias) = &self.alias {
+            r += opt.consume(alias)?;
+            r += opt.consume(if single_expr { "=" } else { " = " })?;
+        }
+
+        if !kind_needs_parens {
+            r += &self.kind.write(opt.clone())?
         } else {
             let value = self.kind.write_between("(", ")", opt.clone());
 
             if let Some(value) = value {
-                r += &value;
+                r += &value
             } else {
-                r += &break_line_within_parenthesis(&self.kind, opt)?;
+                r += &break_line_within_parenthesis(&self.kind, opt.clone())?
             }
         };
+
+        opt.single_term = match &self.kind {
+            // If this item is within an array / tuple, then the nested item is a
+            // single term, for example `derive {x = sum listens}`.
+            pr::ExprKind::Array(_) | pr::ExprKind::Tuple(_) => true,
+            // If it's a single arg in a function call, that's a single term,
+            // like `derive x = foo` (but not like `derive x=(sum foo)`)
+            pr::ExprKind::FuncCall(FuncCall {
+                args, named_args, ..
+            }) => dbg!(args.len() + named_args.len() == 1),
+            _ => false,
+        };
+
+        dbg!((&r, &self, opt));
+
         Some(r)
     }
 }
@@ -50,7 +77,11 @@ impl WriteSource for pr::Expr {
 fn needs_parenthesis(this: &pr::Expr, opt: &WriteOpt) -> bool {
     // If we have an alias, we use parentheses if we contain multiple items, so
     // we get `a=(b + c)` instead of `a=b + c`.
-    if this.alias.is_some() && this.kind.is_multiple_items() {
+    //
+    // The exception if we're within a single term, then this doesn't apply (we
+    // don't return true here) — so then we get `derive {a = b + c}` rather than
+    // `derive {a=(b + c)}`.
+    if this.alias.is_some() && this.kind.is_multiple_items() && !opt.single_term {
         return true;
     }
 
@@ -74,12 +105,12 @@ fn needs_parenthesis(this: &pr::Expr, opt: &WriteOpt) -> bool {
     // parent has equal binding strength, which means that now associativity of this expr counts
     // for example:
     //   this=(a + b), parent=(a + b) + c
-    //   asoc of + is left
+    //   assoc of + is left
     //   this is the left operand of parent
     //   => assoc_matches=true => we don't need parenthesis
 
     //   this=(a + b), parent=c + (a + b)
-    //   asoc of + is left
+    //   assoc of + is left
     //   this is the right operand of parent
     //   => assoc_matches=false => we need parenthesis
     let assoc_matches = match opt.binary_position {
@@ -638,6 +669,12 @@ mod test {
     #[test]
     fn test_func() {
         assert_is_formatted(r#"let a = func x y:false -> x and y"#);
+        // See notes in [WriteOpt::single_term]
+        assert_is_formatted(r#"derive rounded=(round 2 gross_cost)"#);
+        assert_is_formatted(r#"aggregate {sum_gross_cost = sum gross_cost}"#);
+        // Not sure about these? TODO: decide
+        // assert_is_formatted(r#"derive foo = 2 + 3"#);
+        assert_is_formatted(r#"derive foo=(2 + 3)"#);
     }
 
     #[test]
@@ -659,8 +696,8 @@ group {title, country} (aggregate {
   sum salary,
   sum gross_salary,
   average gross_cost,
-  sum_gross_cost=(sum gross_cost),
-  ct=(count salary),
+  sum_gross_cost = sum gross_cost,
+  ct = count salary,
 })"#,
         );
     }

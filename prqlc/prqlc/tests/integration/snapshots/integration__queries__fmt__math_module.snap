@@ -12,8 +12,8 @@ select {
     math.round 2
     math.abs
   ),
-  total_floor=(math.floor total),
-  total_ceil=(math.ceil total),
+  total_floor = math.floor total,
+  total_ceil = math.ceil total,
   total_log10=(math.log10 total | math.round 3),
   total_log2=(math.log 2 total | math.round 3),
   total_sqrt=(math.sqrt total | math.round 3),
