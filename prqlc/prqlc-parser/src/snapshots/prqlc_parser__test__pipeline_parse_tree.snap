@@ -1,6 +1,6 @@
 ---
 source: prqlc/prqlc-parser/src/test.rs
-expression: "parse_source(r#\"\nfrom employees\nfilter country == \"USA\"                      # Each line transforms the previous result.\nderive {                                     # This adds columns / variables.\n  gross_salary = salary + payroll_tax,\n  gross_cost = gross_salary + benefits_cost  # Variables can use other variables.\n}\nfilter gross_cost > 0\ngroup {title, country} (                     # For each group use a nested pipeline\n  aggregate {                                # Aggregate each group to a single row\n    average salary,\n    average gross_salary,\n    sum salary,\n    sum gross_salary,\n    average gross_cost,\n    sum_gross_cost=(sum gross_cost),\n    ct=(count salary),\n  }\n)\nsort sum_gross_cost\nfilter ct > 200\ntake 20\n        \"#).unwrap()"
+expression: "parse_source(r#\"\nfrom employees\nfilter country == \"USA\"                      # Each line transforms the previous result.\nderive {                                     # This adds columns / variables.\n  gross_salary = salary + payroll_tax,\n  gross_cost = gross_salary + benefits_cost  # Variables can use other variables.\n}\nfilter gross_cost > 0\ngroup {title, country} (                     # For each group use a nested pipeline\n  aggregate {                                # Aggregate each group to a single row\n    average salary,\n    average gross_salary,\n    sum salary,\n    sum gross_salary,\n    average gross_cost,\n    sum_gross_cost = sum gross_cost,\n    ct = count salary,\n  }\n)\nsort sum_gross_cost\nfilter ct > 200\ntake 20\n        \"#).unwrap()"
 ---
 - VarDef:
     kind: Main
@@ -136,20 +136,20 @@ expression: "parse_source(r#\"\nfrom employees\nfilter country == \"USA\"       
                           - FuncCall:
                               name:
                                 Ident: sum
-                                span: "0:624-627"
+                                span: "0:625-628"
                               args:
                                 - Ident: gross_cost
-                                  span: "0:628-638"
-                            span: "0:623-639"
+                                  span: "0:629-639"
+                            span: "0:625-639"
                             alias: sum_gross_cost
                           - FuncCall:
                               name:
                                 Ident: count
-                                span: "0:649-654"
+                                span: "0:650-655"
                               args:
                                 - Ident: salary
-                                  span: "0:655-661"
-                            span: "0:648-662"
+                                  span: "0:656-662"
+                            span: "0:650-662"
                             alias: ct
                         span: "0:424-667"
                   span: "0:414-667"
