@@ -1,5 +1,6 @@
 #![cfg(not(target_family = "wasm"))]
 
+mod highlight;
 mod docs_generator;
 mod jinja;
 mod watch;
@@ -222,6 +223,10 @@ pub enum ExperimentalCommand {
     /// Generate Markdown documentation
     #[command(name = "doc")]
     GenerateDocs(IoArgs),
+
+    /// Syntax highlight
+    #[command(name = "highlight")]
+    Highlight(IoArgs),
 }
 
 #[derive(clap::Args, Default, Debug, Clone)]
@@ -435,6 +440,15 @@ impl Command {
 
                 docs_generator::generate_markdown_docs(module_ref.stmts).into_bytes()
             }
+            Command::Experimental(ExperimentalCommand::Highlight(_)) => {
+                let s = sources.sources.values().exactly_one().or_else(|_| {
+                    // TODO: allow multiple sources
+                    bail!("Currently `highlight` only works with a single source, but found multiple sources")
+                })?;
+                let tokens = prql_to_tokens(s)?;
+
+                highlight::highlight(&tokens).into_bytes()
+            }
             Command::Compile {
                 signature_comment,
                 format,
@@ -483,6 +497,7 @@ impl Command {
                 io_args
             }
             Experimental(ExperimentalCommand::GenerateDocs(io_args)) => io_args,
+            Experimental(ExperimentalCommand::Highlight(io_args)) => io_args,
             _ => unreachable!(),
         };
         let input = &mut io_args.input;
@@ -518,6 +533,7 @@ impl Command {
                 io_args.output.clone()
             }
             Experimental(ExperimentalCommand::GenerateDocs(io_args)) => io_args.output.clone(),
+            Experimental(ExperimentalCommand::Highlight(io_args)) => io_args.output.clone(),
             _ => unreachable!(),
         };
         output.write_all(data)
