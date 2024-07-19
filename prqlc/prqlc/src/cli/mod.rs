@@ -1,7 +1,7 @@
 #![cfg(not(target_family = "wasm"))]
 
-mod highlight;
 mod docs_generator;
+mod highlight;
 mod jinja;
 mod watch;
 
