@@ -1,10 +1,9 @@
+use std::collections::HashMap;
 use std::error::Error as StdError;
 use std::fmt::{self, Debug, Display, Formatter};
 use std::ops::Range;
 use std::path::PathBuf;
-use std::{collections::HashMap, io::stderr};
 
-use anstream::adapter::strip_str;
 use ariadne::{Cache, Config, Label, Report, ReportKind, Source};
 use serde::Serialize;
 
@@ -193,7 +192,7 @@ impl ErrorMessage {
         report.finish().write(cache, &mut out).ok()?;
         String::from_utf8(out)
             .ok()
-            .map(|x| maybe_strip_colors(x.as_str()))
+            .map(|x| crate::utils::maybe_strip_colors(x.as_str()))
     }
 
     fn compose_location(&self, source: &Source) -> Option<SourceLocation> {
@@ -205,26 +204,6 @@ impl ErrorMessage {
             start: (start.1, start.2),
             end: (end.1, end.2),
         })
-    }
-}
-
-fn should_use_color() -> bool {
-    match anstream::AutoStream::choice(&stderr()) {
-        anstream::ColorChoice::Auto => true,
-        anstream::ColorChoice::Always => true,
-        anstream::ColorChoice::AlwaysAnsi => true,
-        anstream::ColorChoice::Never => false,
-    }
-}
-
-/// Strip colors, for external libraries which don't yet strip themselves, and
-/// for insta snapshot tests. This will respond to environment variables such as
-/// `CLI_COLOR`.
-pub(crate) fn maybe_strip_colors(s: &str) -> String {
-    if !should_use_color() {
-        strip_str(s).to_string()
-    } else {
-        s.to_string()
     }
 }
 

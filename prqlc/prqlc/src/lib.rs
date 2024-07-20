@@ -107,6 +107,8 @@ use semver::Version;
 use serde::{Deserialize, Serialize};
 use strum::VariantNames;
 
+// pub(crate) use crate::utils;
+
 pub use error_message::{ErrorMessage, ErrorMessages, SourceLocation};
 pub use prqlc_parser::error::{Error, ErrorSource, Errors, MessageKind, Reason, WithErrorInfo};
 pub use prqlc_parser::lexer::lr;
@@ -120,7 +122,8 @@ pub mod ir;
 pub mod parser;
 pub mod semantic;
 pub mod sql;
-mod utils;
+pub(crate) mod utils;
+// pub mod utils;
 
 pub type Result<T, E = Error> = core::result::Result<T, E>;
 
