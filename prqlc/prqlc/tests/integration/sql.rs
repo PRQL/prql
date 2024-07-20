@@ -75,7 +75,7 @@ fn test_stdlib_math_module() {
       salary_asin = math.asin salary,
       salary_tan = math.tan salary,
       salary_atan = math.atan salary,
-      salary_pow = salary | math.pow 2,
+      salary_pow = (salary | math.pow 2),
       salary_pow_op = salary ** 2,
     }
     "#).unwrap(), @r###"
@@ -129,7 +129,7 @@ fn test_stdlib_math_module_mssql() {
     salary_asin = math.asin salary,
     salary_tan = math.tan salary,
     salary_atan = math.atan salary,
-    salary_pow = salary | math.pow 2,
+    salary_pow = (salary | math.pow 2),
   }
   "#).unwrap(), @r#"
   SELECT
@@ -162,17 +162,17 @@ fn test_stdlib_text_module() {
     assert_snapshot!(compile(r#"
     from employees
     select {
-      name_lower = name | text.lower,
-      name_upper = name | text.upper,
-      name_ltrim = name | text.ltrim,
-      name_rtrim = name | text.rtrim,
-      name_trim = name | text.trim,
-      name_length = name | text.length,
-      name_extract = name | text.extract 3 5,
-      name_replace = name | text.replace "pika" "chu",
-      name_starts_with = name | text.starts_with "pika",
-      name_contains = name | text.contains "pika",
-      name_ends_with = name | text.ends_with "pika",
+      name_lower = (name | text.lower),
+      name_upper = (name | text.upper),
+      name_ltrim = (name | text.ltrim),
+      name_rtrim = (name | text.rtrim),
+      name_trim = (name | text.trim),
+      name_length = (name | text.length),
+      name_extract = (name | text.extract 3 5),
+      name_replace = (name | text.replace "pika" "chu"),
+      name_starts_with = (name | text.starts_with "pika"),
+      name_contains = (name | text.contains "pika"),
+      name_ends_with = (name | text.ends_with "pika"),
     }
     "#).unwrap(), @r###"
     SELECT
@@ -200,7 +200,7 @@ fn like_concat(#[case] dialect: sql::Dialect, #[case] expected_like: &'static st
     let query = r#"
   from employees
   select {
-    name_ends_with = name | text.contains "pika",
+    name_ends_with = (name | text.contains "pika"),
   }
   "#;
     let expected = format!(
@@ -233,7 +233,7 @@ fn date_to_text_operator(
     let query = r#"
     from invoices
     select {
-      invoice_date = invoice_date | date.to_text "%d/%m/%Y"
+      invoice_date = (invoice_date | date.to_text "%d/%m/%Y")
     }"#;
     let expected = format!(
         r#"

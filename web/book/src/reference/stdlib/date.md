@@ -5,9 +5,9 @@ These are all the functions defined in the `date` module:
 ### `to_text`
 
 Converts a date into a text.\
-Since there are many possible date representations, `to_text` takes a `format`
-parameter that describes thanks to [specifiers](#date--time-format-specifiers)
-how the date or timestamp should be structured.
+Since there are many possible date representations, `to_text` takes a `format` parameter
+that describes thanks to [specifiers](#date--time-format-specifiers) how the date
+or timestamp should be structured.
 
 ```admonish info
 Since all RDBMS have different ways to format dates and times, PRQL **requires an explicit dialect** to be specified
@@ -21,27 +21,24 @@ For now the supported DBs are: Clickhouse, DuckDB, MySQL, MSSQL and Postgres.
 prql target:sql.duckdb
 
 from invoices
-select {
-  invoice_date | date.to_text "%d/%m/%Y"
-}
+select (invoice_date | date.to_text "%d/%m/%Y")
+
 ```
 
 ```prql
 prql target:sql.postgres
 
 from invoices
-select {
-  invoice_date | date.to_text "%d/%m/%Y"
-}
+select (invoice_date | date.to_text "%d/%m/%Y")
+
 ```
 
 ```prql
 prql target:sql.mysql
 
 from invoices
-select {
-  invoice_date | date.to_text "%d/%m/%Y"
-}
+select (invoice_date | date.to_text "%d/%m/%Y")
+
 ```
 
 ### Date & time format specifiers

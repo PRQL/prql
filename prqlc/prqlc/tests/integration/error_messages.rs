@@ -280,7 +280,7 @@ fn date_to_text_generic() {
     assert_snapshot!(compile(r#"
   [{d = @2021-01-01}]
   derive {
-    d_str = d | date.to_text "%Y/%m/%d"
+    d_str = (d | date.to_text "%Y/%m/%d")
   }"#).unwrap_err(), @r###"
     Error:
        ╭─[:4:30]
@@ -299,7 +299,7 @@ fn date_to_text_not_supported_dialect() {
 
   from [{d = @2021-01-01}]
   derive {
-    d_str = d | date.to_text "%Y/%m/%d"
+    d_str = (d | date.to_text "%Y/%m/%d")
   }"#).unwrap_err(), @r###"
     Error:
        ╭─[:6:30]
@@ -335,7 +335,7 @@ fn date_to_text_unsupported_chrono_item() {
 
     from [{d = @2021-01-01}]
     derive {
-      d_str = d | date.to_text "%_j"
+      d_str = (d | date.to_text "%_j")
     }"#).unwrap_err(), @r###"
     Error:
        ╭─[:6:32]

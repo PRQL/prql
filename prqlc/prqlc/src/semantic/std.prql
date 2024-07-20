@@ -130,12 +130,12 @@ let intersect = `default_db.bottom`<relation> top<relation> -> <relation> (
   join (b = bottom) (tuple_every (tuple_map _eq (tuple_zip t.* b.*)))
   select t.*
 )
-let remove = `default_db.bottom`<relation> top<relation> -> <relation> (
-  t = top
-  join side:left (b = bottom) (tuple_every (tuple_map _eq (tuple_zip t.* b.*)))
-  filter (tuple_every (tuple_map _is_null b.*))
-  select t.*
-)
+# let remove = `default_db.bottom`<relation> top<relation> -> <relation> (
+#   t = top
+#   join side:left (b = bottom) (tuple_every (tuple_map _eq (tuple_zip t.* b.*)))
+#   filter (tuple_every (tuple_map _is_null b.*))
+#   select t.*
+# )
 let loop = func
   pipeline <transform>
   top <relation>
