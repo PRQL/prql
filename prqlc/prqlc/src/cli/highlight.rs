@@ -5,7 +5,7 @@ use prqlc::{
 };
 
 /// Highlight PRQL code printed to the terminal.
-pub fn highlight(tokens: &Tokens) -> String {
+pub(crate) fn highlight(tokens: &Tokens) -> String {
     let mut output = String::new();
     let mut last = 0;
 
@@ -75,12 +75,20 @@ pub fn highlight(tokens: &Tokens) -> String {
 fn is_transform(ident: &str) -> bool {
     // TODO: Could we instead source these from the standard library?
     // We could also use the semantic understanding from later compiler stages?
-    match ident {
-        "from" => true,
-        "derive" | "select" | "filter" | "sort" | "join" | "take" | "group" | "aggregate"
-        | "window" | "loop" => true,
-        _ => false,
-    }
+    matches!(
+        ident,
+        "from"
+            | "derive"
+            | "select"
+            | "filter"
+            | "sort"
+            | "join"
+            | "take"
+            | "group"
+            | "aggregate"
+            | "window"
+            | "loop"
+    )
 }
 
 #[cfg(test)]
