@@ -73,8 +73,8 @@ pub fn highlight(tokens: &Tokens) -> String {
 }
 
 fn is_transform(ident: &str) -> bool {
-// TODO: Could we instead source these from the standard library?
-// We could also use the semantic understanding from later compiler stages?
+    // TODO: Could we instead source these from the standard library?
+    // We could also use the semantic understanding from later compiler stages?
     match ident {
         "from" => true,
         "derive" | "select" | "filter" | "sort" | "join" | "take" | "group" | "aggregate"
@@ -92,19 +92,11 @@ mod tests {
 
     #[test]
     fn highlight() {
-        let input = r"
-foo
-
-        ";
-
-        assert_cmd_snapshot!(prqlc_command().args(["experimental", "highlight"]).pass_stdin(input), @r###"
+        assert_cmd_snapshot!(prqlc_command().args(["experimental", "highlight"]).pass_stdin("from tracks"), @r###"
         success: true
         exit_code: 0
         ----- stdout -----
-
-        foo
-
-
+        from tracks
         ----- stderr -----
         "###);
     }
@@ -114,7 +106,7 @@ foo
         normalize_prqlc(&mut cmd);
         cmd
     }
-    
+
     fn normalize_prqlc(cmd: &mut Command) -> &mut Command {
         cmd
             // We set `CLICOLOR_FORCE` in CI to force color output, but we don't want `prqlc` to
