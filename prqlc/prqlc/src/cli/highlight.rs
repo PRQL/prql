@@ -73,10 +73,12 @@ pub fn highlight(tokens: &Tokens) -> String {
 }
 
 fn is_transform(ident: &str) -> bool {
+// TODO: Could we instead source these from the standard library?
+// We could also use the semantic understanding from later compiler stages?
     match ident {
         "from" => true,
         "derive" | "select" | "filter" | "sort" | "join" | "take" | "group" | "aggregate"
-        | "window" | "lopo" => true,
+        | "window" | "loop" => true,
         _ => false,
     }
 }
