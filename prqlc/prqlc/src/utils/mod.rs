@@ -104,7 +104,7 @@ fn should_use_color() -> bool {
 /// Strip colors, for external libraries which don't yet strip themselves, and
 /// for insta snapshot tests. This will respond to environment variables such as
 /// `CLI_COLOR`.
-pub(crate) fn maybe_strip_colors(s: &str) -> String {
+pub fn maybe_strip_colors(s: &str) -> String {
     if !should_use_color() {
         strip_str(s).to_string()
     } else {

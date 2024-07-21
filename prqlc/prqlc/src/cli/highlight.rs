@@ -104,7 +104,7 @@ mod tests {
         success: true
         exit_code: 0
         ----- stdout -----
-        from tracks
+        [32mfrom[39m tracks
         ----- stderr -----
         "###);
     }

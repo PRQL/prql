@@ -33,6 +33,7 @@ use prqlc::ir::{pl, rq};
 use prqlc::pr;
 use prqlc::semantic;
 use prqlc::semantic::reporting::FrameCollector;
+use prqlc::utils::maybe_strip_colors;
 use prqlc::{pl_to_prql, pl_to_rq_tree, prql_to_pl, prql_to_pl_tree, prql_to_tokens, rq_to_sql};
 use prqlc::{Options, SourceTree, Target};
 
@@ -447,7 +448,7 @@ impl Command {
                 })?;
                 let tokens = prql_to_tokens(s)?;
 
-                highlight::highlight(&tokens).into_bytes()
+                maybe_strip_colors(&highlight::highlight(&tokens)).into_bytes()
             }
             Command::Compile {
                 signature_comment,
