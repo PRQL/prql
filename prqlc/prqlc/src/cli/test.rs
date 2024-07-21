@@ -1,5 +1,3 @@
-#![cfg(all(not(target_family = "wasm"), feature = "cli"))]
-
 use std::env::current_dir;
 use std::fs;
 use std::path::Path;
