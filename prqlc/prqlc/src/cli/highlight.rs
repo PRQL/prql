@@ -141,6 +141,7 @@ mod tests {
         "###);
     }
 
+    // TODO: import from existing location, need to adjust visibility
     fn prqlc_command() -> Command {
         let mut cmd = Command::new(get_cargo_bin("prqlc"));
         normalize_prqlc(&mut cmd);
