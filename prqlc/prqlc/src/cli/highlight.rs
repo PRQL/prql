@@ -13,62 +13,74 @@ pub(crate) fn highlight(tokens: &Tokens) -> String {
         let diff = token.span.start - last;
         last = token.span.end;
         output.push_str(&" ".repeat(diff));
-
-        match &token.kind {
-            TokenKind::NewLine => output.push('\n'),
-            TokenKind::Ident(ident) => {
-                if is_transform(ident) {
-                    output.push_str(&ident.green().to_string())
-                } else {
-                    output.push_str(&ident.to_string())
-                }
-            }
-            TokenKind::Keyword(keyword) => output.push_str(&keyword.blue().to_string()),
-            TokenKind::Literal(literal) => output.push_str(&match literal {
-                Literal::Null => literal.green().bold().to_string(),
-                Literal::Integer(_) => literal.green().to_string(),
-                Literal::Float(_) => literal.green().to_string(),
-                Literal::Boolean(_) => literal.green().bold().to_string(),
-                Literal::String(_) => literal.yellow().to_string(),
-                _ => literal.to_string(),
-            }),
-            TokenKind::Param(param) => output.push_str(&param.purple().to_string()),
-            TokenKind::Range {
-                bind_left: _,
-                bind_right: _,
-            } => output.push_str(".."),
-            TokenKind::Interpolation(_, _) => output.push_str(&format!("{}", token.kind.yellow())),
-            TokenKind::Control(char) => output.push(*char),
-            TokenKind::ArrowThin
-            | TokenKind::ArrowFat
-            | TokenKind::Eq
-            | TokenKind::Ne
-            | TokenKind::Gte
-            | TokenKind::Lte
-            | TokenKind::RegexSearch => output.push_str(&format!("{}", token.kind)),
-            TokenKind::And | TokenKind::Or => {
-                output.push_str(&format!("{}", token.kind).purple().to_string())
-            }
-            TokenKind::Coalesce | TokenKind::DivInt | TokenKind::Pow | TokenKind::Annotate => {
-                output.push_str(&format!("{}", token.kind))
-            }
-            TokenKind::Comment(comment) => output.push_str(
-                &format!("#{comment}")
-                    .truecolor(95, 135, 135)
-                    .italic()
-                    .to_string(),
-            ),
-            TokenKind::DocComment(comment) => output.push_str(
-                &format!("#!{comment}")
-                    .truecolor(95, 135, 135)
-                    .italic()
-                    .to_string(),
-            ),
-            TokenKind::LineWrap(_) => todo!(),
-            TokenKind::Start => {}
-        }
+        output.push_str(&highlight_token_kind(&token.kind));
     }
 
+    output
+}
+
+fn highlight_token_kind(token: &TokenKind) -> String {
+    // LineWrap is recursive with TokenKind, so we needed to split this function
+    // out from the one above (otherwise would have it as a single func)
+    let mut output = String::new();
+    match &token {
+        TokenKind::NewLine => output.push('\n'),
+        TokenKind::Ident(ident) => {
+            if is_transform(ident) {
+                output.push_str(&ident.green().to_string())
+            } else {
+                output.push_str(&ident.to_string())
+            }
+        }
+        TokenKind::Keyword(keyword) => output.push_str(&keyword.blue().to_string()),
+        TokenKind::Literal(literal) => output.push_str(&match literal {
+            Literal::Null => literal.green().bold().to_string(),
+            Literal::Integer(_) => literal.green().to_string(),
+            Literal::Float(_) => literal.green().to_string(),
+            Literal::Boolean(_) => literal.green().bold().to_string(),
+            Literal::String(_) => literal.yellow().to_string(),
+            _ => literal.to_string(),
+        }),
+        TokenKind::Param(param) => output.push_str(&param.purple().to_string()),
+        TokenKind::Range {
+            bind_left: _,
+            bind_right: _,
+        } => output.push_str(".."),
+        TokenKind::Interpolation(_, _) => output.push_str(&format!("{}", token.yellow())),
+        TokenKind::Control(char) => output.push(*char),
+        TokenKind::ArrowThin
+        | TokenKind::ArrowFat
+        | TokenKind::Eq
+        | TokenKind::Ne
+        | TokenKind::Gte
+        | TokenKind::Lte
+        | TokenKind::RegexSearch => output.push_str(&format!("{}", token)),
+        TokenKind::And | TokenKind::Or => {
+            output.push_str(&format!("{}", token).purple().to_string())
+        }
+        TokenKind::Coalesce | TokenKind::DivInt | TokenKind::Pow | TokenKind::Annotate => {
+            output.push_str(&format!("{}", token))
+        }
+        TokenKind::Comment(comment) => output.push_str(
+            &format!("#{comment}")
+                .truecolor(95, 135, 135)
+                .italic()
+                .to_string(),
+        ),
+        TokenKind::DocComment(comment) => output.push_str(
+            &format!("#!{comment}")
+                .truecolor(95, 135, 135)
+                .italic()
+                .to_string(),
+        ),
+        TokenKind::LineWrap(inner_tokens) => {
+            output.push_str("\n\\");
+            for t in inner_tokens {
+                output.push_str(&highlight_token_kind(t));
+            }
+        }
+        TokenKind::Start => {}
+    }
     output
 }
 
