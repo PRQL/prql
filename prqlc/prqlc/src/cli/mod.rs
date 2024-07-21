@@ -1,10 +1,5 @@
 #![cfg(not(target_family = "wasm"))]
 
-mod docs_generator;
-mod highlight;
-mod jinja;
-mod watch;
-
 use std::collections::HashMap;
 use std::env;
 use std::fs::File;
@@ -36,6 +31,13 @@ use prqlc::semantic::reporting::FrameCollector;
 use prqlc::utils::maybe_strip_colors;
 use prqlc::{pl_to_prql, pl_to_rq_tree, prql_to_pl, prql_to_pl_tree, prql_to_tokens, rq_to_sql};
 use prqlc::{Options, SourceTree, Target};
+
+mod docs_generator;
+mod highlight;
+mod jinja;
+#[cfg(test)]
+mod test;
+mod watch;
 
 /// Entrypoint called by [`crate::main`]
 pub fn main() -> color_eyre::eyre::Result<()> {

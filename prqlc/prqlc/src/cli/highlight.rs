@@ -100,11 +100,31 @@ mod tests {
 
     #[test]
     fn highlight() {
-        assert_cmd_snapshot!(prqlc_command().args(["experimental", "highlight"]).pass_stdin("from tracks"), @r###"
+        // (Colors don't show because they're disabled; we could have a test
+        // that forces them to show?)
+        assert_cmd_snapshot!(prqlc_command().args(["experimental", "highlight"]).pass_stdin(r#"
+        from tracks
+        filter artist == "Bob Marley"                 # Each line transforms the previous result
+        aggregate {                                   # `aggregate` reduces each column to a value
+          plays    = sum plays,
+          longest  = max length,
+          shortest = min length,                      # Trailing commas are allowed
+        }
+
+        "#), @r###"
         success: true
         exit_code: 0
         ----- stdout -----
-        [32mfrom[39m tracks
+
+                from tracks
+                filter artist == "Bob Marley"                 # Each line transforms the previous result
+                aggregate {                                   # `aggregate` reduces each column to a value
+                  plays    = sum plays,
+                  longest  = max length,
+                  shortest = min length,                      # Trailing commas are allowed
+                }
+
+
         ----- stderr -----
         "###);
     }

@@ -1,5 +1,4 @@
 ---
-source: prqlc/prqlc/tests/integration/cli.rs
 info:
   program: prqlc
   args:
@@ -98,11 +97,17 @@ _prqlc() {
             prqlc__experimental,help)
                 cmd="prqlc__experimental__help"
                 ;;
+            prqlc__experimental,highlight)
+                cmd="prqlc__experimental__highlight"
+                ;;
             prqlc__experimental__help,doc)
                 cmd="prqlc__experimental__help__doc"
                 ;;
             prqlc__experimental__help,help)
                 cmd="prqlc__experimental__help__help"
+                ;;
+            prqlc__experimental__help,highlight)
+                cmd="prqlc__experimental__help__highlight"
                 ;;
             prqlc__help,collect)
                 cmd="prqlc__help__collect"
@@ -151,6 +156,9 @@ _prqlc() {
                 ;;
             prqlc__help__experimental,doc)
                 cmd="prqlc__help__experimental__doc"
+                ;;
+            prqlc__help__experimental,highlight)
+                cmd="prqlc__help__experimental__highlight"
                 ;;
             *)
                 ;;
@@ -407,7 +415,7 @@ _prqlc() {
             return 0
             ;;
         prqlc__experimental)
-            opts="-v -q -h --color --verbose --quiet --help doc help"
+            opts="-v -q -h --color --verbose --quiet --help doc highlight help"
             if [[ ${cur} == -* || ${COMP_CWORD} -eq 2 ]] ; then
                 COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
                 return 0
@@ -443,7 +451,7 @@ _prqlc() {
             return 0
             ;;
         prqlc__experimental__help)
-            opts="doc help"
+            opts="doc highlight help"
             if [[ ${cur} == -* || ${COMP_CWORD} -eq 3 ]] ; then
                 COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
                 return 0
@@ -477,6 +485,38 @@ _prqlc() {
                 return 0
             fi
             case "${prev}" in
+                *)
+                    COMPREPLY=()
+                    ;;
+            esac
+            COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
+            return 0
+            ;;
+        prqlc__experimental__help__highlight)
+            opts=""
+            if [[ ${cur} == -* || ${COMP_CWORD} -eq 4 ]] ; then
+                COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
+                return 0
+            fi
+            case "${prev}" in
+                *)
+                    COMPREPLY=()
+                    ;;
+            esac
+            COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
+            return 0
+            ;;
+        prqlc__experimental__highlight)
+            opts="-v -q -h --color --verbose --quiet --help [INPUT] [OUTPUT] [MAIN_PATH]"
+            if [[ ${cur} == -* || ${COMP_CWORD} -eq 3 ]] ; then
+                COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
+                return 0
+            fi
+            case "${prev}" in
+                --color)
+                    COMPREPLY=($(compgen -W "auto always never" -- "${cur}"))
+                    return 0
+                    ;;
                 *)
                     COMPREPLY=()
                     ;;
@@ -615,7 +655,7 @@ _prqlc() {
             return 0
             ;;
         prqlc__help__experimental)
-            opts="doc"
+            opts="doc highlight"
             if [[ ${cur} == -* || ${COMP_CWORD} -eq 3 ]] ; then
                 COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
                 return 0
@@ -629,6 +669,20 @@ _prqlc() {
             return 0
             ;;
         prqlc__help__experimental__doc)
+            opts=""
+            if [[ ${cur} == -* || ${COMP_CWORD} -eq 4 ]] ; then
+                COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
+                return 0
+            fi
+            case "${prev}" in
+                *)
+                    COMPREPLY=()
+                    ;;
+            esac
+            COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
+            return 0
+            ;;
+        prqlc__help__experimental__highlight)
             opts=""
             if [[ ${cur} == -* || ${COMP_CWORD} -eq 4 ]] ; then
                 COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )

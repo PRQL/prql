@@ -1,5 +1,4 @@
 ---
-source: prqlc/prqlc/tests/integration/cli.rs
 info:
   program: prqlc
   args:
@@ -81,18 +80,24 @@ complete -c prqlc -n "__fish_seen_subcommand_from debug; and __fish_seen_subcomm
 complete -c prqlc -n "__fish_seen_subcommand_from debug; and __fish_seen_subcommand_from help; and not __fish_seen_subcommand_from annotate; and not __fish_seen_subcommand_from lineage; and not __fish_seen_subcommand_from ast; and not __fish_seen_subcommand_from json-schema; and not __fish_seen_subcommand_from help" -f -a "ast" -d 'Print info about the AST data structure'
 complete -c prqlc -n "__fish_seen_subcommand_from debug; and __fish_seen_subcommand_from help; and not __fish_seen_subcommand_from annotate; and not __fish_seen_subcommand_from lineage; and not __fish_seen_subcommand_from ast; and not __fish_seen_subcommand_from json-schema; and not __fish_seen_subcommand_from help" -f -a "json-schema" -d 'Print JSON Schema'
 complete -c prqlc -n "__fish_seen_subcommand_from debug; and __fish_seen_subcommand_from help; and not __fish_seen_subcommand_from annotate; and not __fish_seen_subcommand_from lineage; and not __fish_seen_subcommand_from ast; and not __fish_seen_subcommand_from json-schema; and not __fish_seen_subcommand_from help" -f -a "help" -d 'Print this message or the help of the given subcommand(s)'
-complete -c prqlc -n "__fish_seen_subcommand_from experimental; and not __fish_seen_subcommand_from doc; and not __fish_seen_subcommand_from help" -l color -d 'Controls when to use color' -r -f -a "{auto	'',always	'',never	''}"
-complete -c prqlc -n "__fish_seen_subcommand_from experimental; and not __fish_seen_subcommand_from doc; and not __fish_seen_subcommand_from help" -s v -l verbose -d 'Increase logging verbosity'
-complete -c prqlc -n "__fish_seen_subcommand_from experimental; and not __fish_seen_subcommand_from doc; and not __fish_seen_subcommand_from help" -s q -l quiet -d 'Silences logging output'
-complete -c prqlc -n "__fish_seen_subcommand_from experimental; and not __fish_seen_subcommand_from doc; and not __fish_seen_subcommand_from help" -s h -l help -d 'Print help (see more with \'--help\')'
-complete -c prqlc -n "__fish_seen_subcommand_from experimental; and not __fish_seen_subcommand_from doc; and not __fish_seen_subcommand_from help" -f -a "doc" -d 'Generate Markdown documentation'
-complete -c prqlc -n "__fish_seen_subcommand_from experimental; and not __fish_seen_subcommand_from doc; and not __fish_seen_subcommand_from help" -f -a "help" -d 'Print this message or the help of the given subcommand(s)'
+complete -c prqlc -n "__fish_seen_subcommand_from experimental; and not __fish_seen_subcommand_from doc; and not __fish_seen_subcommand_from highlight; and not __fish_seen_subcommand_from help" -l color -d 'Controls when to use color' -r -f -a "{auto	'',always	'',never	''}"
+complete -c prqlc -n "__fish_seen_subcommand_from experimental; and not __fish_seen_subcommand_from doc; and not __fish_seen_subcommand_from highlight; and not __fish_seen_subcommand_from help" -s v -l verbose -d 'Increase logging verbosity'
+complete -c prqlc -n "__fish_seen_subcommand_from experimental; and not __fish_seen_subcommand_from doc; and not __fish_seen_subcommand_from highlight; and not __fish_seen_subcommand_from help" -s q -l quiet -d 'Silences logging output'
+complete -c prqlc -n "__fish_seen_subcommand_from experimental; and not __fish_seen_subcommand_from doc; and not __fish_seen_subcommand_from highlight; and not __fish_seen_subcommand_from help" -s h -l help -d 'Print help (see more with \'--help\')'
+complete -c prqlc -n "__fish_seen_subcommand_from experimental; and not __fish_seen_subcommand_from doc; and not __fish_seen_subcommand_from highlight; and not __fish_seen_subcommand_from help" -f -a "doc" -d 'Generate Markdown documentation'
+complete -c prqlc -n "__fish_seen_subcommand_from experimental; and not __fish_seen_subcommand_from doc; and not __fish_seen_subcommand_from highlight; and not __fish_seen_subcommand_from help" -f -a "highlight" -d 'Syntax highlight'
+complete -c prqlc -n "__fish_seen_subcommand_from experimental; and not __fish_seen_subcommand_from doc; and not __fish_seen_subcommand_from highlight; and not __fish_seen_subcommand_from help" -f -a "help" -d 'Print this message or the help of the given subcommand(s)'
 complete -c prqlc -n "__fish_seen_subcommand_from experimental; and __fish_seen_subcommand_from doc" -l color -d 'Controls when to use color' -r -f -a "{auto	'',always	'',never	''}"
 complete -c prqlc -n "__fish_seen_subcommand_from experimental; and __fish_seen_subcommand_from doc" -s v -l verbose -d 'Increase logging verbosity'
 complete -c prqlc -n "__fish_seen_subcommand_from experimental; and __fish_seen_subcommand_from doc" -s q -l quiet -d 'Silences logging output'
 complete -c prqlc -n "__fish_seen_subcommand_from experimental; and __fish_seen_subcommand_from doc" -s h -l help -d 'Print help (see more with \'--help\')'
-complete -c prqlc -n "__fish_seen_subcommand_from experimental; and __fish_seen_subcommand_from help; and not __fish_seen_subcommand_from doc; and not __fish_seen_subcommand_from help" -f -a "doc" -d 'Generate Markdown documentation'
-complete -c prqlc -n "__fish_seen_subcommand_from experimental; and __fish_seen_subcommand_from help; and not __fish_seen_subcommand_from doc; and not __fish_seen_subcommand_from help" -f -a "help" -d 'Print this message or the help of the given subcommand(s)'
+complete -c prqlc -n "__fish_seen_subcommand_from experimental; and __fish_seen_subcommand_from highlight" -l color -d 'Controls when to use color' -r -f -a "{auto	'',always	'',never	''}"
+complete -c prqlc -n "__fish_seen_subcommand_from experimental; and __fish_seen_subcommand_from highlight" -s v -l verbose -d 'Increase logging verbosity'
+complete -c prqlc -n "__fish_seen_subcommand_from experimental; and __fish_seen_subcommand_from highlight" -s q -l quiet -d 'Silences logging output'
+complete -c prqlc -n "__fish_seen_subcommand_from experimental; and __fish_seen_subcommand_from highlight" -s h -l help -d 'Print help (see more with \'--help\')'
+complete -c prqlc -n "__fish_seen_subcommand_from experimental; and __fish_seen_subcommand_from help; and not __fish_seen_subcommand_from doc; and not __fish_seen_subcommand_from highlight; and not __fish_seen_subcommand_from help" -f -a "doc" -d 'Generate Markdown documentation'
+complete -c prqlc -n "__fish_seen_subcommand_from experimental; and __fish_seen_subcommand_from help; and not __fish_seen_subcommand_from doc; and not __fish_seen_subcommand_from highlight; and not __fish_seen_subcommand_from help" -f -a "highlight" -d 'Syntax highlight'
+complete -c prqlc -n "__fish_seen_subcommand_from experimental; and __fish_seen_subcommand_from help; and not __fish_seen_subcommand_from doc; and not __fish_seen_subcommand_from highlight; and not __fish_seen_subcommand_from help" -f -a "help" -d 'Print this message or the help of the given subcommand(s)'
 complete -c prqlc -n "__fish_seen_subcommand_from compile" -s t -l target -d 'Target to compile to' -r
 complete -c prqlc -n "__fish_seen_subcommand_from compile" -l debug-log -d 'File path into which to write the debug log to' -r -F
 complete -c prqlc -n "__fish_seen_subcommand_from compile" -l color -d 'Controls when to use color' -r -f -a "{auto	'',always	'',never	''}"
@@ -130,6 +135,7 @@ complete -c prqlc -n "__fish_seen_subcommand_from help; and __fish_seen_subcomma
 complete -c prqlc -n "__fish_seen_subcommand_from help; and __fish_seen_subcommand_from debug; and not __fish_seen_subcommand_from annotate; and not __fish_seen_subcommand_from lineage; and not __fish_seen_subcommand_from ast; and not __fish_seen_subcommand_from json-schema" -f -a "lineage" -d 'Output column-level lineage graph'
 complete -c prqlc -n "__fish_seen_subcommand_from help; and __fish_seen_subcommand_from debug; and not __fish_seen_subcommand_from annotate; and not __fish_seen_subcommand_from lineage; and not __fish_seen_subcommand_from ast; and not __fish_seen_subcommand_from json-schema" -f -a "ast" -d 'Print info about the AST data structure'
 complete -c prqlc -n "__fish_seen_subcommand_from help; and __fish_seen_subcommand_from debug; and not __fish_seen_subcommand_from annotate; and not __fish_seen_subcommand_from lineage; and not __fish_seen_subcommand_from ast; and not __fish_seen_subcommand_from json-schema" -f -a "json-schema" -d 'Print JSON Schema'
-complete -c prqlc -n "__fish_seen_subcommand_from help; and __fish_seen_subcommand_from experimental; and not __fish_seen_subcommand_from doc" -f -a "doc" -d 'Generate Markdown documentation'
+complete -c prqlc -n "__fish_seen_subcommand_from help; and __fish_seen_subcommand_from experimental; and not __fish_seen_subcommand_from doc; and not __fish_seen_subcommand_from highlight" -f -a "doc" -d 'Generate Markdown documentation'
+complete -c prqlc -n "__fish_seen_subcommand_from help; and __fish_seen_subcommand_from experimental; and not __fish_seen_subcommand_from doc; and not __fish_seen_subcommand_from highlight" -f -a "highlight" -d 'Syntax highlight'
 
 ----- stderr -----

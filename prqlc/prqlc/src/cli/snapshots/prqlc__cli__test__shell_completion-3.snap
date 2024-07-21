@@ -1,5 +1,4 @@
 ---
-source: prqlc/prqlc/tests/integration/cli.rs
 info:
   program: prqlc
   args:
@@ -191,6 +190,7 @@ Register-ArgumentCompleter -Native -CommandName 'prqlc' -ScriptBlock {
             [CompletionResult]::new('-h', 'h', [CompletionResultType]::ParameterName, 'Print help (see more with ''--help'')')
             [CompletionResult]::new('--help', 'help', [CompletionResultType]::ParameterName, 'Print help (see more with ''--help'')')
             [CompletionResult]::new('doc', 'doc', [CompletionResultType]::ParameterValue, 'Generate Markdown documentation')
+            [CompletionResult]::new('highlight', 'highlight', [CompletionResultType]::ParameterValue, 'Syntax highlight')
             [CompletionResult]::new('help', 'help', [CompletionResultType]::ParameterValue, 'Print this message or the help of the given subcommand(s)')
             break
         }
@@ -204,12 +204,26 @@ Register-ArgumentCompleter -Native -CommandName 'prqlc' -ScriptBlock {
             [CompletionResult]::new('--help', 'help', [CompletionResultType]::ParameterName, 'Print help (see more with ''--help'')')
             break
         }
+        'prqlc;experimental;highlight' {
+            [CompletionResult]::new('--color', 'color', [CompletionResultType]::ParameterName, 'Controls when to use color')
+            [CompletionResult]::new('-v', 'v', [CompletionResultType]::ParameterName, 'Increase logging verbosity')
+            [CompletionResult]::new('--verbose', 'verbose', [CompletionResultType]::ParameterName, 'Increase logging verbosity')
+            [CompletionResult]::new('-q', 'q', [CompletionResultType]::ParameterName, 'Silences logging output')
+            [CompletionResult]::new('--quiet', 'quiet', [CompletionResultType]::ParameterName, 'Silences logging output')
+            [CompletionResult]::new('-h', 'h', [CompletionResultType]::ParameterName, 'Print help (see more with ''--help'')')
+            [CompletionResult]::new('--help', 'help', [CompletionResultType]::ParameterName, 'Print help (see more with ''--help'')')
+            break
+        }
         'prqlc;experimental;help' {
             [CompletionResult]::new('doc', 'doc', [CompletionResultType]::ParameterValue, 'Generate Markdown documentation')
+            [CompletionResult]::new('highlight', 'highlight', [CompletionResultType]::ParameterValue, 'Syntax highlight')
             [CompletionResult]::new('help', 'help', [CompletionResultType]::ParameterValue, 'Print this message or the help of the given subcommand(s)')
             break
         }
         'prqlc;experimental;help;doc' {
+            break
+        }
+        'prqlc;experimental;help;highlight' {
             break
         }
         'prqlc;experimental;help;help' {
@@ -309,9 +323,13 @@ Register-ArgumentCompleter -Native -CommandName 'prqlc' -ScriptBlock {
         }
         'prqlc;help;experimental' {
             [CompletionResult]::new('doc', 'doc', [CompletionResultType]::ParameterValue, 'Generate Markdown documentation')
+            [CompletionResult]::new('highlight', 'highlight', [CompletionResultType]::ParameterValue, 'Syntax highlight')
             break
         }
         'prqlc;help;experimental;doc' {
+            break
+        }
+        'prqlc;help;experimental;highlight' {
             break
         }
         'prqlc;help;compile' {
