@@ -132,7 +132,8 @@ fn write_repr_prql<W: Write>(w: &mut W, source_tree: &SourceTree) -> Result {
         let source_id = reverse_ids.get(path).unwrap();
         write_key_values(w, &[("path", &path), ("source_id", source_id)])?;
 
-        writeln!(w, "<code id=source-{source_id}>{source}</code>")?;
+        let source_escaped = escape_html(source);
+        writeln!(w, "<code id=source-{source_id}>{source_escaped}</code>")?;
         writeln!(w, "</div>")?; // source
     }
 
@@ -318,6 +319,14 @@ fn write_ast_node<W: Write>(
     write!(w, "</div>")
 }
 
+fn escape_html(text: &str) -> String {
+    text.replace('&', "&amp;")
+        .replace('<', "&lt;")
+        .replace('>', "&gt;")
+        .replace('"', "&quot;")
+        .replace('\'', "&#039;")
+}
+
 const CSS_STYLES: &str = r#"
 body {
     font-size: 12px;
@@ -501,13 +510,22 @@ const highlight = (span_element, origin_element, highlight_class) => {
         } else {
             const source_text = code_element.innerText;
 
-            const before = source_text.substring(0, span.start);
-            const selected = source_text.substring(span.start, span.end);
-            const after = source_text.substring(span.end);
+            const before = escape_html(source_text.substring(0, span.start));
+            const selected = escape_html(source_text.substring(span.start, span.end));
+            const after = escape_html(source_text.substring(span.end));
             code_element.innerHTML = `${before}<span class=${highlight_class}>${selected}</span>${after}`;
         }
     }
 };
+
+const escape_html = (text) => {
+    return text
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;")
+        .replace(/'/g, "&#039;");
+}
 
 const extract_span = (span_element) => {
     const parts = span_element.innerText.split(':');
