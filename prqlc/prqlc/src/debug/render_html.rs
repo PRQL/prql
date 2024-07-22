@@ -2,10 +2,11 @@ use std::collections::HashMap;
 use std::fmt::{Debug, Result, Write};
 
 use crate::sql::pq_ast;
-use crate::SourceTree;
+use crate::{codegen, SourceTree};
 
 use super::log::*;
 use crate::ir::{decl, pl, rq};
+use itertools::Itertools;
 use prqlc_parser::lexer::lr;
 use prqlc_parser::parser::pr;
 
@@ -177,12 +178,12 @@ fn write_repr_pl<W: Write>(w: &mut W, ast: &pl::ModuleDef) -> Result {
     writeln!(w, "</div>")
 }
 
-fn write_repr_decl<W: Write>(w: &mut W, ast: &decl::RootModule) -> Result {
+fn write_repr_decl<W: Write>(w: &mut W, root_mod: &decl::RootModule) -> Result {
     writeln!(w, r#"<div class="decl repr">"#)?;
 
-    let json = serde_json::to_string(ast).unwrap();
-    let json_node: serde_json::Value = serde_json::from_str(&json).unwrap();
-    write_json_ast_node(w, json_node, false)?;
+    for (name, decl) in root_mod.module.names.iter().sorted_by_key(|x| x.0.as_str()) {
+        write_decl(w, decl, name, &root_mod.span_map)?;
+    }
 
     writeln!(w, "</div>")
 }
@@ -273,22 +274,19 @@ fn write_json_ast_node<W: Write>(
             write!(w, "</ul>")?;
             Ok(())
         }
-        serde_json::Value::Object(mut map) => {
-            let span: Option<String> = map.remove("span").and_then(|s| match s {
-                serde_json::Value::Null => None,
-                serde_json::Value::String(s) => Some(s),
-                _ => unreachable!("expected span to be string, got: {}", s),
-            });
-
-            if span.is_some() || (!is_node_contents && map.len() == 1) {
-                let first_item = map.into_iter().next();
-                let (name, inner) =
-                    first_item.unwrap_or_else(|| ("<empty>".into(), serde_json::Value::Null));
-                return write_ast_node(w, &name, span, inner);
+        serde_json::Value::Object(properties) => {
+            let is_ast_node = properties.contains_key("span")
+                || properties.contains_key("id")
+                || properties.contains_key("ty")
+                || (properties.len() == 1
+                    && !is_node_contents
+                    && properties.values().next().unwrap().is_object());
+            if is_ast_node {
+                return write_ast_node_from_object(w, properties);
             }
 
             write!(w, r#"<div class=json-object>"#)?;
-            for (key, value) in map {
+            for (key, value) in properties {
                 write!(w, "<span>{key}: </span><div class=json-value>")?;
                 write_json_ast_node(w, value, false)?;
                 write!(w, "</div>")?;
@@ -298,18 +296,45 @@ fn write_json_ast_node<W: Write>(
     }
 }
 
-fn write_ast_node<W: Write>(
+fn write_ast_node_from_object<W: Write>(
     w: &mut W,
-    name: &str,
-    span: Option<String>,
-    contents: serde_json::Value,
+    mut properties: serde_json::Map<String, serde_json::Value>,
 ) -> Result {
+    let id: Option<i64> = properties.remove("id").and_then(|s| match s {
+        serde_json::Value::Null => None,
+        serde_json::Value::Number(n) if n.is_i64() => n.as_i64(),
+        _ => unreachable!("expected id to be int, got: {}", s),
+    });
+    let span: Option<String> = properties.remove("span").and_then(|s| match s {
+        serde_json::Value::Null => None,
+        serde_json::Value::String(s) => Some(s),
+        _ => unreachable!("expected span to be string, got: {}", s),
+    });
+    let ty: Option<serde_json::Value> = properties.remove("ty");
+
+    let first_item = properties.into_iter().next();
+    let (name, contents) =
+        first_item.unwrap_or_else(|| ("<empty>".into(), serde_json::Value::Null));
+
     write!(w, r#"<div class=ast-node tabindex=2>"#)?;
 
     write!(w, "<div class=header>")?;
-    write!(w, "<h2 class=clickable>{name}</h2>")?;
+
+    let h2_id = id.map(|i| format!("id=ast-{i} ")).unwrap_or_default();
+    write!(w, "<h2 {h2_id}class=clickable>{name}</h2>")?;
+
+    if let Some(id) = id {
+        write!(w, r#"<span>id={id}</span>"#)?;
+    }
     if let Some(span) = span {
         write!(w, r#"<span class="span">{span}</span>"#)?;
+    }
+    if let Some(ty) = ty {
+        let ty_json = ty.to_string();
+        if let Ok(ty) = serde_json::from_str::<pr::Ty>(&ty_json) {
+            let ty_prql = codegen::write_ty(&ty);
+            write!(w, r#"<span class="ty">{ty_prql}</span>"#)?;
+        }
     }
     write!(w, "</div>")?;
 
@@ -317,6 +342,48 @@ fn write_ast_node<W: Write>(
     write_json_ast_node(w, contents, true)?;
     write!(w, "</div>")?;
     write!(w, "</div>")
+}
+
+fn write_decl<W: Write>(
+    w: &mut W,
+    decl: &decl::Decl,
+    name: &String,
+    span_map: &HashMap<usize, pr::Span>,
+) -> Result {
+    write!(w, r#"<div class="ast-node" tabindex=2>"#)?;
+
+    write!(w, "<div class=header>")?;
+    write!(w, r#"<h2 class="clickable blue">{name}</h2>"#)?;
+
+    let span = decl.declared_at.as_ref().and_then(|id| span_map.get(id));
+    if let Some(span) = span {
+        write!(w, r#"<span class="span">{span:?}</span>"#)?;
+    }
+    write!(w, "</div>")?; // header
+
+    write!(w, r#"<div class="contents indent">"#)?;
+    match &decl.kind {
+        decl::DeclKind::Module(m) => {
+            for (name, decl) in m.names.iter().sorted_by_key(|x| x.0.as_str()) {
+                write_decl(w, decl, name, span_map)?;
+            }
+        }
+        decl::DeclKind::Expr(expr) => {
+            let json = serde_json::to_string(expr).unwrap();
+            let json_node: serde_json::Value = serde_json::from_str(&json).unwrap();
+            write_json_ast_node(w, json_node, false)?;
+        }
+        decl::DeclKind::Ty(ty) => {
+            let json = serde_json::to_string(ty).unwrap();
+            let json_node: serde_json::Value = serde_json::from_str(&json).unwrap();
+            write_json_ast_node(w, json_node, false)?;
+        }
+        _ => {
+            write!(w, r#"<div>{}</div>"#, decl.kind)?;
+        }
+    }
+    write!(w, "</div>")?; // contents
+    write!(w, "</div>") // ast-node
 }
 
 fn escape_html(text: &str) -> String {
@@ -359,7 +426,7 @@ body {
 .yellow {
     color: var(--text-yellow);
 }
-.blue {
+.blue:not(#fakeId) {
     color: var(--text-blue);
 }
 .muted {
@@ -402,8 +469,6 @@ code {
 }
 .span {
     color: var(--text-muted);
-    display: inline-block;
-    margin-left: 1em;
 }
 table.repr.lr {
     border-collapse: collapse;
@@ -417,6 +482,10 @@ table.repr.lr {
     font-size: inherit;
     color: var(--text-green);
     margin: 0;
+}
+.ast-node>.header>span {
+    display: inline-block;
+    margin-left: 1em;
 }
 .ast-node.collapsed>.header::after {
     content: '...';
