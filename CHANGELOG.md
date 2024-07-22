@@ -11,7 +11,9 @@
   #4698)
 - Add documentation comments to the output of the documentation generator.
   (@vanillajonathan, #4729)
-- Add CLI syntax highlighting to `prqlc`. (@vanillajonathan, #4755)
+- Add CLI syntax highlighting to `prqlc`.
+  You can try it as `prqlc experimental highlight example.prql`.
+  (@vanillajonathan, #4755)
 
 **Fixes**:
 
