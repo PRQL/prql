@@ -160,7 +160,4 @@ pub fn rq_to_sql(rq_json: &str) -> NifResult<Response> {
     )
 }
 
-rustler::init!(
-    "Elixir.PRQL.Native",
-    [compile, prql_to_pl, pl_to_rq, rq_to_sql]
-);
+rustler::init!("Elixir.PRQL.Native");
