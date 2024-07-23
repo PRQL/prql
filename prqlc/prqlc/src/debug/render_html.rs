@@ -131,7 +131,10 @@ fn write_repr_prql<W: Write>(w: &mut W, source_tree: &SourceTree) -> Result {
         write_key_values(w, &[("path", &path), ("source_id", source_id)])?;
 
         let source_escaped = escape_html(source);
-        writeln!(w, r#"<code id="source-{source_id}">{source_escaped}</code>"#)?;
+        writeln!(
+            w,
+            r#"<code id="source-{source_id}">{source_escaped}</code>"#
+        )?;
         writeln!(w, "</div>")?; // source
     }
 
