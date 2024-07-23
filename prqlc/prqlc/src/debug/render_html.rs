@@ -28,10 +28,13 @@ pub fn render_log_to_html<W: std::io::Write>(writer: W, debug_log: &DebugLog) ->
 }
 
 fn write_debug_log<W: Write>(w: &mut W, debug_log: &DebugLog) -> Result {
-    writeln!(w, "<!DOCTYPE html>")?;
-
+    writeln!(w, "<!doctype html>")?;
+    writeln!(w, "<html>")?;
     writeln!(w, "<head>")?;
+    writeln!(w, r#"<meta charset="utf-8">"#)?;
     writeln!(w, "<title>prqlc debug log {}</title>", debug_log.started_at)?;
+    writeln!(w, r#"<meta name="generator" content="prqlc">"#)?;
+    writeln!(w, r#"<meta name="robots" content="noindex">"#)?;
     writeln!(w, "<style>{}</style>", CSS_STYLES)?;
     writeln!(w, "<script>{}</script>", JS_SCRIPT)?;
     writeln!(w, "</head>")?;
@@ -50,11 +53,10 @@ fn write_debug_log<W: Write>(w: &mut W, debug_log: &DebugLog) -> Result {
     )?;
 
     writeln!(w, "</header>")?;
+    writeln!(w, "<main>")?;
 
-    // entries
-    writeln!(w, "<div class=entries>")?;
-    for (index, entry) in debug_log.entries.iter().enumerate() {
-        writeln!(w, r#"<div class="entry">"#,)?;
+    for entry in debug_log.entries.iter() {
+        writeln!(w, r#"<div class="entry">"#)?;
 
         match &entry.kind {
             DebugEntryKind::NewStage(stage) => {
@@ -64,40 +66,35 @@ fn write_debug_log<W: Write>(w: &mut W, debug_log: &DebugLog) -> Result {
                     .unwrap_or_default();
                 let stage = stage.as_ref().to_lowercase();
 
-                writeln!(w, "<br/><span class=muted>{stage} {substage}</span><hr/>")?;
+                writeln!(w, r#"<h2 class="muted">{stage} {substage}</h2>"#)?;
             }
             DebugEntryKind::Message(message) => {
                 write_message(w, message)?;
             }
             _ => {
-                write_titled_entry(w, entry, index)?;
+                write_titled_entry(w, entry)?;
             }
         }
 
         writeln!(w, "</div>")?; // entry
     }
-    writeln!(w, "</div>")?; // entries
 
+    writeln!(w, "</main>")?;
     writeln!(w, "</body>")?;
+    writeln!(w, "</html>")?;
 
     Ok(())
 }
 
-fn write_titled_entry<W: Write>(w: &mut W, entry: &DebugEntry, index: usize) -> Result {
-    let entry_id = format!("entry-{index}");
-
-    writeln!(
-        w,
-        "<input id={entry_id} class=entry-collapse type=checkbox>"
-    )?;
-
-    writeln!(w, r#"<label for={entry_id} class="entry-label clickable">"#)?;
+fn write_titled_entry<W: Write>(w: &mut W, entry: &DebugEntry) -> Result {
+    writeln!(w, "<details open>")?;
+    writeln!(w, r#"<summary class="entry-label clickable">"#)?;
     let kind = entry.kind.as_ref()[4..].to_ascii_uppercase();
     writeln!(
         w,
-        r#"[<b>REPRESENTATION</b>] <span class=yellow>{kind}</span>"#,
+        r#"[<b>REPRESENTATION</b>] <span class="yellow">{kind}</span>"#,
     )?;
-    writeln!(w, r#"</label>"#)?;
+    writeln!(w, "</summary>")?;
     writeln!(w, r#"<div class="entry-content">"#)?;
     match &entry.kind {
         DebugEntryKind::ReprPrql(a) => write_repr_prql(w, a)?,
@@ -112,7 +109,8 @@ fn write_titled_entry<W: Write>(w: &mut W, entry: &DebugEntry, index: usize) -> 
         DebugEntryKind::ReprSql(a) => write_repr_sql(w, a)?,
         DebugEntryKind::NewStage(_) | DebugEntryKind::Message(_) => unreachable!(),
     }
-    writeln!(w, "</div>")
+    writeln!(w, "</div>")?;
+    writeln!(w, "</details>")
 }
 
 fn write_repr_prql<W: Write>(w: &mut W, source_tree: &SourceTree) -> Result {
@@ -133,7 +131,7 @@ fn write_repr_prql<W: Write>(w: &mut W, source_tree: &SourceTree) -> Result {
         write_key_values(w, &[("path", &path), ("source_id", source_id)])?;
 
         let source_escaped = escape_html(source);
-        writeln!(w, "<code id=source-{source_id}>{source_escaped}</code>")?;
+        writeln!(w, r#"<code id="source-{source_id}">{source_escaped}</code>"#)?;
         writeln!(w, "</div>")?; // source
     }
 
@@ -229,12 +227,12 @@ fn write_repr_sql_parser<W: Write>(w: &mut W, ast: &sqlparser::ast::Query) -> Re
 
 fn write_repr_sql<W: Write>(w: &mut W, query: &str) -> Result {
     writeln!(w, r#"<div class="sql repr">"#)?;
-    writeln!(w, "<code>{}</code>", query)?;
+    writeln!(w, "<pre><code>{}</code></pre>", query)?;
     writeln!(w, "</div>")
 }
 
 fn write_message<W: Write>(w: &mut W, message: &Message) -> Result {
-    write!(w, r#"<div>[<b>{}</b>"#, message.level)?;
+    write!(w, "<div>[<b>{}</b>", message.level)?;
     if let Some(module_path) = &message.module_path {
         write!(w, r#" {}"#, module_path)?;
     }
@@ -245,7 +243,7 @@ fn write_message<W: Write>(w: &mut W, message: &Message) -> Result {
 fn write_key_values<W: Write>(w: &mut W, pairs: &[(&'static str, &dyn Debug)]) -> Result {
     writeln!(w, r#"<div class="key-values">"#)?;
     for (k, v) in pairs {
-        writeln!(w, "<div><b class=blue>{k}</b>: {v:?}</div>")?;
+        writeln!(w, r#"<div><b class="blue">{k}</b>: {v:?}</div>"#)?;
     }
     writeln!(w, "</div>")
 }
@@ -264,13 +262,13 @@ fn write_json_ast_node<W: Write>(
         serde_json::Value::Number(n) => write!(w, "{n}"),
         serde_json::Value::String(s) => write!(w, "{s}"),
         serde_json::Value::Array(items) => {
-            write!(w, r#"<ul class=json-array>"#)?;
+            writeln!(w, r#"<ul class="json-array">"#)?;
             for item in items {
                 write!(w, "<li>")?;
                 write_json_ast_node(w, item, false)?;
                 write!(w, "</li>")?;
             }
-            write!(w, "</ul>")?;
+            writeln!(w, "</ul>")?;
             Ok(())
         }
         serde_json::Value::Object(mut map) => {
@@ -287,13 +285,13 @@ fn write_json_ast_node<W: Write>(
                 return write_ast_node(w, &name, span, inner);
             }
 
-            write!(w, r#"<div class=json-object>"#)?;
+            writeln!(w, r#"<div class="json-object">"#)?;
             for (key, value) in map {
-                write!(w, "<span>{key}: </span><div class=json-value>")?;
+                write!(w, r#"<span>{key}: </span><div class="json-value">"#)?;
                 write_json_ast_node(w, value, false)?;
-                write!(w, "</div>")?;
+                writeln!(w, "</div>")?;
             }
-            write!(w, "</div>")
+            writeln!(w, "</div>")
         }
     }
 }
@@ -304,10 +302,10 @@ fn write_ast_node<W: Write>(
     span: Option<String>,
     contents: serde_json::Value,
 ) -> Result {
-    write!(w, r#"<div class=ast-node tabindex=2>"#)?;
+    write!(w, r#"<div class="ast-node" tabindex="2">"#)?;
 
-    write!(w, "<div class=header>")?;
-    write!(w, "<h2 class=clickable>{name}</h2>")?;
+    write!(w, r#"<div class="header">"#)?;
+    write!(w, r#"<h2 class="clickable">{name}</h2>"#)?;
     if let Some(span) = span {
         write!(w, r#"<span class="span">{span}</span>"#)?;
     }
@@ -345,6 +343,10 @@ body {
     color: var(--text);
 }
 
+summary::marker {
+    content: "";
+}
+
 .clickable {
     cursor: pointer;
     text-decoration: underline;
@@ -371,24 +373,26 @@ body {
     gap: 1em;
 }
 
-.entries {
-    direction: flex;
-    flex-direction: column;
+.entry {
+    &.entry-label {
+        margin: 0;
+        display: block;
+    }
+    &.entry-collapse {
+        display: none;
+    }
+    &.entry-collapse:checked + .entry-label + .entry-content {
+        display: none;
+    }
+    &.entry-content {
+        display: flex;
+        flex-direction: column;
+    }
 }
-.entry-label {
-    margin: 0;
-
-    display: block;
-}
-.entry-collapse {
-    display: none;
-}
-.entry-collapse:checked + .entry-label + .entry-content {
-    display: none;
-}
-.entry-content {
-    display: flex;
-    flex-direction: column;
+.entry>h2 {
+    border-bottom: solid;
+    margin-top: 2rem;
+    margin-bottom: 0.5rem;
 }
 
 code {
