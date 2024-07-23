@@ -17,6 +17,9 @@ pub(crate) fn parse_with_parser<O: Debug>(
     let tokens = crate::lexer::lex_source(source)?;
     let stream = prepare_stream(tokens.0.into_iter(), source, 0);
 
+    // TODO: possibly should add check we consume all the input? Either with an
+    // end() parser or some other way (but if we add an end parser then this
+    // func doesn't work with `source`, which has its own end parser...)
     let (ast, parse_errors) = parser.parse_recovery_verbose(stream);
 
     if !parse_errors.is_empty() {
@@ -1904,5 +1907,159 @@ fn doc_comment() {
             code: None,
         },
     ]
+    "###);
+}
+
+#[test]
+fn func_with_pipeline() {
+    let source = r#"
+let remove = `default_db.bottom`<relation> top<relation> -> <relation> (
+  t = top
+  join side:left (b = bottom) (tuple_every (tuple_map _eq (tuple_zip t.* b.*)))
+  filter (tuple_every (tuple_map _is_null b.*))
+  select t.*
+)
+      "#;
+
+    // let source = r#"
+    //   let remove = `default_db.bottom`<relation> top<relation> -> <relation> (
+    //   derive x = 5
+    //   join side:left (b = bottom) (tuple_every (tuple_map _eq (tuple_zip t.* b.*)))
+    //   filter (tuple_every (tuple_map _is_null b.*))
+    //   select t.*
+    //   )
+    // "#;
+
+    assert_yaml_snapshot!(parse_source(source).unwrap(), @r###"
+    ---
+    - VarDef:
+        kind: Let
+        name: remove
+        value:
+          Func:
+            return_ty:
+              kind:
+                Ident:
+                  - relation
+              span: "0:68-76"
+              name: ~
+            body:
+              Pipeline:
+                exprs:
+                  - FuncCall:
+                      name:
+                        Ident: derive
+                        span: "0:86-92"
+                      args:
+                        - Literal:
+                            Integer: 5
+                          span: "0:97-98"
+                          alias: x
+                    span: "0:86-98"
+                  - FuncCall:
+                      name:
+                        Ident: join
+                        span: "0:105-109"
+                      args:
+                        - Ident: bottom
+                          span: "0:125-131"
+                          alias: b
+                        - FuncCall:
+                            name:
+                              Ident: tuple_every
+                              span: "0:134-145"
+                            args:
+                              - FuncCall:
+                                  name:
+                                    Ident: tuple_map
+                                    span: "0:147-156"
+                                  args:
+                                    - Ident: _eq
+                                      span: "0:157-160"
+                                    - FuncCall:
+                                        name:
+                                          Ident: tuple_zip
+                                          span: "0:162-171"
+                                        args:
+                                          - Indirection:
+                                              base:
+                                                Ident: t
+                                                span: "0:172-173"
+                                              field: Star
+                                            span: "0:173-175"
+                                          - Indirection:
+                                              base:
+                                                Ident: b
+                                                span: "0:176-177"
+                                              field: Star
+                                            span: "0:177-179"
+                                      span: "0:162-179"
+                                span: "0:147-180"
+                          span: "0:134-181"
+                      named_args:
+                        side:
+                          Ident: left
+                          span: "0:115-119"
+                    span: "0:105-182"
+                  - FuncCall:
+                      name:
+                        Ident: filter
+                        span: "0:189-195"
+                      args:
+                        - FuncCall:
+                            name:
+                              Ident: tuple_every
+                              span: "0:197-208"
+                            args:
+                              - FuncCall:
+                                  name:
+                                    Ident: tuple_map
+                                    span: "0:210-219"
+                                  args:
+                                    - Ident: _is_null
+                                      span: "0:220-228"
+                                    - Indirection:
+                                        base:
+                                          Ident: b
+                                          span: "0:229-230"
+                                        field: Star
+                                      span: "0:230-232"
+                                span: "0:210-232"
+                          span: "0:197-233"
+                    span: "0:189-234"
+                  - FuncCall:
+                      name:
+                        Ident: select
+                        span: "0:241-247"
+                      args:
+                        - Indirection:
+                            base:
+                              Ident: t
+                              span: "0:248-249"
+                            field: Star
+                          span: "0:249-251"
+                    span: "0:241-251"
+              span: "0:78-259"
+            params:
+              - name: default_db.bottom
+                ty:
+                  kind:
+                    Ident:
+                      - relation
+                  span: "0:40-48"
+                  name: ~
+                default_value: ~
+              - name: top
+                ty:
+                  kind:
+                    Ident:
+                      - relation
+                  span: "0:54-62"
+                  name: ~
+                default_value: ~
+            named_params: []
+            generic_type_params: []
+          span: "0:20-259"
+      span: "0:0-259"
     "###);
 }

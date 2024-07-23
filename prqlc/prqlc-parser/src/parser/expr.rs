@@ -370,14 +370,20 @@ fn maybe_aliased<'a, E>(expr: E) -> impl Parser<TokenKind, Expr, Error = PError>
 where
     E: Parser<TokenKind, Expr, Error = PError> + Clone + 'a,
 {
-    ident_part()
-        .then_ignore(ctrl('='))
-        .or_not()
-        .then(expr)
-        .map(|(alias, mut expr)| {
-            expr.alias = alias.or(expr.alias);
-            expr
-        })
+    let aliased =
+        ident_part()
+            .then_ignore(ctrl('='))
+            .or_not()
+            .then(expr)
+            .map(|(alias, mut expr)| {
+                expr.alias = alias.or(expr.alias);
+                expr
+            });
+    // Because `expr` accounts for parentheses, and aliased is `x=$expr`, we
+    // need to allow another layer of parentheses here.
+    aliased
+        .clone()
+        .or(aliased.delimited_by(ctrl('('), ctrl(')')))
 }
 
 fn func_call<'a, E>(expr: E) -> impl Parser<TokenKind, Expr, Error = PError> + Clone + 'a
@@ -406,7 +412,7 @@ where
     //
     // As a reminder, we need to account for `derive x = 5` and `join a=artists
     // (id==album_id)`.
-    let positional_arg = maybe_aliased(expr).map(|expr| (None, expr));
+    let positional_arg = maybe_aliased(expr.clone()).map(|e| (None, e));
 
     func_name
         .then(named_arg.or(positional_arg).repeated())
@@ -822,5 +828,60 @@ mod tests {
             trim_start().ignore_then(tuple(expr())),
         )
         .is_err());
+    }
+
+    #[test]
+    fn args_in_parens() {
+        // Ensure function arguments allow parentheses
+        assert_yaml_snapshot!(
+            parse_with_parser(r#"f (a) b"#, trim_start().ignore_then(expr_call()).then_ignore(end())).unwrap(), @r###"
+        ---
+        FuncCall:
+          name:
+            Ident: f
+            span: "0:0-1"
+          args:
+            - Ident: a
+              span: "0:3-4"
+            - Ident: b
+              span: "0:6-7"
+        span: "0:0-7"
+        "###);
+
+        assert_yaml_snapshot!(
+            parse_with_parser(r#"f (a=2) b"#, trim_start().ignore_then(expr_call()).then_ignore(end())).unwrap(), @r###"
+        ---
+        FuncCall:
+          name:
+            Ident: f
+            span: "0:0-1"
+          args:
+            - Literal:
+                Integer: 2
+              span: "0:5-6"
+              alias: a
+            - Ident: b
+              span: "0:8-9"
+        span: "0:0-9"
+        "###);
+
+        assert_yaml_snapshot!(
+            parse_with_parser(r#"f (a b)"#, trim_start().ignore_then(expr_call()).then_ignore(end())).unwrap(), @r###"
+        ---
+        FuncCall:
+          name:
+            Ident: f
+            span: "0:0-1"
+          args:
+            - FuncCall:
+                name:
+                  Ident: a
+                  span: "0:3-4"
+                args:
+                  - Ident: b
+                    span: "0:5-6"
+              span: "0:3-6"
+        span: "0:0-7"
+        "###);
     }
 }
