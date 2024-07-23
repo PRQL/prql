@@ -120,7 +120,10 @@ pub mod ir;
 pub mod parser;
 pub mod semantic;
 pub mod sql;
-mod utils;
+#[cfg(feature = "cli")]
+pub mod utils;
+#[cfg(not(feature = "cli"))]
+pub(crate) mod utils;
 
 pub type Result<T, E = Error> = core::result::Result<T, E>;
 

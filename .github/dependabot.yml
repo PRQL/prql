@@ -68,3 +68,11 @@ updates:
     schedule:
       interval: daily
     labels: []
+
+  - package-ecosystem: "mix"
+    directory: "prqlc/bindings/elixir"
+    schedule:
+      interval: daily
+    commit-message:
+      prefix: "chore: "
+    labels: []

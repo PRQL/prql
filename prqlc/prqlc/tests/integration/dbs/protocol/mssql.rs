@@ -52,18 +52,15 @@ impl DbProtocolHandler for tiberius::Client<Compat<TcpStream>> {
                     let value = match col.column_type() {
                         ColumnType::Null => String::new(),
                         ColumnType::Bit => String::from(row.get::<&str, usize>(i).unwrap()),
-                        ColumnType::Intn | ColumnType::Int4 => row
-                            .get::<i32, usize>(i)
-                            .map_or_else(String::new, |i| i.to_string()),
-                        ColumnType::Floatn => vec![
-                            row.try_get::<f32, usize>(i).map(|o| o.map(f64::from)),
-                            row.try_get::<f64, usize>(i),
-                        ]
-                        .into_iter()
-                        .find(|r| r.is_ok())
-                        .unwrap()
-                        .unwrap()
-                        .map_or_else(String::new, |i| i.to_string()),
+                        ColumnType::Intn | ColumnType::Int4 => {
+                            row.get::<i32, usize>(i).map(|i| i.to_string()).unwrap()
+                        }
+                        ColumnType::Floatn | ColumnType::Float4 | ColumnType::Float8 => row
+                            .try_get::<f64, usize>(i)
+                            .or_else(|_| row.try_get::<f32, usize>(i).map(|v| v.map(f64::from)))
+                            .unwrap()
+                            .unwrap()
+                            .to_string(),
                         ColumnType::Numericn | ColumnType::Decimaln => row
                             .get::<BigDecimal, usize>(i)
                             .map(|d| d.normalized())
