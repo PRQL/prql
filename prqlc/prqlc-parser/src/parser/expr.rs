@@ -252,7 +252,10 @@ where
     // expr has to be a param, because it can be either a normal expr() or a
     // recursive expr called from within expr(), which causes a stack overflow
 
-    with_doc_comment(expr)
+    // TODO: do we need the `maybe_aliased` here rather than in `expr`? We had
+    // tried `with_doc_comment(expr)` in #4775 (and push an aliased expr into
+    // `expr`) but couldn't get it work.
+    with_doc_comment(new_line().repeated().ignore_then(maybe_aliased(expr)))
         .separated_by(pipe())
         .at_least(1)
         .map_with_span(|exprs, span| {
