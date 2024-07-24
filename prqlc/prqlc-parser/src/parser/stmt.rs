@@ -163,7 +163,9 @@ fn var_def() -> impl Parser<TokenKind, StmtKind, Error = PError> + Clone {
         })
         .labelled("variable definition");
 
-    let main_or_into = pipeline(expr_call())
+    let main_or_into = new_line()
+        .repeated()
+        .ignore_then(pipeline(expr_call()))
         .map(Box::new)
         .then(
             pipe()
@@ -284,13 +286,12 @@ mod tests {
 
     #[test]
     fn let_into() {
-        // TODO: Error message can probably be better
         assert_debug_snapshot!(parse_with_parser(r#"
         let y = (
             from artists
             into x
         )
-        "#, module_contents()).unwrap_err(), @r###"
+        "#, module_contents().then_ignore(end())).unwrap_err(), @r###"
         [
             Error {
                 kind: Error,
@@ -298,7 +299,18 @@ mod tests {
                     0:56-60,
                 ),
                 reason: Simple(
-                    "unexpected keyword into while parsing function call",
+                    "unexpected keyword into while parsing pipeline",
+                ),
+                hints: [],
+                code: None,
+            },
+            Error {
+                kind: Error,
+                span: Some(
+                    0:80-81,
+                ),
+                reason: Simple(
+                    "unexpected end of input",
                 ),
                 hints: [],
                 code: None,
@@ -521,6 +533,94 @@ mod tests {
                 span: "0:52-71"
                 doc_comment: " first doc comment"
           span: "0:0-81"
+        "###);
+    }
+
+    #[test]
+    fn lambdas() {
+        assert_yaml_snapshot!(parse_with_parser(r#"
+        let first = column <array> -> internal std.first
+        "#, module_contents()).unwrap(), @r###"
+        ---
+        - VarDef:
+            kind: Let
+            name: first
+            value:
+              Func:
+                return_ty: ~
+                body:
+                  Internal: std.first
+                  span: "0:39-57"
+                params:
+                  - name: column
+                    ty:
+                      kind:
+                        Ident:
+                          - array
+                      span: "0:29-34"
+                      name: ~
+                    default_value: ~
+                named_params: []
+                generic_type_params: []
+              span: "0:21-57"
+          span: "0:0-57"
+        "###);
+
+        assert_yaml_snapshot!(parse_with_parser(r#"
+      module defs {
+        let first = column <array> -> internal std.first
+        let last  = column <array> -> internal std.last
+    }
+        "#, module_contents()).unwrap(), @r###"
+        ---
+        - ModuleDef:
+            name: defs
+            stmts:
+              - VarDef:
+                  kind: Let
+                  name: first
+                  value:
+                    Func:
+                      return_ty: ~
+                      body:
+                        Internal: std.first
+                        span: "0:59-77"
+                      params:
+                        - name: column
+                          ty:
+                            kind:
+                              Ident:
+                                - array
+                            span: "0:49-54"
+                            name: ~
+                          default_value: ~
+                      named_params: []
+                      generic_type_params: []
+                    span: "0:41-77"
+                span: "0:20-77"
+              - VarDef:
+                  kind: Let
+                  name: last
+                  value:
+                    Func:
+                      return_ty: ~
+                      body:
+                        Internal: std.last
+                        span: "0:116-133"
+                      params:
+                        - name: column
+                          ty:
+                            kind:
+                              Ident:
+                                - array
+                            span: "0:106-111"
+                            name: ~
+                          default_value: ~
+                      named_params: []
+                      generic_type_params: []
+                    span: "0:98-133"
+                span: "0:77-133"
+          span: "0:0-139"
         "###);
     }
 }
