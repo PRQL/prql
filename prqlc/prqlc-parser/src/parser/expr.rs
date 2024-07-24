@@ -368,6 +368,7 @@ where
 
 // Can remove if we don't end up using this
 #[allow(dead_code)]
+#[cfg(not(coverage))]
 fn aliased<'a, E>(expr: E) -> impl Parser<TokenKind, Expr, Error = PError> + Clone + 'a
 where
     E: Parser<TokenKind, Expr, Error = PError> + Clone + 'a,
