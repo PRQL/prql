@@ -78,26 +78,20 @@ pub(crate) fn expr() -> impl Parser<TokenKind, Expr, Error = PError> + Clone {
 fn tuple<'a>(
     nested_expr: impl Parser<TokenKind, Expr, Error = PError> + Clone + 'a,
 ) -> impl Parser<TokenKind, ExprKind, Error = PError> + Clone + 'a {
-    sequence(
-        ident_part()
-            .then_ignore(ctrl('='))
-            .or_not()
-            .then(nested_expr)
-            .map(|(alias, expr)| Expr { alias, ..expr }),
-    )
-    .delimited_by(ctrl('{'), ctrl('}'))
-    .recover_with(nested_delimiters(
-        TokenKind::Control('{'),
-        TokenKind::Control('}'),
-        [
-            (TokenKind::Control('{'), TokenKind::Control('}')),
-            (TokenKind::Control('('), TokenKind::Control(')')),
-            (TokenKind::Control('['), TokenKind::Control(']')),
-        ],
-        |_| vec![],
-    ))
-    .map(ExprKind::Tuple)
-    .labelled("tuple")
+    sequence(maybe_aliased(nested_expr))
+        .delimited_by(ctrl('{'), ctrl('}'))
+        .recover_with(nested_delimiters(
+            TokenKind::Control('{'),
+            TokenKind::Control('}'),
+            [
+                (TokenKind::Control('{'), TokenKind::Control('}')),
+                (TokenKind::Control('('), TokenKind::Control(')')),
+                (TokenKind::Control('['), TokenKind::Control(']')),
+            ],
+            |_| vec![],
+        ))
+        .map(ExprKind::Tuple)
+        .labelled("tuple")
 }
 
 fn array<'a>(
@@ -267,29 +261,21 @@ where
     // expr has to be a param, because it can be either a normal expr() or a
     // recursive expr called from within expr(), which causes a stack overflow
 
-    with_doc_comment(
-        new_line().repeated().ignore_then(
-            ident_part()
-                .then_ignore(ctrl('='))
-                .or_not()
-                .then(expr)
-                .map(|(alias, expr)| Expr { alias, ..expr }),
-        ),
-    )
-    .separated_by(pipe())
-    .at_least(1)
-    .map_with_span(|exprs, span| {
-        // If there's only one expr, then we don't need to wrap it
-        // in a pipeline — just return the lone expr. Otherwise,
-        // wrap them in a pipeline.
-        exprs.into_iter().exactly_one().unwrap_or_else(|exprs| {
-            ExprKind::Pipeline(Pipeline {
-                exprs: exprs.collect(),
+    with_doc_comment(new_line().repeated().ignore_then(maybe_aliased(expr)))
+        .separated_by(pipe())
+        .at_least(1)
+        .map_with_span(|exprs, span| {
+            // If there's only one expr, then we don't need to wrap it
+            // in a pipeline — just return the lone expr. Otherwise,
+            // wrap them in a pipeline.
+            exprs.into_iter().exactly_one().unwrap_or_else(|exprs| {
+                ExprKind::Pipeline(Pipeline {
+                    exprs: exprs.collect(),
+                })
+                .into_expr(span)
             })
-            .into_expr(span)
         })
-    })
-    .labelled("pipeline")
+        .labelled("pipeline")
 }
 
 fn binary_op_parser<'a, Term, Op>(
