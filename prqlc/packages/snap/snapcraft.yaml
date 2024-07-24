@@ -12,7 +12,7 @@ source-code: https://github.com/PRQL/prql
 contact: https://twitter.com/prql_lang
 website: https://prql-lang.org/
 license: Apache-2.0
-grade: devel # must be 'stable' to release into candidate/stable channels
+grade: stable
 confinement: strict
 icon: web/website/static/img/icon.svg
 
