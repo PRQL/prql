@@ -4,6 +4,20 @@
 
 **Language**:
 
+- Parentheses are always required around pipelines, even within tuples. For
+  example:
+
+  ```prql no-eval
+  from artists
+  # These parentheses are now required
+  derive {a=(b | math.abs)}
+  # No change — doesn't affect expressions or function calls without pipelines
+  derive {x = 3 + 4}
+  ```
+
+  This is a small breaking change. The new behavior matches the existing
+  documentation. (@max-sixty, #4775)
+
 **Features**:
 
 - Added `prqlc debug json-schema` command to auto-generate JSON Schema
@@ -1213,8 +1227,8 @@ below in this release).
 
 **Documentation**:
 
-[This release, the changelog only contains a subset of
-documentation improvements]
+[This release, the changelog only contains a subset of documentation
+improvements]
 
 - Add docs on aliases in
   [Select](https://prql-lang.org/book/reference/stdlib/transforms/select.html)
