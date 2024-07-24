@@ -1,5 +1,6 @@
 ---
-{}
+source: prqlc/prqlc/src/semantic/resolver/mod.rs
+expression: "resolve_derive(r#\"\n            from a\n            derive one = (foo | sum)\n            \"#).unwrap()"
 ---
 - RqOperator:
     name: std.sum
@@ -25,12 +26,12 @@
         - - ~
           - kind:
               Primitive: Int
-            span: "0:4127-4130"
+            span: "0:4123-4126"
             name: ~
         - - ~
           - kind:
               Primitive: Float
-            span: "0:4134-4139"
+            span: "0:4130-4135"
             name: ~
-    span: "0:4127-4139"
+    span: "0:4123-4135"
     name: ~

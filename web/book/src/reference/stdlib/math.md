@@ -24,11 +24,9 @@ These are all the functions defined in the `math` module:
 | sqrt     | `col`      | Square root of `col`               |
 | tan      | `col`      | Tangent of `col`                   |
 
-### Example
+## Example
 
 ```prql
 from employees
-select {
-  age_squared = age | math.pow 2
-}
+select age_squared = (age | math.pow 2)
 ```

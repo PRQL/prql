@@ -129,7 +129,8 @@ fn test_union_all_sqlite() {
     from film
     remove film2
     "###).unwrap_err(), @r###"
-    Error: Unknown relation t.*
+    Error: The dialect SQLiteDialect does not support EXCEPT ALL
+    ↳ Hint: providing more column information will allow the query to be translated to an anti-join.
     "###)
 }
 

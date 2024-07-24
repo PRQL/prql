@@ -625,7 +625,8 @@ fn test_remove_04() {
     remove artist
     "#).unwrap_err(),
         @r###"
-    Error: Unknown relation t.*
+    Error: The dialect SQLiteDialect does not support EXCEPT ALL
+    ↳ Hint: providing more column information will allow the query to be translated to an anti-join.
     "###
     );
 }
@@ -861,7 +862,8 @@ fn test_intersect_06() {
     intersect artist
     "#).unwrap_err(),
         @r###"
-    Error: Unknown relation t.*
+    Error: The dialect SQLiteDialect does not support INTERSECT ALL
+    ↳ Hint: providing more column information will allow the query to be translated to an anti-join.
     "###
     );
 }
@@ -5004,7 +5006,7 @@ fn test_type_as_column_name() {
     // #2503
     assert_snapshot!(compile(r#"
     let f = tbl -> (
-      (t = tbl)
+      t = tbl
       select t.date
     )
 

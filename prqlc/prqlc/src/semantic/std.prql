@@ -126,12 +126,12 @@ let window = func
 
 let append = `default_db.bottom`<relation> top<relation> -> <relation> internal append
 let intersect = `default_db.bottom`<relation> top<relation> -> <relation> (
-  (t = top)
+  t = top
   join (b = bottom) (tuple_every (tuple_map _eq (tuple_zip t.* b.*)))
   select t.*
 )
 let remove = `default_db.bottom`<relation> top<relation> -> <relation> (
-  (t = top)
+  t = top
   join side:left (b = bottom) (tuple_every (tuple_map _eq (tuple_zip t.* b.*)))
   filter (tuple_every (tuple_map _is_null b.*))
   select t.*

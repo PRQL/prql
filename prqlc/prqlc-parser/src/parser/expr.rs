@@ -941,7 +941,7 @@ mod tests {
 
         let source = r#"
     (
-      (t = tbl)
+      t = tbl
       select t.date
     )
     "#;
@@ -951,21 +951,51 @@ mod tests {
         Pipeline:
           exprs:
             - Ident: tbl
-              span: "0:13-22"
+              span: "0:17-20"
+              alias: t
             - FuncCall:
                 name:
                   Ident: select
-                  span: "0:29-35"
+                  span: "0:27-33"
                 args:
                   - Indirection:
                       base:
                         Ident: t
-                        span: "0:36-37"
+                        span: "0:34-35"
                       field:
                         Name: date
-                    span: "0:37-42"
-              span: "0:29-42"
-        span: "0:5-48"
+                    span: "0:35-40"
+              span: "0:27-40"
+        span: "0:5-46"
         "###);
+    }
+
+    // TODO: I think this should pass...
+    #[should_panic]
+    #[test]
+    fn pipeline_starting_with_parenthesized_alias() {
+        let with_parens = parse_with_parser(
+            r#"
+    (
+      (t = tbl)
+      select t.date
+    )
+    "#,
+            trim_start().ignore_then(pipeline(expr_call())),
+        )
+        .unwrap();
+
+        let without_parens = parse_with_parser(
+            r#"
+    (
+      t = tbl
+      select t.date
+    )
+    "#,
+            trim_start().ignore_then(pipeline(expr_call())),
+        )
+        .unwrap();
+
+        assert_eq!(with_parens, without_parens);
     }
 }
