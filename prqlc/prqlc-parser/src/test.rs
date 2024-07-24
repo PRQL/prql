@@ -1911,155 +1911,93 @@ fn doc_comment() {
 }
 
 #[test]
-fn func_with_pipeline() {
+fn pipeline_starting_with_expr() {
     let source = r#"
-let remove = `default_db.bottom`<relation> top<relation> -> <relation> (
-  t = top
-  join side:left (b = bottom) (tuple_every (tuple_map _eq (tuple_zip t.* b.*)))
-  filter (tuple_every (tuple_map _is_null b.*))
-  select t.*
-)
-      "#;
-
-    // let source = r#"
-    //   let remove = `default_db.bottom`<relation> top<relation> -> <relation> (
-    //   derive x = 5
-    //   join side:left (b = bottom) (tuple_every (tuple_map _eq (tuple_zip t.* b.*)))
-    //   filter (tuple_every (tuple_map _is_null b.*))
-    //   select t.*
-    //   )
-    // "#;
+    let f = tbl -> (
+      tbl
+      select t.date
+    )
+  "#;
 
     assert_yaml_snapshot!(parse_source(source).unwrap(), @r###"
     ---
     - VarDef:
         kind: Let
-        name: remove
+        name: f
         value:
           Func:
-            return_ty:
-              kind:
-                Ident:
-                  - relation
-              span: "0:68-76"
-              name: ~
+            return_ty: ~
             body:
               Pipeline:
                 exprs:
-                  - FuncCall:
-                      name:
-                        Ident: derive
-                        span: "0:86-92"
-                      args:
-                        - Literal:
-                            Integer: 5
-                          span: "0:97-98"
-                          alias: x
-                    span: "0:86-98"
-                  - FuncCall:
-                      name:
-                        Ident: join
-                        span: "0:105-109"
-                      args:
-                        - Ident: bottom
-                          span: "0:125-131"
-                          alias: b
-                        - FuncCall:
-                            name:
-                              Ident: tuple_every
-                              span: "0:134-145"
-                            args:
-                              - FuncCall:
-                                  name:
-                                    Ident: tuple_map
-                                    span: "0:147-156"
-                                  args:
-                                    - Ident: _eq
-                                      span: "0:157-160"
-                                    - FuncCall:
-                                        name:
-                                          Ident: tuple_zip
-                                          span: "0:162-171"
-                                        args:
-                                          - Indirection:
-                                              base:
-                                                Ident: t
-                                                span: "0:172-173"
-                                              field: Star
-                                            span: "0:173-175"
-                                          - Indirection:
-                                              base:
-                                                Ident: b
-                                                span: "0:176-177"
-                                              field: Star
-                                            span: "0:177-179"
-                                      span: "0:162-179"
-                                span: "0:147-180"
-                          span: "0:134-181"
-                      named_args:
-                        side:
-                          Ident: left
-                          span: "0:115-119"
-                    span: "0:105-182"
-                  - FuncCall:
-                      name:
-                        Ident: filter
-                        span: "0:189-195"
-                      args:
-                        - FuncCall:
-                            name:
-                              Ident: tuple_every
-                              span: "0:197-208"
-                            args:
-                              - FuncCall:
-                                  name:
-                                    Ident: tuple_map
-                                    span: "0:210-219"
-                                  args:
-                                    - Ident: _is_null
-                                      span: "0:220-228"
-                                    - Indirection:
-                                        base:
-                                          Ident: b
-                                          span: "0:229-230"
-                                        field: Star
-                                      span: "0:230-232"
-                                span: "0:210-232"
-                          span: "0:197-233"
-                    span: "0:189-234"
+                  - Ident: tbl
+                    span: "0:28-31"
                   - FuncCall:
                       name:
                         Ident: select
-                        span: "0:241-247"
+                        span: "0:38-44"
                       args:
                         - Indirection:
                             base:
                               Ident: t
-                              span: "0:248-249"
-                            field: Star
-                          span: "0:249-251"
-                    span: "0:241-251"
-              span: "0:78-259"
+                              span: "0:45-46"
+                            field:
+                              Name: date
+                          span: "0:46-51"
+                    span: "0:38-51"
+              span: "0:20-57"
             params:
-              - name: default_db.bottom
-                ty:
-                  kind:
-                    Ident:
-                      - relation
-                  span: "0:40-48"
-                  name: ~
-                default_value: ~
-              - name: top
-                ty:
-                  kind:
-                    Ident:
-                      - relation
-                  span: "0:54-62"
-                  name: ~
+              - name: tbl
                 default_value: ~
             named_params: []
             generic_type_params: []
-          span: "0:20-259"
-      span: "0:0-259"
+          span: "0:13-57"
+      span: "0:0-57"
+    "###);
+}
+
+#[test]
+fn pipeline_starting_with_alias_expr() {
+    let source = r#"
+      let f = tbl -> (
+        (t = tbl)
+        select t.date
+      )
+    "#;
+
+    assert_yaml_snapshot!(parse_source(source).unwrap(), @r###"
+    ---
+    - VarDef:
+        kind: Let
+        name: f
+        value:
+          Func:
+            return_ty: ~
+            body:
+              Pipeline:
+                exprs:
+                  - Ident: tbl
+                    span: "0:32-41"
+                  - FuncCall:
+                      name:
+                        Ident: select
+                        span: "0:50-56"
+                      args:
+                        - Indirection:
+                            base:
+                              Ident: t
+                              span: "0:57-58"
+                            field:
+                              Name: date
+                          span: "0:58-63"
+                    span: "0:50-63"
+              span: "0:22-71"
+            params:
+              - name: tbl
+                default_value: ~
+            named_params: []
+            generic_type_params: []
+          span: "0:15-71"
+      span: "0:0-71"
     "###);
 }

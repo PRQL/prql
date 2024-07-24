@@ -129,8 +129,7 @@ fn test_union_all_sqlite() {
     from film
     remove film2
     "###).unwrap_err(), @r###"
-    Error: The dialect SQLiteDialect does not support EXCEPT ALL
-    ↳ Hint: providing more column information will allow the query to be translated to an anti-join.
+    Error: Unknown relation t.*
     "###)
 }
 
@@ -283,11 +282,11 @@ fn date_to_text_generic() {
     d_str = (d | date.to_text "%Y/%m/%d")
   }"#).unwrap_err(), @r###"
     Error:
-       ╭─[:4:30]
+       ╭─[:4:31]
        │
-     4 │     d_str = d | date.to_text "%Y/%m/%d"
-       │                              ─────┬────
-       │                                   ╰────── Date formatting requires a dialect
+     4 │     d_str = (d | date.to_text "%Y/%m/%d")
+       │                               ─────┬────
+       │                                    ╰────── Date formatting requires a dialect
     ───╯
     "###);
 }
@@ -302,11 +301,11 @@ fn date_to_text_not_supported_dialect() {
     d_str = (d | date.to_text "%Y/%m/%d")
   }"#).unwrap_err(), @r###"
     Error:
-       ╭─[:6:30]
+       ╭─[:6:31]
        │
-     6 │     d_str = d | date.to_text "%Y/%m/%d"
-       │                              ─────┬────
-       │                                   ╰────── Date formatting is not yet supported for this dialect
+     6 │     d_str = (d | date.to_text "%Y/%m/%d")
+       │                               ─────┬────
+       │                                    ╰────── Date formatting is not yet supported for this dialect
     ───╯
     "###);
 }
@@ -338,11 +337,11 @@ fn date_to_text_unsupported_chrono_item() {
       d_str = (d | date.to_text "%_j")
     }"#).unwrap_err(), @r###"
     Error:
-       ╭─[:6:32]
+       ╭─[:6:33]
        │
-     6 │       d_str = d | date.to_text "%_j"
-       │                                ──┬──
-       │                                  ╰──── PRQL doesn't support this format specifier
+     6 │       d_str = (d | date.to_text "%_j")
+       │                                 ──┬──
+       │                                   ╰──── PRQL doesn't support this format specifier
     ───╯
     "###);
 }

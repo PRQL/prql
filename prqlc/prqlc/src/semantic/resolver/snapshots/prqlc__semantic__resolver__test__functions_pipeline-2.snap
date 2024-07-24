@@ -1,6 +1,5 @@
 ---
-source: prqlc/prqlc/src/semantic/resolver/mod.rs
-expression: "resolve_derive(r#\"\n            let plus_one = x -> x + 1\n            let plus = x y -> x + y\n\n            from a\n            derive {b = (sum foo | plus_one | plus 2)}\n            \"#).unwrap()"
+{}
 ---
 - RqOperator:
     name: std.add
@@ -39,14 +38,14 @@ expression: "resolve_derive(r#\"\n            let plus_one = x -> x + 1\n       
                     - - ~
                       - kind:
                           Primitive: Int
-                        span: "0:4123-4126"
+                        span: "0:4127-4130"
                         name: ~
                     - - ~
                       - kind:
                           Primitive: Float
-                        span: "0:4130-4135"
+                        span: "0:4134-4139"
                         name: ~
-                span: "0:4123-4135"
+                span: "0:4127-4139"
                 name: ~
             - Literal:
                 Integer: 1

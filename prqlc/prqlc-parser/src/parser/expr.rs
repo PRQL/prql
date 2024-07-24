@@ -62,7 +62,8 @@ pub(crate) fn expr() -> impl Parser<TokenKind, Expr, Error = PError> + Clone {
                 param,
             ))
             .map_with_span(ExprKind::into_expr)
-            .or(pipeline_expr),
+            .or(pipeline_expr)
+            .or(aliased(expr.clone())),
         )
         .boxed();
 
@@ -364,6 +365,24 @@ where
         })
         .map(|(e, _)| e)
         .boxed()
+}
+
+fn aliased<'a, E>(expr: E) -> impl Parser<TokenKind, Expr, Error = PError> + Clone + 'a
+where
+    E: Parser<TokenKind, Expr, Error = PError> + Clone + 'a,
+{
+    let aliased = ident_part()
+        .then_ignore(ctrl('='))
+        .then(expr)
+        .map(|(alias, mut expr)| {
+            expr.alias = Some(alias);
+            expr
+        });
+    // Because `expr` accounts for parentheses, and aliased is `x=$expr`, we
+    // need to allow another layer of parentheses here.
+    aliased
+        .clone()
+        .or(aliased.delimited_by(ctrl('('), ctrl(')')))
 }
 
 fn maybe_aliased<'a, E>(expr: E) -> impl Parser<TokenKind, Expr, Error = PError> + Clone + 'a
@@ -882,6 +901,67 @@ mod tests {
                     span: "0:5-6"
               span: "0:3-6"
         span: "0:0-7"
+        "###);
+    }
+
+    #[test]
+    fn pipeline_starting_with_alias_expr() {
+        let source = r#"
+    (
+      tbl
+      select t.date
+    )
+    "#;
+
+        assert_yaml_snapshot!(parse_with_parser(source, trim_start().ignore_then(pipeline(expr_call()))).unwrap(), @r###"
+        ---
+        Pipeline:
+          exprs:
+            - Ident: tbl
+              span: "0:13-16"
+            - FuncCall:
+                name:
+                  Ident: select
+                  span: "0:23-29"
+                args:
+                  - Indirection:
+                      base:
+                        Ident: t
+                        span: "0:30-31"
+                      field:
+                        Name: date
+                    span: "0:31-36"
+              span: "0:23-36"
+        span: "0:5-42"
+        "###);
+
+        let source = r#"
+    (
+      (t = tbl)
+      select t.date
+    )
+    "#;
+
+        assert_yaml_snapshot!(parse_with_parser(source, trim_start().ignore_then(pipeline(expr_call()))).unwrap(), @r###"
+        ---
+        Pipeline:
+          exprs:
+            - Ident: tbl
+              span: "0:13-22"
+            - FuncCall:
+                name:
+                  Ident: select
+                  span: "0:29-35"
+                args:
+                  - Indirection:
+                      base:
+                        Ident: t
+                        span: "0:36-37"
+                      field:
+                        Name: date
+                    span: "0:37-42"
+              span: "0:29-42"
+        span: "0:5-48"
         "###);
     }
 }
