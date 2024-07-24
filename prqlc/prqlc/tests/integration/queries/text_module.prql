@@ -5,14 +5,14 @@ from albums
 select {
     title,
     title_and_spaces = f"  {title}  ",
-    low = title | text.lower,
-    up = title | text.upper,
-    ltrimmed = title | text.ltrim,
-    rtrimmed = title | text.rtrim,
-    trimmed = title | text.trim,
-    len = title | text.length,
-    subs = title | text.extract 2 5,
-    replace = title | text.replace "al" "PIKA",
+    low = (title | text.lower),
+    up = (title | text.upper),
+    ltrimmed = (title | text.ltrim),
+    rtrimmed = (title | text.rtrim),
+    trimmed = (title | text.trim),
+    len = (title | text.length),
+    subs = (title | text.extract 2 5),
+    replace = (title | text.replace "al" "PIKA"),
 }
 sort {title}
 filter (title | text.starts_with "Black") || (title | text.contains "Sabbath") || (title | text.ends_with "os")
