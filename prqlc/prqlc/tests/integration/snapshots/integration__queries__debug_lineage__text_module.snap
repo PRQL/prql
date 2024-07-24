@@ -1,10 +1,10 @@
 ---
 source: prqlc/prqlc/tests/integration/queries.rs
-expression: "# mssql:test\n# glaredb:skip — TODO: started raising an error on 2024-05-20; see `window.prql`\n# for more details\nfrom albums\nselect {\n    title,\n    title_and_spaces = f\"  {title}  \",\n    low = title | text.lower,\n    up = title | text.upper,\n    ltrimmed = title | text.ltrim,\n    rtrimmed = title | text.rtrim,\n    trimmed = title | text.trim,\n    len = title | text.length,\n    subs = title | text.extract 2 5,\n    replace = title | text.replace \"al\" \"PIKA\",\n}\nsort {title}\nfilter (title | text.starts_with \"Black\") || (title | text.contains \"Sabbath\") || (title | text.ends_with \"os\")\n"
+expression: "# mssql:test\n# glaredb:skip — TODO: started raising an error on 2024-05-20; see `window.prql`\n# for more details\nfrom albums\nselect {\n    title,\n    title_and_spaces = f\"  {title}  \",\n    low = (title | text.lower),\n    up = (title | text.upper),\n    ltrimmed = (title | text.ltrim),\n    rtrimmed = (title | text.rtrim),\n    trimmed = (title | text.trim),\n    len = (title | text.length),\n    subs = (title | text.extract 2 5),\n    replace = (title | text.replace \"al\" \"PIKA\"),\n}\nsort {title}\nfilter (title | text.starts_with \"Black\") || (title | text.contains \"Sabbath\") || (title | text.ends_with \"os\")\n"
 input_file: prqlc/prqlc/tests/integration/queries/text_module.prql
 ---
 frames:
-- - 1:125-463
+- - 1:125-479
   - columns:
     - !Single
       name:
@@ -63,7 +63,7 @@ frames:
       table:
       - default_db
       - albums
-- - 1:464-476
+- - 1:480-492
   - columns:
     - !Single
       name:
@@ -122,7 +122,7 @@ frames:
       table:
       - default_db
       - albums
-- - 1:477-588
+- - 1:493-604
   - columns:
     - !Single
       name:
@@ -217,14 +217,14 @@ nodes:
   - 124
 - id: 129
   kind: RqOperator
-  span: 1:202-212
+  span: 1:203-213
   alias: low
   targets:
   - 131
   parent: 159
 - id: 131
   kind: Ident
-  span: 1:194-199
+  span: 1:195-200
   ident: !Ident
   - this
   - albums
@@ -233,14 +233,14 @@ nodes:
   - 124
 - id: 132
   kind: RqOperator
-  span: 1:231-241
+  span: 1:234-244
   alias: up
   targets:
   - 134
   parent: 159
 - id: 134
   kind: Ident
-  span: 1:223-228
+  span: 1:226-231
   ident: !Ident
   - this
   - albums
@@ -249,14 +249,14 @@ nodes:
   - 124
 - id: 135
   kind: RqOperator
-  span: 1:266-276
+  span: 1:271-281
   alias: ltrimmed
   targets:
   - 137
   parent: 159
 - id: 137
   kind: Ident
-  span: 1:258-263
+  span: 1:263-268
   ident: !Ident
   - this
   - albums
@@ -265,14 +265,14 @@ nodes:
   - 124
 - id: 138
   kind: RqOperator
-  span: 1:301-311
+  span: 1:308-318
   alias: rtrimmed
   targets:
   - 140
   parent: 159
 - id: 140
   kind: Ident
-  span: 1:293-298
+  span: 1:300-305
   ident: !Ident
   - this
   - albums
@@ -281,14 +281,14 @@ nodes:
   - 124
 - id: 141
   kind: RqOperator
-  span: 1:335-344
+  span: 1:344-353
   alias: trimmed
   targets:
   - 143
   parent: 159
 - id: 143
   kind: Ident
-  span: 1:327-332
+  span: 1:336-341
   ident: !Ident
   - this
   - albums
@@ -297,14 +297,14 @@ nodes:
   - 124
 - id: 144
   kind: RqOperator
-  span: 1:364-375
+  span: 1:375-386
   alias: len
   targets:
   - 146
   parent: 159
 - id: 146
   kind: Ident
-  span: 1:356-361
+  span: 1:367-372
   ident: !Ident
   - this
   - albums
@@ -313,7 +313,7 @@ nodes:
   - 124
 - id: 147
   kind: RqOperator
-  span: 1:396-412
+  span: 1:409-425
   alias: subs
   targets:
   - 150
@@ -322,13 +322,13 @@ nodes:
   parent: 159
 - id: 150
   kind: Literal
-  span: 1:409-410
+  span: 1:422-423
 - id: 151
   kind: Literal
-  span: 1:411-412
+  span: 1:424-425
 - id: 152
   kind: Ident
-  span: 1:388-393
+  span: 1:401-406
   ident: !Ident
   - this
   - albums
@@ -337,7 +337,7 @@ nodes:
   - 124
 - id: 153
   kind: RqOperator
-  span: 1:436-460
+  span: 1:451-475
   alias: replace
   targets:
   - 156
@@ -346,13 +346,13 @@ nodes:
   parent: 159
 - id: 156
   kind: Literal
-  span: 1:449-453
+  span: 1:464-468
 - id: 157
   kind: Literal
-  span: 1:454-460
+  span: 1:469-475
 - id: 158
   kind: Ident
-  span: 1:428-433
+  span: 1:443-448
   ident: !Ident
   - this
   - albums
@@ -361,7 +361,7 @@ nodes:
   - 124
 - id: 159
   kind: Tuple
-  span: 1:132-463
+  span: 1:132-479
   children:
   - 126
   - 127
@@ -376,14 +376,14 @@ nodes:
   parent: 160
 - id: 160
   kind: 'TransformCall: Select'
-  span: 1:125-463
+  span: 1:125-479
   children:
   - 124
   - 159
   parent: 163
 - id: 161
   kind: Ident
-  span: 1:470-475
+  span: 1:486-491
   ident: !Ident
   - this
   - albums
@@ -393,36 +393,36 @@ nodes:
   parent: 163
 - id: 163
   kind: 'TransformCall: Sort'
-  span: 1:464-476
+  span: 1:480-492
   children:
   - 160
   - 161
   parent: 183
 - id: 164
   kind: RqOperator
-  span: 1:484-588
+  span: 1:500-604
   targets:
   - 166
   - 178
   parent: 183
 - id: 166
   kind: RqOperator
-  span: 1:484-555
+  span: 1:500-571
   targets:
   - 168
   - 173
 - id: 168
   kind: RqOperator
-  span: 1:493-517
+  span: 1:509-533
   targets:
   - 171
   - 172
 - id: 171
   kind: Literal
-  span: 1:510-517
+  span: 1:526-533
 - id: 172
   kind: Ident
-  span: 1:485-490
+  span: 1:501-506
   ident: !Ident
   - this
   - albums
@@ -431,16 +431,16 @@ nodes:
   - 126
 - id: 173
   kind: RqOperator
-  span: 1:531-554
+  span: 1:547-570
   targets:
   - 176
   - 177
 - id: 176
   kind: Literal
-  span: 1:545-554
+  span: 1:561-570
 - id: 177
   kind: Ident
-  span: 1:523-528
+  span: 1:539-544
   ident: !Ident
   - this
   - albums
@@ -449,16 +449,16 @@ nodes:
   - 126
 - id: 178
   kind: RqOperator
-  span: 1:568-587
+  span: 1:584-603
   targets:
   - 181
   - 182
 - id: 181
   kind: Literal
-  span: 1:583-587
+  span: 1:599-603
 - id: 182
   kind: Ident
-  span: 1:560-565
+  span: 1:576-581
   ident: !Ident
   - this
   - albums
@@ -467,7 +467,7 @@ nodes:
   - 126
 - id: 183
   kind: 'TransformCall: Filter'
-  span: 1:477-588
+  span: 1:493-604
   children:
   - 163
   - 164
@@ -509,135 +509,135 @@ ast:
                 - Pipeline:
                     exprs:
                     - Ident: title
-                      span: 1:194-199
+                      span: 1:195-200
                     - Indirection:
                         base:
                           Ident: text
-                          span: 1:202-206
+                          span: 1:203-207
                         field: !Name lower
-                      span: 1:202-212
-                  span: 1:194-212
+                      span: 1:203-213
+                  span: 1:194-214
                   alias: low
                 - Pipeline:
                     exprs:
                     - Ident: title
-                      span: 1:223-228
+                      span: 1:226-231
                     - Indirection:
                         base:
                           Ident: text
-                          span: 1:231-235
+                          span: 1:234-238
                         field: !Name upper
-                      span: 1:231-241
-                  span: 1:223-241
+                      span: 1:234-244
+                  span: 1:225-245
                   alias: up
                 - Pipeline:
                     exprs:
                     - Ident: title
-                      span: 1:258-263
+                      span: 1:263-268
                     - Indirection:
                         base:
                           Ident: text
-                          span: 1:266-270
+                          span: 1:271-275
                         field: !Name ltrim
-                      span: 1:266-276
-                  span: 1:258-276
+                      span: 1:271-281
+                  span: 1:262-282
                   alias: ltrimmed
                 - Pipeline:
                     exprs:
                     - Ident: title
-                      span: 1:293-298
+                      span: 1:300-305
                     - Indirection:
                         base:
                           Ident: text
-                          span: 1:301-305
+                          span: 1:308-312
                         field: !Name rtrim
-                      span: 1:301-311
-                  span: 1:293-311
+                      span: 1:308-318
+                  span: 1:299-319
                   alias: rtrimmed
                 - Pipeline:
                     exprs:
                     - Ident: title
-                      span: 1:327-332
+                      span: 1:336-341
                     - Indirection:
                         base:
                           Ident: text
-                          span: 1:335-339
+                          span: 1:344-348
                         field: !Name trim
-                      span: 1:335-344
-                  span: 1:327-344
+                      span: 1:344-353
+                  span: 1:335-354
                   alias: trimmed
                 - Pipeline:
                     exprs:
                     - Ident: title
-                      span: 1:356-361
+                      span: 1:367-372
                     - Indirection:
                         base:
                           Ident: text
-                          span: 1:364-368
+                          span: 1:375-379
                         field: !Name length
-                      span: 1:364-375
-                  span: 1:356-375
+                      span: 1:375-386
+                  span: 1:366-387
                   alias: len
                 - Pipeline:
                     exprs:
                     - Ident: title
-                      span: 1:388-393
+                      span: 1:401-406
                     - FuncCall:
                         name:
                           Indirection:
                             base:
                               Ident: text
-                              span: 1:396-400
+                              span: 1:409-413
                             field: !Name extract
-                          span: 1:400-408
+                          span: 1:413-421
                         args:
                         - Literal:
                             Integer: 2
-                          span: 1:409-410
+                          span: 1:422-423
                         - Literal:
                             Integer: 5
-                          span: 1:411-412
-                      span: 1:396-412
-                  span: 1:388-412
+                          span: 1:424-425
+                      span: 1:409-425
+                  span: 1:400-426
                   alias: subs
                 - Pipeline:
                     exprs:
                     - Ident: title
-                      span: 1:428-433
+                      span: 1:443-448
                     - FuncCall:
                         name:
                           Indirection:
                             base:
                               Ident: text
-                              span: 1:436-440
+                              span: 1:451-455
                             field: !Name replace
-                          span: 1:440-448
+                          span: 1:455-463
                         args:
                         - Literal:
                             String: al
-                          span: 1:449-453
+                          span: 1:464-468
                         - Literal:
                             String: PIKA
-                          span: 1:454-460
-                      span: 1:436-460
-                  span: 1:428-460
+                          span: 1:469-475
+                      span: 1:451-475
+                  span: 1:442-476
                   alias: replace
-                span: 1:132-463
-            span: 1:125-463
+                span: 1:132-479
+            span: 1:125-479
           - FuncCall:
               name:
                 Ident: sort
-                span: 1:464-468
+                span: 1:480-484
               args:
               - Tuple:
                 - Ident: title
-                  span: 1:470-475
-                span: 1:469-476
-            span: 1:464-476
+                  span: 1:486-491
+                span: 1:485-492
+            span: 1:480-492
           - FuncCall:
               name:
                 Ident: filter
-                span: 1:477-483
+                span: 1:493-499
               args:
               - Binary:
                   left:
@@ -646,63 +646,63 @@ ast:
                         Pipeline:
                           exprs:
                           - Ident: title
-                            span: 1:485-490
+                            span: 1:501-506
                           - FuncCall:
                               name:
                                 Indirection:
                                   base:
                                     Ident: text
-                                    span: 1:493-497
+                                    span: 1:509-513
                                   field: !Name starts_with
-                                span: 1:497-509
+                                span: 1:513-525
                               args:
                               - Literal:
                                   String: Black
-                                span: 1:510-517
-                            span: 1:493-517
-                        span: 1:485-517
+                                span: 1:526-533
+                            span: 1:509-533
+                        span: 1:501-533
                       op: Or
                       right:
                         Pipeline:
                           exprs:
                           - Ident: title
-                            span: 1:523-528
+                            span: 1:539-544
                           - FuncCall:
                               name:
                                 Indirection:
                                   base:
                                     Ident: text
-                                    span: 1:531-535
+                                    span: 1:547-551
                                   field: !Name contains
-                                span: 1:535-544
+                                span: 1:551-560
                               args:
                               - Literal:
                                   String: Sabbath
-                                span: 1:545-554
-                            span: 1:531-554
-                        span: 1:523-554
-                    span: 1:484-555
+                                span: 1:561-570
+                            span: 1:547-570
+                        span: 1:539-570
+                    span: 1:500-571
                   op: Or
                   right:
                     Pipeline:
                       exprs:
                       - Ident: title
-                        span: 1:560-565
+                        span: 1:576-581
                       - FuncCall:
                           name:
                             Indirection:
                               base:
                                 Ident: text
-                                span: 1:568-572
+                                span: 1:584-588
                               field: !Name ends_with
-                            span: 1:572-582
+                            span: 1:588-598
                           args:
                           - Literal:
                               String: os
-                            span: 1:583-587
-                        span: 1:568-587
-                    span: 1:560-587
-                span: 1:484-588
-            span: 1:477-588
-        span: 1:113-588
-    span: 1:0-588
+                            span: 1:599-603
+                        span: 1:584-603
+                    span: 1:576-603
+                span: 1:500-604
+            span: 1:493-604
+        span: 1:113-604
+    span: 1:0-604
