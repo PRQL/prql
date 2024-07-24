@@ -246,11 +246,10 @@ mod tests {
 
     #[test]
     fn into() {
-        // "#, var_def()).unwrap(), @r###"
         assert_yaml_snapshot!(parse_with_parser(r#"
             from artists
             into x
-         "#, var_def()).unwrap(), @r###"
+        "#, var_def()).unwrap(), @r###"
         ---
         VarDef:
           kind: Into

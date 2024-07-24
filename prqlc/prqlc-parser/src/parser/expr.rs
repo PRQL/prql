@@ -257,7 +257,7 @@ where
     // TODO: do we need the `maybe_aliased` here rather than in `expr`? We had
     // tried `with_doc_comment(expr)` in #4775 (and push an aliased expr into
     // `expr`) but couldn't get it work.
-    with_doc_comment(new_line().repeated().ignore_then(maybe_aliased(expr)))
+    with_doc_comment(maybe_aliased(expr))
         .separated_by(pipe())
         .at_least(1)
         .map_with_span(|exprs, span| {
@@ -983,22 +983,20 @@ mod tests {
     fn pipeline_starting_with_parenthesized_alias() {
         let with_parens = parse_with_parser(
             r#"
-    (
-      (t = tbl)
-      select t.date
-    )
-    "#,
+        (
+          (t = tbl)
+          select t.date
+        )"#,
             trim_start().ignore_then(pipeline(expr_call())),
         )
         .unwrap();
 
         let without_parens = parse_with_parser(
             r#"
-    (
-      t = tbl
-      select t.date
-    )
-    "#,
+        (
+          t = tbl
+          select t.date
+        )"#,
             trim_start().ignore_then(pipeline(expr_call())),
         )
         .unwrap();
