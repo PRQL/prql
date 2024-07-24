@@ -62,7 +62,9 @@ pub(crate) fn expr() -> impl Parser<TokenKind, Expr, Error = PError> + Clone {
                 param,
             ))
             .map_with_span(ExprKind::into_expr)
-            .or(aliased(expr.clone()))
+            // No longer used given the TODO in `pipeline`; can remove if we
+            // don't resolve.
+            // .or(aliased(expr.clone()))
             .or(pipeline_expr),
         )
         .boxed();
@@ -364,6 +366,8 @@ where
         .boxed()
 }
 
+// Can remove if we don't end up using this
+#[allow(dead_code)]
 fn aliased<'a, E>(expr: E) -> impl Parser<TokenKind, Expr, Error = PError> + Clone + 'a
 where
     E: Parser<TokenKind, Expr, Error = PError> + Clone + 'a,
