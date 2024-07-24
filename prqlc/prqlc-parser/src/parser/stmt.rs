@@ -570,7 +570,7 @@ mod tests {
         assert_yaml_snapshot!(parse_with_parser(r#"
       module defs {
         let first = column <array> -> internal std.first
-        let last       = column <array> -> internal std.last
+        let last  = column <array> -> internal std.last
     }
         "#, module_contents()).unwrap(), @r###"
         ---
@@ -607,21 +607,21 @@ mod tests {
                       return_ty: ~
                       body:
                         Internal: std.last
-                        span: "0:121-138"
+                        span: "0:116-133"
                       params:
                         - name: column
                           ty:
                             kind:
                               Ident:
                                 - array
-                            span: "0:111-116"
+                            span: "0:106-111"
                             name: ~
                           default_value: ~
                       named_params: []
                       generic_type_params: []
-                    span: "0:103-138"
-                span: "0:77-138"
-          span: "0:0-144"
+                    span: "0:98-133"
+                span: "0:77-133"
+          span: "0:0-139"
         "###);
     }
 }

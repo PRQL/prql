@@ -62,8 +62,8 @@ pub(crate) fn expr() -> impl Parser<TokenKind, Expr, Error = PError> + Clone {
                 param,
             ))
             .map_with_span(ExprKind::into_expr)
-            .or(pipeline_expr)
-            .or(aliased(expr.clone())),
+            .or(aliased(expr.clone()))
+            .or(pipeline_expr),
         )
         .boxed();
 
@@ -383,15 +383,16 @@ fn maybe_aliased<'a, E>(expr: E) -> impl Parser<TokenKind, Expr, Error = PError>
 where
     E: Parser<TokenKind, Expr, Error = PError> + Clone + 'a,
 {
-    let aliased =
-        ident_part()
-            .then_ignore(ctrl('='))
-            .or_not()
-            .then(expr)
-            .map(|(alias, mut expr)| {
-                expr.alias = alias.or(expr.alias);
-                expr
-            });
+    let aliased = ident_part()
+        .then_ignore(ctrl('='))
+        // This is added for `maybe_aliased`; possibly we should integrate
+        // the funcs
+        .or_not()
+        .then(expr)
+        .map(|(alias, mut expr)| {
+            expr.alias = alias.or(expr.alias);
+            expr
+        });
     // Because `expr` accounts for parentheses, and aliased is `x=$expr`, we
     // need to allow another layer of parentheses here.
     aliased
@@ -620,6 +621,16 @@ mod tests {
     }
 
     #[test]
+    fn aliased_in_expr() {
+        assert_yaml_snapshot!(
+            parse_with_parser(r#"x = 5"#, trim_start().ignore_then(expr())).unwrap(), @r###"
+        ---
+        Ident: x
+        span: "0:0-1"
+        "###);
+    }
+
+    #[test]
     fn test_tuple() {
         let tuple = || trim_start().ignore_then(tuple(expr()));
         assert_yaml_snapshot!(
@@ -661,7 +672,6 @@ mod tests {
         ]
         "###);
 
-        // assert_yaml_snapshot!(parse_with_parser(r#"{d_str = d | date.to_text "%Y/%m/%d"}"#, tuple()).unwrap(),
         assert_yaml_snapshot!(parse_with_parser(r#"{d_str = (d | date.to_text "%Y/%m/%d")}"#, tuple()).unwrap(),
         @r###"
         ---
