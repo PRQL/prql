@@ -87,26 +87,20 @@ pub(crate) fn expr() -> impl Parser<TokenKind, Expr, Error = PError> + Clone {
 fn tuple<'a>(
     nested_expr: impl Parser<TokenKind, Expr, Error = PError> + Clone + 'a,
 ) -> impl Parser<TokenKind, ExprKind, Error = PError> + Clone + 'a {
-    sequence(
-        ident_part()
-            .then_ignore(ctrl('='))
-            .or_not()
-            .then(nested_expr)
-            .map(|(alias, expr)| Expr { alias, ..expr }),
-    )
-    .delimited_by(ctrl('{'), ctrl('}'))
-    .recover_with(nested_delimiters(
-        TokenKind::Control('{'),
-        TokenKind::Control('}'),
-        [
-            (TokenKind::Control('{'), TokenKind::Control('}')),
-            (TokenKind::Control('('), TokenKind::Control(')')),
-            (TokenKind::Control('['), TokenKind::Control(']')),
-        ],
-        |_| vec![],
-    ))
-    .map(ExprKind::Tuple)
-    .labelled("tuple")
+    sequence(maybe_aliased(nested_expr))
+        .delimited_by(ctrl('{'), ctrl('}'))
+        .recover_with(nested_delimiters(
+            TokenKind::Control('{'),
+            TokenKind::Control('}'),
+            [
+                (TokenKind::Control('{'), TokenKind::Control('}')),
+                (TokenKind::Control('('), TokenKind::Control(')')),
+                (TokenKind::Control('['), TokenKind::Control(']')),
+            ],
+            |_| vec![],
+        ))
+        .map(ExprKind::Tuple)
+        .labelled("tuple")
 }
 
 fn array<'a>(
