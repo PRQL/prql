@@ -46,8 +46,8 @@ Selected changes:
 
 **Integrations**:
 
-- The Snap package previously released on the edge channel is now released
-  on the stable channel. (@vanillajonathan, #4784)
+- The Snap package previously released on the edge channel is now released on
+  the stable channel. (@vanillajonathan, #4784)
 
 **Internal changes**:
 
