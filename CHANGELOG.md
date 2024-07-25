@@ -1,5 +1,23 @@
 # PRQL Changelog
 
+## [unreleased]
+
+**Language**:
+
+**Features**:
+
+**Fixes**:
+
+**Documentation**:
+
+**Web**:
+
+**Integrations**:
+
+**Internal changes**:
+
+**New Contributors**:
+
 ## 0.13.0 — 2024-07-25
 
 0.13.0 brings a new debug logging framework, a big refactor of the parser, a new
@@ -71,6 +89,8 @@ Selected changes:
 - New benchmarks (@max-sixty, #4654)
 
 **New Contributors**:
+
+- @Globidev, with #4598
 
 ## 0.12.2 — 2024-06-10
 
@@ -1236,8 +1256,8 @@ below in this release).
 
 **Documentation**:
 
-[This release, the changelog only contains a subset of
-documentation improvements]
+[This release, the changelog only contains a subset of documentation
+improvements]
 
 - Add docs on aliases in
   [Select](https://prql-lang.org/book/reference/stdlib/transforms/select.html)
