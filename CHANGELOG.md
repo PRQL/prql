@@ -1,6 +1,6 @@
 # PRQL Changelog
 
-## 0.13.0
+## 0.13.0 — 2024-07-24
 
 0.13.0 brings a new debug logging framework, a big refactor of the parser, a new
 highlighter, a few bug fixes, and lots of other changes. It has 153 commits from
@@ -43,12 +43,6 @@ Selected changes:
 - Using `in` with an empty array pattern (e.g. `expr | in []`) will now output a
   constant `false` condition instead of an `expr IN ()`, which is syntactically
   invalid in some SQL dialects (@Globidev, #4598)
-
-**Documentation**:
-
-**Web**:
-
-**Integrations**:
 
 **Internal changes**:
 
@@ -1237,8 +1231,8 @@ below in this release).
 
 **Documentation**:
 
-[This release, the changelog only contains a subset of
-documentation improvements]
+[This release, the changelog only contains a subset of documentation
+improvements]
 
 - Add docs on aliases in
   [Select](https://prql-lang.org/book/reference/stdlib/transforms/select.html)
