@@ -44,6 +44,11 @@ Selected changes:
   constant `false` condition instead of an `expr IN ()`, which is syntactically
   invalid in some SQL dialects (@Globidev, #4598)
 
+**Integrations**:
+
+- The Snap package previously released on the edge channel is now released
+  on the stable channel. (@vanillajonathan, #4784)
+
 **Internal changes**:
 
 - Major reorganization of `prqlc-parser` — `prqlc-ast` is merged into
