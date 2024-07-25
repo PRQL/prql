@@ -21,8 +21,8 @@
 ## 0.13.0 — 2024-07-25
 
 0.13.0 brings a new debug logging framework, a big refactor of the parser, a new
-highlighter, a few bug fixes, and lots of other changes. It has 153 commits from
-11 contributors.
+highlighter, an `**` operator for exponentiation, a few bug fixes, and lots of
+other changes. It has 153 commits from 11 contributors.
 
 Our work continues on rewriting the resolver and completing `prqlc fmt`.
 
@@ -43,6 +43,8 @@ Selected changes:
 
   This is a small breaking change. The new behavior matches the existing
   documentation. (@max-sixty, #4775)
+
+- A new `**` operator for exponentiation. (@aljazerzen & @max-sixty, #4125)
 
 **Features**:
 
