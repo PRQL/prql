@@ -38,7 +38,7 @@ test-dbs = ["anyhow", "duckdb", "rusqlite", "tokio"]
 test-dbs-external = ["mysql", "pg_bigdecimal", "postgres", "test-dbs", "tiberius", "tokio-util"]
 
 [dependencies]
-prqlc-parser = {path = "../prqlc-parser", version = "0.12.3"}
+prqlc-parser = {path = "../prqlc-parser", version = "0.13.0" }
 
 anstream = {version = "0.6.14", features = ["auto"]}
 ariadne = "0.4.1"

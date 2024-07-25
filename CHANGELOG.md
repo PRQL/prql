@@ -1,6 +1,14 @@
 # PRQL Changelog
 
-## [unreleased]
+## 0.13.0 — 2024-07-25
+
+0.13.0 brings a new debug logging framework, a big refactor of the parser, a new
+highlighter, a few bug fixes, and lots of other changes. It has 153 commits from
+11 contributors.
+
+Our work continues on rewriting the resolver and completing `prqlc fmt`.
+
+Selected changes:
 
 **Language**:
 
@@ -20,6 +28,8 @@
 
 **Features**:
 
+- `prqlc compile --debug-log=log.html` will generate an HTML file with a
+  detailed log of the compilation process. (@aljazerzen, #4646)
 - Added `prqlc debug json-schema` command to auto-generate JSON Schema
   representations of commonly exposed IR types such as PL and RQ. (@kgutwin,
   #4698)
@@ -34,11 +44,10 @@
   constant `false` condition instead of an `expr IN ()`, which is syntactically
   invalid in some SQL dialects (@Globidev, #4598)
 
-**Documentation**:
-
-**Web**:
-
 **Integrations**:
+
+- The Snap package previously released on the edge channel is now released on
+  the stable channel. (@vanillajonathan, #4784)
 
 **Internal changes**:
 
