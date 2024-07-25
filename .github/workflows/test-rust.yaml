@@ -114,7 +114,7 @@ jobs:
             --features=${{ inputs.features }} ${{ contains(inputs.features,
             'test-dbs') && inputs.target == 'x86_64-unknown-linux-gnu' &&
             '--unreferenced=auto' || '' }} ${{ inputs.target !=
-            'wasm32-unknown-unknown' && --test-runner=nextest || '' }}
+            'wasm32-unknown-unknown' && '--test-runner=nextest' || '' }}
       - name: 📎 Clippy
         uses: clechasseur/rs-cargo@v2
         with:
