@@ -28,6 +28,8 @@ Selected changes:
 
 **Features**:
 
+- `prqlc compile --debug-log=log.html` will generate an HTML file with a
+  detailed log of the compilation process. (@aljazerzen, #4646)
 - Added `prqlc debug json-schema` command to auto-generate JSON Schema
   representations of commonly exposed IR types such as PL and RQ. (@kgutwin,
   #4698)
