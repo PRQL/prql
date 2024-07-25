@@ -50,6 +50,9 @@ jobs:
       - uses: baptiste0928/cargo-install@v3
         with:
           crate: cargo-insta
+      - uses: baptiste0928/cargo-install@v3
+        with:
+          crate: cargo-nextest
       - run: ./.github/workflows/scripts/set_version.sh
         shell: bash
       - name: 💰 Cache
@@ -109,7 +112,7 @@ jobs:
             test --target=${{ inputs.target }} --no-default-features
             --features=${{ inputs.features }} ${{ contains(inputs.features,
             'test-dbs') && inputs.target == 'x86_64-unknown-linux-gnu' &&
-            '--unreferenced=auto' || '' }}
+            '--unreferenced=auto' || '' }} --test-runner=nextest
       - name: 📎 Clippy
         uses: clechasseur/rs-cargo@v2
         with:
