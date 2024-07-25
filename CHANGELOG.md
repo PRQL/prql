@@ -1,6 +1,14 @@
 # PRQL Changelog
 
-## [unreleased]
+## 0.13.0
+
+0.13.0 brings a new debug logging framework, a big refactor of the parser, a new
+highlighter, a few bug fixes, and lots of other changes. It has 153 commits from
+11 contributors.
+
+Our work continues on rewriting the resolver and completing `prqlc fmt`.
+
+Selected changes:
 
 **Language**:
 
@@ -1227,8 +1235,8 @@ below in this release).
 
 **Documentation**:
 
-[This release, the changelog only contains a subset of
-documentation improvements]
+[This release, the changelog only contains a subset of documentation
+improvements]
 
 - Add docs on aliases in
   [Select](https://prql-lang.org/book/reference/stdlib/transforms/select.html)
