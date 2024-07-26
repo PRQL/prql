@@ -555,7 +555,9 @@ impl Command {
             | Debug(DebugCommand::Annotate(io_args) | DebugCommand::Lineage { io_args, .. }) => {
                 io_args.output.clone()
             }
-            Experimental(ExperimentalCommand::GenerateDocs { io_args, .. }) => io_args.output.clone(),
+            Experimental(ExperimentalCommand::GenerateDocs { io_args, .. }) => {
+                io_args.output.clone()
+            }
             Experimental(ExperimentalCommand::Highlight(io_args)) => io_args.output.clone(),
             _ => unreachable!(),
         };
