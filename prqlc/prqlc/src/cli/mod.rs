@@ -518,7 +518,7 @@ impl Command {
                 io_args
             }
             Experimental(ExperimentalCommand::GenerateDocs { io_args, .. }) => {
-                io_args.output.clone()
+                io_args
             }
             Experimental(ExperimentalCommand::Highlight(io_args)) => io_args,
             _ => unreachable!(),
