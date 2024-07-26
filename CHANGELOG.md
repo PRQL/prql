@@ -6,8 +6,8 @@
 
 **Features**:
 
-- Add a option to the experimental documentation generator to output the docs
-  in HTML format. The option is given using the `--format=html` option.
+- Add a option to the experimental documentation generator to output the docs in
+  HTML format. The option is given using the `--format=html` option.
   (@vanillajonathan, 4791)
 
 **Fixes**:
