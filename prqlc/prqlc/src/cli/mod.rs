@@ -453,8 +453,12 @@ impl Command {
                 let module_ref = prql_to_pl_tree(sources)?;
 
                 match format {
-                    DocsFormat::Html => docs_generator::generate_html_docs(module_ref.stmts).into_bytes(),
-                    DocsFormat::Markdown => docs_generator::generate_markdown_docs(module_ref.stmts).into_bytes()
+                    DocsFormat::Html => {
+                        docs_generator::generate_html_docs(module_ref.stmts).into_bytes()
+                    }
+                    DocsFormat::Markdown => {
+                        docs_generator::generate_markdown_docs(module_ref.stmts).into_bytes()
+                    }
                 }
             }
             Command::Experimental(ExperimentalCommand::Highlight(_)) => {
@@ -513,7 +517,9 @@ impl Command {
             | Debug(DebugCommand::Annotate(io_args) | DebugCommand::Lineage { io_args, .. }) => {
                 io_args
             }
-            Experimental(ExperimentalCommand::GenerateDocs { io_args, .. }) => io_args,
+            Experimental(ExperimentalCommand::GenerateDocs { io_args, .. }) => {
+                io_args.output.clone()
+            }
             Experimental(ExperimentalCommand::Highlight(io_args)) => io_args,
             _ => unreachable!(),
         };
