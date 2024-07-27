@@ -1,4 +1,5 @@
 ---
+source: prqlc/prqlc/src/cli/test.rs
 info:
   program: prqlc
   args:
@@ -433,12 +434,16 @@ _prqlc() {
             return 0
             ;;
         prqlc__experimental__doc)
-            opts="-v -q -h --color --verbose --quiet --help [INPUT] [OUTPUT] [MAIN_PATH]"
+            opts="-v -q -h --format --color --verbose --quiet --help [INPUT] [OUTPUT] [MAIN_PATH]"
             if [[ ${cur} == -* || ${COMP_CWORD} -eq 3 ]] ; then
                 COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
                 return 0
             fi
             case "${prev}" in
+                --format)
+                    COMPREPLY=($(compgen -W "html markdown" -- "${cur}"))
+                    return 0
+                    ;;
                 --color)
                     COMPREPLY=($(compgen -W "auto always never" -- "${cur}"))
                     return 0
