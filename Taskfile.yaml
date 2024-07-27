@@ -290,8 +290,8 @@ tasks:
       - task: test-lint
       - task: test-rust
       - task: test-js
-      - cargo insta test --accept --test-runner=nextest
-        --target=wasm32-unknown-unknown
+      # No nextest here as doesn't work with wasm
+      - cargo insta test --accept --target=wasm32-unknown-unknown
       - task: python:test
       - task: build-all
 
