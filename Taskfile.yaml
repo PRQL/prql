@@ -331,7 +331,7 @@ tasks:
       - "prqlc/**/*.snap"
     cmds:
       - cargo insta test --accept --lib --test-runner=nextest
-        --unreferenced=auto -- --quiet
+        --unreferenced=auto
 
   test-rust-coverage:
     desc: Run tests with instrumentation for code coverage.
