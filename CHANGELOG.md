@@ -1,10 +1,32 @@
 # PRQL Changelog
 
+## [unreleased]
+
+**Language**:
+
+**Features**:
+
+- Add a option to the experimental documentation generator to output the docs in
+  HTML format. The option is given using the `--format=html` option.
+  (@vanillajonathan, 4791)
+
+**Fixes**:
+
+**Documentation**:
+
+**Web**:
+
+**Integrations**:
+
+**Internal changes**:
+
+**New Contributors**:
+
 ## 0.13.0 — 2024-07-25
 
 0.13.0 brings a new debug logging framework, a big refactor of the parser, a new
-highlighter, a few bug fixes, and lots of other changes. It has 153 commits from
-11 contributors.
+highlighter, an `**` operator for exponentiation, a few bug fixes, and lots of
+other changes. It has 153 commits from 11 contributors.
 
 Our work continues on rewriting the resolver and completing `prqlc fmt`.
 
@@ -25,6 +47,8 @@ Selected changes:
 
   This is a small breaking change. The new behavior matches the existing
   documentation. (@max-sixty, #4775)
+
+- A new `**` operator for exponentiation. (@aljazerzen & @max-sixty, #4125)
 
 **Features**:
 
@@ -71,6 +95,8 @@ Selected changes:
 - New benchmarks (@max-sixty, #4654)
 
 **New Contributors**:
+
+- @Globidev, with #4598
 
 ## 0.12.2 — 2024-06-10
 

@@ -4,15 +4,15 @@ failure-output = "final"
 slow-timeout = {period = "500ms", terminate-after = 4}
 
 [[profile.default.overrides]]
-filter = 'test(prqlc::queries::results::)'
+filter = 'package(prqlc) & test(queries::results::)'
 slow-timeout = {period = "2s", terminate-after = 4}
 test-group = 'test-dbs'
 
 [test-groups.test-dbs]
-# test-dbs runs database setup when the connection is established,
-# and because nextest runs test in separate processes, this happens on every test.
-# To prevent multiple setups running at once, we set max-threads to 1.
-# Ideally, we could run tests in parallel and they would use a locking mechanism to see if
+# test-dbs runs database setup when the connection is established, and because
+# nextest runs test in separate processes, this happens on every test. To
+# prevent multiple setups running at once, we set max-threads to 1. Ideally, we
+# could run tests in parallel and they would use a locking mechanism to see if
 # the database has already been setup. For now, we can use cargo test instead.
 max-threads = 1
 

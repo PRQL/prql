@@ -1,4 +1,5 @@
 ---
+source: prqlc/prqlc/src/cli/test.rs
 info:
   program: prqlc
   args:
@@ -237,6 +238,7 @@ _arguments "${_arguments_options[@]}" \
         case $line[1] in
             (doc)
 _arguments "${_arguments_options[@]}" \
+'--format=[]:FORMAT:(html markdown)' \
 '--color=[Controls when to use color]:WHEN:(auto always never)' \
 '*-v[Increase logging verbosity]' \
 '*--verbose[Increase logging verbosity]' \
