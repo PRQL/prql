@@ -130,7 +130,7 @@ pub fn generate_html_docs(stmts: Vec<Stmt>) -> String {
         if let Some(expr) = &var_def.value {
             match &expr.kind {
                 ExprKind::Func(func) => {
-                    if func.generic_type_params.len() > 0 {
+                    if !func.generic_type_params.is_empty() {
                         docs.push_str("  <h4 class=\"h6\">Type parameters</h4>\n");
                         docs.push_str("  <ul>\n");
                         for param in &func.generic_type_params {
@@ -139,7 +139,7 @@ pub fn generate_html_docs(stmts: Vec<Stmt>) -> String {
                         docs.push_str("  </ul>\n");
                     }
 
-                    if func.params.len() > 0 {
+                    if !func.params.is_empty() {
                         docs.push_str("  <h4 class=\"h6\">Parameters</h4>\n");
                         docs.push_str("  <ul>\n");
                         for param in &func.params {
@@ -148,7 +148,7 @@ pub fn generate_html_docs(stmts: Vec<Stmt>) -> String {
                         docs.push_str("  </ul>\n");
                     }
 
-                    if func.named_params.len() > 0 {
+                    if !func.named_params.is_empty() {
                         docs.push_str("  <h4 class=\"h6\">Named parameters</h4>\n");
                         docs.push_str("  <ul>\n");
                         for param in &func.named_params {
@@ -292,7 +292,7 @@ Generated with [prqlc](https://prql-lang.org/) {}.
         if let Some(expr) = &var_def.value {
             match &expr.kind {
                 ExprKind::Func(func) => {
-                    if func.generic_type_params.len() > 0 {
+                    if !func.generic_type_params.is_empty() {
                         docs.push_str("#### Type Parameters\n");
                         for param in &func.generic_type_params {
                             docs.push_str(&format!("* *{}*\n", param.name));
@@ -300,7 +300,7 @@ Generated with [prqlc](https://prql-lang.org/) {}.
                         docs.push('\n');
                     }
 
-                    if func.params.len() > 0 {
+                    if !func.params.is_empty() {
                         docs.push_str("#### Parameters\n");
                         for param in &func.params {
                             docs.push_str(&format!("* *{}*\n", param.name));
@@ -308,7 +308,7 @@ Generated with [prqlc](https://prql-lang.org/) {}.
                         docs.push('\n');
                     }
 
-                    if func.named_params.len() > 0 {
+                    if !func.named_params.is_empty() {
                         docs.push_str("#### Named parameters\n");
                         for param in &func.named_params {
                             docs.push_str(&format!("* *{}*\n", param.name));
