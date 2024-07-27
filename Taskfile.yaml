@@ -41,8 +41,8 @@ vars:
     rust-lang.rust-analyzer
   cargo_crates: >
     bacon cbindgen cargo-audit cargo-insta cargo-llvm-cov cargo-release
-    default-target mdbook mdbook-admonish mdbook-footnote mdbook-toc nextest
-    wasm-bindgen-cli wasm-opt wasm-pack
+    cargo-nextest default-target mdbook mdbook-admonish mdbook-footnote
+    mdbook-toc nextest wasm-bindgen-cli wasm-opt wasm-pack
   # Excluding `elixir` atm given it's not enabled on Mac and currently unsupported
   brew_dependencies: |
     hugo
@@ -288,6 +288,7 @@ tasks:
       - task: test-lint
       - task: test-rust
       - task: test-js
+      # No nextest here as doesn't work with wasm
       - cargo insta test --accept --target=wasm32-unknown-unknown
       - task: python:test
       - task: build-all
@@ -305,7 +306,7 @@ tasks:
     #   - "**/*.snap"
     cmds:
       - cargo insta test --accept --features=default,test-dbs
-        --unreferenced=auto
+        --test-runner=nextest --unreferenced=auto
       - cargo clippy --fix --allow-dirty --allow-staged
 
   test-rust-fast:
@@ -327,7 +328,7 @@ tasks:
       - "prqlc/**/*.rs"
       - "prqlc/**/*.snap"
     cmds:
-      - cargo insta test --accept --lib -- --quiet
+      - cargo insta test --accept --lib --test-runner=nextest
 
   test-rust-coverage:
     desc: Run tests with instrumentation for code coverage.
