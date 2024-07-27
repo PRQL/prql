@@ -1,4 +1,5 @@
 ---
+source: prqlc/prqlc/src/cli/test.rs
 info:
   program: prqlc
   args:
@@ -195,6 +196,7 @@ Register-ArgumentCompleter -Native -CommandName 'prqlc' -ScriptBlock {
             break
         }
         'prqlc;experimental;doc' {
+            [CompletionResult]::new('--format', 'format', [CompletionResultType]::ParameterName, 'format')
             [CompletionResult]::new('--color', 'color', [CompletionResultType]::ParameterName, 'Controls when to use color')
             [CompletionResult]::new('-v', 'v', [CompletionResultType]::ParameterName, 'Increase logging verbosity')
             [CompletionResult]::new('--verbose', 'verbose', [CompletionResultType]::ParameterName, 'Increase logging verbosity')
