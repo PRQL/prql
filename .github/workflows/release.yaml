@@ -266,7 +266,7 @@ jobs:
             ${{ secrets.SNAPCRAFT_STORE_CREDENTIALS }}
         with:
           snap: ${{ steps.build.outputs.snap }}
-          release: edge
+          release: stable
 
   build-python-wheels:
     runs-on: ${{ matrix.os }}

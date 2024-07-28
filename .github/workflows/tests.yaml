@@ -103,6 +103,7 @@ jobs:
             main:
               - "**/Cargo.*"
               - .github/**
+              - .config/**
             nightly:
               - .github/workflows/nightly.yaml
               - .github/workflows/release.yaml

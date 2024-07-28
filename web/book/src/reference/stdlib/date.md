@@ -21,27 +21,24 @@ For now the supported DBs are: Clickhouse, DuckDB, MySQL, MSSQL and Postgres.
 prql target:sql.duckdb
 
 from invoices
-select {
-  invoice_date | date.to_text "%d/%m/%Y"
-}
+select (invoice_date | date.to_text "%d/%m/%Y")
+
 ```
 
 ```prql
 prql target:sql.postgres
 
 from invoices
-select {
-  invoice_date | date.to_text "%d/%m/%Y"
-}
+select (invoice_date | date.to_text "%d/%m/%Y")
+
 ```
 
 ```prql
 prql target:sql.mysql
 
 from invoices
-select {
-  invoice_date | date.to_text "%d/%m/%Y"
-}
+select (invoice_date | date.to_text "%d/%m/%Y")
+
 ```
 
 ### Date & time format specifiers

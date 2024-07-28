@@ -1,5 +1,4 @@
 mod bad_error_messages;
-mod cli;
 mod dbs;
 mod error_messages;
 mod queries;

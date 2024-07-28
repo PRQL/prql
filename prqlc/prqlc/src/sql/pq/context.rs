@@ -64,8 +64,6 @@ pub enum RelationStatus {
 
 #[derive(Debug)]
 pub struct RelationInstance {
-    pub riid: RIId,
-
     pub table_ref: TableRef,
 
     /// When a pipeline is split, [CId]s from first pipeline are assigned a new
@@ -169,7 +167,6 @@ impl AnchorContext {
 
         let original_cids = table_ref.columns.iter().map(|(_, c)| *c).collect();
         let relation_instance = RelationInstance {
-            riid,
             table_ref,
             cid_redirects,
             original_cids,

@@ -84,11 +84,11 @@ fn test_errors() {
        │                                    ╰── unexpected ’
     ───╯
     Error:
-       ╭─[:1:38]
+       ╭─[:1:39]
        │
      1 │ Mississippi has four S’s and four I’s.
-       │                                      ┬
-       │                                      ╰── Expected * or an identifier, but didn't find anything before the end.
+       │                                       │
+       │                                       ╰─ Expected * or an identifier, but didn't find anything before the end.
     ───╯
     "###);
 
@@ -98,7 +98,7 @@ fn test_errors() {
        │
      1 │ Answer: T-H-A-T!
        │       ┬
-       │       ╰── unexpected : while parsing function call
+       │       ╰── unexpected :
     ───╯
     "###);
 }
@@ -280,14 +280,14 @@ fn date_to_text_generic() {
     assert_snapshot!(compile(r#"
   [{d = @2021-01-01}]
   derive {
-    d_str = d | date.to_text "%Y/%m/%d"
+    d_str = (d | date.to_text "%Y/%m/%d")
   }"#).unwrap_err(), @r###"
     Error:
-       ╭─[:4:30]
+       ╭─[:4:31]
        │
-     4 │     d_str = d | date.to_text "%Y/%m/%d"
-       │                              ─────┬────
-       │                                   ╰────── Date formatting requires a dialect
+     4 │     d_str = (d | date.to_text "%Y/%m/%d")
+       │                               ─────┬────
+       │                                    ╰────── Date formatting requires a dialect
     ───╯
     "###);
 }
@@ -299,14 +299,14 @@ fn date_to_text_not_supported_dialect() {
 
   from [{d = @2021-01-01}]
   derive {
-    d_str = d | date.to_text "%Y/%m/%d"
+    d_str = (d | date.to_text "%Y/%m/%d")
   }"#).unwrap_err(), @r###"
     Error:
-       ╭─[:6:30]
+       ╭─[:6:31]
        │
-     6 │     d_str = d | date.to_text "%Y/%m/%d"
-       │                              ─────┬────
-       │                                   ╰────── Date formatting is not yet supported for this dialect
+     6 │     d_str = (d | date.to_text "%Y/%m/%d")
+       │                               ─────┬────
+       │                                    ╰────── Date formatting is not yet supported for this dialect
     ───╯
     "###);
 }
@@ -335,14 +335,14 @@ fn date_to_text_unsupported_chrono_item() {
 
     from [{d = @2021-01-01}]
     derive {
-      d_str = d | date.to_text "%_j"
+      d_str = (d | date.to_text "%_j")
     }"#).unwrap_err(), @r###"
     Error:
-       ╭─[:6:32]
+       ╭─[:6:33]
        │
-     6 │       d_str = d | date.to_text "%_j"
-       │                                ──┬──
-       │                                  ╰──── PRQL doesn't support this format specifier
+     6 │       d_str = (d | date.to_text "%_j")
+       │                                 ──┬──
+       │                                   ╰──── PRQL doesn't support this format specifier
     ───╯
     "###);
 }

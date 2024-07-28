@@ -6,17 +6,72 @@
 
 **Features**:
 
-**Fixes**:
+- Add a option to the experimental documentation generator to output the docs in
+  HTML format. The option is given using the `--format=html` option.
+  (@vanillajonathan, 4791)
 
-- Using `in` with an empty array pattern (e.g. `expr | in []`) will now output a
-  constant `false` condition instead of an `expr IN ()`, which is syntactically
-  invalid in some SQL dialects (@Globidev, #4598)
+**Fixes**:
 
 **Documentation**:
 
 **Web**:
 
 **Integrations**:
+
+**Internal changes**:
+
+**New Contributors**:
+
+## 0.13.0 — 2024-07-25
+
+0.13.0 brings a new debug logging framework, a big refactor of the parser, a new
+highlighter, an `**` operator for exponentiation, a few bug fixes, and lots of
+other changes. It has 153 commits from 11 contributors.
+
+Our work continues on rewriting the resolver and completing `prqlc fmt`.
+
+Selected changes:
+
+**Language**:
+
+- Parentheses are always required around pipelines, even within tuples. For
+  example:
+
+  ```prql no-eval
+  from artists
+  # These parentheses are now required
+  derive {a=(b | math.abs)}
+  # No change — doesn't affect expressions or function calls without pipelines
+  derive {x = 3 + 4}
+  ```
+
+  This is a small breaking change. The new behavior matches the existing
+  documentation. (@max-sixty, #4775)
+
+- A new `**` operator for exponentiation. (@aljazerzen & @max-sixty, #4125)
+
+**Features**:
+
+- `prqlc compile --debug-log=log.html` will generate an HTML file with a
+  detailed log of the compilation process. (@aljazerzen, #4646)
+- Added `prqlc debug json-schema` command to auto-generate JSON Schema
+  representations of commonly exposed IR types such as PL and RQ. (@kgutwin,
+  #4698)
+- Add documentation comments to the output of the documentation generator.
+  (@vanillajonathan, #4729)
+- Add CLI syntax highlighting to `prqlc`. You can try it as
+  `prqlc experimental highlight example.prql`. (@vanillajonathan, #4755)
+
+**Fixes**:
+
+- Using `in` with an empty array pattern (e.g. `expr | in []`) will now output a
+  constant `false` condition instead of an `expr IN ()`, which is syntactically
+  invalid in some SQL dialects (@Globidev, #4598)
+
+**Integrations**:
+
+- The Snap package previously released on the edge channel is now released on
+  the stable channel. (@vanillajonathan, #4784)
 
 **Internal changes**:
 
@@ -40,6 +95,8 @@
 - New benchmarks (@max-sixty, #4654)
 
 **New Contributors**:
+
+- @Globidev, with #4598
 
 ## 0.12.2 — 2024-06-10
 

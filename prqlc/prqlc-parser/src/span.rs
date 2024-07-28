@@ -2,36 +2,17 @@ use std::fmt::{self, Debug, Formatter};
 use std::ops::{Add, Range, Sub};
 
 use chumsky::Stream;
+use schemars::JsonSchema;
 use serde::de::Visitor;
 use serde::{Deserialize, Serialize};
 
-#[derive(Clone, PartialEq, Eq, Copy)]
+#[derive(Clone, PartialEq, Eq, Copy, JsonSchema)]
 pub struct Span {
     pub start: usize,
     pub end: usize,
 
     /// A key representing the path of the source. Value is stored in prqlc's SourceTree::source_ids.
     pub source_id: u16,
-}
-
-impl Span {
-    pub fn merge_opt(a: Option<Span>, b: Option<Span>) -> Option<Span> {
-        match (a, b) {
-            (None, None) => None,
-            (None, Some(s)) => Some(s),
-            (Some(s), None) => Some(s),
-            (Some(a), Some(b)) => Some(Span::merge(a, b)),
-        }
-    }
-
-    pub fn merge(a: Span, b: Span) -> Span {
-        assert_eq!(a.source_id, b.source_id);
-        Span {
-            start: usize::min(a.start, b.start),
-            end: usize::max(a.end, b.end),
-            source_id: a.source_id,
-        }
-    }
 }
 
 impl From<Span> for Range<usize> {
@@ -175,7 +156,7 @@ impl Sub<usize> for Span {
     }
 }
 
-pub fn string_stream<'a>(
+pub(crate) fn string_stream<'a>(
     s: String,
     span_base: Span,
 ) -> Stream<'a, char, Span, Box<dyn Iterator<Item = (char, Span)>>> {

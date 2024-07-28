@@ -1,14 +1,16 @@
 use core::fmt;
 use std::collections::HashSet;
+use std::fmt::Debug;
 use std::fmt::Display;
 use std::hash::Hash;
 
-use crate::error::{Error, ErrorSource, Reason, WithErrorInfo};
+use crate::error::WithErrorInfo;
+use crate::error::{Error, ErrorSource, Reason};
 use crate::lexer::lr::TokenKind;
 use crate::span::Span;
 
 #[derive(Clone, Debug)]
-pub struct ChumError<T: Hash + Eq> {
+pub struct ChumError<T: Hash + Eq + Debug> {
     span: Span,
     reason: Option<String>,
     expected: HashSet<Option<T>>,
@@ -18,7 +20,7 @@ pub struct ChumError<T: Hash + Eq> {
 
 pub type PError = ChumError<TokenKind>;
 
-impl<T: Hash + Eq> ChumError<T> {
+impl<T: Hash + Eq + Debug> ChumError<T> {
     ///Create an error with a custom error message.
     pub fn custom<M: ToString>(span: Span, msg: M) -> Self {
         Self {
@@ -59,7 +61,7 @@ impl<T: Hash + Eq> ChumError<T> {
     ///
     /// This can be used to unify the errors between parsing stages that operate upon two forms of input (for example,
     /// the initial lexing stage and the parsing stage in most compilers).
-    pub fn map<U: Hash + Eq, F: FnMut(T) -> U>(self, mut f: F) -> ChumError<U> {
+    pub fn map<U: Hash + Eq + Debug, F: FnMut(T) -> U>(self, mut f: F) -> ChumError<U> {
         ChumError {
             span: self.span,
             reason: self.reason,
@@ -70,7 +72,7 @@ impl<T: Hash + Eq> ChumError<T> {
     }
 }
 
-impl<T: Hash + Eq + Display + std::fmt::Debug> chumsky::Error<T> for ChumError<T> {
+impl<T: Hash + Eq + Display + Debug> chumsky::Error<T> for ChumError<T> {
     type Span = Span;
     type Label = &'static str;
 
@@ -136,14 +138,12 @@ impl<T: Hash + Eq + Display + std::fmt::Debug> chumsky::Error<T> for ChumError<T
         });
 
         self.label = self.label.merge(other.label);
-        for expected in other.expected {
-            self.expected.insert(expected);
-        }
+        self.expected.extend(other.expected);
         self
     }
 }
 
-impl<T: Hash + Eq> PartialEq for ChumError<T> {
+impl<T: Hash + Eq + Debug> PartialEq for ChumError<T> {
     fn eq(&self, other: &Self) -> bool {
         self.span == other.span
             && self.found == other.found
@@ -152,9 +152,9 @@ impl<T: Hash + Eq> PartialEq for ChumError<T> {
             && self.label == other.label
     }
 }
-impl<T: Hash + Eq> Eq for ChumError<T> {}
+impl<T: Hash + Eq + Debug> Eq for ChumError<T> {}
 
-impl<T: fmt::Display + Hash + Eq> fmt::Display for ChumError<T> {
+impl<T: fmt::Display + Hash + Eq + Debug> fmt::Display for ChumError<T> {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         // TODO: Take `self.reason` into account
 
@@ -196,15 +196,7 @@ impl<T: fmt::Display + Hash + Eq> fmt::Display for ChumError<T> {
 
 impl From<PError> for Error {
     fn from(p: PError) -> Error {
-        let mut span = p.span();
-
-        if p.found().is_none() {
-            // found end of file
-            // fix for span outside of source
-            if span.start > 0 && span.end > 0 {
-                span = span - 1;
-            }
-        }
+        let span = p.span();
 
         fn construct_parser_error(e: PError) -> Error {
             if let Some(message) = e.reason() {
@@ -222,8 +214,13 @@ impl From<PError> for Error {
                 .all(|t| matches!(t, None | Some(TokenKind::NewLine)));
             let expected: Vec<String> = e
                 .expected()
-                // Only include whitespace if we're _only_ expecting whitespace
-                .filter(|t| is_all_whitespace || !matches!(t, None | Some(TokenKind::NewLine)))
+                // Only include whitespace if we're _only_ expecting whitespace,
+                // otherwise we get "expected start of line or new line or }"
+                // when there's no ending `}`, since a new line is allowed.
+                .filter(|t| {
+                    is_all_whitespace
+                        || !matches!(t, None | Some(TokenKind::NewLine) | Some(TokenKind::Start))
+                })
                 .cloned()
                 .map(token_to_string)
                 .collect();
@@ -270,6 +267,10 @@ impl From<PError> for Error {
     }
 }
 
+// Vendored from
+// https://github.com/zesterer/chumsky/pull/238/files#diff-97e25e2a0e41c578875856e97b659be2719a65227c104b992e3144efa000c35eR184
+// since it's private in chumsky
+
 /// A type representing zero, one, or many labels applied to an error
 #[derive(Clone, Copy, Debug, PartialEq)]
 enum SimpleLabel {
@@ -297,5 +298,123 @@ impl From<SimpleLabel> for Option<&'static str> {
             SimpleLabel::Some(s) => Some(s),
             _ => None,
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use insta::{assert_debug_snapshot, assert_snapshot};
+
+    use crate::error::{Error, Errors, Reason, WithErrorInfo};
+
+    // Helper function to create a simple Error object
+    fn create_simple_error() -> Error {
+        Error::new_simple("A simple error message")
+            .push_hint("take a hint")
+            .with_code("E001")
+    }
+
+    #[test]
+    fn display() {
+        assert_snapshot!(create_simple_error(),
+            @r###"Error { kind: Error, span: None, reason: Simple("A simple error message"), hints: ["take a hint"], code: Some("E001") }"###
+        );
+
+        let errors = Errors(vec![create_simple_error()]);
+        assert_snapshot!(errors,
+            @r###"Errors([Error { kind: Error, span: None, reason: Simple("A simple error message"), hints: ["take a hint"], code: Some("E001") }])"###
+        );
+        assert_debug_snapshot!(errors, @r###"
+        Errors(
+            [
+                Error {
+                    kind: Error,
+                    span: None,
+                    reason: Simple(
+                        "A simple error message",
+                    ),
+                    hints: [
+                        "take a hint",
+                    ],
+                    code: Some(
+                        "E001",
+                    ),
+                },
+            ],
+        )
+        "###)
+    }
+
+    #[test]
+    fn test_simple_error() {
+        let err = create_simple_error();
+        assert_debug_snapshot!(err, @r###"
+        Error {
+            kind: Error,
+            span: None,
+            reason: Simple(
+                "A simple error message",
+            ),
+            hints: [
+                "take a hint",
+            ],
+            code: Some(
+                "E001",
+            ),
+        }
+        "###);
+    }
+
+    #[test]
+    fn test_complex_error() {
+        assert_debug_snapshot!(
+        Error::new(Reason::Expected {
+            who: Some("Test".to_string()),
+            expected: "expected_value".to_string(),
+            found: "found_value".to_string(),
+        })
+        .with_code("E002"), @r###"
+        Error {
+            kind: Error,
+            span: None,
+            reason: Expected {
+                who: Some(
+                    "Test",
+                ),
+                expected: "expected_value",
+                found: "found_value",
+            },
+            hints: [],
+            code: Some(
+                "E002",
+            ),
+        }
+        "###);
+    }
+
+    #[test]
+    fn test_simple_error_with_result() {
+        let result: Result<(), Error> = Err(Error::new_simple("A simple error message"))
+            .with_hints(vec!["Take a hint"])
+            .push_hint("Take another hint")
+            .with_code("E001");
+        assert_debug_snapshot!(result, @r###"
+        Err(
+            Error {
+                kind: Error,
+                span: None,
+                reason: Simple(
+                    "A simple error message",
+                ),
+                hints: [
+                    "Take a hint",
+                    "Take another hint",
+                ],
+                code: Some(
+                    "E001",
+                ),
+            },
+        )
+        "###);
     }
 }

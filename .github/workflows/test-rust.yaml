@@ -50,6 +50,9 @@ jobs:
       - uses: baptiste0928/cargo-install@v3
         with:
           crate: cargo-insta
+      - uses: baptiste0928/cargo-install@v3
+        with:
+          crate: cargo-nextest
       - run: ./.github/workflows/scripts/set_version.sh
         shell: bash
       - name: 💰 Cache
@@ -105,11 +108,13 @@ jobs:
           # Here, we also add:
           # - Unreferenced snapshots - `--unreferenced=auto` when testing on
           #   linux & with `test-dbs` feature.
+          # - Test runner - `--test-runner=nextest` when not targeting wasm32.
           args: >
             test --target=${{ inputs.target }} --no-default-features
             --features=${{ inputs.features }} ${{ contains(inputs.features,
             'test-dbs') && inputs.target == 'x86_64-unknown-linux-gnu' &&
-            '--unreferenced=auto' || '' }}
+            '--unreferenced=auto' || '' }} ${{ inputs.target !=
+            'wasm32-unknown-unknown' && '--test-runner=nextest' || '' }}
       - name: 📎 Clippy
         uses: clechasseur/rs-cargo@v2
         with:

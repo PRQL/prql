@@ -1,3 +1,5 @@
+//! # prqlc
+//!
 //! Compiler for PRQL language. Targets SQL and exposes PL and RQ abstract
 //! syntax trees.
 //!
@@ -31,6 +33,8 @@
 //!
 //!            SQL
 //! ```
+//!
+#![doc = include_str!("../../ARCHITECTURE.md")]
 //!
 //! ## Common use-cases
 //!
@@ -120,7 +124,10 @@ pub mod ir;
 pub mod parser;
 pub mod semantic;
 pub mod sql;
-mod utils;
+#[cfg(feature = "cli")]
+pub mod utils;
+#[cfg(not(feature = "cli"))]
+pub(crate) mod utils;
 
 pub type Result<T, E = Error> = core::result::Result<T, E>;
 
@@ -474,7 +481,7 @@ pub mod internal {
     ) -> Result<semantic::reporting::FrameCollector, ErrorMessages> {
         let ast = Some(pl.clone());
 
-        let root_module = semantic::resolve(pl, Default::default()).map_err(ErrorMessages::from)?;
+        let root_module = semantic::resolve(pl).map_err(ErrorMessages::from)?;
 
         let (main, _) = root_module.find_main_rel(&[]).unwrap();
         let mut fc =

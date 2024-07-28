@@ -38,7 +38,7 @@ test-dbs = ["anyhow", "duckdb", "rusqlite", "tokio"]
 test-dbs-external = ["mysql", "pg_bigdecimal", "postgres", "test-dbs", "tiberius", "tokio-util"]
 
 [dependencies]
-prqlc-parser = {path = "../prqlc-parser", version = "0.12.3"}
+prqlc-parser = {path = "../prqlc-parser", version = "0.13.1" }
 
 anstream = {version = "0.6.14", features = ["auto"]}
 ariadne = "0.4.1"
@@ -48,6 +48,7 @@ enum-as-inner = {workspace = true}
 itertools = {workspace = true}
 log = {workspace = true}
 regex = "1.10.5"
+schemars = {workspace = true}
 semver = {workspace = true}
 # serde is required for the `from_text` feature of PRQL, so we can't really put
 # it behind a feature.
@@ -55,7 +56,7 @@ serde = {workspace = true}
 serde_json = {workspace = true}
 serde_yaml = {workspace = true, optional = true}
 sqlformat = "0.2.4"
-sqlparser = {version = "0.47.0", features = ["serde"]}
+sqlparser = {version = "0.48.0", features = ["serde"]}
 strum = {version = "0.26.3", features = ["std", "derive"]}
 strum_macros = "0.26.4"
 
@@ -83,18 +84,18 @@ clap_complete_fig = {version = "=4.4.2", optional = true}
 
 # We use minijinja just for the Jinja lexer, which is not part of the
 # public interface which is covered by semver guarantees.
-minijinja = {version = "2.0.2", features = ["unstable_machinery"], optional = true}
+minijinja = {version = "2.0.3", features = ["unstable_machinery"], optional = true}
 
 # For integration tests. These are gated by the `test-dbs` and `test-dbs-external` features,
 # rather than dev-dependencies, because dev-dependencies can't be optional.
 
-duckdb = {version = "0.10.2", optional = true, features = ["bundled", "chrono"]}
+duckdb = {version = "1.0.0", optional = true, features = ["bundled", "chrono"]}
 mysql = {version = "25", optional = true}
 pg_bigdecimal = {version = "0.1.0", optional = true}
-postgres = {version = "0.19.7", optional = true}
+postgres = {version = "0.19.8", optional = true}
 rusqlite = {version = "0.31.0", optional = true, features = ["bundled", "csvtab"]}
-tiberius = {version = "0.12.2", optional = true, default-features = false, features = ["sql-browser-tokio", "bigdecimal", "time", "rustls", "tds73"]}
-tokio = {version = "1.37.0", optional = true, features = ["full"]}
+tiberius = {version = "0.12.3", optional = true, default-features = false, features = ["sql-browser-tokio", "bigdecimal", "time", "rustls", "tds73"]}
+tokio = {version = "1.38.1", optional = true, features = ["full"]}
 tokio-util = {version = "0.7", optional = true, features = ["compat"]}
 
 [dev-dependencies]
@@ -105,8 +106,8 @@ glob = {version = "0.3.1"}
 insta = {workspace = true}
 insta-cmd = {workspace = true}
 rstest = "0.21.0"
-similar = {version = "2.5.0"}
-similar-asserts = "1.5.0"
+similar = {workspace = true}
+similar-asserts = {workspace = true}
 tempfile = {version = "3.10.0"}
 test_each_file = "0.3.3"
 

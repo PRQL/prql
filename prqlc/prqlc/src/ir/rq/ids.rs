@@ -1,7 +1,8 @@
+use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 
 /// Column id
-#[derive(Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize, Ord, PartialOrd)]
+#[derive(Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize, Ord, PartialOrd, JsonSchema)]
 pub struct CId(usize);
 
 impl CId {
@@ -23,7 +24,7 @@ impl std::fmt::Debug for CId {
 }
 
 /// Table id
-#[derive(Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
+#[derive(Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize, JsonSchema)]
 pub struct TId(usize);
 
 impl TId {

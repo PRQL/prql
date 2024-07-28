@@ -1,25 +1,29 @@
-use std::collections::HashMap;
+use std::collections::{hash_map::Entry, HashMap};
 
 use chumsky::prelude::*;
 use itertools::Itertools;
 
-use super::interpolation;
-use crate::error::parse_error::PError;
 use crate::lexer::lr::{Literal, TokenKind};
-use crate::parser::common::{ctrl, ident_part, keyword, new_line};
-use crate::parser::pr::Ident;
+use crate::parser::interpolation;
+use crate::parser::perror::PError;
 use crate::parser::pr::*;
-use crate::parser::pr::{BinOp, UnOp};
 use crate::parser::types::type_expr;
+use crate::parser::{ctrl, ident_part, keyword, new_line, sequence, with_doc_comment};
 use crate::span::Span;
 
-pub fn expr_call() -> impl Parser<TokenKind, Expr, Error = PError> + Clone {
+use super::pipe;
+
+pub(crate) fn expr_call() -> impl Parser<TokenKind, Expr, Error = PError> + Clone {
     let expr = expr();
 
-    lambda_func(expr.clone()).or(func_call(expr))
+    choice((
+        lambda_func(expr.clone()),
+        func_call(expr.clone()),
+        pipeline(expr),
+    ))
 }
 
-pub fn expr() -> impl Parser<TokenKind, Expr, Error = PError> + Clone {
+pub(crate) fn expr() -> impl Parser<TokenKind, Expr, Error = PError> + Clone {
     recursive(|expr| {
         let literal = select! { TokenKind::Literal(lit) => ExprKind::Literal(lit) };
 
@@ -30,28 +34,39 @@ pub fn expr() -> impl Parser<TokenKind, Expr, Error = PError> + Clone {
             .map(|x| x.to_string())
             .map(ExprKind::Internal);
 
-        let nested_expr = pipeline(lambda_func(expr.clone()).or(func_call(expr.clone()))).boxed();
+        let nested_expr = with_doc_comment(
+            lambda_func(expr.clone())
+                .or(func_call(expr.clone()))
+                .boxed(),
+        );
 
         let tuple = tuple(nested_expr.clone());
         let array = array(nested_expr.clone());
-        let pipeline_expr = pipeline_expr(nested_expr.clone());
+        let pipeline_expr = pipeline(nested_expr.clone())
+            .padded_by(new_line().repeated())
+            .delimited_by(ctrl('('), ctrl(')'));
         let interpolation = interpolation();
         let case = case(expr.clone());
 
         let param = select! { TokenKind::Param(id) => ExprKind::Param(id) };
 
-        let term = choice((
-            literal,
-            internal,
-            tuple,
-            array,
-            interpolation,
-            ident_kind,
-            case,
-            param,
-        ))
-        .map_with_span(ExprKind::into_expr)
-        .or(pipeline_expr)
+        let term = with_doc_comment(
+            choice((
+                literal,
+                internal,
+                tuple,
+                array,
+                interpolation,
+                ident_kind,
+                case,
+                param,
+            ))
+            .map_with_span(ExprKind::into_expr)
+            // No longer used given the TODO in `pipeline`; can remove if we
+            // don't resolve.
+            // .or(aliased(expr.clone()))
+            .or(pipeline_expr),
+        )
         .boxed();
 
         let term = field_lookup(term);
@@ -71,18 +86,10 @@ pub fn expr() -> impl Parser<TokenKind, Expr, Error = PError> + Clone {
     })
 }
 
-fn tuple(
-    nested_expr: impl Parser<TokenKind, Expr, Error = PError> + Clone,
-) -> impl Parser<TokenKind, ExprKind, Error = PError> + Clone {
-    ident_part()
-        .then_ignore(ctrl('='))
-        .or_not()
-        .then(nested_expr)
-        .map(|(alias, expr)| Expr { alias, ..expr })
-        .padded_by(new_line().repeated())
-        .separated_by(ctrl(','))
-        .allow_trailing()
-        .then_ignore(new_line().repeated())
+fn tuple<'a>(
+    nested_expr: impl Parser<TokenKind, Expr, Error = PError> + Clone + 'a,
+) -> impl Parser<TokenKind, ExprKind, Error = PError> + Clone + 'a {
+    sequence(maybe_aliased(nested_expr))
         .delimited_by(ctrl('{'), ctrl('}'))
         .recover_with(nested_delimiters(
             TokenKind::Control('{'),
@@ -98,13 +105,10 @@ fn tuple(
         .labelled("tuple")
 }
 
-fn array(
-    expr: impl Parser<TokenKind, Expr, Error = PError> + Clone,
-) -> impl Parser<TokenKind, ExprKind, Error = PError> + Clone {
-    expr.padded_by(new_line().repeated())
-        .separated_by(ctrl(','))
-        .allow_trailing()
-        .then_ignore(new_line().repeated())
+fn array<'a>(
+    expr: impl Parser<TokenKind, Expr, Error = PError> + Clone + 'a,
+) -> impl Parser<TokenKind, ExprKind, Error = PError> + Clone + 'a {
+    sequence(expr)
         .delimited_by(ctrl('['), ctrl(']'))
         .recover_with(nested_delimiters(
             TokenKind::Control('['),
@@ -118,21 +122,6 @@ fn array(
         ))
         .map(ExprKind::Array)
         .labelled("array")
-}
-
-fn pipeline_expr(
-    expr: impl Parser<TokenKind, Expr, Error = PError> + Clone,
-) -> impl Parser<TokenKind, Expr, Error = PError> + Clone {
-    expr.delimited_by(ctrl('('), ctrl(')'))
-        .recover_with(nested_delimiters(
-            TokenKind::Control('('),
-            TokenKind::Control(')'),
-            [
-                (TokenKind::Control('['), TokenKind::Control(']')),
-                (TokenKind::Control('('), TokenKind::Control(')')),
-            ],
-            |_| Expr::new(ExprKind::Literal(Literal::Null)),
-        ))
 }
 
 fn interpolation() -> impl Parser<TokenKind, ExprKind, Error = PError> + Clone {
@@ -154,22 +143,18 @@ fn interpolation() -> impl Parser<TokenKind, ExprKind, Error = PError> + Clone {
     .labelled("interpolated string")
 }
 
-fn case(
-    expr: impl Parser<TokenKind, Expr, Error = PError> + Clone,
-) -> impl Parser<TokenKind, ExprKind, Error = PError> + Clone {
+fn case<'a>(
+    expr: impl Parser<TokenKind, Expr, Error = PError> + Clone + 'a,
+) -> impl Parser<TokenKind, ExprKind, Error = PError> + Clone + 'a {
+    // The `nickname != null => nickname,` part
+    let mapping = func_call(expr.clone())
+        .map(Box::new)
+        .then_ignore(just(TokenKind::ArrowFat))
+        .then(func_call(expr).map(Box::new))
+        .map(|(condition, value)| SwitchCase { condition, value });
+
     keyword("case")
-        .ignore_then(
-            func_call(expr.clone())
-                .map(Box::new)
-                .then_ignore(just(TokenKind::ArrowFat))
-                .then(func_call(expr).map(Box::new))
-                .map(|(condition, value)| SwitchCase { condition, value })
-                .padded_by(new_line().repeated())
-                .separated_by(ctrl(','))
-                .allow_trailing()
-                .then_ignore(new_line().repeated())
-                .delimited_by(ctrl('['), ctrl(']')),
-        )
+        .ignore_then(sequence(mapping).delimited_by(ctrl('['), ctrl(']')))
         .map(ExprKind::Case)
 }
 
@@ -261,6 +246,7 @@ where
     })
 }
 
+/// A pipeline of `expr`, separated by pipes. Doesn't require parentheses.
 pub(crate) fn pipeline<'a, E>(expr: E) -> impl Parser<TokenKind, Expr, Error = PError> + Clone + 'a
 where
     E: Parser<TokenKind, Expr, Error = PError> + Clone + 'a,
@@ -268,31 +254,32 @@ where
     // expr has to be a param, because it can be either a normal expr() or a
     // recursive expr called from within expr(), which causes a stack overflow
 
-    let pipe = ctrl('|').or(new_line().repeated().at_least(1).ignored());
-
-    new_line()
-        .repeated()
-        .ignore_then(
-            ident_part()
-                .then_ignore(ctrl('='))
-                .or_not()
-                .then(expr)
-                .map(|(alias, expr)| Expr { alias, ..expr })
-                .separated_by(pipe)
-                .at_least(1)
-                .map_with_span(|exprs, span| {
-                    // If there's only one expr, then we don't need to wrap it
-                    // in a pipeline — just return the lone expr. Otherwise,
-                    // wrap them in a pipeline.
-                    exprs.into_iter().exactly_one().unwrap_or_else(|exprs| {
-                        ExprKind::Pipeline(Pipeline {
-                            exprs: exprs.collect(),
-                        })
-                        .into_expr(span)
-                    })
-                }),
-        )
-        .then_ignore(new_line().repeated())
+    // TODO: do we need the `maybe_aliased` here rather than in `expr`? We had
+    // tried `with_doc_comment(expr)` in #4775 (and push an aliased expr into
+    // `expr`) but couldn't get it work.
+    with_doc_comment(maybe_aliased(expr))
+        .separated_by(pipe())
+        .at_least(1)
+        .map_with_span(|exprs, span| {
+            // If there's only one expr, then we don't need to wrap it
+            // in a pipeline — just return the lone expr. Otherwise,
+            // wrap them in a pipeline.
+            exprs.into_iter().exactly_one().unwrap_or_else(|exprs| {
+                ExprKind::Pipeline(Pipeline {
+                    exprs: exprs.collect(),
+                })
+                .into_expr(span)
+            })
+        })
+        .recover_with(nested_delimiters(
+            TokenKind::Control('('),
+            TokenKind::Control(')'),
+            [
+                (TokenKind::Control('['), TokenKind::Control(']')),
+                (TokenKind::Control('('), TokenKind::Control(')')),
+            ],
+            |_| Expr::new(ExprKind::Literal(Literal::Null)),
+        ))
         .labelled("pipeline")
 }
 
@@ -325,7 +312,7 @@ where
         .boxed()
 }
 
-pub fn binary_op_parser_right<'a, Term, Op>(
+pub(crate) fn binary_op_parser_right<'a, Term, Op>(
     term: Term,
     op: Op,
 ) -> impl Parser<TokenKind, Expr, Error = PError> + Clone + 'a
@@ -379,9 +366,51 @@ where
         .boxed()
 }
 
-fn func_call<E>(expr: E) -> impl Parser<TokenKind, Expr, Error = PError> + Clone
+// Can remove if we don't end up using this
+#[allow(dead_code)]
+#[cfg(not(coverage))]
+fn aliased<'a, E>(expr: E) -> impl Parser<TokenKind, Expr, Error = PError> + Clone + 'a
 where
-    E: Parser<TokenKind, Expr, Error = PError> + Clone,
+    E: Parser<TokenKind, Expr, Error = PError> + Clone + 'a,
+{
+    let aliased = ident_part()
+        .then_ignore(ctrl('='))
+        .then(expr)
+        .map(|(alias, mut expr)| {
+            expr.alias = Some(alias);
+            expr
+        });
+    // Because `expr` accounts for parentheses, and aliased is `x=$expr`, we
+    // need to allow another layer of parentheses here.
+    aliased
+        .clone()
+        .or(aliased.delimited_by(ctrl('('), ctrl(')')))
+}
+
+fn maybe_aliased<'a, E>(expr: E) -> impl Parser<TokenKind, Expr, Error = PError> + Clone + 'a
+where
+    E: Parser<TokenKind, Expr, Error = PError> + Clone + 'a,
+{
+    let aliased = ident_part()
+        .then_ignore(ctrl('='))
+        // This is added for `maybe_aliased`; possibly we should integrate
+        // the funcs
+        .or_not()
+        .then(expr)
+        .map(|(alias, mut expr)| {
+            expr.alias = alias.or(expr.alias);
+            expr
+        });
+    // Because `expr` accounts for parentheses, and aliased is `x=$expr`, we
+    // need to allow another layer of parentheses here.
+    aliased
+        .clone()
+        .or(aliased.delimited_by(ctrl('('), ctrl(')')))
+}
+
+fn func_call<'a, E>(expr: E) -> impl Parser<TokenKind, Expr, Error = PError> + Clone + 'a
+where
+    E: Parser<TokenKind, Expr, Error = PError> + Clone + 'a,
 {
     let func_name = expr.clone();
 
@@ -390,15 +419,22 @@ where
         .then_ignore(ctrl(':'))
         .then(expr.clone());
 
-    let positional_arg =
-        ident_part()
-            .then_ignore(ctrl('='))
-            .or_not()
-            .then(expr)
-            .map(|(alias, mut expr)| {
-                expr.alias = alias.or(expr.alias);
-                (None, expr)
-            });
+    // TODO: I think this possibly should be restructured. Currently in the case
+    // of `derive x = 5`, the `x` is an alias of a single positional argument.
+    // That then means we incorrectly allow something like `derive x = 5 y = 6`,
+    // since there are two positional arguments each with an alias. This then
+    // leads to quite confusing error messages.
+    //
+    // Instead, we could only allow a single alias per function call as the
+    // first positional argument? (I worry that not simple though...).
+    // Alternatively we could change the language to enforce tuples, so `derive
+    // {x = 5}` were required. But we still need to account for the `join`
+    // example below, which doesn't work so well in a tuple; so I'm not sure
+    // this helps much.
+    //
+    // As a reminder, we need to account for `derive x = 5` and `join a=artists
+    // (id==album_id)`.
+    let positional_arg = maybe_aliased(expr.clone()).map(|e| (None, e));
 
     func_name
         .then(named_arg.or(positional_arg).repeated())
@@ -413,11 +449,11 @@ where
             for (name, arg) in args {
                 if let Some(name) = name {
                     match named_args.entry(name) {
-                        std::collections::hash_map::Entry::Occupied(entry) => emit(PError::custom(
+                        Entry::Occupied(entry) => emit(PError::custom(
                             span,
                             format!("argument '{}' is used multiple times", entry.key()),
                         )),
-                        std::collections::hash_map::Entry::Vacant(entry) => {
+                        Entry::Vacant(entry) => {
                             entry.insert(arg);
                         }
                     }
@@ -436,9 +472,9 @@ where
         .labelled("function call")
 }
 
-fn lambda_func<E>(expr: E) -> impl Parser<TokenKind, Expr, Error = PError> + Clone
+fn lambda_func<'a, E>(expr: E) -> impl Parser<TokenKind, Expr, Error = PError> + Clone + 'a
 where
-    E: Parser<TokenKind, Expr, Error = PError> + Clone,
+    E: Parser<TokenKind, Expr, Error = PError> + Clone + 'a,
 {
     let param = ident_part()
         .then(type_expr().delimited_by(ctrl('<'), ctrl('>')).or_not())
@@ -539,4 +575,433 @@ fn operator_or() -> impl Parser<TokenKind, BinOp, Error = PError> + Clone {
 }
 fn operator_coalesce() -> impl Parser<TokenKind, BinOp, Error = PError> + Clone {
     just(TokenKind::Coalesce).to(BinOp::Coalesce)
+}
+
+#[cfg(test)]
+mod tests {
+
+    use insta::{assert_debug_snapshot, assert_yaml_snapshot};
+
+    use super::super::test::trim_start;
+    use crate::test::parse_with_parser;
+
+    use super::*;
+
+    #[test]
+    fn test_expr_call() {
+        assert_yaml_snapshot!(
+            parse_with_parser(r#"derive x = 5"#, trim_start().ignore_then(expr_call())).unwrap(),
+             @r###"
+        ---
+        FuncCall:
+          name:
+            Ident: derive
+            span: "0:0-6"
+          args:
+            - Literal:
+                Integer: 5
+              span: "0:11-12"
+              alias: x
+        span: "0:0-12"
+        "###);
+
+        assert_yaml_snapshot!(
+            parse_with_parser(r#"aggregate {sum salary}"#, trim_start().ignore_then(expr_call())).unwrap(),
+             @r###"
+        ---
+        FuncCall:
+          name:
+            Ident: aggregate
+            span: "0:0-9"
+          args:
+            - Tuple:
+                - FuncCall:
+                    name:
+                      Ident: sum
+                      span: "0:11-14"
+                    args:
+                      - Ident: salary
+                        span: "0:15-21"
+                  span: "0:11-21"
+              span: "0:10-22"
+        span: "0:0-22"
+        "###);
+    }
+
+    #[test]
+    fn aliased_in_expr() {
+        assert_yaml_snapshot!(
+            parse_with_parser(r#"x = 5"#, trim_start().ignore_then(expr())).unwrap(), @r###"
+        ---
+        Ident: x
+        span: "0:0-1"
+        "###);
+    }
+
+    #[test]
+    fn test_tuple() {
+        let tuple = || trim_start().ignore_then(tuple(expr()));
+        assert_yaml_snapshot!(
+            parse_with_parser(r#"{a = 5, b = 6}"#, tuple()).unwrap(),
+            @r###"
+        ---
+        Tuple:
+          - Literal:
+              Integer: 5
+            span: "0:5-6"
+            alias: a
+          - Literal:
+              Integer: 6
+            span: "0:12-13"
+            alias: b
+        "###);
+
+        assert_debug_snapshot!(
+            parse_with_parser(r#"
+            {a = 5
+             b = 6}"#, tuple()).unwrap_err(),
+            @r###"
+        [
+            Error {
+                kind: Error,
+                span: Some(
+                    0:33-34,
+                ),
+                reason: Expected {
+                    who: Some(
+                        "new line",
+                    ),
+                    expected: "}",
+                    found: "b",
+                },
+                hints: [],
+                code: None,
+            },
+        ]
+        "###);
+
+        assert_yaml_snapshot!(parse_with_parser(r#"{d_str = (d | date.to_text "%Y/%m/%d")}"#, tuple()).unwrap(),
+        @r###"
+        ---
+        Tuple:
+          - Pipeline:
+              exprs:
+                - Ident: d
+                  span: "0:10-11"
+                - FuncCall:
+                    name:
+                      Indirection:
+                        base:
+                          Ident: date
+                          span: "0:14-18"
+                        field:
+                          Name: to_text
+                      span: "0:18-26"
+                    args:
+                      - Literal:
+                          String: "%Y/%m/%d"
+                        span: "0:27-37"
+                  span: "0:14-37"
+            span: "0:10-37"
+            alias: d_str
+        "###);
+    }
+
+    #[test]
+    fn test_expr() {
+        assert_yaml_snapshot!(
+            parse_with_parser(r#"5+5"#, trim_start().ignore_then(expr())).unwrap(),
+             @r###"
+        ---
+        Binary:
+          left:
+            Literal:
+              Integer: 5
+            span: "0:0-1"
+          op: Add
+          right:
+            Literal:
+              Integer: 5
+            span: "0:2-3"
+        span: "0:0-3"
+        "###);
+    }
+
+    #[test]
+    fn test_pipeline() {
+        assert_yaml_snapshot!(
+            parse_with_parser(r#"
+            (
+              from artists
+              derive x = 5
+            )
+            "#, trim_start().ignore_then(pipeline(expr_call()))).unwrap(),
+            @r###"
+        ---
+        Pipeline:
+          exprs:
+            - FuncCall:
+                name:
+                  Ident: from
+                  span: "0:29-33"
+                args:
+                  - Ident: artists
+                    span: "0:34-41"
+              span: "0:29-41"
+            - FuncCall:
+                name:
+                  Ident: derive
+                  span: "0:56-62"
+                args:
+                  - Literal:
+                      Integer: 5
+                    span: "0:67-68"
+                    alias: x
+              span: "0:56-68"
+        span: "0:13-82"
+        "###);
+    }
+
+    #[test]
+    fn test_case() {
+        assert_yaml_snapshot!(
+            parse_with_parser(r#"
+
+        case [
+
+            nickname != null => nickname,
+            true => null
+
+        ]
+            "#, trim_start().then(case(expr()))).unwrap(),
+        @r###"
+        ---
+        - ~
+        - Case:
+            - condition:
+                Binary:
+                  left:
+                    Ident: nickname
+                    span: "0:30-38"
+                  op: Ne
+                  right:
+                    Literal: "Null"
+                    span: "0:42-46"
+                span: "0:30-46"
+              value:
+                Ident: nickname
+                span: "0:50-58"
+            - condition:
+                Literal:
+                  Boolean: true
+                span: "0:72-76"
+              value:
+                Literal: "Null"
+                span: "0:80-84"
+        "###);
+    }
+
+    // this should return an error but doesn't yet
+    #[should_panic]
+    #[test]
+    fn should_error_01() {
+        assert_debug_snapshot!(
+            parse_with_parser(r#"
+            derive {x = y z = 3}
+            "#.trim(), trim_start().ignore_then(expr_call()).then_ignore(end())).unwrap_err(),
+            @r###"
+        "###);
+    }
+
+    #[test]
+    fn tuple_missing_comma() {
+        assert_debug_snapshot!(
+            parse_with_parser(r#"
+            {
+              x = y
+              z = 3
+            }
+            "#.trim(), trim_start().ignore_then(expr_call()).then_ignore(end())).unwrap_err(),
+            @r###"
+        [
+            Error {
+                kind: Error,
+                span: Some(
+                    0:36-37,
+                ),
+                reason: Expected {
+                    who: Some(
+                        "new line",
+                    ),
+                    expected: "}",
+                    found: "z",
+                },
+                hints: [],
+                code: None,
+            },
+        ]
+        "###);
+    }
+
+    #[test]
+    fn forced_new_lines() {
+        // Not sure whether this is possible to adjust, putting a test here
+        // as a note.
+        //
+        // Check the opening new lines aren't consumed
+        assert!(parse_with_parser(
+            r#"
+            {
+            #! doc comment
+            derive x = 5
+            }
+            "#,
+            trim_start().ignore_then(tuple(expr())),
+        )
+        .is_err());
+    }
+
+    #[test]
+    fn args_in_parens() {
+        // Ensure function arguments allow parentheses
+        assert_yaml_snapshot!(
+            parse_with_parser(r#"f (a) b"#, trim_start().ignore_then(expr_call()).then_ignore(end())).unwrap(), @r###"
+        ---
+        FuncCall:
+          name:
+            Ident: f
+            span: "0:0-1"
+          args:
+            - Ident: a
+              span: "0:3-4"
+            - Ident: b
+              span: "0:6-7"
+        span: "0:0-7"
+        "###);
+
+        assert_yaml_snapshot!(
+            parse_with_parser(r#"f (a=2) b"#, trim_start().ignore_then(expr_call()).then_ignore(end())).unwrap(), @r###"
+        ---
+        FuncCall:
+          name:
+            Ident: f
+            span: "0:0-1"
+          args:
+            - Literal:
+                Integer: 2
+              span: "0:5-6"
+              alias: a
+            - Ident: b
+              span: "0:8-9"
+        span: "0:0-9"
+        "###);
+
+        assert_yaml_snapshot!(
+            parse_with_parser(r#"f (a b)"#, trim_start().ignore_then(expr_call()).then_ignore(end())).unwrap(), @r###"
+        ---
+        FuncCall:
+          name:
+            Ident: f
+            span: "0:0-1"
+          args:
+            - FuncCall:
+                name:
+                  Ident: a
+                  span: "0:3-4"
+                args:
+                  - Ident: b
+                    span: "0:5-6"
+              span: "0:3-6"
+        span: "0:0-7"
+        "###);
+    }
+
+    #[test]
+    fn pipeline_starting_with_alias_expr() {
+        let source = r#"
+    (
+      tbl
+      select t.date
+    )
+    "#;
+
+        assert_yaml_snapshot!(parse_with_parser(source, trim_start().ignore_then(pipeline(expr_call()))).unwrap(), @r###"
+        ---
+        Pipeline:
+          exprs:
+            - Ident: tbl
+              span: "0:13-16"
+            - FuncCall:
+                name:
+                  Ident: select
+                  span: "0:23-29"
+                args:
+                  - Indirection:
+                      base:
+                        Ident: t
+                        span: "0:30-31"
+                      field:
+                        Name: date
+                    span: "0:31-36"
+              span: "0:23-36"
+        span: "0:5-42"
+        "###);
+
+        let source = r#"
+    (
+      t = tbl
+      select t.date
+    )
+    "#;
+
+        assert_yaml_snapshot!(parse_with_parser(source, trim_start().ignore_then(pipeline(expr_call()))).unwrap(), @r###"
+        ---
+        Pipeline:
+          exprs:
+            - Ident: tbl
+              span: "0:17-20"
+              alias: t
+            - FuncCall:
+                name:
+                  Ident: select
+                  span: "0:27-33"
+                args:
+                  - Indirection:
+                      base:
+                        Ident: t
+                        span: "0:34-35"
+                      field:
+                        Name: date
+                    span: "0:35-40"
+              span: "0:27-40"
+        span: "0:5-46"
+        "###);
+    }
+
+    // TODO: I think this should pass...
+    #[should_panic]
+    #[test]
+    fn pipeline_starting_with_parenthesized_alias() {
+        let with_parens = parse_with_parser(
+            r#"
+        (
+          (t = tbl)
+          select t.date
+        )"#,
+            trim_start().ignore_then(pipeline(expr_call())),
+        )
+        .unwrap();
+
+        let without_parens = parse_with_parser(
+            r#"
+        (
+          t = tbl
+          select t.date
+        )"#,
+            trim_start().ignore_then(pipeline(expr_call())),
+        )
+        .unwrap();
+
+        assert_eq!(with_parens, without_parens);
+    }
 }

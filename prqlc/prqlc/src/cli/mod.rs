@@ -1,13 +1,9 @@
 #![cfg(not(target_family = "wasm"))]
 
-mod docs_generator;
-mod jinja;
-mod watch;
-
 use std::collections::HashMap;
 use std::env;
 use std::fs::File;
-use std::io::{BufWriter, Read, Write};
+use std::io::{self, BufWriter, Read, Write};
 use std::ops::Range;
 use std::path::{Path, PathBuf};
 use std::process::exit;
@@ -24,14 +20,24 @@ use clio::has_extension;
 use clio::Output;
 use is_terminal::IsTerminal;
 use itertools::Itertools;
+use schemars::schema_for;
 
 use prqlc::debug;
 use prqlc::internal::pl_to_lineage;
-use prqlc::ir::pl;
+use prqlc::ir::{pl, rq};
 use prqlc::pr;
 use prqlc::semantic;
+use prqlc::semantic::reporting::FrameCollector;
+use prqlc::utils::maybe_strip_colors;
 use prqlc::{pl_to_prql, pl_to_rq_tree, prql_to_pl, prql_to_pl_tree, prql_to_tokens, rq_to_sql};
 use prqlc::{Options, SourceTree, Target};
+
+mod docs_generator;
+mod highlight;
+mod jinja;
+#[cfg(test)]
+mod test;
+mod watch;
 
 /// Entrypoint called by [`crate::main`]
 pub fn main() -> color_eyre::eyre::Result<()> {
@@ -206,14 +212,29 @@ enum DebugCommand {
 
     /// Print info about the AST data structure
     Ast,
+
+    /// Print JSON Schema
+    JsonSchema {
+        #[arg(value_enum, long)]
+        ir_type: IntermediateRepr,
+    },
 }
 
 /// Experimental commands are prone to change
 #[derive(Subcommand, Debug, Clone)]
-pub enum ExperimentalCommand {
+enum ExperimentalCommand {
     /// Generate Markdown documentation
     #[command(name = "doc")]
-    GenerateDocs(IoArgs),
+    GenerateDocs {
+        #[command(flatten)]
+        io_args: IoArgs,
+        #[arg(value_enum, long, default_value = "markdown")]
+        format: DocsFormat,
+    },
+
+    /// Syntax highlight
+    #[command(name = "highlight")]
+    Highlight(IoArgs),
 }
 
 #[derive(clap::Args, Default, Debug, Clone)]
@@ -261,9 +282,22 @@ impl LogLevel for LoggingHelp {
 }
 
 #[derive(clap::ValueEnum, Clone, Debug)]
+enum DocsFormat {
+    Html,
+    Markdown,
+}
+
+#[derive(clap::ValueEnum, Clone, Debug)]
 enum Format {
     Json,
     Yaml,
+}
+
+#[derive(clap::ValueEnum, Clone, Debug)]
+enum IntermediateRepr {
+    Pl,
+    Rq,
+    Lineage,
 }
 
 impl Command {
@@ -307,6 +341,15 @@ impl Command {
             }
             Command::Debug(DebugCommand::Ast) => {
                 prqlc::ir::pl::print_mem_sizes();
+                Ok(())
+            }
+            Command::Debug(DebugCommand::JsonSchema { ir_type }) => {
+                let schema = match ir_type {
+                    IntermediateRepr::Pl => schema_for!(pl::ModuleDef),
+                    IntermediateRepr::Rq => schema_for!(rq::RelationalQuery),
+                    IntermediateRepr::Lineage => schema_for!(FrameCollector),
+                };
+                io::stdout().write_all(&serde_json::to_string_pretty(&schema)?.into_bytes())?;
                 Ok(())
             }
             _ => self.run_io_command(),
@@ -385,7 +428,7 @@ impl Command {
                 let root_mod = prql_to_pl(&source)?;
 
                 // resolve
-                let ctx = semantic::resolve(root_mod, Default::default())?;
+                let ctx = semantic::resolve(root_mod)?;
 
                 let frames = if let Ok((main, _)) = ctx.find_main_rel(&[]) {
                     semantic::reporting::collect_frames(*main.clone().into_relation_var().unwrap())
@@ -406,10 +449,26 @@ impl Command {
                     Format::Yaml => serde_yaml::to_string(&fc)?.into_bytes(),
                 }
             }
-            Command::Experimental(ExperimentalCommand::GenerateDocs(_)) => {
+            Command::Experimental(ExperimentalCommand::GenerateDocs { format, .. }) => {
                 let module_ref = prql_to_pl_tree(sources)?;
 
-                docs_generator::generate_markdown_docs(module_ref.stmts).into_bytes()
+                match format {
+                    DocsFormat::Html => {
+                        docs_generator::generate_html_docs(module_ref.stmts).into_bytes()
+                    }
+                    DocsFormat::Markdown => {
+                        docs_generator::generate_markdown_docs(module_ref.stmts).into_bytes()
+                    }
+                }
+            }
+            Command::Experimental(ExperimentalCommand::Highlight(_)) => {
+                let s = sources.sources.values().exactly_one().or_else(|_| {
+                    // TODO: allow multiple sources
+                    bail!("Currently `highlight` only works with a single source, but found multiple sources")
+                })?;
+                let tokens = prql_to_tokens(s)?;
+
+                maybe_strip_colors(&highlight::highlight(&tokens)).into_bytes()
             }
             Command::Compile {
                 signature_comment,
@@ -458,7 +517,8 @@ impl Command {
             | Debug(DebugCommand::Annotate(io_args) | DebugCommand::Lineage { io_args, .. }) => {
                 io_args
             }
-            Experimental(ExperimentalCommand::GenerateDocs(io_args)) => io_args,
+            Experimental(ExperimentalCommand::GenerateDocs { io_args, .. }) => io_args,
+            Experimental(ExperimentalCommand::Highlight(io_args)) => io_args,
             _ => unreachable!(),
         };
         let input = &mut io_args.input;
@@ -493,7 +553,10 @@ impl Command {
             | Debug(DebugCommand::Annotate(io_args) | DebugCommand::Lineage { io_args, .. }) => {
                 io_args.output.clone()
             }
-            Experimental(ExperimentalCommand::GenerateDocs(io_args)) => io_args.output.clone(),
+            Experimental(ExperimentalCommand::GenerateDocs { io_args, .. }) => {
+                io_args.output.clone()
+            }
+            Experimental(ExperimentalCommand::Highlight(io_args)) => io_args.output.clone(),
             _ => unreachable!(),
         };
         output.write_all(data)
@@ -751,6 +814,10 @@ sort full
         // TODO: terser output; maybe serialize span as `0..4`? Remove the
         // `!Ident` complication?
         assert_snapshot!(String::from_utf8(output).unwrap().trim(), @r###"
+        - kind: Start
+          span:
+            start: 0
+            end: 0
         - kind: !Ident from
           span:
             start: 0
@@ -790,6 +857,10 @@ sort full
         .unwrap();
 
         assert_snapshot!(String::from_utf8(output).unwrap().trim(), @r###"
+        - kind: Start
+          span:
+            start: 0
+            end: 0
         - kind: NewLine
           span:
             start: 0

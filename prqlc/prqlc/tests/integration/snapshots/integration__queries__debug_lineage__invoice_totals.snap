@@ -984,4 +984,5 @@ ast:
                 span: 1:789-791
             span: 1:784-791
         span: 1:131-791
-    span: 1:131-792
+    span: 1:130-791
+    doc_comment: ' Calculate a number of metrics about the sales of tracks in each city.'

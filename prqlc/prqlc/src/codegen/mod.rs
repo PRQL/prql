@@ -1,8 +1,8 @@
-mod ast;
-mod types;
-
 pub(crate) use ast::write_expr;
 pub(crate) use types::{write_ty, write_ty_kind};
+
+mod ast;
+mod types;
 
 pub trait WriteSource {
     /// Converts self to its source representation according to specified

@@ -8,6 +8,9 @@ coverage:
     project:
       default:
         removed_code_behavior: adjust_base
+        # This disables report a success/failure. That's not helpful on `main`
+        # and we get the success/failure from the patch status on PRs.
+        informational: true
 
     patch:
       default:

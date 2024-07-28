@@ -1,13 +1,18 @@
-use enum_as_inner::EnumAsInner;
 use serde::{Deserialize, Serialize};
 
-#[derive(Clone, PartialEq, Serialize, Deserialize, Eq)]
+use enum_as_inner::EnumAsInner;
+use schemars::JsonSchema;
+
+#[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Eq)]
+pub struct Tokens(pub Vec<Token>);
+
+#[derive(Clone, PartialEq, Serialize, Deserialize, Eq, JsonSchema)]
 pub struct Token {
     pub kind: TokenKind,
     pub span: std::ops::Range<usize>,
 }
 
-#[derive(Clone, PartialEq, Debug, Serialize, Deserialize)]
+#[derive(Clone, PartialEq, Debug, Serialize, Deserialize, JsonSchema)]
 pub enum TokenKind {
     NewLine,
 
@@ -15,9 +20,11 @@ pub enum TokenKind {
     Keyword(String),
     #[cfg_attr(
         feature = "serde_yaml",
-        serde(with = "serde_yaml::with::singleton_map")
+        serde(with = "serde_yaml::with::singleton_map"),
+        schemars(with = "Literal")
     )]
     Literal(Literal),
+    /// A parameter such as `$1`
     Param(String),
 
     Range {
@@ -62,9 +69,15 @@ pub enum TokenKind {
     // - Change the functionality. But it's very nice to be able to comment
     //   something out and have line-wraps still work.
     LineWrap(Vec<TokenKind>),
+
+    /// A token we manually insert at the start of the input, which later stages
+    /// can treat as a newline.
+    Start,
 }
 
-#[derive(Debug, EnumAsInner, PartialEq, Clone, Serialize, Deserialize, strum::AsRefStr)]
+#[derive(
+    Debug, EnumAsInner, PartialEq, Clone, Serialize, Deserialize, strum::AsRefStr, JsonSchema,
+)]
 pub enum Literal {
     Null,
     Integer(i64),
@@ -86,7 +99,7 @@ impl TokenKind {
     }
 }
 // Compound units, such as "2 days 3 hours" can be represented as `2days + 3hours`
-#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq, JsonSchema)]
 pub struct ValueAndUnit {
     pub n: i64,       // Do any DBs use floats or decimals for this?
     pub unit: String, // Could be an enum IntervalType,
@@ -221,6 +234,7 @@ impl std::fmt::Display for TokenKind {
                 }
                 Ok(())
             }
+            TokenKind::Start => write!(f, "start of input"),
         }
     }
 }
