@@ -196,15 +196,7 @@ impl<T: fmt::Display + Hash + Eq + Debug> fmt::Display for ChumError<T> {
 
 impl From<PError> for Error {
     fn from(p: PError) -> Error {
-        let mut span = p.span();
-
-        if p.found().is_none() {
-            // found end of file
-            // fix for span outside of source
-            if span.start > 0 && span.end > 0 {
-                span = span - 1;
-            }
-        }
+        let span = p.span();
 
         fn construct_parser_error(e: PError) -> Error {
             if let Some(message) = e.reason() {
