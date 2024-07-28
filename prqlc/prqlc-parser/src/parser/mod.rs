@@ -51,7 +51,7 @@ pub(crate) fn prepare_stream<'a>(
         .map(move |token| (token.kind, Span::new(source_id, token.span)));
     let eoi = Span {
         start: final_span,
-        end: final_span + 1,
+        end: final_span,
         source_id,
     };
     Stream::from_iter(eoi, tokens)
