@@ -49,10 +49,9 @@ pub(crate) fn prepare_stream<'a>(
     let tokens = semantic_tokens
         .into_iter()
         .map(move |token| (token.kind, Span::new(source_id, token.span)));
-    let len = final_span;
     let eoi = Span {
-        start: len,
-        end: len + 1,
+        start: final_span,
+        end: final_span + 1,
         source_id,
     };
     Stream::from_iter(eoi, tokens)
