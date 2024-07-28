@@ -27,7 +27,7 @@ fn test_prepare_stream() {
     let input = "from artists | filter name == 'John'";
     let tokens = lex_source(input).unwrap();
 
-    let mut stream = prepare_stream(tokens.0.into_iter(), input, 0);
+    let mut stream = prepare_stream(tokens.0, 0);
     assert_yaml_snapshot!(stream.fetch_tokens().collect::<Vec<(TokenKind, Span)>>(), @r###"
     ---
     - - Start

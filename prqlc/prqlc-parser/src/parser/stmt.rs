@@ -307,7 +307,7 @@ mod tests {
             Error {
                 kind: Error,
                 span: Some(
-                    0:80-81,
+                    0:72-73,
                 ),
                 reason: Simple(
                     "unexpected end of input",

@@ -15,7 +15,7 @@ pub(crate) fn parse_with_parser<O: Debug>(
     parser: impl Parser<TokenKind, O, Error = PError>,
 ) -> Result<O, Vec<Error>> {
     let tokens = crate::lexer::lex_source(source)?;
-    let stream = prepare_stream(tokens.0.into_iter(), source, 0);
+    let stream = prepare_stream(tokens.0, 0);
 
     // TODO: possibly should check we consume all the input? Either with an
     // end() parser or some other way (but if we add an end parser then this

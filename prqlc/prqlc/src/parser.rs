@@ -63,7 +63,7 @@ pub(crate) fn parse_source(source: &str, source_id: u16) -> Result<Vec<pr::Stmt>
     let ast = if let Some(tokens) = tokens {
         debug::log_entry(|| debug::DebugEntryKind::ReprLr(lr::Tokens(tokens.clone())));
 
-        let (ast, parse_errors) = prqlc_parser::parser::parse_lr_to_pr(source, source_id, tokens);
+        let (ast, parse_errors) = prqlc_parser::parser::parse_lr_to_pr(source_id, tokens);
         errors.extend(parse_errors);
         ast
     } else {
