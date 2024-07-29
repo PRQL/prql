@@ -781,6 +781,7 @@ pub(super) fn translate_column_sort(
             Some(false)
         },
         nulls_first: None,
+        with_fill: None,
     })
 }
 

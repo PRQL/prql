@@ -205,6 +205,7 @@ fn translate_select_pipeline(
                 )),
                 asc: None,
                 nulls_first: None,
+                with_fill: None,
             });
         }
     }
@@ -212,7 +213,10 @@ fn translate_select_pipeline(
     ctx.pop_query();
 
     Ok(sql_ast::Query {
-        order_by,
+        order_by: Some(sql_ast::OrderBy {
+            exprs: order_by,
+            interpolate: None,
+        }),
         limit,
         offset,
         fetch,
@@ -308,6 +312,7 @@ fn translate_relation_expr(relation_expr: RelationExpr, ctx: &mut Context) -> Re
                 },
                 args: None,
                 with_hints: vec![],
+                with_ordinality: false,
                 version: None,
                 partitions: vec![],
             }
@@ -556,7 +561,7 @@ fn default_query(body: sql_ast::SetExpr) -> sql_ast::Query {
     sql_ast::Query {
         with: None,
         body: Box::new(body),
-        order_by: Vec::new(),
+        order_by: None,
         limit: None,
         offset: None,
         fetch: None,
@@ -600,7 +605,7 @@ fn simple_table_alias(name: sql_ast::Ident) -> TableAlias {
 
 fn query_to_set_expr(query: sql_ast::Query, context: &mut Context) -> Box<SetExpr> {
     let is_simple = query.with.is_none()
-        && query.order_by.is_empty()
+        && query.order_by.is_none()
         && query.limit.is_none()
         && query.offset.is_none()
         && query.fetch.is_none()
