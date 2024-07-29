@@ -1,3 +1,5 @@
+//! # prqlc
+//!
 //! Compiler for PRQL language. Targets SQL and exposes PL and RQ abstract
 //! syntax trees.
 //!
@@ -31,6 +33,8 @@
 //!
 //!            SQL
 //! ```
+//!
+#![doc = include_str!("../../ARCHITECTURE.md")]
 //!
 //! ## Common use-cases
 //!

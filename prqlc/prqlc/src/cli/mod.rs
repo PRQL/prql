@@ -222,10 +222,15 @@ enum DebugCommand {
 
 /// Experimental commands are prone to change
 #[derive(Subcommand, Debug, Clone)]
-pub enum ExperimentalCommand {
+enum ExperimentalCommand {
     /// Generate Markdown documentation
     #[command(name = "doc")]
-    GenerateDocs(IoArgs),
+    GenerateDocs {
+        #[command(flatten)]
+        io_args: IoArgs,
+        #[arg(value_enum, long, default_value = "markdown")]
+        format: DocsFormat,
+    },
 
     /// Syntax highlight
     #[command(name = "highlight")]
@@ -274,6 +279,12 @@ impl LogLevel for LoggingHelp {
     fn quiet_long_help() -> Option<&'static str> {
         Some("Silences logging output")
     }
+}
+
+#[derive(clap::ValueEnum, Clone, Debug)]
+enum DocsFormat {
+    Html,
+    Markdown,
 }
 
 #[derive(clap::ValueEnum, Clone, Debug)]
@@ -438,10 +449,17 @@ impl Command {
                     Format::Yaml => serde_yaml::to_string(&fc)?.into_bytes(),
                 }
             }
-            Command::Experimental(ExperimentalCommand::GenerateDocs(_)) => {
+            Command::Experimental(ExperimentalCommand::GenerateDocs { format, .. }) => {
                 let module_ref = prql_to_pl_tree(sources)?;
 
-                docs_generator::generate_markdown_docs(module_ref.stmts).into_bytes()
+                match format {
+                    DocsFormat::Html => {
+                        docs_generator::generate_html_docs(module_ref.stmts).into_bytes()
+                    }
+                    DocsFormat::Markdown => {
+                        docs_generator::generate_markdown_docs(module_ref.stmts).into_bytes()
+                    }
+                }
             }
             Command::Experimental(ExperimentalCommand::Highlight(_)) => {
                 let s = sources.sources.values().exactly_one().or_else(|_| {
@@ -499,7 +517,7 @@ impl Command {
             | Debug(DebugCommand::Annotate(io_args) | DebugCommand::Lineage { io_args, .. }) => {
                 io_args
             }
-            Experimental(ExperimentalCommand::GenerateDocs(io_args)) => io_args,
+            Experimental(ExperimentalCommand::GenerateDocs { io_args, .. }) => io_args,
             Experimental(ExperimentalCommand::Highlight(io_args)) => io_args,
             _ => unreachable!(),
         };
@@ -535,7 +553,9 @@ impl Command {
             | Debug(DebugCommand::Annotate(io_args) | DebugCommand::Lineage { io_args, .. }) => {
                 io_args.output.clone()
             }
-            Experimental(ExperimentalCommand::GenerateDocs(io_args)) => io_args.output.clone(),
+            Experimental(ExperimentalCommand::GenerateDocs { io_args, .. }) => {
+                io_args.output.clone()
+            }
             Experimental(ExperimentalCommand::Highlight(io_args)) => io_args.output.clone(),
             _ => unreachable!(),
         };

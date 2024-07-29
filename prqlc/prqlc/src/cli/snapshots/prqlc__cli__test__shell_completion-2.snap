@@ -1,4 +1,5 @@
 ---
+source: prqlc/prqlc/src/cli/test.rs
 info:
   program: prqlc
   args:
@@ -87,6 +88,7 @@ complete -c prqlc -n "__fish_seen_subcommand_from experimental; and not __fish_s
 complete -c prqlc -n "__fish_seen_subcommand_from experimental; and not __fish_seen_subcommand_from doc; and not __fish_seen_subcommand_from highlight; and not __fish_seen_subcommand_from help" -f -a "doc" -d 'Generate Markdown documentation'
 complete -c prqlc -n "__fish_seen_subcommand_from experimental; and not __fish_seen_subcommand_from doc; and not __fish_seen_subcommand_from highlight; and not __fish_seen_subcommand_from help" -f -a "highlight" -d 'Syntax highlight'
 complete -c prqlc -n "__fish_seen_subcommand_from experimental; and not __fish_seen_subcommand_from doc; and not __fish_seen_subcommand_from highlight; and not __fish_seen_subcommand_from help" -f -a "help" -d 'Print this message or the help of the given subcommand(s)'
+complete -c prqlc -n "__fish_seen_subcommand_from experimental; and __fish_seen_subcommand_from doc" -l format -r -f -a "{html	'',markdown	''}"
 complete -c prqlc -n "__fish_seen_subcommand_from experimental; and __fish_seen_subcommand_from doc" -l color -d 'Controls when to use color' -r -f -a "{auto	'',always	'',never	''}"
 complete -c prqlc -n "__fish_seen_subcommand_from experimental; and __fish_seen_subcommand_from doc" -s v -l verbose -d 'Increase logging verbosity'
 complete -c prqlc -n "__fish_seen_subcommand_from experimental; and __fish_seen_subcommand_from doc" -s q -l quiet -d 'Silences logging output'

@@ -1,4 +1,4 @@
-# PRQL Compiler Architecture
+# prqlc Architecture
 
 The PRQL compiler operates in the following stages:
 
@@ -13,8 +13,8 @@ The PRQL compiler operates in the following stages:
 | sql      | preprocess   | RQ                                    |
 | sql      | pq-compiler  | RQ -> _PQ — Partitioned Query_        |
 | sql      | postprocess  | PQ                                    |
-| sql      | sql-compiler | PQ -> sqlparser::ast                  |
-| sql      | codegen      | sqlparser::ast -> string              |
+| sql      | sql-compiler | PQ -> `sqlparser::ast`                |
+| sql      | codegen      | `sqlparser::ast` -> string            |
 
 1. **Lexing & Parsing**: PRQL source text is split into tokens with the Chumsky
    parser named "lexer". The stream of tokens, as Lexer Representation (LR), is
