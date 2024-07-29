@@ -40,7 +40,7 @@ test-dbs-external = ["mysql", "pg_bigdecimal", "postgres", "test-dbs", "tiberius
 [dependencies]
 prqlc-parser = {path = "../prqlc-parser", version = "0.13.1" }
 
-anstream = {version = "0.6.14", features = ["auto"]}
+anstream = {version = "0.6.15", features = ["auto"]}
 ariadne = "0.4.1"
 chrono = "0.4.38"
 csv = "1.3.0"
