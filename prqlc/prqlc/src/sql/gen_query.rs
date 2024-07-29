@@ -213,10 +213,14 @@ fn translate_select_pipeline(
     ctx.pop_query();
 
     Ok(sql_ast::Query {
-        order_by: Some(sql_ast::OrderBy {
-            exprs: order_by,
-            interpolate: None,
-        }),
+        order_by: if order_by.is_empty() {
+            None
+        } else {
+            Some(sql_ast::OrderBy {
+                exprs: order_by,
+                interpolate: None,
+            })
+        },
         limit,
         offset,
         fetch,
