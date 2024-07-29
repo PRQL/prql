@@ -106,6 +106,7 @@ pub enum IndirectionKind {
     Star,
 }
 
+/// Expression with two operands and an operator, such as `1 + 2`.
 #[derive(Debug, PartialEq, Clone, Serialize, Deserialize, JsonSchema)]
 pub struct BinaryExpr {
     pub left: Box<Expr>,
@@ -113,6 +114,7 @@ pub struct BinaryExpr {
     pub right: Box<Expr>,
 }
 
+/// Expression with one operand and an operator, such as `-1`.
 #[derive(Debug, PartialEq, Clone, Serialize, Deserialize, JsonSchema)]
 pub struct UnaryExpr {
     pub op: UnOp,

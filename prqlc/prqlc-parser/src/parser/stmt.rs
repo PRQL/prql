@@ -5,18 +5,19 @@ use itertools::Itertools;
 use semver::VersionReq;
 
 use super::expr::{expr, expr_call, ident, pipeline};
-use super::{ctrl, ident_part, into_stmt, keyword, new_line, with_doc_comment};
+use super::{ctrl, ident_part, into_stmt, keyword, new_line, pipe, with_doc_comment};
 use crate::lexer::lr::{Literal, TokenKind};
 use crate::parser::perror::PError;
 use crate::parser::pr::*;
 use crate::parser::types::type_expr;
 
+/// The top-level parser for a PRQL file
 pub fn source() -> impl Parser<TokenKind, Vec<Stmt>, Error = PError> {
     with_doc_comment(query_def())
         .or_not()
         .chain(module_contents())
         // This is the only instance we can consume newlines at the end of something, since
-        // this is the end of the module
+        // this is the end of the file
         .then_ignore(new_line().repeated())
         .then_ignore(end())
 }
@@ -35,8 +36,7 @@ fn module_contents() -> impl Parser<TokenKind, Vec<Stmt>, Error = PError> {
 
         let annotation = new_line()
             .repeated()
-            // TODO: we could enforce annotations starting on a new line?
-            // .at_least(1)
+            .at_least(1)
             .ignore_then(
                 just(TokenKind::Annotate)
                     .ignore_then(expr())
@@ -50,7 +50,7 @@ fn module_contents() -> impl Parser<TokenKind, Vec<Stmt>, Error = PError> {
         // line that should't be; e.g. `let foo = 5 let bar = 6`. We can't
         // enforce a new line here because then `module two {let houses =
         // both.alike}` fails (though we could force a new line after the
-        // `module` if that were helpful)
+        // `module` if we wanted to?)
         //
         // let stmt_kind = new_line().repeated().at_least(1).ignore_then(choice((
         let stmt_kind = new_line().repeated().ignore_then(choice((
@@ -142,6 +142,10 @@ fn query_def() -> impl Parser<TokenKind, Stmt, Error = PError> + Clone {
         .labelled("query header")
 }
 
+/// A variable definition could be any of:
+/// - `let foo = 5`
+/// - `from artists` — captured as a "main"
+/// - `from artists | into x` — captured as an "into"`
 fn var_def() -> impl Parser<TokenKind, StmtKind, Error = PError> + Clone {
     let let_ = new_line()
         .repeated()
@@ -159,11 +163,12 @@ fn var_def() -> impl Parser<TokenKind, StmtKind, Error = PError> + Clone {
         })
         .labelled("variable definition");
 
-    let main_or_into = pipeline(expr_call())
+    let main_or_into = new_line()
+        .repeated()
+        .ignore_then(pipeline(expr_call()))
         .map(Box::new)
         .then(
-            new_line()
-                .repeated()
+            pipe()
                 .ignore_then(keyword("into").ignore_then(ident_part()))
                 .or_not(),
         )
@@ -181,10 +186,7 @@ fn var_def() -> impl Parser<TokenKind, StmtKind, Error = PError> + Clone {
                 value: Some(value),
                 ty: None,
             })
-        })
-        // TODO: this isn't really accurate, since a standard `from artists`
-        // also counts as this; we should change
-        .labelled("variable definition");
+        });
 
     let_.or(main_or_into)
 }
@@ -207,7 +209,7 @@ fn import_def() -> impl Parser<TokenKind, StmtKind, Error = PError> + Clone {
 
 #[cfg(test)]
 mod tests {
-    use insta::assert_yaml_snapshot;
+    use insta::{assert_debug_snapshot, assert_yaml_snapshot};
 
     use super::*;
     use crate::test::parse_with_parser;
@@ -240,6 +242,140 @@ mod tests {
               span: "0:49-61"
           span: "0:26-61"
         "###);
+    }
+
+    #[test]
+    fn into() {
+        assert_yaml_snapshot!(parse_with_parser(r#"
+            from artists
+            into x
+        "#, var_def()).unwrap(), @r###"
+        ---
+        VarDef:
+          kind: Into
+          name: x
+          value:
+            FuncCall:
+              name:
+                Ident: from
+                span: "0:13-17"
+              args:
+                - Ident: artists
+                  span: "0:18-25"
+            span: "0:13-25"
+        "###);
+
+        assert_yaml_snapshot!(parse_with_parser(r#"
+            from artists | into x
+        "#, var_def()).unwrap(), @r###"
+        ---
+        VarDef:
+          kind: Into
+          name: x
+          value:
+            FuncCall:
+              name:
+                Ident: from
+                span: "0:13-17"
+              args:
+                - Ident: artists
+                  span: "0:18-25"
+            span: "0:13-25"
+        "###);
+    }
+
+    #[test]
+    fn let_into() {
+        assert_debug_snapshot!(parse_with_parser(r#"
+        let y = (
+            from artists
+            into x
+        )
+        "#, module_contents().then_ignore(end())).unwrap_err(), @r###"
+        [
+            Error {
+                kind: Error,
+                span: Some(
+                    0:56-60,
+                ),
+                reason: Simple(
+                    "unexpected keyword into while parsing pipeline",
+                ),
+                hints: [],
+                code: None,
+            },
+            Error {
+                kind: Error,
+                span: Some(
+                    0:80-81,
+                ),
+                reason: Simple(
+                    "unexpected end of input",
+                ),
+                hints: [],
+                code: None,
+            },
+        ]
+        "###);
+    }
+
+    #[test]
+    fn test_module() {
+        let parse_module = |s| parse_with_parser(s, module_contents()).unwrap();
+
+        let module_ast = parse_module(
+            r#"
+          module hello {
+            let world = 1
+            let man = module.world
+          }
+        "#,
+        );
+
+        assert_yaml_snapshot!(module_ast, @r###"
+        ---
+        - ModuleDef:
+            name: hello
+            stmts:
+              - VarDef:
+                  kind: Let
+                  name: world
+                  value:
+                    Literal:
+                      Integer: 1
+                    span: "0:50-51"
+                span: "0:25-51"
+              - VarDef:
+                  kind: Let
+                  name: man
+                  value:
+                    Indirection:
+                      base:
+                        Ident: module
+                        span: "0:74-80"
+                      field:
+                        Name: world
+                    span: "0:74-86"
+                span: "0:51-86"
+          span: "0:0-98"
+        "###);
+
+        // Check this parses OK. (We tried comparing it to the AST of the result
+        // above, but the span information was different, so we just check it.
+        // Would be nice to be able to strip spans...)
+        parse_module(
+            r#"
+
+          module hello {
+
+
+            let world = 1
+
+            let man = module.world
+
+          }
+        "#,
+        );
     }
 
     #[test]
@@ -301,7 +437,7 @@ mod tests {
     }
 
     #[test]
-    fn test_doc_comment_module() {
+    fn doc_comment_module() {
         assert_yaml_snapshot!(parse_with_parser(r#"
 
         #! first doc comment
@@ -365,6 +501,126 @@ mod tests {
               span: "0:103-111"
           span: "0:94-111"
           doc_comment: " second doc comment"
+        "###);
+    }
+
+    #[test]
+    fn doc_comment_inline_module() {
+        // Check the newline doesn't get eated by the `{}` of the module
+        // TODO: could give a better error when we forget the module name
+        assert_yaml_snapshot!(parse_with_parser(r#"
+        module bar {
+          #! first doc comment
+          from foo
+        }
+        "#, module_contents()).unwrap(), @r###"
+        ---
+        - ModuleDef:
+            name: bar
+            stmts:
+              - VarDef:
+                  kind: Main
+                  name: main
+                  value:
+                    FuncCall:
+                      name:
+                        Ident: from
+                        span: "0:63-67"
+                      args:
+                        - Ident: foo
+                          span: "0:68-71"
+                    span: "0:63-71"
+                span: "0:52-71"
+                doc_comment: " first doc comment"
+          span: "0:0-81"
+        "###);
+    }
+
+    #[test]
+    fn lambdas() {
+        assert_yaml_snapshot!(parse_with_parser(r#"
+        let first = column <array> -> internal std.first
+        "#, module_contents()).unwrap(), @r###"
+        ---
+        - VarDef:
+            kind: Let
+            name: first
+            value:
+              Func:
+                return_ty: ~
+                body:
+                  Internal: std.first
+                  span: "0:39-57"
+                params:
+                  - name: column
+                    ty:
+                      kind:
+                        Ident:
+                          - array
+                      span: "0:29-34"
+                      name: ~
+                    default_value: ~
+                named_params: []
+                generic_type_params: []
+              span: "0:21-57"
+          span: "0:0-57"
+        "###);
+
+        assert_yaml_snapshot!(parse_with_parser(r#"
+      module defs {
+        let first = column <array> -> internal std.first
+        let last  = column <array> -> internal std.last
+    }
+        "#, module_contents()).unwrap(), @r###"
+        ---
+        - ModuleDef:
+            name: defs
+            stmts:
+              - VarDef:
+                  kind: Let
+                  name: first
+                  value:
+                    Func:
+                      return_ty: ~
+                      body:
+                        Internal: std.first
+                        span: "0:59-77"
+                      params:
+                        - name: column
+                          ty:
+                            kind:
+                              Ident:
+                                - array
+                            span: "0:49-54"
+                            name: ~
+                          default_value: ~
+                      named_params: []
+                      generic_type_params: []
+                    span: "0:41-77"
+                span: "0:20-77"
+              - VarDef:
+                  kind: Let
+                  name: last
+                  value:
+                    Func:
+                      return_ty: ~
+                      body:
+                        Internal: std.last
+                        span: "0:116-133"
+                      params:
+                        - name: column
+                          ty:
+                            kind:
+                              Ident:
+                                - array
+                            span: "0:106-111"
+                            name: ~
+                          default_value: ~
+                      named_params: []
+                      generic_type_params: []
+                    span: "0:98-133"
+                span: "0:77-133"
+          span: "0:0-139"
         "###);
     }
 }

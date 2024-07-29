@@ -1,7 +1,7 @@
 name: prqlc
 title: PRQL Compiler
 base: core22
-version: "0.12.2"
+version: "0.13.1"
 summary: CLI for PRQL, a modern language for transforming data
 description: |
   prqlc is the CLI for the PRQL compiler. It compiles PRQL to SQL, and offers various diagnostics.
@@ -12,7 +12,7 @@ source-code: https://github.com/PRQL/prql
 contact: https://twitter.com/prql_lang
 website: https://prql-lang.org/
 license: Apache-2.0
-grade: devel # must be 'stable' to release into candidate/stable channels
+grade: stable
 confinement: strict
 icon: web/website/static/img/icon.svg
 

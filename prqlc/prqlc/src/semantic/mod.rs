@@ -28,7 +28,7 @@ pub fn resolve_and_lower(
     main_path: &[String],
     database_module_path: Option<&[String]>,
 ) -> Result<RelationalQuery> {
-    let root_mod = resolve(file_tree, Default::default())?;
+    let root_mod = resolve(file_tree)?;
 
     debug::log_stage(debug::Stage::Semantic(debug::StageSemantic::Lowering));
     let default_db = [NS_DEFAULT_DB.to_string()];
@@ -40,7 +40,7 @@ pub fn resolve_and_lower(
 }
 
 /// Runs semantic analysis on the query.
-pub fn resolve(mut module_tree: pr::ModuleDef, options: ResolverOptions) -> Result<RootModule> {
+pub fn resolve(mut module_tree: pr::ModuleDef) -> Result<RootModule> {
     load_std_lib(&mut module_tree);
 
     // expand AST into PL
@@ -53,7 +53,7 @@ pub fn resolve(mut module_tree: pr::ModuleDef, options: ResolverOptions) -> Resu
         module: Module::new_root(),
         ..Default::default()
     };
-    let mut resolver = Resolver::new(&mut root_module, options);
+    let mut resolver = Resolver::new(&mut root_module);
 
     // resolve the module def into the root module
     debug::log_stage(debug::Stage::Semantic(debug::StageSemantic::Resolver));
@@ -86,7 +86,7 @@ pub fn load_std_lib(module_tree: &mut pr::ModuleDef) {
 }
 
 pub fn static_eval(expr: Expr, root_mod: &mut RootModule) -> Result<ConstExpr> {
-    let mut resolver = Resolver::new(root_mod, ResolverOptions::default());
+    let mut resolver = Resolver::new(root_mod);
 
     resolver.static_eval_to_constant(expr)
 }
@@ -183,7 +183,7 @@ pub mod test {
 
     pub fn parse_and_resolve(query: &str) -> Result<RootModule, Errors> {
         let source_tree = query.into();
-        Ok(resolve(parse(&source_tree)?, Default::default())?)
+        Ok(resolve(parse(&source_tree)?)?)
     }
 
     #[test]

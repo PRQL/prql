@@ -31,7 +31,7 @@ fn parse_and_compile(source_tree: &SourceTree) -> Result<ProjectCompiled, ErrorM
 
     // parse and resolve
     let ast_tree = prqlc::prql_to_pl_tree(source_tree)?;
-    let mut root_module = semantic::resolve(ast_tree, Default::default())?;
+    let mut root_module = semantic::resolve(ast_tree)?;
 
     // find the database module
     let database_module = find_database_module(&mut root_module)?;

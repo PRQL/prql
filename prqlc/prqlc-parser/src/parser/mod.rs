@@ -61,7 +61,7 @@ pub(crate) fn prepare_stream(
     Stream::from_iter(eoi, tokens)
 }
 
-pub(crate) fn ident_part() -> impl Parser<TokenKind, String, Error = PError> + Clone {
+fn ident_part() -> impl Parser<TokenKind, String, Error = PError> + Clone {
     select! {
         TokenKind::Ident(ident) => ident,
         TokenKind::Keyword(ident) if &ident == "module" => ident,
@@ -75,7 +75,7 @@ pub(crate) fn ident_part() -> impl Parser<TokenKind, String, Error = PError> + C
     })
 }
 
-pub(crate) fn keyword(kw: &'static str) -> impl Parser<TokenKind, (), Error = PError> + Clone {
+fn keyword(kw: &'static str) -> impl Parser<TokenKind, (), Error = PError> + Clone {
     just(TokenKind::Keyword(kw.to_string())).ignored()
 }
 
@@ -92,11 +92,11 @@ pub(crate) fn new_line() -> impl Parser<TokenKind, (), Error = PError> + Clone {
         .labelled("new line")
 }
 
-pub(crate) fn ctrl(char: char) -> impl Parser<TokenKind, (), Error = PError> + Clone {
+fn ctrl(char: char) -> impl Parser<TokenKind, (), Error = PError> + Clone {
     just(TokenKind::Control(char)).ignored()
 }
 
-pub(crate) fn into_stmt((annotations, kind): (Vec<Annotation>, StmtKind), span: Span) -> Stmt {
+fn into_stmt((annotations, kind): (Vec<Annotation>, StmtKind), span: Span) -> Stmt {
     Stmt {
         kind,
         span: Some(span),
@@ -105,12 +105,12 @@ pub(crate) fn into_stmt((annotations, kind): (Vec<Annotation>, StmtKind), span: 
     }
 }
 
-pub(crate) fn doc_comment() -> impl Parser<TokenKind, String, Error = PError> + Clone {
+fn doc_comment() -> impl Parser<TokenKind, String, Error = PError> + Clone {
     // doc comments must start on a new line, so we enforce a new line (which
     // can also be a file start) before the doc comment
     //
     // TODO: we currently lose any empty newlines between doc comments;
-    // eventually we want to retain them
+    // eventually we want to retain or restrict them
     (new_line().repeated().at_least(1).ignore_then(select! {
         TokenKind::DocComment(dc) => dc,
     }))
@@ -121,9 +121,7 @@ pub(crate) fn doc_comment() -> impl Parser<TokenKind, String, Error = PError> + 
     .labelled("doc comment")
 }
 
-pub(crate) fn with_doc_comment<'a, P, O>(
-    parser: P,
-) -> impl Parser<TokenKind, O, Error = PError> + Clone + 'a
+fn with_doc_comment<'a, P, O>(parser: P) -> impl Parser<TokenKind, O, Error = PError> + Clone + 'a
 where
     P: Parser<TokenKind, O, Error = PError> + Clone + 'a,
     O: SupportsDocComment + 'a,
@@ -137,16 +135,15 @@ where
 /// Allows us to surround a parser by `with_doc_comment` and for a doc comment
 /// to be added to the result, as long as the result implements `SupportsDocComment`.
 ///
-/// We could manage without it tbh,
-pub(crate) trait SupportsDocComment {
+/// (In retrospect, we could manage without it, though probably not worth the
+/// effort to remove it. We could also use it to also support Span items.)
+trait SupportsDocComment {
     fn with_doc_comment(self, doc_comment: Option<String>) -> Self;
 }
 
 /// Parse a sequence, allowing commas and new lines between items. Doesn't
 /// include the surrounding delimiters.
-pub(crate) fn sequence<'a, P, O>(
-    parser: P,
-) -> impl Parser<TokenKind, Vec<O>, Error = PError> + Clone + 'a
+fn sequence<'a, P, O>(parser: P) -> impl Parser<TokenKind, Vec<O>, Error = PError> + Clone + 'a
 where
     P: Parser<TokenKind, O, Error = PError> + Clone + 'a,
     O: 'a,
@@ -154,7 +151,24 @@ where
     parser
         .separated_by(ctrl(',').then_ignore(new_line().repeated()))
         .allow_trailing()
+        // Note because we pad rather than only take the ending new line, we
+        // can't put items that require a new line in a tuple, like:
+        //
+        // ```
+        // {
+        //   !# doc comment
+        //   a,
+        // }
+        // ```
+        // ...but I'm not sure there's a way around it, since we do need to
+        // consume newlines in tuples...
         .padded_by(new_line().repeated())
+}
+
+fn pipe() -> impl Parser<TokenKind, (), Error = PError> + Clone {
+    ctrl('|')
+        .ignored()
+        .or(new_line().repeated().at_least(1).ignored())
 }
 
 #[cfg(test)]

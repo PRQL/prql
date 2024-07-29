@@ -75,7 +75,7 @@ fn test_stdlib_math_module() {
       salary_asin = math.asin salary,
       salary_tan = math.tan salary,
       salary_atan = math.atan salary,
-      salary_pow = salary | math.pow 2,
+      salary_pow = (salary | math.pow 2),
       salary_pow_op = salary ** 2,
     }
     "#).unwrap(), @r###"
@@ -129,7 +129,7 @@ fn test_stdlib_math_module_mssql() {
     salary_asin = math.asin salary,
     salary_tan = math.tan salary,
     salary_atan = math.atan salary,
-    salary_pow = salary | math.pow 2,
+    salary_pow = (salary | math.pow 2),
   }
   "#).unwrap(), @r#"
   SELECT
@@ -162,17 +162,17 @@ fn test_stdlib_text_module() {
     assert_snapshot!(compile(r#"
     from employees
     select {
-      name_lower = name | text.lower,
-      name_upper = name | text.upper,
-      name_ltrim = name | text.ltrim,
-      name_rtrim = name | text.rtrim,
-      name_trim = name | text.trim,
-      name_length = name | text.length,
-      name_extract = name | text.extract 3 5,
-      name_replace = name | text.replace "pika" "chu",
-      name_starts_with = name | text.starts_with "pika",
-      name_contains = name | text.contains "pika",
-      name_ends_with = name | text.ends_with "pika",
+      name_lower = (name | text.lower),
+      name_upper = (name | text.upper),
+      name_ltrim = (name | text.ltrim),
+      name_rtrim = (name | text.rtrim),
+      name_trim = (name | text.trim),
+      name_length = (name | text.length),
+      name_extract = (name | text.extract 3 5),
+      name_replace = (name | text.replace "pika" "chu"),
+      name_starts_with = (name | text.starts_with "pika"),
+      name_contains = (name | text.contains "pika"),
+      name_ends_with = (name | text.ends_with "pika"),
     }
     "#).unwrap(), @r###"
     SELECT
@@ -200,7 +200,7 @@ fn like_concat(#[case] dialect: sql::Dialect, #[case] expected_like: &'static st
     let query = r#"
   from employees
   select {
-    name_ends_with = name | text.contains "pika",
+    name_ends_with = (name | text.contains "pika"),
   }
   "#;
     let expected = format!(
@@ -233,7 +233,7 @@ fn date_to_text_operator(
     let query = r#"
     from invoices
     select {
-      invoice_date = invoice_date | date.to_text "%d/%m/%Y"
+      invoice_date = (invoice_date | date.to_text "%d/%m/%Y")
     }"#;
     let expected = format!(
         r#"
@@ -1151,7 +1151,7 @@ fn test_ranges() {
       close = (distance | in ..50),
       middle = (distance | in 50..100),
       far = (distance | in 100..),
-      country_founding | in @1776-07-04..@1787-09-17
+      (country_founding | in @1776-07-04..@1787-09-17)
     }
     "###).unwrap()), @r###"
     SELECT
@@ -4453,7 +4453,7 @@ fn prql_version() {
     "#).unwrap(),@r###"
     SELECT
       *,
-      '0.12.3' AS y
+      '0.13.1' AS y
     FROM
       x
     "###);
@@ -4464,7 +4464,7 @@ fn shortest_prql_version() {
     assert_snapshot!(compile(r#"[{version = prql.version}]"#).unwrap(),@r###"
     WITH table_0 AS (
       SELECT
-        '0.12.3' AS version
+        '0.13.1' AS version
     )
     SELECT
       version

@@ -26,8 +26,6 @@ pub struct Resolver<'a> {
 
     pub id: IdGenerator<usize>,
 
-    pub options: ResolverOptions,
-
     pub generics: HashMap<(usize, String), Vec<crate::pr::Ty>>,
 }
 
@@ -35,10 +33,9 @@ pub struct Resolver<'a> {
 pub struct ResolverOptions {}
 
 impl Resolver<'_> {
-    pub fn new(root_mod: &mut RootModule, options: ResolverOptions) -> Resolver {
+    pub fn new(root_mod: &mut RootModule) -> Resolver {
         Resolver {
             root_mod,
-            options,
             current_module_path: Vec::new(),
             default_namespace: None,
             in_func_call_name: false,

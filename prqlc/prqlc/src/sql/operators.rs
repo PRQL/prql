@@ -26,8 +26,7 @@ fn std() -> &'static decl::Module {
             None,
         );
         let ast = crate::parser::parse(&std_lib).unwrap();
-        let options = semantic::ResolverOptions {};
-        let context = semantic::resolve(ast, options).unwrap();
+        let context = semantic::resolve(ast).unwrap();
 
         context.module
     })

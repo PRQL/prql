@@ -15,8 +15,8 @@ proc-macro = true
 test = false
 
 [dependencies]
-prqlc = {path = "../prqlc", default-features = false, version = "0.12.3"}
-syn = "2.0.69"
+prqlc = {path = "../prqlc", default-features = false, version = "0.13.1" }
+syn = "2.0.72"
 
 [package.metadata.release]
 tag-name = "{{version}}"

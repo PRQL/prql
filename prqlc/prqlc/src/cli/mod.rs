@@ -1,9 +1,5 @@
 #![cfg(not(target_family = "wasm"))]
 
-mod docs_generator;
-mod jinja;
-mod watch;
-
 use std::collections::HashMap;
 use std::env;
 use std::fs::File;
@@ -32,8 +28,16 @@ use prqlc::ir::{pl, rq};
 use prqlc::pr;
 use prqlc::semantic;
 use prqlc::semantic::reporting::FrameCollector;
+use prqlc::utils::maybe_strip_colors;
 use prqlc::{pl_to_prql, pl_to_rq_tree, prql_to_pl, prql_to_pl_tree, prql_to_tokens, rq_to_sql};
 use prqlc::{Options, SourceTree, Target};
+
+mod docs_generator;
+mod highlight;
+mod jinja;
+#[cfg(test)]
+mod test;
+mod watch;
 
 /// Entrypoint called by [`crate::main`]
 pub fn main() -> color_eyre::eyre::Result<()> {
@@ -222,6 +226,10 @@ pub enum ExperimentalCommand {
     /// Generate Markdown documentation
     #[command(name = "doc")]
     GenerateDocs(IoArgs),
+
+    /// Syntax highlight
+    #[command(name = "highlight")]
+    Highlight(IoArgs),
 }
 
 #[derive(clap::Args, Default, Debug, Clone)]
@@ -409,7 +417,7 @@ impl Command {
                 let root_mod = prql_to_pl(&source)?;
 
                 // resolve
-                let ctx = semantic::resolve(root_mod, Default::default())?;
+                let ctx = semantic::resolve(root_mod)?;
 
                 let frames = if let Ok((main, _)) = ctx.find_main_rel(&[]) {
                     semantic::reporting::collect_frames(*main.clone().into_relation_var().unwrap())
@@ -434,6 +442,15 @@ impl Command {
                 let module_ref = prql_to_pl_tree(sources)?;
 
                 docs_generator::generate_markdown_docs(module_ref.stmts).into_bytes()
+            }
+            Command::Experimental(ExperimentalCommand::Highlight(_)) => {
+                let s = sources.sources.values().exactly_one().or_else(|_| {
+                    // TODO: allow multiple sources
+                    bail!("Currently `highlight` only works with a single source, but found multiple sources")
+                })?;
+                let tokens = prql_to_tokens(s)?;
+
+                maybe_strip_colors(&highlight::highlight(&tokens)).into_bytes()
             }
             Command::Compile {
                 signature_comment,
@@ -483,6 +500,7 @@ impl Command {
                 io_args
             }
             Experimental(ExperimentalCommand::GenerateDocs(io_args)) => io_args,
+            Experimental(ExperimentalCommand::Highlight(io_args)) => io_args,
             _ => unreachable!(),
         };
         let input = &mut io_args.input;
@@ -518,6 +536,7 @@ impl Command {
                 io_args.output.clone()
             }
             Experimental(ExperimentalCommand::GenerateDocs(io_args)) => io_args.output.clone(),
+            Experimental(ExperimentalCommand::Highlight(io_args)) => io_args.output.clone(),
             _ => unreachable!(),
         };
         output.write_all(data)

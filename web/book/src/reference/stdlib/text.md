@@ -16,12 +16,12 @@ These are all the functions defined in the `text` module:
 | trim        | `col`                  | Removes all the whitespaces from both sides of `col`                          |
 | upper       | `col`                  | Converts `col` to upper case                                                  |
 
-### Example
+## Example
 
 ```prql
 from employees
 select {
-  last_name | text.lower | text.starts_with("a"),
-  title | text.replace "manager" "chief"
+  (last_name | text.lower | text.starts_with("a")),
+  (title | text.replace "manager" "chief"),
 }
 ```
