@@ -32,7 +32,7 @@ strum = {version = "0.26.3", features = ["std", "derive"]}
 strum_macros = "0.26.4"
 
 [target.'cfg(not(target_family="wasm"))'.dev-dependencies]
-anstream = {version = "0.6.14"}
+anstream = {version = "0.6.15"}
 globset = "0.4.14"
 insta = {workspace = true}
 log = {workspace = true}
