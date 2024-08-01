@@ -134,7 +134,20 @@ pub type Result<T, E = Error> = core::result::Result<T, E>;
 pub fn compiler_version() -> &'static Version {
     static COMPILER_VERSION: OnceLock<Version> = OnceLock::new();
     COMPILER_VERSION.get_or_init(|| {
-        Version::parse(env!("CARGO_PKG_VERSION")).expect("Invalid prqlc version number")
+        let git_version = env!("VERGEN_GIT_DESCRIBE");
+        let cargo_version = env!("CARGO_PKG_VERSION");
+        Version::parse(git_version).unwrap_or_else(|e| {
+            {
+                eprintln!("Could not parse git version number {}\n{}", git_version, e);
+                Version::parse(cargo_version)
+            }
+            .unwrap_or_else(|e| {
+                panic!(
+                    "Could not parse prqlc version number {}\n{}",
+                    cargo_version, e
+                )
+            })
+        })
     })
 }
 

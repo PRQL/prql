@@ -22,6 +22,7 @@ use is_terminal::IsTerminal;
 use itertools::Itertools;
 use schemars::schema_for;
 
+use prqlc::compiler_version;
 use prqlc::debug;
 use prqlc::internal::pl_to_lineage;
 use prqlc::ir::{pl, rq};
@@ -86,8 +87,16 @@ struct Cli {
     verbose: clap_verbosity_flag::Verbosity<LoggingHelp>,
 }
 
+/// This seems to be required because passing `compiler_version()` directly to
+/// `command` fails because it's not a string, and we can't seem to convert it
+/// to a string inline.
+pub fn compiler_version_str() -> &'static str {
+    static COMPILER_VERSION: std::sync::OnceLock<String> = std::sync::OnceLock::new();
+    COMPILER_VERSION.get_or_init(|| compiler_version().to_string())
+}
+
 #[derive(Subcommand, Debug, Clone)]
-#[command(name = env!("CARGO_PKG_NAME"), about, version)]
+#[command(name = env!("CARGO_PKG_NAME"), about, version=compiler_version_str())]
 enum Command {
     /// Parse into PL AST
     Parse {
