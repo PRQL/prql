@@ -131,11 +131,11 @@ pub(crate) mod utils;
 
 pub type Result<T, E = Error> = core::result::Result<T, E>;
 
-/// Get the version of the compiler. This is determined by, in order:
+/// Get the version of the compiler. This is determined by the first of:
 /// - An optional environment variable `PRQL_VERSION_OVERRIDE`. Note that this
-///   needs to be set the first time this function is called, since it's stored
-///   in a static.
-/// - The version defined by `git describe`
+///   needs to be set before the first time this function is called, since it's
+///   stored in a static. It's primarily useful for testing.
+/// - The version returned by `git describe --tags`
 /// - The version in the cargo manifest
 pub fn compiler_version() -> &'static Version {
     static COMPILER_VERSION: OnceLock<Version> = OnceLock::new();
