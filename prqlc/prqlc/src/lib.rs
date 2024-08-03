@@ -150,18 +150,17 @@ pub fn compiler_version() -> &'static Version {
         }
         let git_version = env!("VERGEN_GIT_DESCRIBE");
         let cargo_version = env!("CARGO_PKG_VERSION");
-        Version::parse(git_version).unwrap_or_else(|e| {
-            {
+        Version::parse(git_version)
+            .or_else(|e| {
                 log::info!("Could not parse git version number {}\n{}", git_version, e);
                 Version::parse(cargo_version)
-            }
+            })
             .unwrap_or_else(|e| {
                 panic!(
                     "Could not parse prqlc version number {}\n{}",
                     cargo_version, e
                 )
             })
-        })
     })
 }
 
