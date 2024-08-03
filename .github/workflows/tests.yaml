@@ -67,7 +67,7 @@ jobs:
       - name: 📂 Checkout code
         uses: actions/checkout@v4
         with:
-          fetch_tags: true
+          fetch-tags: true
       - uses: dorny/paths-filter@v3
         id: changes
         with:

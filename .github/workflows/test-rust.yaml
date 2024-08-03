@@ -34,7 +34,7 @@ jobs:
       - name: 📂 Checkout code
         uses: actions/checkout@v4
         with:
-          fetch_tags: true
+          fetch-tags: true
       - name: Run docker compose
         # This can go early because the DBs take a few seconds to start up.
         if: ${{ contains(inputs.features, 'test-dbs-external') }}
