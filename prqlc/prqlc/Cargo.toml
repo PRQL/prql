@@ -38,7 +38,7 @@ test-dbs = ["anyhow", "duckdb", "rusqlite", "tokio"]
 test-dbs-external = ["mysql", "pg_bigdecimal", "postgres", "test-dbs", "tiberius", "tokio-util"]
 
 [dependencies]
-prqlc-parser = {path = "../prqlc-parser", version = "0.13.1" }
+prqlc-parser = {path = "../prqlc-parser", version = "0.13.1"}
 
 anstream = {version = "0.6.15", features = ["auto"]}
 ariadne = "0.4.1"
@@ -144,3 +144,14 @@ exactly = 1
 file = "../../CHANGELOG.md"
 replace = "# PRQL Changelog\n\n## [unreleased]\n\n**Language**:\n\n**Features**:\n\n**Fixes**:\n\n**Documentation**:\n\n**Web**:\n\n**Integrations**:\n\n**Internal changes**:\n\n**New Contributors**:\n\n"
 search = "# PRQL Changelog\n\n"
+
+[lints.rust]
+unsafe_code = "forbid"
+
+[lints.clippy]
+# Our error type is 128 bytes, because it contains 5 strings & an Enum, which
+# is exactly the default warning level. Given we're not that performance
+# sensitive, it's fine to ignore this at the moment (and not worth having a
+# clippy config file for a single setting). We can consider adjusting it as a
+# yak-shaving exercise in the future.
+result_large_err = "allow"
