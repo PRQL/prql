@@ -138,7 +138,7 @@ pub fn compiler_version() -> &'static Version {
         let cargo_version = env!("CARGO_PKG_VERSION");
         Version::parse(git_version).unwrap_or_else(|e| {
             {
-                eprintln!("Could not parse git version number {}\n{}", git_version, e);
+                log::info!("Could not parse git version number {}\n{}", git_version, e);
                 Version::parse(cargo_version)
             }
             .unwrap_or_else(|e| {
