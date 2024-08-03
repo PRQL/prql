@@ -4446,31 +4446,32 @@ fn test_header_target_error() {
 }
 
 #[test]
-fn prql_version() {
-    assert_snapshot!(compile(r#"
+fn shortest_prql_version() {
+    let mut escape_version = insta::Settings::new();
+    escape_version.add_filter(r"'.*'", "[VERSION]");
+    escape_version.bind(|| {
+        assert_snapshot!(compile(r#"[{version = prql.version}]"#).unwrap(),@r###"
+        WITH table_0 AS (
+          SELECT
+            [VERSION] AS version
+        )
+        SELECT
+          version
+        FROM
+          table_0
+        "###);
+
+        assert_snapshot!(compile(r#"
     from x
     derive y = std.prql.version
     "#).unwrap(),@r###"
-    SELECT
-      *,
-      '0.13.1' AS y
-    FROM
-      x
-    "###);
-}
-
-#[test]
-fn shortest_prql_version() {
-    assert_snapshot!(compile(r#"[{version = prql.version}]"#).unwrap(),@r###"
-    WITH table_0 AS (
-      SELECT
-        '0.13.1' AS version
-    )
-    SELECT
-      version
-    FROM
-      table_0
-    "###);
+        SELECT
+          *,
+          [VERSION] AS y
+        FROM
+          x
+        "###);
+    })
 }
 
 #[test]
