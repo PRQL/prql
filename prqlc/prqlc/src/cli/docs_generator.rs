@@ -377,107 +377,107 @@ mod tests {
         ";
 
         assert_cmd_snapshot!(prqlc_command().args(["experimental", "doc", "--format=html"]).pass_stdin(input), @r###"
-        success: true
-        exit_code: 0
-        ----- stdout -----
-        <!doctype html>
-        <html lang="en">
-          <head>
-            <meta charset="utf-8">
-            <meta name="viewport" content="width=device-width, initial-scale=1">
-            <meta name="keywords" content="prql">
-            <meta name="generator" content="prqlc 0.13.1">
-            <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-T3c6CoIi6uLrA9TneNEoa7RxnatzjcDSCmG1MXxSR1GAsXEV/Dwwykc2MPK8M2HN" crossorigin="anonymous">
-            <title>PRQL Docs</title>
-          </head>
-          <body>
-            <header class="bg-body-tertiary">
-              <div class="container">
-                <h1>Documentation</h1>
-              </div>
-            </header>
-            <main class="container">
-              <h2>Functions</h2>
-        <ul>
-          <li><a href="#fn-x">x</a></li>
-          <li><a href="#fn-fn_returns_array">fn_returns_array</a></li>
-          <li><a href="#fn-fn_returns_bool">fn_returns_bool</a></li>
-          <li><a href="#fn-fn_returns_float">fn_returns_float</a></li>
-          <li><a href="#fn-fn_returns_int">fn_returns_int</a></li>
-          <li><a href="#fn-fn_returns_null">fn_returns_null</a></li>
-          <li><a href="#fn-fn_returns_text">fn_returns_text</a></li>
-        </ul>
+success: true
+exit_code: 0
+----- stdout -----
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="keywords" content="prql">
+    <meta name="generator" content="prqlc 0.13.1">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-T3c6CoIi6uLrA9TneNEoa7RxnatzjcDSCmG1MXxSR1GAsXEV/Dwwykc2MPK8M2HN" crossorigin="anonymous">
+    <title>PRQL Docs</title>
+  </head>
+  <body>
+    <header class="bg-body-tertiary">
+      <div class="container">
+        <h1>Documentation</h1>
+      </div>
+    </header>
+    <main class="container">
+      <h2>Functions</h2>
+<ul>
+  <li><a href="#fn-x">x</a></li>
+  <li><a href="#fn-fn_returns_array">fn_returns_array</a></li>
+  <li><a href="#fn-fn_returns_bool">fn_returns_bool</a></li>
+  <li><a href="#fn-fn_returns_float">fn_returns_float</a></li>
+  <li><a href="#fn-fn_returns_int">fn_returns_int</a></li>
+  <li><a href="#fn-fn_returns_null">fn_returns_null</a></li>
+  <li><a href="#fn-fn_returns_text">fn_returns_text</a></li>
+</ul>
 
-        <h2>Types</h2>
-        <ul>
-          <li><code>user_id</code> – Primitive(Int)</li>
-        </ul>
-        <h2>Modules</h2>
-        <ul>
-          <li>foo</li>
-        </ul>
-        <section>
-          <h3 id="fn-x">x</h3>
-        <div class="ms-3">
-          <p> This is the x function.</p>
-          <h4 class="h6">Parameters</h4>
-          <ul>
-            <li><var>arg1</var></li>
-            <li><var>arg2</var></li>
-          </ul>
-        </div>
-        </section>
-        <section>
-          <h3 id="fn-fn_returns_array">fn_returns_array</h3>
-        <div class="ms-3">
-          <h4 class="h6">Returns</h4>
-          <p><code>array</code></p>
-        </div>
-        </section>
-        <section>
-          <h3 id="fn-fn_returns_bool">fn_returns_bool</h3>
-        <div class="ms-3">
-          <h4 class="h6">Returns</h4>
-          <p><code>bool</code></p>
-        </div>
-        </section>
-        <section>
-          <h3 id="fn-fn_returns_float">fn_returns_float</h3>
-        <div class="ms-3">
-          <h4 class="h6">Returns</h4>
-          <p><code>float</code></p>
-        </div>
-        </section>
-        <section>
-          <h3 id="fn-fn_returns_int">fn_returns_int</h3>
-        <div class="ms-3">
-          <h4 class="h6">Returns</h4>
-          <p><code>int</code></p>
-        </div>
-        </section>
-        <section>
-          <h3 id="fn-fn_returns_null">fn_returns_null</h3>
-        <div class="ms-3">
-          <h4 class="h6">Returns</h4>
-          <p><code>null</code></p>
-        </div>
-        </section>
-        <section>
-          <h3 id="fn-fn_returns_text">fn_returns_text</h3>
-        <div class="ms-3">
-          <h4 class="h6">Returns</h4>
-          <p><code>text</code></p>
-        </div>
-        </section>
+<h2>Types</h2>
+<ul>
+  <li><code>user_id</code> – Primitive(Int)</li>
+</ul>
+<h2>Modules</h2>
+<ul>
+  <li>foo</li>
+</ul>
+<section>
+  <h3 id="fn-x">x</h3>
+<div class="ms-3">
+  <p> This is the x function.</p>
+  <h4 class="h6">Parameters</h4>
+  <ul>
+    <li><var>arg1</var></li>
+    <li><var>arg2</var></li>
+  </ul>
+</div>
+</section>
+<section>
+  <h3 id="fn-fn_returns_array">fn_returns_array</h3>
+<div class="ms-3">
+  <h4 class="h6">Returns</h4>
+  <p><code>array</code></p>
+</div>
+</section>
+<section>
+  <h3 id="fn-fn_returns_bool">fn_returns_bool</h3>
+<div class="ms-3">
+  <h4 class="h6">Returns</h4>
+  <p><code>bool</code></p>
+</div>
+</section>
+<section>
+  <h3 id="fn-fn_returns_float">fn_returns_float</h3>
+<div class="ms-3">
+  <h4 class="h6">Returns</h4>
+  <p><code>float</code></p>
+</div>
+</section>
+<section>
+  <h3 id="fn-fn_returns_int">fn_returns_int</h3>
+<div class="ms-3">
+  <h4 class="h6">Returns</h4>
+  <p><code>int</code></p>
+</div>
+</section>
+<section>
+  <h3 id="fn-fn_returns_null">fn_returns_null</h3>
+<div class="ms-3">
+  <h4 class="h6">Returns</h4>
+  <p><code>null</code></p>
+</div>
+</section>
+<section>
+  <h3 id="fn-fn_returns_text">fn_returns_text</h3>
+<div class="ms-3">
+  <h4 class="h6">Returns</h4>
+  <p><code>text</code></p>
+</div>
+</section>
 
-            </main>
-            <footer class="container border-top">
-              <small class="text-body-secondary">Generated with <a href="https://prql-lang.org/" rel="external" target="_blank">prqlc</a> 0.13.1.</small>
-            </footer>
-          </body>
-        </html>
+    </main>
+    <footer class="container border-top">
+      <small class="text-body-secondary">Generated with <a href="https://prql-lang.org/" rel="external" target="_blank">prqlc</a> 0.13.1.</small>
+    </footer>
+  </body>
+</html>
 
-        ----- stderr -----
+----- stderr -----
         "###);
     }
 
