@@ -10,6 +10,11 @@
   HTML format. The option is given using the `--format=html` option.
   (@vanillajonathan, 4791)
 
+- The version of the library is now read from `git describe`. This doesn't
+  affect libraries built on git tags (such as our releases), only those built
+  when developing. When reporting bugs, this helps identify the exact version.
+  (@max-sixty & @m-span, #4804)
+
 **Fixes**:
 
 **Documentation**:
