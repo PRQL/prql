@@ -75,7 +75,7 @@ impl WriteSource for pr::TyKind {
                     r += " ";
                 }
                 r += "-> ";
-                r += &(*func.return_ty).as_ref().write(opt)?;
+                r += &func.return_ty.as_deref().write(opt)?;
                 Some(r)
             }
             Any => Some("anytype".to_string()),

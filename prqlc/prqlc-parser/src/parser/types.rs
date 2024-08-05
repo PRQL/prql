@@ -29,7 +29,7 @@ pub(crate) fn type_expr() -> impl Parser<TokenKind, Ty, Error = PError> + Clone 
                     .map(Some)
                     .repeated()
                     .then_ignore(just(TokenKind::ArrowThin))
-                    .then(nested_type_expr.clone().map(Some).map(Box::new))
+                    .then(nested_type_expr.clone().map(Box::new).map(Some))
                     .map(|(params, return_ty)| TyFunc {
                         name_hint: None,
                         params,
