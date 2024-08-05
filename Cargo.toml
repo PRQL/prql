@@ -56,7 +56,7 @@ pyo3-build-config = "0.22.2"
 schemars = "1.0.0-alpha.2"
 semver = {version = "1.0.23", features = ["serde"]}
 serde = {version = "1.0.204", features = ["derive"]}
-serde_json = "1.0.121"
+serde_json = "1.0.122"
 serde_yaml = {version = "0.9.34"}
 similar = "2.6.0"
 similar-asserts = "1.5.0"
