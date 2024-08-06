@@ -1,5 +1,4 @@
 use std::collections::HashMap;
-use std::iter::zip;
 
 use itertools::Itertools;
 
@@ -258,7 +257,9 @@ impl Resolver<'_> {
                             .into_iter()
                             .map(|a| self.resolve_generic_args_opt(a))
                             .try_collect()?,
-                        return_ty: Box::new(self.resolve_generic_args_opt(*f.return_ty)?),
+                        return_ty: self
+                            .resolve_generic_args_opt(f.return_ty.map(|x| *x))?
+                            .map(Box::new),
                         name_hint: f.name_hint,
                     })
                 })
@@ -827,14 +828,14 @@ fn is_super_type_of_kind(superset: &TyKind, subset: &TyKind) -> bool {
         (TyKind::Function(None), TyKind::Function(_)) => true,
         (TyKind::Function(Some(_)), TyKind::Function(None)) => true,
         (TyKind::Function(Some(sup)), TyKind::Function(Some(sub))) => {
-            if is_not_super_type_of(sup.return_ty.as_ref(), sub.return_ty.as_ref()) {
+            if is_not_super_type_of(sup.return_ty.as_deref(), sub.return_ty.as_deref()) {
                 return false;
             }
             if sup.params.len() != sub.params.len() {
                 return false;
             }
-            for (sup_arg, sub_arg) in zip(&sup.params, &sub.params) {
-                if is_not_super_type_of(sup_arg, sub_arg) {
+            for (sup_arg, sub_arg) in sup.params.iter().zip(&sub.params) {
+                if is_not_super_type_of(sup_arg.as_ref(), sub_arg.as_ref()) {
                     return false;
                 }
             }
@@ -861,7 +862,7 @@ fn is_super_type_of_kind(superset: &TyKind, subset: &TyKind) -> bool {
 
                 match (sup, sub) {
                     (Some(TyTupleField::Single(_, sup)), Some(TyTupleField::Single(_, sub))) => {
-                        if is_not_super_type_of(sup, sub) {
+                        if is_not_super_type_of(sup.as_ref(), sub.as_ref()) {
                             return false;
                         }
                     }
@@ -885,7 +886,7 @@ fn is_super_type_of_kind(superset: &TyKind, subset: &TyKind) -> bool {
     }
 }
 
-fn is_not_super_type_of(sup: &Option<Ty>, sub: &Option<Ty>) -> bool {
+fn is_not_super_type_of(sup: Option<&Ty>, sub: Option<&Ty>) -> bool {
     if let Some(sub_ret) = sub {
         if let Some(sup_ret) = sup {
             if !is_super_type_of(sup_ret, sub_ret) {

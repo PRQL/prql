@@ -105,7 +105,7 @@ pub enum PrimitiveSet {
 pub struct TyFunc {
     pub name_hint: Option<Ident>,
     pub params: Vec<Option<Ty>>,
-    pub return_ty: Box<Option<Ty>>,
+    pub return_ty: Option<Box<Ty>>,
 }
 
 impl Ty {

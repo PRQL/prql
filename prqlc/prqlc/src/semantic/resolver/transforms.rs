@@ -547,7 +547,7 @@ impl Resolver<'_> {
             TransformKind::Window { pipeline, .. } | TransformKind::Loop(pipeline) => {
                 let pipeline = pipeline.ty.clone().unwrap();
                 let pipeline = pipeline.kind.into_function().unwrap().unwrap();
-                *pipeline.return_ty
+                pipeline.return_ty.map(|x| *x)
             }
             TransformKind::Append(bottom) => {
                 let top = transform_call.input.ty.clone().unwrap();

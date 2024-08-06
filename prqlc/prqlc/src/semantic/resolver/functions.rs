@@ -148,8 +148,8 @@ impl Resolver<'_> {
 
             // make sure to use the resolved type
             let mut body = body;
-            if let Some(ret_ty) = *return_ty {
-                body.ty = Some(ret_ty);
+            if let Some(ret_ty) = return_ty.map(|x| *x) {
+                body.ty = Some(ret_ty.clone());
             }
 
             body
@@ -457,7 +457,7 @@ fn extract_partial_application(mut func: Box<Func>, position: usize) -> Box<Func
     })
 }
 
-fn env_of_closure(closure: Func) -> (Module, Expr, Box<Option<Ty>>) {
+fn env_of_closure(closure: Func) -> (Module, Expr, Option<Box<Ty>>) {
     let mut func_env = Module::default();
 
     for (param, arg) in zip(closure.params, closure.args) {
@@ -470,7 +470,7 @@ fn env_of_closure(closure: Func) -> (Module, Expr, Box<Option<Ty>>) {
         func_env.names.insert(param_name.to_string(), v);
     }
 
-    (func_env, *closure.body, Box::new(closure.return_ty))
+    (func_env, *closure.body, closure.return_ty.map(Box::new))
 }
 
 pub fn expr_of_func(func: Box<Func>, span: Option<Span>) -> Box<Expr> {
@@ -481,7 +481,11 @@ pub fn expr_of_func(func: Box<Func>, span: Option<Span>) -> Box<Expr> {
             .skip(func.args.len())
             .map(|a| a.ty.clone())
             .collect(),
-        return_ty: Box::new(func.return_ty.clone().or_else(|| func.body.ty.clone())),
+        return_ty: func
+            .return_ty
+            .clone()
+            .or_else(|| func.clone().body.ty)
+            .map(Box::new),
         name_hint: func.name_hint.clone(),
     };
 
