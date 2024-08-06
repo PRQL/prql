@@ -649,7 +649,7 @@ aggregate average_country_salary = (
         assert_is_formatted(
             r#"
 from artists
-select {`customer name` = foo}"#,
+select {`customer name` = foo, x = bar.baz}"#,
         );
     }
 
