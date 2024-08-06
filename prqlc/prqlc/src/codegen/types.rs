@@ -101,7 +101,7 @@ impl WriteSource for pr::TyTupleField {
 
                 if let Some(name) = name {
                     r += name;
-                    r += " = ";
+                    r += "=";
                 }
                 if let Some(expr) = expr {
                     r += &expr.write(opt)?;
@@ -121,7 +121,7 @@ impl WriteSource for UnionVariant<'_> {
         let mut r = String::new();
         if let Some(name) = &self.0 {
             r += name;
-            r += " = ";
+            r += "=";
         }
         opt.consume_width(r.len() as u16);
         r += &self.1.write(opt)?;

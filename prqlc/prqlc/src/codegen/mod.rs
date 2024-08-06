@@ -21,6 +21,7 @@ pub trait WriteSource {
         r += opt.consume(&prefix.to_string())?;
         opt.context_strength = 0;
         opt.unbound_expr = false;
+        opt.single_term = true;
 
         let source = self.write(opt.clone())?;
         r += opt.consume(&source)?;
@@ -47,7 +48,7 @@ impl<T: WriteSource> WriteSource for &T {
     }
 }
 
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub struct WriteOpt {
     /// String to emit as one indentation level
     pub tab: &'static str,
@@ -74,11 +75,23 @@ pub struct WriteOpt {
     /// be mistakenly bound into a binary op by appending an unary op.
     ///
     /// For example:
-    /// `join foo` has an unbound expr, since `join foo ==bar` produced a binary op.
+    /// `join foo` has an unbound expr, since `join foo ==bar` produced a binary
+    /// op
+    /// ...so we need to parenthesize the `==bar`.
     pub unbound_expr: bool,
+
+    /// True iff the expression is surrounded by spaces and so we prefer to
+    /// format with parentheses. For example:
+    /// - the function call in `derive rounded=(round 2 gross_cost)` is
+    ///   formatted without spaces around the `=` because it's a single term.
+    /// - the function call in `derive foo = 2 + 3` is formatted with spaces
+    ///   around the `=` because it's not a single term
+    /// - the function call in `aggregate {sum_gross_cost = sum gross_cost}` is
+    ///   formatted with spaces around the `=` because it's not a single term.
+    pub single_term: bool,
 }
 
-#[derive(Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq)]
 pub enum Position {
     Unspecified,
     Left,
@@ -96,6 +109,7 @@ impl Default for WriteOpt {
             context_strength: 0,
             binary_position: Position::Unspecified,
             unbound_expr: false,
+            single_term: false,
         }
     }
 }

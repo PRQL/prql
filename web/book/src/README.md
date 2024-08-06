@@ -49,7 +49,7 @@ filter gross_cost > 0
 group {title, country} (                   # `group` runs a pipeline over each group
   aggregate {                              # `aggregate` reduces each group to a value
     average gross_salary,
-    sum_gross_cost = sum gross_cost,       # `=` sets a column name
+    sum_gross_cost=(sum gross_cost),       # `=` sets a column name
   }
 )
 filter sum_gross_cost > 100_000            # `filter` replaces both of SQL's `WHERE` & `HAVING`

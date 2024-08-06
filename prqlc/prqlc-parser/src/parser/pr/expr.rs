@@ -97,6 +97,18 @@ impl ExprKind {
             doc_comment: None,
         }
     }
+
+    /// Whether it contains spaces between top-level items.
+    /// So, for example `sum foo` would be true, but `[foo, bar]` would be
+    /// false, since the array is self-contained.
+    pub fn is_multiple_items(&self) -> bool {
+        match self {
+            ExprKind::Binary(_) => true,
+            ExprKind::Func(_) => true,
+            ExprKind::FuncCall(func_call) if !func_call.args.is_empty() => true,
+            _ => false,
+        }
+    }
 }
 
 #[derive(Debug, EnumAsInner, PartialEq, Clone, Serialize, Deserialize, JsonSchema)]

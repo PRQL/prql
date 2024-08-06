@@ -66,7 +66,7 @@ from employees
 group {title, country} (
   aggregate {
     average salary,
-    ct = count salary,
+    ct=(count salary),
   }
 )
 ```

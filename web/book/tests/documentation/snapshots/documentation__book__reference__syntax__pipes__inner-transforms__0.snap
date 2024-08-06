@@ -1,6 +1,6 @@
 ---
 source: web/book/tests/documentation/book.rs
-expression: "from employees\ngroup {title, country} (\n  aggregate {\n    average salary,\n    ct = count salary,\n  }\n)\n"
+expression: "from employees\ngroup {title, country} (\n  aggregate {\n    average salary,\n    ct=(count salary),\n  }\n)\n"
 ---
 SELECT
   title,

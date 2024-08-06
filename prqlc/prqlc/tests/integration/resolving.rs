@@ -31,7 +31,7 @@ fn resolve_basic_01() {
     from x
     select {a, b}
     "#).unwrap(), @r###"
-    let main <[{a = ?, b = ?}]> = `(Select ...)`
+    let main <[{a=?, b=?}]> = `(Select ...)`
     "###)
 }
 
@@ -53,7 +53,7 @@ fn resolve_types_01() {
     assert_snapshot!(resolve(r#"
     type A = int || int
     "#).unwrap(), @r###"
-    type A = int
+    type A=int
     "###)
 }
 
@@ -62,7 +62,7 @@ fn resolve_types_02() {
     assert_snapshot!(resolve(r#"
     type A = int || {}
     "#).unwrap(), @r###"
-    type A = int || {}
+    type A=int || {}
     "###)
 }
 
@@ -71,7 +71,7 @@ fn resolve_types_03() {
     assert_snapshot!(resolve(r#"
     type A = {a = int, bool} || {b = text, float}
     "#).unwrap(), @r###"
-    type A = {a = int, bool, b = text, float}
+    type A={a=int, bool, b=text, float}
     "###)
 }
 
@@ -87,9 +87,9 @@ fn resolve_types_04() {
     "#,
     )
     .unwrap(), @r###"
-    type Status = (
-      Unpaid = float ||
-      {reason = text, cancelled_at = timestamp} ||
+    type Status=(
+      Unpaid=float ||
+      {reason=text, cancelled_at=timestamp} ||
     )
     "###);
 }
@@ -103,7 +103,7 @@ fn resolve_types_05() {
     "#,
     )
     .unwrap(), @r###"
-    type A = null
+    type A=null
     "###);
 }
 

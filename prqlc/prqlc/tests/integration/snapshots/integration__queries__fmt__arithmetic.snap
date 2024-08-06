@@ -4,33 +4,27 @@ expression: "# mssql:test\nfrom [\n    { id = 1, x_int =  13, x_float =  13.0, k
 input_file: prqlc/prqlc/tests/integration/queries/arithmetic.prql
 ---
 from [
+  {id=1, x_int=13, x_float=13, k_int=5, k_float=5},
   {
-    id = 1,
-    x_int = 13,
-    x_float = 13,
-    k_int = 5,
-    k_float = 5,
+    id=2,
+    x_int=-13,
+    x_float=-13,
+    k_int=5,
+    k_float=5,
   },
   {
-    id = 2,
-    x_int = -13,
-    x_float = -13,
-    k_int = 5,
-    k_float = 5,
+    id=3,
+    x_int=13,
+    x_float=13,
+    k_int=-5,
+    k_float=-5,
   },
   {
-    id = 3,
-    x_int = 13,
-    x_float = 13,
-    k_int = -5,
-    k_float = -5,
-  },
-  {
-    id = 4,
-    x_int = -13,
-    x_float = -13,
-    k_int = -5,
-    k_float = -5,
+    id=4,
+    x_int=-13,
+    x_float=-13,
+    k_int=-5,
+    k_float=-5,
   },
 ]
 select {
@@ -53,4 +47,3 @@ select {
   (q_ff * k_float + r_ff | math.round 0),
 }
 sort id
-
