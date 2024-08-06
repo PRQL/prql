@@ -17,7 +17,6 @@ build = "build.rs"
 cli = [
   "anyhow",
   "clap_complete_command",
-  "clap_complete",
   "clap-verbosity-flag",
   "clap",
   "clio",
