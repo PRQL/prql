@@ -71,21 +71,14 @@ vergen-gitcl = {version = "1.0.0", features = ["build"]}
 # feature
 anyhow = {version = "1.0.86", features = ["backtrace"], optional = true}
 clap = {version = "4.4.18", features = ["derive", "env", "wrap_help"], optional = true}
+clap-verbosity-flag = {version = "2.1.2", optional = true}
 clap_complete_command = {version = "0.5.1", optional = true}
-# Pinned for MSRV
-clap-verbosity-flag = {version = "=2.1.2", optional = true}
 clio = {version = "0.3.3", features = ['clap-parse'], optional = true}
 color-eyre = {version = "0.6.3", optional = true}
 colorchoice-clap = {version = "1.0.0", optional = true}
 is-terminal = {version = "0.4.12", optional = true}
 notify = {version = "6.1.1", optional = true}
 walkdir = {version = "2.5.0", optional = true}
-
-# Not direct dependencies, but pinning because later versions have a higher MSRV. Can
-# remove when we increase MSRV.
-clap_builder = {version = "=4.4.18", optional = true}
-clap_complete = {version = "=4.4.10", optional = true}
-clap_complete_fig = {version = "=4.4.2", optional = true}
 
 # We use minijinja just for the Jinja lexer, which is not part of the
 # public interface which is covered by semver guarantees.
