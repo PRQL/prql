@@ -43,6 +43,7 @@
     "install-python-deps": "task install-maturin",
     // Disabling because of the issues in #3709
     // "install-python-deps": "task install-maturin && task install-pre-commit && pre-commit install-hooks",
-    "install-npm-dependencies": "task install-npm-dependencies"
+    "install-npm-dependencies": "task install-npm-dependencies",
+    "add-safe-directory": "task add-safe-directory"
   }
 }
