@@ -6,6 +6,7 @@ use enum_as_inner::EnumAsInner;
 use itertools::Itertools;
 use prqlc_parser::generic::{InterpolateItem, Range, SwitchCase};
 use prqlc_parser::lexer::lr::Literal;
+use semver::{Prerelease, Version};
 
 use crate::compiler_version;
 use crate::ir::decl::{self, DeclKind, Module, RootModule, TableExpr};
@@ -125,8 +126,20 @@ fn tuple_fields_to_relation_columns(columns: Vec<TyTupleField>) -> Vec<RelationC
 
 fn validate_query_def(query_def: &QueryDef) -> Result<()> {
     if let Some(requirement) = &query_def.version {
-        if !requirement.matches(compiler_version()) {
-            return Err(Error::new_simple("This query uses a version of PRQL that is not supported by prqlc. Please upgrade the compiler."));
+        let current_version = compiler_version();
+
+        // We need to remove the pre-release part of the version, because
+        // otherwise those will fail the match.
+        let clean_version = Version {
+            pre: Prerelease::EMPTY,
+            ..current_version.clone()
+        };
+
+        if !requirement.matches(&clean_version) {
+            return Err(Error::new_simple(format!(
+                "This query requires version {} of PRQL that is not supported by prqlc version {} (shortened from {}). Please upgrade the compiler.",
+                requirement, clean_version, current_version
+            )));
         }
     }
     Ok(())

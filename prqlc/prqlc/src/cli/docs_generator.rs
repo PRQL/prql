@@ -359,6 +359,8 @@ mod tests {
 
     #[test]
     fn generate_html_docs() {
+        std::env::set_var("PRQL_VERSION_OVERRIDE", env!("CARGO_PKG_VERSION"));
+
         let input = r"
         #! This is the x function.
         let x = arg1 arg2 -> c

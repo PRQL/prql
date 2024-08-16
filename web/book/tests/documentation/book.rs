@@ -26,6 +26,9 @@ use super::compile;
 // We re-use the code (somewhat copy-paste) for the other compile tests below.
 #[test]
 fn test_prql_examples_compile() -> Result<()> {
+    // Override the version so the examples work with the version defined in the
+    // manifest.
+    std::env::set_var("PRQL_VERSION_OVERRIDE", env!("CARGO_PKG_VERSION"));
     let examples = collect_book_examples()?;
 
     let mut errs = Vec::new();
