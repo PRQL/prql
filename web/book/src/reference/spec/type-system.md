@@ -66,8 +66,8 @@ Example of the mapping between PTS and two STSs:
 **Algebraic types** - have a way of expressing sum and product types. In Rust,
 sum would be an enum and product would be tuple or a struct. In SQL, product
 would be a row, since it can contain different types, all at once. Sum would be
-harder to express, see [this 
-post](https://www.parsonsmatt.org/2019/03/19/sum_types_in_sql.html).
+harder to express, see
+[this post](https://www.parsonsmatt.org/2019/03/19/sum_types_in_sql.html).
 
 The value proposition here is that algebraic types give a lot modeling
 flexibility, all while being conceptually simple.
