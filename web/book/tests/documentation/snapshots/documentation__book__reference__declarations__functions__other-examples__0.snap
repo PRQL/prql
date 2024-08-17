@@ -23,4 +23,3 @@ FROM
 WHERE
   LOWER(last_name) LIKE CONCAT('a', '%')
   AND hobby IN ('PRQL', 'Rust')
-

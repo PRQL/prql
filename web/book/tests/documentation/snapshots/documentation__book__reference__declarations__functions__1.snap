@@ -8,4 +8,3 @@ SELECT
   (sat_score - 0) / (1600 - 0) AS sat_proportion_2
 FROM
   students
-

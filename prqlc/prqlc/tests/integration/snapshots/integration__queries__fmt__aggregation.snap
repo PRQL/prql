@@ -12,4 +12,3 @@ aggregate {
   all empty_name,
   any empty_name,
 }
-

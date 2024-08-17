@@ -8,4 +8,3 @@ SELECT
   TIMESTAMP '2020-01-02T21:19:55Z' AS first_prql_commit_utc
 FROM
   commits
-

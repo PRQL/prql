@@ -12,4 +12,3 @@ SELECT
   ROUND(ABS(x / y) - 0.5) * SIGN(x) * SIGN(y) AS int_quotient
 FROM
   table_0
-

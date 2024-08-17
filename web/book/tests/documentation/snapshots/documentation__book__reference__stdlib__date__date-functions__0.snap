@@ -1,9 +1,8 @@
 ---
 source: web/book/tests/documentation/book.rs
-expression: "prql target:sql.duckdb\n\nfrom invoices\nselect {\n  invoice_date | date.to_text \"%d/%m/%Y\"\n}\n"
+expression: "prql target:sql.duckdb\n\nfrom invoices\nselect (invoice_date | date.to_text \"%d/%m/%Y\")\n\n"
 ---
 SELECT
   strftime(invoice_date, '%d/%m/%Y')
 FROM
   invoices
-

@@ -10,4 +10,3 @@ group {genre_id, media_type_id} (
   take 1
 )
 sort {-genre_id, media_type_id}
-

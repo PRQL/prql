@@ -7,4 +7,3 @@ SELECT
   SUM(distance) OVER () AS other_distance
 FROM
   employees
-

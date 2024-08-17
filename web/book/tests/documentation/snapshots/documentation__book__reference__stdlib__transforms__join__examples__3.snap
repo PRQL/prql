@@ -8,4 +8,3 @@ SELECT
 FROM
   tracks
   JOIN artists ON tracks.id = artists.artist_id
-

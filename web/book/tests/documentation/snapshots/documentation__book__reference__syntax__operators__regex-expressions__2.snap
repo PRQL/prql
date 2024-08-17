@@ -8,4 +8,3 @@ FROM
   tracks
 WHERE
   REGEXP_CONTAINS(name, '\bLove\b')
-

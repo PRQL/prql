@@ -7,4 +7,3 @@ SELECT
   DATE '2022-12-31' - dob AS age_at_year_end
 FROM
   employees
-

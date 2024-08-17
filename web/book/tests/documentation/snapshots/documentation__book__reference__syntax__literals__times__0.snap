@@ -7,4 +7,3 @@ SELECT
   order_time < TIME '08:30' AS should_have_shipped_today
 FROM
   orders
-

@@ -9,4 +9,3 @@ group {genre_id} (sort {-milliseconds} | take 3)
 join genres (==genre_id)
 select {name, milliseconds}
 sort {+name, -milliseconds}
-

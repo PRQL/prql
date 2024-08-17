@@ -6,4 +6,3 @@ SELECT
   NOT is_compilation
 FROM
   tracks
-

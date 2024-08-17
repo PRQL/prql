@@ -1,6 +1,6 @@
 ---
 source: web/book/tests/documentation/book.rs
-expression: "from db.employees\ntake 50\ninto first_50\n\nfirst_50\n"
+expression: "from employees\ntake 50\ninto first_50\n\nfrom first_50\n"
 ---
 WITH first_50 AS (
   SELECT
@@ -14,4 +14,3 @@ SELECT
   *
 FROM
   first_50
-
