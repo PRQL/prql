@@ -12,4 +12,3 @@ SELECT
   overhead / cost_total AS overhead_share
 FROM
   costs
-

@@ -9,4 +9,3 @@ FROM
   tracks
   LEFT JOIN artists ON artists.id = tracks.artist_id
   AND artists.country = 'UK'
-

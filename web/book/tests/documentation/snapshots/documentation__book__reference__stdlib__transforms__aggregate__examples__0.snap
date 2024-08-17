@@ -7,4 +7,3 @@ SELECT
   COUNT(*) AS ct
 FROM
   employees
-

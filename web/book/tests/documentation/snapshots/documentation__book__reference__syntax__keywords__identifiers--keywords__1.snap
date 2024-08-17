@@ -8,4 +8,3 @@ SELECT
 FROM
   invoices
   JOIN tracks ON invoices.track_id = tracks.id
-

@@ -31,4 +31,3 @@ FROM
   table_1
 ORDER BY
   _expr_0
-

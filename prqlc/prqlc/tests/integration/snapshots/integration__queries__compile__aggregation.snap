@@ -12,4 +12,3 @@ FROM
   tracks
 WHERE
   genre_id = 100
-

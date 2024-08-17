@@ -8,4 +8,3 @@ SELECT
 FROM
   employees
   JOIN departments AS d ON employees.dept_id = d.dept_id
-

@@ -33,4 +33,3 @@ FROM
 ORDER BY
   genres.name,
   table_0.milliseconds DESC
-

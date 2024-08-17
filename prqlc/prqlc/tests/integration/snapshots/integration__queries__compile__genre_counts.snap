@@ -15,4 +15,3 @@ FROM
   genre_count
 WHERE
   a > 0
-

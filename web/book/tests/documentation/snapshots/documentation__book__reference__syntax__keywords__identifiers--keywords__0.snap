@@ -6,4 +6,3 @@ SELECT
   COUNT(*)
 FROM
   invoices
-

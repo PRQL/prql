@@ -24,4 +24,3 @@ FROM
   table_0
 ORDER BY
   milliseconds
-

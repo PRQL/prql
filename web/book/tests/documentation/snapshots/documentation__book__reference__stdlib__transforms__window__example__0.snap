@@ -11,4 +11,3 @@ SELECT
   ) AS trail_12_m_comp
 FROM
   employees
-

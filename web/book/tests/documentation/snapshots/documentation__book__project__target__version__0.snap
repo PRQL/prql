@@ -1,9 +1,8 @@
 ---
 source: web/book/tests/documentation/book.rs
-expression: "prql version:\"0.11.4\"\n\nfrom employees\n"
+expression: "prql version:\"0.13.0\"\n\nfrom employees\n"
 ---
 SELECT
   *
 FROM
   employees
-

@@ -31,4 +31,3 @@ inputs:
     table:
       - default_db
       - orders
-

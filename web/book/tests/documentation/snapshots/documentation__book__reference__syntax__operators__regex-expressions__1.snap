@@ -8,4 +8,3 @@ FROM
   artists
 WHERE
   REGEXP_MATCHES(name, 'Love.*You')
-

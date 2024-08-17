@@ -8,4 +8,3 @@ SELECT
 FROM
   employees
   LEFT JOIN positions ON employees.id = positions.employee_id
-
