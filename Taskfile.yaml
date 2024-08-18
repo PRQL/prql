@@ -382,9 +382,6 @@ tasks:
     dir: prqlc/bindings/php
     cmds:
       - vendor/bin/phpunit tests
-
-  add-safe-directory:
-    - git config --global --add safe.directory /workspaces/prql
 # The next two tasks are not used for either:
 #  - the Dockerfile (installing brew takes forever)
 #    so the Dockerfile simply installs hugo & nodejs directly
