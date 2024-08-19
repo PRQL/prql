@@ -9,4 +9,3 @@ FROM
 WHERE
   first_name IS NULL
   AND last_name IS NOT NULL
-

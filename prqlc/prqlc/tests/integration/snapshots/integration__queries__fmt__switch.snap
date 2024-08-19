@@ -11,4 +11,3 @@ select display = case [
   true => f"unknown composer",
 ]
 take 10
-

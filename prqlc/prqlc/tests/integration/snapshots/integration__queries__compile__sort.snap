@@ -23,4 +23,3 @@ FROM
 ORDER BY
   table_0.first_name,
   table_0.last_name
-

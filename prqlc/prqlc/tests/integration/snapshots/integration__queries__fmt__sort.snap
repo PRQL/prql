@@ -8,4 +8,3 @@ filter first_name != "Mitchell"
 sort {first_name, last_name}
 join side:left manager = employees e.reports_to == manager.employee_id
 select {e.first_name, e.last_name, manager.first_name}
-

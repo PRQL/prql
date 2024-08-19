@@ -24,4 +24,3 @@ SELECT
 FROM
   table_0
   JOIN table_1 ON table_0.id = table_1.id
-

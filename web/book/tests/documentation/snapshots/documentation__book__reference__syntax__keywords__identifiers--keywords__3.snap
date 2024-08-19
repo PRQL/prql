@@ -7,4 +7,3 @@ SELECT
   time AS t
 FROM
   invoices
-

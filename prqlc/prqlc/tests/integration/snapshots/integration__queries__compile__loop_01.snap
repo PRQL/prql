@@ -27,4 +27,3 @@ FROM
   table_1 AS table_2
 ORDER BY
   n
-

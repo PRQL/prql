@@ -8,4 +8,3 @@ SELECT
   '\\\t' AS raw_string
 FROM
   artists
-

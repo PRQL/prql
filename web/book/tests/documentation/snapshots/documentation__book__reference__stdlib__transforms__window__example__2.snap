@@ -47,4 +47,3 @@ FROM
   table_0
 ORDER BY
   time_id
-

@@ -24,4 +24,3 @@ SELECT
   n
 FROM
   table_1 AS table_2
-

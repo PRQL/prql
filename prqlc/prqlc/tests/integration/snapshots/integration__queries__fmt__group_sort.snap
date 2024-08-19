@@ -9,4 +9,3 @@ group d (aggregate {n1 = (track_id | sum)})
 sort d
 take 10
 select {d1 = d, n1}
-

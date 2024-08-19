@@ -9,4 +9,3 @@ SELECT
   NOW() AS time
 FROM
   employees
-

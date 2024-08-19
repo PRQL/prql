@@ -7,4 +7,3 @@ SELECT
   last_name
 FROM
   employees AS e
-

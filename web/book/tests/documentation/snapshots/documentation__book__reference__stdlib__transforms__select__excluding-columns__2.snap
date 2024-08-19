@@ -6,4 +6,3 @@ SELECT
   name AS nick
 FROM
   artists
-

@@ -11,4 +11,3 @@ SELECT
   END AS distance
 FROM
   employees
-

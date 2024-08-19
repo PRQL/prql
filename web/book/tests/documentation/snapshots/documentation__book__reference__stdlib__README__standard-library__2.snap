@@ -12,4 +12,3 @@ SELECT
   (x DIV y) AS int_quotient
 FROM
   table_0
-
