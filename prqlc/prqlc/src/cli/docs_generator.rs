@@ -195,6 +195,184 @@ pub fn generate_html_docs(stmts: Vec<Stmt>) -> String {
     html.replacen("{{ content }}", &docs, 1)
 }
 
+/// Generate XML documentation.
+pub fn generate_xml_docs(stmts: Vec<Stmt>) -> String {
+    let mut docs = format!(
+        r#"<?xml version="1.0" encoding="UTF-8"?>
+<docs>
+"#
+    );
+
+    if stmts
+        .clone()
+        .into_iter()
+        .filter(|stmt| matches!(stmt.kind, StmtKind::TypeDef(_)))
+        .count()
+        > 0
+    {
+        docs.push_str("  <types>\n");
+        for stmt in stmts
+            .clone()
+            .into_iter()
+            .filter(|stmt| matches!(stmt.kind, StmtKind::TypeDef(_)))
+        {
+            let type_def = stmt.kind.as_type_def().unwrap();
+            if let Some(value) = &type_def.value {
+                docs.push_str(&format!(
+                    "    <type name=\"{}\" kind=\"{:?}\" />\n",
+                    type_def.name, value.kind
+                ));
+            } else {
+                docs.push_str(&format!("    <type name=\"{}\" />\n", type_def.name));
+            }
+        }
+        docs.push_str("  </types>\n");
+    }
+
+    if stmts
+        .clone()
+        .into_iter()
+        .filter(|stmt| matches!(stmt.kind, StmtKind::ModuleDef(_)))
+        .count()
+        > 0
+    {
+        docs.push_str("  <modules>\n");
+        for stmt in stmts
+            .clone()
+            .into_iter()
+            .filter(|stmt| matches!(stmt.kind, StmtKind::ModuleDef(_)))
+        {
+            let module_def = stmt.kind.as_module_def().unwrap();
+            docs.push_str(&format!("    <module>{}</module>\n", module_def.name));
+        }
+        docs.push_str("  </modules>\n");
+    }
+
+    docs.push_str("  <functions>\n");
+
+    for stmt in stmts
+        .clone()
+        .into_iter()
+        .filter(|stmt| matches!(stmt.kind, StmtKind::VarDef(_)))
+    {
+        let var_def = stmt.kind.as_var_def().unwrap();
+        if var_def.kind != VarDefKind::Let {
+            continue;
+        }
+
+        docs.push_str(&format!("    <function name=\"{}\">\n", var_def.name));
+
+        if let Some(doc_comment) = stmt.doc_comment {
+            docs.push_str(&format!(
+                "      <documentation><![CDATA[{doc_comment}]]></documentation>\n"
+            ));
+        } else {
+            docs.push_str("      <documentation />\n");
+        }
+
+        if let Some(expr) = &var_def.value {
+            match &expr.kind {
+                ExprKind::Func(func) => {
+                    if func.generic_type_params.is_empty() {
+                        docs.push_str("      <typeparameters />\n");
+                    } else {
+                        docs.push_str("      <typeparameters>\n");
+                        for param in &func.generic_type_params {
+                            docs.push_str(&format!(
+                                "        <parameter name=\"{}\">\n",
+                                param.name
+                            ));
+                            for domain in &param.domain {
+                                docs.push_str(&format!(
+                                    "          <domain>{:?}</domain>\n",
+                                    domain
+                                ));
+                            }
+                            docs.push_str("        </parameter>\n");
+                        }
+                        docs.push_str("      </typeparameters>\n");
+                    }
+
+                    if func.params.is_empty() {
+                        docs.push_str("      <parameters />\n");
+                    } else {
+                        docs.push_str("      <parameters>\n");
+                        for param in &func.params {
+                            if let Some(ty) = &param.ty {
+                                docs.push_str(&format!(
+                                    "        <parameter type=\"{ty:?}\">{}</parameter>\n",
+                                    param.name
+                                ));
+                            } else {
+                                docs.push_str(&format!(
+                                    "        <parameter>{}</parameter>\n",
+                                    param.name
+                                ));
+                            }
+                        }
+                        docs.push_str("      </parameters>\n");
+                    }
+
+                    if func.named_params.is_empty() {
+                        docs.push_str("      <namedparameters />\n");
+                    } else {
+                        docs.push_str("      <namedparameters>\n");
+                        for param in &func.named_params {
+                            if let Some(ty) = &param.ty {
+                                docs.push_str(&format!(
+                                    "        <parameter type=\"{ty:?}\">{}</parameter>\n",
+                                    param.name
+                                ));
+                            } else {
+                                docs.push_str(&format!(
+                                    "        <parameter>{}</parameter>\n",
+                                    param.name
+                                ));
+                            }
+                        }
+                        docs.push_str("      </namedparameters>\n");
+                    }
+
+                    if let Some(return_ty) = &func.return_ty {
+                        docs.push_str(&"      <returns");
+                        match &return_ty.kind {
+                            TyKind::Any => docs.push_str("/>\n"),
+                            TyKind::Ident(ident) => {
+                                docs.push_str(&format!(" ident=\"{}\" />\n", ident.name));
+                            }
+                            TyKind::Primitive(primitive) => {
+                                docs.push_str(&format!(" primitive=\"{primitive}\" />\n"));
+                            }
+                            TyKind::Singleton(literal) => {
+                                docs.push_str(&format!(" singleton=\"{literal}\" />\n"));
+                            }
+                            TyKind::Union(vec) => {
+                                docs.push_str(">\n  <union\">\n");
+                                for (_, ty) in vec {
+                                    docs.push_str(&format!("    <type>{:?}</type>\n", ty.kind));
+                                }
+                                docs.push_str("  </union>\n</returns>");
+                            }
+                            _ => docs.push_str(">Not implemented</returns>\n"),
+                        }
+                    }
+                }
+                ExprKind::Pipeline(_) => {
+                    docs.push_str("  <pipeline>There is a pipeline.</pipeline>\n");
+                }
+                _ => (),
+            }
+        }
+
+        docs.push_str("    </function>\n");
+    }
+
+    docs.push_str("  </functions>\n");
+    docs.push_str("</docs>\n");
+
+    docs
+}
+
 /// Generate Markdown documentation.
 pub fn generate_markdown_docs(stmts: Vec<Stmt>) -> String {
     let markdown = format!(
@@ -476,6 +654,96 @@ exit_code: 0
     </footer>
   </body>
 </html>
+
+----- stderr -----
+        "###);
+    }
+
+    #[test]
+    fn generate_xml_docs() {
+        std::env::set_var("PRQL_VERSION_OVERRIDE", env!("CARGO_PKG_VERSION"));
+
+        let input = r"
+        #! This is the x function.
+        let x = arg1 arg2 -> c
+        let fn_returns_array = -> <array> array
+        let fn_returns_bool = -> <bool> true
+        let fn_returns_float = -> <float> float
+        let fn_returns_int = -> <int> 0
+        let fn_returns_null = -> <null> null
+        let fn_returns_text = -> <text> 'text'
+
+        module foo {}
+
+        type user_id = int
+        ";
+
+        assert_cmd_snapshot!(prqlc_command().args(["experimental", "doc", "--format=xml"]).pass_stdin(input), @r###"
+success: true
+exit_code: 0
+----- stdout -----
+<?xml version="1.0" encoding="UTF-8"?>
+<docs>
+  <types>
+    <type name="user_id" kind="Primitive(Int)" />
+  </types>
+  <modules>
+    <module>foo</module>
+  </modules>
+  <functions>
+    <function name="x">
+      <documentation><![CDATA[ This is the x function.]]></documentation>
+      <typeparameters />
+      <parameters>
+        <parameter>arg1</parameter>
+        <parameter>arg2</parameter>
+      </parameters>
+      <namedparameters />
+    </function>
+    <function name="fn_returns_array">
+      <documentation />
+      <typeparameters />
+      <parameters />
+      <namedparameters />
+      <returns ident="array" />
+    </function>
+    <function name="fn_returns_bool">
+      <documentation />
+      <typeparameters />
+      <parameters />
+      <namedparameters />
+      <returns primitive="bool" />
+    </function>
+    <function name="fn_returns_float">
+      <documentation />
+      <typeparameters />
+      <parameters />
+      <namedparameters />
+      <returns primitive="float" />
+    </function>
+    <function name="fn_returns_int">
+      <documentation />
+      <typeparameters />
+      <parameters />
+      <namedparameters />
+      <returns primitive="int" />
+    </function>
+    <function name="fn_returns_null">
+      <documentation />
+      <typeparameters />
+      <parameters />
+      <namedparameters />
+      <returns singleton="null" />
+    </function>
+    <function name="fn_returns_text">
+      <documentation />
+      <typeparameters />
+      <parameters />
+      <namedparameters />
+      <returns primitive="text" />
+    </function>
+  </functions>
+</docs>
 
 ----- stderr -----
         "###);

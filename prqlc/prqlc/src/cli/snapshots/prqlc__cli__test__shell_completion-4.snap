@@ -238,7 +238,7 @@ _arguments "${_arguments_options[@]}" \
         case $line[1] in
             (doc)
 _arguments "${_arguments_options[@]}" \
-'--format=[]:FORMAT:(html markdown)' \
+'--format=[]:FORMAT:(html markdown xml)' \
 '--color=[Controls when to use color]:WHEN:(auto always never)' \
 '*-v[Increase logging verbosity]' \
 '*--verbose[Increase logging verbosity]' \

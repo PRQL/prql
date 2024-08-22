@@ -441,7 +441,7 @@ _prqlc() {
             fi
             case "${prev}" in
                 --format)
-                    COMPREPLY=($(compgen -W "html markdown" -- "${cur}"))
+                    COMPREPLY=($(compgen -W "html markdown xml" -- "${cur}"))
                     return 0
                     ;;
                 --color)

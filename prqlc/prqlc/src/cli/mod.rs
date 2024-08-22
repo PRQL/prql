@@ -294,6 +294,7 @@ impl LogLevel for LoggingHelp {
 enum DocsFormat {
     Html,
     Markdown,
+    Xml,
 }
 
 #[derive(clap::ValueEnum, Clone, Debug)]
@@ -467,6 +468,9 @@ impl Command {
                     }
                     DocsFormat::Markdown => {
                         docs_generator::generate_markdown_docs(module_ref.stmts).into_bytes()
+                    }
+                    DocsFormat::Xml => {
+                        docs_generator::generate_xml_docs(module_ref.stmts).into_bytes()
                     }
                 }
             }
