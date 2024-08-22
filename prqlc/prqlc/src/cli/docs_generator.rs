@@ -197,11 +197,10 @@ pub fn generate_html_docs(stmts: Vec<Stmt>) -> String {
 
 /// Generate XML documentation.
 pub fn generate_xml_docs(stmts: Vec<Stmt>) -> String {
-    let mut docs = format!(
-        r#"<?xml version="1.0" encoding="UTF-8"?>
+    let mut docs = r#"<?xml version="1.0" encoding="UTF-8"?>
 <docs>
 "#
-    );
+    .to_string();
 
     if stmts
         .clone()
@@ -334,7 +333,7 @@ pub fn generate_xml_docs(stmts: Vec<Stmt>) -> String {
                     }
 
                     if let Some(return_ty) = &func.return_ty {
-                        docs.push_str(&"      <returns");
+                        docs.push_str("      <returns");
                         match &return_ty.kind {
                             TyKind::Any => docs.push_str("/>\n"),
                             TyKind::Ident(ident) => {
