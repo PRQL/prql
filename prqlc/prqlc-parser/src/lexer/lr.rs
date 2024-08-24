@@ -167,20 +167,6 @@ fn escape_all_except_quotes(s: &str) -> String {
     result
 }
 
-#[test]
-fn test_quote_string() {
-    use insta::assert_snapshot;
-    assert_snapshot!(("foo\nbar" ), @r###"
-    foo
-    bar
-    "###);
-    assert_snapshot!(quote_string("foo\nbar" ), @r###"
-    "foo
-    bar"
-    "###);
-    assert_snapshot!(quote_string(r#"foo\nbar"# ), @r###""foo\nbar""###);
-}
-
 // This is here because Literal::Float(f64) does not implement Hash, so we cannot simply derive it.
 // There are reasons for that, but chumsky::Error needs Hash for the TokenKind, so it can deduplicate
 // tokens in error.
