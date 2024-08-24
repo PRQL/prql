@@ -23,6 +23,7 @@ impl Resolver<'_> {
                 Literal::Float(_) => TyKind::Primitive(PrimitiveSet::Float),
                 Literal::Boolean(_) => TyKind::Primitive(PrimitiveSet::Bool),
                 Literal::String(_) => TyKind::Primitive(PrimitiveSet::Text),
+                Literal::RawString(_) => TyKind::Primitive(PrimitiveSet::Text),
                 Literal::Date(_) => TyKind::Primitive(PrimitiveSet::Date),
                 Literal::Time(_) => TyKind::Primitive(PrimitiveSet::Time),
                 Literal::Timestamp(_) => TyKind::Primitive(PrimitiveSet::Timestamp),

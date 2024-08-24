@@ -210,33 +210,47 @@ mod test {
 
     #[test]
     fn test_string_quoting() {
-        fn mk_str(s: &str) -> Expr {
+        // TODO: add some test for escapes
+        fn make_str(s: &str) -> Expr {
             Expr::new(ExprKind::Literal(Literal::String(s.to_string())))
         }
 
         assert_snapshot!(
-            write_expr(&mk_str("hello")),
+            write_expr(&make_str("hello")),
             @r###""hello""###
         );
 
         assert_snapshot!(
-            write_expr(&mk_str(r#"he's nice"#)),
+            write_expr(&make_str(r#"he's nice"#)),
             @r###""he's nice""###
         );
 
         assert_snapshot!(
-            write_expr(&mk_str(r#"he said "what up""#)),
+            write_expr(&make_str(r#"he said "what up""#)),
             @r###"'he said "what up"'"###
         );
 
         assert_snapshot!(
-            write_expr(&mk_str(r#"he said "what's up""#)),
+            write_expr(&make_str(r#"he said "what's up""#)),
             @r###"""he said "what's up""""###
         );
 
         assert_snapshot!(
-            write_expr(&mk_str(r#" single' three double""" found double"""" "#)),
+            write_expr(&make_str(r#" single' three double""" found double"""" "#)),
             @r###"""""" single' three double""" found double"""" """"""###
+        );
+    }
+
+    #[test]
+    fn test_raw_string_quoting() {
+        // TODO: add some test for escapes
+        fn make_str(s: &str) -> Expr {
+            Expr::new(ExprKind::Literal(Literal::RawString(s.to_string())))
+        }
+
+        assert_snapshot!(
+            write_expr(&make_str("hello")),
+            @r###"r"hello""###
         );
     }
 }
