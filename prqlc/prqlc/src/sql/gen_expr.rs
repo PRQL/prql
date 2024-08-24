@@ -380,7 +380,9 @@ fn operator_from_name(name: &str) -> Option<BinaryOperator> {
 pub(super) fn translate_literal(l: Literal, ctx: &Context) -> Result<sql_ast::Expr> {
     Ok(match l {
         Literal::Null => sql_ast::Expr::Value(Value::Null),
-        Literal::String(s) => sql_ast::Expr::Value(Value::SingleQuotedString(s)),
+        Literal::String(s) | Literal::RawString(s) => {
+            sql_ast::Expr::Value(Value::SingleQuotedString(s))
+        }
         Literal::Boolean(b) => sql_ast::Expr::Value(Value::Boolean(b)),
         Literal::Float(f) => sql_ast::Expr::Value(Value::Number(format!("{f:?}"), false)),
         Literal::Integer(i) => sql_ast::Expr::Value(Value::Number(format!("{i}"), false)),

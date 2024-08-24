@@ -84,6 +84,7 @@ pub enum Literal {
     Float(f64),
     Boolean(bool),
     String(String),
+    RawString(String),
     Date(String),
     Time(String),
     Timestamp(String),
@@ -113,7 +114,11 @@ impl std::fmt::Display for Literal {
             Literal::Float(i) => write!(f, "{i}")?,
 
             Literal::String(s) => {
-                quote_string(s, f)?;
+                write!(f, "{}", quote_string(escape_all_except_quotes(s).as_str()))?;
+            }
+
+            Literal::RawString(s) => {
+                write!(f, "r{}", quote_string(s))?;
             }
 
             Literal::Boolean(b) => {
@@ -132,15 +137,13 @@ impl std::fmt::Display for Literal {
     }
 }
 
-fn quote_string(s: &str, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-    let s = escape_all_except_quotes(s);
-
+fn quote_string(s: &str) -> String {
     if !s.contains('"') {
-        return write!(f, r#""{s}""#);
+        return format!(r#""{}""#, s);
     }
 
     if !s.contains('\'') {
-        return write!(f, "'{s}'");
+        return format!("'{}'", s);
     }
 
     // when string contains both single and double quotes
@@ -149,7 +152,7 @@ fn quote_string(s: &str, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
     while s.contains(&quotes) {
         quotes += "\"";
     }
-    write!(f, "{quotes}{s}{quotes}")
+    format!("{}{}{}", quotes, s, quotes)
 }
 
 fn escape_all_except_quotes(s: &str) -> String {

@@ -17,6 +17,8 @@
 
 **Fixes**:
 
+- Raw strings (`r"..."`) are retained through `prqlc fmt` (@max-sixty)
+
 **Documentation**:
 
 **Web**:

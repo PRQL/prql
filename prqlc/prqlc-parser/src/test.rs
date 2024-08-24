@@ -1185,7 +1185,7 @@ fn test_multiline_string() {
               span: "0:9-15"
             args:
               - Literal:
-                  String: r-string test
+                  RawString: r-string test
                 span: "0:20-36"
                 alias: x
           span: "0:9-36"
