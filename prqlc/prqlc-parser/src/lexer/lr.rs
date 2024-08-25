@@ -146,13 +146,36 @@ fn quote_string(s: &str) -> String {
         return format!("'{}'", s);
     }
 
-    // when string contains both single and double quotes
-    // find minimum number of double quotes
-    let mut quotes = "\"\"".to_string();
-    while s.contains(&quotes) {
-        quotes += "\"";
-    }
-    format!("{}{}{}", quotes, s, quotes)
+    // If the string starts or ends with a quote, use the other quote to delimit
+    // the string. Otherwise default to double quotes.
+
+    // TODO: this doesn't cover a string that starts with a single quote and
+    // ends with a double quote; I think in that case it's necessary to escape
+    // the quote. We need to add tests here.
+
+    let quote = if s.starts_with('"') || s.ends_with('"') {
+        '\''
+    } else {
+        '"'
+    };
+
+    // When string contains both single and double quotes find the longest
+    // sequence of consecutive quotes, and then use the next highest odd number
+    // of quotes (quotes must be odd; even number of quotes are empty strings).
+    // i.e.:
+    // 0 -> 1
+    // 1 -> 3
+    // 2 -> 3
+    // 3 -> 5
+    let max_consecutive = s
+        .split(|c| c != quote)
+        .map(|quote_sequence| quote_sequence.len())
+        .max()
+        .unwrap_or(0);
+    let next_odd = (max_consecutive + 1) / 2 * 2 + 1;
+    let delim = quote.to_string().repeat(next_odd);
+
+    format!("{}{}{}", delim, s, delim)
 }
 
 fn escape_all_except_quotes(s: &str) -> String {
@@ -256,7 +279,6 @@ mod test {
 
     #[test]
     fn test_string_quoting() {
-        // TODO: add some test for escapes
         fn make_str(s: &str) -> Literal {
             Literal::String(s.to_string())
         }
@@ -278,12 +300,52 @@ mod test {
 
         assert_snapshot!(
             make_str(r#"he said "what's up""#).to_string(),
-            @r###"""he said "what's up""""###
+            @r###"'''he said "what's up"'''"###
         );
 
         assert_snapshot!(
-            make_str(r#" single' three double""" found double"""" "#).to_string(),
-            @r###"""""" single' three double""" found double"""" """"""###
+            make_str(r#" single' three double""" four double"""" "#).to_string(),
+            @r###"""""" single' three double""" four double"""" """"""###
+
+        );
+
+        assert_snapshot!(
+            make_str(r#""Starts with a double quote and ' contains a single quote"#).to_string(),
+            @r###"'''"Starts with a double quote and ' contains a single quote'''"###
+        );
+    }
+
+    #[test]
+    fn test_string_escapes() {
+        assert_snapshot!(
+            Literal::String(r#"hello\nworld"#.to_string()).to_string(),
+            @r###""hello\\nworld""###
+        );
+
+        assert_snapshot!(
+            Literal::String(r#"hello\tworld"#.to_string()).to_string(),
+            @r###""hello\\tworld""###
+        );
+
+        // TODO: one problem here is that we don't remember whether the original
+        // string contained an actual line break or contained an `\n` string,
+        // because we immediately normalize both to `\n`. This means that when
+        // we format the PRQL, we can't retain the original. I think three ways of
+        // resolving this:
+        // - Have different tokens in the lexer and parser; normalize at the
+        //   parsing stage, and then use the token in the lexer for writing out
+        //   the formatted PRQL. Literals are one of the only data structures we
+        //   retain between the lexer and parser. (note that this requires the
+        //   current effort to use tokens from the lexer as part of `prqlc fmt`;
+        //   ongoing as of 2024-08)
+        // - Don't normalize at all, and then normalize when we use the string.
+        //   I think this might be viable and maybe easy, but is a bit less
+        //   elegant; the parser is designed to normalize this sort of thing.
+
+        assert_snapshot!(
+            Literal::String(r#"hello
+            world"#.to_string()).to_string(),
+            @r###""hello\n            world""###
         );
     }
 

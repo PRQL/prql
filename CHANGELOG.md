@@ -17,7 +17,11 @@
 
 **Fixes**:
 
-- Raw strings (`r"..."`) are retained through `prqlc fmt` (@max-sixty)
+- Raw strings (`r"..."`) are retained through `prqlc fmt` (@max-sixty, #4848)
+
+- Strings containing an odd contiguous number of quotes are now delimited by an
+  odd number of quotes when being formatted. The previous implementation would
+  use an even number, which is invalid PRQL. (@max-sixty, #4850)
 
 **Documentation**:
 
