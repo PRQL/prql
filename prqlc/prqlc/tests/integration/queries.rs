@@ -65,6 +65,9 @@ mod fmt {
         with_settings!({ input_file => prql_path }, {
             assert_snapshot!(test_name, &formatted, &prql)
         });
+
+        // Check the formatted queries can still compile
+        prqlc::prql_to_pl(&formatted).unwrap();
     }
 }
 
