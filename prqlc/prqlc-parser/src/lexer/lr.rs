@@ -327,6 +327,21 @@ mod test {
             @r###""hello\\tworld""###
         );
 
+        // TODO: one problem here is that we don't remember whether the original
+        // string contained an actual line break or contained an `\n` string,
+        // because we immediately normalize both to `\n`. This means that when
+        // we format the PRQL, we can't retain the original. I think three ways of
+        // resolving this:
+        // - Have different tokens in the lexer and parser; normalize at the
+        //   parsing stage, and then use the token in the lexer for writing out
+        //   the formatted PRQL. Literals are one of the only data structures we
+        //   retain between the lexer and parser. (note that this requires the
+        //   current effort to use tokens from the lexer as part of `prqlc fmt`;
+        //   ongoing as of 2024-08)
+        // - Don't normalize at all, and then normalize when we use the string.
+        //   I think this might be viable and maybe easy, but is a bit less
+        //   elegant; the parser is designed to normalize this sort of thing.
+
         assert_snapshot!(
             Literal::String(r#"hello
             world"#.to_string()).to_string(),
