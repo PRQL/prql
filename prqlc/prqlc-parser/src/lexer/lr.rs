@@ -247,3 +247,56 @@ impl std::fmt::Debug for Token {
         write!(f, "{}..{}: {:?}", self.span.start, self.span.end, self.kind)
     }
 }
+
+#[cfg(test)]
+mod test {
+    use insta::assert_snapshot;
+
+    use super::*;
+
+    #[test]
+    fn test_string_quoting() {
+        // TODO: add some test for escapes
+        fn make_str(s: &str) -> Literal {
+            Literal::String(s.to_string())
+        }
+
+        assert_snapshot!(
+            make_str("hello").to_string(),
+            @r###""hello""###
+        );
+
+        assert_snapshot!(
+            make_str(r#"he's nice"#).to_string(),
+            @r###""he's nice""###
+        );
+
+        assert_snapshot!(
+            make_str(r#"he said "what up""#).to_string(),
+            @r###"'he said "what up"'"###
+        );
+
+        assert_snapshot!(
+            make_str(r#"he said "what's up""#).to_string(),
+            @r###"""he said "what's up""""###
+        );
+
+        assert_snapshot!(
+            make_str(r#" single' three double""" found double"""" "#).to_string(),
+            @r###"""""" single' three double""" found double"""" """"""###
+        );
+    }
+
+    #[test]
+    fn test_raw_string_quoting() {
+        // TODO: add some test for escapes
+        fn make_str(s: &str) -> Literal {
+            Literal::RawString(s.to_string())
+        }
+
+        assert_snapshot!(
+            make_str("hello").to_string(),
+            @r###"r"hello""###
+        );
+    }
+}
