@@ -357,6 +357,7 @@ fn translate_join(
             JoinSide::Right => JoinOperator::RightOuter(constraint),
             JoinSide::Full => JoinOperator::FullOuter(constraint),
         },
+        global: false,
     })
 }
 
