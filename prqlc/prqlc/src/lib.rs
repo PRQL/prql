@@ -125,10 +125,13 @@ pub type Result<T, E = Error> = core::result::Result<T, E>;
 
 /// Get the version of the compiler. This is determined by the first of:
 /// - An optional environment variable `PRQL_VERSION_OVERRIDE`; primarily useful
-///   for internal testing. Note that this env var is checked on every call of
-///   this function. Without checking each read, we found some internal tests
-///   were flaky. If this caused any perf issues, it could be adjusted to lock into a
-///   static when not running tests etc.
+///   for internal testing.
+///   - Note that this env var is checked on every call of this function.
+///     Without checking each read, we found some internal tests were flaky. If
+///     this caused any perf issues, we could adjust the tests that rely on
+///     versions to run in a more encapsulated way (for example, use `prqlc`
+///     binary tests, which we can guarantee won't have anything call this
+///     before setting up the env var).
 /// - The version returned by `git describe --tags`
 /// - The version in the cargo manifest
 pub fn compiler_version() -> Version {
