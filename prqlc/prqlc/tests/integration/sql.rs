@@ -4423,9 +4423,7 @@ fn test_header_target_error() {
     assert_snapshot!(compile(r#"
     prql target:foo.bar
     from a
-    "#).unwrap_err(),@r###"
-    Error: target `"foo.bar"` not found
-    "###);
+    "#).unwrap_err(),@r###"Error: target `"foo.bar"` not found"###);
 
     // TODO: Can we use the span of:
     // - Ideally just `dialect`?

@@ -124,36 +124,52 @@ pub(crate) mod utils;
 pub type Result<T, E = Error> = core::result::Result<T, E>;
 
 /// Get the version of the compiler. This is determined by the first of:
-/// - An optional environment variable `PRQL_VERSION_OVERRIDE`. Note that this
-///   needs to be set before the first time this function is called, since it's
-///   stored in a static. It's primarily useful for testing.
+/// - An optional environment variable `PRQL_VERSION_OVERRIDE`; primarily useful
+///   for internal testing.
+///   - Note that this env var is checked on every call of this function.
+///     Without checking each read, we found some internal tests were flaky. If
+///     this caused any perf issues, we could adjust the tests that rely on
+///     versions to run in a more encapsulated way (for example, use `prqlc`
+///     binary tests, which we can guarantee won't have anything call this
+///     before setting up the env var).
 /// - The version returned by `git describe --tags`
 /// - The version in the cargo manifest
-pub fn compiler_version() -> &'static Version {
+pub fn compiler_version() -> Version {
+    if let Ok(prql_version_override) = std::env::var("PRQL_VERSION_OVERRIDE") {
+        return Version::parse(&prql_version_override).unwrap_or_else(|e| {
+            panic!(
+                "Could not parse PRQL version {}\n{}",
+                prql_version_override, e
+            )
+        });
+    };
+
     static COMPILER_VERSION: OnceLock<Version> = OnceLock::new();
-    COMPILER_VERSION.get_or_init(|| {
-        if let Ok(prql_version_override) = std::env::var("PRQL_VERSION_OVERRIDE") {
-            return Version::parse(&prql_version_override).unwrap_or_else(|e| {
-                panic!(
-                    "Could not parse PRQL version {}\n{}",
-                    prql_version_override, e
-                )
-            });
-        }
-        let git_version = env!("VERGEN_GIT_DESCRIBE");
-        let cargo_version = env!("CARGO_PKG_VERSION");
-        Version::parse(git_version)
-            .or_else(|e| {
-                log::info!("Could not parse git version number {}\n{}", git_version, e);
-                Version::parse(cargo_version)
-            })
-            .unwrap_or_else(|e| {
-                panic!(
-                    "Could not parse prqlc version number {}\n{}",
-                    cargo_version, e
-                )
-            })
-    })
+    COMPILER_VERSION
+        .get_or_init(|| {
+            if let Ok(prql_version_override) = std::env::var("PRQL_VERSION_OVERRIDE") {
+                return Version::parse(&prql_version_override).unwrap_or_else(|e| {
+                    panic!(
+                        "Could not parse PRQL version {}\n{}",
+                        prql_version_override, e
+                    )
+                });
+            }
+            let git_version = env!("VERGEN_GIT_DESCRIBE");
+            let cargo_version = env!("CARGO_PKG_VERSION");
+            Version::parse(git_version)
+                .or_else(|e| {
+                    log::info!("Could not parse git version number {}\n{}", git_version, e);
+                    Version::parse(cargo_version)
+                })
+                .unwrap_or_else(|e| {
+                    panic!(
+                        "Could not parse prqlc version number {}\n{}",
+                        cargo_version, e
+                    )
+                })
+        })
+        .clone()
 }
 
 /// Compile a PRQL string into a SQL string.
