@@ -17,7 +17,6 @@ build = "build.rs"
 cli = [
   "anyhow",
   "clap_complete_command",
-  "clap_complete",
   "clap-verbosity-flag",
   "clap",
   "clio",
@@ -58,7 +57,7 @@ serde = {workspace = true}
 serde_json = {workspace = true}
 serde_yaml = {workspace = true, optional = true}
 sqlformat = "0.2.4"
-sqlparser = {version = "0.49.0", features = ["serde"]}
+sqlparser = {version = "0.50.0", features = ["serde"]}
 strum = {version = "0.26.3", features = ["std", "derive"]}
 strum_macros = "0.26.4"
 
@@ -71,25 +70,18 @@ vergen-gitcl = {version = "1.0.0", features = ["build"]}
 # feature
 anyhow = {version = "1.0.86", features = ["backtrace"], optional = true}
 clap = {version = "4.4.18", features = ["derive", "env", "wrap_help"], optional = true}
+clap-verbosity-flag = {version = "2.1.2", optional = true}
 clap_complete_command = {version = "0.5.1", optional = true}
-# Pinned for MSRV
-clap-verbosity-flag = {version = "=2.1.2", optional = true}
 clio = {version = "0.3.3", features = ['clap-parse'], optional = true}
 color-eyre = {version = "0.6.3", optional = true}
 colorchoice-clap = {version = "1.0.0", optional = true}
-is-terminal = {version = "0.4.12", optional = true}
+is-terminal = {version = "0.4.13", optional = true}
 notify = {version = "6.1.1", optional = true}
 walkdir = {version = "2.5.0", optional = true}
 
-# Not direct dependencies, but pinning because later versions have a higher MSRV. Can
-# remove when we increase MSRV.
-clap_builder = {version = "=4.4.18", optional = true}
-clap_complete = {version = "=4.4.10", optional = true}
-clap_complete_fig = {version = "=4.4.2", optional = true}
-
 # We use minijinja just for the Jinja lexer, which is not part of the
 # public interface which is covered by semver guarantees.
-minijinja = {version = "2.1.1", features = ["unstable_machinery"], optional = true}
+minijinja = {version = "2.1.2", features = ["unstable_machinery"], optional = true}
 
 # For integration tests. These are gated by the `test-dbs` and `test-dbs-external` features,
 # rather than dev-dependencies, because dev-dependencies can't be optional.
@@ -100,7 +92,7 @@ pg_bigdecimal = {version = "0.1.0", optional = true}
 postgres = {version = "0.19.8", optional = true}
 rusqlite = {version = "0.31.0", optional = true, features = ["bundled", "csvtab"]}
 tiberius = {version = "0.12.3", optional = true, default-features = false, features = ["sql-browser-tokio", "bigdecimal", "time", "rustls", "tds73"]}
-tokio = {version = "1.39.2", optional = true, features = ["full"]}
+tokio = {version = "1.39.3", optional = true, features = ["full"]}
 tokio-util = {version = "0.7", optional = true, features = ["compat"]}
 
 [dev-dependencies]
@@ -113,7 +105,7 @@ insta-cmd = {workspace = true}
 rstest = "0.22.0"
 similar = {workspace = true}
 similar-asserts = {workspace = true}
-tempfile = {version = "3.11.0"}
+tempfile = {version = "3.12.0"}
 test_each_file = "0.3.3"
 
 # We use `benches/bench.rs` for the benchmark harness so disable searching for

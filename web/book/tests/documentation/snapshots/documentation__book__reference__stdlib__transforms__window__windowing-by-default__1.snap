@@ -11,4 +11,3 @@ SELECT
   ) AS rnk
 FROM
   employees
-

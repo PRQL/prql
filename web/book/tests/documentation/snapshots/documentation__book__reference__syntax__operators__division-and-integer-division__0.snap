@@ -17,4 +17,3 @@ SELECT
   ROUND(ABS(a / b) - 0.5) * SIGN(a) * SIGN(b) AS int_div_out
 FROM
   table_0
-

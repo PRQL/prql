@@ -1,9 +1,8 @@
 ---
 source: web/book/tests/documentation/book.rs
-expression: "from employees\nselect {\n  age_squared = age | math.pow 2\n}\n"
+expression: "from employees\nselect age_squared = (age | math.pow 2)\n"
 ---
 SELECT
   POW(age, 2) AS age_squared
 FROM
   employees
-

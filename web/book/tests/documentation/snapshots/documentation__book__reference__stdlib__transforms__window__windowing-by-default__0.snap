@@ -12,4 +12,3 @@ FROM
   employees
 ORDER BY
   age
-

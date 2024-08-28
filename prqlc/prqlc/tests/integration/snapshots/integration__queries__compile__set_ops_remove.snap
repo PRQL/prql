@@ -45,4 +45,3 @@ FROM
   table_2
 ORDER BY
   a
-

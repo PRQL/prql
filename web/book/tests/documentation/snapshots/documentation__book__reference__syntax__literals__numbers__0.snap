@@ -11,4 +11,3 @@ SELECT
   511 AS octal
 FROM
   numbers
-

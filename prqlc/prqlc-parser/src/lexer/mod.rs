@@ -284,7 +284,7 @@ fn literal() -> impl Parser<char, Literal, Error = Cheap<char>> {
 
     let raw_string = just("r")
         .ignore_then(quoted_string(false))
-        .map(Literal::String);
+        .map(Literal::RawString);
 
     let bool = (just("true").to(true))
         .or(just("false").to(false))

@@ -18,4 +18,3 @@ FROM
   table_0
 WHERE
   b = true
-

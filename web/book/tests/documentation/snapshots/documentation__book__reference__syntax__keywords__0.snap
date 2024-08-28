@@ -9,4 +9,3 @@ FROM
   my_table
 LIMIT
   3
-

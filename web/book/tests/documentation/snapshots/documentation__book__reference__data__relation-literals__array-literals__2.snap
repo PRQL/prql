@@ -22,4 +22,3 @@ SELECT
   20 * 2 + 2 AS answer
 FROM
   table_0
-

@@ -11,4 +11,3 @@ SELECT
   '🐢' AS turtle
 FROM
   artists
-

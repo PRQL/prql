@@ -8,4 +8,3 @@ SELECT
   'I said "hello world"!' AS triple
 FROM
   artists
-

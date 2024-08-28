@@ -18,4 +18,3 @@ FROM
 ORDER BY
   album_id,
   genre_id
-

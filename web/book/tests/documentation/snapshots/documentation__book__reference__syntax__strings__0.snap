@@ -9,4 +9,3 @@ SELECT
   'hello world' AS double_triple
 FROM
   artists
-

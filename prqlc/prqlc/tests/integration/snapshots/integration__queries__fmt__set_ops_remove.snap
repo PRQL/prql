@@ -12,4 +12,3 @@ from_text format:json '{ "columns": ["a"], "data": [[1], [2], [2], [3]] }'
 distinct
 remove (from_text format:json '{ "columns": ["a"], "data": [[1], [2]] }')
 sort a
-

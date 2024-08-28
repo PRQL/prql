@@ -24,4 +24,3 @@ GROUP BY
   table_0.title
 ORDER BY
   table_0.album_id
-

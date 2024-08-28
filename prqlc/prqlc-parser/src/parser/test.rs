@@ -412,7 +412,7 @@ fn test_string() {
     assert_yaml_snapshot!(parse_expr(r#"r" \nU S A ""#).unwrap(), @r###"
     ---
     Literal:
-      String: " \\nU S A "
+      RawString: " \\nU S A "
     span: "0:0-12"
     "###);
 

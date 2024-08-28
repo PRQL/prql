@@ -15,4 +15,3 @@ SELECT
   ) AS url
 FROM
   web
-

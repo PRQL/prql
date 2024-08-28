@@ -16,7 +16,6 @@ select {
   d8 = (invoice_date | date.to_text "%+"),
   d9 = (invoice_date | date.to_text "%-d/%-m/%y"),
   d10 = (invoice_date | date.to_text "%-Hh %Mmin"),
-  d11 = (invoice_date | date.to_text ""%M'%S"""),
+  d11 = (invoice_date | date.to_text '''%M'%S"'''),
   d12 = (invoice_date | date.to_text "100%% in %d days"),
 }
-

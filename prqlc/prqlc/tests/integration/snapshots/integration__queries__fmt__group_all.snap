@@ -11,4 +11,3 @@ group {a.album_id, a.title} (aggregate price = (
   math.round 2
 ))
 sort album_id
-
