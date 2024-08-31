@@ -44,7 +44,7 @@ jobs:
         uses: Swatinem/rust-cache@v2
         id: cache
         with:
-          prefix-key: ${{ env.version }}
+          prefix-key: ${{ env.version }}-${{ hashFiles('Cargo.lock') }}
           # `web` is the closest rust cache key. It's useful on ubuntu (last
           # checked, roughly halved the time, to 4 min), but not on other OSs
           # given we don't have those caches. We can't use a separate one given
