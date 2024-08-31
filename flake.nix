@@ -4,15 +4,26 @@
   inputs = {
     nixpkgs.url = "github:nixos/nixpkgs";
     flake-utils.url = "github:numtide/flake-utils";
-    mdbook-footnote.url = "github:aljazerzen/mdbook-footnote";
-    hyperlink.url = "github:aljazerzen/hyperlink";
+    naersk.url = "github:nix-community/naersk";
+    mdbook-footnote = {
+      url = "github:aljazerzen/mdbook-footnote";
+      inputs.nixpkgs.follows = "nixpkgs";
+      inputs.flake-utils.follows = "flake-utils";
+      inputs.naersk.follows = "naersk";
+    };
+    hyperlink = {
+      url = "github:aljazerzen/hyperlink";
+      inputs.nixpkgs.follows = "nixpkgs";
+      inputs.flake-utils.follows = "flake-utils";
+      inputs.naersk.follows = "naersk";
+    };
     fenix = {
       url = "github:nix-community/fenix";
       inputs.nixpkgs.follows = "nixpkgs";
     };
   };
 
-  outputs = { self, nixpkgs, flake-utils, mdbook-footnote, hyperlink, fenix }:
+  outputs = { self, nixpkgs, flake-utils, mdbook-footnote, hyperlink, fenix, naersk }:
     flake-utils.lib.eachDefaultSystem (system:
       let
         pkgs = nixpkgs.legacyPackages.${system};
