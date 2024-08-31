@@ -1,8 +1,8 @@
 # DuckDB
 
 There's a [DuckDB](https://duckdb.org/) community extension by
-**[@ywelsch](https://github.com/ywelsch)** at
-the DuckDB Community Extension Repository.
+**[@ywelsch](https://github.com/ywelsch)** at the DuckDB Community Extension
+Repository.
 
 ```sql
 INSTALL prql FROM community;
@@ -13,4 +13,6 @@ filter invoice_date >= @2009-02-01
 take 5;
 ```
 
-Check out the [extension's documentation](https://community-extensions.duckdb.org/extensions/prql.html) for more details.
+Check out the
+[extension's documentation](https://community-extensions.duckdb.org/extensions/prql.html)
+for more details.
