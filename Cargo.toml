@@ -51,7 +51,7 @@ insta = {version = "1.39.0", features = ["colors", "glob", "yaml", "filters"]}
 insta-cmd = "0.6.0"
 itertools = "0.13.0"
 log = "0.4.22"
-pyo3 = {version = "0.20.1", features = ["abi3-py37", "anyhow"]}
+pyo3 = {version = "0.21.1", features = ["abi3-py37", "anyhow"]}
 pyo3-build-config = "0.22.2"
 schemars = "1.0.0-alpha.11"
 semver = {version = "1.0.23", features = ["serde"]}

@@ -78,7 +78,7 @@ mod debug {
 }
 
 #[pymodule]
-fn prqlc(_py: Python, m: &PyModule) -> PyResult<()> {
+fn prqlc(_py: Python, m: &Bound<'_, PyModule>) -> PyResult<()> {
     m.add_function(wrap_pyfunction!(compile, m)?)?;
     m.add_function(wrap_pyfunction!(prql_to_pl, m)?)?;
     m.add_function(wrap_pyfunction!(pl_to_prql, m)?)?;
@@ -91,11 +91,11 @@ fn prqlc(_py: Python, m: &PyModule) -> PyResult<()> {
     m.add("__version__", env!("CARGO_PKG_VERSION"))?;
 
     // add debug submodule
-    let debug_module = PyModule::new(_py, "debug")?;
-    debug_module.add_function(wrap_pyfunction!(debug::prql_lineage, debug_module)?)?;
-    debug_module.add_function(wrap_pyfunction!(debug::pl_to_lineage, debug_module)?)?;
+    let debug_module = PyModule::new_bound(_py, "debug")?;
+    debug_module.add_function(wrap_pyfunction!(debug::prql_lineage, &debug_module)?)?;
+    debug_module.add_function(wrap_pyfunction!(debug::pl_to_lineage, &debug_module)?)?;
 
-    m.add_submodule(debug_module)?;
+    m.add_submodule(&debug_module)?;
 
     Ok(())
 }

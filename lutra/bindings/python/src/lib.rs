@@ -7,7 +7,7 @@ use itertools::Itertools;
 use pyo3::prelude::*;
 
 #[pymodule]
-fn lutra(_py: Python, m: &PyModule) -> PyResult<()> {
+fn lutra(_py: Python, m: &Bound<'_, PyModule>) -> PyResult<()> {
     m.add_function(wrap_pyfunction!(execute_one, m)?)?;
     // From https://github.com/PyO3/maturin/issues/100
     m.add("__version__", env!("CARGO_PKG_VERSION"))?;

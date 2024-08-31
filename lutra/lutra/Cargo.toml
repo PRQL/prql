@@ -26,14 +26,14 @@ test = false
 
 [target.'cfg(not(target_family="wasm"))'.dependencies]
 anyhow = {workspace = true}
-arrow = {version = "51.0", features = ["prettyprint"], default-features = false}
+arrow = {version = "52.0", features = ["prettyprint"], default-features = false}
 clap = {version = "4.4.18", features = ["derive"], optional = true}
-connector_arrow = {version = "0.4.2", features = ["src_sqlite"]}
+connector_arrow = {version = "0.5.1", features = ["src_sqlite"]}
 env_logger = "0.10.2"
 itertools = {workspace = true}
 log = {workspace = true}
 prqlc = {path = "../../prqlc/prqlc", version = "0.13.1", default-features = false}
-rusqlite = {version = "0.31.0", features = ["bundled"]}
+rusqlite = {version = "0.32.0", features = ["bundled"]}
 walkdir = "2.5.0"
 
 [target.'cfg(not(target_family="wasm"))'.dev-dependencies]
