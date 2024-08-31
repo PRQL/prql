@@ -350,7 +350,7 @@ jobs:
       - name: 💰 Cache
         uses: Swatinem/rust-cache@v2
         with:
-          prefix-key: ${{ env.version }}
+          prefix-key: ${{ env.version }}-${{ hashFiles('Cargo.lock') }}
           # Share key with the `build-web` job
           shared-key: web
           save-if: false
