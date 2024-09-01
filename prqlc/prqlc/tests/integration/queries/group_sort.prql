@@ -1,9 +1,9 @@
 # mssql:test
 from tracks
-derive d = album_id + 1
+derive d = (album_id + 1 | as REAL)
 group d (
     aggregate {
-        n1 = (track_id | sum),
+        n1 = (track_id | sum | as REAL),
     }
 )
 sort d

@@ -1,10 +1,10 @@
 ---
 source: prqlc/prqlc/tests/integration/queries.rs
-expression: "# mssql:skip\n# mysql:skip\n# clickhouse:skip\n# glaredb:skip (the string_agg function is not supported)\nfrom tracks\nfilter genre_id == 100\nderive empty_name = name == ''\naggregate {sum track_id, concat_array name, all empty_name, any empty_name}\n"
+expression: "# sqlite:skip\n# mssql:skip\n# mysql:skip\n# clickhouse:skip\n# glaredb:skip (the string_agg function is not supported)\nfrom tracks\nfilter genre_id == 100\nderive empty_name = name == ''\naggregate {\n  s = (sum track_id | as REAL),\n  c = concat_array name,\n  a = all empty_name,\n  n = any empty_name,\n}\n"
 input_file: prqlc/prqlc/tests/integration/queries/aggregation.prql
 ---
 frames:
-- - 1:114-136
+- - 1:128-150
   - columns:
     - !All
       input_id: 124
@@ -15,7 +15,7 @@ frames:
       table:
       - default_db
       - tracks
-- - 1:137-167
+- - 1:151-181
   - columns:
     - !All
       input_id: 124
@@ -31,23 +31,27 @@ frames:
       table:
       - default_db
       - tracks
-- - 1:168-243
+- - 1:182-296
   - columns:
     - !Single
-      name: null
+      name:
+      - s
       target_id: 137
       target_name: null
     - !Single
-      name: null
-      target_id: 140
-      target_name: null
-    - !Single
-      name: null
+      name:
+      - c
       target_id: 143
       target_name: null
     - !Single
-      name: null
+      name:
+      - a
       target_id: 146
+      target_name: null
+    - !Single
+      name:
+      - n
+      target_id: 149
       target_name: null
     inputs:
     - id: 124
@@ -58,21 +62,21 @@ frames:
 nodes:
 - id: 124
   kind: Ident
-  span: 1:102-113
+  span: 1:116-127
   ident: !Ident
   - default_db
   - tracks
   parent: 130
 - id: 126
   kind: RqOperator
-  span: 1:121-136
+  span: 1:135-150
   targets:
   - 128
   - 129
   parent: 130
 - id: 128
   kind: Ident
-  span: 1:121-129
+  span: 1:135-143
   ident: !Ident
   - this
   - tracks
@@ -81,17 +85,17 @@ nodes:
   - 124
 - id: 129
   kind: Literal
-  span: 1:133-136
+  span: 1:147-150
 - id: 130
   kind: 'TransformCall: Filter'
-  span: 1:114-136
+  span: 1:128-150
   children:
   - 124
   - 126
   parent: 136
 - id: 131
   kind: RqOperator
-  span: 1:157-167
+  span: 1:171-181
   alias: empty_name
   targets:
   - 133
@@ -99,7 +103,7 @@ nodes:
   parent: 135
 - id: 133
   kind: Ident
-  span: 1:157-161
+  span: 1:171-175
   ident: !Ident
   - this
   - tracks
@@ -108,93 +112,102 @@ nodes:
   - 124
 - id: 134
   kind: Literal
-  span: 1:165-167
+  span: 1:179-181
 - id: 135
   kind: Tuple
-  span: 1:157-167
+  span: 1:171-181
   children:
   - 131
   parent: 136
 - id: 136
   kind: 'TransformCall: Derive'
-  span: 1:137-167
+  span: 1:151-181
   children:
   - 130
   - 135
-  parent: 150
+  parent: 153
 - id: 137
   kind: RqOperator
-  span: 1:179-191
+  span: 1:216-223
+  alias: s
   targets:
-  - 139
-  parent: 149
-- id: 139
+  - 140
+  parent: 152
+- id: 140
+  kind: RqOperator
+  span: 1:201-213
+  targets:
+  - 142
+- id: 142
   kind: Ident
-  span: 1:183-191
+  span: 1:205-213
   ident: !Ident
   - this
   - tracks
   - track_id
   targets:
   - 124
-- id: 140
+- id: 143
   kind: RqOperator
-  span: 1:193-210
+  span: 1:232-249
+  alias: c
   targets:
-  - 142
-  parent: 149
-- id: 142
+  - 145
+  parent: 152
+- id: 145
   kind: Ident
-  span: 1:206-210
+  span: 1:245-249
   ident: !Ident
   - this
   - tracks
   - name
   targets:
   - 124
-- id: 143
-  kind: RqOperator
-  span: 1:212-226
-  targets:
-  - 145
-  parent: 149
-- id: 145
-  kind: Ident
-  span: 1:216-226
-  ident: !Ident
-  - this
-  - empty_name
-  targets:
-  - 131
 - id: 146
   kind: RqOperator
-  span: 1:228-242
+  span: 1:257-271
+  alias: a
   targets:
   - 148
-  parent: 149
+  parent: 152
 - id: 148
   kind: Ident
-  span: 1:232-242
+  span: 1:261-271
   ident: !Ident
   - this
   - empty_name
   targets:
   - 131
 - id: 149
+  kind: RqOperator
+  span: 1:279-293
+  alias: n
+  targets:
+  - 151
+  parent: 152
+- id: 151
+  kind: Ident
+  span: 1:283-293
+  ident: !Ident
+  - this
+  - empty_name
+  targets:
+  - 131
+- id: 152
   kind: Tuple
-  span: 1:178-243
+  span: 1:192-296
   children:
   - 137
-  - 140
   - 143
   - 146
-  parent: 150
-- id: 150
+  - 149
+  parent: 153
+- id: 153
   kind: 'TransformCall: Aggregate'
-  span: 1:168-243
+  span: 1:182-296
   children:
   - 136
-  - 149
+  - 152
 ast:
   name: Project
   stmts:
@@ -207,83 +220,98 @@ ast:
           - FuncCall:
               name:
                 Ident: from
-                span: 1:102-106
+                span: 1:116-120
               args:
               - Ident: tracks
-                span: 1:107-113
-            span: 1:102-113
+                span: 1:121-127
+            span: 1:116-127
           - FuncCall:
               name:
                 Ident: filter
-                span: 1:114-120
+                span: 1:128-134
               args:
               - Binary:
                   left:
                     Ident: genre_id
-                    span: 1:121-129
+                    span: 1:135-143
                   op: Eq
                   right:
                     Literal:
                       Integer: 100
-                    span: 1:133-136
-                span: 1:121-136
-            span: 1:114-136
+                    span: 1:147-150
+                span: 1:135-150
+            span: 1:128-150
           - FuncCall:
               name:
                 Ident: derive
-                span: 1:137-143
+                span: 1:151-157
               args:
               - Binary:
                   left:
                     Ident: name
-                    span: 1:157-161
+                    span: 1:171-175
                   op: Eq
                   right:
                     Literal:
                       String: ''
-                    span: 1:165-167
-                span: 1:157-167
+                    span: 1:179-181
+                span: 1:171-181
                 alias: empty_name
-            span: 1:137-167
+            span: 1:151-181
           - FuncCall:
               name:
                 Ident: aggregate
-                span: 1:168-177
+                span: 1:182-191
               args:
               - Tuple:
-                - FuncCall:
-                    name:
-                      Ident: sum
-                      span: 1:179-182
-                    args:
-                    - Ident: track_id
-                      span: 1:183-191
-                  span: 1:179-191
+                - Pipeline:
+                    exprs:
+                    - FuncCall:
+                        name:
+                          Ident: sum
+                          span: 1:201-204
+                        args:
+                        - Ident: track_id
+                          span: 1:205-213
+                      span: 1:201-213
+                    - FuncCall:
+                        name:
+                          Ident: as
+                          span: 1:216-218
+                        args:
+                        - Ident: REAL
+                          span: 1:219-223
+                      span: 1:216-223
+                  span: 1:200-224
+                  alias: s
                 - FuncCall:
                     name:
                       Ident: concat_array
-                      span: 1:193-205
+                      span: 1:232-244
                     args:
                     - Ident: name
-                      span: 1:206-210
-                  span: 1:193-210
+                      span: 1:245-249
+                  span: 1:232-249
+                  alias: c
                 - FuncCall:
                     name:
                       Ident: all
-                      span: 1:212-215
+                      span: 1:257-260
                     args:
                     - Ident: empty_name
-                      span: 1:216-226
-                  span: 1:212-226
+                      span: 1:261-271
+                  span: 1:257-271
+                  alias: a
                 - FuncCall:
                     name:
                       Ident: any
-                      span: 1:228-231
+                      span: 1:279-282
                     args:
                     - Ident: empty_name
-                      span: 1:232-242
-                  span: 1:228-242
-                span: 1:178-243
-            span: 1:168-243
-        span: 1:102-243
-    span: 1:0-243
+                      span: 1:283-293
+                  span: 1:279-293
+                  alias: n
+                span: 1:192-296
+            span: 1:182-296
+        span: 1:116-296
+    span: 1:0-296

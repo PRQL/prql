@@ -27,8 +27,8 @@ select {
     city,
     street,
     num_orders,
-    num_tracks,
-    running_total_num_tracks,
-    num_tracks_last_week
+    num_tracks = (num_tracks | as REAL),
+    running_total_num_tracks = (running_total_num_tracks | as REAL),
+    num_tracks_last_week = (num_tracks_last_week | as REAL)
 }
 take 20

@@ -3,6 +3,7 @@ source: prqlc/prqlc/tests/integration/queries.rs
 expression: "# mssql:test\nfrom tracks\nselect {genre_id, media_type_id, album_id}\ngroup {genre_id, media_type_id} (sort {-album_id} | take 1)\nsort {-genre_id, media_type_id}\n"
 input_file: prqlc/prqlc/tests/integration/queries/distinct_on.prql
 ---
+genre_id [Int],media_type_id [Int],album_id [Int]
 25,2,317
 24,2,346
 24,4,342

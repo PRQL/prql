@@ -1,15 +1,16 @@
 ---
 source: prqlc/prqlc/tests/integration/queries.rs
-expression: "# mssql:test\nfrom tracks\nderive d = album_id + 1\ngroup d (\n    aggregate {\n        n1 = (track_id | sum),\n    }\n)\nsort d\ntake 10\nselect { d1 = d, n1 }\n"
+expression: "# mssql:test\nfrom tracks\nderive d = (album_id + 1 | as REAL)\ngroup d (\n    aggregate {\n        n1 = (track_id | sum | as REAL),\n    }\n)\nsort d\ntake 10\nselect { d1 = d, n1 }\n"
 input_file: prqlc/prqlc/tests/integration/queries/group_sort.prql
 ---
-2,91
-3,2
-4,12
-5,148
-6,450
-7,572
-8,678
-9,973
-10,644
-11,1281
+d1 [Float],n1 [Float]
+2.0,91.0
+3.0,2.0
+4.0,12.0
+5.0,148.0
+6.0,450.0
+7.0,572.0
+8.0,678.0
+9.0,973.0
+10.0,644.0
+11.0,1281.0

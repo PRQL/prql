@@ -120,6 +120,7 @@ mod results {
 
                         protocol: DbProtocol::DuckDb,
                     },
+                    #[cfg(feature = "test-dbs-external")]
                     ConnectionCfg {
                         dialect: Dialect::Postgres,
                         data_file_root: "/tmp/chinook".to_string(),
@@ -128,6 +129,7 @@ mod results {
                             url: "host=localhost user=root password=root dbname=dummy".to_string(),
                         },
                     },
+                    #[cfg(feature = "test-dbs-external")]
                     ConnectionCfg {
                         dialect: Dialect::MySql,
                         data_file_root: "/tmp/chinook".to_string(),
@@ -136,14 +138,16 @@ mod results {
                             url: "mysql://root:root@localhost:3306/dummy".to_string(),
                         },
                     },
-                    ConnectionCfg {
-                        dialect: Dialect::ClickHouse,
-                        data_file_root: "chinook".to_string(),
-
-                        protocol: DbProtocol::MySql {
-                            url: "mysql://default:@localhost:9004/dummy".to_string(),
-                        },
-                    },
+                    // TODO: https://github.com/ClickHouse/ClickHouse/issues/69131
+                    // #[cfg(feature = "test-dbs-external")]
+                    // ConnectionCfg {
+                    //     dialect: Dialect::ClickHouse,
+                    //     data_file_root: "chinook".to_string(),
+                    //     protocol: DbProtocol::MySql {
+                    //         url: "mysql://default:@localhost:9004/dummy".to_string(),
+                    //     },
+                    // },
+                    #[cfg(feature = "test-dbs-external")]
                     ConnectionCfg {
                         dialect: Dialect::GlareDb,
                         data_file_root: "/tmp/chinook".to_string(),
@@ -152,6 +156,7 @@ mod results {
                             url: "host=localhost user=glaredb dbname=glaredb port=6543".to_string(),
                         },
                     },
+                    #[cfg(feature = "test-dbs-external")]
                     ConnectionCfg {
                         dialect: Dialect::MsSql,
                         data_file_root: "/tmp/chinook".to_string(),
@@ -200,16 +205,11 @@ mod results {
             let dialect = con.cfg.dialect;
 
             println!("Executing {test_name} for {dialect}");
-            let rows = con.run_query(&prql).unwrap();
+            let res = con.run_query(&prql).unwrap();
 
-            // convert into ad-hoc CSV
-            let result = rows
-                .iter()
-                .map(|r| r.join(","))
-                .collect::<Vec<_>>()
-                .join("\n");
+            let csv = crate::dbs::batch_to_csv(res);
 
-            results.push((dialect, result));
+            results.push((dialect, csv));
         }
 
         // insta::allow_duplicates!, but with reporting of which two cases are

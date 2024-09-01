@@ -8,24 +8,24 @@ from [
 select {
     id,
 
-    x_int / k_int,
-    x_int / k_float,
-    x_float / k_int,
-    x_float / k_float,
+    f_ii = (x_int / k_int | as REAL),
+    f_if = (x_int / k_float | as REAL),
+    f_fi = (x_float / k_int | as REAL),
+    f_ff = (x_float / k_float | as REAL),
 
-    q_ii = x_int // k_int,
-    q_if = x_int // k_float,
-    q_fi = x_float // k_int,
-    q_ff = x_float // k_float,
+    q_ii = (x_int // k_int | as REAL),
+    q_if = (x_int // k_float | as REAL),
+    q_fi = (x_float // k_int | as REAL),
+    q_ff = (x_float // k_float | as REAL),
 
-    r_ii = x_int % k_int,
-    r_if = x_int % k_float,
-    r_fi = x_float % k_int,
-    r_ff = x_float % k_float,
+    r_ii = (x_int % k_int | as REAL),
+    r_if = (x_int % k_float | as REAL),
+    r_fi = (x_float % k_int | as REAL),
+    r_ff = (x_float % k_float | as REAL),
 
-    (q_ii * k_int + r_ii | math.round 0),
-    (q_if * k_float + r_if | math.round 0),
-    (q_fi * k_int + r_fi | math.round 0),
-    (q_ff * k_float + r_ff | math.round 0),
+    x_ii = (q_ii * k_int + r_ii | math.round 0 | as REAL),
+    x_if = (q_if * k_float + r_if | math.round 0 | as REAL),
+    x_fi = (q_fi * k_int + r_fi | math.round 0 | as REAL),
+    x_ff = (q_ff * k_float + r_ff | math.round 0 | as REAL),
 }
 sort id

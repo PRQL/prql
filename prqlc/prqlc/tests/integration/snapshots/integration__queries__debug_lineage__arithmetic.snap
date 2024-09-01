@@ -1,10 +1,10 @@
 ---
 source: prqlc/prqlc/tests/integration/queries.rs
-expression: "# mssql:test\nfrom [\n    { id = 1, x_int =  13, x_float =  13.0, k_int =  5, k_float =  5.0 },\n    { id = 2, x_int = -13, x_float = -13.0, k_int =  5, k_float =  5.0 },\n    { id = 3, x_int =  13, x_float =  13.0, k_int = -5, k_float = -5.0 },\n    { id = 4, x_int = -13, x_float = -13.0, k_int = -5, k_float = -5.0 },\n]\nselect {\n    id,\n\n    x_int / k_int,\n    x_int / k_float,\n    x_float / k_int,\n    x_float / k_float,\n\n    q_ii = x_int // k_int,\n    q_if = x_int // k_float,\n    q_fi = x_float // k_int,\n    q_ff = x_float // k_float,\n\n    r_ii = x_int % k_int,\n    r_if = x_int % k_float,\n    r_fi = x_float % k_int,\n    r_ff = x_float % k_float,\n\n    (q_ii * k_int + r_ii | math.round 0),\n    (q_if * k_float + r_if | math.round 0),\n    (q_fi * k_int + r_fi | math.round 0),\n    (q_ff * k_float + r_ff | math.round 0),\n}\nsort id\n"
+expression: "# mssql:test\nfrom [\n    { id = 1, x_int =  13, x_float =  13.0, k_int =  5, k_float =  5.0 },\n    { id = 2, x_int = -13, x_float = -13.0, k_int =  5, k_float =  5.0 },\n    { id = 3, x_int =  13, x_float =  13.0, k_int = -5, k_float = -5.0 },\n    { id = 4, x_int = -13, x_float = -13.0, k_int = -5, k_float = -5.0 },\n]\nselect {\n    id,\n\n    f_ii = (x_int / k_int | as REAL),\n    f_if = (x_int / k_float | as REAL),\n    f_fi = (x_float / k_int | as REAL),\n    f_ff = (x_float / k_float | as REAL),\n\n    q_ii = (x_int // k_int | as REAL),\n    q_if = (x_int // k_float | as REAL),\n    q_fi = (x_float // k_int | as REAL),\n    q_ff = (x_float // k_float | as REAL),\n\n    r_ii = (x_int % k_int | as REAL),\n    r_if = (x_int % k_float | as REAL),\n    r_fi = (x_float % k_int | as REAL),\n    r_ff = (x_float % k_float | as REAL),\n\n    x_ii = (q_ii * k_int + r_ii | math.round 0 | as REAL),\n    x_if = (q_if * k_float + r_if | math.round 0 | as REAL),\n    x_fi = (q_fi * k_int + r_fi | math.round 0 | as REAL),\n    x_ff = (q_ff * k_float + r_ff | math.round 0 | as REAL),\n}\nsort id\n"
 input_file: prqlc/prqlc/tests/integration/queries/arithmetic.prql
 ---
 frames:
-- - 1:318-824
+- - 1:318-1064
   - columns:
     - !Single
       name:
@@ -13,76 +13,84 @@ frames:
       target_id: 163
       target_name: null
     - !Single
-      name: null
+      name:
+      - f_ii
       target_id: 164
       target_name: null
     - !Single
-      name: null
-      target_id: 168
+      name:
+      - f_if
+      target_id: 171
       target_name: null
     - !Single
-      name: null
-      target_id: 172
+      name:
+      - f_fi
+      target_id: 178
       target_name: null
     - !Single
-      name: null
-      target_id: 176
+      name:
+      - f_ff
+      target_id: 185
       target_name: null
     - !Single
       name:
       - q_ii
-      target_id: 180
-      target_name: null
-    - !Single
-      name:
-      - q_if
-      target_id: 184
-      target_name: null
-    - !Single
-      name:
-      - q_fi
-      target_id: 188
-      target_name: null
-    - !Single
-      name:
-      - q_ff
       target_id: 192
       target_name: null
     - !Single
       name:
+      - q_if
+      target_id: 199
+      target_name: null
+    - !Single
+      name:
+      - q_fi
+      target_id: 206
+      target_name: null
+    - !Single
+      name:
+      - q_ff
+      target_id: 213
+      target_name: null
+    - !Single
+      name:
       - r_ii
-      target_id: 196
+      target_id: 220
       target_name: null
     - !Single
       name:
       - r_if
-      target_id: 200
+      target_id: 227
       target_name: null
     - !Single
       name:
       - r_fi
-      target_id: 204
+      target_id: 234
       target_name: null
     - !Single
       name:
       - r_ff
-      target_id: 208
+      target_id: 241
       target_name: null
     - !Single
-      name: null
-      target_id: 212
+      name:
+      - x_ii
+      target_id: 248
       target_name: null
     - !Single
-      name: null
-      target_id: 223
+      name:
+      - x_if
+      target_id: 262
       target_name: null
     - !Single
-      name: null
-      target_id: 234
+      name:
+      - x_fi
+      target_id: 276
       target_name: null
     - !Single
-      name: null
-      target_id: 245
+      name:
+      - x_ff
+      target_id: 290
       target_name: null
     inputs:
     - id: 121
@@ -90,7 +98,7 @@ frames:
       table:
       - default_db
       - _literal_121
-- - 1:825-832
+- - 1:1065-1072
   - columns:
     - !Single
       name:
@@ -99,76 +107,84 @@ frames:
       target_id: 163
       target_name: null
     - !Single
-      name: null
+      name:
+      - f_ii
       target_id: 164
       target_name: null
     - !Single
-      name: null
-      target_id: 168
+      name:
+      - f_if
+      target_id: 171
       target_name: null
     - !Single
-      name: null
-      target_id: 172
+      name:
+      - f_fi
+      target_id: 178
       target_name: null
     - !Single
-      name: null
-      target_id: 176
+      name:
+      - f_ff
+      target_id: 185
       target_name: null
     - !Single
       name:
       - q_ii
-      target_id: 180
-      target_name: null
-    - !Single
-      name:
-      - q_if
-      target_id: 184
-      target_name: null
-    - !Single
-      name:
-      - q_fi
-      target_id: 188
-      target_name: null
-    - !Single
-      name:
-      - q_ff
       target_id: 192
       target_name: null
     - !Single
       name:
+      - q_if
+      target_id: 199
+      target_name: null
+    - !Single
+      name:
+      - q_fi
+      target_id: 206
+      target_name: null
+    - !Single
+      name:
+      - q_ff
+      target_id: 213
+      target_name: null
+    - !Single
+      name:
       - r_ii
-      target_id: 196
+      target_id: 220
       target_name: null
     - !Single
       name:
       - r_if
-      target_id: 200
+      target_id: 227
       target_name: null
     - !Single
       name:
       - r_fi
-      target_id: 204
+      target_id: 234
       target_name: null
     - !Single
       name:
       - r_ff
-      target_id: 208
+      target_id: 241
       target_name: null
     - !Single
-      name: null
-      target_id: 212
+      name:
+      - x_ii
+      target_id: 248
       target_name: null
     - !Single
-      name: null
-      target_id: 223
+      name:
+      - x_if
+      target_id: 262
       target_name: null
     - !Single
-      name: null
-      target_id: 234
+      name:
+      - x_fi
+      target_id: 276
       target_name: null
     - !Single
-      name: null
-      target_id: 245
+      name:
+      - x_ff
+      target_id: 290
       target_name: null
     inputs:
     - id: 121
@@ -185,7 +201,7 @@ nodes:
   - 128
   - 138
   - 148
-  parent: 257
+  parent: 305
 - id: 122
   kind: Tuple
   span: 1:24-92
@@ -335,170 +351,116 @@ nodes:
   - id
   targets:
   - 121
-  parent: 256
+  parent: 304
 - id: 164
   kind: RqOperator
-  span: 1:340-353
+  span: 1:364-371
+  alias: f_ii
   targets:
-  - 166
   - 167
-  parent: 256
-- id: 166
-  kind: Ident
-  span: 1:340-345
-  ident: !Ident
-  - this
-  - _literal_121
-  - x_int
-  targets:
-  - 121
+  parent: 304
 - id: 167
+  kind: RqOperator
+  span: 1:348-361
+  targets:
+  - 169
+  - 170
+- id: 169
   kind: Ident
   span: 1:348-353
   ident: !Ident
   - this
   - _literal_121
-  - k_int
+  - x_int
   targets:
   - 121
-- id: 168
-  kind: RqOperator
-  span: 1:359-374
-  targets:
-  - 170
-  - 171
-  parent: 256
 - id: 170
   kind: Ident
-  span: 1:359-364
+  span: 1:356-361
   ident: !Ident
   - this
   - _literal_121
-  - x_int
+  - k_int
   targets:
   - 121
 - id: 171
-  kind: Ident
-  span: 1:367-374
-  ident: !Ident
-  - this
-  - _literal_121
-  - k_float
-  targets:
-  - 121
-- id: 172
   kind: RqOperator
-  span: 1:380-395
+  span: 1:404-411
+  alias: f_if
   targets:
   - 174
-  - 175
-  parent: 256
+  parent: 304
 - id: 174
-  kind: Ident
-  span: 1:380-387
-  ident: !Ident
-  - this
-  - _literal_121
-  - x_float
+  kind: RqOperator
+  span: 1:386-401
   targets:
-  - 121
-- id: 175
-  kind: Ident
-  span: 1:390-395
-  ident: !Ident
-  - this
-  - _literal_121
-  - k_int
-  targets:
-  - 121
+  - 176
+  - 177
 - id: 176
-  kind: RqOperator
-  span: 1:401-418
-  targets:
-  - 178
-  - 179
-  parent: 256
-- id: 178
   kind: Ident
-  span: 1:401-408
-  ident: !Ident
-  - this
-  - _literal_121
-  - x_float
-  targets:
-  - 121
-- id: 179
-  kind: Ident
-  span: 1:411-418
-  ident: !Ident
-  - this
-  - _literal_121
-  - k_float
-  targets:
-  - 121
-- id: 180
-  kind: RqOperator
-  span: 1:432-446
-  alias: q_ii
-  targets:
-  - 182
-  - 183
-  parent: 256
-- id: 182
-  kind: Ident
-  span: 1:432-437
+  span: 1:386-391
   ident: !Ident
   - this
   - _literal_121
   - x_int
   targets:
   - 121
-- id: 183
+- id: 177
   kind: Ident
-  span: 1:441-446
+  span: 1:394-401
   ident: !Ident
   - this
   - _literal_121
-  - k_int
+  - k_float
+  targets:
+  - 121
+- id: 178
+  kind: RqOperator
+  span: 1:444-451
+  alias: f_fi
+  targets:
+  - 181
+  parent: 304
+- id: 181
+  kind: RqOperator
+  span: 1:426-441
+  targets:
+  - 183
+  - 184
+- id: 183
+  kind: Ident
+  span: 1:426-433
+  ident: !Ident
+  - this
+  - _literal_121
+  - x_float
   targets:
   - 121
 - id: 184
+  kind: Ident
+  span: 1:436-441
+  ident: !Ident
+  - this
+  - _literal_121
+  - k_int
+  targets:
+  - 121
+- id: 185
   kind: RqOperator
-  span: 1:459-475
-  alias: q_if
+  span: 1:486-493
+  alias: f_ff
   targets:
-  - 186
-  - 187
-  parent: 256
-- id: 186
-  kind: Ident
-  span: 1:459-464
-  ident: !Ident
-  - this
-  - _literal_121
-  - x_int
-  targets:
-  - 121
-- id: 187
-  kind: Ident
-  span: 1:468-475
-  ident: !Ident
-  - this
-  - _literal_121
-  - k_float
-  targets:
-  - 121
+  - 188
+  parent: 304
 - id: 188
   kind: RqOperator
-  span: 1:488-504
-  alias: q_fi
+  span: 1:466-483
   targets:
   - 190
   - 191
-  parent: 256
 - id: 190
   kind: Ident
-  span: 1:488-495
+  span: 1:466-473
   ident: !Ident
   - this
   - _literal_121
@@ -507,135 +469,129 @@ nodes:
   - 121
 - id: 191
   kind: Ident
-  span: 1:499-504
+  span: 1:476-483
   ident: !Ident
   - this
   - _literal_121
-  - k_int
+  - k_float
   targets:
   - 121
 - id: 192
   kind: RqOperator
-  span: 1:517-535
-  alias: q_ff
+  span: 1:526-533
+  alias: q_ii
   targets:
-  - 194
   - 195
-  parent: 256
-- id: 194
-  kind: Ident
-  span: 1:517-524
-  ident: !Ident
-  - this
-  - _literal_121
-  - x_float
-  targets:
-  - 121
+  parent: 304
 - id: 195
-  kind: Ident
-  span: 1:528-535
-  ident: !Ident
-  - this
-  - _literal_121
-  - k_float
-  targets:
-  - 121
-- id: 196
   kind: RqOperator
-  span: 1:549-562
-  alias: r_ii
+  span: 1:509-523
   targets:
+  - 197
   - 198
-  - 199
-  parent: 256
-- id: 198
+- id: 197
   kind: Ident
-  span: 1:549-554
+  span: 1:509-514
   ident: !Ident
   - this
   - _literal_121
   - x_int
+  targets:
+  - 121
+- id: 198
+  kind: Ident
+  span: 1:518-523
+  ident: !Ident
+  - this
+  - _literal_121
+  - k_int
   targets:
   - 121
 - id: 199
-  kind: Ident
-  span: 1:557-562
-  ident: !Ident
-  - this
-  - _literal_121
-  - k_int
-  targets:
-  - 121
-- id: 200
   kind: RqOperator
-  span: 1:575-590
-  alias: r_if
+  span: 1:567-574
+  alias: q_if
   targets:
   - 202
-  - 203
-  parent: 256
+  parent: 304
 - id: 202
+  kind: RqOperator
+  span: 1:548-564
+  targets:
+  - 204
+  - 205
+- id: 204
   kind: Ident
-  span: 1:575-580
+  span: 1:548-553
   ident: !Ident
   - this
   - _literal_121
   - x_int
   targets:
   - 121
-- id: 203
+- id: 205
   kind: Ident
-  span: 1:583-590
+  span: 1:557-564
   ident: !Ident
   - this
   - _literal_121
   - k_float
   targets:
   - 121
-- id: 204
-  kind: RqOperator
-  span: 1:603-618
-  alias: r_fi
-  targets:
-  - 206
-  - 207
-  parent: 256
 - id: 206
+  kind: RqOperator
+  span: 1:608-615
+  alias: q_fi
+  targets:
+  - 209
+  parent: 304
+- id: 209
+  kind: RqOperator
+  span: 1:589-605
+  targets:
+  - 211
+  - 212
+- id: 211
   kind: Ident
-  span: 1:603-610
+  span: 1:589-596
   ident: !Ident
   - this
   - _literal_121
   - x_float
   targets:
   - 121
-- id: 207
+- id: 212
   kind: Ident
-  span: 1:613-618
+  span: 1:600-605
   ident: !Ident
   - this
   - _literal_121
   - k_int
   targets:
   - 121
-- id: 208
+- id: 213
   kind: RqOperator
-  span: 1:631-648
-  alias: r_ff
+  span: 1:651-658
+  alias: q_ff
   targets:
-  - 210
-  - 211
-  parent: 256
-- id: 210
+  - 216
+  parent: 304
+- id: 216
+  kind: RqOperator
+  span: 1:630-648
+  targets:
+  - 218
+  - 219
+- id: 218
   kind: Ident
-  span: 1:631-638
+  span: 1:630-637
   ident: !Ident
   - this
   - _literal_121
   - x_float
   targets:
   - 121
-- id: 211
+- id: 219
   kind: Ident
   span: 1:641-648
   ident: !Ident
@@ -644,239 +600,387 @@ nodes:
   - k_float
   targets:
   - 121
-- id: 212
-  kind: RqOperator
-  span: 1:678-690
-  targets:
-  - 215
-  - 216
-  parent: 256
-- id: 215
-  kind: Literal
-  span: 1:689-690
-- id: 216
-  kind: RqOperator
-  span: 1:656-675
-  targets:
-  - 218
-  - 222
-- id: 218
-  kind: RqOperator
-  span: 1:656-668
-  targets:
-  - 220
-  - 221
 - id: 220
+  kind: RqOperator
+  span: 1:690-697
+  alias: r_ii
+  targets:
+  - 223
+  parent: 304
+- id: 223
+  kind: RqOperator
+  span: 1:674-687
+  targets:
+  - 225
+  - 226
+- id: 225
   kind: Ident
-  span: 1:656-660
+  span: 1:674-679
   ident: !Ident
   - this
-  - q_ii
+  - _literal_121
+  - x_int
   targets:
-  - 180
-- id: 221
+  - 121
+- id: 226
   kind: Ident
-  span: 1:663-668
+  span: 1:682-687
   ident: !Ident
   - this
   - _literal_121
   - k_int
   targets:
   - 121
-- id: 222
-  kind: Ident
-  span: 1:671-675
-  ident: !Ident
-  - this
-  - r_ii
-  targets:
-  - 196
-- id: 223
-  kind: RqOperator
-  span: 1:722-734
-  targets:
-  - 226
-  - 227
-  parent: 256
-- id: 226
-  kind: Literal
-  span: 1:733-734
 - id: 227
   kind: RqOperator
-  span: 1:698-719
+  span: 1:730-737
+  alias: r_if
   targets:
-  - 229
-  - 233
-- id: 229
+  - 230
+  parent: 304
+- id: 230
   kind: RqOperator
-  span: 1:698-712
+  span: 1:712-727
   targets:
-  - 231
   - 232
-- id: 231
-  kind: Ident
-  span: 1:698-702
-  ident: !Ident
-  - this
-  - q_if
-  targets:
-  - 184
+  - 233
 - id: 232
   kind: Ident
-  span: 1:705-712
+  span: 1:712-717
   ident: !Ident
   - this
   - _literal_121
-  - k_float
+  - x_int
   targets:
   - 121
 - id: 233
   kind: Ident
-  span: 1:715-719
-  ident: !Ident
-  - this
-  - r_if
-  targets:
-  - 200
-- id: 234
-  kind: RqOperator
-  span: 1:764-776
-  targets:
-  - 237
-  - 238
-  parent: 256
-- id: 237
-  kind: Literal
-  span: 1:775-776
-- id: 238
-  kind: RqOperator
-  span: 1:742-761
-  targets:
-  - 240
-  - 244
-- id: 240
-  kind: RqOperator
-  span: 1:742-754
-  targets:
-  - 242
-  - 243
-- id: 242
-  kind: Ident
-  span: 1:742-746
-  ident: !Ident
-  - this
-  - q_fi
-  targets:
-  - 188
-- id: 243
-  kind: Ident
-  span: 1:749-754
-  ident: !Ident
-  - this
-  - _literal_121
-  - k_int
-  targets:
-  - 121
-- id: 244
-  kind: Ident
-  span: 1:757-761
-  ident: !Ident
-  - this
-  - r_fi
-  targets:
-  - 204
-- id: 245
-  kind: RqOperator
-  span: 1:808-820
-  targets:
-  - 248
-  - 249
-  parent: 256
-- id: 248
-  kind: Literal
-  span: 1:819-820
-- id: 249
-  kind: RqOperator
-  span: 1:784-805
-  targets:
-  - 251
-  - 255
-- id: 251
-  kind: RqOperator
-  span: 1:784-798
-  targets:
-  - 253
-  - 254
-- id: 253
-  kind: Ident
-  span: 1:784-788
-  ident: !Ident
-  - this
-  - q_ff
-  targets:
-  - 192
-- id: 254
-  kind: Ident
-  span: 1:791-798
+  span: 1:720-727
   ident: !Ident
   - this
   - _literal_121
   - k_float
   targets:
   - 121
-- id: 255
+- id: 234
+  kind: RqOperator
+  span: 1:770-777
+  alias: r_fi
+  targets:
+  - 237
+  parent: 304
+- id: 237
+  kind: RqOperator
+  span: 1:752-767
+  targets:
+  - 239
+  - 240
+- id: 239
   kind: Ident
-  span: 1:801-805
+  span: 1:752-759
+  ident: !Ident
+  - this
+  - _literal_121
+  - x_float
+  targets:
+  - 121
+- id: 240
+  kind: Ident
+  span: 1:762-767
+  ident: !Ident
+  - this
+  - _literal_121
+  - k_int
+  targets:
+  - 121
+- id: 241
+  kind: RqOperator
+  span: 1:812-819
+  alias: r_ff
+  targets:
+  - 244
+  parent: 304
+- id: 244
+  kind: RqOperator
+  span: 1:792-809
+  targets:
+  - 246
+  - 247
+- id: 246
+  kind: Ident
+  span: 1:792-799
+  ident: !Ident
+  - this
+  - _literal_121
+  - x_float
+  targets:
+  - 121
+- id: 247
+  kind: Ident
+  span: 1:802-809
+  ident: !Ident
+  - this
+  - _literal_121
+  - k_float
+  targets:
+  - 121
+- id: 248
+  kind: RqOperator
+  span: 1:872-879
+  alias: x_ii
+  targets:
+  - 251
+  parent: 304
+- id: 251
+  kind: RqOperator
+  span: 1:857-869
+  targets:
+  - 254
+  - 255
+- id: 254
+  kind: Literal
+  span: 1:868-869
+- id: 255
+  kind: RqOperator
+  span: 1:835-854
+  targets:
+  - 257
+  - 261
+- id: 257
+  kind: RqOperator
+  span: 1:835-847
+  targets:
+  - 259
+  - 260
+- id: 259
+  kind: Ident
+  span: 1:835-839
+  ident: !Ident
+  - this
+  - q_ii
+  targets:
+  - 192
+- id: 260
+  kind: Ident
+  span: 1:842-847
+  ident: !Ident
+  - this
+  - _literal_121
+  - k_int
+  targets:
+  - 121
+- id: 261
+  kind: Ident
+  span: 1:850-854
+  ident: !Ident
+  - this
+  - r_ii
+  targets:
+  - 220
+- id: 262
+  kind: RqOperator
+  span: 1:933-940
+  alias: x_if
+  targets:
+  - 265
+  parent: 304
+- id: 265
+  kind: RqOperator
+  span: 1:918-930
+  targets:
+  - 268
+  - 269
+- id: 268
+  kind: Literal
+  span: 1:929-930
+- id: 269
+  kind: RqOperator
+  span: 1:894-915
+  targets:
+  - 271
+  - 275
+- id: 271
+  kind: RqOperator
+  span: 1:894-908
+  targets:
+  - 273
+  - 274
+- id: 273
+  kind: Ident
+  span: 1:894-898
+  ident: !Ident
+  - this
+  - q_if
+  targets:
+  - 199
+- id: 274
+  kind: Ident
+  span: 1:901-908
+  ident: !Ident
+  - this
+  - _literal_121
+  - k_float
+  targets:
+  - 121
+- id: 275
+  kind: Ident
+  span: 1:911-915
+  ident: !Ident
+  - this
+  - r_if
+  targets:
+  - 227
+- id: 276
+  kind: RqOperator
+  span: 1:992-999
+  alias: x_fi
+  targets:
+  - 279
+  parent: 304
+- id: 279
+  kind: RqOperator
+  span: 1:977-989
+  targets:
+  - 282
+  - 283
+- id: 282
+  kind: Literal
+  span: 1:988-989
+- id: 283
+  kind: RqOperator
+  span: 1:955-974
+  targets:
+  - 285
+  - 289
+- id: 285
+  kind: RqOperator
+  span: 1:955-967
+  targets:
+  - 287
+  - 288
+- id: 287
+  kind: Ident
+  span: 1:955-959
+  ident: !Ident
+  - this
+  - q_fi
+  targets:
+  - 206
+- id: 288
+  kind: Ident
+  span: 1:962-967
+  ident: !Ident
+  - this
+  - _literal_121
+  - k_int
+  targets:
+  - 121
+- id: 289
+  kind: Ident
+  span: 1:970-974
+  ident: !Ident
+  - this
+  - r_fi
+  targets:
+  - 234
+- id: 290
+  kind: RqOperator
+  span: 1:1053-1060
+  alias: x_ff
+  targets:
+  - 293
+  parent: 304
+- id: 293
+  kind: RqOperator
+  span: 1:1038-1050
+  targets:
+  - 296
+  - 297
+- id: 296
+  kind: Literal
+  span: 1:1049-1050
+- id: 297
+  kind: RqOperator
+  span: 1:1014-1035
+  targets:
+  - 299
+  - 303
+- id: 299
+  kind: RqOperator
+  span: 1:1014-1028
+  targets:
+  - 301
+  - 302
+- id: 301
+  kind: Ident
+  span: 1:1014-1018
+  ident: !Ident
+  - this
+  - q_ff
+  targets:
+  - 213
+- id: 302
+  kind: Ident
+  span: 1:1021-1028
+  ident: !Ident
+  - this
+  - _literal_121
+  - k_float
+  targets:
+  - 121
+- id: 303
+  kind: Ident
+  span: 1:1031-1035
   ident: !Ident
   - this
   - r_ff
   targets:
-  - 208
-- id: 256
+  - 241
+- id: 304
   kind: Tuple
-  span: 1:325-824
+  span: 1:325-1064
   children:
   - 163
   - 164
-  - 168
-  - 172
-  - 176
-  - 180
-  - 184
-  - 188
+  - 171
+  - 178
+  - 185
   - 192
-  - 196
-  - 200
-  - 204
-  - 208
-  - 212
-  - 223
+  - 199
+  - 206
+  - 213
+  - 220
+  - 227
   - 234
-  - 245
-  parent: 257
-- id: 257
+  - 241
+  - 248
+  - 262
+  - 276
+  - 290
+  parent: 305
+- id: 305
   kind: 'TransformCall: Select'
-  span: 1:318-824
+  span: 1:318-1064
   children:
   - 121
-  - 256
-  parent: 260
-- id: 258
+  - 304
+  parent: 308
+- id: 306
   kind: Ident
-  span: 1:830-832
+  span: 1:1070-1072
   ident: !Ident
   - this
   - _literal_121
   - id
   targets:
   - 163
-  parent: 260
-- id: 260
+  parent: 308
+- id: 308
   kind: 'TransformCall: Sort'
-  span: 1:825-832
+  span: 1:1065-1072
   children:
-  - 257
-  - 258
+  - 305
+  - 306
 ast:
   name: Project
   stmts:
@@ -1022,121 +1126,257 @@ ast:
               - Tuple:
                 - Ident: id
                   span: 1:331-333
-                - Binary:
-                    left:
-                      Ident: x_int
-                      span: 1:340-345
-                    op: DivFloat
-                    right:
-                      Ident: k_int
-                      span: 1:348-353
-                  span: 1:340-353
-                - Binary:
-                    left:
-                      Ident: x_int
-                      span: 1:359-364
-                    op: DivFloat
-                    right:
-                      Ident: k_float
-                      span: 1:367-374
-                  span: 1:359-374
-                - Binary:
-                    left:
-                      Ident: x_float
-                      span: 1:380-387
-                    op: DivFloat
-                    right:
-                      Ident: k_int
-                      span: 1:390-395
-                  span: 1:380-395
-                - Binary:
-                    left:
-                      Ident: x_float
-                      span: 1:401-408
-                    op: DivFloat
-                    right:
-                      Ident: k_float
-                      span: 1:411-418
-                  span: 1:401-418
-                - Binary:
-                    left:
-                      Ident: x_int
-                      span: 1:432-437
-                    op: DivInt
-                    right:
-                      Ident: k_int
-                      span: 1:441-446
-                  span: 1:432-446
+                - Pipeline:
+                    exprs:
+                    - Binary:
+                        left:
+                          Ident: x_int
+                          span: 1:348-353
+                        op: DivFloat
+                        right:
+                          Ident: k_int
+                          span: 1:356-361
+                      span: 1:348-361
+                    - FuncCall:
+                        name:
+                          Ident: as
+                          span: 1:364-366
+                        args:
+                        - Ident: REAL
+                          span: 1:367-371
+                      span: 1:364-371
+                  span: 1:347-372
+                  alias: f_ii
+                - Pipeline:
+                    exprs:
+                    - Binary:
+                        left:
+                          Ident: x_int
+                          span: 1:386-391
+                        op: DivFloat
+                        right:
+                          Ident: k_float
+                          span: 1:394-401
+                      span: 1:386-401
+                    - FuncCall:
+                        name:
+                          Ident: as
+                          span: 1:404-406
+                        args:
+                        - Ident: REAL
+                          span: 1:407-411
+                      span: 1:404-411
+                  span: 1:385-412
+                  alias: f_if
+                - Pipeline:
+                    exprs:
+                    - Binary:
+                        left:
+                          Ident: x_float
+                          span: 1:426-433
+                        op: DivFloat
+                        right:
+                          Ident: k_int
+                          span: 1:436-441
+                      span: 1:426-441
+                    - FuncCall:
+                        name:
+                          Ident: as
+                          span: 1:444-446
+                        args:
+                        - Ident: REAL
+                          span: 1:447-451
+                      span: 1:444-451
+                  span: 1:425-452
+                  alias: f_fi
+                - Pipeline:
+                    exprs:
+                    - Binary:
+                        left:
+                          Ident: x_float
+                          span: 1:466-473
+                        op: DivFloat
+                        right:
+                          Ident: k_float
+                          span: 1:476-483
+                      span: 1:466-483
+                    - FuncCall:
+                        name:
+                          Ident: as
+                          span: 1:486-488
+                        args:
+                        - Ident: REAL
+                          span: 1:489-493
+                      span: 1:486-493
+                  span: 1:465-494
+                  alias: f_ff
+                - Pipeline:
+                    exprs:
+                    - Binary:
+                        left:
+                          Ident: x_int
+                          span: 1:509-514
+                        op: DivInt
+                        right:
+                          Ident: k_int
+                          span: 1:518-523
+                      span: 1:509-523
+                    - FuncCall:
+                        name:
+                          Ident: as
+                          span: 1:526-528
+                        args:
+                        - Ident: REAL
+                          span: 1:529-533
+                      span: 1:526-533
+                  span: 1:508-534
                   alias: q_ii
-                - Binary:
-                    left:
-                      Ident: x_int
-                      span: 1:459-464
-                    op: DivInt
-                    right:
-                      Ident: k_float
-                      span: 1:468-475
-                  span: 1:459-475
+                - Pipeline:
+                    exprs:
+                    - Binary:
+                        left:
+                          Ident: x_int
+                          span: 1:548-553
+                        op: DivInt
+                        right:
+                          Ident: k_float
+                          span: 1:557-564
+                      span: 1:548-564
+                    - FuncCall:
+                        name:
+                          Ident: as
+                          span: 1:567-569
+                        args:
+                        - Ident: REAL
+                          span: 1:570-574
+                      span: 1:567-574
+                  span: 1:547-575
                   alias: q_if
-                - Binary:
-                    left:
-                      Ident: x_float
-                      span: 1:488-495
-                    op: DivInt
-                    right:
-                      Ident: k_int
-                      span: 1:499-504
-                  span: 1:488-504
+                - Pipeline:
+                    exprs:
+                    - Binary:
+                        left:
+                          Ident: x_float
+                          span: 1:589-596
+                        op: DivInt
+                        right:
+                          Ident: k_int
+                          span: 1:600-605
+                      span: 1:589-605
+                    - FuncCall:
+                        name:
+                          Ident: as
+                          span: 1:608-610
+                        args:
+                        - Ident: REAL
+                          span: 1:611-615
+                      span: 1:608-615
+                  span: 1:588-616
                   alias: q_fi
-                - Binary:
-                    left:
-                      Ident: x_float
-                      span: 1:517-524
-                    op: DivInt
-                    right:
-                      Ident: k_float
-                      span: 1:528-535
-                  span: 1:517-535
+                - Pipeline:
+                    exprs:
+                    - Binary:
+                        left:
+                          Ident: x_float
+                          span: 1:630-637
+                        op: DivInt
+                        right:
+                          Ident: k_float
+                          span: 1:641-648
+                      span: 1:630-648
+                    - FuncCall:
+                        name:
+                          Ident: as
+                          span: 1:651-653
+                        args:
+                        - Ident: REAL
+                          span: 1:654-658
+                      span: 1:651-658
+                  span: 1:629-659
                   alias: q_ff
-                - Binary:
-                    left:
-                      Ident: x_int
-                      span: 1:549-554
-                    op: Mod
-                    right:
-                      Ident: k_int
-                      span: 1:557-562
-                  span: 1:549-562
+                - Pipeline:
+                    exprs:
+                    - Binary:
+                        left:
+                          Ident: x_int
+                          span: 1:674-679
+                        op: Mod
+                        right:
+                          Ident: k_int
+                          span: 1:682-687
+                      span: 1:674-687
+                    - FuncCall:
+                        name:
+                          Ident: as
+                          span: 1:690-692
+                        args:
+                        - Ident: REAL
+                          span: 1:693-697
+                      span: 1:690-697
+                  span: 1:673-698
                   alias: r_ii
-                - Binary:
-                    left:
-                      Ident: x_int
-                      span: 1:575-580
-                    op: Mod
-                    right:
-                      Ident: k_float
-                      span: 1:583-590
-                  span: 1:575-590
+                - Pipeline:
+                    exprs:
+                    - Binary:
+                        left:
+                          Ident: x_int
+                          span: 1:712-717
+                        op: Mod
+                        right:
+                          Ident: k_float
+                          span: 1:720-727
+                      span: 1:712-727
+                    - FuncCall:
+                        name:
+                          Ident: as
+                          span: 1:730-732
+                        args:
+                        - Ident: REAL
+                          span: 1:733-737
+                      span: 1:730-737
+                  span: 1:711-738
                   alias: r_if
-                - Binary:
-                    left:
-                      Ident: x_float
-                      span: 1:603-610
-                    op: Mod
-                    right:
-                      Ident: k_int
-                      span: 1:613-618
-                  span: 1:603-618
+                - Pipeline:
+                    exprs:
+                    - Binary:
+                        left:
+                          Ident: x_float
+                          span: 1:752-759
+                        op: Mod
+                        right:
+                          Ident: k_int
+                          span: 1:762-767
+                      span: 1:752-767
+                    - FuncCall:
+                        name:
+                          Ident: as
+                          span: 1:770-772
+                        args:
+                        - Ident: REAL
+                          span: 1:773-777
+                      span: 1:770-777
+                  span: 1:751-778
                   alias: r_fi
-                - Binary:
-                    left:
-                      Ident: x_float
-                      span: 1:631-638
-                    op: Mod
-                    right:
-                      Ident: k_float
-                      span: 1:641-648
-                  span: 1:631-648
+                - Pipeline:
+                    exprs:
+                    - Binary:
+                        left:
+                          Ident: x_float
+                          span: 1:792-799
+                        op: Mod
+                        right:
+                          Ident: k_float
+                          span: 1:802-809
+                      span: 1:792-809
+                    - FuncCall:
+                        name:
+                          Ident: as
+                          span: 1:812-814
+                        args:
+                        - Ident: REAL
+                          span: 1:815-819
+                      span: 1:812-819
+                  span: 1:791-820
                   alias: r_ff
                 - Pipeline:
                     exprs:
@@ -1145,31 +1385,40 @@ ast:
                           Binary:
                             left:
                               Ident: q_ii
-                              span: 1:656-660
+                              span: 1:835-839
                             op: Mul
                             right:
                               Ident: k_int
-                              span: 1:663-668
-                          span: 1:656-668
+                              span: 1:842-847
+                          span: 1:835-847
                         op: Add
                         right:
                           Ident: r_ii
-                          span: 1:671-675
-                      span: 1:656-675
+                          span: 1:850-854
+                      span: 1:835-854
                     - FuncCall:
                         name:
                           Indirection:
                             base:
                               Ident: math
-                              span: 1:678-682
+                              span: 1:857-861
                             field: !Name round
-                          span: 1:682-688
+                          span: 1:861-867
                         args:
                         - Literal:
                             Integer: 0
-                          span: 1:689-690
-                      span: 1:678-690
-                  span: 1:655-691
+                          span: 1:868-869
+                      span: 1:857-869
+                    - FuncCall:
+                        name:
+                          Ident: as
+                          span: 1:872-874
+                        args:
+                        - Ident: REAL
+                          span: 1:875-879
+                      span: 1:872-879
+                  span: 1:834-880
+                  alias: x_ii
                 - Pipeline:
                     exprs:
                     - Binary:
@@ -1177,31 +1426,40 @@ ast:
                           Binary:
                             left:
                               Ident: q_if
-                              span: 1:698-702
+                              span: 1:894-898
                             op: Mul
                             right:
                               Ident: k_float
-                              span: 1:705-712
-                          span: 1:698-712
+                              span: 1:901-908
+                          span: 1:894-908
                         op: Add
                         right:
                           Ident: r_if
-                          span: 1:715-719
-                      span: 1:698-719
+                          span: 1:911-915
+                      span: 1:894-915
                     - FuncCall:
                         name:
                           Indirection:
                             base:
                               Ident: math
-                              span: 1:722-726
+                              span: 1:918-922
                             field: !Name round
-                          span: 1:726-732
+                          span: 1:922-928
                         args:
                         - Literal:
                             Integer: 0
-                          span: 1:733-734
-                      span: 1:722-734
-                  span: 1:697-735
+                          span: 1:929-930
+                      span: 1:918-930
+                    - FuncCall:
+                        name:
+                          Ident: as
+                          span: 1:933-935
+                        args:
+                        - Ident: REAL
+                          span: 1:936-940
+                      span: 1:933-940
+                  span: 1:893-941
+                  alias: x_if
                 - Pipeline:
                     exprs:
                     - Binary:
@@ -1209,31 +1467,40 @@ ast:
                           Binary:
                             left:
                               Ident: q_fi
-                              span: 1:742-746
+                              span: 1:955-959
                             op: Mul
                             right:
                               Ident: k_int
-                              span: 1:749-754
-                          span: 1:742-754
+                              span: 1:962-967
+                          span: 1:955-967
                         op: Add
                         right:
                           Ident: r_fi
-                          span: 1:757-761
-                      span: 1:742-761
+                          span: 1:970-974
+                      span: 1:955-974
                     - FuncCall:
                         name:
                           Indirection:
                             base:
                               Ident: math
-                              span: 1:764-768
+                              span: 1:977-981
                             field: !Name round
-                          span: 1:768-774
+                          span: 1:981-987
                         args:
                         - Literal:
                             Integer: 0
-                          span: 1:775-776
-                      span: 1:764-776
-                  span: 1:741-777
+                          span: 1:988-989
+                      span: 1:977-989
+                    - FuncCall:
+                        name:
+                          Ident: as
+                          span: 1:992-994
+                        args:
+                        - Ident: REAL
+                          span: 1:995-999
+                      span: 1:992-999
+                  span: 1:954-1000
+                  alias: x_fi
                 - Pipeline:
                     exprs:
                     - Binary:
@@ -1241,40 +1508,49 @@ ast:
                           Binary:
                             left:
                               Ident: q_ff
-                              span: 1:784-788
+                              span: 1:1014-1018
                             op: Mul
                             right:
                               Ident: k_float
-                              span: 1:791-798
-                          span: 1:784-798
+                              span: 1:1021-1028
+                          span: 1:1014-1028
                         op: Add
                         right:
                           Ident: r_ff
-                          span: 1:801-805
-                      span: 1:784-805
+                          span: 1:1031-1035
+                      span: 1:1014-1035
                     - FuncCall:
                         name:
                           Indirection:
                             base:
                               Ident: math
-                              span: 1:808-812
+                              span: 1:1038-1042
                             field: !Name round
-                          span: 1:812-818
+                          span: 1:1042-1048
                         args:
                         - Literal:
                             Integer: 0
-                          span: 1:819-820
-                      span: 1:808-820
-                  span: 1:783-821
-                span: 1:325-824
-            span: 1:318-824
+                          span: 1:1049-1050
+                      span: 1:1038-1050
+                    - FuncCall:
+                        name:
+                          Ident: as
+                          span: 1:1053-1055
+                        args:
+                        - Ident: REAL
+                          span: 1:1056-1060
+                      span: 1:1053-1060
+                  span: 1:1013-1061
+                  alias: x_ff
+                span: 1:325-1064
+            span: 1:318-1064
           - FuncCall:
               name:
                 Ident: sort
-                span: 1:825-829
+                span: 1:1065-1069
               args:
               - Ident: id
-                span: 1:830-832
-            span: 1:825-832
-        span: 1:13-832
-    span: 1:0-832
+                span: 1:1070-1072
+            span: 1:1065-1072
+        span: 1:13-1072
+    span: 1:0-1072

@@ -1,14 +1,14 @@
 ---
 source: prqlc/prqlc/tests/integration/queries.rs
-expression: "# mssql:skip\n# mysql:skip\n# clickhouse:skip\n# glaredb:skip (the string_agg function is not supported)\nfrom tracks\nfilter genre_id == 100\nderive empty_name = name == ''\naggregate {sum track_id, concat_array name, all empty_name, any empty_name}\n"
+expression: "# sqlite:skip\n# mssql:skip\n# mysql:skip\n# clickhouse:skip\n# glaredb:skip (the string_agg function is not supported)\nfrom tracks\nfilter genre_id == 100\nderive empty_name = name == ''\naggregate {\n  s = (sum track_id | as REAL),\n  c = concat_array name,\n  a = all empty_name,\n  n = any empty_name,\n}\n"
 input_file: prqlc/prqlc/tests/integration/queries/aggregation.prql
 ---
 from tracks
 filter genre_id == 100
 derive empty_name = name == ""
 aggregate {
-  sum track_id,
-  concat_array name,
-  all empty_name,
-  any empty_name,
+  s = (sum track_id | as REAL),
+  c = concat_array name,
+  a = all empty_name,
+  n = any empty_name,
 }

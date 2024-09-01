@@ -3,6 +3,7 @@ source: prqlc/prqlc/tests/integration/queries.rs
 expression: "# glaredb:skip (May be a bag of String type conversion for Postgres Client)\n# mssql:test\nfrom tracks\nsort milliseconds\nselect display = case [\n    composer != null => composer,\n    genre_id < 17 => 'no composer',\n    true => f'unknown composer'\n]\ntake 10\n"
 input_file: prqlc/prqlc/tests/integration/queries/switch.prql
 ---
+display [Utf8]
 Samuel Rosa
 no composer
 no composer

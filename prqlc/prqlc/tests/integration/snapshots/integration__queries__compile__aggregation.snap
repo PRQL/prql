@@ -1,13 +1,13 @@
 ---
 source: prqlc/prqlc/tests/integration/queries.rs
-expression: "# mssql:skip\n# mysql:skip\n# clickhouse:skip\n# glaredb:skip (the string_agg function is not supported)\nfrom tracks\nfilter genre_id == 100\nderive empty_name = name == ''\naggregate {sum track_id, concat_array name, all empty_name, any empty_name}\n"
+expression: "# sqlite:skip\n# mssql:skip\n# mysql:skip\n# clickhouse:skip\n# glaredb:skip (the string_agg function is not supported)\nfrom tracks\nfilter genre_id == 100\nderive empty_name = name == ''\naggregate {\n  s = (sum track_id | as REAL),\n  c = concat_array name,\n  a = all empty_name,\n  n = any empty_name,\n}\n"
 input_file: prqlc/prqlc/tests/integration/queries/aggregation.prql
 ---
 SELECT
-  COALESCE(SUM(track_id), 0),
-  COALESCE(STRING_AGG(name, ''), ''),
-  COALESCE(BOOL_AND(name = ''), TRUE),
-  COALESCE(BOOL_OR(name = ''), FALSE)
+  CAST(COALESCE(SUM(track_id), 0) AS REAL) AS s,
+  COALESCE(STRING_AGG(name, ''), '') AS c,
+  COALESCE(BOOL_AND(name = ''), TRUE) AS a,
+  COALESCE(BOOL_OR(name = ''), FALSE) AS n
 FROM
   tracks
 WHERE

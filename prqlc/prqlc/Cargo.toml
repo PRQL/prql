@@ -34,8 +34,8 @@ serde_yaml = [
 ]
 # Technically tokio could be limited to external tests, but its types are in
 # signatures which would require lots of conditional compilation.
-test-dbs = ["anyhow", "duckdb", "rusqlite", "tokio"]
-test-dbs-external = ["mysql", "pg_bigdecimal", "postgres", "test-dbs", "tiberius", "tokio-util"]
+test-dbs = ["rusqlite", "duckdb", "connector_arrow", "connector_arrow/src_sqlite", "connector_arrow/src_duckdb"]
+test-dbs-external = ["postgres", "mysql", "tiberius", "futures", "tokio", "tokio-util", "connector_arrow/src_mysql", "connector_arrow/src_postgres", "connector_arrow/src_tiberius"]
 
 [dependencies]
 prqlc-parser = {path = "../prqlc-parser", version = "0.13.1"}
@@ -84,12 +84,13 @@ minijinja = {version = "2.2.0", features = ["unstable_machinery"], optional = tr
 # For integration tests. These are gated by the `test-dbs` and `test-dbs-external` features,
 # rather than dev-dependencies, because dev-dependencies can't be optional.
 
+connector_arrow = {version = "0.5.3", optional = true}
+rusqlite = {version = "0.32.0", optional = true, features = ["bundled", "csvtab"]}
 duckdb = {version = "1.0.0", optional = true, features = ["bundled", "chrono"]}
 mysql = {version = "25", optional = true}
-pg_bigdecimal = {version = "0.1.0", optional = true}
 postgres = {version = "0.19.8", optional = true}
-rusqlite = {version = "0.32.0", optional = true, features = ["bundled", "csvtab"]}
 tiberius = {version = "0.12.3", optional = true, default-features = false, features = ["sql-browser-tokio", "bigdecimal", "time", "rustls", "tds73"]}
+futures = { version = "0.3.30", optional = true}
 tokio = {version = "1.40.0", optional = true, features = ["full"]}
 tokio-util = {version = "0.7", optional = true, features = ["compat"]}
 

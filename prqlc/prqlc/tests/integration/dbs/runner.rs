@@ -26,7 +26,7 @@ impl DbTestRunner for DuckDbTestRunner {
     }
 
     fn modify_ddl(&self, sql: String) -> String {
-        sql.replace("REAL", "DOUBLE")
+        sql.replace("FLOAT", "DOUBLE")
     }
 }
 
@@ -57,7 +57,7 @@ impl DbTestRunner for SQLiteTestRunner {
                     })
                     .join(",")
             );
-            protocol.query(q.as_str()).unwrap();
+            protocol.execute(q.as_str()).unwrap();
         }
     }
 
@@ -71,14 +71,14 @@ pub struct PostgresTestRunner;
 impl DbTestRunner for PostgresTestRunner {
     fn import_csv(&self, protocol: &mut dyn DbProtocolHandler, csv_path: &str, table_name: &str) {
         protocol
-            .query(&format!(
+            .execute(&format!(
                 "COPY {table_name} FROM '{csv_path}' DELIMITER ',' CSV HEADER;"
             ))
             .unwrap();
     }
 
     fn modify_ddl(&self, sql: String) -> String {
-        sql.replace("REAL", "DOUBLE PRECISION")
+        sql.replace("FLOAT", "DOUBLE PRECISION")
     }
 }
 
@@ -87,14 +87,14 @@ pub struct GlareDbTestRunner;
 impl DbTestRunner for GlareDbTestRunner {
     fn import_csv(&self, protocol: &mut dyn DbProtocolHandler, csv_path: &str, table_name: &str) {
         protocol
-            .query(&format!(
+            .execute(&format!(
                 "INSERT INTO {table_name} SELECT * FROM '{csv_path}'"
             ))
             .unwrap();
     }
 
     fn modify_ddl(&self, sql: String) -> String {
-        sql.replace("REAL", "DOUBLE PRECISION")
+        sql.replace("FLOAT", "DOUBLE PRECISION")
     }
 }
 
@@ -120,11 +120,12 @@ impl DbTestRunner for MySqlTestRunner {
         let mut file_content = fs::read_to_string(local_old_path).unwrap();
         file_content = file_content.replace(",,", ",\\N,").replace(",\n", ",\\N\n");
         fs::write(&local_new_path, file_content).unwrap();
-        let query_result = protocol.query(
+        let query_result = protocol.execute(
             &format!(
                 "LOAD DATA INFILE '{}' INTO TABLE {table_name} FIELDS TERMINATED BY ',' OPTIONALLY ENCLOSED BY '\"' LINES TERMINATED BY '\n' IGNORE 1 ROWS;",
                 &csv_path_binding.parent().unwrap().join(local_new_path.file_name().unwrap()).to_str().unwrap()
-            ));
+            )
+        );
         fs::remove_file(&local_new_path).unwrap();
         query_result.unwrap();
     }
@@ -139,7 +140,7 @@ pub struct ClickHouseTestRunner;
 impl DbTestRunner for ClickHouseTestRunner {
     fn import_csv(&self, protocol: &mut dyn DbProtocolHandler, csv_path: &str, table_name: &str) {
         protocol
-            .query(&format!(
+            .execute(&format!(
                 "INSERT INTO {table_name} SELECT * FROM file('{csv_path}')"
             ))
             .unwrap();
@@ -158,7 +159,7 @@ pub struct MsSqlTestRunner;
 
 impl DbTestRunner for MsSqlTestRunner {
     fn import_csv(&self, protocol: &mut dyn DbProtocolHandler, csv_path: &str, table_name: &str) {
-        protocol.query(&format!("BULK INSERT {table_name} FROM '{csv_path}' WITH (FIRSTROW = 2, FIELDTERMINATOR = ',', ROWTERMINATOR = '\n', TABLOCK, FORMAT = 'CSV', CODEPAGE = 'RAW');")).unwrap();
+        protocol.execute(&format!("BULK INSERT {table_name} FROM '{csv_path}' WITH (FIRSTROW = 2, FIELDTERMINATOR = ',', ROWTERMINATOR = '\n', TABLOCK, FORMAT = 'CSV', CODEPAGE = 'RAW');")).unwrap();
     }
 
     fn modify_ddl(&self, sql: String) -> String {
