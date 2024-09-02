@@ -91,9 +91,12 @@ jobs:
         # savings on either). Ideally GH will allow for more disk space in the
         # future... (deleting things doesn't actually remove the amount of stuff
         # that GH needs to store, so it's purely performative!)
-        if:
-          ${{ contains(inputs.features, 'test-dbs-external') &&
-          steps.cache.outputs.cache-hit == 'false' }}
+
+        # FIXME readd this before merging
+        # if:
+        # ${{ contains(inputs.features, 'test-dbs-external') &&
+        # steps.cache.outputs.cache-hit == 'false' }}
+
       # We split up the test compilation as recommended in
       # https://matklad.github.io/2021/09/04/fast-rust-builds.html
       - name: 🏭 Compile
