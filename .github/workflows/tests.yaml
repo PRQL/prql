@@ -299,7 +299,7 @@ jobs:
       - run: task setup-dev
       - run: df -h
         working-directory: /
-      - run: rustup override set nightly
+      - run: rustup toolchain install nightly
       - name: Free up disk space
         run: cargo +nightly clean gc -Z gc
       - run: df -h
