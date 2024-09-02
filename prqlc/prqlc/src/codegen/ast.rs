@@ -1,3 +1,4 @@
+use std::borrow::Cow;
 use std::collections::HashSet;
 use std::sync::OnceLock;
 
@@ -27,7 +28,7 @@ impl WriteSource for pr::Expr {
         let mut r = String::new();
 
         if let Some(alias) = &self.alias {
-            r += opt.consume(&maybe_escape_ident_part(alias))?;
+            r += opt.consume(&write_ident_part(alias))?;
             r += opt.consume(" = ")?;
             opt.unbound_expr = false;
         }
@@ -90,7 +91,7 @@ impl WriteSource for pr::ExprKind {
         use pr::ExprKind::*;
 
         match &self {
-            Ident(ident) => Some(maybe_escape_ident_part(ident)),
+            Ident(ident) => Some(write_ident_part(ident).into_owned()),
             Indirection { base, field } => {
                 let mut r = base.write(opt.clone())?;
                 opt.consume_width(r.len() as u16)?;
@@ -197,7 +198,7 @@ impl WriteSource for pr::ExprKind {
                 if !c.generic_type_params.is_empty() {
                     r += opt.consume("<")?;
                     for generic_param in &c.generic_type_params {
-                        r += opt.consume(&maybe_escape_ident_part(&generic_param.name))?;
+                        r += opt.consume(&write_ident_part(&generic_param.name))?;
                         r += opt.consume(": ")?;
                         r += &opt.consume(
                             SeparatedExprs {
@@ -212,7 +213,7 @@ impl WriteSource for pr::ExprKind {
                 }
 
                 for param in &c.params {
-                    r += opt.consume(&maybe_escape_ident_part(&param.name))?;
+                    r += opt.consume(&write_ident_part(&param.name))?;
                     r += opt.consume(" ")?;
                     if let Some(ty) = &param.ty {
                         let ty = ty.write_between("<", ">", opt.clone())?;
@@ -221,7 +222,7 @@ impl WriteSource for pr::ExprKind {
                     }
                 }
                 for param in &c.named_params {
-                    r += opt.consume(&maybe_escape_ident_part(&param.name))?;
+                    r += opt.consume(&write_ident_part(&param.name))?;
                     r += opt.consume(":")?;
                     r += opt.consume(&param.default_value.as_ref().unwrap().write(opt.clone())?)?;
                     r += opt.consume(" ")?;
@@ -352,10 +353,10 @@ impl WriteSource for pr::Ident {
 
         let mut r = String::new();
         for part in &self.path {
-            r += &maybe_escape_ident_part(part);
+            r += &write_ident_part(part);
             r += ".";
         }
-        r += &maybe_escape_ident_part(&self.name);
+        r += &write_ident_part(&self.name);
         Some(r)
     }
 }
@@ -378,11 +379,11 @@ fn valid_prql_ident() -> &'static Regex {
     })
 }
 
-pub fn maybe_escape_ident_part(s: &str) -> String {
+pub fn write_ident_part(s: &str) -> Cow<str> {
     if valid_prql_ident().is_match(s) && !keywords().contains(s) {
-        s.to_string()
+        s.into()
     } else {
-        format!("`{}`", s)
+        format!("`{}`", s).into()
     }
 }
 
@@ -492,7 +493,7 @@ impl WriteSource for pr::Stmt {
             pr::StmtKind::ImportDef(import_def) => {
                 r += "import ";
                 if let Some(alias) = &import_def.alias {
-                    r += &maybe_escape_ident_part(alias);
+                    r += &write_ident_part(alias);
                     r += " = ";
                 }
                 r += &import_def.name.write(opt)?;
