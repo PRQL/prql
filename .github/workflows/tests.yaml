@@ -288,9 +288,6 @@ jobs:
         # Now required for `test-taskfile`, as otherwise it runs out of disk space.
         # https://github.com/actions/runner-images/issues/2840
         run: ./.github/workflows/scripts/util_free_space.sh
-        if:
-          ${{ contains(inputs.features, 'test-dbs-external') &&
-          steps.cache.outputs.cache-hit == 'false' }}
       - uses: actions/setup-python@v5
         with:
           python-version: "3.10"
