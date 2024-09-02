@@ -54,11 +54,11 @@ let first = column -> s"FIRST_VALUE({column:0})"
 
 let last = column -> s"LAST_VALUE({column:0})"
 
-let rank = -> s"RANK()"
+let rank = column -> s"RANK()"
 
-let rank_dense = -> s"DENSE_RANK()"
+let rank_dense = column -> s"DENSE_RANK()"
 
-let row_number = -> s"ROW_NUMBER()"
+let row_number = column -> s"ROW_NUMBER()"
 
 # Mathematical functions
 module math {
@@ -74,7 +74,7 @@ module math {
   let abs = column -> s"ABS({column:0})"
   let floor = column -> s"FLOOR({column:0})"
   let ceil = column -> s"CEIL({column:0})"
-  let pi = -> s"PI()"
+  let pi = s"PI()"
   let exp = column -> s"EXP({column:0})"
   let ln = column -> s"LN({column:0})"
   let log10 = column -> s"LOG10({column:0})"
@@ -174,7 +174,7 @@ let or = l r -> null
 
 let coalesce = l r -> s"COALESCE({l:0}, {r:0})"
 
-let regex_search = text pattern -> s"REGEXP({text:0}, {pattern:0})"
+let regex_search = haystack pattern -> s"REGEXP({haystack:0}, {pattern:0})"
 
 @{binding_strength=13}
 let neg = l -> s"-{l}"
@@ -198,7 +198,7 @@ module bigquery {
     let radians = column -> s"({column:0} * PI() / 180)"
   }
 
-  let regex_search = text pattern -> s"REGEXP_CONTAINS({text:0}, {pattern:0})"
+  let regex_search = haystack pattern -> s"REGEXP_CONTAINS({haystack:0}, {pattern:0})"
 }
 
 module clickhouse {
@@ -215,7 +215,7 @@ module clickhouse {
     let to_text = format column -> s"formatDateTimeInJodaSyntax({column:0}, {format:0})"
   }
 
-  let regex_search = text pattern -> s"match({text:0}, {pattern:0})"
+  let regex_search = haystack pattern -> s"match({haystack:0}, {pattern:0})"
 
   let read_csv = source -> s"file({source:0}, 'CSV')"
 
@@ -241,7 +241,7 @@ module duckdb {
     let to_text = format column -> s"strftime({column:0}, {format:0})"
   }
 
-  let regex_search = text pattern -> s"REGEXP_MATCHES({text:0}, {pattern:0})"
+  let regex_search = haystack pattern -> s"REGEXP_MATCHES({haystack:0}, {pattern:0})"
 
   let read_csv = source -> s"read_csv_auto({source:0})"
 }
@@ -290,7 +290,7 @@ module mysql {
   }
 
   # 'c' for case-sensitive
-  let regex_search = text pattern -> s"REGEXP_LIKE({text:0}, {pattern:0}, 'c')"
+  let regex_search = haystack pattern -> s"REGEXP_LIKE({haystack:0}, {pattern:0}, 'c')"
 }
 
 module postgres {
@@ -320,7 +320,7 @@ module postgres {
   }
 
   @{binding_strength=9}
-  let regex_search = text pattern -> s"{text} ~ {pattern}"
+  let regex_search = haystack pattern -> s"{haystack} ~ {pattern}"
 }
 
 module glaredb {
@@ -338,7 +338,7 @@ module glaredb {
   }
 
   @{binding_strength=9}
-  let regex_search = text pattern -> s"{text} ~ {pattern}"
+  let regex_search = haystack pattern -> s"{haystack} ~ {pattern}"
 
   let read_csv = source -> s"csv_scan({source:0})"
 
@@ -371,7 +371,7 @@ module sqlite {
   }
 
   @{binding_strength=9}
-  let regex_search = text pattern -> s"{text} REGEXP {pattern}"
+  let regex_search = haystack pattern -> s"{haystack} REGEXP {pattern}"
 }
 
 module snowflake {

@@ -46,6 +46,7 @@ ariadne = "0.4.1"
 chrono = "0.4.38"
 csv = "1.3.0"
 enum-as-inner = {workspace = true}
+indexmap = "2.5.0"
 itertools = {workspace = true}
 log = {workspace = true}
 regex = "1.10.6"

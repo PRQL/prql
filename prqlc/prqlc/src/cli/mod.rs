@@ -416,6 +416,7 @@ impl Command {
                 let mut root_module_def = prql_to_pl_tree(sources)?;
 
                 drop_module_def(&mut root_module_def.stmts, "std");
+                drop_module_def(&mut root_module_def.stmts, "_local");
 
                 pl_to_prql(&root_module_def)?.into_bytes()
             }
@@ -440,8 +441,7 @@ impl Command {
                 let ctx = semantic::resolve(root_mod)?;
 
                 let frames = if let Ok((main, _)) = ctx.find_main_rel(&[]) {
-                    semantic::reporting::collect_frames(*main.clone().into_relation_var().unwrap())
-                        .frames
+                    semantic::reporting::collect_frames(main.clone()).frames
                 } else {
                     vec![]
                 };
@@ -616,7 +616,7 @@ fn read_files(input: &mut clio::ClioPath) -> Result<SourceTree> {
     Ok(SourceTree::new(sources, Some(root.to_path_buf())))
 }
 
-fn combine_prql_and_frames(source: &str, frames: Vec<(Option<pr::Span>, pl::Lineage)>) -> String {
+fn combine_prql_and_frames(source: &str, frames: Vec<(Option<pr::Span>, pr::Ty)>) -> String {
     let source = Source::from(source);
     let lines = source.lines().collect_vec();
     let width = lines.iter().map(|l| l.len()).max().unwrap_or(0);
@@ -656,8 +656,18 @@ fn combine_prql_and_frames(source: &str, frames: Vec<(Option<pr::Span>, pl::Line
                 .to_string();
             printed_lines_count += 1;
 
-            result.push(format!("{chars:width$} # {frame}"));
+            result.push(format!("{chars:width$} # {frame:?}"));
         }
+        let chars: String = source
+            .get_line_text(source.line(printed_lines_count).unwrap())
+            .unwrap()
+            // Ariadne 0.4.1 added a line break at the end of the line, so we
+            // trim it.
+            .trim_end()
+            .to_string();
+        printed_lines_count += 1;
+
+        result.push(format!("{chars:width$} # {frame:?}"));
     }
     for line in lines.iter().skip(printed_lines_count) {
         result.push(source.get_line_text(line.to_owned()).unwrap().to_string());
@@ -679,7 +689,7 @@ mod tests {
         let output = Command::execute(
             &Command::Debug(DebugCommand::Annotate(IoArgs::default())),
             &mut r#"
-from initial_table
+from db.initial_table
 select {f = first_name, l = last_name, gender}
 derive full_name = f"{f} {l}"
 take 23
@@ -692,7 +702,7 @@ sort full
         .unwrap();
         assert_snapshot!(String::from_utf8(output).unwrap().trim(),
         @r###"
-        from initial_table
+        from db.initial_table
         select {f = first_name, l = last_name, gender}  # [f, l, initial_table.gender]
         derive full_name = f"{f} {l}"                   # [f, l, initial_table.gender, full_name]
         take 23                                         # [f, l, initial_table.gender, full_name]
@@ -741,10 +751,13 @@ sort full
             },
             &mut SourceTree::new(
                 [
-                    ("Project.prql".into(), "orders.x | select y".to_string()),
+                    (
+                        "Project.prql".into(),
+                        "project.orders.x | select y".to_string(),
+                    ),
                     (
                         "orders.prql".into(),
-                        "let x = (from z | select {y, u})".to_string(),
+                        "let x = (from db.z | select {y, u})".to_string(),
                     ),
                 ],
                 None,
@@ -808,6 +821,7 @@ sort full
           span: 1:0-17
         "###);
     }
+
     #[test]
     fn lex() {
         let output = Command::execute(

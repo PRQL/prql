@@ -518,8 +518,7 @@ pub mod internal {
         let root_module = semantic::resolve(pl).map_err(ErrorMessages::from)?;
 
         let (main, _) = root_module.find_main_rel(&[]).unwrap();
-        let mut fc =
-            semantic::reporting::collect_frames(*main.clone().into_relation_var().unwrap());
+        let mut fc = semantic::reporting::collect_frames(main.clone());
         fc.ast = ast;
 
         Ok(fc)

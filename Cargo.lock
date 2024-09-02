@@ -857,13 +857,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "compile-files"
-version = "0.13.1"
-dependencies = [
- "prqlc",
-]
-
-[[package]]
 name = "connection-string"
 version = "0.2.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1749,9 +1742,9 @@ checksum = "ce23b50ad8242c51a442f3ff322d56b02f08852c77e4c0b4d3fd684abc89c683"
 
 [[package]]
 name = "indexmap"
-version = "2.2.6"
+version = "2.5.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "168fb715dda47215e360912c096649d23d58bf392ac62f73919e831745e40f26"
+checksum = "68b900aa2f7301e21c36462b170ee99994de34dff39a4a6a528e80e7376d07e5"
 dependencies = [
  "equivalent",
  "hashbrown 0.14.5",
@@ -2875,6 +2868,7 @@ dependencies = [
  "duckdb",
  "enum-as-inner",
  "glob",
+ "indexmap",
  "insta",
  "insta-cmd",
  "is-terminal",

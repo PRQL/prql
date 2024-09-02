@@ -3,11 +3,11 @@ use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 use strum::AsRefStr;
 
-use crate::lexer::lr::Literal;
 use crate::parser::pr::ident::Ident;
+use crate::parser::pr::expr::GenericTypeParam;
 use crate::span::Span;
 
-#[derive(Debug, Clone, PartialEq, Serialize, Deserialize, JsonSchema)]
+#[derive(Debug, Clone, Serialize, Deserialize, JsonSchema)]
 pub struct Ty {
     pub kind: TyKind,
 
@@ -25,12 +25,6 @@ pub enum TyKind {
     /// Type of a built-in primitive type
     Primitive(PrimitiveSet),
 
-    /// Type that contains only a one value
-    Singleton(Literal),
-
-    /// Union of sets (sum)
-    Union(Vec<(Option<String>, Ty)>),
-
     /// Type of tuples (product)
     Tuple(Vec<TyTupleField>),
 
@@ -40,15 +34,9 @@ pub enum TyKind {
     /// Type of functions with defined params and return types.
     Function(Option<TyFunc>),
 
-    /// Type of every possible value. Super type of all other types.
-    /// The breaker of chains. Mother of types.
-    Any,
-
-    /// Type that is the largest subtype of `base` while not a subtype of `exclude`.
-    Difference { base: Box<Ty>, exclude: Box<Ty> },
-
-    /// A generic argument. Contains id of the function call node and generic type param name.
-    GenericArg((usize, String)),
+    /// Tuples that have fields of `base` tuple, but don't have fields of `except` tuple.
+    /// Implies that `base` has all fields of `except`.
+    Exclude { base: Box<Ty>, except: Box<Ty> },
 }
 
 impl TyKind {
@@ -66,9 +54,11 @@ pub enum TyTupleField {
     /// Named tuple element.
     Single(Option<String>, Option<Ty>),
 
-    /// Placeholder for possibly many elements.
-    /// Means "and other unmentioned columns". Does not mean "all columns".
-    Wildcard(Option<Ty>),
+    /// Many tuple elements contained in a type that must eventually resolve to a tuple.
+    /// In most cases, this starts as a generic type argument.
+    // TODO: make this non-optional Ty
+    // TODO: merge this into TyTuple (that does not exist at the moment)
+    Unpack(Option<Ty>),
 }
 
 /// Built-in sets.
@@ -103,9 +93,11 @@ pub enum PrimitiveSet {
 // Type of a function
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize, JsonSchema)]
 pub struct TyFunc {
-    pub name_hint: Option<Ident>,
     pub params: Vec<Option<Ty>>,
+
     pub return_ty: Option<Box<Ty>>,
+
+    pub generic_type_params: Vec<GenericTypeParam>,
 }
 
 impl Ty {
@@ -120,14 +112,6 @@ impl Ty {
     pub fn relation(tuple_fields: Vec<TyTupleField>) -> Self {
         let tuple = Ty::new(TyKind::Tuple(tuple_fields));
         Ty::new(TyKind::Array(Box::new(tuple)))
-    }
-
-    pub fn never() -> Self {
-        Ty::new(TyKind::Union(Vec::new()))
-    }
-
-    pub fn is_never(&self) -> bool {
-        self.kind.as_union().map_or(false, |x| x.is_empty())
     }
 
     pub fn as_relation(&self) -> Option<&Vec<TyTupleField>> {
@@ -156,7 +140,7 @@ impl TyTupleField {
     pub fn ty(&self) -> Option<&Ty> {
         match self {
             TyTupleField::Single(_, ty) => ty.as_ref(),
-            TyTupleField::Wildcard(ty) => ty.as_ref(),
+            TyTupleField::Unpack(ty) => ty.as_ref(),
         }
     }
 }
@@ -173,8 +157,8 @@ impl From<TyFunc> for TyKind {
     }
 }
 
-impl From<Literal> for TyKind {
-    fn from(value: Literal) -> Self {
-        TyKind::Singleton(value)
+impl PartialEq for Ty {
+    fn eq(&self, other: &Self) -> bool {
+        self.kind == other.kind && self.name == other.name
     }
 }

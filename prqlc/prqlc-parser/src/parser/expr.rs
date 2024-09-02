@@ -481,9 +481,8 @@ where
         .then(ctrl(':').ignore_then(expr.clone().map(Box::new)).or_not());
 
     let generic_args = ident_part()
-        .then_ignore(ctrl(':'))
-        .then(type_expr().separated_by(ctrl('|')))
-        .map(|(name, domain)| GenericTypeParam { name, domain })
+        .then(ctrl(':').ignore_then(type_expr()).or_not())
+        .map(|(name, bound)| GenericTypeParam { name, bound })
         .separated_by(ctrl(','))
         .at_least(1)
         .delimited_by(ctrl('<'), ctrl('>'))
@@ -500,7 +499,10 @@ where
                 .allow_trailing(),
         ),
         // plain
-        param.repeated().map(|params| (Vec::new(), params)),
+        param
+            .repeated()
+            .at_least(1)
+            .map(|params| (Vec::new(), params)),
     ))
     .then_ignore(just(TokenKind::ArrowThin))
     // return type

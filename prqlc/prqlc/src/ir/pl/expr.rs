@@ -1,11 +1,10 @@
-use std::collections::HashMap;
-
 use enum_as_inner::EnumAsInner;
 use prqlc_parser::generic;
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
+use std::collections::HashMap;
 
-use super::{Lineage, TransformCall};
+use super::TransformCall;
 use crate::codegen::write_ty;
 use crate::pr::{GenericTypeParam, Ident, Literal, Span, Ty};
 
@@ -35,20 +34,13 @@ pub struct Expr {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub ty: Option<Ty>,
 
-    /// Information about where data of this expression will come from.
-    ///
-    /// Currently, this is used to infer relational pipeline frames.
-    /// Must always exists if ty is a relation.
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub lineage: Option<Lineage>,
-
     #[serde(skip)]
     pub needs_window: bool,
 
     /// When true on [ExprKind::Tuple], this list will be flattened when placed
     /// in some other list.
     // TODO: maybe we should have a special ExprKind instead of this flag?
-    #[serde(skip)]
+    #[serde(skip_serializing_if = "is_false")]
     pub flatten: bool,
 }
 
@@ -61,12 +53,18 @@ pub enum ExprKind {
         within: Box<Expr>,
         except: Box<Expr>,
     },
+    Indirection {
+        base: Box<Expr>,
+        field: IndirectionKind,
+    },
     Literal(Literal),
 
     Tuple(Vec<Expr>),
     Array(Vec<Expr>),
     FuncCall(FuncCall),
     Func(Box<Func>),
+    FuncApplication(FuncApplication),
+
     TransformCall(TransformCall),
     SString(Vec<InterpolateItem>),
     FString(Vec<InterpolateItem>),
@@ -84,6 +82,12 @@ pub enum ExprKind {
     Internal(String),
 }
 
+#[derive(Debug, EnumAsInner, PartialEq, Clone, Serialize, Deserialize, JsonSchema)]
+pub enum IndirectionKind {
+    Name(String),
+    Position(i64),
+}
+
 /// Function call.
 #[derive(Debug, PartialEq, Clone, Serialize, Deserialize, JsonSchema)]
 pub struct FuncCall {
@@ -97,9 +101,6 @@ pub struct FuncCall {
 /// May also contain environment that is needed to evaluate the body.
 #[derive(Debug, PartialEq, Clone, Serialize, Deserialize, JsonSchema)]
 pub struct Func {
-    /// Name of the function. Used for user-facing messages only.
-    pub name_hint: Option<Ident>,
-
     /// Type requirement for the function body expression.
     pub return_ty: Option<Ty>,
 
@@ -114,13 +115,6 @@ pub struct Func {
 
     /// Generic type arguments within this function.
     pub generic_type_params: Vec<GenericTypeParam>,
-
-    /// Arguments that have already been provided.
-    pub args: Vec<Expr>,
-
-    /// Additional variables that the body of the function may need to be
-    /// evaluated.
-    pub env: HashMap<String, Expr>,
 }
 
 #[derive(Debug, PartialEq, Clone, Serialize, Deserialize, JsonSchema)]
@@ -131,6 +125,13 @@ pub struct FuncParam {
     pub ty: Option<Ty>,
 
     pub default_value: Option<Box<Expr>>,
+}
+
+#[derive(Debug, PartialEq, Clone, Serialize, Deserialize, JsonSchema)]
+pub struct FuncApplication {
+    pub func: Box<Expr>, // TODO: change this to Expr
+
+    pub args: Vec<Expr>,
 }
 
 pub type Range = generic::Range<Box<Expr>>;
@@ -189,9 +190,10 @@ impl std::fmt::Debug for Expr {
             }
             ds.field("ty", &DebugTy(x));
         }
-        if let Some(x) = &self.lineage {
-            ds.field("lineage", x);
-        }
         ds.finish()
     }
+}
+
+fn is_false(b: &bool) -> bool {
+    !b
 }

@@ -1,148 +1,152 @@
-use itertools::Itertools;
+use crate::pr::{Ident, Ty, TyKind, TyTupleField};
+use crate::codegen::write_ty;
+use crate::ir::decl::{Decl, DeclKind};
+use crate::ir::pl::IndirectionKind;
+use crate::semantic::NS_GENERIC;
+use crate::{Error, Result, Span, WithErrorInfo};
 
 use super::Resolver;
-use crate::ir::decl::{Decl, TableDecl, TableExpr};
-use crate::ir::pl::{Lineage, LineageColumn, LineageInput};
-use crate::pr::{Ident, Ty, TyTupleField};
-use crate::semantic::{NS_DEFAULT_DB, NS_INFER};
-use crate::Result;
 
 impl Resolver<'_> {
-    pub fn infer_table_column(
+    pub fn init_new_global_generic(&mut self, prefix: &str) -> Ident {
+        let a_unique_number = self.id.gen();
+        let param_name = format!("{prefix}{a_unique_number}");
+        let ident = Ident::from_path(vec![NS_GENERIC.to_string(), param_name]);
+        let decl = Decl::from(DeclKind::GenericParam(None));
+
+        self.root_mod.module.insert(ident.clone(), decl).unwrap();
+        ident
+    }
+
+    /// For a given generic, infer that it must be of type `ty`.
+    pub fn infer_generic_as_ty(
         &mut self,
-        table_ident: &Ident,
-        col_name: &str,
-    ) -> Result<(), String> {
-        let table = self.root_mod.module.get_mut(table_ident).unwrap();
-        let table_decl = table.kind.as_table_decl_mut().unwrap();
-
-        let Some(columns) = table_decl.ty.as_mut().and_then(|t| t.as_relation_mut()) else {
-            return Err(format!("Variable {table_ident:?} is not a relation."));
-        };
-
-        let has_wildcard = columns
-            .iter()
-            .any(|c| matches!(c, TyTupleField::Wildcard(_)));
-        if !has_wildcard {
-            return Err(format!("Table {table_ident:?} does not have wildcard."));
-        }
-
-        let exists = columns.iter().any(|c| match c {
-            TyTupleField::Single(Some(n), _) => n == col_name,
-            _ => false,
-        });
-        if exists {
-            return Ok(());
-        }
-
-        columns.push(TyTupleField::Single(Some(col_name.to_string()), None));
-
-        // also add into input tables of this table expression
-        if let TableExpr::RelationVar(expr) = &table_decl.expr {
-            if let Some(frame) = &expr.lineage {
-                let wildcard_inputs = (frame.columns.iter())
-                    .filter_map(|c| c.as_all())
-                    .collect_vec();
-
-                match wildcard_inputs.len() {
-                    0 => return Err(format!("Cannot infer where {table_ident}.{col_name} is from")),
-                    1 => {
-                        let (input_id, _) = wildcard_inputs.into_iter().next().unwrap();
-
-                        let input = frame.find_input(*input_id).unwrap();
-                        let table_ident = input.table.clone();
-                        self.infer_table_column(&table_ident, col_name)?;
-                    }
-                    _ => {
-                        return Err(format!("Cannot infer where {table_ident}.{col_name} is from. It could be any of {wildcard_inputs:?}"))
-                    }
-                }
+        ident_of_generic: &Ident,
+        ty: Ty,
+        span: Option<Span>,
+    ) -> Result<()> {
+        if let TyKind::Ident(ty_ident) = &ty.kind {
+            if ty_ident == ident_of_generic {
+                // don't infer that T is T
+                return Ok(());
             }
         }
 
+        log::debug!("inferring that {ident_of_generic:?} is {}", write_ty(&ty));
+
+        let Some(decl) = self.get_ident_mut(ident_of_generic) else {
+            return Err(Error::new_assert("type not found"));
+        };
+        let DeclKind::GenericParam(candidate) = &mut decl.kind else {
+            return Err(Error::new_assert("expected a generic type param")
+                .push_hint(format!("found {:?}", decl.kind)));
+        };
+
+        if let Some((candidate, _)) = candidate {
+            // validate that ty has all fields of the candidate
+            let candidate = candidate.clone();
+            self.validate_type(&ty, &candidate, span, &|| None)?;
+
+            // ty has all fields of the candidate, but it might have additional ones
+            // so we need to add all of them to the candidate
+            // (we need to get the candidate ref again, since we need &mut self for validate_type)
+            let Some(decl) = self.get_ident_mut(ident_of_generic) else {
+                unreachable!()
+            };
+            let DeclKind::GenericParam(Some(candidate)) = &mut decl.kind else {
+                unreachable!()
+            };
+
+            candidate.0.kind = ty.kind; // maybe merge the fields here?
+            return Ok(());
+        }
+
+        *candidate = Some((ty, span));
         Ok(())
     }
 
-    /// Converts a identifier that points to a table declaration to lineage of that table.
-    pub fn lineage_of_table_decl(
+    /// When we refer to `Generic.my_field`, this function pushes information that `Generic`
+    /// is a tuple with a field `my_field` into the generic type argument.
+    ///
+    /// Contract:
+    /// - ident must be fq ident of a generic type param,
+    /// - generic candidate either must not exist yet or be a tuple,
+    /// - if it is a tuple, it must not yet contain the indirection target.
+    pub fn infer_generic_as_tuple(
         &mut self,
-        table_fq: &Ident,
-        input_name: String,
-        input_id: usize,
-    ) -> Lineage {
-        let table_decl = self.root_mod.module.get(table_fq).unwrap();
-        let TableDecl { ty, .. } = table_decl.kind.as_table_decl().unwrap();
+        ident_of_generic: &Ident,
+        indirection: IndirectionKind,
+    ) -> (usize, Ty) {
+        // generate the type of inferred field (to be an unknown type - a new generic)
+        // (this has to be done early in this function since we borrow self later)
+        let ty_of_field = self.init_new_global_generic("F");
+        let ty = Ty::new(TyKind::Ident(ty_of_field));
 
-        // TODO: can this panic?
-        let columns = ty.as_ref().unwrap().as_relation().unwrap();
+        let ident = ident_of_generic;
+        let generic_decl = self.root_mod.module.get_mut(ident).unwrap();
+        let candidate = generic_decl.kind.as_generic_param_mut().unwrap();
 
-        let mut instance_frame = Lineage {
-            inputs: vec![LineageInput {
-                id: input_id,
-                name: input_name.clone(),
-                table: table_fq.clone(),
-            }],
-            columns: Vec::new(),
-            ..Default::default()
-        };
-
-        for col in columns {
-            let col = match col {
-                TyTupleField::Wildcard(_) => LineageColumn::All {
-                    input_id,
-                    except: columns
-                        .iter()
-                        .flat_map(|c| c.as_single().map(|x| x.0).cloned().flatten())
-                        .collect(),
-                },
-                TyTupleField::Single(col_name, _) => LineageColumn::Single {
-                    name: col_name
-                        .clone()
-                        .map(|col_name| Ident::from_path(vec![input_name.clone(), col_name])),
-                    target_id: input_id,
-                    target_name: col_name.clone(),
-                },
-            };
-            instance_frame.columns.push(col);
+        // if there is no candidate yet, propose a new tuple type
+        if candidate.is_none() {
+            *candidate = Some((Ty::new(TyKind::Tuple(vec![])), None));
         }
+        let (candidate_ty, _) = candidate.as_mut().unwrap();
+        let candidate_fields = candidate_ty.kind.as_tuple_mut().unwrap();
 
-        log::debug!("instanced table {table_fq} as {instance_frame:?}");
-        instance_frame
+        // create new field(s)
+        match indirection {
+            IndirectionKind::Name(field_name) => {
+                candidate_fields.push(TyTupleField::Single(Some(field_name), Some(ty.clone())));
+
+                let pos_within_candidate = candidate_fields.len() - 1;
+                (pos_within_candidate, ty)
+            }
+            IndirectionKind::Position(pos) => {
+                let pos = pos as usize;
+
+                // fill-in padding fields
+                for _ in 0..(pos - candidate_fields.len()) {
+                    // TODO: these should all be generics
+                    candidate_fields.push(TyTupleField::Single(None, None));
+                }
+
+                // push the actual field
+                candidate_fields.push(TyTupleField::Single(None, Some(ty.clone())));
+                (pos, ty)
+            }
+        }
     }
 
-    /// Declares a new table for a relation literal.
-    /// This is needed for column inference to work properly.
-    pub(super) fn declare_table_for_literal(
+    pub fn infer_generic_as_array(
         &mut self,
-        input_id: usize,
-        columns: Option<Vec<TyTupleField>>,
-        name_hint: Option<String>,
-    ) -> Lineage {
-        let id = input_id;
-        let global_name = format!("_literal_{}", id);
+        ident_of_generic: &Ident,
+        span: Option<Span>,
+    ) -> Result<Ty> {
+        // generate the type of array items (to be an unknown type - a new generic)
+        // (this has to be done early in this function since we borrow self later)
+        let items_ty = self.init_new_global_generic("A");
+        let items_ty = Ty::new(TyKind::Ident(items_ty));
 
-        // declare a new table in the `default_db` module
-        let default_db_ident = Ident::from_name(NS_DEFAULT_DB);
-        let default_db = self.root_mod.module.get_mut(&default_db_ident).unwrap();
-        let default_db = default_db.kind.as_module_mut().unwrap();
+        let ident = ident_of_generic;
+        let generic_decl = self.root_mod.module.get_mut(ident).unwrap();
+        let candidate = generic_decl.kind.as_generic_param_mut().unwrap();
 
-        let infer_default = default_db.get(&Ident::from_name(NS_INFER)).unwrap().clone();
-        let mut infer_default = *infer_default.kind.into_infer().unwrap();
-
-        let table_decl = infer_default.as_table_decl_mut().unwrap();
-        table_decl.expr = TableExpr::None;
-
-        if let Some(columns) = columns {
-            table_decl.ty = Some(Ty::relation(columns));
+        // if there is no candidate yet, propose a new tuple type
+        if let Some((candidate, _)) = candidate.as_mut() {
+            if let TyKind::Array(items_ty) = &candidate.kind {
+                // ok, we already know it is an array
+                Ok(*items_ty.clone())
+            } else {
+                // nope
+                Err(Error::new_simple(format!(
+                    "generic type argument {} needs to be an array",
+                    ident_of_generic
+                ))
+                .push_hint(format!("existing candidate: {}", write_ty(candidate))))
+            }
+        } else {
+            *candidate = Some((Ty::new(TyKind::Array(Box::new(items_ty.clone()))), span));
+            Ok(items_ty)
         }
-
-        default_db
-            .names
-            .insert(global_name.clone(), Decl::from(infer_default));
-
-        // produce a frame of that table
-        let input_name = name_hint.unwrap_or_else(|| global_name.clone());
-        let table_fq = default_db_ident + Ident::from_name(global_name);
-        self.lineage_of_table_decl(&table_fq, input_name, id)
     }
 }

@@ -1,14 +1,14 @@
 use std::collections::HashMap;
 
+use crate::ir::pl::{fold_column_sorts, fold_transform_kind};
 use crate::ir::pl::{
-    fold_column_sorts, fold_transform_kind, ColumnSort, Expr, ExprKind, PlFold, TransformCall,
-    TransformKind, WindowFrame,
+    ColumnSort, Expr, ExprKind, PlFold, TransformCall, TransformKind, WindowFrame,
 };
+use crate::semantic::NS_LOCAL;
 use crate::Result;
 
 /// Flattens group and window [TransformCall]s into a single pipeline.
 /// Sets partition, window and sort of [TransformCall].
-#[derive(Default, Debug)]
 pub struct Flattener {
     /// Sort affects downstream transforms in a pipeline.
     /// Because transform pipelines are represented by nested [TransformCall]s,
@@ -39,21 +39,35 @@ pub struct Flattener {
     /// preceding the group/window transform.
     ///
     /// That's what `replace_map` is for.
-    replace_map: HashMap<usize, Expr>,
+    replace_map: HashMap<String, Expr>,
 }
 
 impl Flattener {
-    pub fn fold(expr: Expr) -> Expr {
-        let mut f = Flattener::default();
-        f.fold_expr(expr).unwrap()
+    pub fn run(expr: Expr) -> Result<Expr> {
+        let mut f = Flattener {
+            sort: Default::default(),
+            sort_undone: Default::default(),
+            partition: Default::default(),
+            window: Default::default(),
+            replace_map: Default::default(),
+        };
+        f.fold_expr(expr)
     }
 }
 
 impl PlFold for Flattener {
     fn fold_expr(&mut self, mut expr: Expr) -> Result<Expr> {
-        if let Some(target) = &expr.target_id {
-            if let Some(replacement) = self.replace_map.remove(target) {
-                return Ok(replacement);
+        if let ExprKind::Ident(fq_ident) = &expr.kind {
+            if fq_ident.starts_with_part(NS_LOCAL) && fq_ident.len() == 2 {
+                if let Some(replacement) = self.replace_map.remove(&fq_ident.name) {
+                    return Ok(replacement);
+                }
+            }
+        }
+
+        if let ExprKind::RqOperator { name, .. } = &expr.kind {
+            if !name.starts_with("std.") {
+                expr = super::special_functions::resolve_special_func(expr)?
             }
         }
 
@@ -67,7 +81,7 @@ impl PlFold for Flattener {
                         let by = fold_column_sorts(self, by)?;
                         let input = self.fold_expr(*t.input)?;
 
-                        self.sort.clone_from(&by);
+                        self.sort = by.clone();
 
                         if self.sort_undone {
                             return Ok(input);
@@ -84,22 +98,20 @@ impl PlFold for Flattener {
                         let pipeline = pipeline.kind.into_func().unwrap();
 
                         let table_param = &pipeline.params[0];
-                        let param_id = table_param.name.parse::<usize>().unwrap();
 
-                        self.replace_map.insert(param_id, input);
+                        self.replace_map.insert(table_param.name.clone(), input);
                         self.partition = Some(by);
                         self.sort.clear();
 
                         let pipeline = self.fold_expr(*pipeline.body)?;
 
-                        self.replace_map.remove(&param_id);
+                        self.replace_map.remove(&table_param.name);
                         self.partition = None;
                         self.sort.clear();
                         self.sort_undone = sort_undone;
 
                         return Ok(Expr {
                             ty: expr.ty,
-                            lineage: expr.lineage,
                             ..pipeline
                         });
                     }
@@ -112,19 +124,17 @@ impl PlFold for Flattener {
                         let pipeline = pipeline.kind.into_func().unwrap();
 
                         let table_param = &pipeline.params[0];
-                        let param_id = table_param.name.parse::<usize>().unwrap();
 
-                        self.replace_map.insert(param_id, tbl);
+                        self.replace_map.insert(table_param.name.clone(), tbl);
                         self.window = WindowFrame { kind, range };
 
                         let pipeline = self.fold_expr(*pipeline.body)?;
 
                         self.window = WindowFrame::default();
-                        self.replace_map.remove(&param_id);
+                        self.replace_map.remove(&table_param.name);
 
                         return Ok(Expr {
                             ty: expr.ty,
-                            lineage: expr.lineage,
                             ..pipeline
                         });
                     }

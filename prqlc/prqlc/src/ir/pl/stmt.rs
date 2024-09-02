@@ -2,11 +2,10 @@ use enum_as_inner::EnumAsInner;
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 
-use crate::pr::Ident;
-use crate::pr::QueryDef;
-use crate::pr::{Span, Ty};
+use crate::pr::{Ident, QueryDef, Ty};
+use crate::Span;
 
-use super::expr::Expr;
+use super::{Expr, FuncCall};
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize, JsonSchema)]
 pub struct Stmt {
@@ -60,4 +59,17 @@ pub struct ImportDef {
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize, JsonSchema)]
 pub struct Annotation {
     pub expr: Box<Expr>,
+}
+
+impl Annotation {
+    /// Utility to match function calls by name and unpack its arguments.
+    pub fn as_func_call(&self, name: &str) -> Option<&FuncCall> {
+        let call = self.expr.kind.as_func_call()?;
+
+        let func_name = call.name.kind.as_ident()?;
+        if func_name.len() != 1 || func_name.name != name {
+            return None;
+        }
+        Some(call)
+    }
 }

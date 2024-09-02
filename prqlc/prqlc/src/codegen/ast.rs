@@ -198,15 +198,11 @@ impl WriteSource for pr::ExprKind {
                     r += opt.consume("<")?;
                     for generic_param in &c.generic_type_params {
                         r += opt.consume(&maybe_escape_ident_part(&generic_param.name))?;
-                        r += opt.consume(": ")?;
-                        r += &opt.consume(
-                            SeparatedExprs {
-                                exprs: &generic_param.domain,
-                                inline: " | ",
-                                line_end: "|",
-                            }
-                            .write(opt.clone())?,
-                        )?;
+
+                        if let Some(bound) = &generic_param.bound {
+                            r += opt.consume(": ")?;
+                            r += opt.consume(&bound.write(opt.clone())?)?;
+                        }
                     }
                     r += opt.consume("> ")?;
                 }
@@ -260,6 +256,18 @@ impl WriteSource for pr::ExprKind {
             Param(id) => Some(format!("${id}")),
             Internal(operator_name) => Some(format!("internal {operator_name}")),
         }
+    }
+}
+
+impl WriteSource for pr::GenericTypeParam {
+    fn write(&self, mut opt: WriteOpt) -> Option<String> {
+        let mut r = opt.consume(maybe_escape_ident_part(&self.name))?;
+
+        if let Some(bound) = &self.bound {
+            r += opt.consume(": ")?;
+            r += &opt.consume(bound.write(opt.clone())?)?;
+        }
+        Some(r)
     }
 }
 
@@ -351,7 +359,12 @@ impl WriteSource for pr::Ident {
         opt.consume_width(width as u16)?;
 
         let mut r = String::new();
-        for part in &self.path {
+
+        let mut path = &self.path[..];
+        if path.first().map_or(false, |f| f == "_local") {
+            path = &path[1..];
+        }
+        for part in path {
             r += &maybe_escape_ident_part(part);
             r += ".";
         }
@@ -364,7 +377,9 @@ fn keywords() -> &'static HashSet<&'static str> {
     static KEYWORDS: OnceLock<HashSet<&'static str>> = OnceLock::new();
     KEYWORDS.get_or_init(|| {
         HashSet::from_iter([
-            "let", "into", "case", "prql", "type", "module", "internal", "func",
+            "let", "into", "case", "prql", "type", "internal",
+            "func",
+            // "module" can be both keyword and ident
         ])
     })
 }

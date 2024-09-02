@@ -7,7 +7,7 @@ use serde::{Deserialize, Serialize};
 
 use crate::codegen::write_ty;
 use crate::ir::pl;
-use crate::pr::{Span, Ty};
+use crate::pr::{self, Span, Ty};
 use crate::semantic::write_pl;
 
 /// Context of the pipeline.
@@ -40,9 +40,11 @@ pub struct Module {
     pub shadowed: Option<Box<Decl>>,
 }
 
-/// A struct containing information about a single declaration.
+/// A struct containing information about a single declaration
+/// within a PRQL module.
 #[derive(Debug, PartialEq, Default, Serialize, Deserialize, Clone)]
 pub struct Decl {
+    // TODO: make this plain usize, it is populated at creation anyway
     #[serde(skip_serializing_if = "Option::is_none")]
     pub declared_at: Option<usize>,
 
@@ -57,26 +59,31 @@ pub struct Decl {
     pub annotations: Vec<pl::Annotation>,
 }
 
-/// The Declaration itself.
+/// Declaration kind.
 #[derive(Debug, PartialEq, Serialize, Deserialize, Clone, EnumAsInner)]
 pub enum DeclKind {
     /// A nested namespace
     Module(Module),
 
-    /// Nested namespaces that do lookup in layers from top to bottom, stopping at first match.
-    LayeredModules(Vec<Module>),
+    /// A function parameter (usually the implicit `this` param)
+    // TODO: make this type non-optional
+    Variable(Option<Ty>),
 
-    TableDecl(TableDecl),
-
-    InstanceOf(pl::Ident, Option<Ty>),
-
-    /// A single column. Contains id of target which is either:
-    /// - an input relation that is source of this column or
-    /// - a column expression.
-    Column(usize),
+    TupleField,
 
     /// Contains a default value to be created in parent namespace when NS_INFER is matched.
-    Infer(Box<DeclKind>),
+    Infer(InferTarget),
+
+    /// A generic type argument.
+    /// It contains the candidate for this generic type that has been inferred during
+    /// type validation. If the candidate is, for example, an `int` this means that
+    /// this generic must be `int` or one of the previous type check would have failed.
+    /// If the candidate is, for example, tuple `{a = int, b = bool}`, this means that
+    /// previous type checks require the tuple to have fields `a` and `b`. It might contain
+    /// other fields as well.
+    ///
+    /// Span describes the node that proposed the candidate.
+    GenericParam(Option<(Ty, Option<Span>)>),
 
     Expr(Box<pl::Expr>),
 
@@ -85,7 +92,18 @@ pub enum DeclKind {
     QueryDef(pl::QueryDef),
 
     /// Equivalent to the declaration pointed to by the fully qualified ident
-    Import(pl::Ident),
+    Import(pr::Ident),
+
+    /// A declaration that has not yet been resolved.
+    /// Created during the first pass of the AST, must not be present in
+    /// a fully resolved module structure.
+    Unresolved(pl::StmtKind),
+}
+
+#[derive(Debug, PartialEq, Serialize, Deserialize, Clone)]
+pub enum InferTarget {
+    Table,
+    TupleField,
 }
 
 #[derive(Debug, PartialEq, Serialize, Deserialize, Clone)]
@@ -99,19 +117,7 @@ pub struct TableDecl {
 }
 
 #[derive(Debug, PartialEq, Serialize, Deserialize, Clone, EnumAsInner)]
-pub enum TableExpr {
-    /// In SQL, this is a CTE
-    RelationVar(Box<pl::Expr>),
-
-    /// Actual table in a database. In SQL it can be referred to by name.
-    LocalTable,
-
-    /// No expression (this decl just tracks a relation literal).
-    None,
-
-    /// A placeholder for a relation that will be provided later.
-    Param(String),
-}
+pub enum TableExpr {}
 
 #[derive(Clone, Eq, Debug, PartialEq, Serialize, Deserialize)]
 pub enum TableColumn {
@@ -164,6 +170,7 @@ impl Default for DeclKind {
     }
 }
 
+// TODO: convert to Decl::new
 impl From<DeclKind> for Decl {
     fn from(kind: DeclKind) -> Self {
         Decl {
@@ -185,21 +192,20 @@ impl std::fmt::Display for DeclKind {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
             Self::Module(arg0) => f.debug_tuple("Module").field(arg0).finish(),
-            Self::LayeredModules(arg0) => f.debug_tuple("LayeredModules").field(arg0).finish(),
-            Self::TableDecl(TableDecl { ty, expr }) => {
-                write!(
-                    f,
-                    "TableDecl: {} {expr:?}",
-                    ty.as_ref().map(write_ty).unwrap_or_default()
-                )
+            Self::Variable(Some(arg0)) => {
+                write!(f, "Variable of type {}", write_ty(arg0))
             }
-            Self::InstanceOf(arg0, _) => write!(f, "InstanceOf: {arg0}"),
-            Self::Column(arg0) => write!(f, "Column (target {arg0})"),
-            Self::Infer(arg0) => write!(f, "Infer (default: {arg0})"),
+            Self::Variable(None) => {
+                write!(f, "Variable of unknown type")
+            }
+            Self::TupleField => write!(f, "TupleField"),
+            Self::Infer(arg0) => write!(f, "Infer {arg0:?}"),
             Self::Expr(arg0) => write!(f, "Expr: {}", write_pl(*arg0.clone())),
             Self::Ty(arg0) => write!(f, "Ty: {}", write_ty(arg0)),
+            Self::GenericParam(_) => write!(f, "GenericParam"),
             Self::QueryDef(_) => write!(f, "QueryDef"),
             Self::Import(arg0) => write!(f, "Import {arg0}"),
+            Self::Unresolved(_) => write!(f, "Unresolved"),
         }
     }
 }

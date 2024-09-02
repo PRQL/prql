@@ -15,6 +15,26 @@ pub struct Span {
     pub source_id: u16,
 }
 
+impl Span {
+    pub fn merge(a: Span, b: Span) -> Span {
+        assert_eq!(a.source_id, b.source_id);
+        Span {
+            start: usize::min(a.start, b.start),
+            end: usize::max(a.end, b.end),
+
+            source_id: a.source_id,
+        }
+    }
+
+    pub fn merge_opt(a: Option<Span>, b: Option<Span>) -> Option<Span> {
+        match (a, b) {
+            (Some(a), Some(b)) => Some(Self::merge(a, b)),
+            (Some(s), None) | (None, Some(s)) => Some(s),
+            (None, None) => None,
+        }
+    }
+}
+
 impl From<Span> for Range<usize> {
     fn from(a: Span) -> Self {
         a.start..a.end

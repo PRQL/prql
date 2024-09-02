@@ -37,21 +37,44 @@ tasks:
           --ignore-unknown \
           --log-level=warn
 
+  fmt-check:
+    desc: Validate that source files are formatted
+    cmds:
+      - cargo fmt --check {{.packages_core}} {{.packages_addon}}
+        {{.packages_bindings}}
+
   test-fast:
     desc: A fast test used for feedback during compiler development
     cmds:
       - cmd: |
-          INSTA_FORCE_PASS=1 cargo nextest run {{.packages_core}} --no-fail-fast
+          INSTA_FORCE_PASS=1 cargo nextest run {{.packages_core}} -- {{.CLI_ARGS}}
 
       - cmd: cargo insta review
 
       - cmd: cargo clippy --all-targets {{.packages_core}}
+
+  test-types:
+    desc:
+      A subset of tests that should work on feat-types
+    cmds:
+      - cmd: |
+          INSTA_FORCE_PASS=1 cargo nextest run --package prqlc --test=integration -- sql:: resolving::
+
+      - cmd: cargo insta review
+
+      - cmd: cargo clippy --all-targets {{.packages_core}}
+
+      - cmd: |
+          echo -e '\n=======\nrunning just ignored tests, to see if any of them passes'
+          cargo nextest run --package prqlc --test=integration --run-ignored=ignored-only --success-output=never --failure-output=never --status-level=pass --final-status-level=none -- sql:: resolving::
 
   test:
     desc: |
       A full test of prqlc (excluding --test-dbs-external).
       Generates coverage report.
     cmds:
+      - task: fmt-check
+
       - cmd: |
           cargo \
             llvm-cov --lcov --output-path lcov.info \

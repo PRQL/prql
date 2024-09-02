@@ -1,19 +1,18 @@
 //! Semantic resolver (name resolution, type checking and lowering to RQ)
 
 pub mod ast_expand;
-mod eval;
 mod lowering;
 mod module;
 pub mod reporting;
+mod resolve_decls;
 mod resolver;
-
-pub use eval::eval;
-pub use lowering::lower_to_ir;
 
 use self::resolver::Resolver;
 pub use self::resolver::ResolverOptions;
+pub use lowering::lower_to_ir;
+
 use crate::ir::constant::ConstExpr;
-use crate::ir::decl::{Module, RootModule};
+use crate::ir::decl::RootModule;
 use crate::ir::pl::{self, Expr, ImportDef, ModuleDef, Stmt, StmtKind, TypeDef, VarDef};
 use crate::ir::rq::RelationalQuery;
 use crate::parser::is_mod_def_for;
@@ -48,16 +47,19 @@ pub fn resolve(mut module_tree: pr::ModuleDef) -> Result<RootModule> {
     let root_module_def = ast_expand::expand_module_def(module_tree)?;
     debug::log_entry(|| debug::DebugEntryKind::ReprPl(root_module_def.clone()));
 
-    // init new root module
-    let mut root_module = RootModule {
-        module: Module::new_root(),
-        ..Default::default()
-    };
+    // init the module structure
+    debug::log_stage(debug::Stage::Semantic(debug::StageSemantic::Resolver));
+    let mut root_module = resolve_decls::init_module_tree(root_module_def);
+
+    // resolve name references between declarations
+    let resolution_order = resolve_decls::resolve_decl_refs(&mut root_module)?;
+
+    // resolve
     let mut resolver = Resolver::new(&mut root_module);
 
-    // resolve the module def into the root module
-    debug::log_stage(debug::Stage::Semantic(debug::StageSemantic::Resolver));
-    resolver.fold_statements(root_module_def.stmts)?;
+    for decl_fq in resolution_order {
+        resolver.resolve_decl(decl_fq)?;
+    }
     debug::log_entry(|| debug::DebugEntryKind::ReprDecl(root_module.clone()));
 
     Ok(root_module)
@@ -107,18 +109,17 @@ pub const NS_STD: &str = "std";
 pub const NS_THIS: &str = "this";
 pub const NS_THAT: &str = "that";
 pub const NS_PARAM: &str = "_param";
-pub const NS_DEFAULT_DB: &str = "default_db";
+pub const NS_DEFAULT_DB: &str = "db";
 pub const NS_QUERY_DEF: &str = "prql";
 pub const NS_MAIN: &str = "main";
+pub const NS_LOCAL: &str = "_local";
 
 // refers to the containing module (direct parent)
 pub const NS_SELF: &str = "_self";
 
+// TODO: convert this to module annotation
 // implies we can infer new non-module declarations in the containing module
 pub const NS_INFER: &str = "_infer";
-
-// implies we can infer new module declarations in the containing module
-pub const NS_INFER_MODULE: &str = "_infer_module";
 
 pub const NS_GENERIC: &str = "_generic";
 
@@ -171,10 +172,11 @@ pub fn write_pl(expr: pl::Expr) -> String {
 pub mod test {
     use insta::assert_yaml_snapshot;
 
-    use super::{resolve, resolve_and_lower, RootModule};
     use crate::ir::rq::RelationalQuery;
     use crate::parser::parse;
     use crate::Errors;
+
+    use super::{resolve, resolve_and_lower, RootModule};
 
     pub fn parse_resolve_and_lower(query: &str) -> Result<RelationalQuery, Errors> {
         let source_tree = query.into();
@@ -189,7 +191,7 @@ pub mod test {
     #[test]
     fn test_resolve_01() {
         assert_yaml_snapshot!(parse_resolve_and_lower(r###"
-        from employees
+        from db.employees
         select !{foo}
         "###).unwrap().relation.columns, @r###"
         ---
@@ -200,7 +202,7 @@ pub mod test {
     #[test]
     fn test_resolve_02() {
         assert_yaml_snapshot!(parse_resolve_and_lower(r###"
-        from foo
+        from db.foo
         sort day
         window range:-4..4 (
             derive {next_four_days = sum b}
@@ -217,7 +219,8 @@ pub mod test {
     #[test]
     fn test_resolve_03() {
         assert_yaml_snapshot!(parse_resolve_and_lower(r###"
-        from a=albums
+        from db.albums
+        select {a = this}
         filter is_sponsored
         select {a.*}
         "###).unwrap().relation.columns, @r###"
@@ -230,7 +233,7 @@ pub mod test {
     #[test]
     fn test_resolve_04() {
         assert_yaml_snapshot!(parse_resolve_and_lower(r###"
-        from x
+        from db.x
         select {a, a, a = a + 1}
         "###).unwrap().relation.columns, @r###"
         ---
@@ -245,7 +248,7 @@ pub mod test {
         assert_yaml_snapshot!(parse_resolve_and_lower(r#"
         prql target:sql.mssql version:"0"
 
-        from employees
+        from db.employees
         "#).unwrap(), @r###"
         ---
         def:
@@ -280,7 +283,7 @@ pub mod test {
         assert!(parse_resolve_and_lower(
             r###"
         prql target:sql.bigquery version:foo
-        from employees
+        from db.employees
         "###,
         )
         .is_err());
@@ -288,7 +291,7 @@ pub mod test {
         assert!(parse_resolve_and_lower(
             r#"
         prql target:sql.bigquery version:"25"
-        from employees
+        from db.employees
         "#,
         )
         .is_err());
@@ -296,7 +299,7 @@ pub mod test {
         assert!(parse_resolve_and_lower(
             r###"
         prql target:sql.yah version:foo
-        from employees
+        from db.employees
         "###,
         )
         .is_err());

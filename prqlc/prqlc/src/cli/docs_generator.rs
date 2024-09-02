@@ -160,22 +160,11 @@ pub fn generate_html_docs(stmts: Vec<Stmt>) -> String {
                     if let Some(return_ty) = &func.return_ty {
                         docs.push_str("  <h4 class=\"h6\">Returns</h4>\n");
                         match &return_ty.kind {
-                            TyKind::Any => docs.push_str("  <p>Any</p>\n"),
                             TyKind::Ident(ident) => {
                                 docs.push_str(&format!("  <p><code>{}</code></p>\n", ident.name));
                             }
                             TyKind::Primitive(primitive) => {
                                 docs.push_str(&format!("  <p><code>{primitive}</code></p>\n"));
-                            }
-                            TyKind::Singleton(literal) => {
-                                docs.push_str(&format!("  <p><code>{literal}</code></p>\n"));
-                            }
-                            TyKind::Union(vec) => {
-                                docs.push_str("  <ul class=\"list-unstyled\">\n");
-                                for (_, ty) in vec {
-                                    docs.push_str(&format!("    <li>{:?}</li>\n", ty.kind));
-                                }
-                                docs.push_str("  </ul>\n");
                             }
                             _ => docs.push_str("  <p class=\"text-danger\">Not implemented</p>\n"),
                         }
@@ -319,20 +308,11 @@ Generated with [prqlc](https://prql-lang.org/) {}.
                     if let Some(return_ty) = &func.return_ty {
                         docs.push_str("#### Returns\n");
                         match &return_ty.kind {
-                            TyKind::Any => docs.push_str("Any\n"),
                             TyKind::Ident(ident) => {
                                 docs.push_str(&format!("`{}`\n", ident.name));
                             }
                             TyKind::Primitive(primitive) => {
                                 docs.push_str(&format!("`{primitive}`\n"));
-                            }
-                            TyKind::Singleton(literal) => {
-                                docs.push_str(&format!("`{literal}`\n"));
-                            }
-                            TyKind::Union(vec) => {
-                                for (_, ty) in vec {
-                                    docs.push_str(&format!("* {:?}\n", ty.kind));
-                                }
                             }
                             _ => docs.push_str("Not implemented\n"),
                         }

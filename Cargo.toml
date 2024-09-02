@@ -8,7 +8,6 @@ members = [
   "prqlc/prqlc-macros",
   "prqlc/prqlc-parser",
   "prqlc/prqlc",
-  "prqlc/prqlc/examples/compile-files", # An example
   "lutra/lutra",
   "lutra/bindings/python",
   "web/book",

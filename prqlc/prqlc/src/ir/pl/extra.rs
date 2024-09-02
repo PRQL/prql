@@ -3,7 +3,7 @@ use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 
 use crate::ir::generic::WindowKind;
-use crate::ir::pl::{Expr, ExprKind, Func, FuncCall, Ident, Range};
+use crate::ir::pl::{Expr, ExprKind, FuncCall, Ident, Range};
 use crate::pr::Ty;
 
 impl FuncCall {
@@ -23,7 +23,23 @@ pub enum TyOrExpr {
     Expr(Box<Expr>),
 }
 
-impl Func {
+#[derive(Debug, PartialEq, Clone, Serialize, Deserialize, Default)]
+pub struct FuncMetadata {
+    /// Name of the function. Used for user-facing messages only.
+    pub name_hint: Option<Ident>,
+
+    pub implicit_closure: Option<Box<ImplicitClosureConfig>>,
+    pub coerce_tuple: Option<u8>,
+}
+
+#[derive(Debug, PartialEq, Clone, Serialize, Deserialize)]
+pub struct ImplicitClosureConfig {
+    pub param: u8,
+    pub this: Option<u8>,
+    pub that: Option<u8>,
+}
+
+impl FuncMetadata {
     pub(crate) fn as_debug_name(&self) -> &str {
         let ident = self.name_hint.as_ref();
 
@@ -123,7 +139,6 @@ impl Expr {
             span: None,
             target_id: None,
             ty: None,
-            lineage: None,
             needs_window: false,
             alias: None,
             flatten: false,

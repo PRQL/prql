@@ -15,14 +15,12 @@ pub use crate::pr::{BinOp, BinaryExpr, Ident, UnOp, UnaryExpr};
 pub use self::expr::*;
 pub use self::extra::*;
 pub use self::fold::*;
-pub use self::lineage::*;
 pub use self::stmt::*;
 pub use self::utils::*;
 
 mod expr;
 mod extra;
 mod fold;
-mod lineage;
 mod stmt;
 mod utils;
 
@@ -41,7 +39,6 @@ pub fn print_mem_sizes() {
     println!("{:16}= {}", "decl::DeclKind", size_of::<decl::DeclKind>());
     println!("{:16}= {}", "decl::Module", size_of::<decl::Module>());
     println!("{:16}= {}", "decl::TableDecl", size_of::<decl::TableDecl>());
-    println!("{:16}= {}", "decl::TableExpr", size_of::<decl::TableExpr>());
     println!("{:16}= {}", "ErrorMessage", size_of::<ErrorMessage>());
     println!("{:16}= {}", "ErrorMessages", size_of::<ErrorMessages>());
     println!("{:16}= {}", "ExprKind", size_of::<ExprKind>());
@@ -60,9 +57,6 @@ pub fn print_mem_sizes() {
     );
     println!("{:16}= {}", "InterpolateItem", size_of::<InterpolateItem>());
     println!("{:16}= {}", "JoinSide", size_of::<JoinSide>());
-    println!("{:16}= {}", "Lineage", size_of::<Lineage>());
-    println!("{:16}= {}", "LineageColumn", size_of::<LineageColumn>());
-    println!("{:16}= {}", "LineageInput", size_of::<LineageInput>());
     println!("{:16}= {}", "ModuleDef", size_of::<ModuleDef>());
     println!("{:16}= {}", "pl::Expr", size_of::<pl::Expr>());
     println!("{:16}= {}", "PrimitiveSet", size_of::<PrimitiveSet>());

@@ -20,7 +20,7 @@ fn std() -> &'static decl::Module {
 
         let std_lib = crate::SourceTree::new(
             [(
-                PathBuf::from("std.prql"),
+                PathBuf::from("std.sql.prql"),
                 include_str!("./std.sql.prql").to_string(),
             )],
             None,
@@ -45,20 +45,14 @@ pub(super) fn translate_operator(
     args: Vec<rq::Expr>,
     ctx: &mut Context,
 ) -> Result<SourceExpr> {
-    let (func_def, binding_strength, window_frame, coalesce) =
+    let (operator_impl, binding_strength, window_frame, coalesce) =
         find_operator_impl(&name, ctx.dialect_enum).unwrap();
     let parent_binding_strength = binding_strength.unwrap_or(100);
 
-    let params = func_def
-        .named_params
-        .iter()
-        .chain(func_def.params.iter())
-        .map(|x| x.name.split('.').last().unwrap_or(x.name.as_str()));
-
-    let args: HashMap<&str, _> = zip(params, args).collect();
+    let args: HashMap<&str, _> = zip(operator_impl.params, args).collect();
 
     // body can only be an s-string
-    let body = match &func_def.body.kind {
+    let body = match &operator_impl.body.kind {
         pl::ExprKind::Literal(pl::Literal::Null) => {
             return Err(Error::new_simple(format!(
                 "operator {} is not supported for dialect {}",
@@ -66,7 +60,11 @@ pub(super) fn translate_operator(
             )))
         }
         pl::ExprKind::SString(items) => items,
-        _ => panic!("Bad RQ operator implementation. Expected s-string or null"),
+        _ => {
+            return Err(Error::new_assert(
+                "bad RQ operator implementation for SQL: expected function or a plain s-string",
+            ))
+        }
     };
 
     let mut text = String::new();
@@ -120,10 +118,15 @@ pub(super) fn translate_operator(
     })
 }
 
+struct OperatorImpl<'a> {
+    body: &'a pl::Expr,
+    params: Vec<&'a str>,
+}
+
 fn find_operator_impl(
     operator_name: &str,
     dialect: Dialect,
-) -> Option<(&pl::Func, Option<i32>, bool, Option<String>)> {
+) -> Option<(OperatorImpl<'_>, Option<i32>, bool, Option<String>)> {
     let operator_name = operator_name.strip_prefix("std.").unwrap();
     let operator_ident = pl::Ident::from_path(
         operator_name
@@ -134,23 +137,40 @@ fn find_operator_impl(
 
     let dialect_module = std().get(&pl::Ident::from_name(dialect.to_string()));
 
-    let mut func_def = None;
+    let mut impl_decl = None;
 
     if let Some(dialect_module) = dialect_module {
         let module = dialect_module.kind.as_module().unwrap();
-        func_def = module.get(&operator_ident);
+        impl_decl = module.get(&operator_ident);
     }
 
-    if func_def.is_none() {
-        func_def = std().get(&operator_ident);
+    if impl_decl.is_none() {
+        impl_decl = std().get(&operator_ident);
     }
 
-    let decl = func_def?;
+    let impl_decl = impl_decl?;
 
-    let func_def = decl.kind.as_expr().unwrap();
-    let func_def = func_def.kind.as_func().unwrap();
+    let impl_expr = impl_decl.kind.as_expr().unwrap();
+    let operator_impl = match &impl_expr.kind {
+        pl::ExprKind::Func(func) => {
+            let params: Vec<_> = func
+                .named_params
+                .iter()
+                .chain(func.params.iter())
+                .map(|x| x.name.split('.').last().unwrap_or(x.name.as_str()))
+                .collect();
+            OperatorImpl {
+                body: func.body.as_ref(),
+                params,
+            }
+        }
+        _ => OperatorImpl {
+            body: impl_expr.as_ref(),
+            params: Vec::new(),
+        },
+    };
 
-    let annotation = decl.annotations.iter().exactly_one().ok();
+    let annotation = impl_decl.annotations.iter().exactly_one().ok();
     let mut annotation = annotation
         .and_then(|x| into_tuple_items(*x.expr.clone()).ok())
         .unwrap_or_default();
@@ -166,7 +186,7 @@ fn find_operator_impl(
     let coalesce =
         pluck_annotation(&mut annotation, "coalesce").and_then(|val| val.into_string().ok());
 
-    Some((func_def.as_ref(), binding_strength, window_frame, coalesce))
+    Some((operator_impl, binding_strength, window_frame, coalesce))
 }
 
 fn pluck_annotation(

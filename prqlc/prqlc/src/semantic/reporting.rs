@@ -5,10 +5,9 @@ use ariadne::{Color, Label, Report, ReportBuilder, ReportKind, Source};
 use schemars::JsonSchema;
 use serde::Serialize;
 
-use crate::ir::decl::{DeclKind, Module, RootModule, TableDecl, TableExpr};
-use crate::ir::pl;
-use crate::ir::pl::PlFold;
 use crate::pr;
+use crate::ir::decl::{DeclKind, Module, RootModule};
+use crate::ir::pl::{*, self};
 use crate::{Result, Span};
 
 pub fn label_references(root_mod: &RootModule, source_id: String, source: String) -> Vec<u8> {
@@ -44,11 +43,7 @@ struct Labeler<'a> {
 impl<'a> Labeler<'a> {
     fn label_module(&mut self, module: &Module) {
         for (_, decl) in module.names.iter() {
-            if let DeclKind::TableDecl(TableDecl {
-                expr: TableExpr::RelationVar(expr),
-                ..
-            }) = &decl.kind
-            {
+            if let DeclKind::Expr(expr) = &decl.kind {
                 self.fold_expr(*expr.clone()).unwrap();
             }
         }
@@ -79,18 +74,18 @@ impl<'a> pl::PlFold for Labeler<'a> {
                     let color = match &decl.kind {
                         DeclKind::Expr(_) => Color::Blue,
                         DeclKind::Ty(_) => Color::Green,
-                        DeclKind::Column { .. } => Color::Yellow,
-                        DeclKind::InstanceOf(_, _) => Color::Yellow,
-                        DeclKind::TableDecl { .. } => Color::Red,
+                        DeclKind::GenericParam(_) => Color::Green,
+                        DeclKind::Variable { .. } => Color::Yellow,
+                        DeclKind::TupleField => Color::Yellow,
                         DeclKind::Module(module) => {
                             self.label_module(module);
 
                             Color::Cyan
                         }
-                        DeclKind::LayeredModules(_) => Color::Cyan,
                         DeclKind::Infer(_) => Color::White,
                         DeclKind::QueryDef(_) => Color::White,
                         DeclKind::Import(_) => Color::White,
+                        DeclKind::Unresolved(_) => Color::White,
                     };
 
                     let location = decl
@@ -98,16 +93,7 @@ impl<'a> pl::PlFold for Labeler<'a> {
                         .and_then(|id| self.get_span_lines(id))
                         .unwrap_or_default();
 
-                    let decl = match &decl.kind {
-                        DeclKind::TableDecl(TableDecl { ty, .. }) => {
-                            format!(
-                                "table {}",
-                                ty.as_ref().and_then(|t| t.name.clone()).unwrap_or_default()
-                            )
-                        }
-                        _ => decl.to_string(),
-                    };
-
+                    let decl = decl.to_string();
                     (format!("{decl}{location}"), color)
                 } else if let Some(decl_id) = node.target_id {
                     let lines = self.get_span_lines(decl_id).unwrap_or_default();
@@ -201,7 +187,7 @@ pub struct FrameCollector {
     /// Each transformation step in the main pipeline corresponds to a single
     /// frame. This holds the output columns at each frame, as well as the span
     /// position of the frame.
-    pub frames: Vec<(Option<Span>, pl::Lineage)>,
+    pub frames: Vec<(Option<Span>, pr::Ty)>,
 
     /// A mapping of expression graph node IDs to their node definitions.
     pub nodes: Vec<ExprGraphNode>,
@@ -321,10 +307,9 @@ impl PlFold for FrameCollector {
         self.nodes.sort_by(|a, b| a.id.cmp(&b.id));
         self.nodes.dedup();
 
-        if matches!(expr.kind, pl::ExprKind::TransformCall(_)) {
-            let lineage = expr.lineage.clone();
-            if let Some(lineage) = lineage {
-                self.frames.push((expr.span, lineage));
+        if matches!(expr.kind, ExprKind::TransformCall(_)) {
+            if let Some(ty) = &expr.ty {
+                self.frames.push((expr.span, ty.clone()));
             }
         }
 

@@ -15,12 +15,12 @@
 
 # Operators
 
-let mul = left right -> <int || float> internal std.mul
-let div_i = left right -> <int || float> internal std.div_i
-let div_f = left right -> <int || float> internal std.div_f
-let mod = left right -> <int || float> internal std.mod
-let add = left right -> <int || float || timestamp || date> internal std.add
-let sub = left right -> <int || float || timestamp || date> internal std.sub
+let mul = left right -> <int> internal std.mul
+let div_i = left right -> <int> internal std.div_i
+let div_f = left right -> <int> internal std.div_f
+let mod = left right -> <int> internal std.mod
+let add = left right -> <int> internal std.add
+let sub = left right -> <int> internal std.sub
 let eq = left right -> <bool> internal std.eq
 let ne = left right -> <bool> internal std.ne
 let gt = left right -> <bool> internal std.gt
@@ -32,7 +32,7 @@ let or = left<bool> right<bool> -> <bool> internal std.or
 let coalesce = left right -> internal std.coalesce
 let regex_search = text pattern -> <bool> internal std.regex_search
 
-let neg = expr<int || float> -> <int || float> internal std.neg
+let neg = expr<int> -> <int> internal std.neg
 let not = expr<bool> -> <bool> internal std.not
 
 # Types
@@ -46,162 +46,164 @@ type date = date
 type time = time
 type timestamp = timestamp
 type `func` = func
-type anytype = anytype
 
 ## Generic array
-# TODO: an array of anything, not just nulls
-type array = [anytype]
-
-## Scalar
-type scalar = int || float || bool || text || date || time || timestamp || null
-type tuple = {..anytype}
 
 ## Range
-type range = {start = scalar, end = scalar}
-
-## Relation (an array of tuples)
-type relation = [tuple]
+# type range <T> = {start = T, end = T}
 
 ## Transform
-type transform = func relation -> relation
+# type transform <I, O> = func [I] -> [O]
 
 # Functions
 
 ## Relational transforms
-let from = func
-  `default_db.source` <relation>
-  -> <relation> source
+let from = func <R>
+  tbl <R>
+  -> <R> tbl
 
-let select = func
-  columns <anytype>
-  tbl <relation>
-  -> <relation> internal select
+@(coerce_tuple 0)
+@(implicit_closure 0 this:1)
+let select = func <I, A>
+  assigns <A>
+  tbl <[I]>
+  -> <[A]> internal select
 
-let filter = func
+@(implicit_closure 0 this:1)
+let filter = func <T>
   condition <bool>
-  tbl <relation>
-  -> <relation> internal filter
+  tbl <[T]>
+  -> <[T]> internal filter
 
-let derive = func
-  columns <anytype>
-  tbl <relation>
-  -> <relation> internal derive
+@(coerce_tuple 0)
+@(implicit_closure 0 this:1)
+let derive = func <I, A>
+  assigns <A>
+  tbl <[I]>
+  -> <[{I, ..A}]> internal derive
 
-let aggregate = func
-  columns <anytype>
-  tbl <relation>
-  -> <relation> internal aggregate
+@(coerce_tuple 0)
+@(implicit_closure 0 this:1)
+let aggregate = func <I, A>
+  assigns <A>
+  tbl <[I]>
+  -> <[A]> internal aggregate
 
-let sort = func
-  by <anytype>
-  tbl <relation>
-  -> <relation> internal sort
+@(coerce_tuple 0)
+@(implicit_closure 0 this:1)
+let sort = func <I>
+  by
+  tbl <[I]>
+  -> <[I]> internal sort
 
-let take = func
-  expr <anytype>
-  tbl <relation>
-  -> <relation> internal take
+let take = func <I>
+  expr
+  tbl <[I]>
+  -> <[I]> internal take
 
-let join = func
-  `default_db.with` <relation>
+@(implicit_closure 1 this:2 that:0)
+let join = func <A, B>
+  with <[B]>
   condition <bool>
   `noresolve.side`:inner
-  tbl <relation>
-  -> <relation> internal join
+  tbl <[A]>
+  -> <[{A, B}]> internal join
 
-let group = func
-  by<scalar || tuple>
-  pipeline <transform>
-  tbl <relation>
-  -> <relation> internal group
+@(coerce_tuple 0)
+@(implicit_closure 0 this:2)
+let group = func <I, B, PO>
+  by<B>
+  pipeline <func [I - B] -> [PO]>
+  tbl <[I]>
+  -> <[{B, ..PO}]> internal group
 
 let window = func
   rows:0..-1
   range:0..-1
   expanding <bool>:false
   rolling <int>:0
-  pipeline <transform>
-  tbl <relation>
-  -> <relation> internal window
+  pipeline
+  tbl
+  -> internal window
 
-let append = `default_db.bottom`<relation> top<relation> -> <relation> internal append
-let intersect = `default_db.bottom`<relation> top<relation> -> <relation> (
-  t = top
-  join (b = bottom) (tuple_every (tuple_map _eq (tuple_zip t.* b.*)))
-  select t.*
-)
-let remove = `default_db.bottom`<relation> top<relation> -> <relation> (
-  t = top
-  join side:left (b = bottom) (tuple_every (tuple_map _eq (tuple_zip t.* b.*)))
-  filter (tuple_every (tuple_map _is_null b.*))
-  select t.*
-)
+let append = bottom top -> internal append
+# let intersect = bottom top -> (
+#   t = top
+#   join (b = bottom) (std.tuple_every (std.tuple_map std._eq (std.tuple_zip t.* b.*)))
+#   select t.*
+# )
+# let remove = bottom top -> (
+#   t = top
+#   join side:left (b = bottom) (std.tuple_every (std.tuple_map std._eq (std.tuple_zip t.* b.*)))
+#   filter (std.tuple_every (std.tuple_map std._is_null b.*))
+#   select t.*
+# )
 let loop = func
-  pipeline <transform>
-  top <relation>
-  -> <relation> internal loop
+  pipeline
+  top
+  -> internal loop
 
 ## Aggregate functions
 # These return either a scalar when used within `aggregate`, or a column when used anywhere else.
 
-let min = column <array> -> <int || float || null> internal std.min
+let min = column -> <int> internal std.min
 
-let max = column <array> -> <int || float || null> internal std.max
+let max = column -> <int> internal std.max
 
-let sum = column <array> -> <int || float> internal std.sum
+let sum = column -> <int> internal std.sum
 
-let average = column <array> -> <float || null> internal std.average
+let average = column -> <float> internal std.average
 
-let stddev = column <array> -> <float || null> internal std.stddev
+let stddev = column -> <float> internal std.stddev
 
-let all = column <array> -> <bool> internal std.all
+let all = column -> <bool> internal std.all
 
-let any = column <array> -> <bool> internal std.any
+let any = column -> <bool> internal std.any
 
-let concat_array = column <array> -> <text> internal std.concat_array
+let concat_array = column -> <text> internal std.concat_array
 
 # Counts number of items in the column.
 # Note that the count will include null values.
-let count = column<array> -> <int> internal count
+let count = colum -> <int> internal count
 
 # Deprecated in favour of filterning input to the [std.count] function (not yet implemented).
 @{deprecated}
-let count_distinct = column <array> -> internal std.count_distinct
+let count_distinct = column -> internal std.count_distinct
 
 ## Window functions
-let lag =   offset <int>    column <array> -> internal std.lag
-let lead =  offset <int>    column <array> -> internal std.lead
-let first      = column <array> -> internal std.first
-let last       = column <array> -> internal std.last
-let rank       = column <array> -> internal std.rank
-let rank_dense = column <array> -> internal std.rank_dense
-let row_number = column <array> -> internal row_number
+let lag =   offset <int>    column -> internal std.lag
+let lead =  offset <int>    column -> internal std.lead
+let first      = column -> internal std.first
+let last       = column -> internal std.last
+let rank       = column -> internal std.rank
+let rank_dense = column -> internal std.rank_dense
+let row_number = column -> internal row_number
 
 # Mathematical functions
 module math {
-  let abs = column -> <int || float> internal std.math.abs
+  let abs = column -> <int> internal std.math.abs
   let floor = column -> <int> internal std.math.floor
   let ceil = column -> <int> internal std.math.ceil
-  let pi = -> <float> internal std.math.pi
-  let exp = column -> <int || float> internal std.math.exp
-  let ln = column -> <int || float> internal std.math.ln
-  let log10 = column -> <int || float> internal std.math.log10
-  let log = base<int || float> column -> <int || float> internal std.math.log
-  let sqrt = column -> <int || float> internal std.math.sqrt
-  let degrees = column -> <int || float> internal std.math.degrees
-  let radians = column -> <int || float> internal std.math.radians
-  let cos = column -> <int || float> internal std.math.cos
-  let acos = column -> <int || float> internal std.math.acos
-  let sin = column -> <int || float> internal std.math.sin
-  let asin = column -> <int || float> internal std.math.asin
-  let tan = column -> <int || float> internal std.math.tan
-  let atan = column -> <int || float> internal std.math.atan
-  let pow = exponent<int || float> column -> <int || float> internal std.math.pow
-  let round = n_digits column -> <scalar> internal std.math.round
+  let pi <float> = internal std.math.pi
+  let exp = column -> <int> internal std.math.exp
+  let ln = column -> <int> internal std.math.ln
+  let log10 = column -> <int> internal std.math.log10
+  let log = base<int> column -> <int> internal std.math.log
+  let sqrt = column -> <int> internal std.math.sqrt
+  let degrees = column -> <int> internal std.math.degrees
+  let radians = column -> <int> internal std.math.radians
+  let cos = column -> <int> internal std.math.cos
+  let acos = column -> <int> internal std.math.acos
+  let sin = column -> <int> internal std.math.sin
+  let asin = column -> <int> internal std.math.asin
+  let tan = column -> <int> internal std.math.tan
+  let atan = column -> <int> internal std.math.atan
+  let pow = exponent<int> column -> <int> internal std.math.pow
+  let round = n_digits column -> internal std.math.round
 }
 
 ## Misc functions
-let as = `noresolve.type` column -> <scalar> internal std.as
+let as = `noresolve.type` column -> internal std.as
 let in = pattern value -> <bool> internal in
 
 ## Tuple functions
@@ -209,10 +211,10 @@ let tuple_every = func list -> <bool> internal tuple_every
 let tuple_map = func fn <func> list -> internal tuple_map
 let tuple_zip = func a b -> internal tuple_zip
 let _eq = func a -> internal _eq
-let _is_null = func a -> _param.a == null
+let _is_null = func a -> a == null
 
 ## Misc
-let from_text = input<text> `noresolve.format`:csv -> <relation> internal from_text
+let from_text = func <R: {}> input<text> `noresolve.format`:csv -> <[R]> internal from_text
 
 ## Text functions
 module text {
@@ -235,14 +237,13 @@ module date {
 }
 
 ## File-reading functions, primarily for DuckDB
-let read_parquet = source<text> -> <relation> internal std.read_parquet
-let read_csv = source<text> -> <relation> internal std.read_csv
-
+let read_parquet = func <R: {}> source<text> -> <[R]> internal std.read_parquet
+# let read_csv = func <R: {}> source<text> -> <[R]> internal std.read_csv
 
 ## PRQL compiler functions
 module `prql` {
-  let version = -> <text> internal prql_version
+  let version <text> = internal prql_version
 }
 
 # Deprecated, will be removed in 0.12.0
-let prql_version = -> <text> internal prql_version
+let prql_version <text> = internal prql_version

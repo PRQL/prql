@@ -77,6 +77,10 @@ pub fn fold_expr_kind<T: ?Sized + PlFold>(fold: &mut T, expr_kind: ExprKind) -> 
             within: Box::new(fold.fold_expr(*within)?),
             except: Box::new(fold.fold_expr(*except)?),
         },
+        Indirection { base, field } => Indirection {
+            base: Box::new(fold.fold_expr(*base)?),
+            field,
+        },
         Tuple(items) => Tuple(fold.fold_exprs(items)?),
         Array(items) => Array(fold.fold_exprs(items)?),
         SString(items) => SString(
@@ -94,7 +98,11 @@ pub fn fold_expr_kind<T: ?Sized + PlFold>(fold: &mut T, expr_kind: ExprKind) -> 
         Case(cases) => Case(fold_cases(fold, cases)?),
 
         FuncCall(func_call) => FuncCall(fold.fold_func_call(func_call)?),
-        Func(closure) => Func(Box::new(fold.fold_func(*closure)?)),
+        Func(func) => Func(Box::new(fold.fold_func(*func)?)),
+        FuncApplication(func_app) => FuncApplication(super::expr::FuncApplication {
+            func: Box::new(fold.fold_expr(*func_app.func)?),
+            args: fold.fold_exprs(func_app.args)?,
+        }),
 
         TransformCall(transform) => TransformCall(fold.fold_transform_call(transform)?),
         RqOperator { name, args } => RqOperator {
@@ -277,12 +285,10 @@ pub fn fold_transform_kind<T: ?Sized + PlFold>(
 pub fn fold_func<T: ?Sized + PlFold>(fold: &mut T, func: Func) -> Result<Func> {
     Ok(Func {
         body: Box::new(fold.fold_expr(*func.body)?),
-        args: func
-            .args
-            .into_iter()
-            .map(|item| fold.fold_expr(item))
-            .try_collect()?,
-        ..func
+        return_ty: fold_type_opt(fold, func.return_ty)?,
+        params: fold_func_param(fold, func.params)?,
+        named_params: fold_func_param(fold, func.named_params)?,
+        generic_type_params: func.generic_type_params, // recurse into this too?
     })
 }
 
@@ -294,8 +300,9 @@ pub fn fold_func_param<T: ?Sized + PlFold>(
         .into_iter()
         .map(|param| {
             Ok(FuncParam {
+                name: param.name,
+                ty: fold_type_opt(fold, param.ty)?,
                 default_value: fold_optional_box(fold, param.default_value)?,
-                ..param
             })
         })
         .try_collect()
@@ -309,53 +316,50 @@ pub fn fold_type_opt<T: ?Sized + PlFold>(fold: &mut T, ty: Option<Ty>) -> Result
 pub fn fold_type<T: ?Sized + PlFold>(fold: &mut T, ty: Ty) -> Result<Ty> {
     Ok(Ty {
         kind: match ty.kind {
-            TyKind::Union(variants) => TyKind::Union(
-                variants
-                    .into_iter()
-                    .map(|(name, ty)| -> Result<_> { Ok((name, fold.fold_type(ty)?)) })
-                    .try_collect()?,
-            ),
-            TyKind::Tuple(fields) => TyKind::Tuple(
-                fields
-                    .into_iter()
-                    .map(|field| -> Result<_> {
-                        Ok(match field {
-                            TyTupleField::Single(name, ty) => {
-                                TyTupleField::Single(name, fold_type_opt(fold, ty)?)
-                            }
-                            TyTupleField::Wildcard(ty) => {
-                                TyTupleField::Wildcard(fold_type_opt(fold, ty)?)
-                            }
-                        })
-                    })
-                    .try_collect()?,
-            ),
+            TyKind::Tuple(fields) => TyKind::Tuple(fold_ty_tuple_fields(fold, fields)?),
             TyKind::Array(ty) => TyKind::Array(Box::new(fold.fold_type(*ty)?)),
-            TyKind::Function(func) => TyKind::Function(
-                func.map(|f| -> Result<_> {
-                    Ok(TyFunc {
-                        params: f
-                            .params
-                            .into_iter()
-                            .map(|a| fold_type_opt(fold, a))
-                            .try_collect()?,
-                        return_ty: fold_type_opt(fold, f.return_ty.map(|x| *x))?.map(Box::new),
-                        name_hint: f.name_hint,
-                    })
-                })
-                .transpose()?,
-            ),
-            TyKind::Difference { base, exclude } => TyKind::Difference {
+            TyKind::Function(func) => {
+                TyKind::Function(func.map(|f| fold_ty_func(fold, f)).transpose()?)
+            }
+            TyKind::Exclude { base, except } => TyKind::Exclude {
                 base: Box::new(fold.fold_type(*base)?),
-                exclude: Box::new(fold.fold_type(*exclude)?),
+                except: Box::new(fold.fold_type(*except)?),
             },
-            TyKind::Any
-            | TyKind::Ident(_)
-            | TyKind::Primitive(_)
-            | TyKind::Singleton(_)
-            | TyKind::GenericArg(_) => ty.kind,
+            TyKind::Ident(_) | TyKind::Primitive(_) => ty.kind,
         },
         span: ty.span,
         name: ty.name,
     })
+}
+
+pub fn fold_ty_func<F: ?Sized + PlFold>(fold: &mut F, f: TyFunc) -> Result<TyFunc> {
+    Ok(TyFunc {
+        params: f
+            .params
+            .into_iter()
+            .map(|a| fold_type_opt(fold, a))
+            .try_collect()?,
+        return_ty: f
+            .return_ty
+            .map(|t| fold.fold_type(*t).map(Box::new))
+            .transpose()?,
+        generic_type_params: f.generic_type_params,
+    })
+}
+
+pub fn fold_ty_tuple_fields<F: ?Sized + PlFold>(
+    fold: &mut F,
+    fields: Vec<TyTupleField>,
+) -> Result<Vec<TyTupleField>> {
+    fields
+        .into_iter()
+        .map(|field| -> Result<_> {
+            Ok(match field {
+                TyTupleField::Single(name, ty) => {
+                    TyTupleField::Single(name, fold_type_opt(fold, ty)?)
+                }
+                TyTupleField::Unpack(ty) => TyTupleField::Unpack(fold_type_opt(fold, ty)?),
+            })
+        })
+        .try_collect()
 }

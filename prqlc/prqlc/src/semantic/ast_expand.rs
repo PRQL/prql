@@ -1,47 +1,65 @@
-use std::collections::HashMap;
-
 use itertools::Itertools;
-use prqlc_parser::error::WithErrorInfo;
-use prqlc_parser::generic;
 
 use crate::ir::decl;
 use crate::ir::pl::{self, new_binop};
 use crate::pr;
 use crate::semantic::{NS_THAT, NS_THIS};
 use crate::{Error, Result};
+use prqlc_parser::generic;
+
+use super::NS_LOCAL;
 
 /// An AST pass that maps AST to PL.
 pub fn expand_expr(expr: pr::Expr) -> Result<pl::Expr> {
     let kind = match expr.kind {
         pr::ExprKind::Ident(v) => pl::ExprKind::Ident(pr::Ident::from_name(v)),
-        pr::ExprKind::Indirection { base, field } => {
-            let field_as_name = match field {
-                pr::IndirectionKind::Name(n) => n,
-                pr::IndirectionKind::Position(_) => Err(Error::new_simple(
-                    "Positional indirection not supported yet",
-                )
-                .with_span(expr.span))?,
-                pr::IndirectionKind::Star => "*".to_string(),
-            };
+        pr::ExprKind::Indirection {
+            base,
+            field: pr::IndirectionKind::Name(field),
+        } => pl::ExprKind::Indirection {
+            base: expand_expr_box(base)?,
+            field: pl::IndirectionKind::Name(field),
+        },
+        pr::ExprKind::Indirection {
+            base,
+            field: pr::IndirectionKind::Position(field),
+        } => pl::ExprKind::Indirection {
+            base: expand_expr_box(base)?,
+            field: pl::IndirectionKind::Position(field),
+        },
+        pr::ExprKind::Indirection {
+            base,
+            field: pr::IndirectionKind::Star,
+        } => pl::ExprKind::All {
+            within: expand_expr_box(base)?,
+            except: Box::new(pl::Expr::new(pl::ExprKind::Tuple(vec![]))),
+        },
 
-            // convert lookups into ident
-            // (in the future, resolve will support proper lookup handling)
-            let base = expand_expr_box(base)?;
-            let base_ident = base.kind.into_ident().map_err(|_| {
-                Error::new_simple("lookup (the dot) is supported only on names.")
-                    .with_span(expr.span)
-            })?;
-
-            let ident = base_ident + pr::Ident::from_name(field_as_name);
-            pl::ExprKind::Ident(ident)
-        }
         pr::ExprKind::Literal(v) => pl::ExprKind::Literal(v),
         pr::ExprKind::Pipeline(v) => {
             let mut e = desugar_pipeline(v)?;
             e.alias = expr.alias.or(e.alias);
             return Ok(e);
         }
-        pr::ExprKind::Tuple(v) => pl::ExprKind::Tuple(expand_exprs(v)?),
+        pr::ExprKind::Tuple(mut v) => {
+            // maybe extract last element for unpacking
+            let mut last_unpacking = None;
+            if v.last()
+                .and_then(|v| v.kind.as_range())
+                .map_or(false, |x| x.start.is_none() && x.end.is_some())
+            {
+                last_unpacking = Some(v.pop().unwrap().kind.into_range().unwrap().end.unwrap());
+            }
+
+            let mut fields = expand_exprs(v)?;
+
+            if let Some(last) = last_unpacking {
+                let mut last = expand_expr(*last)?;
+                last.flatten = true;
+                fields.push(last);
+            }
+            pl::ExprKind::Tuple(fields)
+        }
         pr::ExprKind::Array(v) => pl::ExprKind::Array(expand_exprs(v)?),
 
         pr::ExprKind::Range(v) => expands_range(v)?,
@@ -64,9 +82,6 @@ pub fn expand_expr(expr: pr::Expr) -> Result<pl::Expr> {
                 body: expand_expr_box(v.body)?,
                 params: expand_func_params(v.params)?,
                 named_params: expand_func_params(v.named_params)?,
-                name_hint: None,
-                args: Vec::new(),
-                env: HashMap::new(),
                 generic_type_params: v.generic_type_params,
             }
             .into(),
@@ -102,7 +117,6 @@ pub fn expand_expr(expr: pr::Expr) -> Result<pl::Expr> {
         id: None,
         target_id: None,
         ty: None,
-        lineage: None,
         needs_window: false,
         flatten: false,
     })
@@ -320,7 +334,13 @@ fn restrict_exprs(exprs: Vec<pl::Expr>) -> Vec<pr::Expr> {
 fn restrict_expr_kind(value: pl::ExprKind) -> pr::ExprKind {
     match value {
         pl::ExprKind::Ident(v) => {
+            // HACK: remove the '_local' prefix
+            let skip_first = v.starts_with_part(NS_LOCAL);
+
             let mut parts = v.into_iter();
+            if skip_first {
+                parts.next();
+            }
             let mut base = Box::new(pr::Expr::new(pr::ExprKind::Ident(parts.next().unwrap())));
             for part in parts {
                 let field = pr::IndirectionKind::Name(part);
@@ -328,6 +348,13 @@ fn restrict_expr_kind(value: pl::ExprKind) -> pr::ExprKind {
             }
             base.kind
         }
+        pl::ExprKind::Indirection { base, field } => pr::ExprKind::Indirection {
+            base: restrict_expr_box(base),
+            field: match field {
+                pl::IndirectionKind::Name(name) => pr::IndirectionKind::Name(name),
+                pl::IndirectionKind::Position(pos) => pr::IndirectionKind::Position(pos),
+            },
+        },
         pl::ExprKind::Literal(v) => pr::ExprKind::Literal(v),
         pl::ExprKind::Tuple(v) => pr::ExprKind::Tuple(restrict_exprs(v)),
         pl::ExprKind::Array(v) => pr::ExprKind::Array(restrict_exprs(v)),
@@ -340,27 +367,21 @@ fn restrict_expr_kind(value: pl::ExprKind) -> pr::ExprKind {
                 .map(|(k, v)| (k, restrict_expr(v)))
                 .collect(),
         }),
-        pl::ExprKind::Func(v) => {
-            let func = pr::ExprKind::Func(
-                pr::Func {
-                    return_ty: v.return_ty,
-                    body: restrict_expr_box(v.body),
-                    params: restrict_func_params(v.params),
-                    named_params: restrict_func_params(v.named_params),
-                    generic_type_params: v.generic_type_params,
-                }
-                .into(),
-            );
-            if v.args.is_empty() {
-                func
-            } else {
-                pr::ExprKind::FuncCall(pr::FuncCall {
-                    name: Box::new(pr::Expr::new(func)),
-                    args: restrict_exprs(v.args),
-                    named_args: Default::default(),
-                })
+        pl::ExprKind::Func(v) => pr::ExprKind::Func(
+            pr::Func {
+                return_ty: v.return_ty,
+                body: restrict_expr_box(v.body),
+                params: restrict_func_params(v.params),
+                named_params: restrict_func_params(v.named_params),
+                generic_type_params: v.generic_type_params,
             }
-        }
+            .into(),
+        ),
+        pl::ExprKind::FuncApplication(v) => pr::ExprKind::FuncCall(pr::FuncCall {
+            name: restrict_expr_box(v.func),
+            args: restrict_exprs(v.args),
+            named_args: Default::default(),
+        }),
         pl::ExprKind::SString(v) => {
             pr::ExprKind::SString(v.into_iter().map(|v| v.map(restrict_expr)).collect())
         }
@@ -496,35 +517,16 @@ fn restrict_decl(name: String, value: decl::Decl) -> Option<pr::Stmt> {
             name,
             stmts: restrict_module(module).stmts,
         }),
-        decl::DeclKind::LayeredModules(mut stack) => {
-            let module = stack.pop()?;
 
-            pr::StmtKind::ModuleDef(pr::ModuleDef {
-                name,
-                stmts: restrict_module(module).stmts,
-            })
-        }
-        decl::DeclKind::TableDecl(table_decl) => pr::StmtKind::VarDef(pr::VarDef {
-            kind: pr::VarDefKind::Let,
-            name: name.clone(),
-            value: Some(Box::new(match table_decl.expr {
-                decl::TableExpr::RelationVar(expr) => restrict_expr(*expr),
-                decl::TableExpr::LocalTable => {
-                    pr::Expr::new(pr::ExprKind::Internal("local_table".into()))
-                }
-                decl::TableExpr::None => {
-                    pr::Expr::new(pr::ExprKind::Internal("literal_tracker".to_string()))
-                }
-                decl::TableExpr::Param(id) => pr::Expr::new(pr::ExprKind::Param(id)),
-            })),
-            ty: table_decl.ty,
+        decl::DeclKind::Variable(_) => new_internal_stmt(name, "_variable".into()),
+        decl::DeclKind::TupleField => new_internal_stmt(name, "_tuple_field".into()),
+        decl::DeclKind::Infer(_) => new_internal_stmt(name, "_infer".to_string()),
+        decl::DeclKind::Unresolved(_) => new_internal_stmt(name, "_unresolved".to_string()),
+
+        decl::DeclKind::GenericParam(arg) => pr::StmtKind::TypeDef(pr::TypeDef {
+            name,
+            value: arg.map(|a| a.0),
         }),
-
-        decl::DeclKind::InstanceOf(ident, _) => {
-            new_internal_stmt(name, format!("instance_of.{ident}"))
-        }
-        decl::DeclKind::Column(id) => new_internal_stmt(name, format!("column.{id}")),
-        decl::DeclKind::Infer(_) => new_internal_stmt(name, "infer".to_string()),
 
         decl::DeclKind::Expr(mut expr) => pr::StmtKind::VarDef(pr::VarDef {
             kind: pr::VarDefKind::Let,
