@@ -83,8 +83,7 @@ jobs:
         with:
           python-version: "3.11"
       - name: Free up disk space
-        # https://github.com/actions/runner-images/issues/2840
-        run: ./.github/workflows/scripts/util_free_space.sh
+        uses: jlumbroso/free-disk-space@main
         # This takes ~3 minutes, so we'd really prefer not to run it on every
         # PR. Trying to run it only when there is no cache hit. We may need to
         # remove that condition and run it whenever we pull the docker images,
