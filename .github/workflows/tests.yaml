@@ -274,6 +274,8 @@ jobs:
     steps:
       - name: 📂 Checkout code
         uses: actions/checkout@v4
+      - run: df -h
+        working-directory: /
       - run: ./.github/workflows/scripts/set_version.sh
       - name: 💰 Cache
         uses: Swatinem/rust-cache@v2
@@ -295,8 +297,12 @@ jobs:
       - run: brew install bash
       - run: task install-brew-dependencies
       - run: task setup-dev
+      - run: df -h
+        working-directory: /
       - name: Free up disk space
         run: cargo +nightly clean gc -Z gc
+      - run: df -h
+        working-directory: /
       # This also encompasses `build-all`
       - run: task test-all
       - run: task test-rust-fast
