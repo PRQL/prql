@@ -284,8 +284,6 @@ jobs:
           # cache, since we're out of cache space and this workflow takes 1.5GB.
           shared-key: rust-aarch64-apple-darwin
           save-if: false
-      - name: Free up disk space
-        run: cargo +nightly clean gc -Z gc
       - uses: actions/setup-python@v5
         with:
           python-version: "3.10"
@@ -297,6 +295,8 @@ jobs:
       - run: brew install bash
       - run: task install-brew-dependencies
       - run: task setup-dev
+      - name: Free up disk space
+        run: cargo +nightly clean gc -Z gc
       # This also encompasses `build-all`
       - run: task test-all
       - run: task test-rust-fast
