@@ -1,5 +1,6 @@
 use std::collections::HashMap;
 use std::fmt::{Debug, Result, Write};
+use std::iter::Peekable;
 
 use crate::sql::pq_ast;
 use crate::{codegen, SourceTree};
@@ -56,19 +57,14 @@ fn write_debug_log<W: Write>(w: &mut W, debug_log: &DebugLog) -> Result {
     writeln!(w, "</header>")?;
     writeln!(w, "<main>")?;
 
+    // pre-stage entries
     for (index, entry) in debug_log.entries.iter().enumerate() {
-        writeln!(w, r#"<div class="entry">"#)?;
+        if let DebugEntryKind::NewStage(_) = &entry.kind {
+            break;
+        }
 
+        writeln!(w, r#"<div class=entry>"#)?;
         match &entry.kind {
-            DebugEntryKind::NewStage(stage) => {
-                let substage = stage
-                    .sub_stage()
-                    .map(|s| s.to_lowercase())
-                    .unwrap_or_default();
-                let stage = stage.as_ref().to_lowercase();
-
-                writeln!(w, r#"<h2 class="muted">{stage} {substage}</h2>"#)?;
-            }
             DebugEntryKind::Message(message) => {
                 write_message(w, message)?;
             }
@@ -76,14 +72,97 @@ fn write_debug_log<W: Write>(w: &mut W, debug_log: &DebugLog) -> Result {
                 write_titled_entry(w, index, entry)?;
             }
         }
-
         writeln!(w, "</div>")?; // entry
+    }
+
+    // stage tabs
+    {
+        writeln!(w, "<div class=tab-container>")?;
+
+        // tab handles
+        let mut entries = debug_log.entries.iter().peekable();
+        while entries.peek().is_some() {
+            write_stage_handles(w, &mut entries)?;
+        }
+
+        // tab panels
+        writeln!(w, "<div class=tab-panels>")?;
+        let mut entries = debug_log.entries.iter().enumerate().peekable();
+        while entries.peek().is_some() {
+            write_stage_contents(w, &mut entries)?;
+        }
+        writeln!(w, "</div>")?;
+
+        writeln!(w, "</div>")?;
     }
 
     writeln!(w, "</main>")?;
     writeln!(w, "</body>")?;
     writeln!(w, "</html>")?;
 
+    Ok(())
+}
+
+fn write_stage_handles<'a, W: Write>(
+    w: &mut W,
+    entries: &mut Peekable<impl Iterator<Item = &'a DebugEntry>>,
+) -> Result {
+    // find a new stage
+    let stage = loop {
+        match entries.next() {
+            Some(entry) => match entry.kind {
+                DebugEntryKind::NewStage(s) => break s,
+                _ => {}
+            },
+            None => return Ok(()),
+        }
+    };
+
+    let stage_name = stage.full_name();
+
+    writeln!(
+        w,
+        r#"<input type="radio" name="stage-tab" id="{stage_name}-tab" aria-controls="{stage_name}" checked>"#
+    )?;
+    writeln!(w, r#"<label for="{stage_name}-tab">{stage_name}</label>"#)?;
+
+    Ok(())
+}
+
+fn write_stage_contents<'a, W: Write>(
+    w: &mut W,
+    entries: &mut Peekable<impl Iterator<Item = (usize, &'a DebugEntry)>>,
+) -> Result {
+    // find a new stage
+    let stage = loop {
+        match entries.next() {
+            Some((_, entry)) => match entry.kind {
+                DebugEntryKind::NewStage(s) => break s,
+                _ => {}
+            },
+            None => return Ok(()),
+        }
+    };
+
+    writeln!(w, "<section id={} class=tab-panel>", stage.full_name())?;
+    while let Some((_, entry)) = entries.peek() {
+        if matches!(entry.kind, DebugEntryKind::NewStage(_)) {
+            break;
+        }
+        let (index, entry) = entries.next().unwrap();
+
+        writeln!(w, r#"<div class=entry>"#)?;
+        match &entry.kind {
+            DebugEntryKind::Message(message) => {
+                write_message(w, message)?;
+            }
+            _ => {
+                write_titled_entry(w, index, entry)?;
+            }
+        }
+        writeln!(w, "</div>")?; // entry
+    }
+    writeln!(w, "</section>")?;
     Ok(())
 }
 
@@ -368,7 +447,10 @@ fn write_decl<W: Write>(
     span_map: &HashMap<usize, pr::Span>,
 ) -> Result {
     let collapsed = if name == "std" { " collapsed" } else { "" };
-    write!(w, r#"<details class="ast-node{collapsed}" open tabindex=2>"#)?;
+    write!(
+        w,
+        r#"<details class="ast-node{collapsed}" open tabindex=2>"#
+    )?;
 
     // header
     {
@@ -469,6 +551,30 @@ summary::marker {
     gap: 1em;
 }
 
+.tab-container > .tab-panels > .tab-panel {
+    display: none;
+}
+.tab-container > input:first-child:checked ~ .tab-panels > .tab-panel:first-child,
+.tab-container > input:nth-child(3):checked ~ .tab-panels > .tab-panel:nth-child(2),
+.tab-container > input:nth-child(5):checked ~ .tab-panels > .tab-panel:nth-child(3),
+.tab-container > input:nth-child(7):checked ~ .tab-panels > .tab-panel:nth-child(4),
+.tab-container > input:nth-child(9):checked ~ .tab-panels > .tab-panel:nth-child(5),
+.tab-container > input:nth-child(11):checked ~ .tab-panels > .tab-panel:nth-child(6),
+.tab-container > input:nth-child(13):checked ~ .tab-panels > .tab-panel:nth-child(7),
+.tab-container > input:nth-child(15):checked ~ .tab-panels > .tab-panel:nth-child(8),
+.tab-container > input:nth-child(17):checked ~ .tab-panels > .tab-panel:nth-child(9) {
+    display: block;
+}
+.tab-container > input {
+    display: hidden;
+}
+
+section.tab-panel {
+    border-top: 1px solid;
+    margin-top: 1rem;
+    padding-top: 1rem;
+}
+
 .entry {
     &>.entry-label {
         margin: 0;
@@ -484,11 +590,6 @@ summary::marker {
         display: flex;
         flex-direction: column;
     }
-}
-.entry>h2 {
-    border-bottom: solid;
-    margin-top: 2rem;
-    margin-bottom: 0.5rem;
 }
 
 code {
