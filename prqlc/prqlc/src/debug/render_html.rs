@@ -373,37 +373,17 @@ fn write_decl<W: Write>(
             }
         }
         decl::DeclKind::Expr(expr) => {
-            write_pl_expr(w, &expr)?;
+            let json = serde_json::to_string(expr).unwrap();
+            let json_node: serde_json::Value = serde_json::from_str(&json).unwrap();
+            write_json_ast_node(w, json_node, false)?;
         }
         decl::DeclKind::Ty(ty) => {
-            writeln!(w, r#"<span>{}</span>"#, write_ty(ty))?;
+            writeln!(w, r#"<span>{}</span>"#, escape_html(&codegen::write_ty(ty)))?;
         }
         decl::DeclKind::TableDecl(table_decl) => {
-            write!(w, r#"<div class="ast-node{}" tabindex=2>"#, collapsed)?;
-
-            // header
-            {
-                write!(w, "<div class=header>")?;
-                write!(w, r#"<h2 class="clickable blue">TableDecl</h2>"#)?;
-
-                if let Some(ty) = &table_decl.ty {
-                    write!(w, r#"<span class="ty">{ty:?}</span>"#)?;
-                }
-                write!(w, "</div>")?;
-            }
-
-            // contents
-            {
-                write!(w, r#"<div class="contents indent">"#)?;
-                match &table_decl.expr {
-                    decl::TableExpr::RelationVar(var) => write_pl_expr(w, var)?,
-                    decl::TableExpr::LocalTable => write!(w, "LocalTable")?,
-                    decl::TableExpr::None => write!(w, "None")?,
-                    decl::TableExpr::Param(id) => write!(w, "Param({id})")?,
-                }
-                write!(w, "</div>")?;
-            }
-            write!(w, "</div>")?; // ast-node
+            let json = serde_json::to_string(table_decl).unwrap();
+            let json_node: serde_json::Value = serde_json::from_str(&json).unwrap();
+            write_json_ast_node(w, json_node, false)?;
         }
         _ => {
             write!(w, r#"<div>{}</div>"#, decl.kind)?;
