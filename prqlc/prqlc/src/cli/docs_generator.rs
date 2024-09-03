@@ -359,7 +359,7 @@ mod tests {
 
     #[test]
     fn generate_html_docs() {
-        std::env::set_var("PRQL_VERSION_OVERRIDE", env!("CARGO_PKG_VERSION"));
+        unsafe { std::env::set_var("PRQL_VERSION_OVERRIDE", env!("CARGO_PKG_VERSION")) };
 
         let input = r"
         #! This is the x function.
@@ -483,6 +483,8 @@ exit_code: 0
 
     #[test]
     fn generate_markdown_docs() {
+        unsafe { std::env::set_var("PRQL_VERSION_OVERRIDE", env!("CARGO_PKG_VERSION")); }
+
         let input = r"
         #! This is the x function.
         let x = arg1 arg2 -> c
