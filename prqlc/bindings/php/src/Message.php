@@ -16,7 +16,7 @@ final class Message
     /**
      * Machine-readable identifier of the error.
      */
-    public ?string $code;
+    public ?string $code = null;
     /**
      * Plain text of the error.
      */
@@ -24,17 +24,17 @@ final class Message
     /**
      * A list of suggestions of how to fix the error.
      */
-    public ?string $hint;
+    public ?string $hint = null;
     /**
      * Character offset of error origin within a source file.
      */
-    public ?Span $span;
+    public ?Span $span = null;
     /**
      * Annotated code, containing cause and hints.
      */
-    public ?string $display;
+    public ?string $display = null;
     /**
      * Line and column number of error origin within a source file.
      */
-    public ?SourceLocation $location;
+    public ?SourceLocation $location = null;
 }
