@@ -39,12 +39,8 @@ Register-ArgumentCompleter -Native -CommandName 'prqlc' -ScriptBlock {
     $completions = @(switch ($command) {
         'prqlc' {
             [CompletionResult]::new('--color', 'color', [CompletionResultType]::ParameterName, 'Controls when to use color')
-            [CompletionResult]::new('-v', 'v', [CompletionResultType]::ParameterName, 'Increase logging verbosity')
-            [CompletionResult]::new('--verbose', 'verbose', [CompletionResultType]::ParameterName, 'Increase logging verbosity')
-            [CompletionResult]::new('-q', 'q', [CompletionResultType]::ParameterName, 'Silences logging output')
-            [CompletionResult]::new('--quiet', 'quiet', [CompletionResultType]::ParameterName, 'Silences logging output')
-            [CompletionResult]::new('-h', 'h', [CompletionResultType]::ParameterName, 'Print help (see more with ''--help'')')
-            [CompletionResult]::new('--help', 'help', [CompletionResultType]::ParameterName, 'Print help (see more with ''--help'')')
+            [CompletionResult]::new('-h', 'h', [CompletionResultType]::ParameterName, 'Print help')
+            [CompletionResult]::new('--help', 'help', [CompletionResultType]::ParameterName, 'Print help')
             [CompletionResult]::new('-V', 'V ', [CompletionResultType]::ParameterName, 'Print version')
             [CompletionResult]::new('--version', 'version', [CompletionResultType]::ParameterName, 'Print version')
             [CompletionResult]::new('parse', 'parse', [CompletionResultType]::ParameterValue, 'Parse into PL AST')
@@ -63,53 +59,33 @@ Register-ArgumentCompleter -Native -CommandName 'prqlc' -ScriptBlock {
         'prqlc;parse' {
             [CompletionResult]::new('--format', 'format', [CompletionResultType]::ParameterName, 'format')
             [CompletionResult]::new('--color', 'color', [CompletionResultType]::ParameterName, 'Controls when to use color')
-            [CompletionResult]::new('-v', 'v', [CompletionResultType]::ParameterName, 'Increase logging verbosity')
-            [CompletionResult]::new('--verbose', 'verbose', [CompletionResultType]::ParameterName, 'Increase logging verbosity')
-            [CompletionResult]::new('-q', 'q', [CompletionResultType]::ParameterName, 'Silences logging output')
-            [CompletionResult]::new('--quiet', 'quiet', [CompletionResultType]::ParameterName, 'Silences logging output')
-            [CompletionResult]::new('-h', 'h', [CompletionResultType]::ParameterName, 'Print help (see more with ''--help'')')
-            [CompletionResult]::new('--help', 'help', [CompletionResultType]::ParameterName, 'Print help (see more with ''--help'')')
+            [CompletionResult]::new('-h', 'h', [CompletionResultType]::ParameterName, 'Print help')
+            [CompletionResult]::new('--help', 'help', [CompletionResultType]::ParameterName, 'Print help')
             break
         }
         'prqlc;lex' {
             [CompletionResult]::new('--format', 'format', [CompletionResultType]::ParameterName, 'format')
             [CompletionResult]::new('--color', 'color', [CompletionResultType]::ParameterName, 'Controls when to use color')
-            [CompletionResult]::new('-v', 'v', [CompletionResultType]::ParameterName, 'Increase logging verbosity')
-            [CompletionResult]::new('--verbose', 'verbose', [CompletionResultType]::ParameterName, 'Increase logging verbosity')
-            [CompletionResult]::new('-q', 'q', [CompletionResultType]::ParameterName, 'Silences logging output')
-            [CompletionResult]::new('--quiet', 'quiet', [CompletionResultType]::ParameterName, 'Silences logging output')
-            [CompletionResult]::new('-h', 'h', [CompletionResultType]::ParameterName, 'Print help (see more with ''--help'')')
-            [CompletionResult]::new('--help', 'help', [CompletionResultType]::ParameterName, 'Print help (see more with ''--help'')')
+            [CompletionResult]::new('-h', 'h', [CompletionResultType]::ParameterName, 'Print help')
+            [CompletionResult]::new('--help', 'help', [CompletionResultType]::ParameterName, 'Print help')
             break
         }
         'prqlc;fmt' {
             [CompletionResult]::new('--color', 'color', [CompletionResultType]::ParameterName, 'Controls when to use color')
-            [CompletionResult]::new('-v', 'v', [CompletionResultType]::ParameterName, 'Increase logging verbosity')
-            [CompletionResult]::new('--verbose', 'verbose', [CompletionResultType]::ParameterName, 'Increase logging verbosity')
-            [CompletionResult]::new('-q', 'q', [CompletionResultType]::ParameterName, 'Silences logging output')
-            [CompletionResult]::new('--quiet', 'quiet', [CompletionResultType]::ParameterName, 'Silences logging output')
-            [CompletionResult]::new('-h', 'h', [CompletionResultType]::ParameterName, 'Print help (see more with ''--help'')')
-            [CompletionResult]::new('--help', 'help', [CompletionResultType]::ParameterName, 'Print help (see more with ''--help'')')
+            [CompletionResult]::new('-h', 'h', [CompletionResultType]::ParameterName, 'Print help')
+            [CompletionResult]::new('--help', 'help', [CompletionResultType]::ParameterName, 'Print help')
             break
         }
         'prqlc;collect' {
             [CompletionResult]::new('--color', 'color', [CompletionResultType]::ParameterName, 'Controls when to use color')
-            [CompletionResult]::new('-v', 'v', [CompletionResultType]::ParameterName, 'Increase logging verbosity')
-            [CompletionResult]::new('--verbose', 'verbose', [CompletionResultType]::ParameterName, 'Increase logging verbosity')
-            [CompletionResult]::new('-q', 'q', [CompletionResultType]::ParameterName, 'Silences logging output')
-            [CompletionResult]::new('--quiet', 'quiet', [CompletionResultType]::ParameterName, 'Silences logging output')
-            [CompletionResult]::new('-h', 'h', [CompletionResultType]::ParameterName, 'Print help (see more with ''--help'')')
-            [CompletionResult]::new('--help', 'help', [CompletionResultType]::ParameterName, 'Print help (see more with ''--help'')')
+            [CompletionResult]::new('-h', 'h', [CompletionResultType]::ParameterName, 'Print help')
+            [CompletionResult]::new('--help', 'help', [CompletionResultType]::ParameterName, 'Print help')
             break
         }
         'prqlc;debug' {
             [CompletionResult]::new('--color', 'color', [CompletionResultType]::ParameterName, 'Controls when to use color')
-            [CompletionResult]::new('-v', 'v', [CompletionResultType]::ParameterName, 'Increase logging verbosity')
-            [CompletionResult]::new('--verbose', 'verbose', [CompletionResultType]::ParameterName, 'Increase logging verbosity')
-            [CompletionResult]::new('-q', 'q', [CompletionResultType]::ParameterName, 'Silences logging output')
-            [CompletionResult]::new('--quiet', 'quiet', [CompletionResultType]::ParameterName, 'Silences logging output')
-            [CompletionResult]::new('-h', 'h', [CompletionResultType]::ParameterName, 'Print help (see more with ''--help'')')
-            [CompletionResult]::new('--help', 'help', [CompletionResultType]::ParameterName, 'Print help (see more with ''--help'')')
+            [CompletionResult]::new('-h', 'h', [CompletionResultType]::ParameterName, 'Print help')
+            [CompletionResult]::new('--help', 'help', [CompletionResultType]::ParameterName, 'Print help')
             [CompletionResult]::new('annotate', 'annotate', [CompletionResultType]::ParameterValue, 'Parse, resolve & combine source with comments annotating relation type')
             [CompletionResult]::new('lineage', 'lineage', [CompletionResultType]::ParameterValue, 'Output column-level lineage graph')
             [CompletionResult]::new('ast', 'ast', [CompletionResultType]::ParameterValue, 'Print info about the AST data structure')
@@ -119,44 +95,28 @@ Register-ArgumentCompleter -Native -CommandName 'prqlc' -ScriptBlock {
         }
         'prqlc;debug;annotate' {
             [CompletionResult]::new('--color', 'color', [CompletionResultType]::ParameterName, 'Controls when to use color')
-            [CompletionResult]::new('-v', 'v', [CompletionResultType]::ParameterName, 'Increase logging verbosity')
-            [CompletionResult]::new('--verbose', 'verbose', [CompletionResultType]::ParameterName, 'Increase logging verbosity')
-            [CompletionResult]::new('-q', 'q', [CompletionResultType]::ParameterName, 'Silences logging output')
-            [CompletionResult]::new('--quiet', 'quiet', [CompletionResultType]::ParameterName, 'Silences logging output')
-            [CompletionResult]::new('-h', 'h', [CompletionResultType]::ParameterName, 'Print help (see more with ''--help'')')
-            [CompletionResult]::new('--help', 'help', [CompletionResultType]::ParameterName, 'Print help (see more with ''--help'')')
+            [CompletionResult]::new('-h', 'h', [CompletionResultType]::ParameterName, 'Print help')
+            [CompletionResult]::new('--help', 'help', [CompletionResultType]::ParameterName, 'Print help')
             break
         }
         'prqlc;debug;lineage' {
             [CompletionResult]::new('--format', 'format', [CompletionResultType]::ParameterName, 'format')
             [CompletionResult]::new('--color', 'color', [CompletionResultType]::ParameterName, 'Controls when to use color')
-            [CompletionResult]::new('-v', 'v', [CompletionResultType]::ParameterName, 'Increase logging verbosity')
-            [CompletionResult]::new('--verbose', 'verbose', [CompletionResultType]::ParameterName, 'Increase logging verbosity')
-            [CompletionResult]::new('-q', 'q', [CompletionResultType]::ParameterName, 'Silences logging output')
-            [CompletionResult]::new('--quiet', 'quiet', [CompletionResultType]::ParameterName, 'Silences logging output')
             [CompletionResult]::new('-h', 'h', [CompletionResultType]::ParameterName, 'Print help (see more with ''--help'')')
             [CompletionResult]::new('--help', 'help', [CompletionResultType]::ParameterName, 'Print help (see more with ''--help'')')
             break
         }
         'prqlc;debug;ast' {
             [CompletionResult]::new('--color', 'color', [CompletionResultType]::ParameterName, 'Controls when to use color')
-            [CompletionResult]::new('-v', 'v', [CompletionResultType]::ParameterName, 'Increase logging verbosity')
-            [CompletionResult]::new('--verbose', 'verbose', [CompletionResultType]::ParameterName, 'Increase logging verbosity')
-            [CompletionResult]::new('-q', 'q', [CompletionResultType]::ParameterName, 'Silences logging output')
-            [CompletionResult]::new('--quiet', 'quiet', [CompletionResultType]::ParameterName, 'Silences logging output')
-            [CompletionResult]::new('-h', 'h', [CompletionResultType]::ParameterName, 'Print help (see more with ''--help'')')
-            [CompletionResult]::new('--help', 'help', [CompletionResultType]::ParameterName, 'Print help (see more with ''--help'')')
+            [CompletionResult]::new('-h', 'h', [CompletionResultType]::ParameterName, 'Print help')
+            [CompletionResult]::new('--help', 'help', [CompletionResultType]::ParameterName, 'Print help')
             break
         }
         'prqlc;debug;json-schema' {
             [CompletionResult]::new('--ir-type', 'ir-type', [CompletionResultType]::ParameterName, 'ir-type')
             [CompletionResult]::new('--color', 'color', [CompletionResultType]::ParameterName, 'Controls when to use color')
-            [CompletionResult]::new('-v', 'v', [CompletionResultType]::ParameterName, 'Increase logging verbosity')
-            [CompletionResult]::new('--verbose', 'verbose', [CompletionResultType]::ParameterName, 'Increase logging verbosity')
-            [CompletionResult]::new('-q', 'q', [CompletionResultType]::ParameterName, 'Silences logging output')
-            [CompletionResult]::new('--quiet', 'quiet', [CompletionResultType]::ParameterName, 'Silences logging output')
-            [CompletionResult]::new('-h', 'h', [CompletionResultType]::ParameterName, 'Print help (see more with ''--help'')')
-            [CompletionResult]::new('--help', 'help', [CompletionResultType]::ParameterName, 'Print help (see more with ''--help'')')
+            [CompletionResult]::new('-h', 'h', [CompletionResultType]::ParameterName, 'Print help')
+            [CompletionResult]::new('--help', 'help', [CompletionResultType]::ParameterName, 'Print help')
             break
         }
         'prqlc;debug;help' {
@@ -184,12 +144,8 @@ Register-ArgumentCompleter -Native -CommandName 'prqlc' -ScriptBlock {
         }
         'prqlc;experimental' {
             [CompletionResult]::new('--color', 'color', [CompletionResultType]::ParameterName, 'Controls when to use color')
-            [CompletionResult]::new('-v', 'v', [CompletionResultType]::ParameterName, 'Increase logging verbosity')
-            [CompletionResult]::new('--verbose', 'verbose', [CompletionResultType]::ParameterName, 'Increase logging verbosity')
-            [CompletionResult]::new('-q', 'q', [CompletionResultType]::ParameterName, 'Silences logging output')
-            [CompletionResult]::new('--quiet', 'quiet', [CompletionResultType]::ParameterName, 'Silences logging output')
-            [CompletionResult]::new('-h', 'h', [CompletionResultType]::ParameterName, 'Print help (see more with ''--help'')')
-            [CompletionResult]::new('--help', 'help', [CompletionResultType]::ParameterName, 'Print help (see more with ''--help'')')
+            [CompletionResult]::new('-h', 'h', [CompletionResultType]::ParameterName, 'Print help')
+            [CompletionResult]::new('--help', 'help', [CompletionResultType]::ParameterName, 'Print help')
             [CompletionResult]::new('doc', 'doc', [CompletionResultType]::ParameterValue, 'Generate Markdown documentation')
             [CompletionResult]::new('highlight', 'highlight', [CompletionResultType]::ParameterValue, 'Syntax highlight')
             [CompletionResult]::new('help', 'help', [CompletionResultType]::ParameterValue, 'Print this message or the help of the given subcommand(s)')
@@ -198,22 +154,14 @@ Register-ArgumentCompleter -Native -CommandName 'prqlc' -ScriptBlock {
         'prqlc;experimental;doc' {
             [CompletionResult]::new('--format', 'format', [CompletionResultType]::ParameterName, 'format')
             [CompletionResult]::new('--color', 'color', [CompletionResultType]::ParameterName, 'Controls when to use color')
-            [CompletionResult]::new('-v', 'v', [CompletionResultType]::ParameterName, 'Increase logging verbosity')
-            [CompletionResult]::new('--verbose', 'verbose', [CompletionResultType]::ParameterName, 'Increase logging verbosity')
-            [CompletionResult]::new('-q', 'q', [CompletionResultType]::ParameterName, 'Silences logging output')
-            [CompletionResult]::new('--quiet', 'quiet', [CompletionResultType]::ParameterName, 'Silences logging output')
-            [CompletionResult]::new('-h', 'h', [CompletionResultType]::ParameterName, 'Print help (see more with ''--help'')')
-            [CompletionResult]::new('--help', 'help', [CompletionResultType]::ParameterName, 'Print help (see more with ''--help'')')
+            [CompletionResult]::new('-h', 'h', [CompletionResultType]::ParameterName, 'Print help')
+            [CompletionResult]::new('--help', 'help', [CompletionResultType]::ParameterName, 'Print help')
             break
         }
         'prqlc;experimental;highlight' {
             [CompletionResult]::new('--color', 'color', [CompletionResultType]::ParameterName, 'Controls when to use color')
-            [CompletionResult]::new('-v', 'v', [CompletionResultType]::ParameterName, 'Increase logging verbosity')
-            [CompletionResult]::new('--verbose', 'verbose', [CompletionResultType]::ParameterName, 'Increase logging verbosity')
-            [CompletionResult]::new('-q', 'q', [CompletionResultType]::ParameterName, 'Silences logging output')
-            [CompletionResult]::new('--quiet', 'quiet', [CompletionResultType]::ParameterName, 'Silences logging output')
-            [CompletionResult]::new('-h', 'h', [CompletionResultType]::ParameterName, 'Print help (see more with ''--help'')')
-            [CompletionResult]::new('--help', 'help', [CompletionResultType]::ParameterName, 'Print help (see more with ''--help'')')
+            [CompletionResult]::new('-h', 'h', [CompletionResultType]::ParameterName, 'Print help')
+            [CompletionResult]::new('--help', 'help', [CompletionResultType]::ParameterName, 'Print help')
             break
         }
         'prqlc;experimental;help' {
@@ -238,10 +186,6 @@ Register-ArgumentCompleter -Native -CommandName 'prqlc' -ScriptBlock {
             [CompletionResult]::new('--color', 'color', [CompletionResultType]::ParameterName, 'Controls when to use color')
             [CompletionResult]::new('--hide-signature-comment', 'hide-signature-comment', [CompletionResultType]::ParameterName, 'Exclude the signature comment containing the PRQL version')
             [CompletionResult]::new('--no-format', 'no-format', [CompletionResultType]::ParameterName, 'Emit unformatted, dense SQL')
-            [CompletionResult]::new('-v', 'v', [CompletionResultType]::ParameterName, 'Increase logging verbosity')
-            [CompletionResult]::new('--verbose', 'verbose', [CompletionResultType]::ParameterName, 'Increase logging verbosity')
-            [CompletionResult]::new('-q', 'q', [CompletionResultType]::ParameterName, 'Silences logging output')
-            [CompletionResult]::new('--quiet', 'quiet', [CompletionResultType]::ParameterName, 'Silences logging output')
             [CompletionResult]::new('-h', 'h', [CompletionResultType]::ParameterName, 'Print help (see more with ''--help'')')
             [CompletionResult]::new('--help', 'help', [CompletionResultType]::ParameterName, 'Print help (see more with ''--help'')')
             break
@@ -250,32 +194,20 @@ Register-ArgumentCompleter -Native -CommandName 'prqlc' -ScriptBlock {
             [CompletionResult]::new('--color', 'color', [CompletionResultType]::ParameterName, 'Controls when to use color')
             [CompletionResult]::new('--no-format', 'no-format', [CompletionResultType]::ParameterName, 'no-format')
             [CompletionResult]::new('--no-signature', 'no-signature', [CompletionResultType]::ParameterName, 'no-signature')
-            [CompletionResult]::new('-v', 'v', [CompletionResultType]::ParameterName, 'Increase logging verbosity')
-            [CompletionResult]::new('--verbose', 'verbose', [CompletionResultType]::ParameterName, 'Increase logging verbosity')
-            [CompletionResult]::new('-q', 'q', [CompletionResultType]::ParameterName, 'Silences logging output')
-            [CompletionResult]::new('--quiet', 'quiet', [CompletionResultType]::ParameterName, 'Silences logging output')
-            [CompletionResult]::new('-h', 'h', [CompletionResultType]::ParameterName, 'Print help (see more with ''--help'')')
-            [CompletionResult]::new('--help', 'help', [CompletionResultType]::ParameterName, 'Print help (see more with ''--help'')')
+            [CompletionResult]::new('-h', 'h', [CompletionResultType]::ParameterName, 'Print help')
+            [CompletionResult]::new('--help', 'help', [CompletionResultType]::ParameterName, 'Print help')
             break
         }
         'prqlc;list-targets' {
             [CompletionResult]::new('--color', 'color', [CompletionResultType]::ParameterName, 'Controls when to use color')
-            [CompletionResult]::new('-v', 'v', [CompletionResultType]::ParameterName, 'Increase logging verbosity')
-            [CompletionResult]::new('--verbose', 'verbose', [CompletionResultType]::ParameterName, 'Increase logging verbosity')
-            [CompletionResult]::new('-q', 'q', [CompletionResultType]::ParameterName, 'Silences logging output')
-            [CompletionResult]::new('--quiet', 'quiet', [CompletionResultType]::ParameterName, 'Silences logging output')
-            [CompletionResult]::new('-h', 'h', [CompletionResultType]::ParameterName, 'Print help (see more with ''--help'')')
-            [CompletionResult]::new('--help', 'help', [CompletionResultType]::ParameterName, 'Print help (see more with ''--help'')')
+            [CompletionResult]::new('-h', 'h', [CompletionResultType]::ParameterName, 'Print help')
+            [CompletionResult]::new('--help', 'help', [CompletionResultType]::ParameterName, 'Print help')
             break
         }
         'prqlc;shell-completion' {
             [CompletionResult]::new('--color', 'color', [CompletionResultType]::ParameterName, 'Controls when to use color')
-            [CompletionResult]::new('-v', 'v', [CompletionResultType]::ParameterName, 'Increase logging verbosity')
-            [CompletionResult]::new('--verbose', 'verbose', [CompletionResultType]::ParameterName, 'Increase logging verbosity')
-            [CompletionResult]::new('-q', 'q', [CompletionResultType]::ParameterName, 'Silences logging output')
-            [CompletionResult]::new('--quiet', 'quiet', [CompletionResultType]::ParameterName, 'Silences logging output')
-            [CompletionResult]::new('-h', 'h', [CompletionResultType]::ParameterName, 'Print help (see more with ''--help'')')
-            [CompletionResult]::new('--help', 'help', [CompletionResultType]::ParameterName, 'Print help (see more with ''--help'')')
+            [CompletionResult]::new('-h', 'h', [CompletionResultType]::ParameterName, 'Print help')
+            [CompletionResult]::new('--help', 'help', [CompletionResultType]::ParameterName, 'Print help')
             break
         }
         'prqlc;help' {

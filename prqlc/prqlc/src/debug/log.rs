@@ -117,6 +117,15 @@ pub enum Stage {
 }
 
 impl Stage {
+    pub(super) fn full_name(&self) -> String {
+        let stage = self.as_ref().to_lowercase();
+        let substage = self
+            .sub_stage()
+            .map(|s| "-".to_string() + &s.to_lowercase())
+            .unwrap_or_default();
+        format!("{stage}{substage}")
+    }
+
     pub(super) fn sub_stage(&self) -> Option<&'_ str> {
         match self {
             Stage::Parsing => None,
