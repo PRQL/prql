@@ -110,10 +110,11 @@ fn write_stage_handles<'a, W: Write>(
     // find a new stage
     let stage = loop {
         match entries.next() {
-            Some(entry) => match entry.kind {
-                DebugEntryKind::NewStage(s) => break s,
-                _ => {}
-            },
+            Some(entry) => {
+                if let DebugEntryKind::NewStage(s) = entry.kind {
+                    break s;
+                }
+            }
             None => return Ok(()),
         }
     };
@@ -136,10 +137,11 @@ fn write_stage_contents<'a, W: Write>(
     // find a new stage
     let stage = loop {
         match entries.next() {
-            Some((_, entry)) => match entry.kind {
-                DebugEntryKind::NewStage(s) => break s,
-                _ => {}
-            },
+            Some((_, entry)) => {
+                if let DebugEntryKind::NewStage(s) = entry.kind {
+                    break s;
+                }
+            }
             None => return Ok(()),
         }
     };

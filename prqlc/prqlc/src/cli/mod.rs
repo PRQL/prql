@@ -15,7 +15,6 @@ use anyhow::bail;
 use anyhow::Result;
 use ariadne::Source;
 use clap::{CommandFactory, Parser, Subcommand, ValueHint};
-use clap_verbosity_flag::LogLevel;
 use clio::has_extension;
 use clio::Output;
 use is_terminal::IsTerminal;
@@ -45,10 +44,12 @@ pub fn main() -> color_eyre::eyre::Result<()> {
     let mut cli = Cli::parse();
 
     // redirect all log messages into the [debug::DebugLog]
-    static LOGGER: debug::MessageLogger = debug::MessageLogger;
-    log::set_logger(&LOGGER)
-        .map(|()| log::set_max_level(cli.verbose.log_level_filter()))
-        .unwrap();
+    if has_debug_log(&cli) {
+        static LOGGER: debug::MessageLogger = debug::MessageLogger;
+        log::set_logger(&LOGGER)
+            .map(|()| log::set_max_level(log::LevelFilter::max()))
+            .unwrap();
+    }
 
     color_eyre::install()?;
     cli.color.write_global();
@@ -82,9 +83,6 @@ struct Cli {
     command: Command,
     #[command(flatten)]
     color: colorchoice_clap::Color,
-
-    #[command(flatten)]
-    verbose: clap_verbosity_flag::Verbosity<LoggingHelp>,
 }
 
 /// This seems to be required because passing `compiler_version()` directly to
@@ -257,37 +255,6 @@ pub struct IoArgs {
     /// Identifier of the main pipeline.
     #[arg(value_parser, value_hint(ValueHint::Unknown))]
     main_path: Option<String>,
-}
-
-#[derive(Copy, Clone, Debug, Default)]
-struct LoggingHelp;
-
-impl LogLevel for LoggingHelp {
-    /// By default, this will only report errors.
-    fn default() -> Option<log::Level> {
-        Some(log::Level::Error)
-    }
-    fn verbose_help() -> Option<&'static str> {
-        Some("Increase logging verbosity")
-    }
-
-    fn verbose_long_help() -> Option<&'static str> {
-        Some(
-            r#"More `v`s, More vebose logging:
--v shows warnings
--vv shows info
--vvv shows debug
--vvvv shows trace"#,
-        )
-    }
-
-    fn quiet_help() -> Option<&'static str> {
-        Some("Silences logging output")
-    }
-
-    fn quiet_long_help() -> Option<&'static str> {
-        Some("Silences logging output")
-    }
 }
 
 #[derive(clap::ValueEnum, Clone, Debug)]
@@ -570,6 +537,16 @@ impl Command {
         };
         output.write_all(data)
     }
+}
+
+fn has_debug_log(cli: &Cli) -> bool {
+    matches!(
+        cli.command,
+        Command::Compile {
+            debug_log: Some(_),
+            ..
+        }
+    )
 }
 
 pub fn write_log(path: &std::path::Path) -> Result<()> {
