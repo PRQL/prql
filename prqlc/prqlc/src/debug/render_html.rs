@@ -43,27 +43,26 @@ fn write_debug_log<W: Write>(w: &mut W, debug_log: &DebugLog) -> Result {
     writeln!(w, "<body>")?;
 
     // header
-    writeln!(w, "<header>")?;
-    writeln!(w, "<h1>prqlc debug log</h1>")?;
+    {
+        writeln!(w, "<header>")?;
+        writeln!(w, "<h1>prqlc debug log</h1>")?;
 
-    write_key_values(
-        w,
-        &[
-            ("started_at", &debug_log.started_at),
-            ("version", &debug_log.version),
-        ],
-    )?;
+        write_key_values(
+            w,
+            &[
+                ("started_at", &debug_log.started_at),
+                ("version", &debug_log.version),
+            ],
+        )?;
+        writeln!(w, "</header>")?;
+    }
 
-    writeln!(w, "</header>")?;
-    writeln!(w, "<main>")?;
-
-    // pre-stage entries
+    // pre-stage entries (this should be mostly source PRQL)
     for (index, entry) in debug_log.entries.iter().enumerate() {
         if let DebugEntryKind::NewStage(_) = &entry.kind {
             break;
         }
 
-        writeln!(w, r#"<div class=entry>"#)?;
         match &entry.kind {
             DebugEntryKind::Message(message) => {
                 write_message(w, message)?;
@@ -72,12 +71,24 @@ fn write_debug_log<W: Write>(w: &mut W, debug_log: &DebugLog) -> Result {
                 write_titled_entry(w, index, entry)?;
             }
         }
-        writeln!(w, "</div>")?; // entry
     }
 
-    // stage tabs
     {
-        writeln!(w, "<div class=tab-container>")?;
+        writeln!(w, "<div class=message-filter>")?;
+        for level in ["off", "error", "warn", "info", "debug", "trace"] {
+            writeln!(
+                w,
+                r#"<input type="radio" name="message-filter" id="msg-filter-{level}">"#
+            )?;
+            writeln!(w, r#"<label for="msg-filter-{level}">{level}</label>"#)?;
+        }
+
+        writeln!(w, "</div>")?;
+    }
+
+    {
+        writeln!(w, "<main class=tab-container>")?;
+        // stage tabs
 
         // tab handles
         let mut entries = debug_log.entries.iter().peekable();
@@ -93,10 +104,9 @@ fn write_debug_log<W: Write>(w: &mut W, debug_log: &DebugLog) -> Result {
         }
         writeln!(w, "</div>")?;
 
-        writeln!(w, "</div>")?;
+        writeln!(w, "</main>")?;
     }
 
-    writeln!(w, "</main>")?;
     writeln!(w, "</body>")?;
     writeln!(w, "</html>")?;
 
@@ -123,7 +133,7 @@ fn write_stage_handles<'a, W: Write>(
 
     writeln!(
         w,
-        r#"<input type="radio" name="stage-tab" id="{stage_name}-tab" aria-controls="{stage_name}" checked>"#
+        r#"<input type="radio" name="stage-tab" id="{stage_name}-tab" aria-controls="{stage_name}">"#
     )?;
     writeln!(w, r#"<label for="{stage_name}-tab">{stage_name}</label>"#)?;
 
@@ -153,7 +163,6 @@ fn write_stage_contents<'a, W: Write>(
         }
         let (index, entry) = entries.next().unwrap();
 
-        writeln!(w, r#"<div class=entry>"#)?;
         match &entry.kind {
             DebugEntryKind::Message(message) => {
                 write_message(w, message)?;
@@ -162,13 +171,23 @@ fn write_stage_contents<'a, W: Write>(
                 write_titled_entry(w, index, entry)?;
             }
         }
-        writeln!(w, "</div>")?; // entry
     }
     writeln!(w, "</section>")?;
     Ok(())
 }
 
+fn write_message<W: Write>(w: &mut W, message: &Message) -> Result {
+    writeln!(w, r#"<div class="entry msg-{}">"#, message.level)?;
+    write!(w, "[<b>{}</b>", message.level)?;
+    if let Some(module_path) = &message.module_path {
+        write!(w, r#" {}"#, module_path)?;
+    }
+    writeln!(w, "] {}", message.text)?;
+    writeln!(w, "</div>")
+}
+
 fn write_titled_entry<W: Write>(w: &mut W, index: usize, entry: &DebugEntry) -> Result {
+    writeln!(w, r#"<div class=entry>"#)?;
     let entry_id = format!("entry-{index}");
 
     writeln!(
@@ -204,7 +223,8 @@ fn write_titled_entry<W: Write>(w: &mut W, index: usize, entry: &DebugEntry) -> 
         writeln!(w, "</div>")?;
     }
 
-    writeln!(w, "</details>")
+    writeln!(w, "</div>")?;
+    Ok(())
 }
 
 fn write_repr_prql<W: Write>(w: &mut W, source_tree: &SourceTree) -> Result {
@@ -325,15 +345,6 @@ fn write_repr_sql_parser<W: Write>(w: &mut W, ast: &sqlparser::ast::Query) -> Re
 fn write_repr_sql<W: Write>(w: &mut W, query: &str) -> Result {
     writeln!(w, r#"<div class="sql repr">"#)?;
     writeln!(w, "<pre><code>{}</code></pre>", query)?;
-    writeln!(w, "</div>")
-}
-
-fn write_message<W: Write>(w: &mut W, message: &Message) -> Result {
-    write!(w, "<div>[<b>{}</b>", message.level)?;
-    if let Some(module_path) = &message.module_path {
-        write!(w, r#" {}"#, module_path)?;
-    }
-    writeln!(w, "] {}", message.text)?;
     writeln!(w, "</div>")
 }
 
@@ -575,12 +586,23 @@ summary::marker {
     display: block;
 }
 .tab-container > input {
-    display: hidden;
+    display: none;
+}
+.tab-container > label {
+    display: inline-block;
+    padding: 1em;
+    cursor: pointer;
+    border: 1px solid transparent;
+    border-bottom: 0;
+}
+.tab-container > input:checked + label {
+    border-color: var(--text);
+    border-bottom: 1px solid var(--background);
+    margin-bottom: -1px;
 }
 
 section.tab-panel {
     border-top: 1px solid;
-    margin-top: 1rem;
     padding-top: 1rem;
 }
 
@@ -599,6 +621,35 @@ section.tab-panel {
         display: flex;
         flex-direction: column;
     }
+}
+
+.msg-ERROR, .msg-WARN, .msg-INFO, .msg-DEBUG, .msg-TRACE {
+    display: none;
+}
+.msg-filter-error .msg-ERROR {
+    display: block;
+}
+.msg-filter-warn .msg-WARN,
+.msg-filter-warn .msg-ERROR {
+    display: block;
+}
+.msg-filter-info .msg-INFO,
+.msg-filter-info .msg-WARN,
+.msg-filter-info .msg-ERROR {
+    display: block;
+}
+.msg-filter-debug .msg-DEBUG,
+.msg-filter-debug .msg-INFO,
+.msg-filter-debug .msg-WARN,
+.msg-filter-debug .msg-ERROR {
+    display: block;
+}
+.msg-filter-trace .msg-TRACE,
+.msg-filter-trace .msg-DEBUG,
+.msg-filter-trace .msg-INFO,
+.msg-filter-trace .msg-WARN,
+.msg-filter-trace .msg-ERROR {
+    display: block;
 }
 
 code {
@@ -747,12 +798,32 @@ const extract_span = (span_element) => {
     return { source_id, start, end };
 };
 
+const message_filter_change = (event) => {
+    if (!event.target.checked) {
+        return;
+    }
+    const active_id = document.querySelector(".message-filter > input:checked").id;
+
+    const main = document.getElementsByTagName('main')[0];
+    main.classList.forEach(c => {
+        if (c.startsWith("msg-filter-")) {
+            main.classList.remove(c);
+        }
+    });
+    main.classList.add(active_id);
+};
+
 document.addEventListener('DOMContentLoaded', () => {
     const ast_nodes = document.querySelectorAll(".ast-node");
     ast_nodes.forEach(ast_node => {
         ast_node.addEventListener("mouseover", ast_node_mouseover);
         ast_node.addEventListener("mousedown", ast_node_mousedown);
         ast_node.addEventListener("focus", ast_node_focus);
+    });
+
+    const message_filter_nodes = document.querySelectorAll(".message-filter > input");
+    message_filter_nodes.forEach(node => {
+        node.addEventListener("change", message_filter_change);
     });
 });
 "#;
