@@ -56,7 +56,7 @@ fn write_debug_log<W: Write>(w: &mut W, debug_log: &DebugLog) -> Result {
     writeln!(w, "</header>")?;
     writeln!(w, "<main>")?;
 
-    for entry in debug_log.entries.iter() {
+    for (index, entry) in debug_log.entries.iter().enumerate() {
         writeln!(w, r#"<div class="entry">"#)?;
 
         match &entry.kind {
@@ -73,7 +73,7 @@ fn write_debug_log<W: Write>(w: &mut W, debug_log: &DebugLog) -> Result {
                 write_message(w, message)?;
             }
             _ => {
-                write_titled_entry(w, entry)?;
+                write_titled_entry(w, index, entry)?;
             }
         }
 
@@ -87,30 +87,42 @@ fn write_debug_log<W: Write>(w: &mut W, debug_log: &DebugLog) -> Result {
     Ok(())
 }
 
-fn write_titled_entry<W: Write>(w: &mut W, entry: &DebugEntry) -> Result {
-    writeln!(w, "<details open>")?;
-    writeln!(w, r#"<summary class="entry-label clickable">"#)?;
-    let kind = entry.kind.as_ref()[4..].to_ascii_uppercase();
+fn write_titled_entry<W: Write>(w: &mut W, index: usize, entry: &DebugEntry) -> Result {
+    let entry_id = format!("entry-{index}");
+
     writeln!(
         w,
-        r#"[<b>REPRESENTATION</b>] <span class="yellow">{kind}</span>"#,
+        "<input id={entry_id} class=entry-collapse type=checkbox>"
     )?;
-    writeln!(w, "</summary>")?;
-    writeln!(w, r#"<div class="entry-content">"#)?;
-    match &entry.kind {
-        DebugEntryKind::ReprPrql(a) => write_repr_prql(w, a)?,
-        DebugEntryKind::ReprLr(a) => write_repr_lr(w, a)?,
-        DebugEntryKind::ReprPr(a) => write_repr_pr(w, a)?,
-        DebugEntryKind::ReprPl(a) => write_repr_pl(w, a)?,
-        DebugEntryKind::ReprDecl(a) => write_repr_decl(w, a)?,
-        DebugEntryKind::ReprRq(a) => write_repr_rq(w, a)?,
-        DebugEntryKind::ReprPqEarly(a) => write_repr_pq_early(w, a)?,
-        DebugEntryKind::ReprPq(a) => write_repr_pq(w, a)?,
-        DebugEntryKind::ReprSqlParser(a) => write_repr_sql_parser(w, a)?,
-        DebugEntryKind::ReprSql(a) => write_repr_sql(w, a)?,
-        DebugEntryKind::NewStage(_) | DebugEntryKind::Message(_) => unreachable!(),
+
+    {
+        writeln!(w, r#"<label for={entry_id} class="entry-label clickable">"#)?;
+        let kind = entry.kind.as_ref()[4..].to_ascii_uppercase();
+        writeln!(
+            w,
+            r#"[<b>REPRESENTATION</b>] <span class="yellow">{kind}</span>"#,
+        )?;
+        writeln!(w, r#"</label>"#)?;
     }
-    writeln!(w, "</div>")?;
+
+    {
+        writeln!(w, r#"<div class="entry-content">"#)?;
+        match &entry.kind {
+            DebugEntryKind::ReprPrql(a) => write_repr_prql(w, a)?,
+            DebugEntryKind::ReprLr(a) => write_repr_lr(w, a)?,
+            DebugEntryKind::ReprPr(a) => write_repr_pr(w, a)?,
+            DebugEntryKind::ReprPl(a) => write_repr_pl(w, a)?,
+            DebugEntryKind::ReprDecl(a) => write_repr_decl(w, a)?,
+            DebugEntryKind::ReprRq(a) => write_repr_rq(w, a)?,
+            DebugEntryKind::ReprPqEarly(a) => write_repr_pq_early(w, a)?,
+            DebugEntryKind::ReprPq(a) => write_repr_pq(w, a)?,
+            DebugEntryKind::ReprSqlParser(a) => write_repr_sql_parser(w, a)?,
+            DebugEntryKind::ReprSql(a) => write_repr_sql(w, a)?,
+            DebugEntryKind::NewStage(_) | DebugEntryKind::Message(_) => unreachable!(),
+        }
+        writeln!(w, "</div>")?;
+    }
+
     writeln!(w, "</details>")
 }
 
@@ -450,17 +462,17 @@ summary::marker {
 }
 
 .entry {
-    &.entry-label {
+    &>.entry-label {
         margin: 0;
         display: block;
     }
-    &.entry-collapse {
+    &>.entry-collapse {
         display: none;
     }
-    &.entry-collapse:checked + .entry-label + .entry-content {
+    &>.entry-collapse:checked + .entry-label + .entry-content {
         display: none;
     }
-    &.entry-content {
+    &>.entry-content {
         display: flex;
         flex-direction: column;
     }
