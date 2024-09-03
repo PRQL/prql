@@ -290,7 +290,6 @@ fn write_json_ast_node<W: Write>(
         serde_json::Value::Object(properties) => {
             let is_ast_node = properties.contains_key("span")
                 || properties.contains_key("id")
-                || properties.contains_key("ty")
                 || (properties.len() == 1
                     && !is_node_contents
                     && properties.values().next().unwrap().is_object());
@@ -329,32 +328,37 @@ fn write_ast_node_from_object<W: Write>(
     let (name, contents) =
         first_item.unwrap_or_else(|| ("<empty>".into(), serde_json::Value::Null));
 
-    write!(w, r#"<div class=ast-node tabindex=2>"#)?;
+    write!(w, r#"<details class=ast-node open tabindex=2>"#)?;
 
-    write!(w, "<div class=header>")?;
+    {
+        write!(w, "<summary class=header>")?;
 
-    let h2_id = id.map(|i| format!("id=ast-{i} ")).unwrap_or_default();
-    write!(w, "<h2 {h2_id}class=clickable>{name}</h2>")?;
+        let h2_id = id.map(|i| format!("id=ast-{i} ")).unwrap_or_default();
+        write!(w, "<h2 {h2_id}class=clickable>{name}</h2>")?;
 
-    if let Some(id) = id {
-        write!(w, r#"<span>id={id}</span>"#)?;
-    }
-    if let Some(span) = span {
-        write!(w, r#"<span class="span">{span}</span>"#)?;
-    }
-    if let Some(ty) = ty {
-        let ty_json = ty.to_string();
-        if let Ok(ty) = serde_json::from_str::<pr::Ty>(&ty_json) {
-            let ty_prql = codegen::write_ty(&ty);
-            write!(w, r#"<span class="ty">{ty_prql}</span>"#)?;
+        if let Some(id) = id {
+            write!(w, r#"<span>id={id}</span>"#)?;
         }
+        if let Some(span) = span {
+            write!(w, r#"<span class="span">{span}</span>"#)?;
+        }
+        if let Some(ty) = ty {
+            let ty_json = ty.to_string();
+            if let Ok(ty) = serde_json::from_str::<pr::Ty>(&ty_json) {
+                let ty_prql = codegen::write_ty(&ty);
+                write!(w, r#"<span class="ty">{ty_prql}</span>"#)?;
+            }
+        }
+        write!(w, "</summary>")?;
     }
-    write!(w, "</div>")?;
 
-    write!(w, r#"<div class="contents indent">"#)?;
-    write_json_ast_node(w, contents, true)?;
-    write!(w, "</div>")?;
-    write!(w, "</div>")
+    {
+        write!(w, r#"<content class="contents indent">"#)?;
+        write_json_ast_node(w, contents, true)?;
+        write!(w, "</content>")?;
+    }
+
+    write!(w, "</details>")
 }
 
 fn write_decl<W: Write>(
@@ -363,46 +367,50 @@ fn write_decl<W: Write>(
     name: &String,
     span_map: &HashMap<usize, pr::Span>,
 ) -> Result {
-    write!(w, r#"<div class="ast-node" tabindex=2>"#)?;
+    let collapsed = if name == "std" { " collapsed" } else { "" };
+    write!(w, r#"<details class="ast-node{collapsed}" open tabindex=2>"#)?;
 
     // header
     {
-        write!(w, "<div class=header>")?;
+        write!(w, "<summary class=header>")?;
         write!(w, r#"<h2 class="clickable blue">{name}</h2>"#)?;
 
         let span = decl.declared_at.as_ref().and_then(|id| span_map.get(id));
         if let Some(span) = span {
             write!(w, r#"<span class="span">{span:?}</span>"#)?;
         }
-        write!(w, "</div>")?; // header
+        write!(w, "</summary>")?; // header
     }
 
-    write!(w, r#"<div class="contents indent">"#)?;
-    match &decl.kind {
-        decl::DeclKind::Module(m) => {
-            for (name, decl) in m.names.iter().sorted_by_key(|x| x.0.as_str()) {
-                write_decl(w, decl, name, span_map)?;
+    {
+        write!(w, r#"<content class="contents indent">"#)?;
+        match &decl.kind {
+            decl::DeclKind::Module(m) => {
+                for (name, decl) in m.names.iter().sorted_by_key(|x| x.0.as_str()) {
+                    write_decl(w, decl, name, span_map)?;
+                }
+            }
+            decl::DeclKind::Expr(expr) => {
+                let json = serde_json::to_string(expr).unwrap();
+                let json_node: serde_json::Value = serde_json::from_str(&json).unwrap();
+                write_json_ast_node(w, json_node, false)?;
+            }
+            decl::DeclKind::Ty(ty) => {
+                writeln!(w, r#"<span>{}</span>"#, escape_html(&codegen::write_ty(ty)))?;
+            }
+            decl::DeclKind::TableDecl(table_decl) => {
+                let json = serde_json::to_string(table_decl).unwrap();
+                let json_node: serde_json::Value = serde_json::from_str(&json).unwrap();
+                write_json_ast_node(w, json_node, false)?;
+            }
+            _ => {
+                write!(w, r#"<div>{}</div>"#, decl.kind)?;
             }
         }
-        decl::DeclKind::Expr(expr) => {
-            let json = serde_json::to_string(expr).unwrap();
-            let json_node: serde_json::Value = serde_json::from_str(&json).unwrap();
-            write_json_ast_node(w, json_node, false)?;
-        }
-        decl::DeclKind::Ty(ty) => {
-            writeln!(w, r#"<span>{}</span>"#, escape_html(&codegen::write_ty(ty)))?;
-        }
-        decl::DeclKind::TableDecl(table_decl) => {
-            let json = serde_json::to_string(table_decl).unwrap();
-            let json_node: serde_json::Value = serde_json::from_str(&json).unwrap();
-            write_json_ast_node(w, json_node, false)?;
-        }
-        _ => {
-            write!(w, r#"<div>{}</div>"#, decl.kind)?;
-        }
+        write!(w, "</content>")?;
     }
-    write!(w, "</div>")?; // contents
-    write!(w, "</div>") // ast-node
+
+    write!(w, "</details>")
 }
 
 fn escape_html(text: &str) -> String {
@@ -502,6 +510,9 @@ table.repr.lr {
 .ast-node>.header {
     display: flex;
 }
+.ast-node>.contents {
+    display: block;
+}
 .ast-node>.header>h2 {
     font-size: inherit;
     color: var(--text-green);
@@ -511,12 +522,9 @@ table.repr.lr {
     display: inline-block;
     margin-left: 1em;
 }
-.ast-node.collapsed>.header::after {
+.ast-node:not([open])>.header::after {
     content: '...';
     margin-left: 1em;
-}
-.ast-node.collapsed>.contents {
-    display: none;
 }
 .ast-node>.contents.indent>.json-array,
 .ast-node>.contents.indent>.json-object {
@@ -629,21 +637,12 @@ const extract_span = (span_element) => {
     return { source_id, start, end };
 };
 
-const ast_node_title_click = (event) => {
-    event.stopPropagation();
-    const ast_node = event.target.parentElement.parentElement;
-    ast_node.classList.toggle("collapsed");
-};
-
 document.addEventListener('DOMContentLoaded', () => {
     const ast_nodes = document.querySelectorAll(".ast-node");
     ast_nodes.forEach(ast_node => {
         ast_node.addEventListener("mouseover", ast_node_mouseover);
         ast_node.addEventListener("mousedown", ast_node_mousedown);
         ast_node.addEventListener("focus", ast_node_focus);
-
-        const h2 = ast_node.querySelector(":scope > .header > h2");
-        h2.addEventListener("click", ast_node_title_click);
     });
 });
 "#;
