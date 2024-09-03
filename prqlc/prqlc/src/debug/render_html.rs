@@ -147,7 +147,7 @@ fn write_repr_lr<W: Write>(w: &mut W, tokens: &lr::Tokens) -> Result {
 
     for token in &tokens.0 {
         writeln!(w, r#"<tr class="token">"#,)?;
-        writeln!(w, "<td>{:?}</td>", token.kind)?;
+        writeln!(w, "<td>{}</td>", escape_html(&format!("{:?}", token.kind)))?;
         writeln!(
             w,
             r#"<td><span class="span">{}:{}</span></td>"#,
@@ -353,14 +353,17 @@ fn write_decl<W: Write>(
 ) -> Result {
     write!(w, r#"<div class="ast-node" tabindex=2>"#)?;
 
-    write!(w, "<div class=header>")?;
-    write!(w, r#"<h2 class="clickable blue">{name}</h2>"#)?;
+    // header
+    {
+        write!(w, "<div class=header>")?;
+        write!(w, r#"<h2 class="clickable blue">{name}</h2>"#)?;
 
-    let span = decl.declared_at.as_ref().and_then(|id| span_map.get(id));
-    if let Some(span) = span {
-        write!(w, r#"<span class="span">{span:?}</span>"#)?;
+        let span = decl.declared_at.as_ref().and_then(|id| span_map.get(id));
+        if let Some(span) = span {
+            write!(w, r#"<span class="span">{span:?}</span>"#)?;
+        }
+        write!(w, "</div>")?; // header
     }
-    write!(w, "</div>")?; // header
 
     write!(w, r#"<div class="contents indent">"#)?;
     match &decl.kind {
@@ -370,14 +373,37 @@ fn write_decl<W: Write>(
             }
         }
         decl::DeclKind::Expr(expr) => {
-            let json = serde_json::to_string(expr).unwrap();
-            let json_node: serde_json::Value = serde_json::from_str(&json).unwrap();
-            write_json_ast_node(w, json_node, false)?;
+            write_pl_expr(w, &expr)?;
         }
         decl::DeclKind::Ty(ty) => {
-            let json = serde_json::to_string(ty).unwrap();
-            let json_node: serde_json::Value = serde_json::from_str(&json).unwrap();
-            write_json_ast_node(w, json_node, false)?;
+            writeln!(w, r#"<span>{}</span>"#, write_ty(ty))?;
+        }
+        decl::DeclKind::TableDecl(table_decl) => {
+            write!(w, r#"<div class="ast-node{}" tabindex=2>"#, collapsed)?;
+
+            // header
+            {
+                write!(w, "<div class=header>")?;
+                write!(w, r#"<h2 class="clickable blue">TableDecl</h2>"#)?;
+
+                if let Some(ty) = &table_decl.ty {
+                    write!(w, r#"<span class="ty">{ty:?}</span>"#)?;
+                }
+                write!(w, "</div>")?;
+            }
+
+            // contents
+            {
+                write!(w, r#"<div class="contents indent">"#)?;
+                match &table_decl.expr {
+                    decl::TableExpr::RelationVar(var) => write_pl_expr(w, var)?,
+                    decl::TableExpr::LocalTable => write!(w, "LocalTable")?,
+                    decl::TableExpr::None => write!(w, "None")?,
+                    decl::TableExpr::Param(id) => write!(w, "Param({id})")?,
+                }
+                write!(w, "</div>")?;
+            }
+            write!(w, "</div>")?; // ast-node
         }
         _ => {
             write!(w, r#"<div>{}</div>"#, decl.kind)?;
@@ -479,7 +505,6 @@ code {
 }
 table.repr.lr {
     border-collapse: collapse;
-    width: min-content;
 }
 
 .ast-node>.header {
