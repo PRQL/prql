@@ -378,6 +378,16 @@ fn write_json_ast_node<W: Write>(
 
             writeln!(w, r#"<div class="json-object">"#)?;
             for (key, value) in properties {
+                if key == "ty" || key == "return_ty" {
+                    // special case for better type printing
+                    let ty_json = value.to_string();
+                    if let Ok(ty) = serde_json::from_str::<pr::Ty>(&ty_json) {
+                        let ty_prql = escape_html(&codegen::write_ty(&ty));
+                        write!(w, r#"<span>{key}: {ty_prql}</span>"#)?;
+                    }
+                    continue;
+                }
+
                 write!(w, r#"<span>{key}: </span><div class="json-value">"#)?;
                 write_json_ast_node(w, value, false)?;
                 writeln!(w, "</div>")?;
@@ -446,11 +456,8 @@ fn write_decl<W: Write>(
     name: &String,
     span_map: &HashMap<usize, pr::Span>,
 ) -> Result {
-    let collapsed = if name == "std" { " collapsed" } else { "" };
-    write!(
-        w,
-        r#"<details class="ast-node{collapsed}" open tabindex=2>"#
-    )?;
+    let open = if name != "std" { " open" } else { "" };
+    write!(w, r#"<details class="ast-node" {open} tabindex=2>"#)?;
 
     // header
     {
