@@ -19,23 +19,22 @@ ClickHouse and GlareDB are tested — we use `docker compose`:
 1. Run `docker compose up` (may take a while on the first time):
 
    ```sh
-   cd prqlc/prqlc/tests/integration
-   docker compose up
+   cd prqlc/prqlc/tests/integration/dbs && docker compose up -d
    ```
 
 2. Run the tests:
 
    ```sh
-   cargo test --features=test-dbs-external --no-capture
+   cargo test --features=test-dbs-external -- --nocapture
    ```
 
-   The `--no-capture` option isn't required, but shows all the dialects tested
-   per query.
+   (The `--no-capture` option isn't required, but shows all the dialects tested
+   per query.)
 
 3. After it's done, stop the containers and remove local images and volumes:
 
    ```sh
-   docker compose down -v --rmi local
+   cd prqlc/prqlc/tests/integration/dbs && docker compose down
    ```
 
 Note: on an M1, if the MSSQL docker container doesn't run, refer to

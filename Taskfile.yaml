@@ -344,6 +344,16 @@ tasks:
       - cargo llvm-cov --lcov --output-path lcov.info
         --features=default,test-dbs
 
+  test-rust-external-dbs:
+    desc: Run tests which require external databases, with docker
+    cmds:
+      - cd prqlc/prqlc/tests/integration/dbs && docker-compose up -d
+      # This _only_ runs the external dbs tests, but we could make it run
+      # everything?
+      - cargo test --features=test-dbs-external --test=integration --
+        --nocapture queries::results
+      - cd prqlc/prqlc/tests/integration/dbs && docker compose down
+
   test-js:
     dir: prqlc/bindings/js
     cmds:
