@@ -860,9 +860,9 @@ checksum = "510ca239cf13b7f8d16a2b48f263de7b4f8c566f0af58d901031473c76afb1e3"
 
 [[package]]
 name = "connector_arrow"
-version = "0.5.3"
+version = "0.5.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "486e0dcae4bc56ad727ae9ad9147901e452c28593035c503c2c3b160437e2a57"
+checksum = "6e23506fc04e5c4d511b4eff9aa7d89185191e2351a773a6abc8e3b64a5f8277"
 dependencies = [
  "arrow",
  "byteorder",
