@@ -23,7 +23,7 @@ manually:
 1. Run `docker compose up` (may take a while on the first time):
 
    ```sh
-   cd prqlc/prqlc/tests/integration/dbs && docker compose up -d
+   cd prqlc/prqlc/tests/integration/dbs && docker compose up --wait
    ```
 
 2. Run the tests:
