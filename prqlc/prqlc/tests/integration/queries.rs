@@ -94,114 +94,142 @@ mod debug_lineage {
 
 #[cfg(any(feature = "test-dbs", feature = "test-dbs-external"))]
 mod results {
-    use std::ops::DerefMut;
+    use std::path::Path;
     use std::sync::Mutex;
     use std::sync::OnceLock;
+    use std::{fs, ops::DerefMut};
 
-    use prqlc::sql::SupportLevel;
+    use anyhow::Result;
+    use prqlc::{sql::SupportLevel, Options, Target};
+    use regex::Regex;
 
     use super::*;
-    use crate::dbs::{ConnectionCfg, DbConnection, DbProtocol};
+    use crate::dbs::runner::*;
+    use crate::dbs::Row;
 
-    fn connections() -> &'static Mutex<Vec<DbConnection>> {
-        static CONNECTIONS: OnceLock<Mutex<Vec<DbConnection>>> = OnceLock::new();
-        CONNECTIONS.get_or_init(|| {
+    fn runners() -> &'static Mutex<Vec<Box<dyn DbTestRunner>>> {
+        static RUNNERS: OnceLock<Mutex<Vec<Box<dyn DbTestRunner>>>> = OnceLock::new();
+        RUNNERS.get_or_init(|| {
+            let mut runners = vec![];
+
+            let local_runners: Vec<Box<dyn DbTestRunner>> = vec![
+                Box::new(SQLiteTestRunner::new(
+                    "tests/integration/data/chinook".to_string(),
+                )),
+                Box::new(DuckDbTestRunner::new(
+                    "tests/integration/data/chinook".to_string(),
+                )),
+            ];
+            runners.extend(local_runners);
+
+            #[cfg(feature = "test-dbs-external")]
+            {
+                let external_runners: Vec<Box<dyn DbTestRunner>> = vec![
+                    Box::new(PostgresTestRunner::new(
+                        "host=localhost user=root password=root dbname=dummy",
+                        "/tmp/chinook".to_string(),
+                    )),
+                    Box::new(MySqlTestRunner::new(
+                        "mysql://root:root@localhost:3306/dummy",
+                        "/tmp/chinook".to_string(),
+                    )),
+                    Box::new(ClickHouseTestRunner::new(
+                        "mysql://default:@localhost:9004/dummy",
+                        "chinook".to_string(),
+                    )),
+                    Box::new(GlareDbTestRunner::new(
+                        "host=localhost user=glaredb dbname=glaredb port=6543",
+                        "/tmp/chinook".to_string(),
+                    )),
+                    Box::new(MsSqlTestRunner::new("/tmp/chinook".to_string())),
+                ];
+                runners.extend(external_runners);
+            }
+
             Mutex::new({
-                [
-                    ConnectionCfg {
-                        dialect: Dialect::SQLite,
-                        data_file_root: "tests/integration/data/chinook".to_string(),
-
-                        protocol: DbProtocol::SQLite,
-                    },
-                    ConnectionCfg {
-                        dialect: Dialect::DuckDb,
-                        data_file_root: "tests/integration/data/chinook".to_string(),
-
-                        protocol: DbProtocol::DuckDb,
-                    },
-                    ConnectionCfg {
-                        dialect: Dialect::Postgres,
-                        data_file_root: "/tmp/chinook".to_string(),
-
-                        protocol: DbProtocol::Postgres {
-                            url: "host=localhost user=root password=root dbname=dummy".to_string(),
-                        },
-                    },
-                    ConnectionCfg {
-                        dialect: Dialect::MySql,
-                        data_file_root: "/tmp/chinook".to_string(),
-
-                        protocol: DbProtocol::MySql {
-                            url: "mysql://root:root@localhost:3306/dummy".to_string(),
-                        },
-                    },
-                    ConnectionCfg {
-                        dialect: Dialect::ClickHouse,
-                        data_file_root: "chinook".to_string(),
-
-                        protocol: DbProtocol::MySql {
-                            url: "mysql://default:@localhost:9004/dummy".to_string(),
-                        },
-                    },
-                    ConnectionCfg {
-                        dialect: Dialect::GlareDb,
-                        data_file_root: "/tmp/chinook".to_string(),
-
-                        protocol: DbProtocol::Postgres {
-                            url: "host=localhost user=glaredb dbname=glaredb port=6543".to_string(),
-                        },
-                    },
-                    ConnectionCfg {
-                        dialect: Dialect::MsSql,
-                        data_file_root: "/tmp/chinook".to_string(),
-
-                        protocol: DbProtocol::MsSql,
-                    },
-                ]
-                .into_iter()
-                .filter(|cfg| {
-                    matches!(
-                        cfg.dialect.support_level(),
-                        SupportLevel::Supported | SupportLevel::Unsupported
-                    )
-                })
-                // The filtering is not a great design, since it doesn't proactively
-                // check that we can get connections; but it's a compromise given we
-                // implement the external_dbs feature using this.
-                .filter_map(DbConnection::new)
-                .map(|conn| conn.setup())
-                .collect()
+                runners
+                    .into_iter()
+                    .filter(|cfg| {
+                        matches!(
+                            cfg.dialect().support_level(),
+                            SupportLevel::Supported | SupportLevel::Unsupported
+                        )
+                    })
+                    .map(|mut runner| {
+                        runner.setup();
+                        runner
+                    })
+                    .collect()
             })
         })
     }
 
-    test_each_path! { in "./prqlc/prqlc/tests/integration/queries" => run }
+    fn should_run_query(dialect: Dialect, prql: &str) -> bool {
+        let dialect_str = dialect.to_string().to_lowercase();
+
+        match dialect.support_level() {
+            SupportLevel::Supported => !prql.contains(&format!("{dialect_str}:skip")),
+            SupportLevel::Unsupported => prql.contains(&format!("{dialect_str}:test")),
+            SupportLevel::Nascent => false,
+        }
+    }
+
+    fn run_query(runner: &mut Box<dyn DbTestRunner>, prql: &str) -> Result<Vec<Row>> {
+        let dialect = runner.dialect();
+        let options = Options::default().with_target(Target::Sql(Some(dialect)));
+        let sql = prqlc::compile(prql, &options)?;
+
+        let mut rows = runner.query(&sql)?;
+
+        replace_booleans(&mut rows);
+        remove_trailing_zeros(&mut rows);
+
+        Ok(rows)
+    }
+
+    fn replace_booleans(rows: &mut Vec<Row>) {
+        for row in rows {
+            for col in row {
+                if col == "true" {
+                    *col = "1".to_string();
+                } else if col == "false" {
+                    *col = "0".to_string();
+                }
+            }
+        }
+    }
+
+    fn remove_trailing_zeros(rows: &mut Vec<Row>) {
+        let re = Regex::new(r"^(|-)\d+\.\d+0+$").unwrap();
+        for row in rows {
+            for col in row {
+                if re.is_match(col) {
+                    *col = Regex::new(r"0+$").unwrap().replace_all(col, "").to_string();
+                }
+            }
+        }
+    }
 
     fn run(prql_path: &Path) {
-        let test_name = prql_path.file_stem().unwrap().to_str().unwrap();
         let prql = fs::read_to_string(prql_path).unwrap();
+        let test_name = prql_path.file_stem().unwrap().to_str().unwrap();
 
         let data_file_root_keyword = "data_file_root";
         let is_contains_data_root = prql.contains(data_file_root_keyword);
 
-        // for each of the connections
+        // for each of the runners
         let mut results = Vec::new();
-        for con in connections().lock().unwrap().deref_mut() {
-            if !con.should_run_query(&prql) {
+        for runner in runners().lock().unwrap().deref_mut() {
+            if !should_run_query(runner.as_ref().dialect(), &prql) {
                 continue;
             }
-
             let mut prql = prql.clone();
             if is_contains_data_root {
-                prql = prql.replace(data_file_root_keyword, &con.cfg.data_file_root);
+                prql = prql.replace(data_file_root_keyword, runner.data_file_root());
             }
 
-            let dialect = con.cfg.dialect;
-
-            println!("Executing {test_name} for {dialect}");
-            let rows = con.run_query(&prql).unwrap();
-
+            println!("Executing {test_name} for {}", runner.dialect());
+            let rows = run_query(runner, &prql).unwrap();
             // convert into ad-hoc CSV
             let result = rows
                 .iter()
@@ -209,7 +237,13 @@ mod results {
                 .collect::<Vec<_>>()
                 .join("\n");
 
-            results.push((dialect, result));
+            // If we ever have more than one runner per dialect, we can adjust
+            // this to use the runner name
+            results.push((runner.dialect(), result));
+        }
+
+        if results.is_empty() {
+            panic!("No valid dialects to run the query at {prql_path:#?} against");
         }
 
         // insta::allow_duplicates!, but with reporting of which two cases are
@@ -231,4 +265,5 @@ mod results {
             );
         }
     }
+    test_each_path! { in "./prqlc/prqlc/tests/integration/queries" => run }
 }
