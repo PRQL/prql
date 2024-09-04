@@ -160,7 +160,7 @@ pub fn batch_to_csv(batch: arrow::record_batch::RecordBatch) -> String {
 
             // HACK: trim trailing 0
             if re.is_match(value) {
-                value = value.trim_end_matches("0").trim_end_matches('.');
+                value = value.trim_end_matches('0').trim_end_matches('.');
             }
             res.push_str(value);
             if i < batch.num_columns() - 1 {
