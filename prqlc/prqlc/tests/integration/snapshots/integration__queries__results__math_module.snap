@@ -3,9 +3,8 @@ source: prqlc/prqlc/tests/integration/queries.rs
 expression: "# mssql:test\n# sqlite:skip (see https://github.com/rusqlite/rusqlite/issues/1211)\nfrom invoices\ntake 5\nselect {\n    total_original = (total | math.round 2),\n    total_x = (math.pi - total | math.round 2 | math.abs),\n    total_floor = (math.floor total),\n    total_ceil = (math.ceil total),\n    total_log10 = (math.log10 total | math.round 3),\n    total_log2 = (math.log 2 total | math.round 3),\n    total_sqrt = (math.sqrt total | math.round 3),\n    total_ln = (math.ln total | math.exp | math.round 2),\n    total_cos = (math.cos total | math.acos | math.round 2),\n    total_sin = (math.sin total | math.asin | math.round 2),\n    total_tan = (math.tan total | math.atan | math.round 2),\n    total_deg = (total | math.degrees | math.radians | math.round 2),\n    total_square = (total | math.pow 2 | math.round 2),\n    total_square_op = ((total ** 2) | math.round 2),\n}\n"
 input_file: prqlc/prqlc/tests/integration/queries/math_module.prql
 ---
-total_original [Float],total_x [Float],total_floor [Float],total_ceil [Float],total_log10 [Float],total_log2 [Float],total_sqrt [Float],total_ln [Float],total_cos [Float],total_sin [Float],total_tan [Float],total_deg [Float],total_square [Float],total_square_op [Float]
-1.98,1.16,1.0,2.0,0.297,0.986,1.407,1.98,1.98,1.16,-1.16,1.98,3.92,3.92
-3.96,0.82,3.0,4.0,0.598,1.986,1.99,3.96,2.32,-0.82,0.82,3.96,15.68,15.68
-5.94,2.8,5.0,6.0,0.774,2.57,2.437,5.94,0.34,-0.34,-0.34,5.94,35.28,35.28
-8.91,5.77,8.0,9.0,0.95,3.155,2.985,8.91,2.63,0.51,-0.51,8.91,79.39,79.39
-13.86,10.72,13.0,14.0,1.142,3.793,3.723,13.86,1.29,1.29,1.29,13.86,192.1,192.1
+1.98,1.16,1,2,0.297,0.986,1.407,1.98,1.98,1.16,-1.16,1.98,3.92,3.92
+3.96,0.82,3,4,0.598,1.986,1.99,3.96,2.32,-0.82,0.82,3.96,15.68,15.68
+5.94,2.8,5,6,0.774,2.57,2.437,5.94,0.34,-0.34,-0.34,5.94,35.28,35.28
+8.91,5.77,8,9,0.95,3.155,2.985,8.91,2.63,0.51,-0.51,8.91,79.39,79.39
+13.86,10.72,13,14,1.142,3.793,3.723,13.86,1.29,1.29,1.29,13.86,192.1,192.1

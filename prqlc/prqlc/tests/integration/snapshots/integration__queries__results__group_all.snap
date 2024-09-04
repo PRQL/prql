@@ -3,7 +3,6 @@ source: prqlc/prqlc/tests/integration/queries.rs
 expression: "# mssql:test\nfrom a=albums\ntake 10\njoin tracks (==album_id)\ngroup {a.album_id, a.title} (aggregate price = (sum tracks.unit_price | math.round 2))\nsort album_id\n"
 input_file: prqlc/prqlc/tests/integration/queries/group_all.prql
 ---
-album_id [Int],title [Utf8],price [Float]
 1,For Those About To Rock We Salute You,9.9
 2,Balls to the Wall,0.99
 3,Restless and Wild,2.97

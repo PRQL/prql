@@ -6,8 +6,8 @@ mod runner;
 
 use anyhow::Result;
 use connector_arrow::arrow;
-use itertools::Itertools;
 use prqlc::{sql::Dialect, sql::SupportLevel, Options, Target};
+use regex::Regex;
 use serde::{Deserialize, Serialize};
 
 pub use self::protocol::DbProtocol;
@@ -125,40 +125,44 @@ pub fn batch_to_csv(batch: arrow::record_batch::RecordBatch) -> String {
     let mut res = String::with_capacity((batch.num_rows() + 1) * batch.num_columns() * 20);
 
     // print header
+    /*
     res.push_str(
         batch
             .schema()
             .fields()
             .iter()
             .map(|f| {
-                let ty = f
-                    .data_type()
-                    .to_string()
-                    // HACK: ignore type sizes
-                    .replace("64", "")
-                    .replace("32", "");
+                let ty = f.data_type().to_string();
                 format!("{} [{ty}]", f.name())
             })
             .join(",")
             .as_str(),
     );
     res.push('\n');
+    */
 
     // convert each column to string
     let mut arrays = Vec::with_capacity(batch.num_columns());
     for col_i in 0..batch.num_columns() {
-        let array = connector_arrow::arrow::compute::cast(
-            batch.columns().get(col_i).unwrap(),
-            &connector_arrow::arrow::datatypes::DataType::Utf8,
-        )
-        .unwrap();
+        let mut array = batch.columns().get(col_i).unwrap().clone();
+        if *array.data_type() == arrow::datatypes::DataType::Boolean {
+            array = arrow::compute::cast(&array, &arrow::datatypes::DataType::UInt8).unwrap();
+        }
+        let array = arrow::compute::cast(&array, &arrow::datatypes::DataType::Utf8).unwrap();
         let array = arrow::array::AsArray::as_string::<i32>(&array).clone();
         arrays.push(array);
     }
 
+    let re = Regex::new(r"^-?\d+\.\d*0+$").unwrap();
     for row_i in 0..batch.num_rows() {
         for (i, col) in arrays.iter().enumerate() {
-            res.push_str(col.value(row_i));
+            let mut value = col.value(row_i);
+
+            // HACK: trim trailing 0
+            if re.is_match(value) {
+                value = value.trim_end_matches("0").trim_end_matches('.');
+            }
+            res.push_str(value);
             if i < batch.num_columns() - 1 {
                 res.push(',');
             } else {

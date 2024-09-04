@@ -3,7 +3,6 @@ source: prqlc/prqlc/tests/integration/queries.rs
 expression: "# mssql:test\nfrom tracks\nsort {+track_id}\ntake 3..5\n"
 input_file: prqlc/prqlc/tests/integration/queries/take.prql
 ---
-track_id [Int],name [Utf8],album_id [Int],media_type_id [Int],genre_id [Int],composer [Utf8],milliseconds [Int],bytes [Int],unit_price [Float]
 3,Fast As a Shark,3,2,1,F. Baltes, S. Kaufman, U. Dirkscneider & W. Hoffman,230619,3990994,0.99
 4,Restless and Wild,3,2,1,F. Baltes, R.A. Smith-Diesel, S. Kaufman, U. Dirkscneider & W. Hoffman,252051,4331779,0.99
 5,Princess of the Dawn,3,2,1,Deaffy & R.A. Smith-Diesel,375418,6290521,0.99

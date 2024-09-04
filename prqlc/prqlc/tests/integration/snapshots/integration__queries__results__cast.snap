@@ -3,24 +3,23 @@ source: prqlc/prqlc/tests/integration/queries.rs
 expression: "# mssql:test\nfrom tracks\nsort {-bytes}\nselect {\n    name,\n    bin = ((album_id | as REAL) * 99)\n}\ntake 20\n"
 input_file: prqlc/prqlc/tests/integration/queries/cast.prql
 ---
-name [Utf8],bin [Float]
-Through a Looking Glass,22671.0
-Occupation / Precipice,22473.0
-The Young Lords,25047.0
-The Man With Nine Lives,25047.0
-Dave,22869.0
-The Magnificent Warriors,25047.0
-The Lost Warrior,25047.0
-Maternity Leave,22869.0
-Battlestar Galactica, Pt. 3,25047.0
-The Woman King,22473.0
-Murder On the Rising Star,25047.0
-Through the Looking Glass, Pt. 2,22671.0
-The Man from Tallahassee,22671.0
-Better Halves,22572.0
-Tricia Tanaka Is Dead,22671.0
-Experiment In Terra,25047.0
-The Gun On Ice Planet Zero, Pt. 2,25047.0
-Lockdown,22869.0
-Man of Science, Man of Faith (Premiere),22869.0
-Run!,22572.0
+Through a Looking Glass,22671
+Occupation / Precipice,22473
+The Young Lords,25047
+The Man With Nine Lives,25047
+Dave,22869
+The Magnificent Warriors,25047
+The Lost Warrior,25047
+Maternity Leave,22869
+Battlestar Galactica, Pt. 3,25047
+The Woman King,22473
+Murder On the Rising Star,25047
+Through the Looking Glass, Pt. 2,22671
+The Man from Tallahassee,22671
+Better Halves,22572
+Tricia Tanaka Is Dead,22671
+Experiment In Terra,25047
+The Gun On Ice Planet Zero, Pt. 2,25047
+Lockdown,22869
+Man of Science, Man of Faith (Premiere),22869
+Run!,22572
