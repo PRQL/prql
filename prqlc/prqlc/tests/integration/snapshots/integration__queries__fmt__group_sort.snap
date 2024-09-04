@@ -1,13 +1,11 @@
 ---
 source: prqlc/prqlc/tests/integration/queries.rs
-expression: "# mssql:test\nfrom tracks\nderive d = (album_id + 1 | as REAL)\ngroup d (\n    aggregate {\n        n1 = (track_id | sum | as REAL),\n    }\n)\nsort d\ntake 10\nselect { d1 = d, n1 }\n"
+expression: "# mssql:test\nfrom tracks\nderive d = album_id + 1\ngroup d (\n    aggregate {\n        n1 = (track_id | sum),\n    }\n)\nsort d\ntake 10\nselect { d1 = d, n1 }\n"
 input_file: prqlc/prqlc/tests/integration/queries/group_sort.prql
 ---
 from tracks
-derive d = (album_id + 1 | as REAL)
-group d (aggregate {
-  n1 = (track_id | sum | as REAL),
-})
+derive d = album_id + 1
+group d (aggregate {n1 = (track_id | sum)})
 sort d
 take 10
 select {d1 = d, n1}

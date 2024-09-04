@@ -1,6 +1,6 @@
 ---
 source: prqlc/prqlc/tests/integration/queries.rs
-expression: "# mssql:test\nfrom a=albums\ntake 10\njoin tracks (==album_id)\ngroup {a.album_id, a.title} (\n  aggregate price = (sum tracks.unit_price | math.round 2 | as REAL)\n)\nsort album_id\n"
+expression: "# mssql:test\nfrom a=albums\ntake 10\njoin tracks (==album_id)\ngroup {a.album_id, a.title} (aggregate price = (sum tracks.unit_price | math.round 2))\nsort album_id\n"
 input_file: prqlc/prqlc/tests/integration/queries/group_all.prql
 ---
 frames:
@@ -34,7 +34,7 @@ frames:
       table:
       - default_db
       - tracks
-- - 1:92-158
+- - 1:89-145
   - columns:
     - !Single
       name:
@@ -64,7 +64,7 @@ frames:
       table:
       - default_db
       - tracks
-- - 1:161-174
+- - 1:147-160
   - columns:
     - !Single
       name:
@@ -151,7 +151,7 @@ nodes:
   - 131
   - 122
   - 133
-  parent: 168
+  parent: 165
 - id: 138
   kind: Ident
   span: 1:67-77
@@ -178,67 +178,62 @@ nodes:
   children:
   - 138
   - 139
-  parent: 168
+  parent: 165
 - id: 157
   kind: RqOperator
-  span: 1:150-157
+  span: 1:132-144
   alias: price
   targets:
   - 160
-  parent: 167
+  - 161
+  parent: 164
 - id: 160
+  kind: Literal
+  span: 1:143-144
+- id: 161
   kind: RqOperator
-  span: 1:135-147
+  span: 1:108-129
   targets:
   - 163
-  - 164
 - id: 163
-  kind: Literal
-  span: 1:146-147
-- id: 164
-  kind: RqOperator
-  span: 1:111-132
-  targets:
-  - 166
-- id: 166
   kind: Ident
-  span: 1:121-132
+  span: 1:118-129
   ident: !Ident
   - this
   - tracks
   - unit_price
   targets:
   - 122
-- id: 167
+- id: 164
   kind: Tuple
-  span: 1:150-157
+  span: 1:132-144
   children:
   - 157
-  parent: 168
-- id: 168
+  parent: 165
+- id: 165
   kind: 'TransformCall: Aggregate'
-  span: 1:92-158
+  span: 1:89-145
   children:
   - 137
-  - 167
+  - 164
   - 140
-  parent: 173
-- id: 171
+  parent: 170
+- id: 168
   kind: Ident
-  span: 1:166-174
+  span: 1:152-160
   ident: !Ident
   - this
   - a
   - album_id
   targets:
   - 138
-  parent: 173
-- id: 173
+  parent: 170
+- id: 170
   kind: 'TransformCall: Sort'
-  span: 1:161-174
+  span: 1:147-160
   children:
+  - 165
   - 168
-  - 171
 ast:
   name: Project
   stmts:
@@ -302,54 +297,46 @@ ast:
               - FuncCall:
                   name:
                     Ident: aggregate
-                    span: 1:92-101
+                    span: 1:89-98
                   args:
                   - Pipeline:
                       exprs:
                       - FuncCall:
                           name:
                             Ident: sum
-                            span: 1:111-114
+                            span: 1:108-111
                           args:
                           - Indirection:
                               base:
                                 Ident: tracks
-                                span: 1:115-121
+                                span: 1:112-118
                               field: !Name unit_price
-                            span: 1:121-132
-                        span: 1:111-132
+                            span: 1:118-129
+                        span: 1:108-129
                       - FuncCall:
                           name:
                             Indirection:
                               base:
                                 Ident: math
-                                span: 1:135-139
+                                span: 1:132-136
                               field: !Name round
-                            span: 1:139-145
+                            span: 1:136-142
                           args:
                           - Literal:
                               Integer: 2
-                            span: 1:146-147
-                        span: 1:135-147
-                      - FuncCall:
-                          name:
-                            Ident: as
-                            span: 1:150-152
-                          args:
-                          - Ident: REAL
-                            span: 1:153-157
-                        span: 1:150-157
-                    span: 1:111-157
+                            span: 1:143-144
+                        span: 1:132-144
+                    span: 1:108-144
                     alias: price
-                span: 1:92-158
-            span: 1:60-160
+                span: 1:89-145
+            span: 1:60-146
           - FuncCall:
               name:
                 Ident: sort
-                span: 1:161-165
+                span: 1:147-151
               args:
               - Ident: album_id
-                span: 1:166-174
-            span: 1:161-174
-        span: 1:13-174
-    span: 1:0-174
+                span: 1:152-160
+            span: 1:147-160
+        span: 1:13-160
+    span: 1:0-160

@@ -1,23 +1,23 @@
 ---
 source: prqlc/prqlc/tests/integration/queries.rs
-expression: "# mssql:test\n# sqlite:skip (see https://github.com/rusqlite/rusqlite/issues/1211)\nfrom invoices\ntake 5\nselect {\n    total_original = (total | math.round 2 | as REAL),\n    total_x = (math.pi - total | math.round 2 | math.abs | as REAL),\n    total_floor = (math.floor total | as REAL),\n    total_ceil = (math.ceil total | as REAL),\n    total_log10 = (math.log10 total | math.round 3 | as REAL),\n    total_log2 = (math.log 2 total | math.round 3 | as REAL),\n    total_sqrt = (math.sqrt total | math.round 3 | as REAL),\n    total_ln = (math.ln total | math.exp | math.round 2 | as REAL),\n    total_cos = (math.cos total | math.acos | math.round 2 | as REAL),\n    total_sin = (math.sin total | math.asin | math.round 2 | as REAL),\n    total_tan = (math.tan total | math.atan | math.round 2 | as REAL),\n    total_deg = (total | math.degrees | math.radians | math.round 2 | as REAL),\n    total_square = (total | math.pow 2 | math.round 2 | as REAL),\n    total_square_op = ((total ** 2) | math.round 2 | as REAL),\n}\n"
+expression: "# mssql:test\n# sqlite:skip (see https://github.com/rusqlite/rusqlite/issues/1211)\nfrom invoices\ntake 5\nselect {\n    total_original = (total | math.round 2),\n    total_x = (math.pi - total | math.round 2 | math.abs),\n    total_floor = (math.floor total),\n    total_ceil = (math.ceil total),\n    total_log10 = (math.log10 total | math.round 3),\n    total_log2 = (math.log 2 total | math.round 3),\n    total_sqrt = (math.sqrt total | math.round 3),\n    total_ln = (math.ln total | math.exp | math.round 2),\n    total_cos = (math.cos total | math.acos | math.round 2),\n    total_sin = (math.sin total | math.asin | math.round 2),\n    total_tan = (math.tan total | math.atan | math.round 2),\n    total_deg = (total | math.degrees | math.radians | math.round 2),\n    total_square = (total | math.pow 2 | math.round 2),\n    total_square_op = ((total ** 2) | math.round 2),\n}\n"
 input_file: prqlc/prqlc/tests/integration/queries/math_module.prql
 ---
 SELECT
-  CAST(ROUND(total, 2) AS REAL) AS total_original,
-  CAST(ABS(ROUND(PI() - total, 2)) AS REAL) AS total_x,
-  CAST(FLOOR(total) AS REAL) AS total_floor,
-  CAST(CEIL(total) AS REAL) AS total_ceil,
-  CAST(ROUND(LOG10(total), 3) AS REAL) AS total_log10,
-  CAST(ROUND(LOG10(total) / LOG10(2), 3) AS REAL) AS total_log2,
-  CAST(ROUND(SQRT(total), 3) AS REAL) AS total_sqrt,
-  CAST(ROUND(EXP(LN(total)), 2) AS REAL) AS total_ln,
-  CAST(ROUND(ACOS(COS(total)), 2) AS REAL) AS total_cos,
-  CAST(ROUND(ASIN(SIN(total)), 2) AS REAL) AS total_sin,
-  CAST(ROUND(ATAN(TAN(total)), 2) AS REAL) AS total_tan,
-  CAST(ROUND(RADIANS(DEGREES(total)), 2) AS REAL) AS total_deg,
-  CAST(ROUND(POW(total, 2), 2) AS REAL) AS total_square,
-  CAST(ROUND(POW(total, 2), 2) AS REAL) AS total_square_op
+  ROUND(total, 2) AS total_original,
+  ABS(ROUND(PI() - total, 2)) AS total_x,
+  FLOOR(total) AS total_floor,
+  CEIL(total) AS total_ceil,
+  ROUND(LOG10(total), 3) AS total_log10,
+  ROUND(LOG10(total) / LOG10(2), 3) AS total_log2,
+  ROUND(SQRT(total), 3) AS total_sqrt,
+  ROUND(EXP(LN(total)), 2) AS total_ln,
+  ROUND(ACOS(COS(total)), 2) AS total_cos,
+  ROUND(ASIN(SIN(total)), 2) AS total_sin,
+  ROUND(ATAN(TAN(total)), 2) AS total_tan,
+  ROUND(RADIANS(DEGREES(total)), 2) AS total_deg,
+  ROUND(POW(total, 2), 2) AS total_square,
+  ROUND(POW(total, 2), 2) AS total_square_op
 FROM
   invoices
 LIMIT

@@ -1,10 +1,10 @@
 ---
 source: prqlc/prqlc/tests/integration/queries.rs
-expression: "# mssql:test\nfrom tracks\nderive d = (album_id + 1 | as REAL)\ngroup d (\n    aggregate {\n        n1 = (track_id | sum | as REAL),\n    }\n)\nsort d\ntake 10\nselect { d1 = d, n1 }\n"
+expression: "# mssql:test\nfrom tracks\nderive d = album_id + 1\ngroup d (\n    aggregate {\n        n1 = (track_id | sum),\n    }\n)\nsort d\ntake 10\nselect { d1 = d, n1 }\n"
 input_file: prqlc/prqlc/tests/integration/queries/group_sort.prql
 ---
 frames:
-- - 1:25-60
+- - 1:25-48
   - columns:
     - !All
       input_id: 130
@@ -20,17 +20,17 @@ frames:
       table:
       - default_db
       - tracks
-- - 1:75-133
+- - 1:63-111
   - columns:
     - !Single
       name:
       - d
-      target_id: 141
+      target_id: 138
       target_name: null
     - !Single
       name:
       - n1
-      target_id: 158
+      target_id: 155
       target_name: null
     inputs:
     - id: 130
@@ -38,17 +38,17 @@ frames:
       table:
       - default_db
       - tracks
-- - 1:136-142
+- - 1:114-120
   - columns:
     - !Single
       name:
       - d
-      target_id: 141
+      target_id: 138
       target_name: null
     - !Single
       name:
       - n1
-      target_id: 158
+      target_id: 155
       target_name: null
     inputs:
     - id: 130
@@ -56,17 +56,17 @@ frames:
       table:
       - default_db
       - tracks
-- - 1:143-150
+- - 1:121-128
   - columns:
     - !Single
       name:
       - d
-      target_id: 141
+      target_id: 138
       target_name: null
     - !Single
       name:
       - n1
-      target_id: 158
+      target_id: 155
       target_name: null
     inputs:
     - id: 130
@@ -74,17 +74,17 @@ frames:
       table:
       - default_db
       - tracks
-- - 1:151-172
+- - 1:129-150
   - columns:
     - !Single
       name:
       - d1
-      target_id: 174
+      target_id: 168
       target_name: null
     - !Single
       name:
       - n1
-      target_id: 175
+      target_id: 169
       target_name: null
     inputs:
     - id: 130
@@ -99,153 +99,143 @@ nodes:
   ident: !Ident
   - default_db
   - tracks
-  parent: 140
+  parent: 137
 - id: 132
   kind: RqOperator
-  span: 1:52-59
+  span: 1:36-48
   alias: d
   targets:
+  - 134
   - 135
-  parent: 139
-- id: 135
-  kind: RqOperator
-  span: 1:37-49
-  targets:
-  - 137
-  - 138
-- id: 137
+  parent: 136
+- id: 134
   kind: Ident
-  span: 1:37-45
+  span: 1:36-44
   ident: !Ident
   - this
   - tracks
   - album_id
   targets:
   - 130
-- id: 138
+- id: 135
   kind: Literal
-  span: 1:48-49
-- id: 139
+  span: 1:47-48
+- id: 136
   kind: Tuple
-  span: 1:52-59
+  span: 1:36-48
   children:
   - 132
-  parent: 140
-- id: 140
+  parent: 137
+- id: 137
   kind: 'TransformCall: Derive'
-  span: 1:25-60
+  span: 1:25-48
   children:
   - 130
-  - 139
-  parent: 165
-- id: 141
+  - 136
+  parent: 159
+- id: 138
   kind: Ident
-  span: 1:67-68
+  span: 1:55-56
   ident: !Ident
   - this
   - d
   targets:
   - 132
-  parent: 144
-- id: 144
+  parent: 141
+- id: 141
   kind: Tuple
-  span: 1:67-68
+  span: 1:55-56
   children:
-  - 141
-  parent: 165
-- id: 158
+  - 138
+  parent: 159
+- id: 155
   kind: RqOperator
-  span: 1:118-125
+  span: 1:100-103
   alias: n1
   targets:
-  - 161
-  parent: 164
-- id: 161
-  kind: RqOperator
-  span: 1:112-115
-  targets:
-  - 163
-- id: 163
+  - 157
+  parent: 158
+- id: 157
   kind: Ident
-  span: 1:101-109
+  span: 1:89-97
   ident: !Ident
   - this
   - tracks
   - track_id
   targets:
   - 130
-- id: 164
+- id: 158
   kind: Tuple
-  span: 1:85-133
+  span: 1:73-111
   children:
-  - 158
-  parent: 165
-- id: 165
+  - 155
+  parent: 159
+- id: 159
   kind: 'TransformCall: Aggregate'
-  span: 1:75-133
+  span: 1:63-111
   children:
-  - 140
-  - 164
-  - 144
-  parent: 170
-- id: 168
+  - 137
+  - 158
+  - 141
+  parent: 164
+- id: 162
   kind: Ident
-  span: 1:141-142
+  span: 1:119-120
   ident: !Ident
   - this
   - d
   targets:
-  - 141
-  parent: 170
-- id: 170
+  - 138
+  parent: 164
+- id: 164
   kind: 'TransformCall: Sort'
-  span: 1:136-142
+  span: 1:114-120
   children:
-  - 165
-  - 168
-  parent: 172
-- id: 172
+  - 159
+  - 162
+  parent: 166
+- id: 166
   kind: 'TransformCall: Take'
-  span: 1:143-150
+  span: 1:121-128
   children:
-  - 170
-  - 173
-  parent: 177
-- id: 173
+  - 164
+  - 167
+  parent: 171
+- id: 167
   kind: Literal
-  parent: 172
-- id: 174
+  parent: 166
+- id: 168
   kind: Ident
-  span: 1:165-166
+  span: 1:143-144
   alias: d1
   ident: !Ident
   - this
   - d
   targets:
-  - 141
-  parent: 176
-- id: 175
+  - 138
+  parent: 170
+- id: 169
   kind: Ident
-  span: 1:168-170
+  span: 1:146-148
   ident: !Ident
   - this
   - n1
   targets:
-  - 158
-  parent: 176
-- id: 176
+  - 155
+  parent: 170
+- id: 170
   kind: Tuple
-  span: 1:158-172
+  span: 1:136-150
   children:
-  - 174
-  - 175
-  parent: 177
-- id: 177
+  - 168
+  - 169
+  parent: 171
+- id: 171
   kind: 'TransformCall: Select'
-  span: 1:151-172
+  span: 1:129-150
   children:
-  - 172
-  - 176
+  - 166
+  - 170
 ast:
   name: Project
   stmts:
@@ -268,90 +258,71 @@ ast:
                 Ident: derive
                 span: 1:25-31
               args:
-              - Pipeline:
-                  exprs:
-                  - Binary:
-                      left:
-                        Ident: album_id
-                        span: 1:37-45
-                      op: Add
-                      right:
-                        Literal:
-                          Integer: 1
-                        span: 1:48-49
-                    span: 1:37-49
-                  - FuncCall:
-                      name:
-                        Ident: as
-                        span: 1:52-54
-                      args:
-                      - Ident: REAL
-                        span: 1:55-59
-                    span: 1:52-59
-                span: 1:37-59
+              - Binary:
+                  left:
+                    Ident: album_id
+                    span: 1:36-44
+                  op: Add
+                  right:
+                    Literal:
+                      Integer: 1
+                    span: 1:47-48
+                span: 1:36-48
                 alias: d
-            span: 1:25-60
+            span: 1:25-48
           - FuncCall:
               name:
                 Ident: group
-                span: 1:61-66
+                span: 1:49-54
               args:
               - Ident: d
-                span: 1:67-68
+                span: 1:55-56
               - FuncCall:
                   name:
                     Ident: aggregate
-                    span: 1:75-84
+                    span: 1:63-72
                   args:
                   - Tuple:
                     - Pipeline:
                         exprs:
                         - Ident: track_id
-                          span: 1:101-109
+                          span: 1:89-97
                         - Ident: sum
-                          span: 1:112-115
-                        - FuncCall:
-                            name:
-                              Ident: as
-                              span: 1:118-120
-                            args:
-                            - Ident: REAL
-                              span: 1:121-125
-                          span: 1:118-125
-                      span: 1:100-126
+                          span: 1:100-103
+                      span: 1:88-104
                       alias: n1
-                    span: 1:85-133
-                span: 1:75-133
-            span: 1:61-135
+                    span: 1:73-111
+                span: 1:63-111
+            span: 1:49-113
           - FuncCall:
               name:
                 Ident: sort
-                span: 1:136-140
+                span: 1:114-118
               args:
               - Ident: d
-                span: 1:141-142
-            span: 1:136-142
+                span: 1:119-120
+            span: 1:114-120
           - FuncCall:
               name:
                 Ident: take
-                span: 1:143-147
+                span: 1:121-125
               args:
               - Literal:
                   Integer: 10
-                span: 1:148-150
-            span: 1:143-150
+                span: 1:126-128
+            span: 1:121-128
           - FuncCall:
               name:
                 Ident: select
-                span: 1:151-157
+                span: 1:129-135
               args:
               - Tuple:
                 - Ident: d
-                  span: 1:165-166
+                  span: 1:143-144
                   alias: d1
                 - Ident: n1
-                  span: 1:168-170
-                span: 1:158-172
-            span: 1:151-172
-        span: 1:13-172
-    span: 1:0-172
+                  span: 1:146-148
+                span: 1:136-150
+            span: 1:129-150
+        span: 1:13-150
+    span: 1:0-150

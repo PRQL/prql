@@ -1,4 +1,3 @@
-# sqlite:skip
 # mssql:skip
 # mysql:skip
 # clickhouse:skip
@@ -6,9 +5,4 @@
 from tracks
 filter genre_id == 100
 derive empty_name = name == ''
-aggregate {
-  s = (sum track_id | as REAL),
-  c = concat_array name,
-  a = all empty_name,
-  n = any empty_name,
-}
+aggregate {sum track_id, concat_array name, all empty_name, any empty_name}

@@ -1,13 +1,13 @@
 ---
 source: prqlc/prqlc/tests/integration/queries.rs
-expression: "# mssql:skip Conversion(\"cannot interpret I64(Some(1)) as an i32 value\")', connection.rs:200:34\n# duckdb:skip problems with DISTINCT ON (duckdb internal error: [with INPUT_TYPE = int; RESULT_TYPE = unsigned char]: Assertion `min_val <= input' failed.)\n# clickhouse:skip problems with DISTINCT ON\n# postgres:skip problems with DISTINCT ON\n# glaredb:skip — TODO: started raising an error on 2024-05-20, from https://github.com/PRQL/prql/actions/runs/9154902656/job/25198160283:\n    # ERROR: This feature is not implemented: Unsupported ast node in sqltorel:\n    # Substring { expr: Identifier(Ident { value: \"title\", quote_style: None }),\n    # substring_from: Some(Value(Number(\"2\", false))), substring_for:\n    # Some(Value(Number(\"5\", false))), special: true }\nfrom tracks\ngroup genre_id (\n  sort milliseconds\n  derive {\n    num = (row_number this | as SIGNED),\n    total = count this,\n    last_val = last track_id,\n  }\n  take 10\n)\nsort {genre_id, milliseconds}\nselect {track_id, genre_id, num, total, last_val}\nfilter genre_id >= 22\n"
+expression: "# mssql:skip Conversion(\"cannot interpret I64(Some(1)) as an i32 value\")', connection.rs:200:34\n# duckdb:skip problems with DISTINCT ON (duckdb internal error: [with INPUT_TYPE = int; RESULT_TYPE = unsigned char]: Assertion `min_val <= input' failed.)\n# clickhouse:skip problems with DISTINCT ON\n# postgres:skip problems with DISTINCT ON\n# glaredb:skip — TODO: started raising an error on 2024-05-20, from https://github.com/PRQL/prql/actions/runs/9154902656/job/25198160283:\n    # ERROR: This feature is not implemented: Unsupported ast node in sqltorel:\n    # Substring { expr: Identifier(Ident { value: \"title\", quote_style: None }),\n    # substring_from: Some(Value(Number(\"2\", false))), substring_for:\n    # Some(Value(Number(\"5\", false))), special: true }\nfrom tracks\ngroup genre_id (\n  sort milliseconds\n  derive {\n    num = row_number this,\n    total = count this,\n    last_val = last track_id,\n  }\n  take 10\n)\nsort {genre_id, milliseconds}\nselect {track_id, genre_id, num, total, last_val}\nfilter genre_id >= 22\n"
 input_file: prqlc/prqlc/tests/integration/queries/window.prql
 ---
 from tracks
 group genre_id (
   sort milliseconds
   derive {
-    num = (row_number this | as SIGNED),
+    num = row_number this,
     total = count this,
     last_val = last track_id,
   }

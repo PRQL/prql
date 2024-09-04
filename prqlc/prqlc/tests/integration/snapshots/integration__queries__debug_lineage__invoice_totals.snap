@@ -1,6 +1,6 @@
 ---
 source: prqlc/prqlc/tests/integration/queries.rs
-expression: "# clickhouse:skip (clickhouse doesn't have lag function)\n\n#! Calculate a number of metrics about the sales of tracks in each city.\nfrom i=invoices\njoin ii=invoice_items (==invoice_id)\nderive {\n    city = i.billing_city,\n    street = i.billing_address,\n}\ngroup {city, street} (\n    derive total = ii.unit_price * ii.quantity\n    aggregate {\n        num_orders = count_distinct i.invoice_id,\n        num_tracks = sum ii.quantity,\n        total_price = sum total,\n    }\n)\ngroup {city} (\n    sort street\n    window expanding:true (\n        derive {running_total_num_tracks = sum num_tracks}\n    )\n)\nsort {city, street}\nderive {num_tracks_last_week = lag 7 num_tracks}\nselect {\n    city,\n    street,\n    num_orders,\n    num_tracks = (num_tracks | as REAL),\n    running_total_num_tracks = (running_total_num_tracks | as REAL),\n    num_tracks_last_week = (num_tracks_last_week | as REAL)\n}\ntake 20\n"
+expression: "# clickhouse:skip (clickhouse doesn't have lag function)\n\n#! Calculate a number of metrics about the sales of tracks in each city.\nfrom i=invoices\njoin ii=invoice_items (==invoice_id)\nderive {\n    city = i.billing_city,\n    street = i.billing_address,\n}\ngroup {city, street} (\n    derive total = ii.unit_price * ii.quantity\n    aggregate {\n        num_orders = count_distinct i.invoice_id,\n        num_tracks = sum ii.quantity,\n        total_price = sum total,\n    }\n)\ngroup {city} (\n    sort street\n    window expanding:true (\n        derive {running_total_num_tracks = sum num_tracks}\n    )\n)\nsort {city, street}\nderive {num_tracks_last_week = lag 7 num_tracks}\nselect {\n    city,\n    street,\n    num_orders,\n    num_tracks,\n    running_total_num_tracks,\n    num_tracks_last_week\n}\ntake 20\n"
 input_file: prqlc/prqlc/tests/integration/queries/invoice_totals.prql
 ---
 frames:
@@ -248,7 +248,7 @@ frames:
       table:
       - default_db
       - invoice_items
-- - 1:664-882
+- - 1:664-783
   - columns:
     - !Single
       name:
@@ -273,12 +273,12 @@ frames:
     - !Single
       name:
       - running_total_num_tracks
-      target_id: 270
+      target_id: 267
       target_name: null
     - !Single
       name:
       - num_tracks_last_week
-      target_id: 274
+      target_id: 268
       target_name: null
     inputs:
     - id: 140
@@ -291,7 +291,7 @@ frames:
       table:
       - default_db
       - invoice_items
-- - 1:883-890
+- - 1:784-791
   - columns:
     - !Single
       name:
@@ -316,12 +316,12 @@ frames:
     - !Single
       name:
       - running_total_num_tracks
-      target_id: 270
+      target_id: 267
       target_name: null
     - !Single
       name:
       - num_tracks_last_week
-      target_id: 274
+      target_id: 268
       target_name: null
     inputs:
     - id: 140
@@ -654,7 +654,7 @@ nodes:
   children:
   - 256
   - 261
-  parent: 279
+  parent: 270
 - id: 263
   kind: Ident
   span: 1:677-681
@@ -663,7 +663,7 @@ nodes:
   - city
   targets:
   - 197
-  parent: 278
+  parent: 269
 - id: 264
   kind: Ident
   span: 1:687-693
@@ -672,7 +672,7 @@ nodes:
   - street
   targets:
   - 152
-  parent: 278
+  parent: 269
 - id: 265
   kind: Ident
   span: 1:699-709
@@ -681,79 +681,61 @@ nodes:
   - num_orders
   targets:
   - 184
-  parent: 278
+  parent: 269
 - id: 266
-  kind: RqOperator
-  span: 1:742-749
-  alias: num_tracks
-  targets:
-  - 269
-  parent: 278
-- id: 269
   kind: Ident
-  span: 1:729-739
+  span: 1:715-725
   ident: !Ident
   - this
   - num_tracks
   targets:
   - 187
-- id: 270
-  kind: RqOperator
-  span: 1:811-818
-  alias: running_total_num_tracks
-  targets:
-  - 273
-  parent: 278
-- id: 273
+  parent: 269
+- id: 267
   kind: Ident
-  span: 1:784-808
+  span: 1:731-755
   ident: !Ident
   - this
   - running_total_num_tracks
   targets:
   - 243
-- id: 274
-  kind: RqOperator
-  span: 1:872-879
-  alias: num_tracks_last_week
-  targets:
-  - 277
-  parent: 278
-- id: 277
+  parent: 269
+- id: 268
   kind: Ident
-  span: 1:849-869
+  span: 1:761-781
   ident: !Ident
   - this
   - num_tracks_last_week
   targets:
   - 257
-- id: 278
+  parent: 269
+- id: 269
   kind: Tuple
-  span: 1:671-882
+  span: 1:671-783
   children:
   - 263
   - 264
   - 265
   - 266
-  - 270
-  - 274
-  parent: 279
-- id: 279
+  - 267
+  - 268
+  parent: 270
+- id: 270
   kind: 'TransformCall: Select'
-  span: 1:664-882
+  span: 1:664-783
   children:
   - 262
-  - 278
-  parent: 281
-- id: 281
+  - 269
+  parent: 272
+- id: 272
   kind: 'TransformCall: Take'
-  span: 1:883-890
+  span: 1:784-791
   children:
-  - 279
-  - 282
-- id: 282
+  - 270
+  - 273
+- id: 273
   kind: Literal
-  parent: 281
+  parent: 272
 ast:
   name: Project
   stmts:
@@ -984,59 +966,23 @@ ast:
                   span: 1:687-693
                 - Ident: num_orders
                   span: 1:699-709
-                - Pipeline:
-                    exprs:
-                    - Ident: num_tracks
-                      span: 1:729-739
-                    - FuncCall:
-                        name:
-                          Ident: as
-                          span: 1:742-744
-                        args:
-                        - Ident: REAL
-                          span: 1:745-749
-                      span: 1:742-749
-                  span: 1:728-750
-                  alias: num_tracks
-                - Pipeline:
-                    exprs:
-                    - Ident: running_total_num_tracks
-                      span: 1:784-808
-                    - FuncCall:
-                        name:
-                          Ident: as
-                          span: 1:811-813
-                        args:
-                        - Ident: REAL
-                          span: 1:814-818
-                      span: 1:811-818
-                  span: 1:783-819
-                  alias: running_total_num_tracks
-                - Pipeline:
-                    exprs:
-                    - Ident: num_tracks_last_week
-                      span: 1:849-869
-                    - FuncCall:
-                        name:
-                          Ident: as
-                          span: 1:872-874
-                        args:
-                        - Ident: REAL
-                          span: 1:875-879
-                      span: 1:872-879
-                  span: 1:848-880
-                  alias: num_tracks_last_week
-                span: 1:671-882
-            span: 1:664-882
+                - Ident: num_tracks
+                  span: 1:715-725
+                - Ident: running_total_num_tracks
+                  span: 1:731-755
+                - Ident: num_tracks_last_week
+                  span: 1:761-781
+                span: 1:671-783
+            span: 1:664-783
           - FuncCall:
               name:
                 Ident: take
-                span: 1:883-887
+                span: 1:784-788
               args:
               - Literal:
                   Integer: 20
-                span: 1:888-890
-            span: 1:883-890
-        span: 1:131-890
-    span: 1:130-890
+                span: 1:789-791
+            span: 1:784-791
+        span: 1:131-791
+    span: 1:130-791
     doc_comment: ' Calculate a number of metrics about the sales of tracks in each city.'

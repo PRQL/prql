@@ -1,6 +1,6 @@
 ---
 source: prqlc/prqlc/tests/integration/queries.rs
-expression: "# clickhouse:skip (clickhouse doesn't have lag function)\n\n#! Calculate a number of metrics about the sales of tracks in each city.\nfrom i=invoices\njoin ii=invoice_items (==invoice_id)\nderive {\n    city = i.billing_city,\n    street = i.billing_address,\n}\ngroup {city, street} (\n    derive total = ii.unit_price * ii.quantity\n    aggregate {\n        num_orders = count_distinct i.invoice_id,\n        num_tracks = sum ii.quantity,\n        total_price = sum total,\n    }\n)\ngroup {city} (\n    sort street\n    window expanding:true (\n        derive {running_total_num_tracks = sum num_tracks}\n    )\n)\nsort {city, street}\nderive {num_tracks_last_week = lag 7 num_tracks}\nselect {\n    city,\n    street,\n    num_orders,\n    num_tracks = (num_tracks | as REAL),\n    running_total_num_tracks = (running_total_num_tracks | as REAL),\n    num_tracks_last_week = (num_tracks_last_week | as REAL)\n}\ntake 20\n"
+expression: "# clickhouse:skip (clickhouse doesn't have lag function)\n\n#! Calculate a number of metrics about the sales of tracks in each city.\nfrom i=invoices\njoin ii=invoice_items (==invoice_id)\nderive {\n    city = i.billing_city,\n    street = i.billing_address,\n}\ngroup {city, street} (\n    derive total = ii.unit_price * ii.quantity\n    aggregate {\n        num_orders = count_distinct i.invoice_id,\n        num_tracks = sum ii.quantity,\n        total_price = sum total,\n    }\n)\ngroup {city} (\n    sort street\n    window expanding:true (\n        derive {running_total_num_tracks = sum num_tracks}\n    )\n)\nsort {city, street}\nderive {num_tracks_last_week = lag 7 num_tracks}\nselect {\n    city,\n    street,\n    num_orders,\n    num_tracks,\n    running_total_num_tracks,\n    num_tracks_last_week\n}\ntake 20\n"
 input_file: prqlc/prqlc/tests/integration/queries/invoice_totals.prql
 ---
 WITH table_0 AS (
@@ -8,7 +8,7 @@ WITH table_0 AS (
     i.billing_city AS city,
     i.billing_address AS street,
     COUNT(DISTINCT i.invoice_id) AS num_orders,
-    COALESCE(SUM(ii.quantity), 0) AS _expr_0
+    COALESCE(SUM(ii.quantity), 0) AS num_tracks
   FROM
     invoices AS i
     JOIN invoice_items AS ii ON i.invoice_id = ii.invoice_id
@@ -20,20 +20,16 @@ SELECT
   city,
   street,
   num_orders,
-  CAST(_expr_0 AS REAL) AS num_tracks,
-  CAST(
-    SUM(_expr_0) OVER (
-      PARTITION BY city
-      ORDER BY
-        street ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW
-    ) AS REAL
+  num_tracks,
+  SUM(num_tracks) OVER (
+    PARTITION BY city
+    ORDER BY
+      street ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW
   ) AS running_total_num_tracks,
-  CAST(
-    LAG(_expr_0, 7) OVER (
-      ORDER BY
-        city,
-        street
-    ) AS REAL
+  LAG(num_tracks, 7) OVER (
+    ORDER BY
+      city,
+      street
   ) AS num_tracks_last_week
 FROM
   table_0
