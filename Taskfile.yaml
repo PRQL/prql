@@ -361,7 +361,7 @@ tasks:
       - cmd: |
           echo "🔵 To stop containers and remove images, run
 
-          cd prqlc/prqlc/tests/integration/dbs && docker-compose down --rmi local"
+              cd prqlc/prqlc/tests/integration/dbs && docker-compose down --rmi local"
         silent: true
 
   test-js:
