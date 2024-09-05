@@ -5,6 +5,7 @@ mod protocol;
 mod runner;
 
 use anyhow::Result;
+use connector_arrow::arrow;
 use prqlc::{sql::Dialect, sql::SupportLevel, Options, Target};
 use regex::Regex;
 use serde::{Deserialize, Serialize};
@@ -12,7 +13,6 @@ use serde::{Deserialize, Serialize};
 pub use self::protocol::DbProtocol;
 use self::protocol::DbProtocolHandler;
 use self::runner::DbTestRunner;
-pub type Row = Vec<String>;
 
 pub struct DbConnection {
     /// Configuration parameters
@@ -40,8 +40,10 @@ pub struct ConnectionCfg {
 impl DbConnection {
     pub fn new(cfg: ConnectionCfg) -> Option<DbConnection> {
         let protocol = match &cfg.protocol {
+            #[cfg(feature = "test-dbs")]
             DbProtocol::DuckDb => protocol::duckdb::init(),
 
+            #[cfg(feature = "test-dbs")]
             DbProtocol::SQLite => protocol::sqlite::init(),
 
             #[cfg(feature = "test-dbs-external")]
@@ -53,7 +55,6 @@ impl DbConnection {
             #[cfg(feature = "test-dbs-external")]
             DbProtocol::MsSql => protocol::mssql::init(),
 
-            #[allow(unreachable_patterns)]
             _ => return None,
         };
 
@@ -83,7 +84,7 @@ impl DbConnection {
             .filter(|s| !s.is_empty())
             .map(|s| self.runner.modify_ddl(s.to_string()))
             .for_each(|s| {
-                self.protocol.query(&s).unwrap();
+                self.protocol.execute(&s).unwrap();
             });
 
         for file_path in glob::glob("tests/integration/data/chinook/*.csv").unwrap() {
@@ -107,44 +108,69 @@ impl DbConnection {
         }
     }
 
-    pub fn run_query(&mut self, prql: &str) -> Result<Vec<Row>> {
+    pub fn run_query(&mut self, prql: &str) -> Result<arrow::record_batch::RecordBatch> {
         // compile to SQL
         let dialect = self.cfg.dialect;
         let options = Options::default().with_target(Target::Sql(Some(dialect)));
         let sql = prqlc::compile(prql, &options)?;
 
         // execute
-        let mut rows = self.protocol.query(&sql)?;
-
-        // modify result
-        replace_booleans(&mut rows);
-        remove_trailing_zeros(&mut rows);
-
-        Ok(rows)
+        let res = self.protocol.query(&sql)?;
+        Ok(res)
     }
 }
 
-// some sql dialects use 1 and 0 instead of true and false
-fn replace_booleans(rows: &mut Vec<Row>) {
-    for row in rows {
-        for col in row {
-            if col == "true" {
-                *col = "1".to_string();
-            } else if col == "false" {
-                *col = "0".to_string();
-            }
-        }
-    }
-}
+/// Converts arrow::RecordBatch into ad-hoc CSV
+pub fn batch_to_csv(batch: arrow::record_batch::RecordBatch) -> String {
+    let mut res = String::with_capacity((batch.num_rows() + 1) * batch.num_columns() * 20);
 
-// MySQL may adds 0s to the end of results of `/` operator
-fn remove_trailing_zeros(rows: &mut Vec<Row>) {
-    let re = Regex::new(r"^(|-)\d+\.\d+0+$").unwrap();
-    for row in rows {
-        for col in row {
-            if re.is_match(col) {
-                *col = Regex::new(r"0+$").unwrap().replace_all(col, "").to_string();
+    // print header
+    /*
+    res.push_str(
+        batch
+            .schema()
+            .fields()
+            .iter()
+            .map(|f| {
+                let ty = f.data_type().to_string();
+                format!("{} [{ty}]", f.name())
+            })
+            .join(",")
+            .as_str(),
+    );
+    res.push('\n');
+    */
+
+    // convert each column to string
+    let mut arrays = Vec::with_capacity(batch.num_columns());
+    for col_i in 0..batch.num_columns() {
+        let mut array = batch.columns().get(col_i).unwrap().clone();
+        if *array.data_type() == arrow::datatypes::DataType::Boolean {
+            array = arrow::compute::cast(&array, &arrow::datatypes::DataType::UInt8).unwrap();
+        }
+        let array = arrow::compute::cast(&array, &arrow::datatypes::DataType::Utf8).unwrap();
+        let array = arrow::array::AsArray::as_string::<i32>(&array).clone();
+        arrays.push(array);
+    }
+
+    let re = Regex::new(r"^-?\d+\.\d*0+$").unwrap();
+    for row_i in 0..batch.num_rows() {
+        for (i, col) in arrays.iter().enumerate() {
+            let mut value = col.value(row_i);
+
+            // HACK: trim trailing 0
+            if re.is_match(value) {
+                value = value.trim_end_matches('0').trim_end_matches('.');
+            }
+            res.push_str(value);
+            if i < batch.num_columns() - 1 {
+                res.push(',');
+            } else {
+                res.push('\n');
             }
         }
     }
+
+    res.shrink_to_fit();
+    res
 }
