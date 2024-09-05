@@ -860,19 +860,34 @@ checksum = "510ca239cf13b7f8d16a2b48f263de7b4f8c566f0af58d901031473c76afb1e3"
 
 [[package]]
 name = "connector_arrow"
-version = "0.5.3"
+version = "0.5.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "486e0dcae4bc56ad727ae9ad9147901e452c28593035c503c2c3b160437e2a57"
+checksum = "6e23506fc04e5c4d511b4eff9aa7d89185191e2351a773a6abc8e3b64a5f8277"
 dependencies = [
  "arrow",
+ "byteorder",
+ "bytes",
  "chrono",
+ "csv",
+ "duckdb",
+ "fallible-iterator 0.2.0",
+ "fallible-streaming-iterator",
+ "futures",
+ "hex",
  "itertools 0.13.0",
  "log",
+ "mysql",
  "once_cell",
+ "pac_cell",
+ "postgres",
+ "postgres-protocol",
  "regex",
  "rusqlite",
  "serde_json",
  "thiserror",
+ "tiberius",
+ "tokio",
+ "tokio-util",
 ]
 
 [[package]]
@@ -1677,6 +1692,12 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "fbf6a919d6cf397374f7dfeeea91d974c7c0a7221d0d0f4f20d859d329e53fcc"
 
 [[package]]
+name = "hex"
+version = "0.4.3"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "7f24254aa9a54b5c858eaee2f5bccdb46aaf0e486a595ed5fd8f86ba55232a70"
+
+[[package]]
 name = "hmac"
 version = "0.12.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2342,7 +2363,7 @@ dependencies = [
  "subprocess",
  "thiserror",
  "time",
- "uuid",
+ "uuid 1.8.0",
  "zstd",
 ]
 
@@ -2582,6 +2603,12 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "c1b04fb49957986fdce4d6ee7a65027d55d4b6d2265e5848bbb507b58ccfdb6f"
 
 [[package]]
+name = "pac_cell"
+version = "0.1.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "4fedd80c472f62662c2039c01b2434ca886948fb2f1aa2bc30b84ec53e474bdf"
+
+[[package]]
 name = "parking_lot"
 version = "0.12.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2672,19 +2699,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "pg_bigdecimal"
-version = "0.1.5"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "f9855a94c74528af62c0ea236577af5e601263c1c404a6ac939b07c97c8e0216"
-dependencies = [
- "bigdecimal 0.3.1",
- "byteorder",
- "bytes",
- "num",
- "postgres",
-]
-
-[[package]]
 name = "phf"
 version = "0.11.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2765,8 +2779,12 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "02048d9e032fb3cc3413bbf7b83a15d84a5d419778e2628751896d856498eee9"
 dependencies = [
  "bytes",
+ "chrono",
  "fallible-iterator 0.2.0",
  "postgres-protocol",
+ "serde",
+ "serde_json",
+ "uuid 0.8.2",
 ]
 
 [[package]]
@@ -2858,10 +2876,12 @@ dependencies = [
  "clio",
  "color-eyre",
  "colorchoice-clap",
+ "connector_arrow",
  "criterion",
  "csv",
  "duckdb",
  "enum-as-inner",
+ "futures",
  "glob",
  "insta",
  "insta-cmd",
@@ -2871,7 +2891,6 @@ dependencies = [
  "minijinja",
  "mysql",
  "notify",
- "pg_bigdecimal",
  "postgres",
  "prqlc-parser",
  "regex",
@@ -3243,7 +3262,7 @@ dependencies = [
  "rkyv_derive",
  "seahash",
  "tinyvec",
- "uuid",
+ "uuid 1.8.0",
 ]
 
 [[package]]
@@ -4004,7 +4023,7 @@ dependencies = [
  "tokio-rustls",
  "tokio-util",
  "tracing",
- "uuid",
+ "uuid 1.8.0",
 ]
 
 [[package]]
@@ -4359,6 +4378,12 @@ name = "utf8parse"
 version = "0.2.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "711b9620af191e0cdc7468a8d14e709c3dcdb115b36f838e601583af800a370a"
+
+[[package]]
+name = "uuid"
+version = "0.8.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "bc5cf98d8186244414c848017f0e2676b3fcb46807f6668a97dfe67359a3c4b7"
 
 [[package]]
 name = "uuid"

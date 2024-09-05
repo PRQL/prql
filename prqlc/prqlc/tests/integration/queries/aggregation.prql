@@ -1,4 +1,3 @@
-# mssql:skip
 # mysql:skip
 # clickhouse:skip
 # glaredb:skip (the string_agg function is not supported)
