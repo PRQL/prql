@@ -2,7 +2,6 @@ use anyhow::Result;
 use connector_arrow::api::{ResultReader, Statement};
 use connector_arrow::arrow;
 use connector_arrow::arrow::record_batch::RecordBatch;
-use futures::{AsyncRead, AsyncWrite};
 
 fn read_to_batch<'a>(reader: impl ResultReader<'a>) -> Result<RecordBatch> {
     let batches = reader.into_iter().collect::<Result<Vec<_>, _>>()?;
@@ -44,6 +43,7 @@ impl DbProtocol for connector_arrow::duckdb::DuckDBConnection {
 #[cfg(feature = "test-dbs-external")]
 pub(crate) mod external {
     use super::*;
+    use futures::{AsyncRead, AsyncWrite};
 
     impl DbProtocol for connector_arrow::postgres::PostgresConnection {
         fn query(&mut self, sql: &str) -> Result<RecordBatch> {
