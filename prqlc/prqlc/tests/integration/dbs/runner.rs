@@ -10,7 +10,9 @@ pub(crate) trait DbTestRunner: Send {
     fn data_file_root(&self) -> &str;
     fn import_csv(&mut self, csv_path: &str, table_name: &str);
     fn modify_ddl(&self, sql: String) -> String;
-    fn query(&mut self, sql: &str) -> Result<RecordBatch>;
+    fn query(&mut self, sql: &str) -> Result<RecordBatch> {
+        self.protocol().query(sql)
+    }
     fn protocol(&mut self) -> &mut dyn DbProtocol;
     fn setup(&mut self) {
         let schema = include_str!("../data/chinook/schema.sql");
@@ -73,10 +75,6 @@ impl DbTestRunner for DuckDbTestRunner {
 
     fn modify_ddl(&self, sql: String) -> String {
         sql.replace("FLOAT", "DOUBLE")
-    }
-
-    fn query(&mut self, sql: &str) -> Result<RecordBatch> {
-        self.protocol.query(sql)
     }
 }
 
@@ -141,10 +139,6 @@ impl DbTestRunner for SQLiteTestRunner {
     fn modify_ddl(&self, sql: String) -> String {
         sql.replace("TIMESTAMP", "TEXT") // timestamps in chinook are stored as ISO8601
     }
-
-    fn query(&mut self, sql: &str) -> Result<RecordBatch> {
-        self.protocol.query(sql)
-    }
 }
 
 #[cfg(feature = "test-dbs-external")]
@@ -194,10 +188,6 @@ pub(crate) mod external {
 
         fn modify_ddl(&self, sql: String) -> String {
             sql.replace("FLOAT", "DOUBLE PRECISION")
-        }
-
-        fn query(&mut self, sql: &str) -> Result<RecordBatch> {
-            self.protocol.query(sql)
         }
     }
 
@@ -258,10 +248,6 @@ pub(crate) mod external {
         fn modify_ddl(&self, sql: String) -> String {
             sql.replace("TIMESTAMP", "DATETIME")
         }
-
-        fn query(&mut self, sql: &str) -> Result<RecordBatch> {
-            self.protocol.query(sql)
-        }
     }
 
     pub(crate) struct ClickHouseTestRunner {
@@ -313,10 +299,6 @@ pub(crate) mod external {
                 .replace("FLOAT", "DOUBLE")
                 .replace("VARCHAR(255)", "Nullable(String)")
                 .to_string()
-        }
-
-        fn query(&mut self, sql: &str) -> Result<RecordBatch> {
-            self.protocol.query(sql)
         }
     }
 
@@ -384,10 +366,6 @@ pub(crate) mod external {
                 .replace("FLOAT", "FLOAT(53)")
                 .replace(" AS TEXT", " AS VARCHAR")
         }
-
-        fn query(&mut self, sql: &str) -> Result<RecordBatch> {
-            self.protocol.query(sql)
-        }
     }
 
     pub(crate) struct GlareDbTestRunner {
@@ -429,10 +407,6 @@ pub(crate) mod external {
 
         fn modify_ddl(&self, sql: String) -> String {
             sql.replace("FLOAT", "DOUBLE PRECISION")
-        }
-
-        fn query(&mut self, sql: &str) -> Result<RecordBatch> {
-            self.protocol.query(sql)
         }
     }
 }

@@ -51,21 +51,21 @@ pub(crate) fn runners() -> &'static std::sync::Mutex<Vec<Box<dyn DbTestRunner>>>
             ];
             runners.extend(external_runners);
         }
-        let runners = runners
-            .into_iter()
-            .filter(|cfg| {
-                matches!(
-                    cfg.dialect().support_level(),
-                    SupportLevel::Supported | SupportLevel::Unsupported
-                )
-            })
-            .map(|mut runner| {
-                runner.setup();
-                runner
-            })
-            .collect();
-
-        std::sync::Mutex::new(runners)
+        std::sync::Mutex::new(
+            runners
+                .into_iter()
+                .filter(|cfg| {
+                    matches!(
+                        cfg.dialect().support_level(),
+                        SupportLevel::Supported | SupportLevel::Unsupported
+                    )
+                })
+                .map(|mut runner| {
+                    runner.setup();
+                    runner
+                })
+                .collect(),
+        )
     })
 }
 
