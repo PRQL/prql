@@ -1,3 +1,16 @@
+/// This has been refactored many times by many people — to the extent that it's
+/// somewhat of a tradition at PRQL.
+/// 
+/// As of the most receent refactor in 2024-08, I think it's in good shape.
+/// 
+/// The one remaining question is whether the `*TestRunner::new` implementations
+/// should instead be on the `Protocol`s; the `url` parameter exists for
+/// some-but-not-all of the Protocols; given it's a trait implementation the
+/// signatures need to be the same. So we could move the `url` parameter into
+/// the protocols themselves (it seems somewhat arbitrary to have so methings
+/// like the port within the TestRunner, but the url passed into the TestRunner).
+/// Note that we can't push the `import_csv` down to the Protocol, because
+/// different DBs use the same protocol but different CSV import methods.
 #![cfg(not(target_family = "wasm"))]
 #![cfg(any(feature = "test-dbs", feature = "test-dbs-external"))]
 
