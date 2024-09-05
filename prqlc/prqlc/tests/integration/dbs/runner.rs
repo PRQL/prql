@@ -37,7 +37,7 @@ pub(crate) trait DbTestRunner: Send {
 }
 
 pub(crate) struct DuckDbTestRunner {
-    protocol: Box<dyn DbProtocol>,
+    protocol: connector_arrow::duckdb::DuckDBConnection,
     data_file_root: String,
 }
 
@@ -46,7 +46,7 @@ impl DuckDbTestRunner {
         let conn = ::duckdb::Connection::open_in_memory().unwrap();
         let conn_ar = connector_arrow::duckdb::DuckDBConnection::new(conn);
         Self {
-            protocol: Box::new(conn_ar),
+            protocol: conn_ar,
             data_file_root,
         }
     }
@@ -58,7 +58,7 @@ impl DbTestRunner for DuckDbTestRunner {
     }
 
     fn protocol(&mut self) -> &mut dyn DbProtocol {
-        self.protocol.as_mut()
+        &mut self.protocol
     }
 
     fn data_file_root(&self) -> &str {
@@ -79,7 +79,7 @@ impl DbTestRunner for DuckDbTestRunner {
 }
 
 pub(crate) struct SQLiteTestRunner {
-    protocol: Box<dyn DbProtocol>,
+    protocol: connector_arrow::sqlite::SQLiteConnection,
     data_file_root: String,
 }
 
@@ -88,7 +88,7 @@ impl SQLiteTestRunner {
         let conn = rusqlite::Connection::open_in_memory().unwrap();
         let conn_ar = connector_arrow::sqlite::SQLiteConnection::new(conn);
         Self {
-            protocol: Box::new(conn_ar),
+            protocol: conn_ar,
             data_file_root,
         }
     }
@@ -100,7 +100,7 @@ impl DbTestRunner for SQLiteTestRunner {
     }
 
     fn protocol(&mut self) -> &mut dyn DbProtocol {
-        self.protocol.as_mut()
+        &mut self.protocol
     }
 
     fn data_file_root(&self) -> &str {
@@ -150,7 +150,7 @@ pub(crate) mod external {
     use std::fs;
 
     pub(crate) struct PostgresTestRunner {
-        protocol: Box<dyn DbProtocol>,
+        protocol: connector_arrow::postgres::PostgresConnection,
         data_file_root: String,
     }
 
@@ -159,7 +159,7 @@ pub(crate) mod external {
             use connector_arrow::postgres::PostgresConnection;
             let client = ::postgres::Client::connect(url, ::postgres::NoTls).unwrap();
             Self {
-                protocol: Box::new(PostgresConnection::new(client)),
+                protocol: PostgresConnection::new(client),
                 data_file_root,
             }
         }
@@ -171,7 +171,7 @@ pub(crate) mod external {
         }
 
         fn protocol(&mut self) -> &mut dyn DbProtocol {
-            self.protocol.as_mut()
+            &mut self.protocol
         }
 
         fn data_file_root(&self) -> &str {
@@ -192,7 +192,7 @@ pub(crate) mod external {
     }
 
     pub(crate) struct MySqlTestRunner {
-        protocol: Box<dyn DbProtocol>,
+        protocol: connector_arrow::mysql::MySQLConnection<::mysql::Conn>,
         data_file_root: String,
     }
 
@@ -201,9 +201,7 @@ pub(crate) mod external {
             let conn = ::mysql::Conn::new(url)
                 .unwrap_or_else(|e| panic!("Failed to connect to {}:\n{}", url, e));
             Self {
-                protocol: Box::new(
-                    connector_arrow::mysql::MySQLConnection::<::mysql::Conn>::new(conn),
-                ),
+                protocol: connector_arrow::mysql::MySQLConnection::<::mysql::Conn>::new(conn),
                 data_file_root,
             }
         }
@@ -215,7 +213,7 @@ pub(crate) mod external {
         }
 
         fn protocol(&mut self) -> &mut dyn DbProtocol {
-            self.protocol.as_mut()
+            &mut self.protocol
         }
 
         fn data_file_root(&self) -> &str {
@@ -251,7 +249,7 @@ pub(crate) mod external {
     }
 
     pub(crate) struct ClickHouseTestRunner {
-        protocol: Box<dyn DbProtocol>,
+        protocol: connector_arrow::mysql::MySQLConnection<::mysql::Conn>,
         data_file_root: String,
     }
 
@@ -259,11 +257,9 @@ pub(crate) mod external {
         #[allow(dead_code)]
         pub(crate) fn new(url: &str, data_file_root: String) -> Self {
             Self {
-                protocol: Box::new(
-                    connector_arrow::mysql::MySQLConnection::<::mysql::Conn>::new(
-                        ::mysql::Conn::new(url)
-                            .unwrap_or_else(|e| panic!("Failed to connect to {}:\n{}", url, e)),
-                    ),
+                protocol: connector_arrow::mysql::MySQLConnection::<::mysql::Conn>::new(
+                    ::mysql::Conn::new(url)
+                        .unwrap_or_else(|e| panic!("Failed to connect to {}:\n{}", url, e)),
                 ),
                 data_file_root,
             }
@@ -276,7 +272,7 @@ pub(crate) mod external {
         }
 
         fn protocol(&mut self) -> &mut dyn DbProtocol {
-            self.protocol.as_mut()
+            &mut self.protocol
         }
 
         fn data_file_root(&self) -> &str {
@@ -303,7 +299,9 @@ pub(crate) mod external {
     }
 
     pub(crate) struct MsSqlTestRunner {
-        protocol: Box<dyn DbProtocol>,
+        protocol: connector_arrow::tiberius::TiberiusConnection<
+            tokio_util::compat::Compat<tokio::net::TcpStream>,
+        >,
         data_file_root: String,
     }
 
@@ -334,9 +332,7 @@ pub(crate) mod external {
                 .unwrap();
 
             Self {
-                protocol: Box::new(connector_arrow::tiberius::TiberiusConnection::new(
-                    rt, client,
-                )),
+                protocol: connector_arrow::tiberius::TiberiusConnection::new(rt, client),
                 data_file_root,
             }
         }
@@ -348,7 +344,7 @@ pub(crate) mod external {
         }
 
         fn protocol(&mut self) -> &mut dyn DbProtocol {
-            self.protocol.as_mut()
+            &mut self.protocol
         }
 
         fn data_file_root(&self) -> &str {
@@ -369,7 +365,7 @@ pub(crate) mod external {
     }
 
     pub(crate) struct GlareDbTestRunner {
-        protocol: Box<dyn DbProtocol>,
+        protocol: connector_arrow::postgres::PostgresConnection,
         data_file_root: String,
     }
 
@@ -378,7 +374,7 @@ pub(crate) mod external {
             use connector_arrow::postgres::PostgresConnection;
             let client = ::postgres::Client::connect(url, ::postgres::NoTls).unwrap();
             Self {
-                protocol: Box::new(PostgresConnection::new(client)),
+                protocol: PostgresConnection::new(client),
                 data_file_root,
             }
         }
@@ -390,7 +386,7 @@ pub(crate) mod external {
         }
 
         fn protocol(&mut self) -> &mut dyn DbProtocol {
-            self.protocol.as_mut()
+            &mut self.protocol
         }
 
         fn data_file_root(&self) -> &str {
