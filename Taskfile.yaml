@@ -352,7 +352,7 @@ tasks:
           will start before images are ready. After one initial failure, try
           re-running."
         silent: true
-      - cd prqlc/prqlc/tests/integration/dbs && docker-compose up --wait
+      - cd prqlc/prqlc/tests/integration/dbs && docker compose up --wait
       # This _only_ runs the external dbs tests, but we could make it run
       # everything?
       - cargo test --features=test-dbs-external --test=integration --
