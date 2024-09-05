@@ -23,7 +23,7 @@ manually:
 1. Run `docker compose up` (may take a while on the first time):
 
    ```sh
-   cd prqlc/prqlc/tests/integration/dbs && docker compose up --wait
+   cd prqlc/prqlc/tests/integration/dbs && docker compose up -d
    ```
 
 2. Run the tests:
@@ -35,7 +35,7 @@ manually:
    (The `--no-capture` option isn't required, but shows all the dialects tested
    per query.)
 
-3. After it's done, stop the containers and remove local images and volumes:
+3. After it's done, remove the containers:
 
    ```sh
    cd prqlc/prqlc/tests/integration/dbs && docker compose down

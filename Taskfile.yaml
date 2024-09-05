@@ -352,16 +352,16 @@ tasks:
           will start before images are ready. After one initial failure, try
           re-running."
         silent: true
-      - cd prqlc/prqlc/tests/integration/dbs && docker-compose up --wait
+      - cd prqlc/prqlc/tests/integration/dbs && docker compose up --wait
       # This _only_ runs the external dbs tests, but we could make it run
       # everything?
       - cargo test --features=test-dbs-external --test=integration --
         --nocapture queries::results
       # We could run this ourselves, but makes iteration times much longer
       - cmd: |
-          echo "🔵 To stop containers and remove images, run
+          echo "🔵 To remove containers and remove local built images, run
 
-              cd prqlc/prqlc/tests/integration/dbs && docker-compose down --rmi local"
+          cd prqlc/prqlc/tests/integration/dbs && docker compose down --rmi local"
         silent: true
 
   test-js:
