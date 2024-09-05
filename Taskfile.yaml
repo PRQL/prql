@@ -359,9 +359,9 @@ tasks:
         --nocapture queries::results
       # We could run this ourselves, but makes iteration times much longer
       - cmd: |
-          echo "🔵 To stop containers and remove images, run
+          echo "🔵 To remove containers and remove local built images, run
 
-          cd prqlc/prqlc/tests/integration/dbs && docker-compose down --rmi local"
+          cd prqlc/prqlc/tests/integration/dbs && docker compose down --rmi local"
         silent: true
 
   test-js:
