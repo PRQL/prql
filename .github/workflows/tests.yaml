@@ -270,7 +270,7 @@ jobs:
       # don't want to have to run it on, for example, every dependency change.
       #
       # Disabling due to https://github.com/PRQL/prql/pull/4876
-      false && needs.rules.outputs.taskfile == 'true' ||
+      (1 == 0) && needs.rules.outputs.taskfile == 'true' ||
       needs.rules.outputs.nightly-upstream == 'true'
     runs-on: macos-14
     steps:
