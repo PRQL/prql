@@ -268,7 +268,9 @@ jobs:
     if:
       # We only run on nightly scheduled, since this is very expensive and we
       # don't want to have to run it on, for example, every dependency change.
-      needs.rules.outputs.taskfile == 'true' ||
+      #
+      # Disabling due to https://github.com/PRQL/prql/pull/4876
+      false && needs.rules.outputs.taskfile == 'true' ||
       needs.rules.outputs.nightly-upstream == 'true'
     runs-on: macos-14
     steps:
