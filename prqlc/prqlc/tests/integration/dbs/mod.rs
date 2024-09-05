@@ -3,7 +3,7 @@
 /// This has been refactored many times by many people — to the extent that it's
 /// somewhat of a tradition at PRQL.
 ///
-/// As of the most receent refactor in 2024-08, I think it's in good shape.
+/// As of the most recent refactor in 2024-08, I think it's in good shape.
 ///
 /// The one remaining question is whether the `*TestRunner::new` implementations
 /// should instead be on the `Protocol`s; the `url` parameter exists for
