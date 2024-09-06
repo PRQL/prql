@@ -1,29 +1,17 @@
 #![cfg(not(target_family = "wasm"))]
 #![cfg(any(feature = "test-dbs", feature = "test-dbs-external"))]
 /// This has been refactored many times by many people — to the extent that it's
-/// somewhat of a tradition at PRQL.
-///
-/// As of the most recent refactor in 2024-08, I think it's in good shape.
-///
-/// The one remaining question is whether the `*TestRunner::new` implementations
-/// should instead be on the `Protocol`s; the `url` parameter exists for
-/// some-but-not-all of the Protocols; given it's a trait implementation the
-/// signatures need to be the same. So we could move the `url` parameter into
-/// the protocols themselves (it seems somewhat arbitrary to have some things
-/// like the port within the TestRunner, but the url passed into the TestRunner).
-/// Note that we can't push the `import_csv` down to the Protocol, because
-/// different DBs use the same protocol but different CSV import methods.
+/// somewhat of a tradition at PRQL...
 mod protocol;
 mod runner;
 
 use connector_arrow::arrow;
-use prqlc::sql::SupportLevel;
 use regex::Regex;
 
 use self::runner::DbTestRunner;
 
-pub(crate) fn runners() -> &'static std::sync::Mutex<Vec<Box<dyn DbTestRunner>>> {
-    static RUNNERS: std::sync::OnceLock<std::sync::Mutex<Vec<Box<dyn DbTestRunner>>>> =
+pub(crate) fn runners() -> &'static Vec<std::sync::Mutex<Box<dyn DbTestRunner>>> {
+    static RUNNERS: std::sync::OnceLock<Vec<std::sync::Mutex<Box<dyn DbTestRunner>>>> =
         std::sync::OnceLock::new();
     RUNNERS.get_or_init(|| {
         let mut runners = vec![];
@@ -41,6 +29,13 @@ pub(crate) fn runners() -> &'static std::sync::Mutex<Vec<Box<dyn DbTestRunner>>>
         #[cfg(feature = "test-dbs-external")]
         {
             let external_runners: Vec<Box<dyn DbTestRunner>> = vec![
+                // I considered putting these URLs into the `Protocol`s; but
+                // - the `url` parameter exists for some-but-not-all of the
+                //   Protocols and given it's a trait implementation the
+                //   signatures need to be the same.
+                // - Similar to the `import_csv` method, different DBs use the
+                //   same protocol but different URLs
+                // We could push them down to the TestRunner structs
                 Box::new(runner::PostgresTestRunner::new(
                     "host=localhost user=root password=root dbname=dummy",
                     "/tmp/chinook".to_string(),
@@ -62,21 +57,13 @@ pub(crate) fn runners() -> &'static std::sync::Mutex<Vec<Box<dyn DbTestRunner>>>
             ];
             runners.extend(external_runners);
         }
-        std::sync::Mutex::new(
-            runners
-                .into_iter()
-                .filter(|cfg| {
-                    matches!(
-                        cfg.dialect().support_level(),
-                        SupportLevel::Supported | SupportLevel::Unsupported
-                    )
-                })
-                .map(|mut runner| {
-                    runner.setup();
-                    runner
-                })
-                .collect(),
-        )
+        runners
+            .into_iter()
+            .map(|mut runner| {
+                runner.setup();
+                std::sync::Mutex::new(runner)
+            })
+            .collect()
     })
 }
 

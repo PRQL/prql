@@ -119,16 +119,15 @@ mod results {
 
         // for each of the runners, get the query
         let results = runners()
-            .lock()
-            .unwrap()
-            .iter_mut()
+            .iter()
             .filter_map(|runner| {
+                let mut runner = runner.lock().unwrap();
                 let dialect = runner.dialect();
                 if !should_run_query(dialect, &prql) {
                     return None;
                 }
 
-                println!("Executing {test_name} for {dialect}");
+                eprintln!("Executing {test_name} for {dialect}");
 
                 match runner.query(&prql) {
                     Ok(batch) => {
@@ -146,7 +145,7 @@ mod results {
             panic!("No valid dialects to run the query at {prql_path:#?} against");
         }
 
-        // insta::allow_duplicates!, but with reporting of which two cases are
+        // similar to `insta::allow_duplicates!`, but with reporting of which two cases are
         // not matching.
         let ((first_dialect, first_text), others) = results.split_first().unwrap();
 
