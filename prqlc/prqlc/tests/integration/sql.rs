@@ -3,7 +3,7 @@ use insta::assert_snapshot;
 use prqlc::{sql, ErrorMessages, Options, SourceTree, Target};
 use rstest::rstest;
 
-pub fn compile(prql: &str) -> Result<String, ErrorMessages> {
+pub(crate) fn compile(prql: &str) -> Result<String, ErrorMessages> {
     prqlc::compile(
         prql,
         &Options::default()

@@ -1,145 +1,75 @@
 #![cfg(not(target_family = "wasm"))]
 #![cfg(any(feature = "test-dbs", feature = "test-dbs-external"))]
-
+/// This has been refactored many times by many people — to the extent that it's
+/// somewhat of a tradition at PRQL...
 mod protocol;
 mod runner;
 
-use anyhow::Result;
 use connector_arrow::arrow;
-use prqlc::{sql::Dialect, sql::SupportLevel, Options, Target};
 use regex::Regex;
-use serde::{Deserialize, Serialize};
 
-pub use self::protocol::DbProtocol;
-use self::protocol::DbProtocolHandler;
 use self::runner::DbTestRunner;
 
-pub struct DbConnection {
-    /// Configuration parameters
-    pub cfg: ConnectionCfg,
+pub(crate) fn runners() -> &'static Vec<std::sync::Mutex<Box<dyn DbTestRunner>>> {
+    static RUNNERS: std::sync::OnceLock<Vec<std::sync::Mutex<Box<dyn DbTestRunner>>>> =
+        std::sync::OnceLock::new();
+    RUNNERS.get_or_init(|| {
+        let mut runners = vec![];
 
-    /// Protocol handler (the inner connection)
-    pub protocol: Box<dyn DbProtocolHandler>,
+        let local_runners: Vec<Box<dyn DbTestRunner>> = vec![
+            Box::new(runner::SQLiteTestRunner::new(
+                "tests/integration/data/chinook".to_string(),
+            )),
+            Box::new(runner::DuckDbTestRunner::new(
+                "tests/integration/data/chinook".to_string(),
+            )),
+        ];
+        runners.extend(local_runners);
 
-    /// Runner that handles DBMS-specific behavior
-    runner: Box<dyn DbTestRunner>,
-}
-
-#[derive(Serialize, Deserialize)]
-pub struct ConnectionCfg {
-    /// Wire protocol to use for connecting to the database
-    pub protocol: DbProtocol,
-
-    /// SQL dialect to be used
-    pub dialect: Dialect,
-
-    /// Path of data file directory within the database container
-    pub data_file_root: String,
-}
-
-impl DbConnection {
-    pub fn new(cfg: ConnectionCfg) -> Option<DbConnection> {
-        let protocol = match &cfg.protocol {
-            #[cfg(feature = "test-dbs")]
-            DbProtocol::DuckDb => protocol::duckdb::init(),
-
-            #[cfg(feature = "test-dbs")]
-            DbProtocol::SQLite => protocol::sqlite::init(),
-
-            #[cfg(feature = "test-dbs-external")]
-            DbProtocol::Postgres { url } => protocol::postgres::init(url),
-
-            #[cfg(feature = "test-dbs-external")]
-            DbProtocol::MySql { url } => protocol::mysql::init(url),
-
-            #[cfg(feature = "test-dbs-external")]
-            DbProtocol::MsSql => protocol::mssql::init(),
-
-            _ => return None,
-        };
-
-        let runner: Box<dyn DbTestRunner> = match &cfg.dialect {
-            Dialect::DuckDb => Box::new(runner::DuckDbTestRunner),
-            Dialect::SQLite => Box::new(runner::SQLiteTestRunner),
-            Dialect::Postgres => Box::new(runner::PostgresTestRunner),
-            Dialect::GlareDb => Box::new(runner::GlareDbTestRunner),
-            Dialect::MySql => Box::new(runner::MySqlTestRunner),
-            Dialect::ClickHouse => Box::new(runner::ClickHouseTestRunner),
-            Dialect::MsSql => Box::new(runner::MsSqlTestRunner),
-            _ => return None,
-        };
-
-        Some(DbConnection {
-            cfg,
-            runner,
-            protocol,
-        })
-    }
-
-    pub fn setup(mut self) -> Self {
-        let schema = include_str!("../data/chinook/schema.sql");
-        schema
-            .split(';')
-            .map(str::trim)
-            .filter(|s| !s.is_empty())
-            .map(|s| self.runner.modify_ddl(s.to_string()))
-            .for_each(|s| {
-                self.protocol.execute(&s).unwrap();
-            });
-
-        for file_path in glob::glob("tests/integration/data/chinook/*.csv").unwrap() {
-            let file_path = file_path.unwrap();
-            let stem = file_path.file_stem().unwrap().to_str().unwrap();
-            let path = format!("{}/{}.csv", self.cfg.data_file_root, stem);
-            self.runner.import_csv(&mut *self.protocol, &path, stem);
+        #[cfg(feature = "test-dbs-external")]
+        {
+            let external_runners: Vec<Box<dyn DbTestRunner>> = vec![
+                // I considered putting these URLs into the `Protocol`s; but
+                // - the `url` parameter exists for some-but-not-all of the
+                //   Protocols and given it's a trait implementation the
+                //   signatures need to be the same.
+                // - Similar to the `import_csv` method, different DBs use the
+                //   same protocol but different URLs
+                // We could push them down to the TestRunner structs
+                Box::new(runner::PostgresTestRunner::new(
+                    "host=localhost user=root password=root dbname=dummy",
+                    "/tmp/chinook".to_string(),
+                )),
+                Box::new(runner::MySqlTestRunner::new(
+                    "mysql://root:root@localhost:3306/dummy",
+                    "/tmp/chinook".to_string(),
+                )),
+                // TODO: https://github.com/ClickHouse/ClickHouse/issues/69131
+                // Box::new(runner::ClickHouseTestRunner::new(
+                //     "mysql://default:@localhost:9004/dummy",
+                //     "chinook".to_string(),
+                // )),
+                Box::new(runner::GlareDbTestRunner::new(
+                    "host=localhost user=glaredb dbname=glaredb port=6543",
+                    "/tmp/chinook".to_string(),
+                )),
+                Box::new(runner::MsSqlTestRunner::new("/tmp/chinook".to_string())),
+            ];
+            runners.extend(external_runners);
         }
-        self
-    }
-
-    // If it's supported, test unless it has `duckdb:skip`. If it's not
-    // supported, test only if it has `duckdb:test`.
-    pub fn should_run_query(&self, prql: &str) -> bool {
-        let dialect = self.cfg.dialect.to_string().to_lowercase();
-
-        match self.cfg.dialect.support_level() {
-            SupportLevel::Supported => !prql.contains(format!("{}:skip", dialect).as_str()),
-            SupportLevel::Unsupported => prql.contains(format!("{}:test", dialect).as_str()),
-            SupportLevel::Nascent => false,
-        }
-    }
-
-    pub fn run_query(&mut self, prql: &str) -> Result<arrow::record_batch::RecordBatch> {
-        // compile to SQL
-        let dialect = self.cfg.dialect;
-        let options = Options::default().with_target(Target::Sql(Some(dialect)));
-        let sql = prqlc::compile(prql, &options)?;
-
-        // execute
-        let res = self.protocol.query(&sql)?;
-        Ok(res)
-    }
+        runners
+            .into_iter()
+            .map(|mut runner| {
+                runner.setup();
+                std::sync::Mutex::new(runner)
+            })
+            .collect()
+    })
 }
 
 /// Converts arrow::RecordBatch into ad-hoc CSV
-pub fn batch_to_csv(batch: arrow::record_batch::RecordBatch) -> String {
+pub(crate) fn batch_to_csv(batch: arrow::record_batch::RecordBatch) -> String {
     let mut res = String::with_capacity((batch.num_rows() + 1) * batch.num_columns() * 20);
-
-    // print header
-    /*
-    res.push_str(
-        batch
-            .schema()
-            .fields()
-            .iter()
-            .map(|f| {
-                let ty = f.data_type().to_string();
-                format!("{} [{ty}]", f.name())
-            })
-            .join(",")
-            .as_str(),
-    );
-    res.push('\n');
-    */
 
     // convert each column to string
     let mut arrays = Vec::with_capacity(batch.num_columns());
