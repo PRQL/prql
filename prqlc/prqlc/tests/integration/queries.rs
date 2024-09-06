@@ -94,14 +94,12 @@ mod debug_lineage {
 
 #[cfg(any(feature = "test-dbs", feature = "test-dbs-external"))]
 mod results {
-    use std::ops::DerefMut;
 
-    use anyhow::Result;
-    use connector_arrow::arrow::record_batch::RecordBatch;
+    use itertools::Itertools;
     use prqlc::sql::SupportLevel;
 
     use super::*;
-    use crate::dbs::{batch_to_csv, run_query, runners};
+    use crate::dbs::{batch_to_csv, runners};
 
     test_each_path! { in "./prqlc/prqlc/tests/integration/queries" => run }
 
@@ -119,35 +117,30 @@ mod results {
         let test_name = prql_path.file_stem().unwrap().to_str().unwrap();
         let prql = fs::read_to_string(prql_path).unwrap();
 
-        let data_file_root_keyword = "data_file_root";
-        let is_contains_data_root = prql.contains(data_file_root_keyword);
-
-        // for each of the runners
-        let mut results = Vec::new();
-        for runner in runners().lock().unwrap().deref_mut() {
-            let dialect = runner.dialect();
-            if !should_run_query(dialect, &prql) {
-                continue;
-            }
-
-            let mut prql = prql.clone();
-            if is_contains_data_root {
-                prql = prql.replace(data_file_root_keyword, runner.data_file_root());
-            }
-
-            println!("Executing {test_name} for {dialect}");
-            let batch: Result<RecordBatch> = run_query(runner, &prql);
-
-            match batch {
-                Ok(batch) => {
-                    let csv = batch_to_csv(batch);
-                    results.push((dialect, csv));
+        // for each of the runners, get the query
+        let results = runners()
+            .lock()
+            .unwrap()
+            .iter_mut()
+            .filter_map(|runner| {
+                let dialect = runner.dialect();
+                if !should_run_query(dialect, &prql) {
+                    return None;
                 }
-                Err(e) => {
-                    panic!("Error executing query for {dialect}: {e}");
+
+                println!("Executing {test_name} for {dialect}");
+
+                match runner.query(&prql) {
+                    Ok(batch) => {
+                        let csv = batch_to_csv(batch);
+                        Some((dialect, csv))
+                    }
+                    Err(e) => {
+                        panic!("Error executing query for {dialect}: {e}");
+                    }
                 }
-            }
-        }
+            })
+            .collect_vec();
 
         if results.is_empty() {
             panic!("No valid dialects to run the query at {prql_path:#?} against");

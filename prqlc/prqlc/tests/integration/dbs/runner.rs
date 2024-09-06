@@ -5,13 +5,20 @@ use prqlc::sql::Dialect;
 
 use super::protocol::DbProtocol;
 
+static DATA_FILE_ROOT_KEYWORD: &str = "data_file_root";
+
 pub(crate) trait DbTestRunner: Send {
     fn dialect(&self) -> Dialect;
     fn data_file_root(&self) -> &str;
     fn import_csv(&mut self, csv_path: &str, table_name: &str);
     fn modify_ddl(&self, sql: String) -> String;
-    fn query(&mut self, sql: &str) -> Result<RecordBatch> {
-        self.protocol().query(sql)
+    fn query(&mut self, prql: &str) -> Result<RecordBatch> {
+        let prql = prql.replace(DATA_FILE_ROOT_KEYWORD, self.data_file_root());
+        let options =
+            prqlc::Options::default().with_target(prqlc::Target::Sql(Some(self.dialect())));
+        let sql = prqlc::compile(&prql, &options)?;
+
+        self.protocol().query(&sql)
     }
     fn protocol(&mut self) -> &mut dyn DbProtocol;
     fn setup(&mut self) {
@@ -231,8 +238,10 @@ pub(crate) mod external {
             let mut local_new_path = local_old_path.clone();
             local_new_path.pop();
             local_new_path.push(format!("{table_name}.my.csv").as_str());
-            let mut file_content = fs::read_to_string(local_old_path).unwrap();
-            file_content = file_content.replace(",,", ",\\N,").replace(",\n", ",\\N\n");
+            let file_content = fs::read_to_string(local_old_path)
+                .unwrap()
+                .replace(",,", ",\\N,")
+                .replace(",\n", ",\\N\n");
             fs::write(&local_new_path, file_content).unwrap();
             self.protocol.execute(
                 &format!(

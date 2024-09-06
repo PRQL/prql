@@ -9,16 +9,15 @@
 /// should instead be on the `Protocol`s; the `url` parameter exists for
 /// some-but-not-all of the Protocols; given it's a trait implementation the
 /// signatures need to be the same. So we could move the `url` parameter into
-/// the protocols themselves (it seems somewhat arbitrary to have so methings
+/// the protocols themselves (it seems somewhat arbitrary to have some things
 /// like the port within the TestRunner, but the url passed into the TestRunner).
 /// Note that we can't push the `import_csv` down to the Protocol, because
 /// different DBs use the same protocol but different CSV import methods.
 mod protocol;
 mod runner;
 
-use anyhow::Result;
 use connector_arrow::arrow;
-use prqlc::{sql::SupportLevel, Options, Target};
+use prqlc::sql::SupportLevel;
 use regex::Regex;
 
 use self::runner::DbTestRunner;
@@ -79,17 +78,6 @@ pub(crate) fn runners() -> &'static std::sync::Mutex<Vec<Box<dyn DbTestRunner>>>
                 .collect(),
         )
     })
-}
-
-pub(crate) fn run_query(
-    runner: &mut Box<dyn DbTestRunner>,
-    prql: &str,
-) -> Result<arrow::record_batch::RecordBatch> {
-    let dialect = runner.dialect();
-    let options = Options::default().with_target(Target::Sql(Some(dialect)));
-    let sql = prqlc::compile(prql, &options)?;
-
-    runner.query(&sql)
 }
 
 /// Converts arrow::RecordBatch into ad-hoc CSV
