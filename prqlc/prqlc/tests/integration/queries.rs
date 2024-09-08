@@ -118,7 +118,7 @@ mod results {
         let prql = fs::read_to_string(prql_path).unwrap();
 
         // for each of the runners, get the query
-        let results = runners()
+        let results: Vec<(Dialect, String)> = runners()
             .iter()
             .filter_map(|runner| {
                 let mut runner = runner.lock().unwrap();
@@ -132,14 +132,13 @@ mod results {
                 match runner.query(&prql) {
                     Ok(batch) => {
                         let csv = batch_to_csv(batch);
-                        Some((dialect, csv))
+                        Some(Ok((dialect, csv)))
                     }
-                    Err(e) => {
-                        panic!("Error executing query for {dialect}: {e}");
-                    }
+                    Err(e) => Some(Err(e)),
                 }
             })
-            .collect_vec();
+            .try_collect()
+            .unwrap();
 
         if results.is_empty() {
             panic!("No valid dialects to run the query at {prql_path:#?} against");
