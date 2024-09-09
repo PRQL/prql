@@ -66,7 +66,7 @@ semver = {workspace = true}
 serde = {workspace = true}
 serde_json = {workspace = true}
 serde_yaml = {workspace = true, optional = true}
-sqlformat = "0.2.4"
+sqlformat = "0.2.6"
 sqlparser = {version = "0.50.0", features = ["serde"]}
 strum = {version = "0.26.3", features = ["std", "derive"]}
 strum_macros = "0.26.4"
@@ -78,7 +78,7 @@ vergen-gitcl = {version = "1.0.0", features = ["build"]}
 
 # unique dependencies from the CLI, marked as optional and included in the 'cli'
 # feature
-anyhow = {version = "1.0.86", features = ["backtrace"], optional = true}
+anyhow = {version = "1.0.87", features = ["backtrace"], optional = true}
 clap = {version = "4.4.18", features = ["derive", "env", "wrap_help"], optional = true}
 clap_complete_command = {version = "0.5.1", optional = true}
 clio = {version = "0.3.3", features = ['clap-parse'], optional = true}
@@ -103,7 +103,7 @@ postgres = {version = "0.19.8", optional = true}
 rusqlite = {version = "0.32.0", optional = true, features = ["bundled", "csvtab"]}
 tiberius = {version = "0.12.3", optional = true, default-features = false, features = ["sql-browser-tokio", "bigdecimal", "time", "rustls", "tds73"]}
 tokio = {version = "1.40.0", optional = true, features = ["full"]}
-tokio-util = {version = "0.7.10", optional = true, features = ["compat"]}
+tokio-util = {version = "0.7.12", optional = true, features = ["compat"]}
 
 [dev-dependencies]
 # default-features=false required to allow wasm compilation (which we don't use
