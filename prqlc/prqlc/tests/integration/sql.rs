@@ -4060,9 +4060,7 @@ fn test_exclude_columns_04() {
     "#).unwrap(),
         @r###"
     SELECT
-      *
-    EXCEPT
-      (milliseconds, bytes)
+      * EXCEPT (milliseconds, bytes)
     FROM
       tracks
     "###
