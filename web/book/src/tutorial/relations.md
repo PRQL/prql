@@ -77,8 +77,8 @@ those columns named in the tuple.
 
 ### `derive` transform
 
-To add columns to a relation, we can use `derive` function. Let's define a new
-column for Value Added Tax, set at 19% of the invoice total.
+To add columns to a relation, we can use the `derive` function. Let's define a
+new column for Value Added Tax, set at 19% of the invoice total.
 
 ```prql no-eval
 from invoices
@@ -123,7 +123,7 @@ In the example above, the alias `inv` represents the `invoices` relation and
 PRQL manipulates relations (tables) of data. The `derive`, `select`, and `join`
 transforms change the number of columns in a table. The first two never affect
 the number of rows in a table. `join` may change the number of rows, depending
-on the variation chosen.
+on the chosen type of join.
 
 This final example combines the above into a single query. It illustrates _a
 pipeline_ - the fundamental basis of PRQL. We simply add new lines (transforms)
