@@ -77,8 +77,8 @@ those columns named in the tuple.
 
 ### `derive` transform
 
-To add columns to a relation, we can use the `derive` function. Let's define a new
-column for Value Added Tax, set at 19% of the invoice total.
+To add columns to a relation, we can use the `derive` function. Let's define a
+new column for Value Added Tax, set at 19% of the invoice total.
 
 ```prql no-eval
 from invoices
