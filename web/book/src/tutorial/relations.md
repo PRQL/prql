@@ -17,7 +17,7 @@ looks like this:
 | 6          | 37          | Frankfurt    |       ...       | 0.99  |
 
 A relation is composed of rows. Each row in a relation contains a value for each
-of the relation's columns. Each column in a relation has an unique name and a
+of the relation's columns. Each column in a relation has a unique name and a
 designated data type. The table above is a relation, and has columns named
 `invoice_id`and `customer_id` each with a data type of "integer number", a
 `billing_city` column with a data type of "text", several other columns, and a
