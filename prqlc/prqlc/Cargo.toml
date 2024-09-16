@@ -78,7 +78,7 @@ vergen-gitcl = {version = "1.0.0", features = ["build"]}
 
 # unique dependencies from the CLI, marked as optional and included in the 'cli'
 # feature
-anyhow = {version = "1.0.87", features = ["backtrace"], optional = true}
+anyhow = {version = "1.0.89", features = ["backtrace"], optional = true}
 clap = {version = "4.4.18", features = ["derive", "env", "wrap_help"], optional = true}
 clap_complete_command = {version = "0.5.1", optional = true}
 clio = {version = "0.3.3", features = ['clap-parse'], optional = true}
@@ -99,7 +99,7 @@ connector_arrow = {version = "0.5.4", optional = true}
 duckdb = {version = "1.0.0", optional = true, features = ["bundled", "chrono"]}
 futures = {version = "0.3.30", optional = true}
 mysql = {version = "25", optional = true}
-postgres = {version = "0.19.8", optional = true}
+postgres = {version = "0.19.9", optional = true}
 rusqlite = {version = "0.32.0", optional = true, features = ["bundled", "csvtab"]}
 tiberius = {version = "0.12.3", optional = true, default-features = false, features = ["sql-browser-tokio", "bigdecimal", "time", "rustls", "tds73"]}
 tokio = {version = "1.40.0", optional = true, features = ["full"]}
