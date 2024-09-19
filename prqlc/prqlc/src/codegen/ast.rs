@@ -1,5 +1,5 @@
 use std::collections::HashSet;
-use std::sync::OnceLock;
+use once_cell::sync::Lazy;
 
 use regex::Regex;
 
@@ -360,26 +360,20 @@ impl WriteSource for pr::Ident {
     }
 }
 
-fn keywords() -> &'static HashSet<&'static str> {
-    static KEYWORDS: OnceLock<HashSet<&'static str>> = OnceLock::new();
-    KEYWORDS.get_or_init(|| {
-        HashSet::from_iter([
-            "let", "into", "case", "prql", "type", "module", "internal", "func",
-        ])
-    })
-}
+pub static KEYWORDS: Lazy<HashSet<&str>> = Lazy::new(|| {
+    HashSet::from_iter([
+        "let", "into", "case", "prql", "type", "module", "internal", "func",
+    ])
+});
 
-fn valid_prql_ident() -> &'static Regex {
-    static VALID_PRQL_IDENT: OnceLock<Regex> = OnceLock::new();
-    VALID_PRQL_IDENT.get_or_init(|| {
-        // Pomsky expression (regex is to Pomsky what SQL is to PRQL):
-        // ^ ('*' | [ascii_alpha '_$'] [ascii_alpha ascii_digit '_$']* ) $
-        Regex::new(r"^(?:\*|[a-zA-Z_$][a-zA-Z0-9_$]*)$").unwrap()
-    })
-}
+pub static VALID_PRQL_IDENT: Lazy<Regex> = Lazy::new(|| {
+    // Pomsky expression (regex is to Pomsky what SQL is to PRQL):
+    // ^ ('*' | [ascii_alpha '_$'] [ascii_alpha ascii_digit '_$']* ) $
+    Regex::new(r"^(?:\*|[a-zA-Z_$][a-zA-Z0-9_$]*)$").unwrap()
+});
 
 pub fn write_ident_part(s: &str) -> String {
-    if valid_prql_ident().is_match(s) && !keywords().contains(s) {
+    if VALID_PRQL_IDENT.is_match(s) && !KEYWORDS.contains(s) {
         s.to_string()
     } else {
         format!("`{}`", s)

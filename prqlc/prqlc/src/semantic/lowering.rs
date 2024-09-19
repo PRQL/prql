@@ -7,7 +7,6 @@ use itertools::Itertools;
 use prqlc_parser::generic::{InterpolateItem, Range, SwitchCase};
 use prqlc_parser::lexer::lr::Literal;
 
-use crate::compiler_version;
 use crate::ir::decl::{self, DeclKind, Module, RootModule, TableExpr};
 use crate::ir::generic::{ColumnSort, WindowFrame};
 use crate::ir::pl::TableExternRef::LocalTable;
@@ -18,6 +17,7 @@ use crate::ir::rq::{
 use crate::pr::TyTupleField;
 use crate::semantic::write_pl;
 use crate::utils::{toposort, IdGenerator};
+use crate::COMPILER_VERSION;
 use crate::{Error, Reason, Result, Span, WithErrorInfo};
 
 /// Convert a resolved expression at path `main_path` relative to `root_mod`
@@ -125,7 +125,7 @@ fn tuple_fields_to_relation_columns(columns: Vec<TyTupleField>) -> Vec<RelationC
 
 fn validate_query_def(query_def: &QueryDef) -> Result<()> {
     if let Some(requirement) = &query_def.version {
-        if !requirement.matches(compiler_version()) {
+        if !requirement.matches(&COMPILER_VERSION) {
             return Err(Error::new_simple("This query uses a version of PRQL that is not supported by prqlc. Please upgrade the compiler."));
         }
     }

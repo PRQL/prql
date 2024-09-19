@@ -25,7 +25,7 @@ pub fn log_start() {
 
     *lock = Some(DebugLog {
         started_at,
-        version: crate::compiler_version().to_string(),
+        version: crate::COMPILER_VERSION.to_string(),
         entries: Vec::new(),
 
         suppress_count: 0,

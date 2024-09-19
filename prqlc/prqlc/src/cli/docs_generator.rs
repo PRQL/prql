@@ -181,7 +181,7 @@ pub fn generate_markdown_docs(stmts: Vec<Stmt>) -> String {
 
 Generated with [prqlc](https://prql-lang.org/) {}.
 "#,
-        *prqlc::compiler_version()
+        *prqlc::COMPILER_VERSION
     );
 
     let mut docs = String::new();

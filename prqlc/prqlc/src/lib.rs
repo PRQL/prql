@@ -99,10 +99,10 @@
 // yak-shaving exercise in the future.
 #![allow(clippy::result_large_err)]
 
-use std::sync::OnceLock;
 use std::{collections::HashMap, path::PathBuf, str::FromStr};
 
 use anstream::adapter::strip_str;
+use once_cell::sync::Lazy;
 use semver::Version;
 use serde::{Deserialize, Serialize};
 use strum::VariantNames;
@@ -127,12 +127,8 @@ pub(crate) mod utils;
 
 pub type Result<T, E = Error> = core::result::Result<T, E>;
 
-pub fn compiler_version() -> &'static Version {
-    static COMPILER_VERSION: OnceLock<Version> = OnceLock::new();
-    COMPILER_VERSION.get_or_init(|| {
-        Version::parse(env!("CARGO_PKG_VERSION")).expect("Invalid prqlc version number")
-    })
-}
+pub static COMPILER_VERSION: Lazy<Version> =
+    Lazy::new(|| Version::parse(env!("CARGO_PKG_VERSION")).expect("Invalid prqlc version number"));
 
 /// Compile a PRQL string into a SQL string.
 ///

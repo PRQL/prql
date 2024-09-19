@@ -1,6 +1,6 @@
 use std::collections::{HashMap, HashSet};
-use std::sync::OnceLock;
 
+use once_cell::sync::Lazy;
 use sqlparser::keywords::{
     Keyword, ALL_KEYWORDS, ALL_KEYWORDS_INDEX, RESERVED_FOR_COLUMN_ALIAS, RESERVED_FOR_TABLE_ALIAS,
 };
@@ -11,35 +11,30 @@ use sqlparser::keywords::{
 pub(super) fn is_keyword(ident: &str) -> bool {
     let ident = ident.to_ascii_uppercase();
 
-    sql_keywords().contains(ident.as_str())
+    SQL_KEYWORDS.contains(ident.as_str())
 }
 
-fn sql_keywords() -> &'static HashSet<&'static str> {
-    static SQL_KEYWORDS: OnceLock<HashSet<&str>> = OnceLock::new();
-    SQL_KEYWORDS.get_or_init(|| {
-        let mut m = HashSet::new();
-        m.extend(SQLITE_KEYWORDS);
+static SQL_KEYWORDS: Lazy<HashSet<&'static str>> = Lazy::new(|| {
+    let mut m = HashSet::new();
+    m.extend(SQLITE_KEYWORDS);
+    let reverse_index: HashMap<&Keyword, usize> = ALL_KEYWORDS_INDEX
+        .iter()
+        .enumerate()
+        .map(|(idx, kw)| (kw, idx))
+        .collect();
 
-        let reverse_index: HashMap<&Keyword, usize> = ALL_KEYWORDS_INDEX
+    m.extend(
+        RESERVED_FOR_COLUMN_ALIAS
             .iter()
-            .enumerate()
-            .map(|(idx, kw)| (kw, idx))
-            .collect();
-
-        m.extend(
-            RESERVED_FOR_COLUMN_ALIAS
-                .iter()
-                .map(|x| ALL_KEYWORDS[reverse_index[x]]),
-        );
-
-        m.extend(
-            RESERVED_FOR_TABLE_ALIAS
-                .iter()
-                .map(|x| ALL_KEYWORDS[reverse_index[x]]),
-        );
-        m
-    })
-}
+            .map(|x| ALL_KEYWORDS[reverse_index[x]]),
+    );
+    m.extend(
+        RESERVED_FOR_TABLE_ALIAS
+            .iter()
+            .map(|x| ALL_KEYWORDS[reverse_index[x]]),
+    );
+    m
+});
 
 const SQLITE_KEYWORDS: &[&str] = &[
     "ABORT",

@@ -13,7 +13,7 @@ use crate::pr::{Ty, TyKind, TyTupleField};
 use crate::semantic::ast_expand::{restrict_null_literal, try_restrict_range};
 use crate::semantic::resolver::functions::expr_of_func;
 use crate::semantic::{write_pl, NS_PARAM, NS_THIS};
-use crate::{compiler_version, Error, Reason, Result, WithErrorInfo};
+use crate::{Error, Reason, Result, WithErrorInfo, COMPILER_VERSION};
 
 impl Resolver<'_> {
     /// try to convert function call with enough args into transform
@@ -421,7 +421,7 @@ impl Resolver<'_> {
 
             "prql_version" => {
                 // yes, this is not a transform, but this is the most appropriate place for it
-                let ver = compiler_version().to_string();
+                let ver = COMPILER_VERSION.to_string();
                 return Ok(Expr::new(ExprKind::Literal(Literal::String(ver))));
             }
 
