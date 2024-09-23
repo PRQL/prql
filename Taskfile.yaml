@@ -42,7 +42,9 @@ vars:
   cargo_crates: >
     bacon cbindgen cargo-audit cargo-insta cargo-llvm-cov cargo-release
     cargo-nextest default-target mdbook mdbook-admonish mdbook-footnote
-    mdbook-toc nextest wasm-bindgen-cli wasm-opt wasm-pack
+    mdbook-toc nextest wasm-bindgen-cli wasm-opt
+  # wasm-pack waiting on https://github.com/rustwasm/wasm-pack/issues/1426
+  #
   # Excluding `elixir` atm given it's not enabled on Mac and currently unsupported
   brew_dependencies: |
     hugo
@@ -123,12 +125,14 @@ tasks:
       # `--locked` installs from the underlying lock files (which is not the
       # default...)
       - "cargo install --locked {{.cargo_crates}}"
+      - cargo install wasm-pack
 
   install-cargo-tools-binstall:
     cmds:
       - cmd: cargo install --locked cargo-binstall
         platforms: [linux, darwin]
       - "cargo binstall -y --locked {{.cargo_crates}}"
+      - cargo binstall -y wasm-pack
 
   check-vscode-extensions:
     desc: Check and suggest VS Code extensions.
