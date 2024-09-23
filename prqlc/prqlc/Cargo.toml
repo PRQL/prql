@@ -72,7 +72,7 @@ strum = {version = "0.26.3", features = ["std", "derive"]}
 strum_macros = "0.26.4"
 
 [build-dependencies]
-vergen-gitcl = {version = "1.0.0", features = ["build"]}
+vergen-gitcl = {version = "1.0.1", features = ["build"]}
 
 [target.'cfg(not(target_family="wasm"))'.dependencies]
 
