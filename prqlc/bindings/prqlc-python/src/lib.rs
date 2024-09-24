@@ -12,12 +12,8 @@ pub fn compile(prql_query: &str, options: Option<CompileOptions>) -> PyResult<St
         ));
     };
 
-    Ok(prql_query)
-        .and_then(prqlc_lib::prql_to_pl)
-        .and_then(prqlc_lib::pl_to_rq)
-        .and_then(|rq| prqlc_lib::rq_to_sql(rq, &options.unwrap_or_default()))
-        .map_err(|e| e.composed(&prql_query.into()))
-        .map_err(|e| (PyErr::new::<exceptions::PyValueError, _>(e.to_string())))
+    prqlc_lib::compile(prql_query, &options.unwrap_or_default())
+        .map_err(|err| (PyErr::new::<exceptions::PyValueError, _>(err.to_string())))
 }
 
 #[pyfunction]
