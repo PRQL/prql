@@ -23,6 +23,9 @@
   odd number of quotes when being formatted. The previous implementation would
   use an even number, which is invalid PRQL. (@max-sixty, #4850)
 
+- A few more keywords are quoted, such as `user`, which is a reserved keyword in
+  PostgreSQL. (@max-sixty)
+
 **Documentation**:
 
 **Web**:
@@ -1273,8 +1276,8 @@ below in this release).
 
 **Documentation**:
 
-[This release, the changelog only contains a subset of
-documentation improvements]
+[This release, the changelog only contains a subset of documentation
+improvements]
 
 - Add docs on aliases in
   [Select](https://prql-lang.org/book/reference/stdlib/transforms/select.html)
