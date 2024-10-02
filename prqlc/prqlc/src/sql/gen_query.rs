@@ -709,7 +709,7 @@ mod test {
 
         let sql_ast = crate::tests::compile(query).unwrap();
 
-        assert_snapshot!(sql_ast, @r###"
+        assert_snapshot!(sql_ast, @r"
         WITH table_0 AS (
           SELECT
             *,
@@ -724,7 +724,7 @@ mod test {
           table_0
         WHERE
           country = 'USA'
-        "###);
+        ");
     }
 
     #[test]

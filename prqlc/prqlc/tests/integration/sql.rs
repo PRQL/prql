@@ -338,13 +338,13 @@ fn test_precedence_03() {
       result = c * sum_1 + sum_2,
       a * g
     }
-    "###).unwrap()), @r###"
+    "###).unwrap()), @r"
     SELECT
       c * (a + b) + a + b AS result,
       a * - a
     FROM
       numbers
-    "###);
+    ");
 }
 
 #[test]
@@ -933,7 +933,7 @@ fn test_quoting_01() {
     from UPPER
     join `some_schema.tablename` (==id)
     derive `from` = 5
-    "###).unwrap()), @r###"
+    "###).unwrap()), @r#"
     WITH "UPPER" AS (
       SELECT
         *
@@ -947,7 +947,7 @@ fn test_quoting_01() {
     FROM
       "UPPER"
       JOIN "some_schema.tablename" ON "UPPER".id = "some_schema.tablename".id
-    "###);
+    "#);
 }
 
 #[test]
@@ -1326,7 +1326,7 @@ fn test_dates() {
         time = @14:00,
         # datetime = @2011-02-01T10:00<datetime>,
     }
-    "###).unwrap()), @r###"
+    "###).unwrap()), @r"
     SELECT
       *,
       DATE '2011-02-01' AS date,
@@ -1334,7 +1334,7 @@ fn test_dates() {
       TIME '14:00' AS time
     FROM
       to_do_empty_table
-    "###);
+    ");
 }
 
 #[test]
@@ -1662,7 +1662,7 @@ fn test_window_functions_13() {
     group {grp} (
       window (derive {count = row_number this})
     )
-    "###).unwrap()), @r###"
+    "###).unwrap()), @r"
     WITH table_0 AS (
       SELECT
         *,
@@ -1676,7 +1676,7 @@ fn test_window_functions_13() {
       ROW_NUMBER() OVER (PARTITION BY milliseconds - _expr_0) AS count
     FROM
       table_0
-    "###);
+    ");
 }
 
 #[test]
@@ -4568,7 +4568,7 @@ fn test_params() {
     }
     filter i.total > $3
     "#).unwrap(),
-        @r###"
+        @r"
     SELECT
       id,
       total
@@ -4580,7 +4580,7 @@ fn test_params() {
         OR date <= $2
       )
       AND total > $3
-    "###
+    "
     )
 }
 
@@ -4594,13 +4594,14 @@ fn test_datetime() {
 
     assert_snapshot!(
                 compile(query).unwrap(),
-                @r###"SELECT
-  DATE '2022-12-31' AS date,
-  TIME '08:30' AS time,
-  TIMESTAMP '2020-01-01T13:19:55-0800' AS timestamp
-FROM
-  test_table
-"###
+                @r"
+    SELECT
+      DATE '2022-12-31' AS date,
+      TIME '08:30' AS time,
+      TIMESTAMP '2020-01-01T13:19:55-0800' AS timestamp
+    FROM
+      test_table
+    "
     )
 }
 
@@ -4622,7 +4623,7 @@ fn test_datetime_sqlite() {
         timestamp3 = @2021-03-14T03:05+08:00,
     }
     "#).unwrap(),
-        @r###"
+        @r"
     SELECT
       DATE('2022-12-31') AS date,
       TIME('08:30') AS time,
@@ -4633,7 +4634,7 @@ fn test_datetime_sqlite() {
       DATETIME('2021-03-14T03:05+08:00') AS timestamp3
     FROM
       x
-    "###
+    "
     );
 }
 
@@ -4643,14 +4644,14 @@ fn test_datetime_parsing() {
     from test_tables
     select {date = @2022-12-31, time = @08:30, timestamp = @2020-01-01T13:19:55-0800}
     "#).unwrap(),
-        @r###"
+        @r"
     SELECT
       DATE '2022-12-31' AS date,
       TIME '08:30' AS time,
       TIMESTAMP '2020-01-01T13:19:55-0800' AS timestamp
     FROM
       test_tables
-    "###
+    "
     );
 }
 
@@ -5009,12 +5010,12 @@ fn test_type_as_column_name() {
 
     from foo
     f"#)
-    .unwrap(), @r###"
+    .unwrap(), @r"
     SELECT
       date
     FROM
       foo AS t
-    "###);
+    ");
 }
 
 #[test]

@@ -7,7 +7,9 @@ use sqlparser::keywords::{
 
 /// True for keywords which we want to quote when translating to SQL.
 ///
-/// Currently we're being fairly permissive (over-quoting is not a concern).
+/// Currently we're being fairly permissive (over-quoting is not a big concern).
+// We're not including the full list from `SQL_KEYWORDS`, as that has terms such
+// as `ID`, instead we bring a few dialects' keywords in.
 pub(super) fn is_keyword(ident: &str) -> bool {
     let ident = ident.to_ascii_uppercase();
 
@@ -19,6 +21,8 @@ fn sql_keywords() -> &'static HashSet<&'static str> {
     SQL_KEYWORDS.get_or_init(|| {
         let mut m = HashSet::new();
         m.extend(SQLITE_KEYWORDS);
+        m.extend(POSTGRES_KEYWORDS);
+        m.extend(DUCKDB_KEYWORDS);
 
         let reverse_index: HashMap<&Keyword, usize> = ALL_KEYWORDS_INDEX
             .iter()
@@ -190,3 +194,204 @@ const SQLITE_KEYWORDS: &[&str] = &[
     "WITH",
     "WITHOUT",
 ];
+
+// Copy table from
+// <https://www.postgresql.org/docs/current/sql-keywords-appendix.html>, then run:
+//
+//    pbpaste | rg '^\w+ *\treserved' | choose 0 | rg '(.*)' -r '"$1",' | pbcopy
+const POSTGRES_KEYWORDS: &[&str] = &[
+    "ALL",
+    "ANALYSE",
+    "ANALYZE",
+    "AND",
+    "ANY",
+    "ARRAY",
+    "AS",
+    "ASC",
+    "ASYMMETRIC",
+    "AUTHORIZATION",
+    "BINARY",
+    "BOTH",
+    "CASE",
+    "CAST",
+    "CHECK",
+    "COLLATE",
+    "COLLATION",
+    "COLUMN",
+    "CONCURRENTLY",
+    "CONSTRAINT",
+    "CREATE",
+    "CROSS",
+    "CURRENT_CATALOG",
+    "CURRENT_DATE",
+    "CURRENT_ROLE",
+    "CURRENT_SCHEMA",
+    "CURRENT_TIME",
+    "CURRENT_TIMESTAMP",
+    "CURRENT_USER",
+    "DEFAULT",
+    "DEFERRABLE",
+    "DESC",
+    "DISTINCT",
+    "DO",
+    "ELSE",
+    "END",
+    "EXCEPT",
+    "FALSE",
+    "FETCH",
+    "FOR",
+    "FOREIGN",
+    "FREEZE",
+    "FROM",
+    "FULL",
+    "GRANT",
+    "GROUP",
+    "HAVING",
+    "ILIKE",
+    "IN",
+    "INITIALLY",
+    "INNER",
+    "INTERSECT",
+    "INTO",
+    "IS",
+    "ISNULL",
+    "JOIN",
+    "LATERAL",
+    "LEADING",
+    "LEFT",
+    "LIKE",
+    "LIMIT",
+    "LOCALTIME",
+    "LOCALTIMESTAMP",
+    "NATURAL",
+    "NOT",
+    "NOTNULL",
+    "NULL",
+    "OFFSET",
+    "ON",
+    "ONLY",
+    "OR",
+    "ORDER",
+    "OUTER",
+    "OVERLAPS",
+    "PLACING",
+    "PRIMARY",
+    "REFERENCES",
+    "RETURNING",
+    "RIGHT",
+    "SELECT",
+    "SESSION_USER",
+    "SIMILAR",
+    "SOME",
+    "SYMMETRIC",
+    "SYSTEM_USER",
+    "TABLE",
+    "TABLESAMPLE",
+    "THEN",
+    "TO",
+    "TRAILING",
+    "TRUE",
+    "UNION",
+    "UNIQUE",
+    "USER",
+    "USING",
+    "VARIADIC",
+    "VERBOSE",
+    "WHEN",
+    "WHERE",
+    "WINDOW",
+    "WITH",
+];
+
+// In duckdb:
+//
+//   .output
+//   .mode list
+//   .headers off
+//   .output keywords.txt
+//   SELECT '"'||UPPER(keyword_name)||'",' FROM duckdb_keywords() WHERE keyword_category='reserved';
+//   .output
+//
+const DUCKDB_KEYWORDS: &[&str] = &[
+    "ALL",
+    "ANALYSE",
+    "ANALYZE",
+    "AND",
+    "ANY",
+    "ARRAY",
+    "AS",
+    "ASC",
+    "ASYMMETRIC",
+    "BOTH",
+    "CASE",
+    "CAST",
+    "CHECK",
+    "COLLATE",
+    "COLUMN",
+    "CONSTRAINT",
+    "CREATE",
+    "DEFAULT",
+    "DEFERRABLE",
+    "DESC",
+    "DESCRIBE",
+    "DISTINCT",
+    "DO",
+    "ELSE",
+    "END",
+    "EXCEPT",
+    "FALSE",
+    "FETCH",
+    "FOR",
+    "FOREIGN",
+    "FROM",
+    "GRANT",
+    "GROUP",
+    "HAVING",
+    "IN",
+    "INITIALLY",
+    "INTERSECT",
+    "INTO",
+    "LATERAL",
+    "LEADING",
+    "LIMIT",
+    "NOT",
+    "NULL",
+    "OFFSET",
+    "ON",
+    "ONLY",
+    "OR",
+    "ORDER",
+    "PIVOT",
+    "PIVOT_LONGER",
+    "PIVOT_WIDER",
+    "PLACING",
+    "PRIMARY",
+    "QUALIFY",
+    "REFERENCES",
+    "RETURNING",
+    "SELECT",
+    "SHOW",
+    "SOME",
+    "SUMMARIZE",
+    "SYMMETRIC",
+    "TABLE",
+    "THEN",
+    "TO",
+    "TRAILING",
+    "TRUE",
+    "UNION",
+    "UNIQUE",
+    "UNPIVOT",
+    "USING",
+    "VARIADIC",
+    "WHEN",
+    "WHERE",
+    "WINDOW",
+    "WITH",
+];
+
+#[test]
+fn test_sql_keywords() {
+    assert!(is_keyword("from"));
+    assert!(is_keyword("user"));
+}
