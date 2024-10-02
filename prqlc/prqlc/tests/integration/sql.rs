@@ -340,7 +340,7 @@ fn test_precedence_03() {
     }
     "###).unwrap()), @r###"
     SELECT
-      c * (a + b) + a + b AS result,
+      c * (a + b) + a + b AS "result",
       a * - a
     FROM
       numbers

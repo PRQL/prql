@@ -709,7 +709,7 @@ mod test {
 
         let sql_ast = crate::tests::compile(query).unwrap();
 
-        assert_snapshot!(sql_ast, @r###"
+        assert_snapshot!(sql_ast, @r#"
         WITH table_0 AS (
           SELECT
             *,
@@ -719,12 +719,12 @@ mod test {
         )
         SELECT
           *,
-          RANK() OVER () AS rank
+          RANK() OVER () AS "rank"
         FROM
           table_0
         WHERE
           country = 'USA'
-        "###);
+        "#);
     }
 
     #[test]
