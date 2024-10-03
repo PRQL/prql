@@ -247,7 +247,7 @@ fn compile_project() {
         "main",
     ]);
 
-    assert_cmd_snapshot!(cmd, @r###"
+    assert_cmd_snapshot!(cmd, @r#"
     success: true
     exit_code: 0
     ----- stdout -----
@@ -274,7 +274,7 @@ fn compile_project() {
       FROM
         read_parquet('artists.parquet')
     ),
-    input AS (
+    "input" AS (
       SELECT
         *
       FROM
@@ -283,13 +283,13 @@ fn compile_project() {
     SELECT
       favorite_artists.artist_id,
       favorite_artists.last_listen,
-      input.*
+      "input".*
     FROM
       favorite_artists
-      LEFT JOIN input ON favorite_artists.artist_id = input.artist_id
+      LEFT JOIN "input" ON favorite_artists.artist_id = "input".artist_id
 
     ----- stderr -----
-    "###);
+    "#);
 
     // don't check the contents, they are very prone to change
     assert!(PathBuf::from_str("./log_test.json").unwrap().is_file());

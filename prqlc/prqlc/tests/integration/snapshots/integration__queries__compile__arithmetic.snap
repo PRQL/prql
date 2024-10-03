@@ -5,7 +5,7 @@ input_file: prqlc/prqlc/tests/integration/queries/arithmetic.prql
 ---
 WITH table_0 AS (
   SELECT
-    1 AS id,
+    1 AS "id",
     13 AS x_int,
     13.0 AS x_float,
     5 AS k_int,
@@ -13,7 +13,7 @@ WITH table_0 AS (
   UNION
   ALL
   SELECT
-    2 AS id,
+    2 AS "id",
     -13 AS x_int,
     -13.0 AS x_float,
     5 AS k_int,
@@ -21,7 +21,7 @@ WITH table_0 AS (
   UNION
   ALL
   SELECT
-    3 AS id,
+    3 AS "id",
     13 AS x_int,
     13.0 AS x_float,
     -5 AS k_int,
@@ -29,14 +29,14 @@ WITH table_0 AS (
   UNION
   ALL
   SELECT
-    4 AS id,
+    4 AS "id",
     -13 AS x_int,
     -13.0 AS x_float,
     -5 AS k_int,
     -5.0 AS k_float
 )
 SELECT
-  id,
+  "id",
   x_int / k_int,
   x_int / k_float,
   x_float / k_int,
@@ -68,4 +68,4 @@ SELECT
 FROM
   table_0
 ORDER BY
-  id
+  "id"

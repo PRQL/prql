@@ -174,22 +174,22 @@ fn test_stdlib_text_module() {
       name_contains = (name | text.contains "pika"),
       name_ends_with = (name | text.ends_with "pika"),
     }
-    "#).unwrap(), @r###"
+    "#).unwrap(), @r#"
     SELECT
-      LOWER(name) AS name_lower,
-      UPPER(name) AS name_upper,
-      LTRIM(name) AS name_ltrim,
-      RTRIM(name) AS name_rtrim,
-      TRIM(name) AS name_trim,
-      CHAR_LENGTH(name) AS name_length,
-      SUBSTRING(name, 3, 5) AS name_extract,
-      REPLACE(name, 'pika', 'chu') AS name_replace,
-      name LIKE CONCAT('pika', '%') AS name_starts_with,
-      name LIKE CONCAT('%', 'pika', '%') AS name_contains,
-      name LIKE CONCAT('%', 'pika') AS name_ends_with
+      LOWER("name") AS name_lower,
+      UPPER("name") AS name_upper,
+      LTRIM("name") AS name_ltrim,
+      RTRIM("name") AS name_rtrim,
+      TRIM("name") AS name_trim,
+      CHAR_LENGTH("name") AS name_length,
+      SUBSTRING("name", 3, 5) AS name_extract,
+      REPLACE("name", 'pika', 'chu') AS name_replace,
+      "name" LIKE CONCAT('pika', '%') AS name_starts_with,
+      "name" LIKE CONCAT('%', 'pika', '%') AS name_contains,
+      "name" LIKE CONCAT('%', 'pika') AS name_ends_with
     FROM
       employees
-    "###
+    "#
     );
 }
 
@@ -206,7 +206,7 @@ fn like_concat(#[case] dialect: sql::Dialect, #[case] expected_like: &'static st
     let expected = format!(
         r#"
 SELECT
-  name {expected_like} AS name_ends_with
+  "name" {expected_like} AS name_ends_with
 FROM
   employees
 "#
@@ -338,13 +338,13 @@ fn test_precedence_03() {
       result = c * sum_1 + sum_2,
       a * g
     }
-    "###).unwrap()), @r###"
+    "###).unwrap()), @r#"
     SELECT
-      c * (a + b) + a + b AS result,
+      c * (a + b) + a + b AS "result",
       a * - a
     FROM
       numbers
-    "###);
+    "#);
 }
 
 #[test]
@@ -461,10 +461,10 @@ fn test_append() {
         select {name, cost = salary + bonuses}
         take 10
     )
-    "###).unwrap(), @r###"
+    "###).unwrap(), @r#"
     WITH table_0 AS (
       SELECT
-        name,
+        "name",
         salary + bonuses AS cost
       FROM
         employees
@@ -476,7 +476,7 @@ fn test_append() {
     FROM
       (
         SELECT
-          name,
+          "name",
           salary AS cost
         FROM
           employees
@@ -489,7 +489,7 @@ fn test_append() {
       *
     FROM
       table_0
-    "###);
+    "#);
 
     assert_snapshot!(compile(r###"
     let distinct = rel -> (_param.rel | group this (take 1))
@@ -643,11 +643,11 @@ fn test_remove_05() {
     select {artist_id, title}
     except (from artist | select {artist_id, name})
     "#).unwrap(),
-        @r###"
+        @r#"
     WITH table_0 AS (
       SELECT
         artist_id,
-        name
+        "name"
       FROM
         artist
     )
@@ -661,7 +661,7 @@ fn test_remove_05() {
       *
     FROM
       table_0
-    "###
+    "#
     );
 }
 
@@ -933,12 +933,12 @@ fn test_quoting_01() {
     from UPPER
     join `some_schema.tablename` (==id)
     derive `from` = 5
-    "###).unwrap()), @r###"
+    "###).unwrap()), @r#"
     WITH "UPPER" AS (
       SELECT
         *
       FROM
-        lower
+        "lower"
     )
     SELECT
       "UPPER".*,
@@ -946,8 +946,8 @@ fn test_quoting_01() {
       5 AS "from"
     FROM
       "UPPER"
-      JOIN "some_schema.tablename" ON "UPPER".id = "some_schema.tablename".id
-    "###);
+      JOIN "some_schema.tablename" ON "UPPER"."id" = "some_schema.tablename"."id"
+    "#);
 }
 
 #[test]
@@ -972,16 +972,16 @@ fn test_quoting_03() {
     from `schema.table`
     join `schema.table2` (==id)
     join c = `schema.t-able` (`schema.table`.id == c.id)
-    "###).unwrap()), @r###"
+    "###).unwrap()), @r#"
     SELECT
       `schema.table`.*,
       `schema.table2`.*,
       c.*
     FROM
       `schema.table`
-      JOIN `schema.table2` ON `schema.table`.id = `schema.table2`.id
-      JOIN `schema.t-able` AS c ON `schema.table`.id = c.id
-    "###);
+      JOIN `schema.table2` ON `schema.table`.`id` = `schema.table2`.`id`
+      JOIN `schema.t-able` AS c ON `schema.table`.`id` = c.`id`
+    "#);
 }
 
 #[test]
@@ -1153,16 +1153,16 @@ fn test_ranges() {
       far = (distance | in 100..),
       (country_founding | in @1776-07-04..@1787-09-17)
     }
-    "###).unwrap()), @r###"
+    "###).unwrap()), @r#"
     SELECT
       *,
-      distance <= 50 AS close,
+      distance <= 50 AS "close",
       distance BETWEEN 50 AND 100 AS middle,
       distance >= 100 AS far,
       country_founding BETWEEN DATE '1776-07-04' AND DATE '1787-09-17'
     FROM
       employees
-    "###);
+    "#);
 }
 
 #[test]
@@ -1181,8 +1181,8 @@ fn test_in_values_01() {
     WHERE
       title IN ('Sales Manager', 'Sales Support Agent')
       AND employee_id IN (1, 2, 5)
-      AND CONCAT(emp_group, '.', role) IN ('sales_ne.mgr', 'sales_mw.mgr')
-      AND metadata ->> '$.location' IN ('Northeast', 'Midwest')
+      AND CONCAT(emp_group, '.', "role") IN ('sales_ne.mgr', 'sales_mw.mgr')
+      AND "metadata" ->> '$.location' IN ('Northeast', 'Midwest')
     "#);
 }
 
@@ -1326,15 +1326,15 @@ fn test_dates() {
         time = @14:00,
         # datetime = @2011-02-01T10:00<datetime>,
     }
-    "###).unwrap()), @r###"
+    "###).unwrap()), @r#"
     SELECT
       *,
-      DATE '2011-02-01' AS date,
-      TIMESTAMP '2011-02-01T10:00' AS timestamp,
-      TIME '14:00' AS time
+      DATE '2011-02-01' AS "date",
+      TIMESTAMP '2011-02-01T10:00' AS "timestamp",
+      TIME '14:00' AS "time"
     FROM
       to_do_empty_table
-    "###);
+    "#);
 }
 
 #[test]
@@ -1430,16 +1430,16 @@ fn test_window_functions_03() {
     )
     "###;
 
-    assert_snapshot!((compile(query).unwrap()), @r###"
+    assert_snapshot!((compile(query).unwrap()), @r#"
     SELECT
       *,
       LAG(num_orders, 7) OVER () AS last_week,
       FIRST_VALUE(num_orders) OVER () AS first_count,
       LAST_VALUE(num_orders) OVER () AS last_count,
-      SUM(num_orders) OVER (PARTITION BY month) AS total_month
+      SUM(num_orders) OVER (PARTITION BY "month") AS total_month
     FROM
       daily_orders
-    "###);
+    "#);
 }
 
 #[test]
@@ -1452,14 +1452,14 @@ fn test_window_functions_04() {
     derive {last_week = lag 7 num_orders}
     "###;
 
-    assert_snapshot!((compile(query).unwrap()), @r###"
+    assert_snapshot!((compile(query).unwrap()), @r#"
     SELECT
       *,
-      RANK() OVER (PARTITION BY month) AS total_month,
+      RANK() OVER (PARTITION BY "month") AS total_month,
       LAG(num_orders, 7) OVER () AS last_week
     FROM
       daily_orders
-    "###);
+    "#);
 }
 
 #[test]
@@ -1471,18 +1471,18 @@ fn test_window_functions_05() {
     group month (sort num_orders | window expanding:true (derive {rank day}))
     derive {num_orders_last_week = lag 7 num_orders}
     "###;
-    assert_snapshot!((compile(query).unwrap()), @r###"
+    assert_snapshot!((compile(query).unwrap()), @r#"
     SELECT
       *,
       RANK() OVER (
-        PARTITION BY month
+        PARTITION BY "month"
         ORDER BY
           num_orders
       ),
       LAG(num_orders, 7) OVER () AS num_orders_last_week
     FROM
       daily_orders
-    "###);
+    "#);
 }
 
 #[test]
@@ -1563,18 +1563,18 @@ fn test_window_functions_10() {
     window range:-4..4 (
         derive {next_four_days = sum b}
     )
-    "###).unwrap()), @r###"
+    "###).unwrap()), @r#"
     SELECT
       *,
       SUM(b) OVER (
         ORDER BY
-          day RANGE BETWEEN 4 PRECEDING AND 4 FOLLOWING
+          "day" RANGE BETWEEN 4 PRECEDING AND 4 FOLLOWING
       ) AS next_four_days
     FROM
       foo
     ORDER BY
-      day
-    "###);
+      "day"
+    "#);
 }
 
 #[test]
@@ -1662,7 +1662,7 @@ fn test_window_functions_13() {
     group {grp} (
       window (derive {count = row_number this})
     )
-    "###).unwrap()), @r###"
+    "###).unwrap()), @r#"
     WITH table_0 AS (
       SELECT
         *,
@@ -1671,12 +1671,12 @@ fn test_window_functions_13() {
         tracks
     )
     SELECT
-      milliseconds - _expr_0 AS grp,
+      "milliseconds" - _expr_0 AS grp,
       *,
-      ROW_NUMBER() OVER (PARTITION BY milliseconds - _expr_0) AS count
+      ROW_NUMBER() OVER (PARTITION BY "milliseconds" - _expr_0) AS "count"
     FROM
       table_0
-    "###);
+    "#);
 }
 
 #[test]
@@ -1936,7 +1936,7 @@ fn test_take_06() {
     take 11..20
     sort name
     take 1..5
-    "###).unwrap()), @r###"
+    "###).unwrap()), @r#"
     WITH table_0 AS (
       SELECT
         *
@@ -1950,10 +1950,10 @@ fn test_take_06() {
     FROM
       table_0
     ORDER BY
-      name
+      "name"
     LIMIT
       5
-    "###);
+    "#);
 }
 
 #[test]
@@ -2338,17 +2338,17 @@ fn test_distinct_on_04() {
       take 1
     )
     select {a.id, b.y}
-    "###).unwrap()), @r###"
+    "###).unwrap()), @r#"
     SELECT
-      DISTINCT ON (a.id) a.id,
+      DISTINCT ON (a."id") a."id",
       b.y
     FROM
       a
-      JOIN b ON b.a_id = a.id
+      JOIN b ON b.a_id = a."id"
     ORDER BY
-      a.id,
+      a."id",
       b.x
-    "###);
+    "#);
 }
 
 #[test]
@@ -2418,14 +2418,14 @@ fn test_join() {
     assert_snapshot!((compile(r###"
     from x
     join y (==id)
-    "###).unwrap()), @r###"
+    "###).unwrap()), @r#"
     SELECT
       x.*,
       y.*
     FROM
       x
-      JOIN y ON x.id = y.id
-    "###);
+      JOIN y ON x."id" = y."id"
+    "#);
 
     compile("from x | join y {==x.id}").unwrap_err();
 }
@@ -2437,14 +2437,14 @@ fn test_join_side_literal() {
 
     from x
     join y (==id) side:my_side
-    "###).unwrap()), @r###"
+    "###).unwrap()), @r#"
     SELECT
       x.*,
       y.*
     FROM
       x
-      RIGHT JOIN y ON x.id = y.id
-    "###);
+      RIGHT JOIN y ON x."id" = y."id"
+    "#);
 }
 
 #[test]
@@ -2474,14 +2474,14 @@ fn test_join_side_literal_via_func() {
 
     from x
     my_join default_db.y this.id s:"left"
-    "###).unwrap()), @r###"
+    "###).unwrap()), @r#"
     SELECT
       x.*,
       y.*
     FROM
       x
-      LEFT JOIN y ON x.id = y.k
-    "###);
+      LEFT JOIN y ON x."id" = y.k
+    "#);
 }
 
 #[test]
@@ -2908,7 +2908,7 @@ fn test_prql_to_sql_table() {
     "#;
     let sql = compile(query).unwrap();
     assert_snapshot!(sql,
-        @r###"
+        @r#"
     WITH newest_employees AS (
       SELECT
         *
@@ -2928,7 +2928,7 @@ fn test_prql_to_sql_table() {
         country
     )
     SELECT
-      newest_employees.name,
+      newest_employees."name",
       newest_employees.salary,
       average_salaries.average_country_salary
     FROM
@@ -2936,7 +2936,7 @@ fn test_prql_to_sql_table() {
       JOIN average_salaries ON newest_employees.country = average_salaries.country
     ORDER BY
       employees.tenure
-    "###
+    "#
     );
 }
 
@@ -3040,7 +3040,7 @@ fn test_nonatomic_table() {
     select {name, salary, average_country_salary}
 "#;
 
-    assert_snapshot!((compile(query).unwrap()), @r###"
+    assert_snapshot!((compile(query).unwrap()), @r#"
     WITH table_0 AS (
       SELECT
         country
@@ -3058,13 +3058,13 @@ fn test_nonatomic_table() {
         country
     )
     SELECT
-      b.name,
+      b."name",
       b.salary,
       b.average_country_salary
     FROM
       a
       JOIN b ON a.country = b.country
-    "###);
+    "#);
 }
 
 #[test]
@@ -3076,11 +3076,11 @@ fn test_table_names_between_splits_01() {
     derive emp_no = employees.emp_no
     join s = salaries (==emp_no)
     select {employees.emp_no, d.name, s.salary}
-    "###).unwrap(), @r###"
+    "###).unwrap(), @r#"
     WITH table_0 AS (
       SELECT
         employees.emp_no,
-        d.name
+        d."name"
       FROM
         employees
         JOIN department AS d ON employees.dept_no = d.dept_no
@@ -3089,12 +3089,12 @@ fn test_table_names_between_splits_01() {
     )
     SELECT
       table_0.emp_no,
-      table_0.name,
+      table_0."name",
       s.salary
     FROM
       table_0
       JOIN salaries AS s ON table_0.emp_no = s.emp_no
-    "###);
+    "#);
 }
 
 #[test]
@@ -3364,16 +3364,16 @@ fn test_double_aggregate() {
         }
     )
     "###).unwrap(),
-        @r###"
+        @r#"
     SELECT
-      type,
+      "type",
       COALESCE(SUM(amount), 0) AS total_amt,
       MAX(amount)
     FROM
       numbers
     GROUP BY
-      type
-    "###
+      "type"
+    "#
     );
 }
 
@@ -3464,7 +3464,7 @@ fn test_inline_tables() {
     )
     join s = (from salaries | select {emp_id, salary}) (==emp_id)
     "###).unwrap(),
-        @r###"
+        @r#"
     WITH table_0 AS (
       SELECT
         emp_id,
@@ -3474,16 +3474,16 @@ fn test_inline_tables() {
     )
     SELECT
       employees.emp_id,
-      employees.name,
+      employees."name",
       employees.surname,
-      employees.type,
+      employees."type",
       employees.amount,
       table_0.emp_id,
       table_0.salary
     FROM
       employees
       JOIN table_0 ON employees.emp_id = table_0.emp_id
-    "###
+    "#
     );
 }
 
@@ -3496,14 +3496,14 @@ fn test_filter_and_select_unchanged_alias() {
     filter account.name != null
     select {name = account.name}
     "###).unwrap(),
-        @r###"
+        @r#"
     SELECT
-      name
+      "name"
     FROM
       account
     WHERE
-      name IS NOT NULL
-    "###
+      "name" IS NOT NULL
+    "#
     );
 }
 
@@ -3515,14 +3515,14 @@ fn test_filter_and_select_changed_alias() {
     filter account.name != null
     select {renamed_name = account.name}
     "###).unwrap(),
-        @r###"
+        @r#"
     SELECT
-      name AS renamed_name
+      "name" AS renamed_name
     FROM
       account
     WHERE
-      name IS NOT NULL
-    "###
+      "name" IS NOT NULL
+    "#
     );
 
     // #1207
@@ -3531,14 +3531,14 @@ fn test_filter_and_select_changed_alias() {
     filter name != "Bob"
     select name = name ?? "Default"
     "#).unwrap(),
-        @r###"
+        @r#"
     SELECT
-      COALESCE(name, 'Default') AS name
+      COALESCE("name", 'Default') AS "name"
     FROM
       x
     WHERE
-      name <> 'Bob'
-    "###
+      "name" <> 'Bob'
+    "#
     );
 }
 
@@ -3591,7 +3591,7 @@ fn test_table_s_string_02() {
     """
     join s = s"SELECT * FROM salaries" (==id)
     "#).unwrap(),
-        @r###"
+        @r#"
     WITH table_0 AS (
       SELECT
         DISTINCT ON first_name,
@@ -3613,8 +3613,8 @@ fn test_table_s_string_02() {
       table_1.*
     FROM
       table_0
-      JOIN table_1 ON table_0.id = table_1.id
-    "###
+      JOIN table_1 ON table_0."id" = table_1."id"
+    "#
     );
 }
 #[test]
@@ -4004,13 +4004,13 @@ fn test_exclude_columns_01() {
     select {track_id, title, composer, bytes}
     select !{title, composer}
     "#).unwrap(),
-        @r###"
+        @r#"
     SELECT
       track_id,
-      bytes
+      "bytes"
     FROM
       tracks
-    "###
+    "#
     );
 }
 
@@ -4021,17 +4021,17 @@ fn test_exclude_columns_02() {
     select {track_id, title, composer, bytes}
     group !{title, composer} (aggregate {count this})
     "#).unwrap(),
-        @r###"
+        @r#"
     SELECT
       track_id,
-      bytes,
+      "bytes",
       COUNT(*)
     FROM
       tracks
     GROUP BY
       track_id,
-      bytes
-    "###
+      "bytes"
+    "#
     );
 }
 
@@ -4042,12 +4042,12 @@ fn test_exclude_columns_03() {
     derive nick = name
     select !{artists.*}
     "#).unwrap(),
-        @r###"
+        @r#"
     SELECT
-      name AS nick
+      "name" AS nick
     FROM
       artists
-    "###
+    "#
     );
 }
 
@@ -4058,12 +4058,12 @@ fn test_exclude_columns_04() {
     from tracks
     select !{milliseconds,bytes}
     "#).unwrap(),
-        @r###"
+        @r#"
     SELECT
-      * EXCEPT (milliseconds, bytes)
+      * EXCEPT (`milliseconds`, `bytes`)
     FROM
       tracks
-    "###
+    "#
     );
 }
 
@@ -4074,12 +4074,12 @@ fn test_exclude_columns_05() {
     from tracks
     select !{milliseconds,bytes}
     "#).unwrap(),
-        @r###"
+        @r#"
     SELECT
-      * EXCLUDE (milliseconds, bytes)
+      * EXCLUDE ("milliseconds", "bytes")
     FROM
       tracks
-    "###
+    "#
     );
 }
 
@@ -4090,12 +4090,12 @@ fn test_exclude_columns_06() {
     from tracks
     select !{milliseconds,bytes}
     "#).unwrap(),
-        @r###"
+        @r#"
     SELECT
-      * EXCLUDE (milliseconds, bytes)
+      * EXCLUDE ("milliseconds", "bytes")
     FROM
       tracks
-    "###
+    "#
     );
 }
 
@@ -4133,17 +4133,17 @@ fn test_custom_transforms() {
     my_transform
     take 3
     "#).unwrap(),
-        @r###"
+        @r#"
     SELECT
       *,
-      single * 2 AS double
+      single * 2 AS "double"
     FROM
       tab
     ORDER BY
-      name
+      "name"
     LIMIT
       3
-    "###
+    "#
     );
 }
 
@@ -4446,16 +4446,16 @@ fn shortest_prql_version() {
     let mut escape_version = insta::Settings::new();
     escape_version.add_filter(r"'.*'", "[VERSION]");
     escape_version.bind(|| {
-        assert_snapshot!(compile(r#"[{version = prql.version}]"#).unwrap(),@r###"
+        assert_snapshot!(compile(r#"[{version = prql.version}]"#).unwrap(),@r#"
         WITH table_0 AS (
           SELECT
-            [VERSION] AS version
+            [VERSION] AS "version"
         )
         SELECT
-          version
+          "version"
         FROM
           table_0
-        "###);
+        "#);
 
         assert_snapshot!(compile(r#"
     from x
@@ -4568,19 +4568,19 @@ fn test_params() {
     }
     filter i.total > $3
     "#).unwrap(),
-        @r###"
+        @r#"
     SELECT
-      id,
+      "id",
       total
     FROM
       invoices
     WHERE
       (
-        $1 <= date
-        OR date <= $2
+        $1 <= "date"
+        OR "date" <= $2
       )
       AND total > $3
-    "###
+    "#
     )
 }
 
@@ -4594,13 +4594,14 @@ fn test_datetime() {
 
     assert_snapshot!(
                 compile(query).unwrap(),
-                @r###"SELECT
-  DATE '2022-12-31' AS date,
-  TIME '08:30' AS time,
-  TIMESTAMP '2020-01-01T13:19:55-0800' AS timestamp
-FROM
-  test_table
-"###
+                @r#"
+    SELECT
+      DATE '2022-12-31' AS "date",
+      TIME '08:30' AS "time",
+      TIMESTAMP '2020-01-01T13:19:55-0800' AS "timestamp"
+    FROM
+      test_table
+    "#
     )
 }
 
@@ -4622,10 +4623,10 @@ fn test_datetime_sqlite() {
         timestamp3 = @2021-03-14T03:05+08:00,
     }
     "#).unwrap(),
-        @r###"
+        @r#"
     SELECT
-      DATE('2022-12-31') AS date,
-      TIME('08:30') AS time,
+      DATE('2022-12-31') AS "date",
+      TIME('08:30') AS "time",
       TIME('03:05+08:00') AS time_tz,
       TIME('03:05+08:00') AS time_tz2,
       DATETIME('2020-01-01T13:19:55-08:00') AS timestamp1,
@@ -4633,7 +4634,7 @@ fn test_datetime_sqlite() {
       DATETIME('2021-03-14T03:05+08:00') AS timestamp3
     FROM
       x
-    "###
+    "#
     );
 }
 
@@ -4643,14 +4644,14 @@ fn test_datetime_parsing() {
     from test_tables
     select {date = @2022-12-31, time = @08:30, timestamp = @2020-01-01T13:19:55-0800}
     "#).unwrap(),
-        @r###"
+        @r#"
     SELECT
-      DATE '2022-12-31' AS date,
-      TIME '08:30' AS time,
-      TIMESTAMP '2020-01-01T13:19:55-0800' AS timestamp
+      DATE '2022-12-31' AS "date",
+      TIME '08:30' AS "time",
+      TIMESTAMP '2020-01-01T13:19:55-0800' AS "timestamp"
     FROM
       test_tables
-    "###
+    "#
     );
 }
 
@@ -4660,13 +4661,13 @@ fn test_lower() {
     from test_tables
     derive {lower_name = (name | text.lower)}
     "#).unwrap(),
-        @r###"
+        @r#"
     SELECT
       *,
-      LOWER(name) AS lower_name
+      LOWER("name") AS lower_name
     FROM
       test_tables
-    "###
+    "#
     );
 }
 
@@ -4677,12 +4678,12 @@ fn test_upper() {
     derive {upper_name = text.upper name}
     select {upper_name}
     "#).unwrap(),
-        @r###"
+        @r#"
     SELECT
-      UPPER(name) AS upper_name
+      UPPER("name") AS upper_name
     FROM
       test_tables
-    "###
+    "#
     );
 }
 
@@ -4798,19 +4799,19 @@ fn test_into() {
     from table_a
     select {x, y}
     "#).unwrap(),
-        @r###"
+        @r#"
     WITH table_a AS (
       SELECT
         *
       FROM
-        data
+        "data"
     )
     SELECT
       x,
       y
     FROM
       table_a
-    "###
+    "#
     );
 }
 
@@ -5009,12 +5010,12 @@ fn test_type_as_column_name() {
 
     from foo
     f"#)
-    .unwrap(), @r###"
+    .unwrap(), @r#"
     SELECT
-      date
+      "date"
     FROM
       foo AS t
-    "###);
+    "#);
 }
 
 #[test]
@@ -5135,25 +5136,25 @@ fn test_conflicting_names_at_split() {
     }
     "#,
     )
-    .unwrap(), @r###"
+    .unwrap(), @r#"
     WITH table_0 AS (
       SELECT
-        wp.id,
-        s.id AS _expr_0,
+        wp."id",
+        s."id" AS _expr_0,
         wp.workflow_id
       FROM
         workflow_steps AS s
-        JOIN workflow_phases AS wp ON s.phase_id = wp.id
+        JOIN workflow_phases AS wp ON s.phase_id = wp."id"
       WHERE
-        wp.name = 'CREATE_OUTLET'
+        wp."name" = 'CREATE_OUTLET'
     )
     SELECT
       table_0._expr_0 AS step_id,
-      table_0.id AS phase_id
+      table_0."id" AS phase_id
     FROM
       table_0
-      JOIN workflow AS w ON table_0.workflow_id = w.id
-    "###);
+      JOIN workflow AS w ON table_0.workflow_id = w."id"
+    "#);
 }
 
 #[test]
@@ -5309,18 +5310,18 @@ fn test_table_declarations() {
     from my_schema.my_table | join another_table (==id) | take 10
         "###,
     )
-    .unwrap(), @r###"
+    .unwrap(), @r#"
     SELECT
-      my_table.id,
+      my_table."id",
       my_table.a,
-      another_table.id,
+      another_table."id",
       another_table.b
     FROM
       my_schema.my_table
-      JOIN another_table ON my_table.id = another_table.id
+      JOIN another_table ON my_table."id" = another_table."id"
     LIMIT
       10
-    "###);
+    "#);
 }
 
 #[test]

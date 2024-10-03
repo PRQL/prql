@@ -10,11 +10,11 @@ WITH table_0 AS (
       WHEN genre_id < 17 THEN 'no composer'
       ELSE 'unknown composer'
     END AS display,
-    milliseconds
+    "milliseconds"
   FROM
     tracks
   ORDER BY
-    milliseconds
+    "milliseconds"
   LIMIT
     10
 )
@@ -23,4 +23,4 @@ SELECT
 FROM
   table_0
 ORDER BY
-  milliseconds
+  "milliseconds"

@@ -5,20 +5,20 @@ input_file: prqlc/prqlc/tests/integration/queries/cast.prql
 ---
 WITH table_0 AS (
   SELECT
-    name,
+    "name",
     CAST(album_id AS REAL) * 99 AS bin,
-    bytes
+    "bytes"
   FROM
     tracks
   ORDER BY
-    bytes DESC
+    "bytes" DESC
   LIMIT
     20
 )
 SELECT
-  name,
+  "name",
   bin
 FROM
   table_0
 ORDER BY
-  bytes DESC
+  "bytes" DESC

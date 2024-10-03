@@ -1,9 +1,7 @@
-use std::collections::{HashMap, HashSet};
+use std::collections::HashSet;
 use std::sync::OnceLock;
 
-use sqlparser::keywords::{
-    Keyword, ALL_KEYWORDS, ALL_KEYWORDS_INDEX, RESERVED_FOR_COLUMN_ALIAS, RESERVED_FOR_TABLE_ALIAS,
-};
+use sqlparser::keywords::ALL_KEYWORDS;
 
 /// True for keywords which we want to quote when translating to SQL.
 ///
@@ -19,24 +17,7 @@ fn sql_keywords() -> &'static HashSet<&'static str> {
     SQL_KEYWORDS.get_or_init(|| {
         let mut m = HashSet::new();
         m.extend(SQLITE_KEYWORDS);
-
-        let reverse_index: HashMap<&Keyword, usize> = ALL_KEYWORDS_INDEX
-            .iter()
-            .enumerate()
-            .map(|(idx, kw)| (kw, idx))
-            .collect();
-
-        m.extend(
-            RESERVED_FOR_COLUMN_ALIAS
-                .iter()
-                .map(|x| ALL_KEYWORDS[reverse_index[x]]),
-        );
-
-        m.extend(
-            RESERVED_FOR_TABLE_ALIAS
-                .iter()
-                .map(|x| ALL_KEYWORDS[reverse_index[x]]),
-        );
+        m.extend(ALL_KEYWORDS);
         m
     })
 }
