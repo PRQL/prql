@@ -519,12 +519,7 @@ jobs:
       - uses: baptiste0928/cargo-install@v3
         with:
           crate: cargo-msrv
-        # Note this currently uses a manually maintained key in
-        # `prqlc/prqlc/Cargo.toml`, because of
-        # https://github.com/foresterre/cargo-msrv/issues/590
       - name: Verify minimum rust version — prqlc
-        # Ideally we'd check all crates, ref https://github.com/foresterre/cargo-msrv/issues/295
-        working-directory: prqlc/prqlc
         run: cargo msrv verify
 
   test-deps-min-versions:
