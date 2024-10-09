@@ -513,17 +513,21 @@ jobs:
     runs-on: ubuntu-22.04
     needs: rules
     if: needs.rules.outputs.nightly == 'true'
+    strategy:
+      fail-fast: false
+      matrix:
+        working-directory:
+          - .
+          - prqlc/prqlc
+          - lutra/lutra
     steps:
       - name: 📂 Checkout code
         uses: actions/checkout@v4
       - uses: baptiste0928/cargo-install@v3
         with:
           crate: cargo-msrv
-      - name: Verify minimum rust version — prqlc
-        working-directory: prqlc/prqlc
-        run: cargo msrv verify
-      - name: Verify minimum rust version — lutra
-        working-directory: lutra/lutra
+      - name: Verify minimum rust version — ${{ matrix.working-directory }}
+        working-directory: ${{ matrix.working-directory }}
         run: cargo msrv verify
 
   test-deps-min-versions:

@@ -3,11 +3,11 @@ build = "build.rs"
 description = "Python bindings for prqlc"
 name = "prqlc-python"
 publish = false
+rust-version = "1.73.0"
 
 edition.workspace = true
 license.workspace = true
 repository.workspace = true
-rust-version.workspace = true
 version.workspace = true
 
 [lib]
