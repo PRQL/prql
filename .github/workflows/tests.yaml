@@ -253,8 +253,8 @@ jobs:
       # Currently we never run Mac, see prql-elixir docs for details
       oss:
         ${{ (needs.rules.outputs.elixir == 'true' || needs.rules.outputs.nightly
-        == 'true') && '["ubuntu-22.04", "windows-latest"]' ||
-        '["ubuntu-22.04"]' }}
+        == 'true') && '["ubuntu-22.04", "windows-latest"]' || '["ubuntu-22.04"]'
+        }}
 
   test-prqlc-c:
     needs: rules
