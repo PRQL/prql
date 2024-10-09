@@ -35,7 +35,7 @@ jobs:
   # the changes in PR, others also define a set of other criteria, such as
   # whether a label has been added, or we're on `main` branch.
   rules:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-22.04
     permissions:
       pull-requests: read
     outputs:
@@ -354,7 +354,7 @@ jobs:
     # Another option is https://github.com/lycheeverse/lychee, but it was
     # weirdly difficult to exclude a directory, and I managed to get
     # rate-limited by GH because of it scanning node_modules.
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-22.04
     steps:
       - name: 📂 Checkout code
         uses: actions/checkout@v4
@@ -380,7 +380,7 @@ jobs:
       needs.rules.outputs.book == 'true' || needs.rules.outputs.nightly ==
       'true'
 
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-22.04
 
     steps:
       - name: 📂 Checkout code
@@ -407,7 +407,7 @@ jobs:
         run: hyperlink web/book/book/
 
   measure-code-cov:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-22.04
     needs: rules
     steps:
       - name: 📂 Checkout code
@@ -473,7 +473,7 @@ jobs:
   test-grammars:
     # Currently tests lezer grammars. We could split that out into a separate
     # job if we want when we add more.
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-22.04
     needs: rules
     if:
       needs.rules.outputs.grammars == 'true' || needs.rules.outputs.main ==
@@ -510,7 +510,7 @@ jobs:
       push: ${{ needs.rules.outputs.devcontainer-push == 'true' }}
 
   test-msrv:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-22.04
     needs: rules
     if: needs.rules.outputs.nightly == 'true'
     steps:
@@ -528,7 +528,7 @@ jobs:
         run: cargo msrv verify
 
   test-deps-min-versions:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-22.04
     needs: rules
     if: needs.rules.outputs.nightly == 'true'
     steps:
@@ -576,7 +576,7 @@ jobs:
       - test-rust
       - test-rust-main
       - test-taskfile
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-22.04
     steps:
       - name: Decide whether the needed jobs succeeded or failed
         # https://github.com/re-actors/alls-green/issues/23
@@ -698,7 +698,7 @@ jobs:
       RUSTDOCFLAGS: "-Dwarnings"
 
   create-issue-on-nightly-failure:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-22.04
     needs:
       - check-ok-to-merge
       - rules
@@ -723,7 +723,7 @@ jobs:
           search_existing: open
 
   update-rust-toolchain:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-22.04
     needs: rules
     if: ${{ needs.rules.outputs.nightly-upstream == 'true' }}
     # Note that this doesn't change the minimum supported version, only the

@@ -14,7 +14,7 @@ concurrency:
 jobs:
   main:
     name: Validate PR title
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-22.04
     steps:
       - uses: amannn/action-semantic-pull-request@v5
         env:
@@ -47,7 +47,7 @@ jobs:
   backport:
     # Backport to `web` branch on `pr-backport-web`
     name: Backport to `web` branch
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-22.04
     # Confirm that it's merged and has a label to ensure nothing is backported without oversight
     if: |
       github.event.pull_request.merged
@@ -69,7 +69,7 @@ jobs:
           title_template: "chore: Backport #<%= number%> to `web`"
 
   automerge:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-22.04
 
     permissions:
       pull-requests: write

@@ -13,7 +13,7 @@ env:
 
 jobs:
   build-web:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-22.04
 
     steps:
       - name: 📂 Checkout code
@@ -65,7 +65,7 @@ jobs:
           path: web/website/public/
 
   build-codemirror-demo:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-22.04
 
     steps:
       - name: 📂 Checkout code
