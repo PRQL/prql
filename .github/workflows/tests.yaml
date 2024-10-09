@@ -517,7 +517,7 @@ jobs:
       fail-fast: false
       matrix:
         working-directory:
-          - .
+          - ./
           - prqlc/prqlc
           - lutra/lutra
     steps:
