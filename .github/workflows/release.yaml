@@ -46,9 +46,9 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - os: ubuntu-latest
+          - os: ubuntu-22.04
             target: x86_64-unknown-linux-musl
-          - os: ubuntu-latest
+          - os: ubuntu-22.04
             target: aarch64-unknown-linux-musl
           - os: macos-14
             target: aarch64-apple-darwin
@@ -93,9 +93,9 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - os: ubuntu-latest
+          - os: ubuntu-22.04
             target: x86_64-unknown-linux-musl
-          - os: ubuntu-latest
+          - os: ubuntu-22.04
             target: aarch64-unknown-linux-musl
           - os: macos-14
             target: aarch64-apple-darwin
@@ -273,7 +273,7 @@ jobs:
     strategy:
       fail-fast: true
       matrix:
-        os: [ubuntu-latest, windows-latest]
+        os: [ubuntu-22.04, windows-latest]
         package:
           - prqlc-python
           - lutra-python
@@ -287,16 +287,16 @@ jobs:
             package: lutra-python
             target: universal2-apple-darwin
           # Also produce more targets for ubuntu:
-          - os: ubuntu-latest
+          - os: ubuntu-22.04
             package: prqlc-python
             target: aarch64
-          - os: ubuntu-latest
+          - os: ubuntu-22.04
             package: prqlc-python
             target: source
-          - os: ubuntu-latest
+          - os: ubuntu-22.04
             package: lutra-python
             target: aarch64
-          - os: ubuntu-latest
+          - os: ubuntu-22.04
             package: lutra-python
             target: source
     steps:
