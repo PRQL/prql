@@ -520,6 +520,10 @@ jobs:
         with:
           crate: cargo-msrv
       - name: Verify minimum rust version — prqlc
+        working-directory: prqlc/prqlc
+        run: cargo msrv verify
+      - name: Verify minimum rust version — lutra
+        working-directory: lutra/lutra
         run: cargo msrv verify
 
   test-deps-min-versions:
