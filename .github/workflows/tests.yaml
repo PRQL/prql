@@ -519,6 +519,9 @@ jobs:
       - uses: baptiste0928/cargo-install@v3
         with:
           crate: cargo-msrv
+          # TODO: remove this version pinning
+          # The latest 0.16 supports workspace inheritance, so the check will fail
+          version: "0.15"
         # Note this currently uses a manually maintained key in
         # `prqlc/prqlc/Cargo.toml`, because of
         # https://github.com/foresterre/cargo-msrv/issues/590
