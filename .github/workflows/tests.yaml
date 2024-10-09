@@ -517,7 +517,8 @@ jobs:
       fail-fast: false
       matrix:
         working-directory:
-          - ./
+          # TODO: Verify workspace MSRV after https://github.com/foresterre/cargo-msrv/issues/590
+          # - ./
           - prqlc/prqlc
           - lutra/lutra
     steps:
