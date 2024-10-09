@@ -5,9 +5,9 @@ name = "prqlc"
 edition.workspace = true
 license.workspace = true
 repository.workspace = true
-rust-version.workspace = true
 version.workspace = true
 
+rust-version = "1.73.0"
 build = "build.rs"
 
 [features]
