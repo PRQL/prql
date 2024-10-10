@@ -2,6 +2,7 @@
 source: prqlc/prqlc/tests/integration/queries.rs
 expression: tokens
 input_file: prqlc/prqlc/tests/integration/queries/math_module.prql
+snapshot_kind: text
 ---
 Tokens(
     [

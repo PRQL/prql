@@ -84,7 +84,7 @@ fn parse_interpolate() {
 
     assert_debug_snapshot!(
         parse("concat({a})".to_string(), span_base).unwrap(),
-    @r###"
+    @r#"
     [
         String(
             "concat(",
@@ -106,31 +106,31 @@ fn parse_interpolate() {
             ")",
         ),
     ]
-    "###);
+    "#);
 
     assert_debug_snapshot!(
         parse("print('{{hello}}')".to_string(), span_base).unwrap(),
-    @r###"
+    @r#"
     [
         String(
             "print('{hello}')",
         ),
     ]
-    "###);
+    "#);
 
     assert_debug_snapshot!(
         parse("concat('{{', a, '}}')".to_string(), span_base).unwrap(),
-    @r###"
+    @r#"
     [
         String(
             "concat('{', a, '}')",
         ),
     ]
-    "###);
+    "#);
 
     assert_debug_snapshot!(
         parse("concat('{{', {a}, '}}')".to_string(), span_base).unwrap(),
-    @r###"
+    @r#"
     [
         String(
             "concat('{', ",
@@ -152,5 +152,5 @@ fn parse_interpolate() {
             ", '}')",
         ),
     ]
-    "###);
+    "#);
 }

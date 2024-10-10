@@ -1,6 +1,7 @@
 ---
 source: web/book/tests/documentation/book.rs
 expression: "from employees\nselect {\n  name = f\"{first_name} {last_name}\",\n  age_eoy = dob - @2022-12-31,\n}\n"
+snapshot_kind: text
 ---
 SELECT
   CONCAT(first_name, ' ', last_name) AS name,

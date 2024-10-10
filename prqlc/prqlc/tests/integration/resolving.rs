@@ -30,9 +30,7 @@ fn resolve_basic_01() {
     assert_snapshot!(resolve(r#"
     from x
     select {a, b}
-    "#).unwrap(), @r###"
-    let main <[{a = ?, b = ?}]> = `(Select ...)`
-    "###)
+    "#).unwrap(), @"let main <[{a = ?, b = ?}]> = `(Select ...)`")
 }
 
 #[test]
@@ -41,38 +39,32 @@ fn resolve_function_01() {
     let my_func = func param_1 <param_1_type> -> <Ret_ty> (
       param_1 + 1
     )
-    "#).unwrap(), @r###"
+    "#).unwrap(), @r"
     let my_func = func param_1 <param_1_type> -> <Ret_ty> (
       std.add param_1 1
     )
-    "###)
+    ")
 }
 
 #[test]
 fn resolve_types_01() {
     assert_snapshot!(resolve(r#"
     type A = int || int
-    "#).unwrap(), @r###"
-    type A = int
-    "###)
+    "#).unwrap(), @"type A = int")
 }
 
 #[test]
 fn resolve_types_02() {
     assert_snapshot!(resolve(r#"
     type A = int || {}
-    "#).unwrap(), @r###"
-    type A = int || {}
-    "###)
+    "#).unwrap(), @"type A = int || {}")
 }
 
 #[test]
 fn resolve_types_03() {
     assert_snapshot!(resolve(r#"
     type A = {a = int, bool} || {b = text, float}
-    "#).unwrap(), @r###"
-    type A = {a = int, bool, b = text, float}
-    "###)
+    "#).unwrap(), @"type A = {a = int, bool, b = text, float}")
 }
 
 #[test]
@@ -86,12 +78,12 @@ fn resolve_types_04() {
     }
     "#,
     )
-    .unwrap(), @r###"
+    .unwrap(), @r"
     type Status = (
       Unpaid = float ||
       {reason = text, cancelled_at = timestamp} ||
     )
-    "###);
+    ");
 }
 
 #[test]
@@ -102,9 +94,7 @@ fn resolve_types_05() {
     type A
     "#,
     )
-    .unwrap(), @r###"
-    type A = null
-    "###);
+    .unwrap(), @"type A = null");
 }
 
 #[test]
@@ -117,7 +107,7 @@ fn resolve_generics_01() {
     let my_float = add_one 1.0
     "#,
     )
-    .unwrap(), @r###"
+    .unwrap(), @r"
     let add_one = func <A: int | float> a <A> -> <A> (
       std.add a 1
     )
@@ -125,5 +115,5 @@ fn resolve_generics_01() {
     let my_float <float> = `(std.add ...)`
 
     let my_int <int> = `(std.add ...)`
-    "###);
+    ");
 }

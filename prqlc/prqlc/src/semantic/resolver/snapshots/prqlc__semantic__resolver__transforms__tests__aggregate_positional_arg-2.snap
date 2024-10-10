@@ -1,6 +1,7 @@
 ---
 source: prqlc/prqlc/src/semantic/resolver/transforms.rs
 expression: expr
+snapshot_kind: text
 ---
 TransformCall:
   input:

@@ -1,6 +1,7 @@
 ---
 source: web/book/tests/documentation/book.rs
 expression: "let b =\n  \\ 3        # No pipe from line break within this line wrap\n\n# No pipe from line break before this `from` statement\n\nfrom y\nderive a = b\n"
+snapshot_kind: text
 ---
 SELECT
   *,

@@ -244,7 +244,7 @@ this is an error
 ```
     "###;
 
-    assert_snapshot!(replace_examples(md)?, md, @r###"
+    assert_snapshot!(replace_examples(md)?, md, @r##"
     # PRQL Doc
 
     <div class="comparison">
@@ -304,7 +304,7 @@ this is an error
     </div>
 
     </div>
-    "###);
+    "##);
 
     Ok(())
 }
@@ -326,7 +326,7 @@ fn test_table() -> Result<()> {
 
 ";
 
-    assert_snapshot!(replace_examples(table)?, @r###"
+    assert_snapshot!(replace_examples(table)?, @r"
     # Syntax
 
     |a|
@@ -336,7 +336,7 @@ fn test_table() -> Result<()> {
     |a|
     |-|
     |\||
-    "###);
+    ");
 
     Ok(())
 }

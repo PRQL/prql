@@ -1,6 +1,7 @@
 ---
 source: web/book/tests/documentation/book.rs
 expression: "from [\n  {time_id=1, value=15},\n  {time_id=2, value=11},\n  {time_id=3, value=16},\n  {time_id=4, value=9},\n  {time_id=7, value=20},\n  {time_id=8, value=22},\n]\nwindow rows:-2..0 (\n  sort time_id\n  derive {sma3rows = average value}\n)\nwindow range:-2..0 (\n  sort time_id\n  derive {sma3range = average value}\n)\n"
+snapshot_kind: text
 ---
 WITH table_0 AS (
   SELECT

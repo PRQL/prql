@@ -1,6 +1,7 @@
 ---
 source: web/book/tests/documentation/book.rs
 expression: "prql target:sql.sqlite\n\nfrom [\n  {a = 5, b = 2},\n  {a = 5, b = -2},\n]\nselect {\n  div_out = a / b,\n  int_div_out = a // b,\n}\n"
+snapshot_kind: text
 ---
 WITH table_0 AS (
   SELECT

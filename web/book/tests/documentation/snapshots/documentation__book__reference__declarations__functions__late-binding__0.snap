@@ -1,6 +1,7 @@
 ---
 source: web/book/tests/documentation/book.rs
 expression: "let cost_share = cost -> cost / cost_total\n\nfrom costs\nselect {materials, labor, overhead, cost_total}\nderive {\n  materials_share = (cost_share materials),\n  labor_share = (cost_share labor),\n  overhead_share = (cost_share overhead),\n}\n"
+snapshot_kind: text
 ---
 SELECT
   materials,

@@ -2,6 +2,7 @@
 source: prqlc/prqlc/tests/integration/queries.rs
 expression: "# generic:skip\n# glaredb:skip\n# sqlite:skip\n# mssql:test\nfrom invoices\ntake 20\nselect {\n    d1 = (invoice_date | date.to_text \"%Y/%m/%d\"),\n    d2 = (invoice_date | date.to_text \"%F\"),\n    d3 = (invoice_date | date.to_text \"%D\"),\n    d4 = (invoice_date | date.to_text \"%H:%M:%S.%f\"),\n    d5 = (invoice_date | date.to_text \"%r\"),\n    d6 = (invoice_date | date.to_text \"%A %B %-d %Y\"),\n    d7 = (invoice_date | date.to_text \"%a, %-d %b %Y at %I:%M:%S %p\"),\n    d8 = (invoice_date | date.to_text \"%+\"),\n    d9 = (invoice_date | date.to_text \"%-d/%-m/%y\"),\n    d10 = (invoice_date | date.to_text \"%-Hh %Mmin\"),\n    d11 = (invoice_date | date.to_text \"%M'%S\\\"\"),\n    d12 = (invoice_date | date.to_text \"100%% in %d days\"),\n}\n"
 input_file: prqlc/prqlc/tests/integration/queries/date_to_text.prql
+snapshot_kind: text
 ---
 frames:
 - - 1:71-78

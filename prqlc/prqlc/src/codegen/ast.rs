@@ -583,14 +583,14 @@ mod test {
             exprs: vec![short.clone(), long.clone(), long, short.clone()],
         }));
         // colons are a workaround to avoid trimming
-        assert_snapshot!(pipeline.write(opt.clone()).unwrap(), @r###"
+        assert_snapshot!(pipeline.write(opt.clone()).unwrap(), @r"
         (
             short
             some_really_long_and_really_long_name
             some_really_long_and_really_long_name
             short
           )
-        "###);
+        ");
 
         // sometimes, there is just not enough space
         opt.rem_width = 4;

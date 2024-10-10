@@ -1,6 +1,7 @@
 ---
 source: web/book/tests/documentation/book.rs
 expression: "from employees\nfilter start_date > @2021-01-01            # Clear date syntax\nderive {                                   # `derive` adds columns / variables\n  gross_salary = salary + (tax ?? 0),      # Terse coalesce\n  gross_cost = gross_salary + benefits,    # Variables can use other variables\n}\nfilter gross_cost > 0\ngroup {title, country} (                   # `group` runs a pipeline over each group\n  aggregate {                              # `aggregate` reduces each group to a value\n    average gross_salary,\n    sum_gross_cost = sum gross_cost,       # `=` sets a column name\n  }\n)\nfilter sum_gross_cost > 100_000            # `filter` replaces both of SQL's `WHERE` & `HAVING`\nderive id = f\"{title}_{country}\"           # F-strings like Python\nderive country_code = s\"LEFT(country, 2)\"  # S-strings permit SQL as an escape hatch\nsort {sum_gross_cost, -country}            # `-country` means descending order\ntake 1..20                                 # Range expressions (also valid as `take 20`)\n"
+snapshot_kind: text
 ---
 WITH table_1 AS (
   SELECT

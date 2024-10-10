@@ -1,6 +1,7 @@
 ---
 source: web/book/tests/documentation/book.rs
 expression: "from employees\n# Requires parentheses, because it contains a pipe\nderive is_proximate = (distance | in 0..20)\n# Requires parentheses, because it's a function call\nderive total_distance = (sum distance)\n# `??` doesn't require parentheses, as it's not a function call\nderive min_capped_distance = (min distance ?? 5)\n# No parentheses needed, because no function call\nderive travel_time = distance / 40\n# No inner parentheses needed around `1+1` because no function call\nderive distance_rounded_2_dp = (math.round 1+1 distance)\nderive {\n  # Requires parentheses, because it contains a pipe\n  is_far = (distance | in 100..),\n  # The left value of the range requires parentheses,\n  # because of the minus sign\n  is_negative = (distance | in (-100..0)),\n  # ...this is equivalent\n  is_negative = (distance | in (-100)..0),\n  # _Technically_, this doesn't require parentheses, because it's\n  # the RHS of an assignment in a tuple\n  # (this is especially confusing)\n  average_distance = average distance,\n}\n# Requires parentheses because of the minus sign\nsort (-distance)\n# A tuple is fine too\nsort {-distance}\n"
+snapshot_kind: text
 ---
 SELECT
   *,

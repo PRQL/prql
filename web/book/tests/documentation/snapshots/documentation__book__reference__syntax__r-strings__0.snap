@@ -1,6 +1,7 @@
 ---
 source: web/book/tests/documentation/book.rs
 expression: "from artists\nderive normal_string =  \"\\\\\\t\"   #  two characters - \\ and tab (\\t)\nderive raw_string    = r\"\\\\\\t\"   # four characters - \\, \\, \\, and t\n"
+snapshot_kind: text
 ---
 SELECT
   *,

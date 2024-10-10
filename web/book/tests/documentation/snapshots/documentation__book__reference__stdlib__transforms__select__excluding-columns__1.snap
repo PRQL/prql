@@ -1,6 +1,7 @@
 ---
 source: web/book/tests/documentation/book.rs
 expression: "from tracks\nselect {track_id, title, composer, bytes}\nselect !{title, composer}\n"
+snapshot_kind: text
 ---
 SELECT
   track_id,

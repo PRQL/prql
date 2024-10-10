@@ -1,6 +1,7 @@
 ---
 source: web/book/tests/documentation/book.rs
 expression: "from e = employees\nselect e.first_name\n"
+snapshot_kind: text
 ---
 SELECT
   first_name

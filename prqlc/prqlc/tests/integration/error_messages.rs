@@ -14,7 +14,7 @@ fn test_errors() {
     from x
     derive y = (addadd 4 5 6)
     "###).unwrap_err(),
-        @r###"
+        @r"
     Error:
        ╭─[:5:17]
        │
@@ -22,12 +22,12 @@ fn test_errors() {
        │                 ──────┬─────
        │                       ╰─────── Too many arguments to function `addadd`
     ───╯
-    "###);
+    ");
 
     assert_snapshot!(compile(r###"
     from a select b
     "###).unwrap_err(),
-        @r###"
+        @r"
     Error:
        ╭─[:2:5]
        │
@@ -35,14 +35,14 @@ fn test_errors() {
        │     ───────┬───────
        │            ╰───────── Too many arguments to function `from`
     ───╯
-    "###);
+    ");
 
     assert_snapshot!(compile(r###"
     from x
     select a
     select b
     "###).unwrap_err(),
-        @r###"
+        @r"
     Error:
        ╭─[:4:12]
        │
@@ -52,13 +52,13 @@ fn test_errors() {
        │
        │ Help: available columns: x.a
     ───╯
-    "###);
+    ");
 
     assert_snapshot!(compile(r###"
     from employees
     take 1.8
     "###).unwrap_err(),
-        @r###"
+        @r"
     Error:
        ╭─[:3:10]
        │
@@ -66,9 +66,9 @@ fn test_errors() {
        │          ─┬─
        │           ╰─── `take` expected int or range, but found 1.8
     ───╯
-    "###);
+    ");
 
-    assert_snapshot!(compile("Mississippi has four S’s and four I’s.").unwrap_err(), @r###"
+    assert_snapshot!(compile("Mississippi has four S’s and four I’s.").unwrap_err(), @r"
     Error:
        ╭─[:1:23]
        │
@@ -90,9 +90,9 @@ fn test_errors() {
        │                                       │
        │                                       ╰─ Expected * or an identifier, but didn't find anything before the end.
     ───╯
-    "###);
+    ");
 
-    assert_snapshot!(compile("Answer: T-H-A-T!").unwrap_err(), @r###"
+    assert_snapshot!(compile("Answer: T-H-A-T!").unwrap_err(), @r"
     Error:
        ╭─[:1:7]
        │
@@ -100,7 +100,7 @@ fn test_errors() {
        │       ┬
        │       ╰── unexpected :
     ───╯
-    "###);
+    ");
 }
 
 #[test]
@@ -109,7 +109,7 @@ fn array_instead_of_tuple() {
     from employees
     select {e = this}
     select [e.first_name, e.last_name]
-    "###).unwrap_err(), @r###"
+    "###).unwrap_err(), @r"
     Error:
        ╭─[:4:12]
        │
@@ -117,7 +117,7 @@ fn array_instead_of_tuple() {
        │            ─────────────┬─────────────
        │                         ╰─────────────── unexpected array of values (not supported here)
     ───╯
-    "###);
+    ");
 }
 
 #[test]
@@ -128,10 +128,10 @@ fn test_union_all_sqlite() {
 
     from film
     remove film2
-    "###).unwrap_err(), @r###"
+    "###).unwrap_err(), @r"
     Error: The dialect SQLiteDialect does not support EXCEPT ALL
     ↳ Hint: providing more column information will allow the query to be translated to an anti-join.
-    "###)
+    ")
 }
 
 #[test]
@@ -140,7 +140,7 @@ fn test_regex_dialect() {
     prql target:sql.mssql
     from foo
     filter bar ~= 'love'
-    "###).unwrap_err(), @r###"
+    "###).unwrap_err(), @r"
     Error:
        ╭─[:4:12]
        │
@@ -148,7 +148,7 @@ fn test_regex_dialect() {
        │            ──────┬──────
        │                  ╰──────── operator std.regex_search is not supported for dialect mssql
     ───╯
-    "###)
+    ")
 }
 
 #[test]
@@ -158,7 +158,7 @@ fn test_bad_function_type() {
     group foo (take)
     "###,
     )
-    .unwrap_err(), @r###"
+    .unwrap_err(), @r"
     Error:
        ╭─[:3:16]
        │
@@ -168,7 +168,7 @@ fn test_bad_function_type() {
        │
        │ Help: Type `transform` expands to `func relation -> relation`
     ───╯
-    "###);
+    ");
 }
 
 #[test]
@@ -199,7 +199,7 @@ fn test_type_error_placement() {
     let foo = x -> (x | as integer)
     from t
     select (true && (foo y))
-    "###).unwrap_err(), @r###"
+    "###).unwrap_err(), @r"
     Error:
        ╭─[:4:22]
        │
@@ -207,7 +207,7 @@ fn test_type_error_placement() {
        │                      ──┬──
        │                        ╰──── function std.and, param `right` expected type `bool`, but found type `scalar`
     ───╯
-    "###);
+    ");
 }
 
 #[test]
@@ -217,7 +217,7 @@ fn test_ambiguous() {
     derive date = x
     select date
     "#)
-    .unwrap_err(), @r###"
+    .unwrap_err(), @r"
     Error:
        ╭─[:4:12]
        │
@@ -229,7 +229,7 @@ fn test_ambiguous() {
        │
        │ Note: available columns: date
     ───╯
-    "###);
+    ");
 }
 
 #[test]
@@ -240,7 +240,7 @@ fn test_ambiguous_join() {
     join (from b | select {x}) true
     select x
     "#)
-    .unwrap_err(), @r###"
+    .unwrap_err(), @r"
     Error:
        ╭─[:5:12]
        │
@@ -252,7 +252,7 @@ fn test_ambiguous_join() {
        │
        │ Note: available columns: a.x, b.x
     ───╯
-    "###);
+    ");
 }
 
 #[test]
@@ -262,7 +262,7 @@ fn test_ambiguous_inference() {
     join b(==b_id)
     select x
     "#)
-    .unwrap_err(), @r###"
+    .unwrap_err(), @r"
     Error:
        ╭─[:4:12]
        │
@@ -272,7 +272,7 @@ fn test_ambiguous_inference() {
        │
        │ Help: could be any of: a.x, b.x
     ───╯
-    "###);
+    ");
 }
 
 #[test]
@@ -281,7 +281,7 @@ fn date_to_text_generic() {
   [{d = @2021-01-01}]
   derive {
     d_str = (d | date.to_text "%Y/%m/%d")
-  }"#).unwrap_err(), @r###"
+  }"#).unwrap_err(), @r#"
     Error:
        ╭─[:4:31]
        │
@@ -289,7 +289,7 @@ fn date_to_text_generic() {
        │                               ─────┬────
        │                                    ╰────── Date formatting requires a dialect
     ───╯
-    "###);
+    "#);
 }
 
 #[test]
@@ -300,7 +300,7 @@ fn date_to_text_not_supported_dialect() {
   from [{d = @2021-01-01}]
   derive {
     d_str = (d | date.to_text "%Y/%m/%d")
-  }"#).unwrap_err(), @r###"
+  }"#).unwrap_err(), @r#"
     Error:
        ╭─[:6:31]
        │
@@ -308,7 +308,7 @@ fn date_to_text_not_supported_dialect() {
        │                               ─────┬────
        │                                    ╰────── Date formatting is not yet supported for this dialect
     ───╯
-    "###);
+    "#);
 }
 
 #[test]
@@ -317,7 +317,7 @@ fn date_to_text_with_column_format() {
   from dates_to_display
   select {my_date, my_format}
   select {std.date.to_text my_date my_format}
-  "#).unwrap_err(), @r###"
+  "#).unwrap_err(), @r"
     Error:
        ╭─[:4:11]
        │
@@ -325,7 +325,7 @@ fn date_to_text_with_column_format() {
        │           ─────────────────┬────────────────
        │                            ╰────────────────── `std.date.to_text` only supports a string literal as format
     ───╯
-    "###);
+    ");
 }
 
 #[test]
@@ -336,7 +336,7 @@ fn date_to_text_unsupported_chrono_item() {
     from [{d = @2021-01-01}]
     derive {
       d_str = (d | date.to_text "%_j")
-    }"#).unwrap_err(), @r###"
+    }"#).unwrap_err(), @r#"
     Error:
        ╭─[:6:33]
        │
@@ -344,7 +344,7 @@ fn date_to_text_unsupported_chrono_item() {
        │                                 ──┬──
        │                                   ╰──── PRQL doesn't support this format specifier
     ───╯
-    "###);
+    "#);
 }
 
 #[test]
@@ -353,7 +353,7 @@ fn available_columns() {
     from invoices
     select foo
     select bar
-    "#).unwrap_err(), @r###"
+    "#).unwrap_err(), @r"
     Error:
        ╭─[:4:12]
        │
@@ -363,12 +363,12 @@ fn available_columns() {
        │
        │ Help: available columns: invoices.foo
     ───╯
-    "###);
+    ");
 }
 
 #[test]
 fn empty_interpolations() {
-    assert_snapshot!(compile(r#"from x | select f"{}" "#).unwrap_err(), @r###"
+    assert_snapshot!(compile(r#"from x | select f"{}" "#).unwrap_err(), @r#"
     Error:
        ╭─[:1:20]
        │
@@ -376,5 +376,5 @@ fn empty_interpolations() {
        │                    ┬
        │                    ╰── interpolated string variable expected "`" or "{", but found "}"
     ───╯
-    "###);
+    "#);
 }

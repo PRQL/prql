@@ -1,6 +1,7 @@
 ---
 source: web/book/tests/documentation/book.rs
 expression: "from tracks\nfilter artist == \"Bob Marley\"  # Each line transforms the previous result\naggregate {                    # `aggregate` reduces each column to a value\n  plays    = sum plays,\n  longest  = max length,\n  shortest = min length,       # Trailing commas are allowed\n}\n"
+snapshot_kind: text
 ---
 SELECT
   COALESCE(SUM(plays), 0) AS plays,

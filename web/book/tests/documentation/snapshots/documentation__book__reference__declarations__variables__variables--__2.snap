@@ -1,6 +1,7 @@
 ---
 source: web/book/tests/documentation/book.rs
 expression: "let grouping = s\"\"\"\n  SELECT SUM(a)\n  FROM tbl\n  GROUP BY\n    GROUPING SETS\n    ((b, c, d), (d), (b, d))\n\"\"\"\n\nfrom grouping\n"
+snapshot_kind: text
 ---
 WITH table_0 AS (
   SELECT

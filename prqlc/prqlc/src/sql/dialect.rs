@@ -532,17 +532,17 @@ mod tests {
 
     #[test]
     fn test_dialect_from_str() {
-        assert_debug_snapshot!(Dialect::from_str("postgres"), @r###"
+        assert_debug_snapshot!(Dialect::from_str("postgres"), @r"
         Ok(
             Postgres,
         )
-        "###);
+        ");
 
-        assert_debug_snapshot!(Dialect::from_str("foo"), @r###"
+        assert_debug_snapshot!(Dialect::from_str("foo"), @r"
         Err(
             VariantNotFound,
         )
-        "###);
+        ");
     }
 }
 

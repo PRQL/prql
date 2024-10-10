@@ -1,6 +1,7 @@
 ---
 source: web/book/tests/documentation/book.rs
 expression: "from employees\nsort {age, -tenure, +salary}\n"
+snapshot_kind: text
 ---
 SELECT
   *

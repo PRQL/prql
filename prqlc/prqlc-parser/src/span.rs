@@ -193,7 +193,7 @@ mod test {
             source_id: 45,
         };
         let span_serialized = serde_json::to_string(&span).unwrap();
-        insta::assert_snapshot!(span_serialized, @r###""45:12-15""###);
+        insta::assert_snapshot!(span_serialized, @r#""45:12-15""#);
         let span_deserialized: Span = serde_json::from_str(&span_serialized).unwrap();
         assert_eq!(span_deserialized, span);
     }

@@ -1107,8 +1107,7 @@ mod tests {
         group invoice_no (
             take 1
         )
-        ").unwrap(), @r###"
-        ---
+        ").unwrap(), @r"
         def:
           version: ~
           other: {}
@@ -1151,7 +1150,7 @@ mod tests {
                   - 0
           columns:
             - Single: invoice_no
-        "###);
+        ");
 
         // oops, two arguments #339
         let result = parse_resolve_and_lower(
@@ -1196,8 +1195,7 @@ mod tests {
         sort (-issued_at)
         sort {issued_at}
         sort {-issued_at}
-        ").unwrap(), @r###"
-        ---
+        ").unwrap(), @r"
         def:
           version: ~
           other: {}
@@ -1258,6 +1256,6 @@ mod tests {
             - Single: amount
             - Single: num_of_articles
             - Wildcard
-        "###);
+        ");
     }
 }

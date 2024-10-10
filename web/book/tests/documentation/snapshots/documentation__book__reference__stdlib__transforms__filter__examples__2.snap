@@ -1,6 +1,7 @@
 ---
 source: web/book/tests/documentation/book.rs
 expression: "from employees\nfilter (department | in [\"IT\", \"HR\"])\n"
+snapshot_kind: text
 ---
 SELECT
   *

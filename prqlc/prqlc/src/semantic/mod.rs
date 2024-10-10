@@ -191,10 +191,7 @@ pub mod test {
         assert_yaml_snapshot!(parse_resolve_and_lower(r###"
         from employees
         select !{foo}
-        "###).unwrap().relation.columns, @r###"
-        ---
-        - Wildcard
-        "###)
+        "###).unwrap().relation.columns, @"- Wildcard")
     }
 
     #[test]
@@ -205,13 +202,12 @@ pub mod test {
         window range:-4..4 (
             derive {next_four_days = sum b}
         )
-        "###).unwrap().relation.columns, @r###"
-        ---
+        "###).unwrap().relation.columns, @r"
         - Single: day
         - Single: b
         - Wildcard
         - Single: next_four_days
-        "###)
+        ")
     }
 
     #[test]
@@ -220,11 +216,10 @@ pub mod test {
         from a=albums
         filter is_sponsored
         select {a.*}
-        "###).unwrap().relation.columns, @r###"
-        ---
+        "###).unwrap().relation.columns, @r"
         - Single: is_sponsored
         - Wildcard
-        "###)
+        ")
     }
 
     #[test]
@@ -232,12 +227,11 @@ pub mod test {
         assert_yaml_snapshot!(parse_resolve_and_lower(r###"
         from x
         select {a, a, a = a + 1}
-        "###).unwrap().relation.columns, @r###"
-        ---
+        "###).unwrap().relation.columns, @r"
         - Single: ~
         - Single: ~
         - Single: a
-        "###)
+        ")
     }
 
     #[test]
@@ -246,8 +240,7 @@ pub mod test {
         prql target:sql.mssql version:"0"
 
         from employees
-        "#).unwrap(), @r###"
-        ---
+        "#).unwrap(), @r"
         def:
           version: ^0
           other:
@@ -275,7 +268,7 @@ pub mod test {
                   - 0
           columns:
             - Wildcard
-        "### );
+        " );
 
         assert!(parse_resolve_and_lower(
             r###"

@@ -30,12 +30,12 @@ fn test_discover() {
     let project_tree = lutra::discover(example_project_params()).unwrap();
 
     let paths: Vec<_> = project_tree.sources.keys().sorted().collect();
-    assert_debug_snapshot!(paths, @r###"
+    assert_debug_snapshot!(paths, @r#"
     [
         "Project.prql",
         "genres.prql",
     ]
-    "###);
+    "#);
 }
 
 #[test]
@@ -45,21 +45,21 @@ fn test_execute() {
 
     assert_eq!(name.to_string(), "main");
 
-    assert_snapshot!(arrow::util::pretty::pretty_format_batches(&data).unwrap(), @r###"
+    assert_snapshot!(arrow::util::pretty::pretty_format_batches(&data).unwrap(), @r"
     +-----+--------------+-------------+
     | aid | name         | last_listen |
     +-----+--------------+-------------+
     | 240 | Pink Floyd   | 2023-05-18  |
     | 14  | Apocalyptica | 2023-05-16  |
     +-----+--------------+-------------+
-    "###);
+    ");
 }
 
 #[test]
 fn test_missing() {
     let error = execute_example_project(Some("non_existent".into())).unwrap_err();
 
-    assert_debug_snapshot!(error, @r###"
+    assert_debug_snapshot!(error, @r#"
     Error {
         kind: Error,
         span: None,
@@ -69,5 +69,5 @@ fn test_missing() {
         hints: [],
         code: None,
     }
-    "###);
+    "#);
 }

@@ -1,6 +1,7 @@
 ---
 source: web/book/tests/documentation/book.rs
 expression: "# youngest employee from each department\nfrom employees\ngroup department (\n  sort age\n  take 1\n)\n"
+snapshot_kind: text
 ---
 WITH table_0 AS (
   SELECT

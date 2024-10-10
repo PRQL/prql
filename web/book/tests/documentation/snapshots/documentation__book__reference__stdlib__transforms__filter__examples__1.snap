@@ -1,6 +1,7 @@
 ---
 source: web/book/tests/documentation/book.rs
 expression: "from employees\nfilter (age > 25 || department != \"IT\")\n"
+snapshot_kind: text
 ---
 SELECT
   *
