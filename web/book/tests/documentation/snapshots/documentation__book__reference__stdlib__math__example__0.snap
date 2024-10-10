@@ -1,6 +1,7 @@
 ---
 source: web/book/tests/documentation/book.rs
 expression: "from employees\nselect age_squared = (age | math.pow 2)\n"
+snapshot_kind: text
 ---
 SELECT
   POW(age, 2) AS age_squared

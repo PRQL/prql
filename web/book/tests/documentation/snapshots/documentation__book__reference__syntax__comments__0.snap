@@ -1,6 +1,7 @@
 ---
 source: web/book/tests/documentation/book.rs
 expression: "from employees  # Comment 1\n# Comment 2\naggregate {average salary}\n"
+snapshot_kind: text
 ---
 SELECT
   AVG(salary)

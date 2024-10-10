@@ -180,22 +180,22 @@ mod tests {
         #! doc comment
         #! another line
 
-        "#, doc_comment()), @r###"
+        "#, doc_comment()), @r#"
         Ok(
             " doc comment\n another line",
         )
-        "###);
+        "#);
     }
 
     #[test]
     fn test_doc_comment_or_not() {
         assert_debug_snapshot!(parse_with_parser(r#"hello"#, doc_comment().or_not()).unwrap(), @"None");
-        assert_debug_snapshot!(parse_with_parser(r#"hello"#, doc_comment().or_not().then_ignore(new_line().repeated()).then(ident_part())).unwrap(), @r###"
+        assert_debug_snapshot!(parse_with_parser(r#"hello"#, doc_comment().or_not().then_ignore(new_line().repeated()).then(ident_part())).unwrap(), @r#"
         (
             None,
             "hello",
         )
-        "###);
+        "#);
     }
 
     #[test]
@@ -205,6 +205,6 @@ mod tests {
                 self
             }
         }
-        assert_debug_snapshot!(parse_with_parser(r#"hello"#, with_doc_comment(new_line().ignore_then(ident_part()))).unwrap(), @r###""hello""###);
+        assert_debug_snapshot!(parse_with_parser(r#"hello"#, with_doc_comment(new_line().ignore_then(ident_part()))).unwrap(), @r#""hello""#);
     }
 }

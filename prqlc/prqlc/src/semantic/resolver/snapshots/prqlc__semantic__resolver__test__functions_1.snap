@@ -1,6 +1,7 @@
 ---
 source: prqlc/prqlc/src/semantic/resolver/mod.rs
 expression: "resolve_derive(r#\"\n            let subtract = a b -> a - b\n\n            from employees\n            derive {\n                net_salary = subtract gross_salary tax\n            }\n            \"#).unwrap()"
+snapshot_kind: text
 ---
 - RqOperator:
     name: std.sub

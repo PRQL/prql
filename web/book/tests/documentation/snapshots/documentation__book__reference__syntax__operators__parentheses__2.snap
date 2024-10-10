@@ -1,6 +1,7 @@
 ---
 source: web/book/tests/documentation/book.rs
 expression: "from employees\nderive other_distance = (sum distance)\n"
+snapshot_kind: text
 ---
 SELECT
   *,

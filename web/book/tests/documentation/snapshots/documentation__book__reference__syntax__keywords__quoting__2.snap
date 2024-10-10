@@ -1,6 +1,7 @@
 ---
 source: web/book/tests/documentation/book.rs
 expression: "prql target:sql.bigquery\n\nfrom `project-foo.dataset.table`\njoin `project-bar.dataset.table` (==col_bax)\n"
+snapshot_kind: text
 ---
 SELECT
   `project-foo.dataset.table`.*,

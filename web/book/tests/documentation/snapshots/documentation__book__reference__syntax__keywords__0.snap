@@ -1,6 +1,7 @@
 ---
 source: web/book/tests/documentation/book.rs
 expression: "std.from my_table\nstd.select {from = my_table.a, take = my_table.b}\nstd.take 3\n"
+snapshot_kind: text
 ---
 SELECT
   a AS "from",

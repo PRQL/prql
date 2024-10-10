@@ -1,6 +1,7 @@
 ---
 source: web/book/tests/documentation/book.rs
 expression: "from employees\ntake 50\ninto first_50\n\nfrom first_50\n"
+snapshot_kind: text
 ---
 WITH first_50 AS (
   SELECT

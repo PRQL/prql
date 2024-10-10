@@ -1,6 +1,7 @@
 ---
 source: web/book/tests/documentation/book.rs
 expression: "from tracks\njoin side:inner artists (\n  this.id==that.artist_id\n)\n"
+snapshot_kind: text
 ---
 SELECT
   tracks.*,

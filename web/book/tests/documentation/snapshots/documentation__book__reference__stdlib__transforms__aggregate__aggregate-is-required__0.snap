@@ -1,6 +1,7 @@
 ---
 source: web/book/tests/documentation/book.rs
 expression: "from employees\nderive {avg_sal = average salary}\n"
+snapshot_kind: text
 ---
 SELECT
   *,

@@ -1,6 +1,7 @@
 ---
 source: web/book/tests/documentation/book.rs
 expression: "from employees\nderive {\n  gross_salary = salary + benefits,\n  daily_rate = s\"({gross_salary}) / 365\"\n}\n"
+snapshot_kind: text
 ---
 SELECT
   *,

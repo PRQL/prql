@@ -285,33 +285,33 @@ mod test {
 
         assert_snapshot!(
             make_str("hello").to_string(),
-            @r###""hello""###
+            @r#""hello""#
         );
 
         assert_snapshot!(
             make_str(r#"he's nice"#).to_string(),
-            @r###""he's nice""###
+            @r#""he's nice""#
         );
 
         assert_snapshot!(
             make_str(r#"he said "what up""#).to_string(),
-            @r###"'he said "what up"'"###
+            @r#"'he said "what up"'"#
         );
 
         assert_snapshot!(
             make_str(r#"he said "what's up""#).to_string(),
-            @r###"'''he said "what's up"'''"###
+            @r#"'''he said "what's up"'''"#
         );
 
         assert_snapshot!(
             make_str(r#" single' three double""" four double"""" "#).to_string(),
-            @r###"""""" single' three double""" four double"""" """"""###
+            @r#"""""" single' three double""" four double"""" """"""#
 
         );
 
         assert_snapshot!(
             make_str(r#""Starts with a double quote and ' contains a single quote"#).to_string(),
-            @r###"'''"Starts with a double quote and ' contains a single quote'''"###
+            @r#"'''"Starts with a double quote and ' contains a single quote'''"#
         );
     }
 
@@ -319,12 +319,12 @@ mod test {
     fn test_string_escapes() {
         assert_snapshot!(
             Literal::String(r#"hello\nworld"#.to_string()).to_string(),
-            @r###""hello\\nworld""###
+            @r#""hello\\nworld""#
         );
 
         assert_snapshot!(
             Literal::String(r#"hello\tworld"#.to_string()).to_string(),
-            @r###""hello\\tworld""###
+            @r#""hello\\tworld""#
         );
 
         // TODO: one problem here is that we don't remember whether the original
@@ -345,7 +345,7 @@ mod test {
         assert_snapshot!(
             Literal::String(r#"hello
             world"#.to_string()).to_string(),
-            @r###""hello\n            world""###
+            @r#""hello\n            world""#
         );
     }
 
@@ -358,7 +358,7 @@ mod test {
 
         assert_snapshot!(
             make_str("hello").to_string(),
-            @r###"r"hello""###
+            @r#"r"hello""#
         );
     }
 }

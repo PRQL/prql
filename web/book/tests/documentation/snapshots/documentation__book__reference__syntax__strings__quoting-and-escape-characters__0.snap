@@ -1,6 +1,7 @@
 ---
 source: web/book/tests/documentation/book.rs
 expression: "from artists\nselect {\n  other   = '\"hello world\"',\n  escaped = \"\\\"hello world\\\"\",\n  triple  = \"\"\"I said \"hello world\"!\"\"\",\n}\n"
+snapshot_kind: text
 ---
 SELECT
   '"hello world"' AS other,

@@ -1,6 +1,7 @@
 ---
 source: web/book/tests/documentation/book.rs
 expression: "default_db.group  # in place of `from group`\ntake 1\n"
+snapshot_kind: text
 ---
 SELECT
   *

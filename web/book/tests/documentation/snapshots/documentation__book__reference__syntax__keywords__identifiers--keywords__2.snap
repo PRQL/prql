@@ -1,6 +1,7 @@
 ---
 source: web/book/tests/documentation/book.rs
 expression: "from invoices\nderive t = time\n"
+snapshot_kind: text
 ---
 Error:
    ╭─[:2:12]

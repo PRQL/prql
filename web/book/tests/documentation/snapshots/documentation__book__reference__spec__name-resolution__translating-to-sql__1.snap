@@ -1,6 +1,7 @@
 ---
 source: web/book/tests/documentation/book.rs
 expression: "from employees\nderive {first_name, dept_id}\njoin d=departments (==dept_id)\nselect {first_name, d.title}\n"
+snapshot_kind: text
 ---
 SELECT
   employees.first_name,

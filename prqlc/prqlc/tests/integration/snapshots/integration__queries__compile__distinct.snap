@@ -2,6 +2,7 @@
 source: prqlc/prqlc/tests/integration/queries.rs
 expression: "# mssql:test\nfrom tracks\nselect {album_id, genre_id}\ngroup tracks.* (take 1)\nsort tracks.*\n"
 input_file: prqlc/prqlc/tests/integration/queries/distinct.prql
+snapshot_kind: text
 ---
 WITH table_0 AS (
   SELECT

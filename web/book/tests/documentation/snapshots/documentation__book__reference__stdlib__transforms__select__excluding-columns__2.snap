@@ -1,6 +1,7 @@
 ---
 source: web/book/tests/documentation/book.rs
 expression: "from artists\nderive nick = name\nselect !{artists.*}\n"
+snapshot_kind: text
 ---
 SELECT
   name AS nick

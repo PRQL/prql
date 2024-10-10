@@ -1,6 +1,7 @@
 ---
 source: web/book/tests/documentation/book.rs
 expression: "from employees\nselect department\ngroup employees.* (\n  take 1\n)\n"
+snapshot_kind: text
 ---
 SELECT
   DISTINCT department

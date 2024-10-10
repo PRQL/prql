@@ -219,8 +219,7 @@ mod tests {
         assert_yaml_snapshot!(parse_with_parser(r#"
             let world = 1
             let man = module.world
-        "#, module_contents()).unwrap(), @r###"
-        ---
+        "#, module_contents()).unwrap(), @r#"
         - VarDef:
             kind: Let
             name: world
@@ -241,7 +240,7 @@ mod tests {
                   Name: world
               span: "0:49-61"
           span: "0:26-61"
-        "###);
+        "#);
     }
 
     #[test]
@@ -249,8 +248,7 @@ mod tests {
         assert_yaml_snapshot!(parse_with_parser(r#"
             from artists
             into x
-        "#, var_def()).unwrap(), @r###"
-        ---
+        "#, var_def()).unwrap(), @r#"
         VarDef:
           kind: Into
           name: x
@@ -263,12 +261,11 @@ mod tests {
                 - Ident: artists
                   span: "0:18-25"
             span: "0:13-25"
-        "###);
+        "#);
 
         assert_yaml_snapshot!(parse_with_parser(r#"
             from artists | into x
-        "#, var_def()).unwrap(), @r###"
-        ---
+        "#, var_def()).unwrap(), @r#"
         VarDef:
           kind: Into
           name: x
@@ -281,7 +278,7 @@ mod tests {
                 - Ident: artists
                   span: "0:18-25"
             span: "0:13-25"
-        "###);
+        "#);
     }
 
     #[test]
@@ -291,7 +288,7 @@ mod tests {
             from artists
             into x
         )
-        "#, module_contents().then_ignore(end())).unwrap_err(), @r###"
+        "#, module_contents().then_ignore(end())).unwrap_err(), @r#"
         [
             Error {
                 kind: Error,
@@ -316,7 +313,7 @@ mod tests {
                 code: None,
             },
         ]
-        "###);
+        "#);
     }
 
     #[test]
@@ -332,8 +329,7 @@ mod tests {
         "#,
         );
 
-        assert_yaml_snapshot!(module_ast, @r###"
-        ---
+        assert_yaml_snapshot!(module_ast, @r#"
         - ModuleDef:
             name: hello
             stmts:
@@ -358,7 +354,7 @@ mod tests {
                     span: "0:74-86"
                 span: "0:51-86"
           span: "0:0-98"
-        "###);
+        "#);
 
         // Check this parses OK. (We tried comparing it to the AST of the result
         // above, but the span information was different, so we just check it.
@@ -382,8 +378,7 @@ mod tests {
     fn test_module_def() {
         // Same line
         assert_yaml_snapshot!(parse_with_parser(r#"module two {let houses = both.alike}
-        "#, module_contents()).unwrap(), @r###"
-        ---
+        "#, module_contents()).unwrap(), @r#"
         - ModuleDef:
             name: two
             stmts:
@@ -400,15 +395,14 @@ mod tests {
                     span: "0:25-35"
                 span: "0:12-35"
           span: "0:0-36"
-        "###);
+        "#);
 
         assert_yaml_snapshot!(parse_with_parser(r#"
           module dignity {
             let fair = 1
             let verona = we.lay
          }
-        "#, module_contents()).unwrap(), @r###"
-        ---
+        "#, module_contents()).unwrap(), @r#"
         - ModuleDef:
             name: dignity
             stmts:
@@ -433,7 +427,7 @@ mod tests {
                     span: "0:78-84"
                 span: "0:52-84"
           span: "0:0-95"
-        "###);
+        "#);
     }
 
     #[test]
@@ -443,8 +437,7 @@ mod tests {
         #! first doc comment
         from foo
 
-        "#, module_contents()).unwrap(), @r###"
-        ---
+        "#, module_contents()).unwrap(), @r#"
         - VarDef:
             kind: Main
             name: main
@@ -459,7 +452,7 @@ mod tests {
               span: "0:39-47"
           span: "0:30-47"
           doc_comment: " first doc comment"
-        "###);
+        "#);
 
         assert_yaml_snapshot!(parse_with_parser(r#"
 
@@ -471,8 +464,7 @@ mod tests {
         #! second doc comment
         from bar
 
-        "#, module_contents()).unwrap(), @r###"
-        ---
+        "#, module_contents()).unwrap(), @r#"
         - VarDef:
             kind: Into
             name: x
@@ -501,7 +493,7 @@ mod tests {
               span: "0:103-111"
           span: "0:94-111"
           doc_comment: " second doc comment"
-        "###);
+        "#);
     }
 
     #[test]
@@ -513,8 +505,7 @@ mod tests {
           #! first doc comment
           from foo
         }
-        "#, module_contents()).unwrap(), @r###"
-        ---
+        "#, module_contents()).unwrap(), @r#"
         - ModuleDef:
             name: bar
             stmts:
@@ -533,15 +524,14 @@ mod tests {
                 span: "0:52-71"
                 doc_comment: " first doc comment"
           span: "0:0-81"
-        "###);
+        "#);
     }
 
     #[test]
     fn lambdas() {
         assert_yaml_snapshot!(parse_with_parser(r#"
         let first = column <array> -> internal std.first
-        "#, module_contents()).unwrap(), @r###"
-        ---
+        "#, module_contents()).unwrap(), @r#"
         - VarDef:
             kind: Let
             name: first
@@ -564,15 +554,14 @@ mod tests {
                 generic_type_params: []
               span: "0:21-57"
           span: "0:0-57"
-        "###);
+        "#);
 
         assert_yaml_snapshot!(parse_with_parser(r#"
       module defs {
         let first = column <array> -> internal std.first
         let last  = column <array> -> internal std.last
     }
-        "#, module_contents()).unwrap(), @r###"
-        ---
+        "#, module_contents()).unwrap(), @r#"
         - ModuleDef:
             name: defs
             stmts:
@@ -621,6 +610,6 @@ mod tests {
                     span: "0:98-133"
                 span: "0:77-133"
           span: "0:0-139"
-        "###);
+        "#);
     }
 }

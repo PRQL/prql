@@ -1,6 +1,7 @@
 ---
 source: web/book/tests/documentation/book.rs
 expression: "from orders\nderive should_have_shipped_today = (order_time < @08:30)\n"
+snapshot_kind: text
 ---
 SELECT
   *,

@@ -1,6 +1,7 @@
 ---
 source: web/book/tests/documentation/book.rs
 expression: "prql version:\"0.13.0\"\n\nfrom employees\n"
+snapshot_kind: text
 ---
 SELECT
   *

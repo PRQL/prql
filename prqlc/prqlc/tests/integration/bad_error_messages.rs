@@ -24,7 +24,7 @@ fn test_bad_error_messages() {
     assert_snapshot!(compile(r###"
     from film
     group
-    "###).unwrap_err(), @r###"
+    "###).unwrap_err(), @r"
     Error:
        ╭─[:3:5]
        │
@@ -36,7 +36,7 @@ fn test_bad_error_messages() {
        │
        │ Note: Type `relation` expands to `[tuple]`
     ───╯
-    "###);
+    ");
 
     // This should suggest parentheses (this might not be an easy one to solve)
     assert_snapshot!(compile(r#"
@@ -44,7 +44,7 @@ fn test_bad_error_messages() {
 
     from employees
     filter f location
-    "#).unwrap_err(), @r###"
+    "#).unwrap_err(), @r"
     Error:
        ╭─[:5:14]
        │
@@ -52,13 +52,13 @@ fn test_bad_error_messages() {
        │              ────┬───
        │                  ╰───── Unknown name `location`
     ───╯
-    "###);
+    ");
 
     // Really complicated error message for something so fundamental
     assert_snapshot!(compile(r###"
     select tracks
     from artists
-    "###).unwrap_err(), @r###"
+    "###).unwrap_err(), @r"
     Error:
        ╭─[:3:5]
        │
@@ -66,21 +66,21 @@ fn test_bad_error_messages() {
        │     ──────┬─────
        │           ╰─────── expected a function, but found `default_db.artists`
     ───╯
-    "###);
+    ");
 
     // It's better if we can tell them to put in {} braces
     assert_snapshot!(compile(r###"
     from artists
     sort -name
-    "###).unwrap_err(), @r###"
+    "###).unwrap_err(), @r"
     Error: expected a pipeline that resolves to a table, but found `internal std.sub`
     ↳ Hint: are you missing `from` statement?
-    "###);
+    ");
 }
 
 #[test]
 fn interpolation_end() {
-    assert_snapshot!(compile(r#"from x | select f"{}"#).unwrap_err(), @r###"
+    assert_snapshot!(compile(r#"from x | select f"{}"#).unwrap_err(), @r#"
     Error:
        ╭─[:1:21]
        │
@@ -88,7 +88,7 @@ fn interpolation_end() {
        │                     │
        │                     ╰─ unexpected
     ───╯
-    "###);
+    "#);
 }
 
 #[test]
@@ -97,7 +97,7 @@ fn select_with_extra_fstr() {
     assert_snapshot!(compile(r#"
     from foo
     select lower f"{x}/{y}"
-    "#).unwrap_err(), @r###"
+    "#).unwrap_err(), @r#"
     Error:
        ╭─[:3:21]
        │
@@ -105,7 +105,7 @@ fn select_with_extra_fstr() {
        │                     ┬
        │                     ╰── Unknown name `x`
     ───╯
-    "###);
+    "#);
 }
 
 // See also test_error_messages::test_type_error_placement
@@ -117,7 +117,7 @@ fn misplaced_type_error() {
     let foo = 123
     from t
     select (true && foo)
-    "###).unwrap_err(), @r###"
+    "###).unwrap_err(), @r"
     Error:
        ╭─[:2:15]
        │
@@ -125,7 +125,7 @@ fn misplaced_type_error() {
        │               ─┬─
        │                ╰─── function std.and, param `right` expected type `bool`, but found type `int`
     ───╯
-    "###);
+    ");
 }
 
 #[test]
@@ -135,10 +135,10 @@ fn invalid_lineage_in_transform() {
   group id (
     sort -val
   )
-  "###).unwrap_err(), @r###"
+  "###).unwrap_err(), @r"
     Error: expected a pipeline that resolves to a table, but found `internal std.sub`
     ↳ Hint: are you missing `from` statement?
-    "###);
+    ");
 }
 
 #[test]
@@ -146,7 +146,7 @@ fn test_hint_missing_args() {
     assert_snapshot!(compile(r###"
     from film
     select {film_id, lag film_id}
-    "###).unwrap_err(), @r###"
+    "###).unwrap_err(), @r"
     Error:
        ╭─[:3:22]
        │
@@ -156,14 +156,14 @@ fn test_hint_missing_args() {
        │
        │ Help: this is probably a 'bad type' error (we are working on that)
     ───╯
-    "###)
+    ")
 }
 
 #[test]
 fn test_relation_literal_contains_literals() {
     assert_snapshot!(compile(r###"
     [{a=(1+1)}]
-    "###).unwrap_err(), @r###"
+    "###).unwrap_err(), @r"
     Error:
        ╭─[:2:9]
        │
@@ -171,7 +171,7 @@ fn test_relation_literal_contains_literals() {
        │         ──┬──
        │           ╰──── relation literal expected literals, but found ``(std.add ...)``
     ───╯
-    "###)
+    ")
 }
 
 #[test]
@@ -190,7 +190,7 @@ fn nested_groups() {
         }
       )
     )
-    "###).unwrap_err(), @r###"
+    "###).unwrap_err(), @r"
     Error:
         ╭─[:9:9]
         │
@@ -200,7 +200,7 @@ fn nested_groups() {
         │ │
         │ ╰─────────────── internal compiler error; tracked at https://github.com/PRQL/prql/issues/3870
     ────╯
-    "###);
+    ");
 }
 
 #[test]
@@ -209,16 +209,14 @@ fn a_arrow_b() {
     // we find other cases, we should increase the priority.
     assert_snapshot!(compile(r###"
     x -> y
-    "###).unwrap_err(), @r###"
-    Error: internal compiler error; tracked at https://github.com/PRQL/prql/issues/4280
-    "###);
+    "###).unwrap_err(), @"Error: internal compiler error; tracked at https://github.com/PRQL/prql/issues/4280");
 }
 
 #[test]
 fn just_std() {
     assert_snapshot!(compile(r###"
     std
-    "###).unwrap_err(), @r###"
+    "###).unwrap_err(), @r"
     Error:
        ╭─[:1:1]
        │
@@ -227,27 +225,21 @@ fn just_std() {
        │ │
        │ ╰───────────── internal compiler error; tracked at https://github.com/PRQL/prql/issues/4474
     ───╯
-    "###);
+    ");
 }
 
 #[test]
 fn empty_tuple_from() {
     assert_snapshot!(compile(r###"
     from {}
-    "###).unwrap_err(), @r###"
-    Error: internal compiler error; tracked at https://github.com/PRQL/prql/issues/4317
-    "###);
+    "###).unwrap_err(), @"Error: internal compiler error; tracked at https://github.com/PRQL/prql/issues/4317");
 
     assert_snapshot!(compile(r###"
     from []
-    "###).unwrap_err(), @r###"
-    Error: internal compiler error; tracked at https://github.com/PRQL/prql/issues/4317
-    "###);
+    "###).unwrap_err(), @"Error: internal compiler error; tracked at https://github.com/PRQL/prql/issues/4317");
 
     assert_snapshot!(compile(r###"
     from {}
     select a
-    "###).unwrap_err(), @r###"
-    Error: internal compiler error; tracked at https://github.com/PRQL/prql/issues/4317
-    "###);
+    "###).unwrap_err(), @"Error: internal compiler error; tracked at https://github.com/PRQL/prql/issues/4317");
 }

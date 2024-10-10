@@ -1,6 +1,7 @@
 ---
 source: web/book/tests/documentation/book.rs
 expression: "from orders\nsort {-value, created_at}\ntake 101..110\n"
+snapshot_kind: text
 ---
 SELECT
   *

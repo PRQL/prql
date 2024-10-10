@@ -1,6 +1,7 @@
 ---
 source: web/book/tests/documentation/book.rs
 expression: "from `artist tracks`\n"
+snapshot_kind: text
 ---
 SELECT
   *

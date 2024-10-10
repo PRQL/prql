@@ -1,6 +1,7 @@
 ---
 source: prqlc/prqlc/src/semantic/resolver/mod.rs
 expression: "resolve_derive(r#\"\n            from employees\n            derive {\n                gross_salary = salary + payroll_tax,\n                gross_cost =   gross_salary + benefits_cost\n            }\n            \"#).unwrap()"
+snapshot_kind: text
 ---
 - RqOperator:
     name: std.add

@@ -46,7 +46,7 @@ fn test_error_unicode_string() {
     parse_source("👍 s’").unwrap_err();
 
     let source = "Mississippi has four S’s and four I’s.";
-    assert_debug_snapshot!(parse_source(source).unwrap_err(), @r###"
+    assert_debug_snapshot!(parse_source(source).unwrap_err(), @r#"
     [
         Error {
             kind: Error,
@@ -71,12 +71,12 @@ fn test_error_unicode_string() {
             code: None,
         },
     ]
-    "###);
+    "#);
 }
 
 #[test]
 fn test_error_unexpected() {
-    assert_debug_snapshot!(parse_source("Answer: T-H-A-T!").unwrap_err(), @r###"
+    assert_debug_snapshot!(parse_source("Answer: T-H-A-T!").unwrap_err(), @r#"
     [
         Error {
             kind: Error,
@@ -90,7 +90,7 @@ fn test_error_unexpected() {
             code: None,
         },
     ]
-    "###);
+    "#);
 }
 
 #[test]
@@ -127,8 +127,7 @@ take 20
 fn test_take() {
     parse_source("take 10").unwrap();
 
-    assert_yaml_snapshot!(parse_source(r#"take 10"#).unwrap(), @r###"
-    ---
+    assert_yaml_snapshot!(parse_source(r#"take 10"#).unwrap(), @r#"
     - VarDef:
         kind: Main
         name: main
@@ -143,10 +142,9 @@ fn test_take() {
                 span: "0:5-7"
           span: "0:0-7"
       span: "0:0-7"
-    "###);
+    "#);
 
-    assert_yaml_snapshot!(parse_source(r#"take ..10"#).unwrap(), @r###"
-    ---
+    assert_yaml_snapshot!(parse_source(r#"take ..10"#).unwrap(), @r#"
     - VarDef:
         kind: Main
         name: main
@@ -165,10 +163,9 @@ fn test_take() {
                 span: "0:4-9"
           span: "0:0-9"
       span: "0:0-9"
-    "###);
+    "#);
 
-    assert_yaml_snapshot!(parse_source(r#"take 1..10"#).unwrap(), @r###"
-    ---
+    assert_yaml_snapshot!(parse_source(r#"take 1..10"#).unwrap(), @r#"
     - VarDef:
         kind: Main
         name: main
@@ -190,14 +187,13 @@ fn test_take() {
                 span: "0:5-10"
           span: "0:0-10"
       span: "0:0-10"
-    "###);
+    "#);
 }
 
 #[test]
 fn test_filter() {
     assert_yaml_snapshot!(
-            parse_source(r#"filter country == "USA""#).unwrap(), @r###"
-    ---
+            parse_source(r#"filter country == "USA""#).unwrap(), @r#"
     - VarDef:
         kind: Main
         name: main
@@ -219,11 +215,10 @@ fn test_filter() {
                 span: "0:7-23"
           span: "0:0-23"
       span: "0:0-23"
-    "###);
+    "#);
 
     assert_yaml_snapshot!(
-        parse_source(r#"filter (text.upper country) == "USA""#).unwrap(), @r###"
-    ---
+        parse_source(r#"filter (text.upper country) == "USA""#).unwrap(), @r#"
     - VarDef:
         kind: Main
         name: main
@@ -256,7 +251,7 @@ fn test_filter() {
                 span: "0:7-36"
           span: "0:0-36"
       span: "0:0-36"
-    "###
+    "#
     );
 }
 
@@ -269,8 +264,7 @@ fn test_aggregate() {
     )
     .unwrap();
     assert_yaml_snapshot!(
-            aggregate, @r###"
-    ---
+            aggregate, @r#"
     - VarDef:
         kind: Main
         name: main
@@ -304,7 +298,7 @@ fn test_aggregate() {
                 span: "0:32-61"
           span: "0:0-77"
       span: "0:0-77"
-    "###);
+    "#);
     let aggregate = parse_source(
         r"group {title} (
                 aggregate {sum salary}
@@ -312,8 +306,7 @@ fn test_aggregate() {
     )
     .unwrap();
     assert_yaml_snapshot!(
-            aggregate, @r###"
-    ---
+            aggregate, @r#"
     - VarDef:
         kind: Main
         name: main
@@ -345,7 +338,7 @@ fn test_aggregate() {
                 span: "0:32-54"
           span: "0:0-70"
       span: "0:0-70"
-    "###);
+    "#);
 }
 
 #[test]
@@ -354,8 +347,7 @@ fn test_basic_exprs() {
     assert_yaml_snapshot!(parse_source(
             r#"# this is a comment
         select a"#
-        ).unwrap(), @r###"
-    ---
+        ).unwrap(), @r#"
     - VarDef:
         kind: Main
         name: main
@@ -369,13 +361,12 @@ fn test_basic_exprs() {
                 span: "0:35-36"
           span: "0:28-36"
       span: "0:0-36"
-    "###);
+    "#);
 }
 
 #[test]
 fn test_function() {
-    assert_yaml_snapshot!(parse_source("let plus_one = x ->  x + 1\n").unwrap(), @r###"
-    ---
+    assert_yaml_snapshot!(parse_source("let plus_one = x ->  x + 1\n").unwrap(), @r#"
     - VarDef:
         kind: Let
         name: plus_one
@@ -400,10 +391,9 @@ fn test_function() {
             generic_type_params: []
           span: "0:15-26"
       span: "0:0-26"
-    "###);
+    "#);
     assert_yaml_snapshot!(parse_source("let identity = x ->  x\n").unwrap()
-        , @r###"
-    ---
+        , @r#"
     - VarDef:
         kind: Let
         name: identity
@@ -420,10 +410,9 @@ fn test_function() {
             generic_type_params: []
           span: "0:15-22"
       span: "0:0-22"
-    "###);
+    "#);
     assert_yaml_snapshot!(parse_source("let plus_one = x ->  (x + 1)\n").unwrap()
-        , @r###"
-    ---
+        , @r#"
     - VarDef:
         kind: Let
         name: plus_one
@@ -448,10 +437,9 @@ fn test_function() {
             generic_type_params: []
           span: "0:15-28"
       span: "0:0-28"
-    "###);
+    "#);
     assert_yaml_snapshot!(parse_source("let plus_one = x ->  x + 1\n").unwrap()
-        , @r###"
-    ---
+        , @r#"
     - VarDef:
         kind: Let
         name: plus_one
@@ -476,11 +464,10 @@ fn test_function() {
             generic_type_params: []
           span: "0:15-26"
       span: "0:0-26"
-    "###);
+    "#);
 
     assert_yaml_snapshot!(parse_source("let foo = x -> some_func (foo bar + 1) (plax) - baz\n").unwrap()
-        , @r###"
-    ---
+        , @r#"
     - VarDef:
         kind: Let
         name: foo
@@ -526,10 +513,9 @@ fn test_function() {
             generic_type_params: []
           span: "0:10-51"
       span: "0:0-51"
-    "###);
+    "#);
 
-    assert_yaml_snapshot!(parse_source("func return_constant ->  42\n").unwrap(), @r###"
-    ---
+    assert_yaml_snapshot!(parse_source("func return_constant ->  42\n").unwrap(), @r#"
     - VarDef:
         kind: Main
         name: main
@@ -547,11 +533,10 @@ fn test_function() {
             generic_type_params: []
           span: "0:0-27"
       span: "0:0-27"
-    "###);
+    "#);
 
     assert_yaml_snapshot!(parse_source(r#"let count = X -> s"SUM({X})"
-        "#).unwrap(), @r###"
-    ---
+        "#).unwrap(), @r#"
     - VarDef:
         kind: Let
         name: count
@@ -575,7 +560,7 @@ fn test_function() {
             generic_type_params: []
           span: "0:12-28"
       span: "0:0-28"
-    "###);
+    "#);
 
     assert_yaml_snapshot!(parse_source(
             r#"
@@ -587,8 +572,7 @@ fn test_function() {
             )
         "#
         )
-        .unwrap(), @r###"
-    ---
+        .unwrap(), @r#"
     - VarDef:
         kind: Let
         name: lag_day
@@ -639,10 +623,9 @@ fn test_function() {
             generic_type_params: []
           span: "0:27-147"
       span: "0:0-147"
-    "###);
+    "#);
 
-    assert_yaml_snapshot!(parse_source("let add = x to:a ->  x + to\n").unwrap(), @r###"
-    ---
+    assert_yaml_snapshot!(parse_source("let add = x to:a ->  x + to\n").unwrap(), @r#"
     - VarDef:
         kind: Let
         name: add
@@ -670,15 +653,14 @@ fn test_function() {
             generic_type_params: []
           span: "0:10-27"
       span: "0:0-27"
-    "###);
+    "#);
 }
 
 #[test]
 fn test_var_def() {
     assert_yaml_snapshot!(parse_source(
             "let newest_employees = (from employees)"
-        ).unwrap(), @r###"
-    ---
+        ).unwrap(), @r#"
     - VarDef:
         kind: Let
         name: newest_employees
@@ -692,7 +674,7 @@ fn test_var_def() {
                 span: "0:29-38"
           span: "0:23-39"
       span: "0:0-39"
-    "###);
+    "#);
 
     assert_yaml_snapshot!(parse_source(
             r#"
@@ -706,8 +688,7 @@ fn test_var_def() {
           sort tenure
           take 50
         )"#.trim()).unwrap(),
-         @r###"
-    ---
+         @r#"
     - VarDef:
         kind: Let
         name: newest_employees
@@ -766,12 +747,11 @@ fn test_var_def() {
                 span: "0:214-221"
           span: "0:23-231"
       span: "0:0-231"
-    "###);
+    "#);
 
     assert_yaml_snapshot!(parse_source(r#"
             let e = s"SELECT * FROM employees"
-            "#).unwrap(), @r###"
-    ---
+            "#).unwrap(), @r#"
     - VarDef:
         kind: Let
         name: e
@@ -780,7 +760,7 @@ fn test_var_def() {
             - String: SELECT * FROM employees
           span: "0:21-47"
       span: "0:0-47"
-    "###);
+    "#);
 
     assert_yaml_snapshot!(parse_source(
           "let x = (
@@ -792,8 +772,7 @@ fn test_var_def() {
           )
 
           from x"
-        ).unwrap(), @r###"
-    ---
+        ).unwrap(), @r#"
     - VarDef:
         kind: Let
         name: x
@@ -832,13 +811,12 @@ fn test_var_def() {
                 span: "0:101-102"
           span: "0:96-102"
       span: "0:84-102"
-    "###);
+    "#);
 }
 
 #[test]
 fn test_inline_pipeline() {
-    assert_yaml_snapshot!(parse_source("let median = x -> (x | percentile 50)\n").unwrap(), @r###"
-    ---
+    assert_yaml_snapshot!(parse_source("let median = x -> (x | percentile 50)\n").unwrap(), @r#"
     - VarDef:
         kind: Let
         name: median
@@ -867,7 +845,7 @@ fn test_inline_pipeline() {
             generic_type_params: []
           span: "0:13-37"
       span: "0:0-37"
-    "###);
+    "#);
 }
 
 #[test]
@@ -878,8 +856,7 @@ fn test_sql_parameters() {
           first_name == $1,
           last_name == $2.name
         }
-        "#).unwrap(), @r###"
-    ---
+        "#).unwrap(), @r#"
     - VarDef:
         kind: Main
         name: main
@@ -922,7 +899,7 @@ fn test_sql_parameters() {
                 span: "0:30-107"
           span: "0:9-107"
       span: "0:0-107"
-    "###);
+    "#);
 }
 
 #[test]
@@ -949,8 +926,7 @@ join `my-proj.dataset.table`
 join `my-proj`.`dataset`.`table`
 ";
 
-    assert_yaml_snapshot!(parse_source(prql).unwrap(), @r###"
-    ---
+    assert_yaml_snapshot!(parse_source(prql).unwrap(), @r#"
     - VarDef:
         kind: Main
         name: main
@@ -1023,7 +999,7 @@ join `my-proj`.`dataset`.`table`
                 span: "0:94-126"
           span: "0:1-126"
       span: "0:0-126"
-    "###);
+    "#);
 }
 
 #[test]
@@ -1035,8 +1011,7 @@ fn test_sort() {
         sort {issued_at}
         sort {-issued_at}
         sort {issued_at, -amount, +num_of_articles}
-        ").unwrap(), @r###"
-    ---
+        ").unwrap(), @r#"
     - VarDef:
         kind: Main
         name: main
@@ -1119,7 +1094,7 @@ fn test_sort() {
                 span: "0:131-174"
           span: "0:9-174"
       span: "0:0-174"
-    "###);
+    "#);
 }
 
 #[test]
@@ -1127,8 +1102,7 @@ fn test_dates() {
     assert_yaml_snapshot!(parse_source("
         from employees
         derive {age_plus_two_years = (age + 2years)}
-        ").unwrap(), @r###"
-    ---
+        ").unwrap(), @r#"
     - VarDef:
         kind: Main
         name: main
@@ -1166,15 +1140,14 @@ fn test_dates() {
                 span: "0:32-76"
           span: "0:9-76"
       span: "0:0-76"
-    "###);
+    "#);
 }
 
 #[test]
 fn test_multiline_string() {
     assert_yaml_snapshot!(parse_source(r##"
         derive x = r"r-string test"
-        "##).unwrap(), @r###"
-    ---
+        "##).unwrap(), @r#"
     - VarDef:
         kind: Main
         name: main
@@ -1190,7 +1163,7 @@ fn test_multiline_string() {
                 alias: x
           span: "0:9-36"
       span: "0:0-36"
-    "### )
+    "# )
 }
 
 #[test]
@@ -1203,8 +1176,7 @@ derive x = 5
 
  
 
-"#).unwrap(), @r###"
-    ---
+"#).unwrap(), @r#"
     - VarDef:
         kind: Main
         name: main
@@ -1231,7 +1203,7 @@ derive x = 5
                 span: "0:14-26"
           span: "0:1-26"
       span: "0:0-26"
-    "### )
+    "# )
 }
 
 #[test]
@@ -1239,8 +1211,7 @@ fn test_coalesce() {
     assert_yaml_snapshot!(parse_source(r###"
         from employees
         derive amount = amount ?? 0
-        "###).unwrap(), @r###"
-    ---
+        "###).unwrap(), @r#"
     - VarDef:
         kind: Main
         name: main
@@ -1274,15 +1245,14 @@ fn test_coalesce() {
                 span: "0:32-59"
           span: "0:9-59"
       span: "0:0-59"
-    "### )
+    "# )
 }
 
 #[test]
 fn test_literal() {
     assert_yaml_snapshot!(parse_source(r###"
         derive x = true
-        "###).unwrap(), @r###"
-    ---
+        "###).unwrap(), @r#"
     - VarDef:
         kind: Main
         name: main
@@ -1298,7 +1268,7 @@ fn test_literal() {
                 alias: x
           span: "0:9-24"
       span: "0:0-24"
-    "###)
+    "#)
 }
 
 #[test]
@@ -1308,8 +1278,7 @@ fn test_allowed_idents() {
         join _salary (==employee_id) # table with leading underscore
         filter first_name == $1
         select {_employees._underscored_column}
-        "###).unwrap(), @r###"
-    ---
+        "###).unwrap(), @r#"
     - VarDef:
         kind: Main
         name: main
@@ -1370,7 +1339,7 @@ fn test_allowed_idents() {
                 span: "0:133-172"
           span: "0:9-172"
       span: "0:0-172"
-    "###)
+    "#)
 }
 
 #[test]
@@ -1381,8 +1350,7 @@ fn test_gt_lt_gte_lte() {
         filter num_grandchildren <= 10
         filter salary > 0
         filter num_eyes < 2
-        "###).unwrap(), @r###"
-    ---
+        "###).unwrap(), @r#"
     - VarDef:
         kind: Main
         name: main
@@ -1463,7 +1431,7 @@ fn test_gt_lt_gte_lte() {
                 span: "0:120-139"
           span: "0:9-139"
       span: "0:0-139"
-    "###)
+    "#)
 }
 
 #[test]
@@ -1471,8 +1439,7 @@ fn test_assign() {
     assert_yaml_snapshot!(parse_source(r###"
 from employees
 join s=salaries (==id)
-        "###).unwrap(), @r###"
-    ---
+        "###).unwrap(), @r#"
     - VarDef:
         kind: Main
         name: main
@@ -1504,14 +1471,13 @@ join s=salaries (==id)
                 span: "0:16-38"
           span: "0:1-38"
       span: "0:0-38"
-    "###);
+    "#);
 }
 
 #[test]
 fn test_unicode() {
     let source = "from tète";
-    assert_yaml_snapshot!(parse_source(source).unwrap(), @r###"
-    ---
+    assert_yaml_snapshot!(parse_source(source).unwrap(), @r#"
     - VarDef:
         kind: Main
         name: main
@@ -1525,7 +1491,7 @@ fn test_unicode() {
                 span: "0:5-9"
           span: "0:0-9"
       span: "0:0-9"
-    "###);
+    "#);
 }
 
 #[test]
@@ -1534,8 +1500,7 @@ fn test_var_defs() {
         let a = (
             x
         )
-        "#).unwrap(), @r###"
-    ---
+        "#).unwrap(), @r#"
     - VarDef:
         kind: Let
         name: a
@@ -1543,13 +1508,12 @@ fn test_var_defs() {
           Ident: x
           span: "0:17-42"
       span: "0:0-42"
-    "###);
+    "#);
 
     assert_yaml_snapshot!(parse_source(r#"
         x
         into a
-        "#).unwrap(), @r###"
-    ---
+        "#).unwrap(), @r#"
     - VarDef:
         kind: Into
         name: a
@@ -1557,12 +1521,11 @@ fn test_var_defs() {
           Ident: x
           span: "0:9-10"
       span: "0:0-25"
-    "###);
+    "#);
 
     assert_yaml_snapshot!(parse_source(r#"
         x
-        "#).unwrap(), @r###"
-    ---
+        "#).unwrap(), @r#"
     - VarDef:
         kind: Main
         name: main
@@ -1570,7 +1533,7 @@ fn test_var_defs() {
           Ident: x
           span: "0:9-10"
       span: "0:0-10"
-    "###);
+    "#);
 }
 
 #[test]
@@ -1578,8 +1541,7 @@ fn test_array() {
     assert_yaml_snapshot!(parse_source(r#"
         let a = [1, 2,]
         let a = [false, "hello"]
-        "#).unwrap(), @r###"
-    ---
+        "#).unwrap(), @r#"
     - VarDef:
         kind: Let
         name: a
@@ -1606,7 +1568,7 @@ fn test_array() {
               span: "0:49-56"
           span: "0:41-57"
       span: "0:24-57"
-    "###);
+    "#);
 }
 
 #[test]
@@ -1614,8 +1576,7 @@ fn test_annotation() {
     assert_yaml_snapshot!(parse_source(r#"
         @{binding_strength=1}
         let add = a b -> a + b
-        "#).unwrap(), @r###"
-    ---
+        "#).unwrap(), @r#"
     - VarDef:
         kind: Let
         name: add
@@ -1649,7 +1610,7 @@ fn test_annotation() {
                 span: "0:28-29"
                 alias: binding_strength
             span: "0:10-30"
-    "###);
+    "#);
     parse_source(
         r#"
         @{binding_strength=1}
@@ -1735,8 +1696,7 @@ fn test_target() {
           remove film2
         "#,
         )
-        .unwrap(), @r###"
-    ---
+        .unwrap(), @r#"
     - QueryDef:
         version: ~
         other:
@@ -1766,7 +1726,7 @@ fn test_target() {
                 span: "0:65-77"
           span: "0:45-77"
       span: "0:34-77"
-    "###);
+    "#);
 }
 
 #[test]
@@ -1787,8 +1747,7 @@ fn doc_comment() {
     assert_yaml_snapshot!(parse_source(r###"
     from artists
     derive x = 5
-    "###).unwrap(), @r###"
-    ---
+    "###).unwrap(), @r#"
     - VarDef:
         kind: Main
         name: main
@@ -1815,7 +1774,7 @@ fn doc_comment() {
                 span: "0:22-34"
           span: "0:5-34"
       span: "0:0-34"
-    "###);
+    "#);
 
     assert_yaml_snapshot!(parse_source(r###"
     from artists
@@ -1823,8 +1782,7 @@ fn doc_comment() {
     #! This is a doc comment
 
     derive x = 5
-    "###).unwrap(), @r###"
-    ---
+    "###).unwrap(), @r#"
     - VarDef:
         kind: Main
         name: main
@@ -1854,14 +1812,13 @@ fn doc_comment() {
           span: "0:53-65"
       span: "0:47-65"
       doc_comment: " This is a doc comment"
-    "###);
+    "#);
 
     assert_yaml_snapshot!(parse_source(r###"
     #! This is a doc comment
     from artists
     derive x = 5
-    "###).unwrap(), @r###"
-    ---
+    "###).unwrap(), @r#"
     - VarDef:
         kind: Main
         name: main
@@ -1889,11 +1846,11 @@ fn doc_comment() {
           span: "0:34-63"
       span: "0:29-63"
       doc_comment: " This is a doc comment"
-    "###);
+    "#);
 
     assert_debug_snapshot!(parse_source(r###"
     from artists #! This is a doc comment
-    "###).unwrap_err(), @r###"
+    "###).unwrap_err(), @r#"
     [
         Error {
             kind: Error,
@@ -1907,5 +1864,5 @@ fn doc_comment() {
             code: None,
         },
     ]
-    "###);
+    "#);
 }

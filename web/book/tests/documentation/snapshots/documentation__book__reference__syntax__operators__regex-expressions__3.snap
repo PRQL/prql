@@ -1,6 +1,7 @@
 ---
 source: web/book/tests/documentation/book.rs
 expression: "prql target:sql.postgres\n\nfrom tracks\nfilter (name ~= \"\\\\(I Can't Help\\\\) Falling\")\n"
+snapshot_kind: text
 ---
 SELECT
   *

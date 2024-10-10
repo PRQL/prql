@@ -1,6 +1,7 @@
 ---
 source: web/book/tests/documentation/book.rs
 expression: "from employees\nsort join_date\ntake 1\n"
+snapshot_kind: text
 ---
 SELECT
   *

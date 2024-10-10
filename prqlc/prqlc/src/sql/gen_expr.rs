@@ -1075,66 +1075,56 @@ mod test {
 
         assert!(range_of_ranges(vec![range_1_10.clone()])?.end.is_some());
 
-        assert_yaml_snapshot!(range_of_ranges(vec![range_1_10.clone()])?, @r###"
-        ---
+        assert_yaml_snapshot!(range_of_ranges(vec![range_1_10.clone()])?, @r"
         start: 1
         end: 10
-        "###);
+        ");
 
-        assert_yaml_snapshot!(range_of_ranges(vec![range_1_10.clone(), range_1_10.clone()])?, @r###"
-        ---
+        assert_yaml_snapshot!(range_of_ranges(vec![range_1_10.clone(), range_1_10.clone()])?, @r"
         start: 1
         end: 10
-        "###);
+        ");
 
-        assert_yaml_snapshot!(range_of_ranges(vec![range_1_10.clone(), range_5_6.clone()])?, @r###"
-        ---
+        assert_yaml_snapshot!(range_of_ranges(vec![range_1_10.clone(), range_5_6.clone()])?, @r"
         start: 5
         end: 6
-        "###);
+        ");
 
-        assert_yaml_snapshot!(range_of_ranges(vec![range_5_6.clone(), range_1_10.clone()])?, @r###"
-        ---
+        assert_yaml_snapshot!(range_of_ranges(vec![range_5_6.clone(), range_1_10.clone()])?, @r"
         start: 5
         end: 6
-        "###);
+        ");
 
         // empty range
-        assert_yaml_snapshot!(range_of_ranges(vec![range_5_6.clone(), range_5_6.clone()])?, @r###"
-        ---
+        assert_yaml_snapshot!(range_of_ranges(vec![range_5_6.clone(), range_5_6.clone()])?, @r"
         start: ~
         end: 0
-        "###);
+        ");
 
-        assert_yaml_snapshot!(range_of_ranges(vec![range_5_inf.clone(), range_5_inf.clone()])?, @r###"
-        ---
+        assert_yaml_snapshot!(range_of_ranges(vec![range_5_inf.clone(), range_5_inf.clone()])?, @r"
         start: 9
         end: ~
-        "###);
+        ");
 
-        assert_yaml_snapshot!(range_of_ranges(vec![range_1_10, range_5_inf])?, @r###"
-        ---
+        assert_yaml_snapshot!(range_of_ranges(vec![range_1_10, range_5_inf])?, @r"
         start: 5
         end: 10
-        "###);
+        ");
 
-        assert_yaml_snapshot!(range_of_ranges(vec![range_5_6, range_inf_8.clone()])?, @r###"
-        ---
+        assert_yaml_snapshot!(range_of_ranges(vec![range_5_6, range_inf_8.clone()])?, @r"
         start: 5
         end: 6
-        "###);
+        ");
 
-        assert_yaml_snapshot!(range_of_ranges(vec![range_inf_8.clone(), range_inf_8])?, @r###"
-        ---
+        assert_yaml_snapshot!(range_of_ranges(vec![range_inf_8.clone(), range_inf_8])?, @r"
         start: ~
         end: 8
-        "###);
+        ");
 
-        assert_yaml_snapshot!(range_of_ranges(vec![range_5_5])?, @r###"
-        ---
+        assert_yaml_snapshot!(range_of_ranges(vec![range_5_5])?, @r"
         start: 5
         end: 5
-        "###);
+        ");
 
         Ok(())
     }

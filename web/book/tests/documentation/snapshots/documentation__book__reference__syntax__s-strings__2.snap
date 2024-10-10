@@ -1,6 +1,7 @@
 ---
 source: web/book/tests/documentation/book.rs
 expression: "from de=dept_emp\njoin s=salaries side:left (s.emp_no == de.emp_no && s\"\"\"\n  ({s.from_date}, {s.to_date})\n  OVERLAPS\n  ({de.from_date}, {de.to_date})\n\"\"\")\n"
+snapshot_kind: text
 ---
 SELECT
   de.*,

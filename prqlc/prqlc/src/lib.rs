@@ -574,7 +574,7 @@ mod tests {
 
     #[test]
     fn test_target_from_str() {
-        assert_debug_snapshot!(Target::from_str("sql.postgres"), @r###"
+        assert_debug_snapshot!(Target::from_str("sql.postgres"), @r"
         Ok(
             Sql(
                 Some(
@@ -582,9 +582,9 @@ mod tests {
                 ),
             ),
         )
-        "###);
+        ");
 
-        assert_debug_snapshot!(Target::from_str("sql.poostgres"), @r###"
+        assert_debug_snapshot!(Target::from_str("sql.poostgres"), @r#"
         Err(
             Error {
                 kind: Error,
@@ -597,9 +597,9 @@ mod tests {
                 code: None,
             },
         )
-        "###);
+        "#);
 
-        assert_debug_snapshot!(Target::from_str("postgres"), @r###"
+        assert_debug_snapshot!(Target::from_str("postgres"), @r#"
         Err(
             Error {
                 kind: Error,
@@ -612,7 +612,7 @@ mod tests {
                 code: None,
             },
         )
-        "###);
+        "#);
     }
 
     /// Confirm that all target names can be parsed.

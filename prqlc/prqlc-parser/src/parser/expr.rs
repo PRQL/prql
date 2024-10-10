@@ -591,8 +591,7 @@ mod tests {
     fn test_expr_call() {
         assert_yaml_snapshot!(
             parse_with_parser(r#"derive x = 5"#, trim_start().ignore_then(expr_call())).unwrap(),
-             @r###"
-        ---
+             @r#"
         FuncCall:
           name:
             Ident: derive
@@ -603,12 +602,11 @@ mod tests {
               span: "0:11-12"
               alias: x
         span: "0:0-12"
-        "###);
+        "#);
 
         assert_yaml_snapshot!(
             parse_with_parser(r#"aggregate {sum salary}"#, trim_start().ignore_then(expr_call())).unwrap(),
-             @r###"
-        ---
+             @r#"
         FuncCall:
           name:
             Ident: aggregate
@@ -625,17 +623,16 @@ mod tests {
                   span: "0:11-21"
               span: "0:10-22"
         span: "0:0-22"
-        "###);
+        "#);
     }
 
     #[test]
     fn aliased_in_expr() {
         assert_yaml_snapshot!(
-            parse_with_parser(r#"x = 5"#, trim_start().ignore_then(expr())).unwrap(), @r###"
-        ---
+            parse_with_parser(r#"x = 5"#, trim_start().ignore_then(expr())).unwrap(), @r#"
         Ident: x
         span: "0:0-1"
-        "###);
+        "#);
     }
 
     #[test]
@@ -643,8 +640,7 @@ mod tests {
         let tuple = || trim_start().ignore_then(tuple(expr()));
         assert_yaml_snapshot!(
             parse_with_parser(r#"{a = 5, b = 6}"#, tuple()).unwrap(),
-            @r###"
-        ---
+            @r#"
         Tuple:
           - Literal:
               Integer: 5
@@ -654,13 +650,13 @@ mod tests {
               Integer: 6
             span: "0:12-13"
             alias: b
-        "###);
+        "#);
 
         assert_debug_snapshot!(
             parse_with_parser(r#"
             {a = 5
              b = 6}"#, tuple()).unwrap_err(),
-            @r###"
+            @r#"
         [
             Error {
                 kind: Error,
@@ -678,11 +674,10 @@ mod tests {
                 code: None,
             },
         ]
-        "###);
+        "#);
 
         assert_yaml_snapshot!(parse_with_parser(r#"{d_str = (d | date.to_text "%Y/%m/%d")}"#, tuple()).unwrap(),
-        @r###"
-        ---
+        @r#"
         Tuple:
           - Pipeline:
               exprs:
@@ -704,15 +699,14 @@ mod tests {
                   span: "0:14-37"
             span: "0:10-37"
             alias: d_str
-        "###);
+        "#);
     }
 
     #[test]
     fn test_expr() {
         assert_yaml_snapshot!(
             parse_with_parser(r#"5+5"#, trim_start().ignore_then(expr())).unwrap(),
-             @r###"
-        ---
+             @r#"
         Binary:
           left:
             Literal:
@@ -724,7 +718,7 @@ mod tests {
               Integer: 5
             span: "0:2-3"
         span: "0:0-3"
-        "###);
+        "#);
     }
 
     #[test]
@@ -736,8 +730,7 @@ mod tests {
               derive x = 5
             )
             "#, trim_start().ignore_then(pipeline(expr_call()))).unwrap(),
-            @r###"
-        ---
+            @r#"
         Pipeline:
           exprs:
             - FuncCall:
@@ -759,7 +752,7 @@ mod tests {
                     alias: x
               span: "0:56-68"
         span: "0:13-82"
-        "###);
+        "#);
     }
 
     #[test]
@@ -774,8 +767,7 @@ mod tests {
 
         ]
             "#, trim_start().then(case(expr()))).unwrap(),
-        @r###"
-        ---
+        @r#"
         - ~
         - Case:
             - condition:
@@ -798,7 +790,7 @@ mod tests {
               value:
                 Literal: "Null"
                 span: "0:80-84"
-        "###);
+        "#);
     }
 
     // this should return an error but doesn't yet
@@ -822,7 +814,7 @@ mod tests {
               z = 3
             }
             "#.trim(), trim_start().ignore_then(expr_call()).then_ignore(end())).unwrap_err(),
-            @r###"
+            @r#"
         [
             Error {
                 kind: Error,
@@ -840,7 +832,7 @@ mod tests {
                 code: None,
             },
         ]
-        "###);
+        "#);
     }
 
     #[test]
@@ -865,8 +857,7 @@ mod tests {
     fn args_in_parens() {
         // Ensure function arguments allow parentheses
         assert_yaml_snapshot!(
-            parse_with_parser(r#"f (a) b"#, trim_start().ignore_then(expr_call()).then_ignore(end())).unwrap(), @r###"
-        ---
+            parse_with_parser(r#"f (a) b"#, trim_start().ignore_then(expr_call()).then_ignore(end())).unwrap(), @r#"
         FuncCall:
           name:
             Ident: f
@@ -877,11 +868,10 @@ mod tests {
             - Ident: b
               span: "0:6-7"
         span: "0:0-7"
-        "###);
+        "#);
 
         assert_yaml_snapshot!(
-            parse_with_parser(r#"f (a=2) b"#, trim_start().ignore_then(expr_call()).then_ignore(end())).unwrap(), @r###"
-        ---
+            parse_with_parser(r#"f (a=2) b"#, trim_start().ignore_then(expr_call()).then_ignore(end())).unwrap(), @r#"
         FuncCall:
           name:
             Ident: f
@@ -894,11 +884,10 @@ mod tests {
             - Ident: b
               span: "0:8-9"
         span: "0:0-9"
-        "###);
+        "#);
 
         assert_yaml_snapshot!(
-            parse_with_parser(r#"f (a b)"#, trim_start().ignore_then(expr_call()).then_ignore(end())).unwrap(), @r###"
-        ---
+            parse_with_parser(r#"f (a b)"#, trim_start().ignore_then(expr_call()).then_ignore(end())).unwrap(), @r#"
         FuncCall:
           name:
             Ident: f
@@ -913,7 +902,7 @@ mod tests {
                     span: "0:5-6"
               span: "0:3-6"
         span: "0:0-7"
-        "###);
+        "#);
     }
 
     #[test]
@@ -925,8 +914,7 @@ mod tests {
     )
     "#;
 
-        assert_yaml_snapshot!(parse_with_parser(source, trim_start().ignore_then(pipeline(expr_call()))).unwrap(), @r###"
-        ---
+        assert_yaml_snapshot!(parse_with_parser(source, trim_start().ignore_then(pipeline(expr_call()))).unwrap(), @r#"
         Pipeline:
           exprs:
             - Ident: tbl
@@ -945,7 +933,7 @@ mod tests {
                     span: "0:31-36"
               span: "0:23-36"
         span: "0:5-42"
-        "###);
+        "#);
 
         let source = r#"
     (
@@ -954,8 +942,7 @@ mod tests {
     )
     "#;
 
-        assert_yaml_snapshot!(parse_with_parser(source, trim_start().ignore_then(pipeline(expr_call()))).unwrap(), @r###"
-        ---
+        assert_yaml_snapshot!(parse_with_parser(source, trim_start().ignore_then(pipeline(expr_call()))).unwrap(), @r#"
         Pipeline:
           exprs:
             - Ident: tbl
@@ -975,7 +962,7 @@ mod tests {
                     span: "0:35-40"
               span: "0:27-40"
         span: "0:5-46"
-        "###);
+        "#);
     }
 
     // TODO: I think this should pass...

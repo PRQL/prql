@@ -2,6 +2,7 @@
 source: prqlc/prqlc/tests/integration/queries.rs
 expression: "# mssql:test\n# glaredb:skip — TODO: started raising an error on 2024-05-20; see `window.prql`\n# for more details\nfrom albums\nselect {\n    title,\n    title_and_spaces = f\"  {title}  \",\n    low = (title | text.lower),\n    up = (title | text.upper),\n    ltrimmed = (title | text.ltrim),\n    rtrimmed = (title | text.rtrim),\n    trimmed = (title | text.trim),\n    len = (title | text.length),\n    subs = (title | text.extract 2 5),\n    replace = (title | text.replace \"al\" \"PIKA\"),\n}\nsort {title}\nfilter (title | text.starts_with \"Black\") || (title | text.contains \"Sabbath\") || (title | text.ends_with \"os\")\n"
 input_file: prqlc/prqlc/tests/integration/queries/text_module.prql
+snapshot_kind: text
 ---
 from albums
 select {

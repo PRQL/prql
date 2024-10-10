@@ -1,6 +1,7 @@
 ---
 source: web/book/tests/documentation/book.rs
 expression: "from tracks\nfilter (name ~= \"Love\")\n"
+snapshot_kind: text
 ---
 SELECT
   *

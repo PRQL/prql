@@ -9,7 +9,7 @@ use crate::lexer::{lex_source, lexer, literal, quoted_string};
 fn line_wrap() {
     assert_debug_snapshot!(Tokens(lexer().parse(r"5 +
     \ 3 "
-        ).unwrap()), @r###"
+        ).unwrap()), @r"
     Tokens(
         [
             0..1: Literal(Integer(5)),
@@ -18,14 +18,14 @@ fn line_wrap() {
             10..11: Literal(Integer(3)),
         ],
     )
-    "###);
+    ");
 
     // Comments are included; no newline after the comments
     assert_debug_snapshot!(Tokens(lexer().parse(r"5 +
 # comment
    # comment with whitespace
   \ 3 "
-        ).unwrap()), @r###"
+        ).unwrap()), @r#"
     Tokens(
         [
             0..1: Literal(Integer(5)),
@@ -34,7 +34,7 @@ fn line_wrap() {
             47..48: Literal(Integer(3)),
         ],
     )
-    "###);
+    "#);
 
     // Check display, for the test coverage (use `assert_eq` because the
     // line-break doesn't work well with snapshots)
@@ -74,7 +74,7 @@ fn numbers() {
 
 #[test]
 fn debug_display() {
-    assert_debug_snapshot!(Tokens(lexer().parse("5 + 3").unwrap()), @r###"
+    assert_debug_snapshot!(Tokens(lexer().parse("5 + 3").unwrap()), @r"
     Tokens(
         [
             0..1: Literal(Integer(5)),
@@ -82,12 +82,12 @@ fn debug_display() {
             4..5: Literal(Integer(3)),
         ],
     )
-    "###);
+    ");
 }
 
 #[test]
 fn comment() {
-    assert_debug_snapshot!(Tokens(lexer().parse("# comment\n# second line").unwrap()), @r###"
+    assert_debug_snapshot!(Tokens(lexer().parse("# comment\n# second line").unwrap()), @r#"
     Tokens(
         [
             0..9: Comment(" comment"),
@@ -95,22 +95,20 @@ fn comment() {
             10..23: Comment(" second line"),
         ],
     )
-    "###);
+    "#);
 
-    assert_snapshot!(TokenKind::Comment(" This is a single-line comment".to_string()), @r###"
-        # This is a single-line comment
-        "###);
+    assert_snapshot!(TokenKind::Comment(" This is a single-line comment".to_string()), @"# This is a single-line comment");
 }
 
 #[test]
 fn doc_comment() {
-    assert_debug_snapshot!(Tokens(lexer().parse("#! docs").unwrap()), @r###"
+    assert_debug_snapshot!(Tokens(lexer().parse("#! docs").unwrap()), @r#"
     Tokens(
         [
             0..7: DocComment(" docs"),
         ],
     )
-    "###);
+    "#);
 }
 
 #[test]
@@ -125,12 +123,12 @@ fn quotes() {
     assert_snapshot!(quoted_string(false).parse(r#"''aoeu''"#).unwrap(), @"");
 
     // When not escaping, we take the inner string between the three quotes
-    assert_snapshot!(quoted_string(false).parse(r#""""\"hello\""""#).unwrap(), @r###"\"hello\"###);
+    assert_snapshot!(quoted_string(false).parse(r#""""\"hello\""""#).unwrap(), @r#"\"hello\"#);
 
-    assert_snapshot!(quoted_string(true).parse(r#""""\"hello\"""""#).unwrap(), @r###""hello""###);
+    assert_snapshot!(quoted_string(true).parse(r#""""\"hello\"""""#).unwrap(), @r#""hello""#);
 
     // Escape each inner quote depending on the outer quote
-    assert_snapshot!(quoted_string(true).parse(r#""\"hello\"""#).unwrap(), @r###""hello""###);
+    assert_snapshot!(quoted_string(true).parse(r#""\"hello\"""#).unwrap(), @r#""hello""#);
     assert_snapshot!(quoted_string(true).parse(r"'\'hello\''").unwrap(), @"'hello'");
 
     assert_snapshot!(quoted_string(true).parse(r#"''"#).unwrap(), @"");
@@ -150,7 +148,7 @@ fn quotes() {
 
 #[test]
 fn range() {
-    assert_debug_snapshot!(Tokens(lexer().parse("1..2").unwrap()), @r###"
+    assert_debug_snapshot!(Tokens(lexer().parse("1..2").unwrap()), @r"
     Tokens(
         [
             0..1: Literal(Integer(1)),
@@ -158,27 +156,27 @@ fn range() {
             3..4: Literal(Integer(2)),
         ],
     )
-    "###);
+    ");
 
-    assert_debug_snapshot!(Tokens(lexer().parse("..2").unwrap()), @r###"
+    assert_debug_snapshot!(Tokens(lexer().parse("..2").unwrap()), @r"
     Tokens(
         [
             0..2: Range { bind_left: true, bind_right: true },
             2..3: Literal(Integer(2)),
         ],
     )
-    "###);
+    ");
 
-    assert_debug_snapshot!(Tokens(lexer().parse("1..").unwrap()), @r###"
+    assert_debug_snapshot!(Tokens(lexer().parse("1..").unwrap()), @r"
     Tokens(
         [
             0..1: Literal(Integer(1)),
             1..3: Range { bind_left: true, bind_right: true },
         ],
     )
-    "###);
+    ");
 
-    assert_debug_snapshot!(Tokens(lexer().parse("in ..5").unwrap()), @r###"
+    assert_debug_snapshot!(Tokens(lexer().parse("in ..5").unwrap()), @r#"
     Tokens(
         [
             0..2: Ident("in"),
@@ -186,14 +184,14 @@ fn range() {
             5..6: Literal(Integer(5)),
         ],
     )
-    "###);
+    "#);
 }
 
 #[test]
 fn test_lex_source() {
     use insta::assert_debug_snapshot;
 
-    assert_debug_snapshot!(lex_source("5 + 3"), @r###"
+    assert_debug_snapshot!(lex_source("5 + 3"), @r"
     Ok(
         Tokens(
             [
@@ -204,10 +202,10 @@ fn test_lex_source() {
             ],
         ),
     )
-    "###);
+    ");
 
     // Something that will generate an error
-    assert_debug_snapshot!(lex_source("^"), @r###"
+    assert_debug_snapshot!(lex_source("^"), @r#"
     Err(
         [
             Error {
@@ -223,5 +221,5 @@ fn test_lex_source() {
             },
         ],
     )
-    "###);
+    "#);
 }

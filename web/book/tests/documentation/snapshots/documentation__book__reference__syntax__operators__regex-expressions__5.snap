@@ -1,6 +1,7 @@
 ---
 source: web/book/tests/documentation/book.rs
 expression: "prql target:sql.sqlite\n\nfrom tracks\nfilter (name ~= \"But Why Isn't Your Syntax More Similar\\\\?\")\n"
+snapshot_kind: text
 ---
 SELECT
   *

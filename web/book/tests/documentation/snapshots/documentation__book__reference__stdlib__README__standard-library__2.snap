@@ -1,6 +1,7 @@
 ---
 source: web/book/tests/documentation/book.rs
 expression: "prql target:sql.mysql\n\nfrom [{x = 13, y = 5}]\nselect {\n  quotient = x / y,\n  int_quotient = x // y,\n}\n"
+snapshot_kind: text
 ---
 WITH table_0 AS (
   SELECT

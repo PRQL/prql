@@ -1,6 +1,7 @@
 ---
 source: web/book/tests/documentation/book.rs
 expression: "from [\n  {a=5, b=false},\n  {a=6, b=true},\n]\nfilter b == true\nselect a\n"
+snapshot_kind: text
 ---
 WITH table_0 AS (
   SELECT

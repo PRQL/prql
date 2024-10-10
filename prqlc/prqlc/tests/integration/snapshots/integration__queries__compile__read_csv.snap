@@ -2,6 +2,7 @@
 source: prqlc/prqlc/tests/integration/queries.rs
 expression: "# sqlite:skip\n# postgres:skip\n# mysql:skip\nfrom (read_csv \"data_file_root/media_types.csv\")\nsort media_type_id\n"
 input_file: prqlc/prqlc/tests/integration/queries/read_csv.prql
+snapshot_kind: text
 ---
 WITH table_0 AS (
   SELECT

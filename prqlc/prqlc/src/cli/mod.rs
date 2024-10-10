@@ -668,14 +668,14 @@ sort full
         )
         .unwrap();
         assert_snapshot!(String::from_utf8(output).unwrap().trim(),
-        @r###"
+        @r#"
         from initial_table
         select {f = first_name, l = last_name, gender}  # [f, l, initial_table.gender]
         derive full_name = f"{f} {l}"                   # [f, l, initial_table.gender, full_name]
         take 23                                         # [f, l, initial_table.gender, full_name]
         select {f"{l} {f}", full = full_name, gender}   # [?, full, initial_table.gender]
         sort full                                       # [?, full, initial_table.gender]
-        "###);
+        "#);
     }
 
     /// Check we get an error on a bad input
@@ -695,7 +695,7 @@ sort full
             "",
         );
 
-        assert_snapshot!(&result.unwrap_err().to_string(), @r###"
+        assert_snapshot!(&result.unwrap_err().to_string(), @r"
         Error:
            ╭─[:1:1]
            │
@@ -703,7 +703,7 @@ sort full
            │ ──┬─
            │   ╰─── Unknown name `asdf`
         ───╯
-        "###);
+        ");
     }
 
     #[test]
@@ -729,7 +729,7 @@ sort full
             "main",
         )
         .unwrap();
-        assert_snapshot!(String::from_utf8(result).unwrap().trim(), @r###"
+        assert_snapshot!(String::from_utf8(result).unwrap().trim(), @r"
         WITH x AS (
           SELECT
             y,
@@ -741,7 +741,7 @@ sort full
           y
         FROM
           x
-        "###);
+        ");
     }
 
     #[test]
@@ -756,7 +756,7 @@ sort full
         )
         .unwrap();
 
-        assert_snapshot!(String::from_utf8(output).unwrap().trim(), @r###"
+        assert_snapshot!(String::from_utf8(output).unwrap().trim(), @r"
         name: Project
         stmts:
         - VarDef:
@@ -783,7 +783,7 @@ sort full
                   span: 1:9-17
               span: 1:0-17
           span: 1:0-17
-        "###);
+        ");
     }
     #[test]
     fn lex() {
@@ -799,7 +799,7 @@ sort full
 
         // TODO: terser output; maybe serialize span as `0..4`? Remove the
         // `!Ident` complication?
-        assert_snapshot!(String::from_utf8(output).unwrap().trim(), @r###"
+        assert_snapshot!(String::from_utf8(output).unwrap().trim(), @r"
         - kind: Start
           span:
             start: 0
@@ -824,7 +824,7 @@ sort full
           span:
             start: 16
             end: 17
-        "###);
+        ");
     }
     #[test]
     fn lex_nested_enum() {
@@ -842,7 +842,7 @@ sort full
         )
         .unwrap();
 
-        assert_snapshot!(String::from_utf8(output).unwrap().trim(), @r###"
+        assert_snapshot!(String::from_utf8(output).unwrap().trim(), @r"
         - kind: Start
           span:
             start: 0
@@ -876,6 +876,6 @@ sort full
           span:
             start: 44
             end: 45
-        "###);
+        ");
     }
 }
