@@ -20,9 +20,10 @@ authors = ["PRQL Developers"]
 edition = "2021"
 license = "Apache-2.0"
 repository = "https://github.com/PRQL/prql"
-# This isn't tested since `cargo-msrv` doesn't support workspaces; instead we
-# test `metadata.msrv` in `prqlc`
-rust-version = "1.70.0"
+# This isn't tested since `cargo msrv verify` doesn't support workspaces
+# https://github.com/foresterre/cargo-msrv/issues/590
+# But we can find the MSRV by `cargo msrv find`
+rust-version = "1.77.2"
 version = "0.13.1"
 
 [profile.release]
