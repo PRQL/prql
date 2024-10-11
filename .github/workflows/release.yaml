@@ -320,7 +320,8 @@ jobs:
       matrix:
         package:
           - prqlc-python
-          - lutra-python
+          # Excluding since there's a name conflict https://github.com/PRQL/prql/issues/4600
+          # - lutra-python
     steps:
       - uses: actions/download-artifact@v4
         with:
