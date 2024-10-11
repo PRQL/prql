@@ -1,11 +1,10 @@
 ---
 source: web/book/tests/documentation/book.rs
 expression: "[{version = prql.version}]\n"
-snapshot_kind: text
 ---
 WITH table_0 AS (
   SELECT
-    '0.13.1' AS version
+    '0.13.2' AS version
 )
 SELECT
   version
