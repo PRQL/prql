@@ -54,6 +54,10 @@ jobs:
             target: aarch64-apple-darwin
           - os: windows-latest
             target: x86_64-pc-windows-msvc
+          # Still building for intel but can disable when runners go away
+          - os: macos-13
+            target: x86_64-apple-darwin
+            features: default,test-dbs
     permissions:
       contents: write
     steps:
