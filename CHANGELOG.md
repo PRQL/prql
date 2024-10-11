@@ -1,8 +1,12 @@
 # PRQL Changelog
 
-## [unreleased]
+## 0.13.1
 
-**Language**:
+0.13.1 is a small release containing a few bug fixes and improvements. Velocity
+has slowed down a bit in recent months, we're still hoping to finish the new
+resolver and the new formatter in the near future.
+
+It has 97 commits from 10 contributors. Selected changes:
 
 **Features**:
 
@@ -25,14 +29,6 @@
 
 - A few more keywords are quoted, such as `user`, which is a reserved keyword in
   PostgreSQL. (@max-sixty)
-
-**Documentation**:
-
-**Web**:
-
-**Integrations**:
-
-**Internal changes**:
 
 **New Contributors**:
 
@@ -1276,8 +1272,8 @@ below in this release).
 
 **Documentation**:
 
-[This release, the changelog only contains a subset of
-documentation improvements]
+[This release, the changelog only contains a subset of documentation
+improvements]
 
 - Add docs on aliases in
   [Select](https://prql-lang.org/book/reference/stdlib/transforms/select.html)
