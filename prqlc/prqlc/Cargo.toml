@@ -28,11 +28,14 @@ cli = [
   "walkdir",
 ]
 default = ["cli"]
-serde_yaml = [
-  "prqlc-parser/serde_yaml",
-  "dep:serde_yaml",
+serde_yaml = ["prqlc-parser/serde_yaml", "dep:serde_yaml"]
+test-dbs = [
+  "rusqlite",
+  "duckdb",
+  "connector_arrow",
+  "connector_arrow/src_sqlite",
+  "connector_arrow/src_duckdb",
 ]
-test-dbs = ["rusqlite", "duckdb", "connector_arrow", "connector_arrow/src_sqlite", "connector_arrow/src_duckdb"]
 test-dbs-external = [
   # We could attempt to allow running `test-dbs-external` without `test-dbs`,
   # but it doesn't offer much value, and it's simpler to require both.
@@ -49,73 +52,91 @@ test-dbs-external = [
 ]
 
 [dependencies]
-prqlc-parser = {path = "../prqlc-parser", version = "0.13.1"}
+prqlc-parser = { path = "../prqlc-parser", version = "0.13.2" }
 
-anstream = {version = "0.6.15", features = ["auto"]}
+anstream = { version = "0.6.15", features = ["auto"] }
 ariadne = "0.4.1"
 chrono = "0.4.38"
 csv = "1.3.0"
-enum-as-inner = {workspace = true}
-itertools = {workspace = true}
-log = {workspace = true}
+enum-as-inner = { workspace = true }
+itertools = { workspace = true }
+log = { workspace = true }
 regex = "1.11.0"
-schemars = {workspace = true}
-semver = {workspace = true}
+schemars = { workspace = true }
+semver = { workspace = true }
 # serde is required for the `from_text` feature of PRQL, so we can't really put
 # it behind a feature.
-serde = {workspace = true}
-serde_json = {workspace = true}
-serde_yaml = {workspace = true, optional = true}
+serde = { workspace = true }
+serde_json = { workspace = true }
+serde_yaml = { workspace = true, optional = true }
 sqlformat = "0.2.6"
-sqlparser = {version = "0.51.0", features = ["serde"]}
-strum = {version = "0.26.3", features = ["std", "derive"]}
+sqlparser = { version = "0.51.0", features = ["serde"] }
+strum = { version = "0.26.3", features = ["std", "derive"] }
 strum_macros = "0.26.4"
 
 [build-dependencies]
-vergen-gitcl = {version = "1.0.0", features = ["build"]}
+vergen-gitcl = { version = "1.0.0", features = ["build"] }
 
 [target.'cfg(not(target_family="wasm"))'.dependencies]
 
 # unique dependencies from the CLI, marked as optional and included in the 'cli'
 # feature
-anyhow = {version = "1.0.89", features = ["backtrace"], optional = true}
-clap = {version = "4.4.18", features = ["derive", "env", "wrap_help"], optional = true}
-clap_complete_command = {version = "0.5.1", optional = true}
-clio = {version = "0.3.3", features = ['clap-parse'], optional = true}
-color-eyre = {version = "0.6.3", optional = true}
-colorchoice-clap = {version = "1.0.0", optional = true}
-is-terminal = {version = "0.4.13", optional = true}
-notify = {version = "6.1.1", optional = true}
-walkdir = {version = "2.5.0", optional = true}
+anyhow = { version = "1.0.89", features = ["backtrace"], optional = true }
+clap = { version = "4.4.18", features = [
+  "derive",
+  "env",
+  "wrap_help",
+], optional = true }
+clap_complete_command = { version = "0.5.1", optional = true }
+clio = { version = "0.3.3", features = ['clap-parse'], optional = true }
+color-eyre = { version = "0.6.3", optional = true }
+colorchoice-clap = { version = "1.0.0", optional = true }
+is-terminal = { version = "0.4.13", optional = true }
+notify = { version = "6.1.1", optional = true }
+walkdir = { version = "2.5.0", optional = true }
 
 # We use minijinja just for the Jinja lexer, which is not part of the
 # public interface which is covered by semver guarantees.
-minijinja = {version = "2.3.1", features = ["unstable_machinery"], optional = true}
+minijinja = { version = "2.3.1", features = [
+  "unstable_machinery",
+], optional = true }
 
 # For integration tests. These are gated by the `test-dbs` and `test-dbs-external` features,
 # rather than dev-dependencies, because dev-dependencies can't be optional.
 
-connector_arrow = {version = "0.5.4", optional = true}
-duckdb = {version = "1.0.0", optional = true, features = ["bundled", "chrono"]}
-futures = {version = "0.3.31", optional = true}
-mysql = {version = "25", optional = true}
-postgres = {version = "0.19.9", optional = true}
-rusqlite = {version = "0.32.0", optional = true, features = ["bundled", "csvtab"]}
-tiberius = {version = "0.12.3", optional = true, default-features = false, features = ["sql-browser-tokio", "bigdecimal", "time", "rustls", "tds73"]}
-tokio = {version = "1.40.0", optional = true, features = ["full"]}
-tokio-util = {version = "0.7.12", optional = true, features = ["compat"]}
+connector_arrow = { version = "0.5.4", optional = true }
+duckdb = { version = "1.0.0", optional = true, features = [
+  "bundled",
+  "chrono",
+] }
+futures = { version = "0.3.31", optional = true }
+mysql = { version = "25", optional = true }
+postgres = { version = "0.19.9", optional = true }
+rusqlite = { version = "0.32.0", optional = true, features = [
+  "bundled",
+  "csvtab",
+] }
+tiberius = { version = "0.12.3", optional = true, default-features = false, features = [
+  "sql-browser-tokio",
+  "bigdecimal",
+  "time",
+  "rustls",
+  "tds73",
+] }
+tokio = { version = "1.40.0", optional = true, features = ["full"] }
+tokio-util = { version = "0.7.12", optional = true, features = ["compat"] }
 
 [dev-dependencies]
 # default-features=false required to allow wasm compilation (which we don't use
 # for benchmarks but simplifies the code)
-criterion = {version = "0.5.1", default-features = false}
-glob = {version = "0.3.1"}
-insta = {workspace = true}
-insta-cmd = {workspace = true}
+criterion = { version = "0.5.1", default-features = false }
+glob = { version = "0.3.1" }
+insta = { workspace = true }
+insta-cmd = { workspace = true }
 rstest = "0.23.0"
-similar = {workspace = true}
-similar-asserts = {workspace = true}
-tempfile = {version = "3.13.0"}
+similar = { workspace = true }
+similar-asserts = { workspace = true }
+tempfile = { version = "3.13.0" }
 test_each_file = "0.3.4"
 
 # We use `benches/bench.rs` for the benchmark harness so disable searching for
@@ -143,7 +164,9 @@ search = '^version: "[\d.]+"$'
 [[package.metadata.release.pre-release-replacements]]
 exactly = 1
 file = "../../web/book/src/project/target.md"
-replace = 'prql version:"{{version}}"'
+# This should be on the previous version, since otherwise it won't be able to
+# compile on `main`, since `main` uses the most recent tag.
+replace = 'prql version:"{{prev_version}}"'
 search = 'prql version:"[\d.]+"'
 
 [[package.metadata.release.pre-release-replacements]]
