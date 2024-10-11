@@ -513,21 +513,22 @@ jobs:
     runs-on: ubuntu-22.04
     needs: rules
     if: needs.rules.outputs.nightly == 'true'
+    strategy:
+      fail-fast: false
+      matrix:
+        working-directory:
+          # TODO: Verify workspace MSRV after https://github.com/foresterre/cargo-msrv/issues/590
+          # - ./
+          - prqlc/prqlc
+          - lutra/lutra
     steps:
       - name: 📂 Checkout code
         uses: actions/checkout@v4
       - uses: baptiste0928/cargo-install@v3
         with:
           crate: cargo-msrv
-          # TODO: remove this version pinning
-          # The latest 0.16 supports workspace inheritance, so the check will fail
-          version: "0.15"
-        # Note this currently uses a manually maintained key in
-        # `prqlc/prqlc/Cargo.toml`, because of
-        # https://github.com/foresterre/cargo-msrv/issues/590
-      - name: Verify minimum rust version — prqlc
-        # Ideally we'd check all crates, ref https://github.com/foresterre/cargo-msrv/issues/295
-        working-directory: prqlc/prqlc
+      - name: Verify minimum rust version — ${{ matrix.working-directory }}
+        working-directory: ${{ matrix.working-directory }}
         run: cargo msrv verify
 
   test-deps-min-versions:
