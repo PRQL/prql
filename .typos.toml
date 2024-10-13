@@ -17,3 +17,4 @@ ipelined = "ipelined"
 uery = "uery"
 # `wee-alloc` is a crate name
 wee = "wee"
+flate = "flate"

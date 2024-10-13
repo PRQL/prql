@@ -486,10 +486,12 @@ Currently we release in a semi-automated way:
    [release workflow](https://github.com/PRQL/prql/blob/main/.github/workflows/release.yaml).
 
 5. Run
-   `cargo release version patch -x --no-confirm && cargo release replace -x --no-confirm && task test-rust`
+   `cargo release patch --no-publish --no-push --execute --no-verify --no-confirm --no-tag && task test-rust`
    to bump the versions and add a new Changelog section; then PR the resulting
    commit. Note this currently contains `task test-rust` to update snapshot
    tests which contain the version.
+
+<!-- Note we used to have `cargo release version patch -x --no-confirm && cargo release replace -x --no-confirm && task test-rust`, which was simpler, but in order for `prev_version` to work, we can't separate the `patch` and `replace`, and we need `prev_version` for the prqlc version constraint (search for `prev_version` if unclear). If we moved back to upgrading the tags at the time of release rather than after, we could go back to that. -->
 
 6. Check whether there are [milestones](https://github.com/PRQL/prql/milestones)
    that need to be pushed out.
