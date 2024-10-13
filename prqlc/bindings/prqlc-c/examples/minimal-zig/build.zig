@@ -19,14 +19,14 @@ pub fn build(b: *std.Build) void {
         .name = "minimal-zig",
         // In this case the main source file is merely a path, however, in more
         // complicated build scripts, this could be a generated file.
-        .root_source_file = .{ .path = "src/main.zig" },
+        .root_source_file = b.path("src/main.zig"),
         .target = target,
         .optimize = optimize,
     });
-    exe.addIncludePath(.{ .path = "src" });
-    exe.addLibraryPath(.{ .path = "c" });
-    exe.installHeader("c/prqlc.h", "prqlc.h");
-    exe.linkSystemLibraryName("prqlc_c");
+    exe.addIncludePath(b.path("src"));
+    exe.addLibraryPath(b.path("c"));
+    exe.installHeader(b.path("c/prqlc.h"), "prqlc.h");
+    exe.linkSystemLibrary("prqlc_c");
     exe.linkLibC();
 
     // This declares intent for the executable to be installed into the
@@ -60,14 +60,14 @@ pub fn build(b: *std.Build) void {
     // Creates a step for unit testing. This only builds the test executable
     // but does not run it.
     const unit_tests = b.addTest(.{
-        .root_source_file = .{ .path = "src/main.zig" },
+        .root_source_file = b.path("src/main.zig"),
         .target = target,
         .optimize = optimize,
     });
-    unit_tests.addIncludePath(.{ .path = "src" });
-    unit_tests.addLibraryPath(.{ .path = "c" });
-    unit_tests.installHeader("c/prqlc.h", "prqlc.h");
-    unit_tests.linkSystemLibraryName("prqlc_c");
+    unit_tests.addIncludePath(b.path("src"));
+    unit_tests.addLibraryPath(b.path("c"));
+    unit_tests.installHeader(b.path("c/prqlc.h"), "prqlc.h");
+    unit_tests.linkSystemLibrary("prqlc_c");
     unit_tests.linkLibC();
 
     const run_unit_tests = b.addRunArtifact(unit_tests);
