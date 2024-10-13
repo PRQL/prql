@@ -52,7 +52,7 @@ test-dbs-external = [
 ]
 
 [dependencies]
-prqlc-parser = { path = "../prqlc-parser", version = "0.13.2" }
+prqlc-parser = { path = "../prqlc-parser", version = "0.13.3" }
 
 anstream = { version = "0.6.15", features = ["auto"] }
 ariadne = "0.4.1"
@@ -165,7 +165,8 @@ search = '^version: "[\d.]+"$'
 exactly = 1
 file = "../../web/book/src/project/target.md"
 # This should be on the previous version, since otherwise it won't be able to
-# compile on `main`, since `main` uses the most recent tag.
+# compile during development, since we use the most recent tag during
+# development (and the most recent tag is the prior version).
 replace = 'prql version:"{{prev_version}}"'
 search = 'prql version:"[\d.]+"'
 
