@@ -52,7 +52,7 @@ insta-cmd = "0.6.0"
 itertools = "0.13.0"
 log = "0.4.22"
 pyo3 = {version = "0.21.1", features = ["abi3-py37", "anyhow"]}
-pyo3-build-config = "0.22.3"
+pyo3-build-config = "0.22.4"
 schemars = "1.0.0-alpha.15"
 semver = {version = "1.0.23", features = ["serde"]}
 serde = {version = "1.0.210", features = ["derive"]}
