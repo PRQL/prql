@@ -1,6 +1,6 @@
 [toolchain]
 # Generally run 1 behind latest
-channel = "1.80.1"
+channel = "1.81.0"
 components = ["rustfmt", "clippy"]
 # We want two targets: wasm32, and the default target for the platform, which we
 # don't list here. (i.e. we use each platform to test each platform)
