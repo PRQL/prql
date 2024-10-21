@@ -73,9 +73,9 @@ And there are many projects similar to PRQL:
   contains many of the criticisms of SQL that inspired PRQL.
 - [FunSQL.jl](https://github.com/MechanicalRabbit/FunSQL.jl) is a library in
   Julia which compiles a nice query syntax to SQL. It requires a Julia runtime.
-- [LINQ](https://learn.microsoft.com/en-us/dotnet/csharp/linq/get-started/write-linq-queries), is a
-  pipelined language for the `.NET` ecosystem which can (mostly) compile to SQL.
-  It was one of the first languages to take this approach.
+- [LINQ](https://learn.microsoft.com/en-us/dotnet/csharp/linq/get-started/write-linq-queries),
+  is a pipelined language for the `.NET` ecosystem which can (mostly) compile to
+  SQL. It was one of the first languages to take this approach.
 - [Sift](https://github.com/RCHowell/Sift) is an experimental language which
   heavily uses pipes and relational algebra.
 
