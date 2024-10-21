@@ -39,7 +39,7 @@ Yes, probably. We're standing on the shoulders of giants:
   data, in R. It's very similar to PRQL. It only works on in-memory R data.
   - There's also [dbplyr](https://dbplyr.tidyverse.org/) which compiles a subset
     of dplyr to SQL, though requires an R runtime.
-- [Kusto](https://docs.microsoft.com/azure/data-explorer/kusto/query/samples?pivots=azuredataexplorer)
+- [Kusto](https://learn.microsoft.com/en-us/kusto/query/tutorials/learn-common-operators?view=azure-data-explorer&preserve-view=true&pivots=azuredataexplorer)
   is also a beautiful pipelined language, similar to PRQL. But it can only use
   Kusto-compatible DBs.
   <!-- We can add more articles by linking from works in the "There are other similar piecs out there" sentence -->
@@ -73,7 +73,7 @@ And there are many projects similar to PRQL:
   contains many of the criticisms of SQL that inspired PRQL.
 - [FunSQL.jl](https://github.com/MechanicalRabbit/FunSQL.jl) is a library in
   Julia which compiles a nice query syntax to SQL. It requires a Julia runtime.
-- [LINQ](https://docs.microsoft.com/dotnet/csharp/linq/write-linq-queries), is a
+- [LINQ](https://learn.microsoft.com/en-us/dotnet/csharp/linq/get-started/write-linq-queries), is a
   pipelined language for the `.NET` ecosystem which can (mostly) compile to SQL.
   It was one of the first languages to take this approach.
 - [Sift](https://github.com/RCHowell/Sift) is an experimental language which
