@@ -13,5 +13,5 @@ qStudio calls `prqlc` (the PRQL compiler) to generate SQL code from PRQL queries
 (.prql files) then runs the SQL against the selected database to display the
 results. For more details, check out:
 
-* [qStudio site](https://www.timestored.com/qstudio/prql-ide)
-* [qStudio-PRQL Quick Start](https://github.com/richb-hanover/qStudio-PRQL_Quick_Start)
+- [qStudio site](https://www.timestored.com/qstudio/prql-ide)
+- [qStudio-PRQL Quick Start](https://github.com/richb-hanover/qStudio-PRQL_Quick_Start)
