@@ -54,14 +54,14 @@ test-dbs-external = [
 [dependencies]
 prqlc-parser = { path = "../prqlc-parser", version = "0.13.3" }
 
-anstream = { version = "0.6.15", features = ["auto"] }
+anstream = { version = "0.6.17", features = ["auto"] }
 ariadne = "0.4.1"
 chrono = "0.4.38"
 csv = "1.3.0"
 enum-as-inner = { workspace = true }
 itertools = { workspace = true }
 log = { workspace = true }
-regex = "1.11.0"
+regex = "1.11.1"
 schemars = { workspace = true }
 semver = { workspace = true }
 # serde is required for the `from_text` feature of PRQL, so we can't really put
@@ -81,7 +81,7 @@ vergen-gitcl = { version = "1.0.0", features = ["build"] }
 
 # unique dependencies from the CLI, marked as optional and included in the 'cli'
 # feature
-anyhow = { version = "1.0.90", features = ["backtrace"], optional = true }
+anyhow = { version = "1.0.91", features = ["backtrace"], optional = true }
 clap = { version = "4.4.18", features = [
   "derive",
   "env",
