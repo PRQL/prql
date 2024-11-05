@@ -10,6 +10,7 @@
 [![Language Docs](https://img.shields.io/badge/DOCS-BOOK-blue?style=for-the-badge)](https://prql-lang.org/book)
 [![Discord](https://img.shields.io/badge/DISCORD-CHAT-indigo?style=for-the-badge&logo=discord)](https://discord.gg/eQcfaCmsNc)
 [![Twitter](https://img.shields.io/twitter/follow/prql_lang?color=%231DA1F2&style=for-the-badge&logo=x)](https://twitter.com/prql_lang)
+[![Gurubase](https://img.shields.io/badge/Gurubase-Ask%20PRQL%20Guru-006BFF?style=for-the-badge)](https://gurubase.io/g/prql)
 
 <!-- Dev badges on second line -->
 
