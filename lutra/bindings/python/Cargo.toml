@@ -16,7 +16,7 @@ doc = false
 test = false
 
 [target.'cfg(not(target_family="wasm"))'.dependencies]
-arrow = {version = "52.2", features = ["pyarrow"], default-features = false}
+arrow = {workspace = true}
 itertools = {workspace = true}
 # we rename lutra to lutralib here, so we can define a function named lutra
 lutralib = {package = "lutra", path = "../../lutra", default-features = false}

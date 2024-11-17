@@ -26,7 +26,7 @@ test = false
 
 [target.'cfg(not(target_family="wasm"))'.dependencies]
 anyhow = {workspace = true}
-arrow = {version = "52.2", features = ["prettyprint"], default-features = false}
+arrow = {workspace = true}
 clap = {version = "4.4.18", features = ["derive"], optional = true}
 connector_arrow = {version = "0.6.0", features = ["src_sqlite"]}
 env_logger = "0.10.2"
