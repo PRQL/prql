@@ -1026,7 +1026,7 @@ version = "0.6.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "80da56db0e588b6801ec8b91202b890dc6d5f26bbd7eeb044923f12571a305de"
 dependencies = [
- "arrow 52.2.0",
+ "arrow 53.1.0",
  "byteorder",
  "bytes",
  "chrono",
