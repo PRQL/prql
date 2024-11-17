@@ -22,7 +22,7 @@ pub struct Expr {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub alias: Option<String>,
 
-    /// Unique identificator of the node. Set exactly once during semantic::resolve.
+    /// Unique identifier of the node. Set exactly once during semantic::resolve.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub id: Option<usize>,
 
