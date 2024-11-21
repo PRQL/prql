@@ -97,7 +97,7 @@ walkdir = { version = "2.5.0", optional = true }
 
 # We use minijinja just for the Jinja lexer, which is not part of the
 # public interface which is covered by semver guarantees.
-minijinja = { version = "2.4.0", features = [
+minijinja = { version = "2.5.0", features = [
   "unstable_machinery",
 ], optional = true }
 
