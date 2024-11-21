@@ -42,7 +42,7 @@ vars:
   cargo_crates: >
     bacon cbindgen cargo-audit cargo-insta cargo-llvm-cov cargo-release
     cargo-nextest default-target mdbook mdbook-admonish mdbook-footnote
-    mdbook-toc nextest wasm-bindgen-cli wasm-opt
+    mdbook-toc wasm-bindgen-cli wasm-opt
   # wasm-pack waiting on https://github.com/rustwasm/wasm-pack/issues/1426
   #
   # Excluding `elixir` atm given it's not enabled on Mac and currently unsupported

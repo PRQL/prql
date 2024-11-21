@@ -23,7 +23,7 @@ doctest = false
 test = false
 
 [dependencies]
-libc = "0.2.162"
+libc = "0.2.164"
 prqlc = {path = "../../prqlc", default-features = false}
 serde_json = {workspace = true}
 
