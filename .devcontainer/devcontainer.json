@@ -39,7 +39,7 @@
     }
   ],
   "postCreateCommand": {
-    "set-ownership": "sudo chown vscode target",
+    "set-ownership": "sudo chown vscode target; sudo chown vscode /usr/local/cargo/registry/",
     "install-python-deps": "task install-maturin",
     // Disabling because of the issues in #3709
     // "install-python-deps": "task install-maturin && task install-pre-commit && pre-commit install-hooks",
