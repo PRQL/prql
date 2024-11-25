@@ -21,7 +21,7 @@ test = false
 ansi-to-html = "0.2.1"
 anyhow = {workspace = true}
 itertools = {workspace = true}
-mdbook = {version = "0.4.42", default-features = false}
+mdbook = {version = "0.4.43", default-features = false}
 mdbook-preprocessor-boilerplate = "0.1.2"
 prqlc = {path = "../../prqlc/prqlc", default-features = false}
 pulldown-cmark = {version = "0.10.3", default-features = false}
