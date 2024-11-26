@@ -45,18 +45,22 @@ allow-branch = ["*"]
 consolidate-commits = true
 
 [workspace.dependencies]
-anyhow = "1.0.92"
+anyhow = "1.0.93"
+arrow = { version = "53", features = [
+  "pyarrow",
+  "prettyprint",
+], default-features = false }
 enum-as-inner = "0.6.1"
-insta = {version = "1.41.1", features = ["colors", "glob", "yaml", "filters"]}
+insta = { version = "1.41.1", features = ["colors", "glob", "yaml", "filters"] }
 insta-cmd = "0.6.0"
 itertools = "0.13.0"
 log = "0.4.22"
-pyo3 = {version = "0.21.1", features = ["abi3-py37", "anyhow"]}
-pyo3-build-config = "0.22.5"
+pyo3 = { version = "0.22.6", features = ["abi3-py37", "anyhow"] }
+pyo3-build-config = "0.22.6"
 schemars = "1.0.0-alpha.15"
-semver = {version = "1.0.23", features = ["serde"]}
-serde = {version = "1.0.214", features = ["derive"]}
-serde_json = "1.0.132"
-serde_yaml = {version = "0.9.34"}
+semver = { version = "1.0.23", features = ["serde"] }
+serde = { version = "1.0.215", features = ["derive"] }
+serde_json = "1.0.133"
+serde_yaml = { version = "0.9.34" }
 similar = "2.6.0"
 similar-asserts = "1.6.0"

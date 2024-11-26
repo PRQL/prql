@@ -5,6 +5,7 @@ use prqlc_lib::ErrorMessages;
 use pyo3::{exceptions, prelude::*};
 
 #[pyfunction]
+#[pyo3(signature = (prql_query, options=None))]
 pub fn compile(prql_query: &str, options: Option<CompileOptions>) -> PyResult<String> {
     let Ok(options) = options.map(convert_options).transpose() else {
         return Err(PyErr::new::<exceptions::PyValueError, _>(
@@ -39,6 +40,7 @@ pub fn pl_to_rq(pl_json: &str) -> PyResult<String> {
 }
 
 #[pyfunction]
+#[pyo3(signature = (rq_json, options=None))]
 pub fn rq_to_sql(rq_json: &str, options: Option<CompileOptions>) -> PyResult<String> {
     prqlc_lib::json::to_rq(rq_json)
         .and_then(|x| {
