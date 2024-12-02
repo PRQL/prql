@@ -18,7 +18,7 @@ name = "mdbook-prql"
 test = false
 
 [target.'cfg(not(target_family="wasm"))'.dependencies]
-ansi-to-html = "0.2.1"
+ansi-to-html = "0.2.2"
 anyhow = {workspace = true}
 itertools = {workspace = true}
 mdbook = {version = "0.4.43", default-features = false}
