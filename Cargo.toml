@@ -26,6 +26,7 @@ rust-version = "1.70.0"
 version = "0.13.3"
 
 [profile.release]
+lto = true
 # Optimize for binary size in releases of all crates,
 # since compiler is fast enough as it is (for now).
 opt-level = "s"
