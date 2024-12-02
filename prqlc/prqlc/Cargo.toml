@@ -69,7 +69,7 @@ semver = { workspace = true }
 serde = { workspace = true }
 serde_json = { workspace = true }
 serde_yaml = { workspace = true, optional = true }
-sqlformat = "0.2.6"
+sqlformat = "0.3.2"
 sqlparser = { version = "0.52.0", features = ["serde"] }
 strum = { version = "0.26.3", features = ["std", "derive"] }
 strum_macros = "0.26.4"

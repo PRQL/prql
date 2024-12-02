@@ -31,7 +31,7 @@ pub fn compile(query: rq::RelationalQuery, options: &Options) -> Result<String> 
         let formatted = sqlformat::format(
             &sql,
             &sqlformat::QueryParams::default(),
-            sqlformat::FormatOptions::default(),
+            &sqlformat::FormatOptions::default(),
         );
 
         formatted + "\n"
