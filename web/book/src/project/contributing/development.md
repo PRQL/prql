@@ -7,7 +7,8 @@ editing, and testing PRQL's compiler code in two minutes:
 
 - Install
   [`rustup` & `cargo`](https://doc.rust-lang.org/cargo/getting-started/installation.html).
-- [Optional but highly recommended] Install `cargo-insta`, our testing framework:
+- [Optional but highly recommended] Install `cargo-insta`, our testing
+  framework:
 
   ```sh
   cargo install cargo-insta
