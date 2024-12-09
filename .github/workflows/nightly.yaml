@@ -27,9 +27,14 @@ jobs:
     #
     # Would be better if we could only run when we know we have permissions. But
     # this will do...
+
+    # 2024-12-09 — this is failing on normal PRs despite clearing the advisories
+    # in GitHub, and the action is archived. We have the GitHub security audits,
+    # `prqlc` doesn't cross any trust boundaries, so disabling for the moment.
+    # We can re-enable if a supported action is available.
     if:
       ${{ github.repository_owner == 'prql' &&
-      !github.event.pull_request.head.repo.fork }}
+      !github.event.pull_request.head.repo.fork && 'run' == 'no' }}
     permissions:
       actions: read
       contents: read
