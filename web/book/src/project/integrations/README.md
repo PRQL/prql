@@ -6,7 +6,7 @@ PRQL is building integrations with lots of external tools, including:
 - [ClickHouse](./clickhouse.md)
 - [Jupyter](./jupyter.md)
 - [DuckDB](./duckdb.md)
-- [qStudio](./qstudio.md)
+- [QStudio](./qstudio.md)
 - [Prefect](./prefect.md)
 - [VS Code](./vscode.md)
 - [PostgreSQL](./postgresql.md)
