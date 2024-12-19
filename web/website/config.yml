@@ -71,6 +71,6 @@ params:
     - static/img/favicon-32x32.png
   title: PRQL
 
-  license: "© 2022-2023, PRQL Developers. Apache 2.0 Licensed"
+  license: "© 2022-2024, PRQL Developers. Apache 2.0 Licensed"
 
 googleAnalytics: G-LQJDD599T4
