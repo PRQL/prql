@@ -29,7 +29,7 @@ python-source = "python"
 [project.optional-dependencies]
 dev = [
   "pytest >= 7",
-  "mypy == 1.13.0",
+  "mypy == 1.14.0",
 ]
 
 [tool.ruff]
