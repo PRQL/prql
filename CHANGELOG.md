@@ -8,7 +8,8 @@
 
 **Fixes**:
 
-- Sort steps in sub-pipelines no longer cause a column lookup error (@lukapeschke, #5066)
+- Sort steps in sub-pipelines no longer cause a column lookup error
+  (@lukapeschke, #5066)
 
 **Documentation**:
 
