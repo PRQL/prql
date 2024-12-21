@@ -8,6 +8,9 @@
 
 **Fixes**:
 
+- Sort steps in sub-pipelines no longer cause a column lookup error
+  (@lukapeschke, #5066)
+
 **Documentation**:
 
 **Web**:
@@ -17,6 +20,8 @@
 **Internal changes**:
 
 **New Contributors**:
+
+- @lukapeschke, with #5066
 
 ## 0.13.2
 

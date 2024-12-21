@@ -886,6 +886,89 @@ fn test_intersect_07() {
 }
 
 #[test]
+fn test_sort_in_nested_join() {
+    assert_snapshot!(compile(r#"
+    from albums
+    join side:left (
+        from artists
+        sort {-`artist-id`}
+        take 10
+    ) (this.artist_id == that.artist_id) | take 10
+    "#).unwrap(),
+        @r#"
+    WITH table_0 AS (
+      SELECT
+        *
+      FROM
+        artists
+      ORDER BY
+        "artist-id" DESC
+      LIMIT
+        10
+    )
+    SELECT
+      albums.*,
+      table_0.*
+    FROM
+      albums
+      LEFT JOIN table_0 ON albums.artist_id = table_0.artist_id
+    LIMIT
+      10
+    "#
+    );
+}
+
+#[test]
+fn test_sort_in_nested_append() {
+    assert_snapshot!(compile(r#"
+    from `albums`
+    select { `album_id`, `title` }
+    sort {+`album_id`}
+    take 2
+    append (
+        from `albums`
+        select { `album_id`, `title` }
+        sort {-`album_id`}
+        take 2
+    )
+    "#).unwrap(),
+        @r#"
+        WITH table_0 AS (
+          SELECT
+            album_id,
+            title
+          FROM
+            albums
+          ORDER BY
+            album_id DESC
+          LIMIT
+            2
+        )
+        SELECT
+          *
+        FROM
+          (
+            SELECT
+              album_id,
+              title
+            FROM
+              albums
+            ORDER BY
+              album_id
+            LIMIT
+              2
+          ) AS table_1
+        UNION
+        ALL
+        SELECT
+          *
+        FROM
+          table_0
+    "#
+    );
+}
+
+#[test]
 fn test_rn_ids_are_unique() {
     // this is wrong, output will have duplicate y_id and x_id
     assert_snapshot!((compile(r###"

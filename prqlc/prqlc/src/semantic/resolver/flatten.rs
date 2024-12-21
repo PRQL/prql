@@ -131,12 +131,31 @@ impl PlFold for Flattener {
                     kind => (self.fold_expr(*t.input)?, fold_transform_kind(self, kind)?),
                 };
 
+                // In case we're appending or joining another pipeline, we do not want to apply the
+                // sub-pipeline's sort, as it may result in column lookup errors. Without this, we
+                // would try to join on `album_id` in the outer pipeline of the following query, but
+                // the column does not exist
+                //
+                // from artists
+                // join side:left (
+                //   from albums
+                //   sort {`album_id`}
+                //   derive {`album_name` = `name`}
+                //   select {`artist_id`, `album_name`}
+                // ) (this.id == that.artist_id)
+                let sort = if matches!(kind, TransformKind::Join { .. } | TransformKind::Append(_))
+                {
+                    vec![]
+                } else {
+                    self.sort.clone()
+                };
+
                 ExprKind::TransformCall(TransformCall {
                     input: Box::new(input),
                     kind: Box::new(kind),
                     partition: self.partition.clone(),
                     frame: self.window.clone(),
-                    sort: self.sort.clone(),
+                    sort,
                 })
             }
             kind => self.fold_expr_kind(kind)?,
