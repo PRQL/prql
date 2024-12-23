@@ -46,7 +46,7 @@ allow-branch = ["*"]
 consolidate-commits = true
 
 [workspace.dependencies]
-anyhow = "1.0.94"
+anyhow = "1.0.95"
 arrow = { version = "53", features = [
   "pyarrow",
   "prettyprint",
@@ -59,9 +59,9 @@ log = "0.4.22"
 pyo3 = { version = "0.22.6", features = ["abi3-py37", "anyhow"] }
 pyo3-build-config = "0.22.6"
 schemars = "1.0.0-alpha.17"
-semver = { version = "1.0.23", features = ["serde"] }
-serde = { version = "1.0.215", features = ["derive"] }
-serde_json = "1.0.133"
+semver = { version = "1.0.24", features = ["serde"] }
+serde = { version = "1.0.216", features = ["derive"] }
+serde_json = "1.0.134"
 serde_yaml = { version = "0.9.34" }
 similar = "2.6.0"
 similar-asserts = "1.6.0"
