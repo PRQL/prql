@@ -69,7 +69,7 @@ semver = { workspace = true }
 serde = { workspace = true }
 serde_json = { workspace = true }
 serde_yaml = { workspace = true, optional = true }
-sqlformat = "0.3.2"
+sqlformat = "0.3.3"
 sqlparser = { version = "0.52.0", features = ["serde"] }
 strum = { version = "0.26.3", features = ["std", "derive"] }
 strum_macros = "0.26.4"
@@ -81,7 +81,7 @@ vergen-gitcl = { version = "1.0.0", features = ["build"] }
 
 # unique dependencies from the CLI, marked as optional and included in the 'cli'
 # feature
-anyhow = { version = "1.0.94", features = ["backtrace"], optional = true }
+anyhow = { version = "1.0.95", features = ["backtrace"], optional = true }
 clap = { version = "4.4.18", features = [
   "derive",
   "env",
