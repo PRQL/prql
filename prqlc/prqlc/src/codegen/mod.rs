@@ -149,7 +149,7 @@ struct SeparatedExprs<'a, T: WriteSource> {
     line_end: &'static str,
 }
 
-impl<'a, T: WriteSource> WriteSource for SeparatedExprs<'a, T> {
+impl<T: WriteSource> WriteSource for SeparatedExprs<'_, T> {
     fn write(&self, mut opt: WriteOpt) -> Option<String> {
         // try inline
         if let Some(inline) = self.write_inline(opt.clone()) {
@@ -180,7 +180,7 @@ impl<'a, T: WriteSource> WriteSource for SeparatedExprs<'a, T> {
     }
 }
 
-impl<'a, T: WriteSource> SeparatedExprs<'a, T> {
+impl<T: WriteSource> SeparatedExprs<'_, T> {
     fn write_inline(&self, mut opt: WriteOpt) -> Option<String> {
         let mut exprs = Vec::new();
         for expr in self.exprs {

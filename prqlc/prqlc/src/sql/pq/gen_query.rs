@@ -125,9 +125,9 @@ struct TransformCompiler<'a> {
     ctx: &'a mut Context,
 }
 
-impl<'a> RqFold for TransformCompiler<'a> {}
+impl RqFold for TransformCompiler<'_> {}
 
-impl<'a> PqMapper<RIId, pq::RelationExpr, rq::Transform, ()> for TransformCompiler<'a> {
+impl PqMapper<RIId, pq::RelationExpr, rq::Transform, ()> for TransformCompiler<'_> {
     fn fold_rel(&mut self, rel: RIId) -> Result<pq::RelationExpr> {
         compile_relation_instance(rel, self.ctx)
     }

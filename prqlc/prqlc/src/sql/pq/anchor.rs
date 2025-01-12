@@ -649,7 +649,7 @@ impl<'a> CidRedirector<'a> {
     }
 }
 
-impl<'a> RqFold for CidRedirector<'a> {
+impl RqFold for CidRedirector<'_> {
     fn fold_cid(&mut self, cid: CId) -> Result<CId> {
         Ok(self.cid_redirects.get(&cid).cloned().unwrap_or(cid))
     }
@@ -666,7 +666,7 @@ impl<'a> RqFold for CidRedirector<'a> {
     }
 }
 
-impl<'a> PqMapper<RIId, RIId, Transform, Transform> for CidRedirector<'a> {
+impl PqMapper<RIId, RIId, Transform, Transform> for CidRedirector<'_> {
     fn fold_rel(&mut self, rel: RIId) -> Result<RIId> {
         Ok(rel)
     }

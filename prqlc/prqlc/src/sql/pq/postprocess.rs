@@ -44,9 +44,9 @@ struct CteSorting {
     has_been_used: bool,
 }
 
-impl<'a> RqFold for SortingInference<'a> {}
+impl RqFold for SortingInference<'_> {}
 
-impl<'a> PqFold for SortingInference<'a> {
+impl PqFold for SortingInference<'_> {
     fn fold_sql_query(&mut self, query: SqlQuery) -> Result<SqlQuery> {
         let mut ctes = Vec::with_capacity(query.ctes.len());
         for cte in query.ctes {
@@ -102,7 +102,7 @@ impl<'a> PqFold for SortingInference<'a> {
     }
 }
 
-impl<'a> PqMapper<RelationExpr, RelationExpr, (), ()> for SortingInference<'a> {
+impl PqMapper<RelationExpr, RelationExpr, (), ()> for SortingInference<'_> {
     fn fold_rel(&mut self, rel: RelationExpr) -> Result<RelationExpr> {
         Ok(rel)
     }
@@ -200,9 +200,9 @@ struct RelVarNameAssigner<'a> {
     ctx: &'a mut Context,
 }
 
-impl<'a> RqFold for RelVarNameAssigner<'a> {}
+impl RqFold for RelVarNameAssigner<'_> {}
 
-impl<'a> PqFold for RelVarNameAssigner<'a> {
+impl PqFold for RelVarNameAssigner<'_> {
     fn fold_sql_relation(&mut self, relation: SqlRelation) -> Result<SqlRelation> {
         // only fold AtomicPipelines
         Ok(match relation {
@@ -221,7 +221,7 @@ impl<'a> PqFold for RelVarNameAssigner<'a> {
     }
 }
 
-impl<'a> PqMapper<RelationExpr, RelationExpr, (), ()> for RelVarNameAssigner<'a> {
+impl PqMapper<RelationExpr, RelationExpr, (), ()> for RelVarNameAssigner<'_> {
     fn fold_rel(&mut self, mut rel: RelationExpr) -> Result<RelationExpr> {
         // normal fold
         rel.kind = match rel.kind {
