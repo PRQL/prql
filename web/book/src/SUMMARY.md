@@ -107,7 +107,7 @@ General information about the project, tooling and development.
   - [ClickHouse](./project/integrations/clickhouse.md)
   - [Jupyter](./project/integrations/jupyter.md)
   - [DuckDB](./project/integrations/duckdb.md)
-  - [qStudio](./project/integrations/qstudio.md)
+  - [QStudio](./project/integrations/qstudio.md)
   - [Prefect](./project/integrations/prefect.md)
   - [VS Code](./project/integrations/vscode.md)
   - [PostgreSQL](./project/integrations/postgresql.md)

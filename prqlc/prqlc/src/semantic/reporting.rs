@@ -41,7 +41,7 @@ struct Labeler<'a> {
     report: &'a mut ReportBuilder<'static, (String, Range<usize>)>,
 }
 
-impl<'a> Labeler<'a> {
+impl Labeler<'_> {
     fn label_module(&mut self, module: &Module) {
         for (_, decl) in module.names.iter() {
             if let DeclKind::TableDecl(TableDecl {
@@ -67,7 +67,7 @@ impl<'a> Labeler<'a> {
     }
 }
 
-impl<'a> pl::PlFold for Labeler<'a> {
+impl pl::PlFold for Labeler<'_> {
     fn fold_expr(&mut self, node: pl::Expr) -> Result<pl::Expr> {
         if let Some(ident) = node.kind.as_ident() {
             if let Some(span) = node.span {

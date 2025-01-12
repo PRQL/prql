@@ -198,13 +198,15 @@ mod tests {
         "#);
     }
 
+    #[cfg(test)]
+    impl SupportsDocComment for String {
+        fn with_doc_comment(self, _doc_comment: Option<String>) -> Self {
+            self
+        }
+    }
+
     #[test]
     fn test_no_doc_comment_in_with_doc_comment() {
-        impl SupportsDocComment for String {
-            fn with_doc_comment(self, _doc_comment: Option<String>) -> Self {
-                self
-            }
-        }
         assert_debug_snapshot!(parse_with_parser(r#"hello"#, with_doc_comment(new_line().ignore_then(ident_part()))).unwrap(), @r#""hello""#);
     }
 }

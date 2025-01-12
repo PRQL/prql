@@ -56,7 +56,7 @@ prqlc-parser = { path = "../prqlc-parser", version = "0.13.3" }
 
 anstream = { version = "0.6.18", features = ["auto"] }
 ariadne = "0.4.1"
-chrono = "0.4.38"
+chrono = "0.4.39"
 csv = "1.3.1"
 enum-as-inner = { workspace = true }
 itertools = { workspace = true }
@@ -69,8 +69,8 @@ semver = { workspace = true }
 serde = { workspace = true }
 serde_json = { workspace = true }
 serde_yaml = { workspace = true, optional = true }
-sqlformat = "0.2.6"
-sqlparser = { version = "0.51.0", features = ["serde"] }
+sqlformat = "0.3.3"
+sqlparser = { version = "0.52.0", features = ["serde"] }
 strum = { version = "0.26.3", features = ["std", "derive"] }
 strum_macros = "0.26.4"
 
@@ -81,7 +81,7 @@ vergen-gitcl = { version = "1.0.0", features = ["build"] }
 
 # unique dependencies from the CLI, marked as optional and included in the 'cli'
 # feature
-anyhow = { version = "1.0.93", features = ["backtrace"], optional = true }
+anyhow = { version = "1.0.95", features = ["backtrace"], optional = true }
 clap = { version = "4.4.18", features = [
   "derive",
   "env",
@@ -92,7 +92,7 @@ clio = { version = "0.3.3", features = ['clap-parse'], optional = true }
 color-eyre = { version = "0.6.3", optional = true }
 colorchoice-clap = { version = "1.0.0", optional = true }
 is-terminal = { version = "0.4.13", optional = true }
-notify = { version = "6.1.1", optional = true }
+notify = { version = "7.0.0", optional = true }
 walkdir = { version = "2.5.0", optional = true }
 
 # We use minijinja just for the Jinja lexer, which is not part of the
@@ -123,20 +123,20 @@ tiberius = { version = "0.12.3", optional = true, default-features = false, feat
   "rustls",
   "tds73",
 ] }
-tokio = { version = "1.41.1", optional = true, features = ["full"] }
-tokio-util = { version = "0.7.12", optional = true, features = ["compat"] }
+tokio = { version = "1.42.0", optional = true, features = ["full"] }
+tokio-util = { version = "0.7.13", optional = true, features = ["compat"] }
 
 [dev-dependencies]
 # default-features=false required to allow wasm compilation (which we don't use
 # for benchmarks but simplifies the code)
 criterion = { version = "0.5.1", default-features = false }
-glob = { version = "0.3.1" }
+glob = { version = "0.3.2" }
 insta = { workspace = true }
 insta-cmd = { workspace = true }
-rstest = "0.23.0"
+rstest = "0.24.0"
 similar = { workspace = true }
 similar-asserts = { workspace = true }
-tempfile = { version = "3.14.0" }
+tempfile = { version = "3.15.0" }
 test_each_file = "0.3.4"
 
 # We use `benches/bench.rs` for the benchmark harness so disable searching for

@@ -220,7 +220,7 @@ impl<'a> FileTreeCache<'a> {
     }
 }
 
-impl<'a> Cache<PathBuf> for FileTreeCache<'a> {
+impl Cache<PathBuf> for FileTreeCache<'_> {
     type Storage = String;
     fn fetch(&mut self, id: &PathBuf) -> Result<&Source, Box<dyn fmt::Debug + '_>> {
         let file_contents = match self.file_tree.sources.get(id) {

@@ -582,6 +582,7 @@ fn default_select() -> Select {
     Select {
         distinct: None,
         top: None,
+        top_before_distinct: false,
         projection: Vec::new(),
         into: None,
         from: Vec::new(),

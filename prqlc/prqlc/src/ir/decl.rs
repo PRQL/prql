@@ -148,7 +148,7 @@ impl std::fmt::Debug for Module {
 
 struct DebugNames<'a>(&'a HashMap<String, Decl>);
 
-impl<'a> std::fmt::Debug for DebugNames<'a> {
+impl std::fmt::Debug for DebugNames<'_> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         let mut dm = f.debug_map();
         for (n, decl) in self.0.iter().sorted_by_key(|x| x.0) {

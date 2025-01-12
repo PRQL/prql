@@ -135,8 +135,8 @@ impl AnchorContext {
         QueryLoader::load(context, query)
     }
 
-    /// Generates a new ID and name for a wildcard column and registers it in the
-    /// AnchorContext's column_decls HashMap.
+    // /// Generates a new ID and name for a wildcard column and registers it in the
+    // /// AnchorContext's column_decls HashMap.
     // pub fn register_wildcard(&mut self, riid: RIId) -> CId {
     //     let id = self.cid.gen();
     //     let kind = ColumnDecl::RelationColumn(riid, id, RelationColumn::Wildcard);
@@ -240,7 +240,7 @@ impl AnchorContext {
         }
     }
 
-    /// Returns a set of all columns of all tables in a pipeline
+    // /// Returns a set of all columns of all tables in a pipeline
     // pub(super) fn collect_pipeline_inputs(
     //     &self,
     //     pipeline: &[SqlTransform],
