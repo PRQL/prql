@@ -57,7 +57,7 @@ impl<'de> Deserialize<'de> for Span {
     {
         struct SpanVisitor {}
 
-        impl<'de> Visitor<'de> for SpanVisitor {
+        impl Visitor<'_> for SpanVisitor {
             type Value = Span;
 
             fn expecting(&self, f: &mut fmt::Formatter) -> fmt::Result {
