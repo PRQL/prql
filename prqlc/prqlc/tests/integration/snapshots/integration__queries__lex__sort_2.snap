@@ -1,0 +1,37 @@
+---
+source: prqlc/prqlc/tests/integration/queries.rs
+expression: tokens
+input_file: prqlc/prqlc/tests/integration/queries/sort_2.prql
+---
+Tokens(
+    [
+        0..0: Start,
+        0..4: Ident("from"),
+        5..11: Ident("albums"),
+        11..12: NewLine,
+        12..18: Ident("select"),
+        19..20: Control('{'),
+        21..23: Ident("AA"),
+        23..24: Control('='),
+        24..32: Ident("album_id"),
+        32..33: Control(','),
+        34..43: Ident("artist_id"),
+        44..45: Control('}'),
+        45..46: NewLine,
+        46..50: Ident("sort"),
+        51..53: Ident("AA"),
+        53..54: NewLine,
+        54..60: Ident("filter"),
+        61..63: Ident("AA"),
+        64..66: Gte,
+        67..69: Literal(Integer(25)),
+        69..70: NewLine,
+        70..74: Ident("join"),
+        75..82: Ident("artists"),
+        83..84: Control('('),
+        84..86: Eq,
+        86..95: Ident("artist_id"),
+        95..96: Control(')'),
+        96..97: NewLine,
+    ],
+)
