@@ -659,13 +659,13 @@ impl<'a> CidRedirector<'a> {
             .map(|sort| {
                 let decl = ctx.column_decls.get(&sort.column).unwrap();
                 if let ColumnDecl::RelationColumn(riid, cid, _) = decl {
-                    let cid_redirects = &ctx.relation_instances[&riid].cid_redirects;
+                    let cid_redirects = &ctx.relation_instances[riid].cid_redirects;
                     for (source, target) in cid_redirects.iter() {
                         if target == cid {
                             log::debug!("reverting {target:?} back to {source:?}");
                             return ColumnSort {
                                 direction: sort.direction,
-                                column: source.clone(),
+                                column: *source,
                             };
                         }
                     }
