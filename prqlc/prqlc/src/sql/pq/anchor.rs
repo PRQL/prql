@@ -643,15 +643,44 @@ impl<'a> CidRedirector<'a> {
         ctx: &'a mut AnchorContext,
     ) -> Vec<ColumnSort<CId>> {
         let cid_redirects = ctx.relation_instances[riid].cid_redirects.clone();
+        log::debug!("redirect sorts {sorts:?} {riid:?} cid_redirects {cid_redirects:?}");
         let mut redirector = CidRedirector { ctx, cid_redirects };
 
         fold_column_sorts(&mut redirector, sorts).unwrap()
+    }
+
+    // revert sort columns back to their original pre-split columns
+    pub fn revert_sorts(
+        sorts: Vec<ColumnSort<CId>>,
+        ctx: &'a mut AnchorContext,
+    ) -> Vec<ColumnSort<CId>> {
+        sorts
+            .into_iter()
+            .map(|sort| {
+                let decl = ctx.column_decls.get(&sort.column).unwrap();
+                if let ColumnDecl::RelationColumn(riid, cid, _) = decl {
+                    let cid_redirects = &ctx.relation_instances[&riid].cid_redirects;
+                    for (source, target) in cid_redirects.iter() {
+                        if target == cid {
+                            log::debug!("reverting {target:?} back to {source:?}");
+                            return ColumnSort {
+                                direction: sort.direction,
+                                column: source.clone(),
+                            };
+                        }
+                    }
+                }
+                sort
+            })
+            .collect()
     }
 }
 
 impl RqFold for CidRedirector<'_> {
     fn fold_cid(&mut self, cid: CId) -> Result<CId> {
-        Ok(self.cid_redirects.get(&cid).cloned().unwrap_or(cid))
+        let v = self.cid_redirects.get(&cid).cloned().unwrap_or(cid);
+        log::debug!("mapping {cid:?} via {0:?} to {v:?}", self.cid_redirects);
+        Ok(v)
     }
 
     fn fold_transform(&mut self, transform: Transform) -> Result<Transform> {
