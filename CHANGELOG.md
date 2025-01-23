@@ -10,6 +10,8 @@
 
 - Sort steps in sub-pipelines no longer cause a column lookup error
   (@lukapeschke, #5066)
+- Dereferencing of sort columns when rendering SQL now done in context of main
+  pipeline (@kgutwin, #5098)
 
 **Documentation**:
 
