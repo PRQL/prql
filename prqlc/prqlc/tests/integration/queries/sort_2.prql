@@ -1,0 +1,5 @@
+from albums
+select { AA=album_id, artist_id }
+sort AA
+filter AA >= 25
+join artists (==artist_id)
