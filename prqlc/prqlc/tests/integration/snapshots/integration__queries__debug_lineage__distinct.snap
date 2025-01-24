@@ -2,7 +2,6 @@
 source: prqlc/prqlc/tests/integration/queries.rs
 expression: "# mssql:test\nfrom tracks\nselect {album_id, genre_id}\ngroup tracks.* (take 1)\nsort tracks.*\n"
 input_file: prqlc/prqlc/tests/integration/queries/distinct.prql
-snapshot_kind: text
 ---
 frames:
 - - 1:25-52
@@ -11,16 +10,16 @@ frames:
       name:
       - tracks
       - album_id
-      target_id: 126
+      target_id: 123
       target_name: null
     - !Single
       name:
       - tracks
       - genre_id
-      target_id: 127
+      target_id: 124
       target_name: null
     inputs:
-    - id: 124
+    - id: 121
       name: tracks
       table:
       - default_db
@@ -31,16 +30,16 @@ frames:
       name:
       - tracks
       - album_id
-      target_id: 131
+      target_id: 128
       target_name: null
     - !Single
       name:
       - tracks
       - genre_id
-      target_id: 132
+      target_id: 129
       target_name: null
     inputs:
-    - id: 124
+    - id: 121
       name: tracks
       table:
       - default_db
@@ -51,29 +50,29 @@ frames:
       name:
       - tracks
       - album_id
-      target_id: 131
+      target_id: 128
       target_name: null
     - !Single
       name:
       - tracks
       - genre_id
-      target_id: 132
+      target_id: 129
       target_name: null
     inputs:
-    - id: 124
+    - id: 121
       name: tracks
       table:
       - default_db
       - tracks
 nodes:
-- id: 124
+- id: 121
   kind: Ident
   span: 1:13-24
   ident: !Ident
   - default_db
   - tracks
-  parent: 129
-- id: 126
+  parent: 126
+- id: 123
   kind: Ident
   span: 1:33-41
   ident: !Ident
@@ -81,9 +80,9 @@ nodes:
   - tracks
   - album_id
   targets:
-  - 124
-  parent: 128
-- id: 127
+  - 121
+  parent: 125
+- id: 124
   kind: Ident
   span: 1:43-51
   ident: !Ident
@@ -91,81 +90,81 @@ nodes:
   - tracks
   - genre_id
   targets:
-  - 124
-  parent: 128
-- id: 128
+  - 121
+  parent: 125
+- id: 125
   kind: Tuple
   span: 1:32-52
   children:
-  - 126
-  - 127
-  parent: 129
-- id: 129
+  - 123
+  - 124
+  parent: 126
+- id: 126
   kind: 'TransformCall: Select'
   span: 1:25-52
   children:
-  - 124
-  - 128
-  parent: 150
-- id: 131
+  - 121
+  - 125
+  parent: 147
+- id: 128
   kind: Ident
   ident: !Ident
   - this
   - tracks
   - album_id
   targets:
-  - 126
-  parent: 133
-- id: 132
+  - 123
+  parent: 130
+- id: 129
   kind: Ident
   ident: !Ident
   - this
   - tracks
   - genre_id
   targets:
-  - 127
-  parent: 133
-- id: 133
+  - 124
+  parent: 130
+- id: 130
   kind: Tuple
   span: 1:65-67
   children:
-  - 131
-  - 132
-- id: 150
+  - 128
+  - 129
+- id: 147
   kind: 'TransformCall: Take'
   span: 1:69-75
   children:
-  - 129
-  - 151
-  parent: 158
-- id: 151
+  - 126
+  - 148
+  parent: 155
+- id: 148
   kind: Literal
-  parent: 150
-- id: 155
+  parent: 147
+- id: 152
   kind: Ident
   ident: !Ident
   - this
   - tracks
   - album_id
   targets:
-  - 131
-  parent: 158
-- id: 156
+  - 128
+  parent: 155
+- id: 153
   kind: Ident
   ident: !Ident
   - this
   - tracks
   - genre_id
   targets:
-  - 132
-  parent: 158
-- id: 158
+  - 129
+  parent: 155
+- id: 155
   kind: 'TransformCall: Sort'
   span: 1:77-90
   children:
-  - 150
-  - 155
-  - 156
+  - 147
+  - 152
+  - 153
 ast:
   name: Project
   stmts:

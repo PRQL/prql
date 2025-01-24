@@ -2,16 +2,15 @@
 source: prqlc/prqlc/tests/integration/queries.rs
 expression: "# mysql:skip\n# clickhouse:skip\n# glaredb:skip (the string_agg function is not supported)\nfrom tracks\nfilter genre_id == 100\nderive empty_name = name == ''\naggregate {sum track_id, concat_array name, all empty_name, any empty_name}\n"
 input_file: prqlc/prqlc/tests/integration/queries/aggregation.prql
-snapshot_kind: text
 ---
 frames:
 - - 1:101-123
   - columns:
     - !All
-      input_id: 124
+      input_id: 121
       except: []
     inputs:
-    - id: 124
+    - id: 121
       name: tracks
       table:
       - default_db
@@ -19,21 +18,25 @@ frames:
 - - 1:124-154
   - columns:
     - !All
-      input_id: 124
+      input_id: 121
       except: []
     - !Single
       name:
       - empty_name
-      target_id: 131
+      target_id: 128
       target_name: null
     inputs:
-    - id: 124
+    - id: 121
       name: tracks
       table:
       - default_db
       - tracks
 - - 1:155-230
   - columns:
+    - !Single
+      name: null
+      target_id: 134
+      target_name: null
     - !Single
       name: null
       target_id: 137
@@ -46,32 +49,28 @@ frames:
       name: null
       target_id: 143
       target_name: null
-    - !Single
-      name: null
-      target_id: 146
-      target_name: null
     inputs:
-    - id: 124
+    - id: 121
       name: tracks
       table:
       - default_db
       - tracks
 nodes:
-- id: 124
+- id: 121
   kind: Ident
   span: 1:89-100
   ident: !Ident
   - default_db
   - tracks
-  parent: 130
-- id: 126
+  parent: 127
+- id: 123
   kind: RqOperator
   span: 1:108-123
   targets:
-  - 128
-  - 129
-  parent: 130
-- id: 128
+  - 125
+  - 126
+  parent: 127
+- id: 125
   kind: Ident
   span: 1:108-116
   ident: !Ident
@@ -79,26 +78,26 @@ nodes:
   - tracks
   - genre_id
   targets:
-  - 124
-- id: 129
+  - 121
+- id: 126
   kind: Literal
   span: 1:120-123
-- id: 130
+- id: 127
   kind: 'TransformCall: Filter'
   span: 1:101-123
   children:
-  - 124
-  - 126
-  parent: 136
-- id: 131
+  - 121
+  - 123
+  parent: 133
+- id: 128
   kind: RqOperator
   span: 1:144-154
   alias: empty_name
   targets:
-  - 133
-  - 134
-  parent: 135
-- id: 133
+  - 130
+  - 131
+  parent: 132
+- id: 130
   kind: Ident
   span: 1:144-148
   ident: !Ident
@@ -106,30 +105,30 @@ nodes:
   - tracks
   - name
   targets:
-  - 124
-- id: 134
+  - 121
+- id: 131
   kind: Literal
   span: 1:152-154
-- id: 135
+- id: 132
   kind: Tuple
   span: 1:144-154
   children:
-  - 131
-  parent: 136
-- id: 136
+  - 128
+  parent: 133
+- id: 133
   kind: 'TransformCall: Derive'
   span: 1:124-154
   children:
-  - 130
-  - 135
-  parent: 150
-- id: 137
+  - 127
+  - 132
+  parent: 147
+- id: 134
   kind: RqOperator
   span: 1:166-178
   targets:
-  - 139
-  parent: 149
-- id: 139
+  - 136
+  parent: 146
+- id: 136
   kind: Ident
   span: 1:170-178
   ident: !Ident
@@ -137,14 +136,14 @@ nodes:
   - tracks
   - track_id
   targets:
-  - 124
-- id: 140
+  - 121
+- id: 137
   kind: RqOperator
   span: 1:180-197
   targets:
-  - 142
-  parent: 149
-- id: 142
+  - 139
+  parent: 146
+- id: 139
   kind: Ident
   span: 1:193-197
   ident: !Ident
@@ -152,50 +151,50 @@ nodes:
   - tracks
   - name
   targets:
-  - 124
-- id: 143
+  - 121
+- id: 140
   kind: RqOperator
   span: 1:199-213
   targets:
-  - 145
-  parent: 149
-- id: 145
+  - 142
+  parent: 146
+- id: 142
   kind: Ident
   span: 1:203-213
   ident: !Ident
   - this
   - empty_name
   targets:
-  - 131
-- id: 146
+  - 128
+- id: 143
   kind: RqOperator
   span: 1:215-229
   targets:
-  - 148
-  parent: 149
-- id: 148
+  - 145
+  parent: 146
+- id: 145
   kind: Ident
   span: 1:219-229
   ident: !Ident
   - this
   - empty_name
   targets:
-  - 131
-- id: 149
+  - 128
+- id: 146
   kind: Tuple
   span: 1:165-230
   children:
+  - 134
   - 137
   - 140
   - 143
-  - 146
-  parent: 150
-- id: 150
+  parent: 147
+- id: 147
   kind: 'TransformCall: Aggregate'
   span: 1:155-230
   children:
-  - 136
-  - 149
+  - 133
+  - 146
 ast:
   name: Project
   stmts:

@@ -60,7 +60,6 @@ pub(crate) fn prepare_stream<'a>(
 fn ident_part() -> impl Parser<TokenKind, String, Error = PError> + Clone {
     select! {
         TokenKind::Ident(ident) => ident,
-        TokenKind::Keyword(ident) if &ident == "module" => ident,
     }
     .map_err(|e: PError| {
         PError::expected_input_found(

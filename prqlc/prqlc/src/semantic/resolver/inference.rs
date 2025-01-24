@@ -118,6 +118,8 @@ impl Resolver<'_> {
         columns: Option<Vec<TyTupleField>>,
         name_hint: Option<String>,
     ) -> Lineage {
+        log::debug!("declare_table_for_literal: {input_id:?} {columns:?} {name_hint:?}");
+
         let id = input_id;
         let global_name = format!("_literal_{}", id);
 

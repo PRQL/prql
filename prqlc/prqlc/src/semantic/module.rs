@@ -196,7 +196,7 @@ impl Module {
         let namespace = self.names.entry(namespace.to_string()).or_default();
         let namespace = namespace.kind.as_module_mut().unwrap();
 
-        let lin_ty = *ty_of_lineage(lineage).kind.into_array().unwrap();
+        let lin_ty = *ty_of_lineage(lineage).kind.into_array().unwrap().unwrap();
 
         for (col_index, column) in lineage.columns.iter().enumerate() {
             // determine input name

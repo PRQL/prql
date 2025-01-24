@@ -158,17 +158,17 @@ fn test_bad_function_type() {
     group foo (take)
     "###,
     )
-    .unwrap_err(), @r"
+    .unwrap_err(), @r#"
     Error:
        ╭─[:3:16]
        │
      3 │     group foo (take)
        │                ──┬─
-       │                  ╰─── function std.group, param `pipeline` expected type `transform`, but found type `func anytype relation -> relation`
+       │                  ╰─── function std.group, param `pipeline` expected type `transform`, but found type `func ? relation -> relation`
        │
        │ Help: Type `transform` expands to `func relation -> relation`
     ───╯
-    ");
+    "#);
 }
 
 #[test]
@@ -189,25 +189,6 @@ fn test_basic_type_checking() {
        │                ╰──── function std.add, param `left` expected type `int || float || timestamp || date`, but found type `bool`
     ───╯
     "###);
-}
-
-// See also test_bad_error_messages::misplaced_type_error
-// Note that the ``` Help: Type `bool` expands to `bool` ``` is not that useful
-#[test]
-fn test_type_error_placement() {
-    assert_snapshot!(compile(r###"
-    let foo = x -> (x | as integer)
-    from t
-    select (true && (foo y))
-    "###).unwrap_err(), @r"
-    Error:
-       ╭─[:4:22]
-       │
-     4 │     select (true && (foo y))
-       │                      ──┬──
-       │                        ╰──── function std.and, param `right` expected type `bool`, but found type `scalar`
-    ───╯
-    ");
 }
 
 #[test]

@@ -2,882 +2,881 @@
 source: prqlc/prqlc/tests/integration/queries.rs
 expression: "# mssql:test\nfrom [\n    { id = 1, x_int =  13, x_float =  13.0, k_int =  5, k_float =  5.0 },\n    { id = 2, x_int = -13, x_float = -13.0, k_int =  5, k_float =  5.0 },\n    { id = 3, x_int =  13, x_float =  13.0, k_int = -5, k_float = -5.0 },\n    { id = 4, x_int = -13, x_float = -13.0, k_int = -5, k_float = -5.0 },\n]\nselect {\n    id,\n\n    x_int / k_int,\n    x_int / k_float,\n    x_float / k_int,\n    x_float / k_float,\n\n    q_ii = x_int // k_int,\n    q_if = x_int // k_float,\n    q_fi = x_float // k_int,\n    q_ff = x_float // k_float,\n\n    r_ii = x_int % k_int,\n    r_if = x_int % k_float,\n    r_fi = x_float % k_int,\n    r_ff = x_float % k_float,\n\n    (q_ii * k_int + r_ii | math.round 0),\n    (q_if * k_float + r_if | math.round 0),\n    (q_fi * k_int + r_fi | math.round 0),\n    (q_ff * k_float + r_ff | math.round 0),\n}\nsort id\n"
 input_file: prqlc/prqlc/tests/integration/queries/arithmetic.prql
-snapshot_kind: text
 ---
 frames:
 - - 1:318-824
   - columns:
     - !Single
       name:
-      - _literal_121
+      - _literal_118
       - id
-      target_id: 163
+      target_id: 160
       target_name: null
     - !Single
       name: null
-      target_id: 164
+      target_id: 161
       target_name: null
     - !Single
       name: null
-      target_id: 168
+      target_id: 165
       target_name: null
     - !Single
       name: null
-      target_id: 172
+      target_id: 169
       target_name: null
     - !Single
       name: null
-      target_id: 176
+      target_id: 173
       target_name: null
     - !Single
       name:
       - q_ii
-      target_id: 180
+      target_id: 177
       target_name: null
     - !Single
       name:
       - q_if
-      target_id: 184
+      target_id: 181
       target_name: null
     - !Single
       name:
       - q_fi
-      target_id: 188
+      target_id: 185
       target_name: null
     - !Single
       name:
       - q_ff
-      target_id: 192
+      target_id: 189
       target_name: null
     - !Single
       name:
       - r_ii
-      target_id: 196
+      target_id: 193
       target_name: null
     - !Single
       name:
       - r_if
-      target_id: 200
+      target_id: 197
       target_name: null
     - !Single
       name:
       - r_fi
-      target_id: 204
+      target_id: 201
       target_name: null
     - !Single
       name:
       - r_ff
-      target_id: 208
+      target_id: 205
       target_name: null
     - !Single
       name: null
-      target_id: 212
+      target_id: 209
       target_name: null
     - !Single
       name: null
-      target_id: 223
+      target_id: 220
       target_name: null
     - !Single
       name: null
-      target_id: 234
+      target_id: 231
       target_name: null
     - !Single
       name: null
-      target_id: 245
+      target_id: 242
       target_name: null
     inputs:
-    - id: 121
-      name: _literal_121
+    - id: 118
+      name: _literal_118
       table:
       - default_db
-      - _literal_121
+      - _literal_118
 - - 1:825-832
   - columns:
     - !Single
       name:
-      - _literal_121
+      - _literal_118
       - id
-      target_id: 163
+      target_id: 160
       target_name: null
     - !Single
       name: null
-      target_id: 164
+      target_id: 161
       target_name: null
     - !Single
       name: null
-      target_id: 168
+      target_id: 165
       target_name: null
     - !Single
       name: null
-      target_id: 172
+      target_id: 169
       target_name: null
     - !Single
       name: null
-      target_id: 176
+      target_id: 173
       target_name: null
     - !Single
       name:
       - q_ii
-      target_id: 180
+      target_id: 177
       target_name: null
     - !Single
       name:
       - q_if
-      target_id: 184
+      target_id: 181
       target_name: null
     - !Single
       name:
       - q_fi
-      target_id: 188
+      target_id: 185
       target_name: null
     - !Single
       name:
       - q_ff
-      target_id: 192
+      target_id: 189
       target_name: null
     - !Single
       name:
       - r_ii
-      target_id: 196
+      target_id: 193
       target_name: null
     - !Single
       name:
       - r_if
-      target_id: 200
+      target_id: 197
       target_name: null
     - !Single
       name:
       - r_fi
-      target_id: 204
+      target_id: 201
       target_name: null
     - !Single
       name:
       - r_ff
-      target_id: 208
+      target_id: 205
       target_name: null
     - !Single
       name: null
-      target_id: 212
+      target_id: 209
       target_name: null
     - !Single
       name: null
-      target_id: 223
+      target_id: 220
       target_name: null
     - !Single
       name: null
-      target_id: 234
+      target_id: 231
       target_name: null
     - !Single
       name: null
-      target_id: 245
+      target_id: 242
       target_name: null
     inputs:
-    - id: 121
-      name: _literal_121
+    - id: 118
+      name: _literal_118
       table:
       - default_db
-      - _literal_121
+      - _literal_118
 nodes:
-- id: 121
+- id: 118
   kind: Array
   span: 1:13-317
   children:
-  - 122
-  - 128
-  - 138
-  - 148
-  parent: 257
-- id: 122
+  - 119
+  - 125
+  - 135
+  - 145
+  parent: 254
+- id: 119
   kind: Tuple
   span: 1:24-92
   children:
+  - 120
+  - 121
+  - 122
   - 123
   - 124
-  - 125
-  - 126
-  - 127
-  parent: 121
-- id: 123
+  parent: 118
+- id: 120
   kind: Literal
   span: 1:31-32
   alias: id
-  parent: 122
-- id: 124
+  parent: 119
+- id: 121
   kind: Literal
   span: 1:43-45
   alias: x_int
-  parent: 122
-- id: 125
+  parent: 119
+- id: 122
   kind: Literal
   span: 1:58-62
   alias: x_float
-  parent: 122
-- id: 126
+  parent: 119
+- id: 123
   kind: Literal
   span: 1:73-74
   alias: k_int
-  parent: 122
-- id: 127
+  parent: 119
+- id: 124
   kind: Literal
   span: 1:87-90
   alias: k_float
-  parent: 122
-- id: 128
+  parent: 119
+- id: 125
   kind: Tuple
   span: 1:98-166
   children:
-  - 129
+  - 126
+  - 127
   - 130
   - 133
-  - 136
-  - 137
-  parent: 121
-- id: 129
+  - 134
+  parent: 118
+- id: 126
   kind: Literal
   span: 1:105-106
   alias: id
-  parent: 128
-- id: 130
+  parent: 125
+- id: 127
   kind: Literal
   span: 1:116-119
   alias: x_int
-  parent: 128
-- id: 133
+  parent: 125
+- id: 130
   kind: Literal
   span: 1:131-136
   alias: x_float
-  parent: 128
-- id: 136
+  parent: 125
+- id: 133
   kind: Literal
   span: 1:147-148
   alias: k_int
-  parent: 128
-- id: 137
+  parent: 125
+- id: 134
   kind: Literal
   span: 1:161-164
   alias: k_float
-  parent: 128
-- id: 138
+  parent: 125
+- id: 135
   kind: Tuple
   span: 1:172-240
   children:
+  - 136
+  - 137
+  - 138
   - 139
-  - 140
-  - 141
   - 142
-  - 145
-  parent: 121
-- id: 139
+  parent: 118
+- id: 136
   kind: Literal
   span: 1:179-180
   alias: id
-  parent: 138
-- id: 140
+  parent: 135
+- id: 137
   kind: Literal
   span: 1:191-193
   alias: x_int
-  parent: 138
-- id: 141
+  parent: 135
+- id: 138
   kind: Literal
   span: 1:206-210
   alias: x_float
-  parent: 138
-- id: 142
+  parent: 135
+- id: 139
   kind: Literal
   span: 1:220-222
   alias: k_int
-  parent: 138
-- id: 145
+  parent: 135
+- id: 142
   kind: Literal
   span: 1:234-238
   alias: k_float
-  parent: 138
-- id: 148
+  parent: 135
+- id: 145
   kind: Tuple
   span: 1:246-314
   children:
-  - 149
+  - 146
+  - 147
   - 150
   - 153
   - 156
-  - 159
-  parent: 121
-- id: 149
+  parent: 118
+- id: 146
   kind: Literal
   span: 1:253-254
   alias: id
-  parent: 148
-- id: 150
+  parent: 145
+- id: 147
   kind: Literal
   span: 1:264-267
   alias: x_int
-  parent: 148
-- id: 153
+  parent: 145
+- id: 150
   kind: Literal
   span: 1:279-284
   alias: x_float
-  parent: 148
-- id: 156
+  parent: 145
+- id: 153
   kind: Literal
   span: 1:294-296
   alias: k_int
-  parent: 148
-- id: 159
+  parent: 145
+- id: 156
   kind: Literal
   span: 1:308-312
   alias: k_float
-  parent: 148
-- id: 163
+  parent: 145
+- id: 160
   kind: Ident
   span: 1:331-333
   ident: !Ident
   - this
-  - _literal_121
+  - _literal_118
   - id
   targets:
-  - 121
-  parent: 256
-- id: 164
+  - 118
+  parent: 253
+- id: 161
   kind: RqOperator
   span: 1:340-353
   targets:
-  - 166
-  - 167
-  parent: 256
-- id: 166
+  - 163
+  - 164
+  parent: 253
+- id: 163
   kind: Ident
   span: 1:340-345
   ident: !Ident
   - this
-  - _literal_121
+  - _literal_118
   - x_int
   targets:
-  - 121
-- id: 167
+  - 118
+- id: 164
   kind: Ident
   span: 1:348-353
   ident: !Ident
   - this
-  - _literal_121
+  - _literal_118
   - k_int
   targets:
-  - 121
-- id: 168
+  - 118
+- id: 165
   kind: RqOperator
   span: 1:359-374
   targets:
-  - 170
-  - 171
-  parent: 256
-- id: 170
+  - 167
+  - 168
+  parent: 253
+- id: 167
   kind: Ident
   span: 1:359-364
   ident: !Ident
   - this
-  - _literal_121
+  - _literal_118
   - x_int
   targets:
-  - 121
-- id: 171
+  - 118
+- id: 168
   kind: Ident
   span: 1:367-374
   ident: !Ident
   - this
-  - _literal_121
+  - _literal_118
   - k_float
   targets:
-  - 121
-- id: 172
+  - 118
+- id: 169
   kind: RqOperator
   span: 1:380-395
   targets:
-  - 174
-  - 175
-  parent: 256
-- id: 174
+  - 171
+  - 172
+  parent: 253
+- id: 171
   kind: Ident
   span: 1:380-387
   ident: !Ident
   - this
-  - _literal_121
+  - _literal_118
   - x_float
   targets:
-  - 121
-- id: 175
+  - 118
+- id: 172
   kind: Ident
   span: 1:390-395
   ident: !Ident
   - this
-  - _literal_121
+  - _literal_118
   - k_int
   targets:
-  - 121
-- id: 176
+  - 118
+- id: 173
   kind: RqOperator
   span: 1:401-418
   targets:
-  - 178
-  - 179
-  parent: 256
-- id: 178
+  - 175
+  - 176
+  parent: 253
+- id: 175
   kind: Ident
   span: 1:401-408
   ident: !Ident
   - this
-  - _literal_121
+  - _literal_118
   - x_float
   targets:
-  - 121
-- id: 179
+  - 118
+- id: 176
   kind: Ident
   span: 1:411-418
   ident: !Ident
   - this
-  - _literal_121
+  - _literal_118
   - k_float
   targets:
-  - 121
-- id: 180
+  - 118
+- id: 177
   kind: RqOperator
   span: 1:432-446
   alias: q_ii
   targets:
-  - 182
-  - 183
-  parent: 256
-- id: 182
+  - 179
+  - 180
+  parent: 253
+- id: 179
   kind: Ident
   span: 1:432-437
   ident: !Ident
   - this
-  - _literal_121
+  - _literal_118
   - x_int
   targets:
-  - 121
-- id: 183
+  - 118
+- id: 180
   kind: Ident
   span: 1:441-446
   ident: !Ident
   - this
-  - _literal_121
+  - _literal_118
   - k_int
   targets:
-  - 121
-- id: 184
+  - 118
+- id: 181
   kind: RqOperator
   span: 1:459-475
   alias: q_if
   targets:
-  - 186
-  - 187
-  parent: 256
-- id: 186
+  - 183
+  - 184
+  parent: 253
+- id: 183
   kind: Ident
   span: 1:459-464
   ident: !Ident
   - this
-  - _literal_121
+  - _literal_118
   - x_int
   targets:
-  - 121
-- id: 187
+  - 118
+- id: 184
   kind: Ident
   span: 1:468-475
   ident: !Ident
   - this
-  - _literal_121
+  - _literal_118
   - k_float
   targets:
-  - 121
-- id: 188
+  - 118
+- id: 185
   kind: RqOperator
   span: 1:488-504
   alias: q_fi
   targets:
-  - 190
-  - 191
-  parent: 256
-- id: 190
+  - 187
+  - 188
+  parent: 253
+- id: 187
   kind: Ident
   span: 1:488-495
   ident: !Ident
   - this
-  - _literal_121
+  - _literal_118
   - x_float
   targets:
-  - 121
-- id: 191
+  - 118
+- id: 188
   kind: Ident
   span: 1:499-504
   ident: !Ident
   - this
-  - _literal_121
+  - _literal_118
   - k_int
   targets:
-  - 121
-- id: 192
+  - 118
+- id: 189
   kind: RqOperator
   span: 1:517-535
   alias: q_ff
   targets:
-  - 194
-  - 195
-  parent: 256
-- id: 194
+  - 191
+  - 192
+  parent: 253
+- id: 191
   kind: Ident
   span: 1:517-524
   ident: !Ident
   - this
-  - _literal_121
+  - _literal_118
   - x_float
   targets:
-  - 121
-- id: 195
+  - 118
+- id: 192
   kind: Ident
   span: 1:528-535
   ident: !Ident
   - this
-  - _literal_121
+  - _literal_118
   - k_float
   targets:
-  - 121
-- id: 196
+  - 118
+- id: 193
   kind: RqOperator
   span: 1:549-562
   alias: r_ii
   targets:
-  - 198
-  - 199
-  parent: 256
-- id: 198
+  - 195
+  - 196
+  parent: 253
+- id: 195
   kind: Ident
   span: 1:549-554
   ident: !Ident
   - this
-  - _literal_121
+  - _literal_118
   - x_int
   targets:
-  - 121
-- id: 199
+  - 118
+- id: 196
   kind: Ident
   span: 1:557-562
   ident: !Ident
   - this
-  - _literal_121
+  - _literal_118
   - k_int
   targets:
-  - 121
-- id: 200
+  - 118
+- id: 197
   kind: RqOperator
   span: 1:575-590
   alias: r_if
   targets:
-  - 202
-  - 203
-  parent: 256
-- id: 202
+  - 199
+  - 200
+  parent: 253
+- id: 199
   kind: Ident
   span: 1:575-580
   ident: !Ident
   - this
-  - _literal_121
+  - _literal_118
   - x_int
   targets:
-  - 121
-- id: 203
+  - 118
+- id: 200
   kind: Ident
   span: 1:583-590
   ident: !Ident
   - this
-  - _literal_121
+  - _literal_118
   - k_float
   targets:
-  - 121
-- id: 204
+  - 118
+- id: 201
   kind: RqOperator
   span: 1:603-618
   alias: r_fi
   targets:
-  - 206
-  - 207
-  parent: 256
-- id: 206
+  - 203
+  - 204
+  parent: 253
+- id: 203
   kind: Ident
   span: 1:603-610
   ident: !Ident
   - this
-  - _literal_121
+  - _literal_118
   - x_float
   targets:
-  - 121
-- id: 207
+  - 118
+- id: 204
   kind: Ident
   span: 1:613-618
   ident: !Ident
   - this
-  - _literal_121
+  - _literal_118
   - k_int
   targets:
-  - 121
-- id: 208
+  - 118
+- id: 205
   kind: RqOperator
   span: 1:631-648
   alias: r_ff
   targets:
-  - 210
-  - 211
-  parent: 256
-- id: 210
+  - 207
+  - 208
+  parent: 253
+- id: 207
   kind: Ident
   span: 1:631-638
   ident: !Ident
   - this
-  - _literal_121
+  - _literal_118
   - x_float
   targets:
-  - 121
-- id: 211
+  - 118
+- id: 208
   kind: Ident
   span: 1:641-648
   ident: !Ident
   - this
-  - _literal_121
+  - _literal_118
   - k_float
   targets:
-  - 121
-- id: 212
+  - 118
+- id: 209
   kind: RqOperator
   span: 1:678-690
   targets:
-  - 215
-  - 216
-  parent: 256
-- id: 215
+  - 212
+  - 213
+  parent: 253
+- id: 212
   kind: Literal
   span: 1:689-690
-- id: 216
+- id: 213
   kind: RqOperator
   span: 1:656-675
   targets:
-  - 218
-  - 222
-- id: 218
+  - 215
+  - 219
+- id: 215
   kind: RqOperator
   span: 1:656-668
   targets:
-  - 220
-  - 221
-- id: 220
+  - 217
+  - 218
+- id: 217
   kind: Ident
   span: 1:656-660
   ident: !Ident
   - this
   - q_ii
   targets:
-  - 180
-- id: 221
+  - 177
+- id: 218
   kind: Ident
   span: 1:663-668
   ident: !Ident
   - this
-  - _literal_121
+  - _literal_118
   - k_int
   targets:
-  - 121
-- id: 222
+  - 118
+- id: 219
   kind: Ident
   span: 1:671-675
   ident: !Ident
   - this
   - r_ii
   targets:
-  - 196
-- id: 223
+  - 193
+- id: 220
   kind: RqOperator
   span: 1:722-734
   targets:
-  - 226
-  - 227
-  parent: 256
-- id: 226
+  - 223
+  - 224
+  parent: 253
+- id: 223
   kind: Literal
   span: 1:733-734
-- id: 227
+- id: 224
   kind: RqOperator
   span: 1:698-719
   targets:
-  - 229
-  - 233
-- id: 229
+  - 226
+  - 230
+- id: 226
   kind: RqOperator
   span: 1:698-712
   targets:
-  - 231
-  - 232
-- id: 231
+  - 228
+  - 229
+- id: 228
   kind: Ident
   span: 1:698-702
   ident: !Ident
   - this
   - q_if
   targets:
-  - 184
-- id: 232
+  - 181
+- id: 229
   kind: Ident
   span: 1:705-712
   ident: !Ident
   - this
-  - _literal_121
+  - _literal_118
   - k_float
   targets:
-  - 121
-- id: 233
+  - 118
+- id: 230
   kind: Ident
   span: 1:715-719
   ident: !Ident
   - this
   - r_if
   targets:
-  - 200
-- id: 234
+  - 197
+- id: 231
   kind: RqOperator
   span: 1:764-776
   targets:
-  - 237
-  - 238
-  parent: 256
-- id: 237
+  - 234
+  - 235
+  parent: 253
+- id: 234
   kind: Literal
   span: 1:775-776
-- id: 238
+- id: 235
   kind: RqOperator
   span: 1:742-761
   targets:
-  - 240
-  - 244
-- id: 240
+  - 237
+  - 241
+- id: 237
   kind: RqOperator
   span: 1:742-754
   targets:
-  - 242
-  - 243
-- id: 242
+  - 239
+  - 240
+- id: 239
   kind: Ident
   span: 1:742-746
   ident: !Ident
   - this
   - q_fi
   targets:
-  - 188
-- id: 243
+  - 185
+- id: 240
   kind: Ident
   span: 1:749-754
   ident: !Ident
   - this
-  - _literal_121
+  - _literal_118
   - k_int
   targets:
-  - 121
-- id: 244
+  - 118
+- id: 241
   kind: Ident
   span: 1:757-761
   ident: !Ident
   - this
   - r_fi
   targets:
-  - 204
-- id: 245
+  - 201
+- id: 242
   kind: RqOperator
   span: 1:808-820
   targets:
-  - 248
-  - 249
-  parent: 256
-- id: 248
+  - 245
+  - 246
+  parent: 253
+- id: 245
   kind: Literal
   span: 1:819-820
-- id: 249
+- id: 246
   kind: RqOperator
   span: 1:784-805
   targets:
-  - 251
-  - 255
-- id: 251
+  - 248
+  - 252
+- id: 248
   kind: RqOperator
   span: 1:784-798
   targets:
-  - 253
-  - 254
-- id: 253
+  - 250
+  - 251
+- id: 250
   kind: Ident
   span: 1:784-788
   ident: !Ident
   - this
   - q_ff
   targets:
-  - 192
-- id: 254
+  - 189
+- id: 251
   kind: Ident
   span: 1:791-798
   ident: !Ident
   - this
-  - _literal_121
+  - _literal_118
   - k_float
   targets:
-  - 121
-- id: 255
+  - 118
+- id: 252
   kind: Ident
   span: 1:801-805
   ident: !Ident
   - this
   - r_ff
   targets:
-  - 208
-- id: 256
+  - 205
+- id: 253
   kind: Tuple
   span: 1:325-824
   children:
-  - 163
-  - 164
-  - 168
-  - 172
-  - 176
-  - 180
-  - 184
-  - 188
-  - 192
-  - 196
-  - 200
-  - 204
-  - 208
-  - 212
-  - 223
-  - 234
-  - 245
-  parent: 257
-- id: 257
+  - 160
+  - 161
+  - 165
+  - 169
+  - 173
+  - 177
+  - 181
+  - 185
+  - 189
+  - 193
+  - 197
+  - 201
+  - 205
+  - 209
+  - 220
+  - 231
+  - 242
+  parent: 254
+- id: 254
   kind: 'TransformCall: Select'
   span: 1:318-824
   children:
-  - 121
-  - 256
-  parent: 260
-- id: 258
+  - 118
+  - 253
+  parent: 257
+- id: 255
   kind: Ident
   span: 1:830-832
   ident: !Ident
   - this
-  - _literal_121
+  - _literal_118
   - id
   targets:
-  - 163
-  parent: 260
-- id: 260
+  - 160
+  parent: 257
+- id: 257
   kind: 'TransformCall: Sort'
   span: 1:825-832
   children:
-  - 257
-  - 258
+  - 254
+  - 255
 ast:
   name: Project
   stmts:

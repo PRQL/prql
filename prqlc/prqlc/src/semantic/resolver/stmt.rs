@@ -36,8 +36,7 @@ impl super::Resolver<'_> {
                         Ty::new(Literal::Null)
                     };
 
-                    let ty = fold_type_opt(self, Some(value))?.unwrap();
-                    let mut ty = super::types::normalize_type(ty);
+                    let mut ty = fold_type_opt(self, Some(value))?.unwrap();
                     ty.name = Some(ident.name.clone());
 
                     let decl = DeclKind::Ty(ty);

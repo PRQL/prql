@@ -306,15 +306,17 @@ pub fn fold_type_opt<T: ?Sized + PlFold>(fold: &mut T, ty: Option<Ty>) -> Result
     ty.map(|t| fold.fold_type(t)).transpose()
 }
 
+#[inline]
+pub fn fold_type_opt_box<T: ?Sized + PlFold>(
+    fold: &mut T,
+    ty: Option<Box<Ty>>,
+) -> Result<Option<Box<Ty>>> {
+    ty.map(|t| fold.fold_type(*t).map(Box::new)).transpose()
+}
+
 pub fn fold_type<T: ?Sized + PlFold>(fold: &mut T, ty: Ty) -> Result<Ty> {
     Ok(Ty {
         kind: match ty.kind {
-            TyKind::Union(variants) => TyKind::Union(
-                variants
-                    .into_iter()
-                    .map(|(name, ty)| -> Result<_> { Ok((name, fold.fold_type(ty)?)) })
-                    .try_collect()?,
-            ),
             TyKind::Tuple(fields) => TyKind::Tuple(
                 fields
                     .into_iter()
@@ -330,7 +332,7 @@ pub fn fold_type<T: ?Sized + PlFold>(fold: &mut T, ty: Ty) -> Result<Ty> {
                     })
                     .try_collect()?,
             ),
-            TyKind::Array(ty) => TyKind::Array(Box::new(fold.fold_type(*ty)?)),
+            TyKind::Array(ty) => TyKind::Array(fold_type_opt_box(fold, ty)?),
             TyKind::Function(func) => TyKind::Function(
                 func.map(|f| -> Result<_> {
                     Ok(TyFunc {
@@ -349,8 +351,7 @@ pub fn fold_type<T: ?Sized + PlFold>(fold: &mut T, ty: Ty) -> Result<Ty> {
                 base: Box::new(fold.fold_type(*base)?),
                 exclude: Box::new(fold.fold_type(*exclude)?),
             },
-            TyKind::Any
-            | TyKind::Ident(_)
+            TyKind::Ident(_)
             | TyKind::Primitive(_)
             | TyKind::Singleton(_)
             | TyKind::GenericArg(_) => ty.kind,

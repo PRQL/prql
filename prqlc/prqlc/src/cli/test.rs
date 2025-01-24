@@ -394,7 +394,7 @@ fn compare_directories(dir1: &Path, dir2: &Path) {
 fn debug() {
     assert_cmd_snapshot!(prqlc_command()
         .args(["debug", "lineage"])
-        .pass_stdin("from tracks | select {artist, album}"), @r###"
+        .pass_stdin("from tracks | select {artist, album}"), @r#"
     success: true
     exit_code: 0
     ----- stdout -----
@@ -405,29 +405,29 @@ fn debug() {
           name:
           - tracks
           - artist
-          target_id: 120
+          target_id: 117
           target_name: null
         - !Single
           name:
           - tracks
           - album
-          target_id: 121
+          target_id: 118
           target_name: null
         inputs:
-        - id: 118
+        - id: 115
           name: tracks
           table:
           - default_db
           - tracks
     nodes:
-    - id: 118
+    - id: 115
       kind: Ident
       span: 1:0-11
       ident: !Ident
       - default_db
       - tracks
-      parent: 123
-    - id: 120
+      parent: 120
+    - id: 117
       kind: Ident
       span: 1:22-28
       ident: !Ident
@@ -435,9 +435,9 @@ fn debug() {
       - tracks
       - artist
       targets:
-      - 118
-      parent: 122
-    - id: 121
+      - 115
+      parent: 119
+    - id: 118
       kind: Ident
       span: 1:30-35
       ident: !Ident
@@ -445,21 +445,21 @@ fn debug() {
       - tracks
       - album
       targets:
-      - 118
-      parent: 122
-    - id: 122
+      - 115
+      parent: 119
+    - id: 119
       kind: Tuple
       span: 1:21-36
       children:
-      - 120
-      - 121
-      parent: 123
-    - id: 123
+      - 117
+      - 118
+      parent: 120
+    - id: 120
       kind: 'TransformCall: Select'
       span: 1:14-36
       children:
-      - 118
-      - 122
+      - 115
+      - 119
     ast:
       name: Project
       stmts:
@@ -493,7 +493,7 @@ fn debug() {
         span: 1:0-36
 
     ----- stderr -----
-    "###);
+    "#);
 
     // Don't test the output of this, since on one min-versions check it had
     // different results, and didn't repro on Mac. It having different results
