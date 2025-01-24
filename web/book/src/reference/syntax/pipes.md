@@ -22,7 +22,7 @@ pipe results between transforms, such that this is equivalent:
 from employees | filter department == "Product" | select {first_name, last_name}
 ```
 
-## "C'est ne pas un pipe"
+## "Ceci n'est pas une pipe"
 
 In almost all situations, a line break acts as a pipe. But there are a few cases
 where a line break doesn't act as a pipe.
