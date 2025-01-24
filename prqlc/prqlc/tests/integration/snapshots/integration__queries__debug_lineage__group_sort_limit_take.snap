@@ -2,7 +2,6 @@
 source: prqlc/prqlc/tests/integration/queries.rs
 expression: "# Compute the 3 longest songs for each genre and sort by genre\n# mssql:test\nfrom tracks\nselect {genre_id,milliseconds}\ngroup {genre_id} (\n  sort {-milliseconds}\n  take 3\n)\njoin genres (==genre_id)\nselect {name, milliseconds}\nsort {+name,-milliseconds}\n"
 input_file: prqlc/prqlc/tests/integration/queries/group_sort_limit_take.prql
-snapshot_kind: text
 ---
 frames:
 - - 1:88-118
@@ -11,16 +10,16 @@ frames:
       name:
       - tracks
       - genre_id
-      target_id: 133
+      target_id: 130
       target_name: null
     - !Single
       name:
       - tracks
       - milliseconds
-      target_id: 134
+      target_id: 131
       target_name: null
     inputs:
-    - id: 131
+    - id: 128
       name: tracks
       table:
       - default_db
@@ -31,16 +30,16 @@ frames:
       name:
       - tracks
       - genre_id
-      target_id: 137
+      target_id: 134
       target_name: null
     - !Single
       name:
       - tracks
       - milliseconds
-      target_id: 134
+      target_id: 131
       target_name: null
     inputs:
-    - id: 131
+    - id: 128
       name: tracks
       table:
       - default_db
@@ -51,24 +50,24 @@ frames:
       name:
       - tracks
       - genre_id
-      target_id: 137
+      target_id: 134
       target_name: null
     - !Single
       name:
       - tracks
       - milliseconds
-      target_id: 134
+      target_id: 131
       target_name: null
     - !All
-      input_id: 122
+      input_id: 119
       except: []
     inputs:
-    - id: 131
+    - id: 128
       name: tracks
       table:
       - default_db
       - tracks
-    - id: 122
+    - id: 119
       name: genres
       table:
       - default_db
@@ -79,21 +78,21 @@ frames:
       name:
       - genres
       - name
-      target_id: 175
+      target_id: 172
       target_name: null
     - !Single
       name:
       - tracks
       - milliseconds
-      target_id: 176
+      target_id: 173
       target_name: null
     inputs:
-    - id: 131
+    - id: 128
       name: tracks
       table:
       - default_db
       - tracks
-    - id: 122
+    - id: 119
       name: genres
       table:
       - default_db
@@ -104,41 +103,41 @@ frames:
       name:
       - genres
       - name
-      target_id: 175
+      target_id: 172
       target_name: null
     - !Single
       name:
       - tracks
       - milliseconds
-      target_id: 176
+      target_id: 173
       target_name: null
     inputs:
-    - id: 131
+    - id: 128
       name: tracks
       table:
       - default_db
       - tracks
-    - id: 122
+    - id: 119
       name: genres
       table:
       - default_db
       - genres
 nodes:
-- id: 122
+- id: 119
   kind: Ident
   span: 1:177-183
   ident: !Ident
   - default_db
   - genres
-  parent: 174
-- id: 131
+  parent: 171
+- id: 128
   kind: Ident
   span: 1:76-87
   ident: !Ident
   - default_db
   - tracks
-  parent: 136
-- id: 133
+  parent: 133
+- id: 130
   kind: Ident
   span: 1:96-104
   ident: !Ident
@@ -146,9 +145,9 @@ nodes:
   - tracks
   - genre_id
   targets:
-  - 131
-  parent: 135
-- id: 134
+  - 128
+  parent: 132
+- id: 131
   kind: Ident
   span: 1:105-117
   ident: !Ident
@@ -156,23 +155,23 @@ nodes:
   - tracks
   - milliseconds
   targets:
-  - 131
-  parent: 135
-- id: 135
+  - 128
+  parent: 132
+- id: 132
   kind: Tuple
   span: 1:95-118
   children:
-  - 133
-  - 134
-  parent: 136
-- id: 136
+  - 130
+  - 131
+  parent: 133
+- id: 133
   kind: 'TransformCall: Select'
   span: 1:88-118
   children:
-  - 131
-  - 135
-  parent: 166
-- id: 137
+  - 128
+  - 132
+  parent: 163
+- id: 134
   kind: Ident
   span: 1:126-134
   ident: !Ident
@@ -180,14 +179,14 @@ nodes:
   - tracks
   - genre_id
   targets:
-  - 133
-  parent: 138
-- id: 138
+  - 130
+  parent: 135
+- id: 135
   kind: Tuple
   span: 1:125-135
   children:
-  - 137
-- id: 162
+  - 134
+- id: 159
   kind: Ident
   span: 1:147-159
   ident: !Ident
@@ -195,25 +194,25 @@ nodes:
   - tracks
   - milliseconds
   targets:
-  - 134
-- id: 166
+  - 131
+- id: 163
   kind: 'TransformCall: Take'
   span: 1:163-169
   children:
-  - 136
-  - 167
-  parent: 174
-- id: 167
+  - 133
+  - 164
+  parent: 171
+- id: 164
   kind: Literal
-  parent: 166
-- id: 170
+  parent: 163
+- id: 167
   kind: RqOperator
   span: 1:185-195
   targets:
-  - 172
-  - 173
-  parent: 174
-- id: 172
+  - 169
+  - 170
+  parent: 171
+- id: 169
   kind: Ident
   span: 1:187-195
   ident: !Ident
@@ -221,8 +220,8 @@ nodes:
   - tracks
   - genre_id
   targets:
-  - 137
-- id: 173
+  - 134
+- id: 170
   kind: Ident
   span: 1:187-195
   ident: !Ident
@@ -230,16 +229,16 @@ nodes:
   - genres
   - genre_id
   targets:
-  - 122
-- id: 174
+  - 119
+- id: 171
   kind: 'TransformCall: Join'
   span: 1:172-196
   children:
-  - 166
-  - 122
-  - 170
-  parent: 178
-- id: 175
+  - 163
+  - 119
+  - 167
+  parent: 175
+- id: 172
   kind: Ident
   span: 1:205-209
   ident: !Ident
@@ -247,9 +246,9 @@ nodes:
   - genres
   - name
   targets:
-  - 122
-  parent: 177
-- id: 176
+  - 119
+  parent: 174
+- id: 173
   kind: Ident
   span: 1:211-223
   ident: !Ident
@@ -257,23 +256,23 @@ nodes:
   - tracks
   - milliseconds
   targets:
-  - 134
-  parent: 177
-- id: 177
+  - 131
+  parent: 174
+- id: 174
   kind: Tuple
   span: 1:204-224
   children:
-  - 175
-  - 176
-  parent: 178
-- id: 178
+  - 172
+  - 173
+  parent: 175
+- id: 175
   kind: 'TransformCall: Select'
   span: 1:197-224
   children:
+  - 171
   - 174
-  - 177
-  parent: 184
-- id: 179
+  parent: 181
+- id: 176
   kind: Ident
   span: 1:231-236
   ident: !Ident
@@ -281,9 +280,9 @@ nodes:
   - genres
   - name
   targets:
-  - 175
-  parent: 184
-- id: 182
+  - 172
+  parent: 181
+- id: 179
   kind: Ident
   span: 1:238-250
   ident: !Ident
@@ -291,15 +290,15 @@ nodes:
   - tracks
   - milliseconds
   targets:
-  - 176
-  parent: 184
-- id: 184
+  - 173
+  parent: 181
+- id: 181
   kind: 'TransformCall: Sort'
   span: 1:225-251
   children:
-  - 178
+  - 175
+  - 176
   - 179
-  - 182
 ast:
   name: Project
   stmts:

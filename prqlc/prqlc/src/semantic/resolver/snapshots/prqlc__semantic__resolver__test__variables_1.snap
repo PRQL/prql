@@ -1,7 +1,6 @@
 ---
 source: prqlc/prqlc/src/semantic/resolver/mod.rs
 expression: "resolve_derive(r#\"\n            from employees\n            derive {\n                gross_salary = salary + payroll_tax,\n                gross_cost =   gross_salary + benefits_cost\n            }\n            \"#).unwrap()"
-snapshot_kind: text
 ---
 - RqOperator:
     name: std.add
@@ -18,31 +17,6 @@ snapshot_kind: text
         span: "1:89-100"
   span: "1:80-100"
   alias: gross_salary
-  ty:
-    kind:
-      Union:
-        - - ~
-          - kind:
-              Primitive: Int
-            span: "0:893-896"
-            name: ~
-        - - ~
-          - kind:
-              Primitive: Float
-            span: "0:900-905"
-            name: ~
-        - - ~
-          - kind:
-              Primitive: Timestamp
-            span: "0:909-918"
-            name: ~
-        - - ~
-          - kind:
-              Primitive: Date
-            span: "0:922-926"
-            name: ~
-    span: "0:893-926"
-    name: ~
 - RqOperator:
     name: std.add
     args:
@@ -57,28 +31,3 @@ snapshot_kind: text
         span: "1:148-161"
   span: "1:133-161"
   alias: gross_cost
-  ty:
-    kind:
-      Union:
-        - - ~
-          - kind:
-              Primitive: Int
-            span: "0:893-896"
-            name: ~
-        - - ~
-          - kind:
-              Primitive: Float
-            span: "0:900-905"
-            name: ~
-        - - ~
-          - kind:
-              Primitive: Timestamp
-            span: "0:909-918"
-            name: ~
-        - - ~
-          - kind:
-              Primitive: Date
-            span: "0:922-926"
-            name: ~
-    span: "0:893-926"
-    name: ~

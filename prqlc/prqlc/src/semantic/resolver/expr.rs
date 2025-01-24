@@ -226,6 +226,8 @@ impl Resolver<'_> {
             if let pl::ExprKind::TransformCall(call) = &r.kind {
                 r.lineage = Some(call.infer_lineage()?);
             } else if let Some(relation_columns) = r.ty.as_ref().and_then(|t| t.as_relation()) {
+                log::debug!("found a relational type without lineage: declaring a new table for it: {relation_columns:?}");
+
                 // lineage from ty
                 let columns = Some(relation_columns.clone());
 
