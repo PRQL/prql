@@ -39,9 +39,6 @@ pub enum TyKind {
 
     /// Type that is the largest subtype of `base` while not a subtype of `exclude`.
     Difference { base: Box<Ty>, exclude: Box<Ty> },
-
-    /// A generic argument. Contains id of the function call node and generic type param name.
-    GenericArg((usize, String)),
 }
 
 impl TyKind {

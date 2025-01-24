@@ -426,7 +426,6 @@ fn new_func(name: &str, params: &[&str]) -> Expr {
         named_params: Default::default(),
         args: Default::default(),
         env: Default::default(),
-        generic_type_params: Default::default(),
     }));
     Expr {
         alias: Some(name.to_string()),

@@ -388,7 +388,6 @@ fn test_function() {
               - name: x
                 default_value: ~
             named_params: []
-            generic_type_params: []
           span: "0:15-26"
       span: "0:0-26"
     "#);
@@ -407,7 +406,6 @@ fn test_function() {
               - name: x
                 default_value: ~
             named_params: []
-            generic_type_params: []
           span: "0:15-22"
       span: "0:0-22"
     "#);
@@ -434,7 +432,6 @@ fn test_function() {
               - name: x
                 default_value: ~
             named_params: []
-            generic_type_params: []
           span: "0:15-28"
       span: "0:0-28"
     "#);
@@ -461,7 +458,6 @@ fn test_function() {
               - name: x
                 default_value: ~
             named_params: []
-            generic_type_params: []
           span: "0:15-26"
       span: "0:0-26"
     "#);
@@ -510,7 +506,6 @@ fn test_function() {
               - name: x
                 default_value: ~
             named_params: []
-            generic_type_params: []
           span: "0:10-51"
       span: "0:0-51"
     "#);
@@ -530,7 +525,6 @@ fn test_function() {
               - name: return_constant
                 default_value: ~
             named_params: []
-            generic_type_params: []
           span: "0:0-27"
       span: "0:0-27"
     "#);
@@ -557,7 +551,6 @@ fn test_function() {
               - name: X
                 default_value: ~
             named_params: []
-            generic_type_params: []
           span: "0:12-28"
       span: "0:0-28"
     "#);
@@ -620,7 +613,6 @@ fn test_function() {
               - name: x
                 default_value: ~
             named_params: []
-            generic_type_params: []
           span: "0:27-147"
       span: "0:0-147"
     "#);
@@ -650,7 +642,6 @@ fn test_function() {
                 default_value:
                   Ident: a
                   span: "0:15-16"
-            generic_type_params: []
           span: "0:10-27"
       span: "0:0-27"
     "#);
@@ -842,7 +833,6 @@ fn test_inline_pipeline() {
               - name: x
                 default_value: ~
             named_params: []
-            generic_type_params: []
           span: "0:13-37"
       span: "0:0-37"
     "#);
@@ -1599,7 +1589,6 @@ fn test_annotation() {
               - name: b
                 default_value: ~
             named_params: []
-            generic_type_params: []
           span: "0:49-61"
       span: "0:0-61"
       annotations:

@@ -287,7 +287,6 @@ ast:
           - name: rel
             default_value: null
           named_params: []
-          generic_type_params: []
         span: 1:28-79
     span: 1:0-79
   - VarDef:

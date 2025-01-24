@@ -6,7 +6,7 @@ use itertools::{Itertools, Position};
 use super::Resolver;
 use crate::ir::decl::{Decl, DeclKind, Module};
 use crate::ir::pl::*;
-use crate::pr::{Ty, TyFunc, TyKind};
+use crate::pr::{Ty, TyFunc};
 use crate::semantic::resolver::types;
 use crate::semantic::{NS_GENERIC, NS_PARAM, NS_THAT, NS_THIS};
 use crate::Result;
@@ -16,10 +16,9 @@ impl Resolver<'_> {
     pub fn fold_function(
         &mut self,
         closure: Box<Func>,
-        id: usize,
         span: Option<Span>,
     ) -> Result<Expr> {
-        let closure = self.fold_function_types(closure, id)?;
+        let closure = self.fold_function_types(closure)?;
 
         log::debug!(
             "func {} {}/{} params",
@@ -65,14 +64,12 @@ impl Resolver<'_> {
         }
         let res = self.resolve_function_args(closure)?;
 
-        let mut closure = match res {
+        let closure = match res {
             Ok(func) => func,
             Err(func) => {
                 return Ok(*expr_of_func(func, span));
             }
         };
-
-        closure.return_ty = self.resolve_generic_args_opt(closure.return_ty)?;
 
         let needs_window = (closure.params.last())
             .and_then(|p| p.ty.as_ref())
@@ -141,7 +138,6 @@ impl Resolver<'_> {
                 named_params: Default::default(),
                 return_ty: Default::default(),
                 env: Default::default(),
-                generic_type_params: Default::default(),
             })))
         } else {
             // resolved, return result
@@ -158,26 +154,7 @@ impl Resolver<'_> {
 
     /// Folds function types, so they are resolved to material types, ready for type checking.
     /// Requires id of the function call node, so it can be used to generic type arguments.
-    pub fn fold_function_types(&mut self, mut func: Box<Func>, id: usize) -> Result<Box<Func>> {
-        // prepare generic arguments
-        for generic_param in &func.generic_type_params {
-            // fold the domain
-            let domain: Vec<Ty> = generic_param
-                .domain
-                .iter()
-                .map(|t| self.fold_type(t.clone()))
-                .try_collect()?;
-
-            // register the generic type param in the resolver
-            let generic_id = (id, generic_param.name.clone());
-            self.generics.insert(generic_id.clone(), domain);
-
-            // insert _generic.name declaration
-            let ident = Ident::from_path(vec![NS_GENERIC, generic_param.name.as_str()]);
-            let decl = Decl::from(DeclKind::Ty(Ty::new(TyKind::GenericArg(generic_id))));
-            self.root_mod.module.insert(ident, decl).unwrap();
-        }
-
+    pub fn fold_function_types(&mut self, mut func: Box<Func>) -> Result<Box<Func>> {
         func.params = func
             .params
             .into_iter()
@@ -453,7 +430,6 @@ fn extract_partial_application(mut func: Box<Func>, position: usize) -> Box<Func
         named_params: Default::default(),
         args: Default::default(),
         env: Default::default(),
-        generic_type_params: Default::default(),
     })
 }
 

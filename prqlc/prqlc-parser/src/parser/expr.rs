@@ -480,19 +480,9 @@ where
         .then(type_expr().delimited_by(ctrl('<'), ctrl('>')).or_not())
         .then(ctrl(':').ignore_then(expr.clone().map(Box::new)).or_not());
 
-    let generic_args = ident_part()
-        .then_ignore(ctrl(':'))
-        .then(type_expr().separated_by(ctrl('|')))
-        .map(|(name, domain)| GenericTypeParam { name, domain })
-        .separated_by(ctrl(','))
-        .at_least(1)
-        .delimited_by(ctrl('<'), ctrl('>'))
-        .or_not()
-        .map(|x| x.unwrap_or_default());
-
     choice((
         // func
-        keyword("func").ignore_then(generic_args).then(
+        keyword("func").ignore_then(
             param
                 .clone()
                 .separated_by(new_line().repeated())
@@ -500,14 +490,14 @@ where
                 .allow_trailing(),
         ),
         // plain
-        param.repeated().map(|params| (Vec::new(), params)),
+        param.repeated(),
     ))
     .then_ignore(just(TokenKind::ArrowThin))
     // return type
     .then(type_expr().delimited_by(ctrl('<'), ctrl('>')).or_not())
     // body
     .then(func_call(expr))
-    .map(|(((generic_type_params, params), return_ty), body)| {
+    .map(|((params, return_ty), body)| {
         let (pos, name) = params
             .into_iter()
             .map(|((name, ty), default_value)| FuncParam {
@@ -523,7 +513,6 @@ where
 
             body: Box::new(body),
             return_ty,
-            generic_type_params,
         })
     })
     .map(ExprKind::Func)

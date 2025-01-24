@@ -646,7 +646,6 @@ impl Resolver<'_> {
             named_params: vec![],
 
             env: Default::default(),
-            generic_type_params: Default::default(),
         });
         Ok(*expr_of_func(func, span))
     }

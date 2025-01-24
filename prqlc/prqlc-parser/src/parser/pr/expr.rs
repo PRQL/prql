@@ -145,9 +145,6 @@ pub struct Func {
 
     /// Named function parameters.
     pub named_params: Vec<FuncParam>,
-
-    /// Generic type arguments within this function.
-    pub generic_type_params: Vec<GenericTypeParam>,
 }
 
 #[derive(Debug, PartialEq, Clone, Serialize, Deserialize, JsonSchema)]
