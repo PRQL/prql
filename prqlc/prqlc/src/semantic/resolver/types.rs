@@ -73,13 +73,6 @@ impl Resolver<'_> {
                 TyKind::Array(items_ty)
             }
 
-            ExprKind::All { within, except } => {
-                let base = Box::new(Resolver::infer_type(within)?.unwrap());
-                let exclude = Box::new(Resolver::infer_type(except)?.unwrap());
-
-                TyKind::Difference { base, exclude }
-            }
-
             _ => return Ok(None),
         };
         Ok(Some(Ty {
@@ -390,18 +383,6 @@ fn maybe_type_intersection(a: Option<Ty>, b: Option<Ty>) -> Option<Ty> {
 
 pub fn type_intersection(a: Ty, b: Ty) -> Ty {
     match (a.kind, b.kind) {
-        // difference
-        (TyKind::Difference { base, exclude }, b_kind) => {
-            let b = Ty { kind: b_kind, ..b };
-            let base = Box::new(type_intersection(*base, b));
-            Ty::new(TyKind::Difference { base, exclude })
-        }
-        (a_kind, TyKind::Difference { base, exclude }) => {
-            let a = Ty { kind: a_kind, ..a };
-            let base = Box::new(type_intersection(a, *base));
-            Ty::new(TyKind::Difference { base, exclude })
-        }
-
         (a_kind, b_kind) if a_kind == b_kind => Ty { kind: a_kind, ..a },
 
         // tuple

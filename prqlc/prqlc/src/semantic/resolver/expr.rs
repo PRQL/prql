@@ -173,7 +173,7 @@ impl pl::PlFold for Resolver<'_> {
 
                 // fold function
                 let func = self.apply_args_to_closure(func, args, named_args)?;
-                self.fold_function(func,  *span)?
+                self.fold_function(func, *span)?
             }
 
             pl::ExprKind::Func(closure) => self.fold_function(closure, *span)?,

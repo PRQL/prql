@@ -13,11 +13,7 @@ use crate::Result;
 use crate::{Error, Span, WithErrorInfo};
 
 impl Resolver<'_> {
-    pub fn fold_function(
-        &mut self,
-        closure: Box<Func>,
-        span: Option<Span>,
-    ) -> Result<Expr> {
+    pub fn fold_function(&mut self, closure: Box<Func>, span: Option<Span>) -> Result<Expr> {
         let closure = self.fold_function_types(closure)?;
 
         log::debug!(
