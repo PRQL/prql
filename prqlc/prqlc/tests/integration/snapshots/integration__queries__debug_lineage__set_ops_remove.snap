@@ -2,7 +2,6 @@
 source: prqlc/prqlc/tests/integration/queries.rs
 expression: "# mssql:test\nlet distinct = rel -> (from t = _param.rel | group {t.*} (take 1))\n\nfrom_text format:json '{ \"columns\": [\"a\"], \"data\": [[1], [2], [2], [3]] }'\ndistinct\nremove (from_text format:json '{ \"columns\": [\"a\"], \"data\": [[1], [2]] }')\nsort a\n"
 input_file: prqlc/prqlc/tests/integration/queries/set_ops_remove.prql
-snapshot_kind: text
 ---
 frames:
 - - 1:71-77
@@ -11,215 +10,215 @@ frames:
       name:
       - t
       - a
-      target_id: 136
+      target_id: 133
       target_name: null
     inputs:
-    - id: 127
+    - id: 124
       name: t
       table:
       - default_db
-      - _literal_127
-- - 0:3606-3683
+      - _literal_124
+- - 0:3163-3240
   - columns:
     - !Single
       name:
       - t
       - a
-      target_id: 136
+      target_id: 133
       target_name: null
     - !Single
       name:
       - b
       - a
-      target_id: 122
+      target_id: 119
       target_name: a
     inputs:
-    - id: 127
+    - id: 124
       name: t
       table:
       - default_db
-      - _literal_127
-    - id: 122
+      - _literal_124
+    - id: 119
       name: b
       table:
       - default_db
-      - _literal_122
-- - 0:3686-3731
+      - _literal_119
+- - 0:3243-3288
   - columns:
     - !Single
       name:
       - t
       - a
-      target_id: 136
+      target_id: 133
       target_name: null
     - !Single
       name:
       - b
       - a
-      target_id: 122
+      target_id: 119
       target_name: a
     inputs:
-    - id: 127
+    - id: 124
       name: t
       table:
       - default_db
-      - _literal_127
-    - id: 122
+      - _literal_124
+    - id: 119
       name: b
       table:
       - default_db
-      - _literal_122
+      - _literal_119
 - - 1:165-238
   - columns:
     - !Single
       name:
       - t
       - a
-      target_id: 207
+      target_id: 204
       target_name: null
     inputs:
-    - id: 127
+    - id: 124
       name: t
       table:
       - default_db
-      - _literal_127
-    - id: 122
+      - _literal_124
+    - id: 119
       name: b
       table:
       - default_db
-      - _literal_122
+      - _literal_119
 - - 1:239-245
   - columns:
     - !Single
       name:
       - t
       - a
-      target_id: 207
+      target_id: 204
       target_name: null
     inputs:
-    - id: 127
+    - id: 124
       name: t
       table:
       - default_db
-      - _literal_127
-    - id: 122
+      - _literal_124
+    - id: 119
       name: b
       table:
       - default_db
-      - _literal_122
+      - _literal_119
 nodes:
-- id: 122
+- id: 119
   kind: Array
   span: 1:173-237
-  parent: 189
-- id: 127
+  parent: 186
+- id: 124
   kind: Array
   span: 1:36-55
-  parent: 154
-- id: 136
+  parent: 151
+- id: 133
   kind: Ident
   ident: !Ident
   - this
   - t
   - a
   targets:
-  - 127
-  parent: 138
-- id: 138
+  - 124
+  parent: 135
+- id: 135
   kind: Tuple
   span: 1:64-69
   children:
-  - 136
-- id: 154
+  - 133
+- id: 151
   kind: 'TransformCall: Take'
   span: 1:71-77
   children:
-  - 127
-  - 155
-  parent: 189
-- id: 155
+  - 124
+  - 152
+  parent: 186
+- id: 152
   kind: Literal
-  parent: 154
-- id: 178
+  parent: 151
+- id: 175
   kind: Ident
   ident: !Ident
   - this
   - t
   - a
   targets:
-  - 136
-- id: 181
+  - 133
+- id: 178
   kind: Ident
   ident: !Ident
   - that
   - b
   - a
   targets:
-  - 122
-- id: 187
+  - 119
+- id: 184
   kind: RqOperator
-  span: 0:3635-3682
+  span: 0:3192-3239
   targets:
+  - 175
   - 178
-  - 181
-  parent: 189
-- id: 189
+  parent: 186
+- id: 186
   kind: 'TransformCall: Join'
-  span: 0:3606-3683
+  span: 0:3163-3240
   children:
-  - 154
-  - 122
-  - 187
-  parent: 205
-- id: 197
+  - 151
+  - 119
+  - 184
+  parent: 202
+- id: 194
   kind: Ident
-  span: 0:6789-6791
+  span: 0:5987-5989
   ident: !Ident
   - this
   - b
   - a
   targets:
-  - 122
-- id: 201
+  - 119
+- id: 198
   kind: RqOperator
-  span: 0:3694-3730
+  span: 0:3251-3287
   targets:
-  - 197
-  - 204
-  parent: 205
-- id: 204
-  kind: Literal
-  span: 0:6795-6799
-- id: 205
-  kind: 'TransformCall: Filter'
-  span: 0:3686-3731
-  children:
-  - 189
+  - 194
   - 201
-  parent: 209
-- id: 207
+  parent: 202
+- id: 201
+  kind: Literal
+  span: 0:5993-5997
+- id: 202
+  kind: 'TransformCall: Filter'
+  span: 0:3243-3288
+  children:
+  - 186
+  - 198
+  parent: 206
+- id: 204
   kind: Ident
   ident: !Ident
   - this
   - t
   - a
   targets:
-  - 136
-  parent: 208
-- id: 208
+  - 133
+  parent: 205
+- id: 205
   kind: Tuple
-  span: 0:3742-3744
+  span: 0:3299-3301
   children:
-  - 207
-  parent: 209
-- id: 209
+  - 204
+  parent: 206
+- id: 206
   kind: 'TransformCall: Select'
   span: 1:165-238
   children:
+  - 202
   - 205
-  - 208
-  parent: 212
-- id: 210
+  parent: 209
+- id: 207
   kind: Ident
   span: 1:244-245
   ident: !Ident
@@ -227,14 +226,14 @@ nodes:
   - t
   - a
   targets:
-  - 207
-  parent: 212
-- id: 212
+  - 204
+  parent: 209
+- id: 209
   kind: 'TransformCall: Sort'
   span: 1:239-245
   children:
-  - 209
-  - 210
+  - 206
+  - 207
 ast:
   name: Project
   stmts:

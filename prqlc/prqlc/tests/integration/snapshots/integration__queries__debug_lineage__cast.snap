@@ -2,16 +2,15 @@
 source: prqlc/prqlc/tests/integration/queries.rs
 expression: "# mssql:test\nfrom tracks\nsort {-bytes}\nselect {\n    name,\n    bin = ((album_id | as REAL) * 99)\n}\ntake 20\n"
 input_file: prqlc/prqlc/tests/integration/queries/cast.prql
-snapshot_kind: text
 ---
 frames:
 - - 1:25-38
   - columns:
     - !All
-      input_id: 124
+      input_id: 121
       except: []
     inputs:
-    - id: 124
+    - id: 121
       name: tracks
       table:
       - default_db
@@ -22,15 +21,15 @@ frames:
       name:
       - tracks
       - name
-      target_id: 131
+      target_id: 128
       target_name: null
     - !Single
       name:
       - bin
-      target_id: 132
+      target_id: 129
       target_name: null
     inputs:
-    - id: 124
+    - id: 121
       name: tracks
       table:
       - default_db
@@ -41,28 +40,28 @@ frames:
       name:
       - tracks
       - name
-      target_id: 131
+      target_id: 128
       target_name: null
     - !Single
       name:
       - bin
-      target_id: 132
+      target_id: 129
       target_name: null
     inputs:
-    - id: 124
+    - id: 121
       name: tracks
       table:
       - default_db
       - tracks
 nodes:
-- id: 124
+- id: 121
   kind: Ident
   span: 1:13-24
   ident: !Ident
   - default_db
   - tracks
-  parent: 130
-- id: 128
+  parent: 127
+- id: 125
   kind: Ident
   span: 1:32-37
   ident: !Ident
@@ -70,16 +69,16 @@ nodes:
   - tracks
   - bytes
   targets:
-  - 124
-  parent: 130
-- id: 130
+  - 121
+  parent: 127
+- id: 127
   kind: 'TransformCall: Sort'
   span: 1:25-38
   children:
-  - 124
-  - 128
-  parent: 140
-- id: 131
+  - 121
+  - 125
+  parent: 137
+- id: 128
   kind: Ident
   span: 1:52-56
   ident: !Ident
@@ -87,22 +86,22 @@ nodes:
   - tracks
   - name
   targets:
-  - 124
-  parent: 139
-- id: 132
+  - 121
+  parent: 136
+- id: 129
   kind: RqOperator
   span: 1:68-95
   alias: bin
   targets:
-  - 134
-  - 138
-  parent: 139
-- id: 134
+  - 131
+  - 135
+  parent: 136
+- id: 131
   kind: RqOperator
   span: 1:81-88
   targets:
-  - 137
-- id: 137
+  - 134
+- id: 134
   kind: Ident
   span: 1:70-78
   ident: !Ident
@@ -110,33 +109,33 @@ nodes:
   - tracks
   - album_id
   targets:
-  - 124
-- id: 138
+  - 121
+- id: 135
   kind: Literal
   span: 1:92-94
-- id: 139
+- id: 136
   kind: Tuple
   span: 1:46-97
   children:
-  - 131
-  - 132
-  parent: 140
-- id: 140
+  - 128
+  - 129
+  parent: 137
+- id: 137
   kind: 'TransformCall: Select'
   span: 1:39-97
   children:
-  - 130
-  - 139
-  parent: 142
-- id: 142
+  - 127
+  - 136
+  parent: 139
+- id: 139
   kind: 'TransformCall: Take'
   span: 1:98-105
   children:
+  - 137
   - 140
-  - 143
-- id: 143
+- id: 140
   kind: Literal
-  parent: 142
+  parent: 139
 ast:
   name: Project
   stmts:

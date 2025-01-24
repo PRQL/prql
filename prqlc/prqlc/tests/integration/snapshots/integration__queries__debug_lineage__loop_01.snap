@@ -2,7 +2,6 @@
 source: prqlc/prqlc/tests/integration/queries.rs
 expression: "# clickhouse:skip (DB::Exception: Syntax error)\n# glaredb:skip (DataFusion does not support recursive CTEs https://github.com/apache/arrow-datafusion/issues/462)\nfrom [{n = 1}]\nselect n = n - 2\nloop (filter n < 4 | select n = n + 1)\nselect n = n * 2\nsort n\n"
 input_file: prqlc/prqlc/tests/integration/queries/loop_01.prql
-snapshot_kind: text
 ---
 frames:
 - - 1:177-193
@@ -10,252 +9,252 @@ frames:
     - !Single
       name:
       - n
-      target_id: 131
+      target_id: 128
       target_name: null
     inputs:
-    - id: 127
-      name: _literal_127
+    - id: 124
+      name: _literal_124
       table:
       - default_db
-      - _literal_127
+      - _literal_124
 - - 1:200-212
   - columns:
     - !Single
       name:
       - n
-      target_id: 131
+      target_id: 128
       target_name: null
     inputs:
-    - id: 127
-      name: _literal_127
+    - id: 124
+      name: _literal_124
       table:
       - default_db
-      - _literal_127
+      - _literal_124
 - - 1:215-231
   - columns:
     - !Single
       name:
       - n
-      target_id: 154
+      target_id: 151
       target_name: null
     inputs:
-    - id: 127
-      name: _literal_127
+    - id: 124
+      name: _literal_124
       table:
       - default_db
-      - _literal_127
+      - _literal_124
 - - 1:194-232
   - columns:
     - !Single
       name:
       - n
-      target_id: 131
+      target_id: 128
       target_name: null
     inputs:
-    - id: 127
-      name: _literal_127
+    - id: 124
+      name: _literal_124
       table:
       - default_db
-      - _literal_127
+      - _literal_124
 - - 1:233-249
   - columns:
     - !Single
       name:
       - n
-      target_id: 162
+      target_id: 159
       target_name: null
     inputs:
-    - id: 127
-      name: _literal_127
+    - id: 124
+      name: _literal_124
       table:
       - default_db
-      - _literal_127
+      - _literal_124
 - - 1:250-256
   - columns:
     - !Single
       name:
       - n
-      target_id: 162
+      target_id: 159
       target_name: null
     inputs:
-    - id: 127
-      name: _literal_127
+    - id: 124
+      name: _literal_124
       table:
       - default_db
-      - _literal_127
+      - _literal_124
 nodes:
-- id: 127
+- id: 124
   kind: Array
   span: 1:162-176
   children:
-  - 128
-  parent: 136
-- id: 128
+  - 125
+  parent: 133
+- id: 125
   kind: Tuple
   span: 1:168-175
   children:
-  - 129
-  parent: 127
-- id: 129
+  - 126
+  parent: 124
+- id: 126
   kind: Literal
   span: 1:173-174
   alias: n
-  parent: 128
-- id: 131
+  parent: 125
+- id: 128
   kind: RqOperator
   span: 1:188-193
   alias: n
   targets:
-  - 133
-  - 134
-  parent: 135
-- id: 133
+  - 130
+  - 131
+  parent: 132
+- id: 130
   kind: Ident
   span: 1:188-189
   ident: !Ident
   - this
-  - _literal_127
+  - _literal_124
   - n
   targets:
-  - 127
-- id: 134
+  - 124
+- id: 131
   kind: Literal
   span: 1:192-193
-- id: 135
+- id: 132
   kind: Tuple
   span: 1:188-193
   children:
-  - 131
-  parent: 136
-- id: 136
+  - 128
+  parent: 133
+- id: 133
   kind: 'TransformCall: Select'
   span: 1:177-193
   children:
-  - 127
-  - 135
-  parent: 160
-- id: 145
+  - 124
+  - 132
+  parent: 157
+- id: 142
   kind: Ident
   ident: !Ident
   - _param
   - _tbl
   targets:
-  - 142
-  parent: 153
-- id: 149
+  - 139
+  parent: 150
+- id: 146
   kind: RqOperator
   span: 1:207-212
   targets:
-  - 151
-  - 152
-  parent: 153
-- id: 151
+  - 148
+  - 149
+  parent: 150
+- id: 148
   kind: Ident
   span: 1:207-208
   ident: !Ident
   - this
   - n
   targets:
-  - 131
-- id: 152
+  - 128
+- id: 149
   kind: Literal
   span: 1:211-212
-- id: 153
+- id: 150
   kind: 'TransformCall: Filter'
   span: 1:200-212
   children:
-  - 145
-  - 149
-  parent: 159
-- id: 154
+  - 142
+  - 146
+  parent: 156
+- id: 151
   kind: RqOperator
   span: 1:226-231
   alias: n
   targets:
-  - 156
-  - 157
-  parent: 158
-- id: 156
+  - 153
+  - 154
+  parent: 155
+- id: 153
   kind: Ident
   span: 1:226-227
   ident: !Ident
   - this
   - n
   targets:
-  - 131
-- id: 157
+  - 128
+- id: 154
   kind: Literal
   span: 1:230-231
-- id: 158
+- id: 155
   kind: Tuple
   span: 1:226-231
   children:
-  - 154
-  parent: 159
-- id: 159
+  - 151
+  parent: 156
+- id: 156
   kind: 'TransformCall: Select'
   span: 1:215-231
   children:
-  - 153
-  - 158
-- id: 160
+  - 150
+  - 155
+- id: 157
   kind: 'TransformCall: Loop'
   span: 1:194-232
   children:
-  - 136
-  - 161
-  parent: 167
-- id: 161
+  - 133
+  - 158
+  parent: 164
+- id: 158
   kind: Func
   span: 1:215-231
-  parent: 160
-- id: 162
+  parent: 157
+- id: 159
   kind: RqOperator
   span: 1:244-249
   alias: n
   targets:
-  - 164
-  - 165
-  parent: 166
-- id: 164
+  - 161
+  - 162
+  parent: 163
+- id: 161
   kind: Ident
   span: 1:244-245
   ident: !Ident
   - this
   - n
   targets:
-  - 131
-- id: 165
+  - 128
+- id: 162
   kind: Literal
   span: 1:248-249
-- id: 166
+- id: 163
   kind: Tuple
   span: 1:244-249
   children:
-  - 162
-  parent: 167
-- id: 167
+  - 159
+  parent: 164
+- id: 164
   kind: 'TransformCall: Select'
   span: 1:233-249
   children:
-  - 160
-  - 166
-  parent: 170
-- id: 168
+  - 157
+  - 163
+  parent: 167
+- id: 165
   kind: Ident
   span: 1:255-256
   ident: !Ident
   - this
   - n
   targets:
-  - 162
-  parent: 170
-- id: 170
+  - 159
+  parent: 167
+- id: 167
   kind: 'TransformCall: Sort'
   span: 1:250-256
   children:
-  - 167
-  - 168
+  - 164
+  - 165
 ast:
   name: Project
   stmts:
