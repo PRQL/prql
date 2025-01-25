@@ -1,0 +1,70 @@
+    Finished `dev` profile [unoptimized + debuginfo] target(s) in 0.08s
+     Running `target/debug/prqlc compile x.prql`
+[31mThe application panicked (crashed).[0m
+Message:  [36muser-provided comparison function does not correctly implement a total order[0m
+Location: [35mcore/src/slice/sort/shared/smallsort.rs[0m:[35m865[0m
+
+  ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ BACKTRACE ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  [96m                              ⋮ 13 frames hidden ⋮                              [0m
+  14: [32mcore::slice::sort::shared::smallsort::panic_on_ord_violation[0m[90m::hf75f95b80e6d7464[0m
+      at [35m/rustc/90b35a6239c3d8bdabc530a6a0816f7ff89a0aaf/library/core/src/slice/sort/shared/smallsort.rs[0m:[35m865[0m
+  15: [32mcore::slice::sort::shared::smallsort::bidirectional_merge[0m[90m::h9e8ffccc73cd3d92[0m
+      at [35m/Users/maximilian/.rustup/toolchains/1.83.0-aarch64-apple-darwin/lib/rustlib/src/rust/library/core/src/slice/sort/shared/smallsort.rs[0m:[35m843[0m
+  16: [32mcore::slice::sort::shared::smallsort::small_sort_general_with_scratch[0m[90m::h2e1a89e67407e4dc[0m
+      at [35m/Users/maximilian/.rustup/toolchains/1.83.0-aarch64-apple-darwin/lib/rustlib/src/rust/library/core/src/slice/sort/shared/smallsort.rs[0m:[35m286[0m
+  17: [91m<T as core::slice::sort::shared::smallsort::StableSmallSortTypeImpl>::small_sort[0m[90m::h485f806f9727a06d[0m
+      at [35m/Users/maximilian/.rustup/toolchains/1.83.0-aarch64-apple-darwin/lib/rustlib/src/rust/library/core/src/slice/sort/shared/smallsort.rs[0m:[35m61[0m
+  18: [32mcore::slice::sort::stable::quicksort::quicksort[0m[90m::he178fa23a33e8753[0m
+      at [35m/Users/maximilian/.rustup/toolchains/1.83.0-aarch64-apple-darwin/lib/rustlib/src/rust/library/core/src/slice/sort/stable/quicksort.rs[0m:[35m25[0m
+  19: [32mcore::slice::sort::stable::drift::create_run[0m[90m::haaf152dd333de33c[0m
+      at [35m/Users/maximilian/.rustup/toolchains/1.83.0-aarch64-apple-darwin/lib/rustlib/src/rust/library/core/src/slice/sort/stable/drift.rs[0m:[35m255[0m
+  20: [32mcore::slice::sort::stable::drift::sort[0m[90m::h127b237358edd558[0m
+      at [35m/Users/maximilian/.rustup/toolchains/1.83.0-aarch64-apple-darwin/lib/rustlib/src/rust/library/core/src/slice/sort/stable/drift.rs[0m:[35m64[0m
+  21: [32mcore::slice::sort::stable::driftsort_main[0m[90m::h990f67a99ec45564[0m
+      at [35m/Users/maximilian/.rustup/toolchains/1.83.0-aarch64-apple-darwin/lib/rustlib/src/rust/library/core/src/slice/sort/stable/mod.rs[0m:[35m121[0m
+  22: [32mcore::slice::sort::stable::sort[0m[90m::h0e6efb32c1512ca1[0m
+      at [35m/Users/maximilian/.rustup/toolchains/1.83.0-aarch64-apple-darwin/lib/rustlib/src/rust/library/core/src/slice/sort/stable/mod.rs[0m:[35m79[0m
+  23: [91malloc::slice::stable_sort[0m[90m::h76e85e48960eb70c[0m
+      at [35m/Users/maximilian/.rustup/toolchains/1.83.0-aarch64-apple-darwin/lib/rustlib/src/rust/library/alloc/src/slice.rs[0m:[35m908[0m
+  24: [91malloc::slice::<impl [T]>::sort_by[0m[90m::h28123ee9f7b75b39[0m
+      at [35m/Users/maximilian/.rustup/toolchains/1.83.0-aarch64-apple-darwin/lib/rustlib/src/rust/library/alloc/src/slice.rs[0m:[35m299[0m
+  25: [91mprqlc::sql::pq::preprocess::reorder[0m[90m::hac970db783c9909a[0m
+      at [35m/Users/maximilian/workspace/prql/prqlc/prqlc/src/sql/pq/preprocess.rs[0m:[35m554[0m
+  26: [32mcore::ops::function::FnOnce::call_once[0m[90m::hfcaf99dbf0c2eb39[0m
+      at [35m/Users/maximilian/.rustup/toolchains/1.83.0-aarch64-apple-darwin/lib/rustlib/src/rust/library/core/src/ops/function.rs[0m:[35m250[0m
+  27: [32mcore::result::Result<T,E>::map[0m[90m::hc615b804b60a65be[0m
+      at [35m/Users/maximilian/.rustup/toolchains/1.83.0-aarch64-apple-darwin/lib/rustlib/src/rust/library/core/src/result.rs[0m:[35m773[0m
+  28: [91mprqlc::sql::pq::preprocess::preprocess[0m[90m::hb52c61083db8e6a5[0m
+      at [35m/Users/maximilian/workspace/prql/prqlc/prqlc/src/sql/pq/preprocess.rs[0m:[35m27[0m
+  29: [91mprqlc::sql::pq::gen_query::compile_relation[0m[90m::h3e266df1ff42ef5c[0m
+      at [35m/Users/maximilian/workspace/prql/prqlc/prqlc/src/sql/pq/gen_query.rs[0m:[35m66[0m
+  30: [91mprqlc::sql::pq::gen_query::compile_query[0m[90m::hf394022dec1efc24[0m
+      at [35m/Users/maximilian/workspace/prql/prqlc/prqlc/src/sql/pq/gen_query.rs[0m:[35m39[0m
+  31: [91mprqlc::sql::gen_query::translate_query[0m[90m::h3a40710c3ea8e0ee[0m
+      at [35m/Users/maximilian/workspace/prql/prqlc/prqlc/src/sql/gen_query.rs[0m:[35m28[0m
+  32: [91mprqlc::sql::compile[0m[90m::h64037d8a79213d2f[0m
+      at [35m/Users/maximilian/workspace/prql/prqlc/prqlc/src/sql/mod.rs[0m:[35m25[0m
+  33: [91mprqlc::rq_to_sql[0m[90m::h5aa3d5e711c2550f[0m
+      at [35m/Users/maximilian/workspace/prql/prqlc/prqlc/src/lib.rs[0m:[35m409[0m
+  34: [91mprqlc::cli::Command::execute::{{closure}}[0m[90m::h7bc514436d638d70[0m
+      at [35m/Users/maximilian/workspace/prql/prqlc/prqlc/src/cli/mod.rs[0m:[35m469[0m
+  35: [32mcore::result::Result<T,E>::and_then[0m[90m::h079702d83e4a1684[0m
+      at [35m/Users/maximilian/.rustup/toolchains/1.83.0-aarch64-apple-darwin/lib/rustlib/src/rust/library/core/src/result.rs[0m:[35m1348[0m
+  36: [91mprqlc::cli::Command::execute[0m[90m::h786145e60a5346b1[0m
+      at [35m/Users/maximilian/workspace/prql/prqlc/prqlc/src/cli/mod.rs[0m:[35m465[0m
+  37: [91mprqlc::cli::Command::run_io_command[0m[90m::h0db7cbdb98431d31[0m
+      at [35m/Users/maximilian/workspace/prql/prqlc/prqlc/src/cli/mod.rs[0m:[35m352[0m
+  38: [91mprqlc::cli::Command::run[0m[90m::ha1e2eed3f2ea639c[0m
+      at [35m/Users/maximilian/workspace/prql/prqlc/prqlc/src/cli/mod.rs[0m:[35m331[0m
+  39: [91mprqlc::cli::main[0m[90m::h04d63e9798e7b197[0m
+      at [35m/Users/maximilian/workspace/prql/prqlc/prqlc/src/cli/mod.rs[0m:[35m57[0m
+  40: [91mprqlc::main[0m[90m::h0069b61db785d84a[0m
+      at [35m/Users/maximilian/workspace/prql/prqlc/prqlc/src/main.rs[0m:[35m6[0m
+  41: [32mcore::ops::function::FnOnce::call_once[0m[90m::h8cd771a9b393ce54[0m
+      at [35m/Users/maximilian/.rustup/toolchains/1.83.0-aarch64-apple-darwin/lib/rustlib/src/rust/library/core/src/ops/function.rs[0m:[35m250[0m
+  42: [32mstd::sys::backtrace::__rust_begin_short_backtrace[0m[90m::hb9aeeb7d51e47bf5[0m
+      at [35m/Users/maximilian/.rustup/toolchains/1.83.0-aarch64-apple-darwin/lib/rustlib/src/rust/library/std/src/sys/backtrace.rs[0m:[35m154[0m
+  [96m                              ⋮ 12 frames hidden ⋮                              [0m
+
+Run with COLORBT_SHOW_HIDDEN=1 environment variable to disable frame filtering.
+Run with RUST_BACKTRACE=full to include source snippets.
