@@ -422,7 +422,10 @@ fn write_ast_node_from_object<W: Write>(
     let span: Option<String> = properties.remove("span").and_then(|s| match s {
         serde_json::Value::Null => None,
         serde_json::Value::String(s) => Some(s),
-        _ => unreachable!("expected span to be string, got: {}", s),
+        _ => None,
+        // We previously used to error, but sqlparser now has a type that
+        // doesn't include spans, so we just ignore it.
+        // _ => unreachable!("expected span to be string, got: {}", s),
     });
     let ty: Option<serde_json::Value> = properties.remove("ty");
 

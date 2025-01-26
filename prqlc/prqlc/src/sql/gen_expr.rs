@@ -263,6 +263,7 @@ fn process_concat(expr: &rq::Expr, ctx: &mut Context) -> Result<sql_ast::Expr> {
             null_treatment: None,
             within_group: vec![],
             parameters: sql_ast::FunctionArguments::None,
+            uses_odbc_syntax: false,
         }))
     } else {
         let concat_args = collect_concat_args(expr);
@@ -503,6 +504,7 @@ fn translate_datetime_literal_with_sqlite_function(
         null_treatment: None,
         within_group: vec![],
         parameters: sql_ast::FunctionArguments::None,
+        uses_odbc_syntax: false,
     })
 }
 

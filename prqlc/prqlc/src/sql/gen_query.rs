@@ -42,6 +42,7 @@ pub fn translate_query(query: RelationalQuery, dialect: Option<Dialect>) -> Resu
         query.with = Some(sql_ast::With {
             recursive,
             cte_tables,
+            with_token: sqlparser::ast::helpers::attached_token::AttachedToken::empty(),
         });
     }
 
@@ -319,6 +320,7 @@ fn translate_relation_expr(relation_expr: RelationExpr, ctx: &mut Context) -> Re
                 with_ordinality: false,
                 version: None,
                 partitions: vec![],
+                json_path: None,
             }
         }
         RelationExprKind::SubQuery(query) => {
@@ -428,6 +430,7 @@ fn translate_cte(cte: Cte, ctx: &mut Context) -> Result<(sql_ast::Cte, bool)> {
         query: Box::new(query),
         from: None,
         materialized: None,
+        closing_paren_token: sqlparser::ast::helpers::attached_token::AttachedToken::empty(),
     };
     Ok((cte, recursive))
 }
@@ -599,6 +602,7 @@ fn default_select() -> Select {
         window_before_qualify: false,
         connect_by: None,
         prewhere: None,
+        select_token: sqlparser::ast::helpers::attached_token::AttachedToken::empty(),
     }
 }
 
