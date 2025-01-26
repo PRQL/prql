@@ -167,11 +167,13 @@ impl ErrorMessage {
         // We always pass color to ariadne as true, and then (currently) strip later.
         let config = Config::default().with_color(true);
 
+        // Create a span tuple with the source path and the error range
         let span = Range::from(self.span?);
+        let error_span = (source_path.clone(), span.start..span.end);
 
-        let mut report = Report::build(ReportKind::Error, source_path.clone(), span.start)
+        let mut report = Report::build(ReportKind::Error, error_span.clone())
             .with_config(config)
-            .with_label(Label::new((source_path, span)).with_message(&self.reason));
+            .with_label(Label::new(error_span).with_message(&self.reason));
 
         if let Some(code) = &self.code {
             report = report.with_code(code);
