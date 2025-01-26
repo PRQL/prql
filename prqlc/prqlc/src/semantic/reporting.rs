@@ -12,7 +12,9 @@ use crate::pr;
 use crate::{Result, Span};
 
 pub fn label_references(root_mod: &RootModule, source_id: String, source: String) -> Vec<u8> {
-    let mut report = Report::build(ReportKind::Custom("Info", Color::Blue), &source_id, 0);
+    let report_span = (source_id.clone(), 0..source.len());
+
+    let mut report = Report::build(ReportKind::Custom("Info", Color::Blue), report_span);
 
     let source = Source::from(source);
 
@@ -117,8 +119,10 @@ impl pl::PlFold for Labeler<'_> {
                     ("".to_string(), Color::White)
                 };
 
+                let label_span = (self.source_id.to_string(), span.start..span.end);
+
                 self.report.add_label(
-                    Label::new((self.source_id.to_string(), Range::from(span)))
+                    Label::new(label_span)
                         .with_message(format!("{ident} {decl}"))
                         .with_color(color),
                 );
