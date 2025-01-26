@@ -23,7 +23,7 @@ repository = "https://github.com/PRQL/prql"
 # This isn't tested since `cargo-msrv` doesn't support workspaces; instead we
 # test `metadata.msrv` in `prqlc`
 rust-version = "1.70.0"
-version = "0.13.3"
+version = "0.13.4"
 
 [profile.release]
 lto = true

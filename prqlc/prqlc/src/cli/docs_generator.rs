@@ -386,7 +386,7 @@ mod tests {
             <meta charset="utf-8">
             <meta name="viewport" content="width=device-width, initial-scale=1">
             <meta name="keywords" content="prql">
-            <meta name="generator" content="prqlc 0.13.3">
+            <meta name="generator" content="prqlc 0.13.4">
             <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-T3c6CoIi6uLrA9TneNEoa7RxnatzjcDSCmG1MXxSR1GAsXEV/Dwwykc2MPK8M2HN" crossorigin="anonymous">
             <title>PRQL Docs</title>
           </head>
@@ -472,7 +472,7 @@ mod tests {
 
             </main>
             <footer class="container border-top">
-              <small class="text-body-secondary">Generated with <a href="https://prql-lang.org/" rel="external" target="_blank">prqlc</a> 0.13.3.</small>
+              <small class="text-body-secondary">Generated with <a href="https://prql-lang.org/" rel="external" target="_blank">prqlc</a> 0.13.4.</small>
             </footer>
           </body>
         </html>
@@ -500,7 +500,7 @@ mod tests {
         type user_id = int
         ";
 
-        assert_cmd_snapshot!(prqlc_command().args(["experimental", "doc"]).pass_stdin(input), @r#####"
+        assert_cmd_snapshot!(prqlc_command().args(["experimental", "doc"]).pass_stdin(input), @r"
         success: true
         exit_code: 0
         ----- stdout -----
@@ -561,10 +561,10 @@ mod tests {
 
 
 
-        Generated with [prqlc](https://prql-lang.org/) 0.13.3.
+        Generated with [prqlc](https://prql-lang.org/) 0.13.4.
 
         ----- stderr -----
-        "#####);
+        ");
     }
 
     fn prqlc_command() -> Command {
