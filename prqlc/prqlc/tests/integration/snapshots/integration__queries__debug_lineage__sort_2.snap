@@ -1,0 +1,283 @@
+---
+source: prqlc/prqlc/tests/integration/queries.rs
+expression: "from albums\nselect { AA=album_id, artist_id }\nsort AA\nfilter AA >= 25\njoin artists (==artist_id)\n"
+input_file: prqlc/prqlc/tests/integration/queries/sort_2.prql
+---
+frames:
+- - 1:12-45
+  - columns:
+    - !Single
+      name:
+      - AA
+      target_id: 130
+      target_name: null
+    - !Single
+      name:
+      - albums
+      - artist_id
+      target_id: 131
+      target_name: null
+    inputs:
+    - id: 128
+      name: albums
+      table:
+      - default_db
+      - albums
+- - 1:46-53
+  - columns:
+    - !Single
+      name:
+      - AA
+      target_id: 130
+      target_name: null
+    - !Single
+      name:
+      - albums
+      - artist_id
+      target_id: 131
+      target_name: null
+    inputs:
+    - id: 128
+      name: albums
+      table:
+      - default_db
+      - albums
+- - 1:54-69
+  - columns:
+    - !Single
+      name:
+      - AA
+      target_id: 130
+      target_name: null
+    - !Single
+      name:
+      - albums
+      - artist_id
+      target_id: 131
+      target_name: null
+    inputs:
+    - id: 128
+      name: albums
+      table:
+      - default_db
+      - albums
+- - 1:70-96
+  - columns:
+    - !Single
+      name:
+      - AA
+      target_id: 130
+      target_name: null
+    - !Single
+      name:
+      - albums
+      - artist_id
+      target_id: 131
+      target_name: null
+    - !All
+      input_id: 116
+      except: []
+    inputs:
+    - id: 128
+      name: albums
+      table:
+      - default_db
+      - albums
+    - id: 116
+      name: artists
+      table:
+      - default_db
+      - artists
+nodes:
+- id: 116
+  kind: Ident
+  span: 1:75-82
+  ident: !Ident
+  - default_db
+  - artists
+  parent: 146
+- id: 128
+  kind: Ident
+  span: 1:0-11
+  ident: !Ident
+  - default_db
+  - albums
+  parent: 133
+- id: 130
+  kind: Ident
+  span: 1:24-32
+  alias: AA
+  ident: !Ident
+  - this
+  - albums
+  - album_id
+  targets:
+  - 128
+  parent: 132
+- id: 131
+  kind: Ident
+  span: 1:34-43
+  ident: !Ident
+  - this
+  - albums
+  - artist_id
+  targets:
+  - 128
+  parent: 132
+- id: 132
+  kind: Tuple
+  span: 1:19-45
+  children:
+  - 130
+  - 131
+  parent: 133
+- id: 133
+  kind: 'TransformCall: Select'
+  span: 1:12-45
+  children:
+  - 128
+  - 132
+  parent: 136
+- id: 134
+  kind: Ident
+  span: 1:51-53
+  ident: !Ident
+  - this
+  - AA
+  targets:
+  - 130
+  parent: 136
+- id: 136
+  kind: 'TransformCall: Sort'
+  span: 1:46-53
+  children:
+  - 133
+  - 134
+  parent: 141
+- id: 137
+  kind: RqOperator
+  span: 1:61-69
+  targets:
+  - 139
+  - 140
+  parent: 141
+- id: 139
+  kind: Ident
+  span: 1:61-63
+  ident: !Ident
+  - this
+  - AA
+  targets:
+  - 130
+- id: 140
+  kind: Literal
+  span: 1:67-69
+- id: 141
+  kind: 'TransformCall: Filter'
+  span: 1:54-69
+  children:
+  - 136
+  - 137
+  parent: 146
+- id: 142
+  kind: RqOperator
+  span: 1:84-95
+  targets:
+  - 144
+  - 145
+  parent: 146
+- id: 144
+  kind: Ident
+  span: 1:86-95
+  ident: !Ident
+  - this
+  - albums
+  - artist_id
+  targets:
+  - 131
+- id: 145
+  kind: Ident
+  span: 1:86-95
+  ident: !Ident
+  - that
+  - artists
+  - artist_id
+  targets:
+  - 116
+- id: 146
+  kind: 'TransformCall: Join'
+  span: 1:70-96
+  children:
+  - 141
+  - 116
+  - 142
+ast:
+  name: Project
+  stmts:
+  - VarDef:
+      kind: Main
+      name: main
+      value:
+        Pipeline:
+          exprs:
+          - FuncCall:
+              name:
+                Ident: from
+                span: 1:0-4
+              args:
+              - Ident: albums
+                span: 1:5-11
+            span: 1:0-11
+          - FuncCall:
+              name:
+                Ident: select
+                span: 1:12-18
+              args:
+              - Tuple:
+                - Ident: album_id
+                  span: 1:24-32
+                  alias: AA
+                - Ident: artist_id
+                  span: 1:34-43
+                span: 1:19-45
+            span: 1:12-45
+          - FuncCall:
+              name:
+                Ident: sort
+                span: 1:46-50
+              args:
+              - Ident: AA
+                span: 1:51-53
+            span: 1:46-53
+          - FuncCall:
+              name:
+                Ident: filter
+                span: 1:54-60
+              args:
+              - Binary:
+                  left:
+                    Ident: AA
+                    span: 1:61-63
+                  op: Gte
+                  right:
+                    Literal:
+                      Integer: 25
+                    span: 1:67-69
+                span: 1:61-69
+            span: 1:54-69
+          - FuncCall:
+              name:
+                Ident: join
+                span: 1:70-74
+              args:
+              - Ident: artists
+                span: 1:75-82
+              - Unary:
+                  op: EqSelf
+                  expr:
+                    Ident: artist_id
+                    span: 1:86-95
+                span: 1:84-95
+            span: 1:70-96
+        span: 1:0-96
+    span: 1:0-96

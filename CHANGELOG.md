@@ -1,23 +1,16 @@
 # PRQL Changelog
 
-## [unreleased]
+## 0.13.3 — 2025-01-25
 
-**Language**:
-
-**Features**:
+0.13.3 is a small release containing a few bug fixes and improvements. It has 86
+commits from 10 contributors. Selected changes:
 
 **Fixes**:
 
 - Sort steps in sub-pipelines no longer cause a column lookup error
   (@lukapeschke, #5066)
-
-**Documentation**:
-
-**Web**:
-
-**Integrations**:
-
-**Internal changes**:
+- Dereferencing of sort columns when rendering SQL now done in context of main
+  pipeline (@kgutwin, #5098)
 
 **New Contributors**:
 

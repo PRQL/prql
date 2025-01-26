@@ -1,0 +1,328 @@
+---
+source: prqlc/prqlc/tests/integration/queries.rs
+expression: "from albums\nselect { AA=album_id, artist_id }\nsort AA\nfilter AA >= 25\njoin artists (==artist_id)\n"
+input_file: prqlc/prqlc/tests/integration/queries/sort_2.prql
+---
+25,18,18,Chico Science & Nação Zumbi
+26,19,19,Cidade Negra
+27,19,19,Cidade Negra
+28,20,20,Cláudio Zoli
+29,21,21,Various Artists
+30,22,22,Led Zeppelin
+31,23,23,Frank Zappa & Captain Beefheart
+32,21,21,Various Artists
+33,24,24,Marcos Valle
+34,6,6,Antônio Carlos Jobim
+35,50,50,Metallica
+36,51,51,Queen
+37,52,52,Kiss
+38,53,53,Spyro Gyra
+39,54,54,Green Day
+40,55,55,David Coverdale
+41,56,56,Gonzaguinha
+42,57,57,Os Mutantes
+43,58,58,Deep Purple
+44,22,22,Led Zeppelin
+45,21,21,Various Artists
+46,59,59,Santana
+47,37,37,Ed Motta
+48,68,68,Miles Davis
+49,68,68,Miles Davis
+50,58,58,Deep Purple
+51,69,69,Gene Krupa
+52,70,70,Toquinho & Vinícius
+53,21,21,Various Artists
+54,76,76,Creedence Clearwater Revival
+55,76,76,Creedence Clearwater Revival
+56,77,77,Cássia Eller
+57,77,77,Cássia Eller
+58,58,58,Deep Purple
+59,58,58,Deep Purple
+60,58,58,Deep Purple
+61,58,58,Deep Purple
+62,58,58,Deep Purple
+63,58,58,Deep Purple
+64,58,58,Deep Purple
+65,58,58,Deep Purple
+66,58,58,Deep Purple
+67,78,78,Def Leppard
+68,79,79,Dennis Chambers
+69,80,80,Djavan
+70,80,80,Djavan
+71,41,41,Elis Regina
+72,81,81,Eric Clapton
+73,81,81,Eric Clapton
+74,82,82,Faith No More
+75,82,82,Faith No More
+76,82,82,Faith No More
+77,82,82,Faith No More
+78,83,83,Falamansa
+79,84,84,Foo Fighters
+80,84,84,Foo Fighters
+81,84,84,Foo Fighters
+82,84,84,Foo Fighters
+83,85,85,Frank Sinatra
+84,86,86,Funk Como Le Gusta
+85,27,27,Gilberto Gil
+86,27,27,Gilberto Gil
+87,27,27,Gilberto Gil
+88,87,87,Godsmack
+89,54,54,Green Day
+90,88,88,Guns N' Roses
+91,88,88,Guns N' Roses
+92,88,88,Guns N' Roses
+93,89,89,Incognito
+94,90,90,Iron Maiden
+95,90,90,Iron Maiden
+96,90,90,Iron Maiden
+97,90,90,Iron Maiden
+98,90,90,Iron Maiden
+99,90,90,Iron Maiden
+100,90,90,Iron Maiden
+101,90,90,Iron Maiden
+102,90,90,Iron Maiden
+103,90,90,Iron Maiden
+104,90,90,Iron Maiden
+105,90,90,Iron Maiden
+106,90,90,Iron Maiden
+107,90,90,Iron Maiden
+108,90,90,Iron Maiden
+109,90,90,Iron Maiden
+110,90,90,Iron Maiden
+111,90,90,Iron Maiden
+112,90,90,Iron Maiden
+113,90,90,Iron Maiden
+114,90,90,Iron Maiden
+115,91,91,James Brown
+116,92,92,Jamiroquai
+117,92,92,Jamiroquai
+118,92,92,Jamiroquai
+119,93,93,JET
+120,94,94,Jimi Hendrix
+121,95,95,Joe Satriani
+122,46,46,Jorge Ben
+123,96,96,Jota Quest
+124,97,97,João Suplicy
+125,98,98,Judas Priest
+126,52,52,Kiss
+127,22,22,Led Zeppelin
+128,22,22,Led Zeppelin
+129,22,22,Led Zeppelin
+130,22,22,Led Zeppelin
+131,22,22,Led Zeppelin
+132,22,22,Led Zeppelin
+133,22,22,Led Zeppelin
+134,22,22,Led Zeppelin
+135,22,22,Led Zeppelin
+136,22,22,Led Zeppelin
+137,22,22,Led Zeppelin
+138,22,22,Led Zeppelin
+139,99,99,Legião Urbana
+140,99,99,Legião Urbana
+141,100,100,Lenny Kravitz
+142,101,101,Lulu Santos
+143,101,101,Lulu Santos
+144,102,102,Marillion
+145,103,103,Marisa Monte
+146,104,104,Marvin Gaye
+147,105,105,Men At Work
+148,50,50,Metallica
+149,50,50,Metallica
+150,50,50,Metallica
+151,50,50,Metallica
+152,50,50,Metallica
+153,50,50,Metallica
+154,50,50,Metallica
+155,50,50,Metallica
+156,50,50,Metallica
+157,68,68,Miles Davis
+158,42,42,Milton Nascimento
+159,42,42,Milton Nascimento
+160,106,106,Motörhead
+161,108,108,Mônica Marianno
+162,109,109,Mötley Crüe
+163,110,110,Nirvana
+164,110,110,Nirvana
+165,111,111,O Terço
+166,112,112,Olodum
+167,113,113,Os Paralamas Do Sucesso
+168,113,113,Os Paralamas Do Sucesso
+169,113,113,Os Paralamas Do Sucesso
+170,114,114,Ozzy Osbourne
+171,114,114,Ozzy Osbourne
+172,114,114,Ozzy Osbourne
+173,114,114,Ozzy Osbourne
+174,114,114,Ozzy Osbourne
+175,115,115,Page & Plant
+176,116,116,Passengers
+177,117,117,Paul D'Ianno
+178,118,118,Pearl Jam
+179,118,118,Pearl Jam
+180,118,118,Pearl Jam
+181,118,118,Pearl Jam
+182,118,118,Pearl Jam
+183,120,120,Pink Floyd
+184,121,121,Planet Hemp
+185,51,51,Queen
+186,51,51,Queen
+187,122,122,R.E.M. Feat. Kate Pearson
+188,124,124,R.E.M.
+189,124,124,R.E.M.
+190,124,124,R.E.M.
+191,125,125,Raimundos
+192,126,126,Raul Seixas
+193,127,127,Red Hot Chili Peppers
+194,127,127,Red Hot Chili Peppers
+195,127,127,Red Hot Chili Peppers
+196,128,128,Rush
+197,59,59,Santana
+198,59,59,Santana
+199,130,130,Skank
+200,130,130,Skank
+201,131,131,Smashing Pumpkins
+202,131,131,Smashing Pumpkins
+203,132,132,Soundgarden
+204,53,53,Spyro Gyra
+205,133,133,Stevie Ray Vaughan & Double Trouble
+206,134,134,Stone Temple Pilots
+207,135,135,System Of A Down
+208,136,136,Terry Bozzio, Tony Levin & Steve Stevens
+209,137,137,The Black Crowes
+210,137,137,The Black Crowes
+211,138,138,The Clash
+212,139,139,The Cult
+213,139,139,The Cult
+214,140,140,The Doors
+215,141,141,The Police
+216,142,142,The Rolling Stones
+217,142,142,The Rolling Stones
+218,142,142,The Rolling Stones
+219,143,143,The Tea Party
+220,143,143,The Tea Party
+221,144,144,The Who
+222,145,145,Tim Maia
+223,145,145,Tim Maia
+224,146,146,Titãs
+225,146,146,Titãs
+226,147,147,Battlestar Galactica
+227,147,147,Battlestar Galactica
+228,148,148,Heroes
+229,149,149,Lost
+230,149,149,Lost
+231,149,149,Lost
+232,150,150,U2
+233,150,150,U2
+234,150,150,U2
+235,150,150,U2
+236,150,150,U2
+237,150,150,U2
+238,150,150,U2
+239,150,150,U2
+240,150,150,U2
+241,151,151,UB40
+242,152,152,Van Halen
+243,152,152,Van Halen
+244,152,152,Van Halen
+245,152,152,Van Halen
+246,153,153,Velvet Revolver
+247,72,72,Vinícius De Moraes
+248,155,155,Zeca Pagodinho
+249,156,156,The Office
+250,156,156,The Office
+251,156,156,The Office
+252,157,157,Dread Zeppelin
+253,158,158,Battlestar Galactica (Classic)
+254,159,159,Aquaman
+255,150,150,U2
+256,114,114,Ozzy Osbourne
+257,179,179,Scorpions
+258,180,180,House Of Pain
+259,36,36,O Rappa
+260,196,196,Cake
+261,149,149,Lost
+262,197,197,Aisha Duo
+263,198,198,Habib Koité and Bamada
+264,199,199,Karsh Kale
+265,200,200,The Posies
+266,201,201,Luciana Souza/Romero Lubambo
+267,202,202,Aaron Goldberg
+268,203,203,Nicolaus Esterhazy Sinfonia
+269,204,204,Temple of the Dog
+270,205,205,Chris Cornell
+271,8,8,Audioslave
+272,206,206,Alberto Turco & Nova Schola Gregoriana
+273,207,207,Richard Marlow & The Choir of Trinity College, Cambridge
+274,208,208,English Concert & Trevor Pinnock
+275,209,209,Anne-Sophie Mutter, Herbert Von Karajan & Wiener Philharmoniker
+276,210,210,Hilary Hahn, Jeffrey Kahane, Los Angeles Chamber Orchestra & Margaret Batjer
+277,211,211,Wilhelm Kempff
+278,212,212,Yo-Yo Ma
+279,213,213,Scholars Baroque Ensemble
+280,214,214,Academy of St. Martin in the Fields & Sir Neville Marriner
+281,215,215,Academy of St. Martin in the Fields Chamber Ensemble & Sir Neville Marriner
+282,216,216,Berliner Philharmoniker, Claudio Abbado & Sabine Meyer
+283,217,217,Royal Philharmonic Orchestra & Sir Thomas Beecham
+284,218,218,Orchestre Révolutionnaire et Romantique & John Eliot Gardiner
+285,219,219,Britten Sinfonia, Ivor Bolton & Lesley Garrett
+286,220,220,Chicago Symphony Chorus, Chicago Symphony Orchestra & Sir Georg Solti
+287,221,221,Sir Georg Solti & Wiener Philharmoniker
+288,222,222,Academy of St. Martin in the Fields, John Birch, Sir Neville Marriner & Sylvia McNair
+289,223,223,London Symphony Orchestra & Sir Charles Mackerras
+290,224,224,Barry Wordsworth & BBC Concert Orchestra
+291,225,225,Herbert Von Karajan, Mirella Freni & Wiener Philharmoniker
+292,226,226,Eugene Ormandy
+293,227,227,Luciano Pavarotti
+294,228,228,Leonard Bernstein & New York Philharmonic
+295,229,229,Boston Symphony Orchestra & Seiji Ozawa
+296,230,230,Aaron Copland & London Symphony Orchestra
+297,231,231,Ton Koopman
+298,232,232,Sergei Prokofiev & Yuri Temirkanov
+299,233,233,Chicago Symphony Orchestra & Fritz Reiner
+300,234,234,Orchestra of The Age of Enlightenment
+301,235,235,Emanuel Ax, Eugene Ormandy & Philadelphia Orchestra
+302,236,236,James Levine
+303,237,237,Berliner Philharmoniker & Hans Rosbaud
+304,238,238,Maurizio Pollini
+305,240,240,Gustav Mahler
+306,241,241,Felix Schmidt, London Symphony Orchestra & Rafael Frühbeck de Burgos
+307,242,242,Edo de Waart & San Francisco Symphony
+308,243,243,Antal Doráti & London Symphony Orchestra
+309,244,244,Choir Of Westminster Abbey & Simon Preston
+310,245,245,Michael Tilson Thomas & San Francisco Symphony
+311,226,226,Eugene Ormandy
+312,245,245,Michael Tilson Thomas & San Francisco Symphony
+313,246,246,Chor der Wiener Staatsoper, Herbert Von Karajan & Wiener Philharmoniker
+314,247,247,The King's Singers
+315,208,208,English Concert & Trevor Pinnock
+316,248,248,Berliner Philharmoniker & Herbert Von Karajan
+317,249,249,Sir Georg Solti, Sumi Jo & Wiener Philharmoniker
+318,250,250,Christopher O'Riley
+319,251,251,Fretwork
+320,248,248,Berliner Philharmoniker & Herbert Von Karajan
+321,252,252,Amy Winehouse
+322,252,252,Amy Winehouse
+323,253,253,Calexico
+324,254,254,Otto Klemperer & Philharmonia Orchestra
+325,255,255,Yehudi Menuhin
+326,256,256,Philharmonia Orchestra & Sir Neville Marriner
+327,257,257,Academy of St. Martin in the Fields, Sir Neville Marriner & Thurston Dart
+328,258,258,Les Arts Florissants & William Christie
+329,259,259,The 12 Cellists of The Berlin Philharmonic
+330,260,260,Adrian Leaper & Doreen de Feis
+331,261,261,Roger Norrington, London Classical Players
+332,262,262,Charles Dutoit & L'Orchestre Symphonique de Montréal
+333,263,263,Equale Brass Ensemble, John Eliot Gardiner & Munich Monteverdi Orchestra and Choir
+334,264,264,Kent Nagano and Orchestre de l'Opéra de Lyon
+335,265,265,Julian Bream
+336,248,248,Berliner Philharmoniker & Herbert Von Karajan
+337,266,266,Martin Roscoe
+338,267,267,Göteborgs Symfoniker & Neeme Järvi
+339,268,268,Itzhak Perlman
+340,269,269,Michele Campanella
+341,270,270,Gerald Moore
+342,271,271,Mela Tenenbaum, Pro Musica Prague & Richard Kapp
+343,226,226,Eugene Ormandy
+344,272,272,Emerson String Quartet
+345,273,273,C. Monteverdi, Nigel Rogers - Chiaroscuro; London Baroque; London Cornett & Sackbu
+346,274,274,Nash Ensemble
+347,275,275,Philip Glass Ensemble

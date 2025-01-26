@@ -5453,3 +5453,30 @@ fn test_import() {
       x
     ");
 }
+
+#[test]
+// Currently not working
+#[should_panic]
+fn unstable_ordering() {
+    // https://github.com/PRQL/prql/issues/5053
+    assert_snapshot!(compile(r###"
+  # All lines are mandatory
+from foo
+take 10000 
+# We need 8+ aliases to trigger the issue
+derive { a1 = 1, a2 = 1, a3 = 1, a4 = 1, a5 = 1, a6 = 1, a7 = 1, a8 = 1 }
+# The `select !` itself is required, but its content is not
+select !{ a1, a2, a3, a4, a5, a6, a7, a8 } 
+
+# We may remove `u` from both these statements, but the `select !` must remain
+select { b, c, u }
+select !{ u } 
+
+# Aggregate verb seems to not matter
+group { b } ( aggregate { c = count c } ) 
+derive { d = c } 
+select !{ c } 
+
+group { d } ( aggregate { b = sum b } ) 
+sort { d }"###).unwrap(), @"");
+}
