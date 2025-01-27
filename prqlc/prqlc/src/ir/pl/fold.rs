@@ -43,7 +43,7 @@ pub trait PlFold {
     fn fold_type_def(&mut self, ty_def: TypeDef) -> Result<TypeDef> {
         Ok(TypeDef {
             name: ty_def.name,
-            value: ty_def.value.map(|x| self.fold_type(x)).transpose()?,
+            value: self.fold_type(ty_def.value)?,
         })
     }
     fn fold_module_def(&mut self, module_def: ModuleDef) -> Result<ModuleDef> {
@@ -347,7 +347,7 @@ pub fn fold_type<T: ?Sized + PlFold>(fold: &mut T, ty: Ty) -> Result<Ty> {
                 })
                 .transpose()?,
             ),
-            TyKind::Ident(_) | TyKind::Primitive(_) | TyKind::Singleton(_) => ty.kind,
+            TyKind::Ident(_) | TyKind::Primitive(_) => ty.kind,
         },
         span: ty.span,
         name: ty.name,

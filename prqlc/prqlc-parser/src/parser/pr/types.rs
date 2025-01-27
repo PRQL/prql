@@ -3,7 +3,6 @@ use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 use strum::AsRefStr;
 
-use crate::lexer::lr::Literal;
 use crate::parser::pr::ident::Ident;
 use crate::span::Span;
 
@@ -24,9 +23,6 @@ pub enum TyKind {
 
     /// Type of a built-in primitive type
     Primitive(PrimitiveSet),
-
-    /// Type that contains only a one value
-    Singleton(Literal),
 
     /// Type of tuples (product)
     Tuple(Vec<TyTupleField>),
@@ -149,11 +145,5 @@ impl From<PrimitiveSet> for TyKind {
 impl From<TyFunc> for TyKind {
     fn from(value: TyFunc) -> Self {
         TyKind::Function(Some(value))
-    }
-}
-
-impl From<Literal> for TyKind {
-    fn from(value: Literal) -> Self {
-        TyKind::Singleton(value)
     }
 }

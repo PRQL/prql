@@ -38,7 +38,6 @@ impl WriteSource for pr::TyKind {
         match &self {
             Ident(ident) => ident.write(opt),
             Primitive(prim) => Some(prim.to_string()),
-            Singleton(lit) => Some(lit.to_string()),
             Tuple(elements) => SeparatedExprs {
                 exprs: elements,
                 inline: ", ",

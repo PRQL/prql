@@ -73,14 +73,10 @@ pub fn generate_html_docs(stmts: Vec<Stmt>) -> String {
             .filter(|stmt| matches!(stmt.kind, StmtKind::TypeDef(_)))
         {
             let type_def = stmt.kind.as_type_def().unwrap();
-            if let Some(value) = &type_def.value {
-                docs.push_str(&format!(
-                    "  <li><code>{}</code> – {:?}</li>\n",
-                    type_def.name, value.kind
-                ));
-            } else {
-                docs.push_str(&format!("  <li>{}</li>\n", type_def.name));
-            }
+            docs.push_str(&format!(
+                "  <li><code>{}</code> – {:?}</li>\n",
+                type_def.name, type_def.value.kind
+            ));
         }
         docs.push_str("</ul>\n");
     }
@@ -157,9 +153,6 @@ pub fn generate_html_docs(stmts: Vec<Stmt>) -> String {
                             TyKind::Primitive(primitive) => {
                                 docs.push_str(&format!("  <p><code>{primitive}</code></p>\n"));
                             }
-                            TyKind::Singleton(literal) => {
-                                docs.push_str(&format!("  <p><code>{literal}</code></p>\n"));
-                            }
                             _ => docs.push_str("  <p class=\"text-danger\">Not implemented</p>\n"),
                         }
                     }
@@ -227,11 +220,10 @@ Generated with [prqlc](https://prql-lang.org/) {}.
             .filter(|stmt| matches!(stmt.kind, StmtKind::TypeDef(_)))
         {
             let type_def = stmt.kind.as_type_def().unwrap();
-            if let Some(value) = &type_def.value {
-                docs.push_str(&format!("* `{}` – {:?}\n", type_def.name, value.kind));
-            } else {
-                docs.push_str(&format!("* {}\n", type_def.name));
-            }
+            docs.push_str(&format!(
+                "* `{}` – {:?}\n",
+                type_def.name, type_def.value.kind
+            ));
         }
         docs.push('\n');
     }
@@ -300,9 +292,6 @@ Generated with [prqlc](https://prql-lang.org/) {}.
                             TyKind::Primitive(primitive) => {
                                 docs.push_str(&format!("`{primitive}`\n"));
                             }
-                            TyKind::Singleton(literal) => {
-                                docs.push_str(&format!("`{literal}`\n"));
-                            }
                             _ => docs.push_str("Not implemented\n"),
                         }
                     }
@@ -337,7 +326,6 @@ mod tests {
         let fn_returns_bool = -> <bool> true
         let fn_returns_float = -> <float> float
         let fn_returns_int = -> <int> 0
-        let fn_returns_null = -> <null> null
         let fn_returns_text = -> <text> 'text'
 
         module foo {}
@@ -373,7 +361,6 @@ mod tests {
           <li><a href="#fn-fn_returns_bool">fn_returns_bool</a></li>
           <li><a href="#fn-fn_returns_float">fn_returns_float</a></li>
           <li><a href="#fn-fn_returns_int">fn_returns_int</a></li>
-          <li><a href="#fn-fn_returns_null">fn_returns_null</a></li>
           <li><a href="#fn-fn_returns_text">fn_returns_text</a></li>
         </ul>
 
@@ -425,13 +412,6 @@ mod tests {
         </div>
         </section>
         <section>
-          <h3 id="fn-fn_returns_null">fn_returns_null</h3>
-        <div class="ms-3">
-          <h4 class="h6">Returns</h4>
-          <p><code>null</code></p>
-        </div>
-        </section>
-        <section>
           <h3 id="fn-fn_returns_text">fn_returns_text</h3>
         <div class="ms-3">
           <h4 class="h6">Returns</h4>
@@ -461,7 +441,6 @@ mod tests {
         let fn_returns_bool = -> <bool> true
         let fn_returns_float = -> <float> float
         let fn_returns_int = -> <int> 0
-        let fn_returns_null = -> <null> null
         let fn_returns_text = -> <text> 'text'
 
         module foo {}
@@ -469,7 +448,7 @@ mod tests {
         type user_id = int
         ";
 
-        assert_cmd_snapshot!(prqlc_command().args(["experimental", "doc"]).pass_stdin(input), @r"
+        assert_cmd_snapshot!(prqlc_command().args(["experimental", "doc"]).pass_stdin(input), @r#####"
         success: true
         exit_code: 0
         ----- stdout -----
@@ -481,7 +460,6 @@ mod tests {
         * [fn_returns_bool](#fn_returns_bool)
         * [fn_returns_float](#fn_returns_float)
         * [fn_returns_int](#fn_returns_int)
-        * [fn_returns_null](#fn_returns_null)
         * [fn_returns_text](#fn_returns_text)
 
         ## Types
@@ -518,11 +496,6 @@ mod tests {
         #### Returns
         `int`
 
-        ### fn_returns_null
-
-        #### Returns
-        `null`
-
         ### fn_returns_text
 
         #### Returns
@@ -533,7 +506,7 @@ mod tests {
         Generated with [prqlc](https://prql-lang.org/) 0.13.4.
 
         ----- stderr -----
-        ");
+        "#####);
     }
 
     fn prqlc_command() -> Command {

@@ -45,14 +45,3 @@ fn resolve_function_01() {
     )
     ")
 }
-
-#[test]
-fn resolve_types_05() {
-    // TODO: this is very strange, it should only be allowed in std
-    assert_snapshot!(resolve(
-        r#"
-    type A
-    "#,
-    )
-    .unwrap(), @"type A = null");
-}

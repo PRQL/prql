@@ -13,7 +13,7 @@ impl Resolver<'_> {
 
         let kind = match &expr.kind {
             ExprKind::Literal(ref literal) => match literal {
-                Literal::Null => TyKind::Singleton(Literal::Null),
+                Literal::Null => return Ok(None),
                 Literal::Integer(_) => TyKind::Primitive(PrimitiveSet::Int),
                 Literal::Float(_) => TyKind::Primitive(PrimitiveSet::Float),
                 Literal::Boolean(_) => TyKind::Primitive(PrimitiveSet::Bool),

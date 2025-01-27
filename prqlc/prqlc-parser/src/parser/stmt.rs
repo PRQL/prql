@@ -194,7 +194,7 @@ fn var_def() -> impl Parser<TokenKind, StmtKind, Error = PError> + Clone {
 fn type_def() -> impl Parser<TokenKind, StmtKind, Error = PError> + Clone {
     keyword("type")
         .ignore_then(ident_part())
-        .then(ctrl('=').ignore_then(type_expr()).or_not())
+        .then(ctrl('=').ignore_then(type_expr()))
         .map(|(name, value)| StmtKind::TypeDef(TypeDef { name, value }))
         .labelled("type definition")
 }
