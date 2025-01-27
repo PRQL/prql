@@ -1,13 +1,11 @@
 //! Semantic resolver (name resolution, type checking and lowering to RQ)
 
 pub mod ast_expand;
-mod eval;
 mod lowering;
 mod module;
 pub mod reporting;
 mod resolver;
 
-pub use eval::eval;
 pub use lowering::lower_to_ir;
 
 use self::resolver::Resolver;

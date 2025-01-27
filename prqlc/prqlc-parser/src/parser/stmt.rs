@@ -105,19 +105,11 @@ fn query_def() -> impl Parser<TokenKind, Stmt, Error = PError> + Clone {
             let other = args
                 .remove("target")
                 .map(|v| {
-                    match v.kind {
-                        ExprKind::Ident(name) => return Ok(name.to_string()),
-                        ExprKind::Indirection {
-                            base,
-                            field: IndirectionKind::Name(field),
-                        } => {
-                            if let ExprKind::Ident(name) = base.kind {
-                                return Ok(name.to_string() + "." + &field);
-                            }
-                        }
-                        _ => {}
-                    };
-                    Err("target must be a string literal".to_string())
+                    if let ExprKind::Ident(name) = v.kind {
+                        Ok(name.to_string())
+                    } else {
+                        Err("target must be a string literal".to_string())
+                    }
                 })
                 .transpose()
                 .map_err(|msg| PError::custom(span, msg))?
@@ -232,12 +224,9 @@ mod tests {
             kind: Let
             name: man
             value:
-              Indirection:
-                base:
-                  Ident: module
-                  span: "0:49-55"
-                field:
-                  Name: world
+              Ident:
+                - module
+                - world
               span: "0:49-61"
           span: "0:26-61"
         "#);
@@ -255,10 +244,12 @@ mod tests {
           value:
             FuncCall:
               name:
-                Ident: from
+                Ident:
+                  - from
                 span: "0:13-17"
               args:
-                - Ident: artists
+                - Ident:
+                    - artists
                   span: "0:18-25"
             span: "0:13-25"
         "#);
@@ -272,10 +263,12 @@ mod tests {
           value:
             FuncCall:
               name:
-                Ident: from
+                Ident:
+                  - from
                 span: "0:13-17"
               args:
-                - Ident: artists
+                - Ident:
+                    - artists
                   span: "0:18-25"
             span: "0:13-25"
         "#);
@@ -345,12 +338,9 @@ mod tests {
                   kind: Let
                   name: man
                   value:
-                    Indirection:
-                      base:
-                        Ident: module
-                        span: "0:74-80"
-                      field:
-                        Name: world
+                    Ident:
+                      - module
+                      - world
                     span: "0:74-86"
                 span: "0:51-86"
           span: "0:0-98"
@@ -386,12 +376,9 @@ mod tests {
                   kind: Let
                   name: houses
                   value:
-                    Indirection:
-                      base:
-                        Ident: both
-                        span: "0:25-29"
-                      field:
-                        Name: alike
+                    Ident:
+                      - both
+                      - alike
                     span: "0:25-35"
                 span: "0:12-35"
           span: "0:0-36"
@@ -418,12 +405,9 @@ mod tests {
                   kind: Let
                   name: verona
                   value:
-                    Indirection:
-                      base:
-                        Ident: we
-                        span: "0:78-80"
-                      field:
-                        Name: lay
+                    Ident:
+                      - we
+                      - lay
                     span: "0:78-84"
                 span: "0:52-84"
           span: "0:0-95"
@@ -444,10 +428,12 @@ mod tests {
             value:
               FuncCall:
                 name:
-                  Ident: from
+                  Ident:
+                    - from
                   span: "0:39-43"
                 args:
-                  - Ident: foo
+                  - Ident:
+                      - foo
                     span: "0:44-47"
               span: "0:39-47"
           span: "0:30-47"
@@ -471,10 +457,12 @@ mod tests {
             value:
               FuncCall:
                 name:
-                  Ident: from
+                  Ident:
+                    - from
                   span: "0:40-44"
                 args:
-                  - Ident: foo
+                  - Ident:
+                      - foo
                     span: "0:45-48"
               span: "0:40-48"
           span: "0:31-63"
@@ -485,10 +473,12 @@ mod tests {
             value:
               FuncCall:
                 name:
-                  Ident: from
+                  Ident:
+                    - from
                   span: "0:103-107"
                 args:
-                  - Ident: bar
+                  - Ident:
+                      - bar
                     span: "0:108-111"
               span: "0:103-111"
           span: "0:94-111"
@@ -515,10 +505,12 @@ mod tests {
                   value:
                     FuncCall:
                       name:
-                        Ident: from
+                        Ident:
+                          - from
                         span: "0:63-67"
                       args:
-                        - Ident: foo
+                        - Ident:
+                            - foo
                           span: "0:68-71"
                     span: "0:63-71"
                 span: "0:52-71"

@@ -386,59 +386,72 @@ ast:
           exprs:
           - FuncCall:
               name:
-                Ident: from
+                Ident:
+                - from
                 span: 1:468-472
               args:
-              - Ident: tracks
+              - Ident:
+                - tracks
                 span: 1:473-479
             span: 1:468-479
           - FuncCall:
               name:
-                Ident: group
+                Ident:
+                - group
                 span: 1:480-485
               args:
-              - Ident: genre_id
+              - Ident:
+                - genre_id
                 span: 1:486-494
               - Pipeline:
                   exprs:
                   - FuncCall:
                       name:
-                        Ident: sort
+                        Ident:
+                        - sort
                         span: 1:499-503
                       args:
-                      - Ident: milliseconds
+                      - Ident:
+                        - milliseconds
                         span: 1:504-516
                     span: 1:499-516
                   - FuncCall:
                       name:
-                        Ident: derive
+                        Ident:
+                        - derive
                         span: 1:519-525
                       args:
                       - Tuple:
                         - FuncCall:
                             name:
-                              Ident: row_number
+                              Ident:
+                              - row_number
                               span: 1:538-548
                             args:
-                            - Ident: this
+                            - Ident:
+                              - this
                               span: 1:549-553
                           span: 1:538-553
                           alias: num
                         - FuncCall:
                             name:
-                              Ident: count
+                              Ident:
+                              - count
                               span: 1:567-572
                             args:
-                            - Ident: this
+                            - Ident:
+                              - this
                               span: 1:573-577
                           span: 1:567-577
                           alias: total
                         - FuncCall:
                             name:
-                              Ident: last
+                              Ident:
+                              - last
                               span: 1:594-598
                             args:
-                            - Ident: track_id
+                            - Ident:
+                              - track_id
                               span: 1:599-607
                           span: 1:594-607
                           alias: last_val
@@ -446,7 +459,8 @@ ast:
                     span: 1:519-612
                   - FuncCall:
                       name:
-                        Ident: take
+                        Ident:
+                        - take
                         span: 1:615-619
                       args:
                       - Literal:
@@ -457,42 +471,53 @@ ast:
             span: 1:480-624
           - FuncCall:
               name:
-                Ident: sort
+                Ident:
+                - sort
                 span: 1:625-629
               args:
               - Tuple:
-                - Ident: genre_id
+                - Ident:
+                  - genre_id
                   span: 1:631-639
-                - Ident: milliseconds
+                - Ident:
+                  - milliseconds
                   span: 1:641-653
                 span: 1:630-654
             span: 1:625-654
           - FuncCall:
               name:
-                Ident: select
+                Ident:
+                - select
                 span: 1:655-661
               args:
               - Tuple:
-                - Ident: track_id
+                - Ident:
+                  - track_id
                   span: 1:663-671
-                - Ident: genre_id
+                - Ident:
+                  - genre_id
                   span: 1:673-681
-                - Ident: num
+                - Ident:
+                  - num
                   span: 1:683-686
-                - Ident: total
+                - Ident:
+                  - total
                   span: 1:688-693
-                - Ident: last_val
+                - Ident:
+                  - last_val
                   span: 1:695-703
                 span: 1:662-704
             span: 1:655-704
           - FuncCall:
               name:
-                Ident: filter
+                Ident:
+                - filter
                 span: 1:705-711
               args:
               - Binary:
                   left:
-                    Ident: genre_id
+                    Ident:
+                    - genre_id
                     span: 1:712-720
                   op: Gte
                   right:

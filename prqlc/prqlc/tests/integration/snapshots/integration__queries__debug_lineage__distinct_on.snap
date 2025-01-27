@@ -218,56 +218,68 @@ ast:
           exprs:
           - FuncCall:
               name:
-                Ident: from
+                Ident:
+                - from
                 span: 1:13-17
               args:
-              - Ident: tracks
+              - Ident:
+                - tracks
                 span: 1:18-24
             span: 1:13-24
           - FuncCall:
               name:
-                Ident: select
+                Ident:
+                - select
                 span: 1:25-31
               args:
               - Tuple:
-                - Ident: genre_id
+                - Ident:
+                  - genre_id
                   span: 1:33-41
-                - Ident: media_type_id
+                - Ident:
+                  - media_type_id
                   span: 1:43-56
-                - Ident: album_id
+                - Ident:
+                  - album_id
                   span: 1:58-66
                 span: 1:32-67
             span: 1:25-67
           - FuncCall:
               name:
-                Ident: group
+                Ident:
+                - group
                 span: 1:68-73
               args:
               - Tuple:
-                - Ident: genre_id
+                - Ident:
+                  - genre_id
                   span: 1:75-83
-                - Ident: media_type_id
+                - Ident:
+                  - media_type_id
                   span: 1:85-98
                 span: 1:74-99
               - Pipeline:
                   exprs:
                   - FuncCall:
                       name:
-                        Ident: sort
+                        Ident:
+                        - sort
                         span: 1:101-105
                       args:
                       - Tuple:
                         - Unary:
                             op: Neg
                             expr:
-                              Ident: album_id
+                              Ident:
+                              - album_id
                               span: 1:108-116
                           span: 1:107-116
                         span: 1:106-117
                     span: 1:101-117
                   - FuncCall:
                       name:
-                        Ident: take
+                        Ident:
+                        - take
                         span: 1:120-124
                       args:
                       - Literal:
@@ -278,17 +290,20 @@ ast:
             span: 1:68-127
           - FuncCall:
               name:
-                Ident: sort
+                Ident:
+                - sort
                 span: 1:128-132
               args:
               - Tuple:
                 - Unary:
                     op: Neg
                     expr:
-                      Ident: genre_id
+                      Ident:
+                      - genre_id
                       span: 1:135-143
                   span: 1:134-143
-                - Ident: media_type_id
+                - Ident:
+                  - media_type_id
                   span: 1:145-158
                 span: 1:133-159
             span: 1:128-159

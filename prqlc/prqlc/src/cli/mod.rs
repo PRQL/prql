@@ -756,7 +756,7 @@ sort full
         )
         .unwrap();
 
-        assert_snapshot!(String::from_utf8(output).unwrap().trim(), @r"
+        assert_snapshot!(String::from_utf8(output).unwrap().trim(), @r#"
         name: Project
         stmts:
         - VarDef:
@@ -767,23 +767,27 @@ sort full
                 exprs:
                 - FuncCall:
                     name:
-                      Ident: from
+                      Ident:
+                      - from
                       span: 1:0-4
                     args:
-                    - Ident: x
+                    - Ident:
+                      - x
                       span: 1:5-6
                   span: 1:0-6
                 - FuncCall:
                     name:
-                      Ident: select
+                      Ident:
+                      - select
                       span: 1:9-15
                     args:
-                    - Ident: y
+                    - Ident:
+                      - y
                       span: 1:16-17
                   span: 1:9-17
               span: 1:0-17
           span: 1:0-17
-        ");
+        "#);
     }
     #[test]
     fn lex() {

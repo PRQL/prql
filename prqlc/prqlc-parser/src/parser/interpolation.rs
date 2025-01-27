@@ -29,21 +29,12 @@ pub(crate) fn parse(string: String, span_base: Span) -> Result<Vec<InterpolateIt
 
 fn interpolated_parser() -> impl Parser<char, Vec<InterpolateItem>, Error = ChumError<char>> {
     let expr = interpolate_ident_part()
-        .map_with_span(move |name, s| (name, s))
         .separated_by(just('.'))
         .at_least(1)
-        .map(|ident_parts| {
-            let mut parts = ident_parts.into_iter();
-
-            let (first, first_span) = parts.next().unwrap();
-            let mut base = Box::new(ExprKind::Ident(first).into_expr(first_span));
-
-            for (part, span) in parts {
-                let field = IndirectionKind::Name(part);
-                base = Box::new(ExprKind::Indirection { base, field }.into_expr(span));
-            }
-            base
-        })
+        .map(Ident::from_path)
+        .map(ExprKind::Ident)
+        .map_with_span(ExprKind::into_expr)
+        .map(Box::new)
         .labelled("interpolated string variable")
         .then(
             just(':')
@@ -92,7 +83,9 @@ fn parse_interpolate() {
         Expr {
             expr: Expr {
                 kind: Ident(
-                    "a",
+                    [
+                        "a",
+                    ],
                 ),
                 span: Some(
                     0:8-9,
@@ -138,7 +131,9 @@ fn parse_interpolate() {
         Expr {
             expr: Expr {
                 kind: Ident(
-                    "a",
+                    [
+                        "a",
+                    ],
                 ),
                 span: Some(
                     0:14-15,

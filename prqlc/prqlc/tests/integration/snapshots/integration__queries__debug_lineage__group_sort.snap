@@ -247,20 +247,24 @@ ast:
           exprs:
           - FuncCall:
               name:
-                Ident: from
+                Ident:
+                - from
                 span: 1:13-17
               args:
-              - Ident: tracks
+              - Ident:
+                - tracks
                 span: 1:18-24
             span: 1:13-24
           - FuncCall:
               name:
-                Ident: derive
+                Ident:
+                - derive
                 span: 1:25-31
               args:
               - Binary:
                   left:
-                    Ident: album_id
+                    Ident:
+                    - album_id
                     span: 1:36-44
                   op: Add
                   right:
@@ -272,22 +276,27 @@ ast:
             span: 1:25-48
           - FuncCall:
               name:
-                Ident: group
+                Ident:
+                - group
                 span: 1:49-54
               args:
-              - Ident: d
+              - Ident:
+                - d
                 span: 1:55-56
               - FuncCall:
                   name:
-                    Ident: aggregate
+                    Ident:
+                    - aggregate
                     span: 1:63-72
                   args:
                   - Tuple:
                     - Pipeline:
                         exprs:
-                        - Ident: track_id
+                        - Ident:
+                          - track_id
                           span: 1:89-97
-                        - Ident: sum
+                        - Ident:
+                          - sum
                           span: 1:100-103
                       span: 1:88-104
                       alias: n1
@@ -296,15 +305,18 @@ ast:
             span: 1:49-113
           - FuncCall:
               name:
-                Ident: sort
+                Ident:
+                - sort
                 span: 1:114-118
               args:
-              - Ident: d
+              - Ident:
+                - d
                 span: 1:119-120
             span: 1:114-120
           - FuncCall:
               name:
-                Ident: take
+                Ident:
+                - take
                 span: 1:121-125
               args:
               - Literal:
@@ -313,14 +325,17 @@ ast:
             span: 1:121-128
           - FuncCall:
               name:
-                Ident: select
+                Ident:
+                - select
                 span: 1:129-135
               args:
               - Tuple:
-                - Ident: d
+                - Ident:
+                  - d
                   span: 1:143-144
                   alias: d1
-                - Ident: n1
+                - Ident:
+                  - n1
                   span: 1:146-148
                 span: 1:136-150
             span: 1:129-150

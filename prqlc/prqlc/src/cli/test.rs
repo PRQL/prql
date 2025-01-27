@@ -471,21 +471,26 @@ fn debug() {
               exprs:
               - FuncCall:
                   name:
-                    Ident: from
+                    Ident:
+                    - from
                     span: 1:0-4
                   args:
-                  - Ident: tracks
+                  - Ident:
+                    - tracks
                     span: 1:5-11
                 span: 1:0-11
               - FuncCall:
                   name:
-                    Ident: select
+                    Ident:
+                    - select
                     span: 1:14-20
                   args:
                   - Tuple:
-                    - Ident: artist
+                    - Ident:
+                      - artist
                       span: 1:22-28
-                    - Ident: album
+                    - Ident:
+                      - album
                       span: 1:30-35
                     span: 1:21-36
                 span: 1:14-36

@@ -6,7 +6,7 @@ use serde::{Deserialize, Serialize};
 
 use crate::lexer::lr::Literal;
 use crate::parser::pr::ops::{BinOp, UnOp};
-use crate::parser::pr::Ty;
+use crate::parser::pr::{Ident, Ty};
 use crate::span::Span;
 use crate::{generic, parser::SupportsDocComment};
 
@@ -53,14 +53,8 @@ impl SupportsDocComment for Expr {
     Debug, EnumAsInner, PartialEq, Clone, Serialize, Deserialize, strum::AsRefStr, JsonSchema,
 )]
 pub enum ExprKind {
-    Ident(String),
+    Ident(Ident),
 
-    /// A lookup into an object by name or position.
-    /// Currently, this includes only tuple field lookups, primarily by name.
-    Indirection {
-        base: Box<Expr>,
-        field: IndirectionKind,
-    },
     #[cfg_attr(
         feature = "serde_yaml",
         serde(with = "serde_yaml::with::singleton_map"),
