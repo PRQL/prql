@@ -5455,8 +5455,6 @@ fn test_import() {
 }
 
 #[test]
-// Currently not working
-#[should_panic]
 fn unstable_ordering() {
     // https://github.com/PRQL/prql/issues/5053
     assert_snapshot!(compile(r###"
@@ -5478,5 +5476,31 @@ derive { d = c }
 select !{ c } 
 
 group { d } ( aggregate { b = sum b } ) 
-sort { d }"###).unwrap(), @"");
+sort { d }"###).unwrap(), @r#"
+    WITH table_1 AS (
+      SELECT
+        b
+      FROM
+        foo
+      LIMIT
+        10000
+    ), table_0 AS (
+      SELECT
+        b,
+        COUNT(*) AS _expr_0
+      FROM
+        table_1
+      GROUP BY
+        b
+    )
+    SELECT
+      _expr_0 AS d,
+      COALESCE(SUM(b), 0) AS b
+    FROM
+      table_0
+    GROUP BY
+      _expr_0
+    ORDER BY
+      d
+    "#);
 }
