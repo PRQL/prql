@@ -9,7 +9,6 @@ use crate::lexer::lr::TokenKind;
 pub(crate) fn type_expr() -> impl Parser<TokenKind, Ty, Error = PError> + Clone {
     recursive(|nested_type_expr| {
         let basic = select! {
-            TokenKind::Literal(lit) => TyKind::Singleton(lit),
             TokenKind::Ident(i) if i == "int"=> TyKind::Primitive(PrimitiveSet::Int),
             TokenKind::Ident(i) if i == "float"=> TyKind::Primitive(PrimitiveSet::Float),
             TokenKind::Ident(i) if i == "bool"=> TyKind::Primitive(PrimitiveSet::Bool),

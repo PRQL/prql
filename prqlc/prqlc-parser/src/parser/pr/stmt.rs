@@ -70,7 +70,7 @@ pub struct VarDef {
 #[derive(Debug, PartialEq, Clone, Serialize, Deserialize, JsonSchema)]
 pub struct TypeDef {
     pub name: String,
-    pub value: Option<Ty>,
+    pub value: Ty,
 }
 
 #[derive(Debug, PartialEq, Clone, Serialize, Deserialize, JsonSchema)]

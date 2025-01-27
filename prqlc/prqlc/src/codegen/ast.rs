@@ -457,11 +457,8 @@ impl WriteSource for pr::Stmt {
             },
             pr::StmtKind::TypeDef(type_def) => {
                 r += opt.consume(&format!("type {}", type_def.name))?;
-
-                if let Some(ty) = &type_def.value {
-                    r += opt.consume(" = ")?;
-                    r += &ty.kind.write(opt)?;
-                }
+                r += opt.consume(" = ")?;
+                r += &type_def.value.kind.write(opt)?;
                 r += "\n";
             }
             pr::StmtKind::ModuleDef(module_def) => {

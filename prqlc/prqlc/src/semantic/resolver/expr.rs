@@ -318,10 +318,9 @@ fn ty_of_lineage(lineage: &pl::Lineage) -> Ty {
             .iter()
             .map(|col| match col {
                 pl::LineageColumn::All { .. } => TyTupleField::Wildcard(None),
-                pl::LineageColumn::Single { name, .. } => TyTupleField::Single(
-                    name.as_ref().map(|i| i.name.clone()),
-                    Some(Ty::new(pl::Literal::Null)),
-                ),
+                pl::LineageColumn::Single { name, .. } => {
+                    TyTupleField::Single(name.as_ref().map(|i| i.name.clone()), None)
+                }
             })
             .collect(),
     )

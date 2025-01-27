@@ -7,7 +7,7 @@ use super::{
 use crate::ir::decl::{Decl, DeclKind, Module, RootModule, TableDecl, TableExpr};
 use crate::ir::pl::{Annotation, Expr, Ident, Lineage, LineageColumn};
 use crate::pr::QueryDef;
-use crate::pr::{Literal, Span, Ty, TyKind, TyTupleField};
+use crate::pr::{Span, Ty, TyKind, TyTupleField};
 use crate::Error;
 use crate::Result;
 
@@ -527,10 +527,9 @@ pub fn ty_of_lineage(lineage: &Lineage) -> Ty {
             .iter()
             .map(|col| match col {
                 LineageColumn::All { .. } => TyTupleField::Wildcard(None),
-                LineageColumn::Single { name, .. } => TyTupleField::Single(
-                    name.as_ref().map(|i| i.name.clone()),
-                    Some(Ty::new(Literal::Null)),
-                ),
+                LineageColumn::Single { name, .. } => {
+                    TyTupleField::Single(name.as_ref().map(|i| i.name.clone()), None)
+                }
             })
             .collect(),
     )
@@ -538,6 +537,8 @@ pub fn ty_of_lineage(lineage: &Lineage) -> Ty {
 
 #[cfg(test)]
 mod tests {
+    use prqlc_parser::lexer::lr::Literal;
+
     use super::*;
     use crate::ir::pl::ExprKind;
 

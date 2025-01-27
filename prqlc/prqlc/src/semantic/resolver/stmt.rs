@@ -30,13 +30,7 @@ impl super::Resolver<'_> {
                 }
                 StmtKind::VarDef(var_def) => self.fold_var_def(var_def)?,
                 StmtKind::TypeDef(ty_def) => {
-                    let value = if let Some(value) = ty_def.value {
-                        value
-                    } else {
-                        Ty::new(Literal::Null)
-                    };
-
-                    let mut ty = fold_type_opt(self, Some(value))?.unwrap();
+                    let mut ty = self.fold_type(ty_def.value)?;
                     ty.name = Some(ident.name.clone());
 
                     let decl = DeclKind::Ty(ty);

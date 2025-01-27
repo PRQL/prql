@@ -530,10 +530,7 @@ fn restrict_decl(name: String, value: decl::Decl) -> Option<pr::Stmt> {
             ty: expr.ty.take(),
             value: Some(restrict_expr_box(expr)),
         }),
-        decl::DeclKind::Ty(ty) => pr::StmtKind::TypeDef(pr::TypeDef {
-            name,
-            value: Some(ty),
-        }),
+        decl::DeclKind::Ty(ty) => pr::StmtKind::TypeDef(pr::TypeDef { name, value: ty }),
         decl::DeclKind::QueryDef(query_def) => pr::StmtKind::QueryDef(Box::new(query_def)),
         decl::DeclKind::Import(ident) => pr::StmtKind::ImportDef(pr::ImportDef {
             alias: Some(name),
