@@ -2,7 +2,6 @@
 //!
 pub use prqlc_parser::span::Span;
 
-pub mod constant;
 pub mod decl;
 pub mod generic;
 pub mod pl;

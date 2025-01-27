@@ -104,15 +104,15 @@ fn find_database_module(root_module: &mut RootModule) -> Result<DatabaseModule, 
         _ => unreachable!(),
     };
 
-    let params = prqlc::semantic::static_eval(arg.clone(), root_module)?;
-    let prqlc::ir::constant::ConstExprKind::Tuple(params) = params.kind else {
+    let params = arg.clone();
+    let prqlc::ir::pl::ExprKind::Tuple(params) = params.kind else {
         return Err(Error::new_simple("expected exactly one argument")
             .with_span(params.span)
             .into());
     };
 
     let file = params.into_iter().next().unwrap();
-    let prqlc::ir::constant::ConstExprKind::Literal(Literal::String(file_str)) = file.kind else {
+    let prqlc::ir::pl::ExprKind::Literal(Literal::String(file_str)) = file.kind else {
         return Err(Error::new_simple("expected a string")
             .with_span(file.span)
             .into());

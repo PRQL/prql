@@ -1,8 +1,8 @@
 use std::collections::{HashMap, HashSet};
 
 use super::{
-    NS_DEFAULT_DB, NS_GENERIC, NS_INFER, NS_INFER_MODULE, NS_MAIN, NS_PARAM, NS_QUERY_DEF, NS_SELF,
-    NS_STD, NS_THAT, NS_THIS,
+    NS_DEFAULT_DB, NS_INFER, NS_INFER_MODULE, NS_MAIN, NS_PARAM, NS_QUERY_DEF, NS_SELF, NS_STD,
+    NS_THAT, NS_THIS,
 };
 use crate::ir::decl::{Decl, DeclKind, Module, RootModule, TableDecl, TableExpr};
 use crate::ir::pl::{Annotation, Expr, Ident, Lineage, LineageColumn};
@@ -36,7 +36,6 @@ impl Module {
                 Ident::from_name(NS_THAT),
                 Ident::from_name(NS_PARAM),
                 Ident::from_name(NS_STD),
-                Ident::from_name(NS_GENERIC),
             ],
         }
     }

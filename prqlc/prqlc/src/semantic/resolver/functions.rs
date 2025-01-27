@@ -8,7 +8,7 @@ use crate::ir::decl::{Decl, DeclKind, Module};
 use crate::ir::pl::*;
 use crate::pr::{Ty, TyFunc};
 use crate::semantic::resolver::types;
-use crate::semantic::{NS_GENERIC, NS_PARAM, NS_THAT, NS_THIS};
+use crate::semantic::{NS_PARAM, NS_THAT, NS_THIS};
 use crate::Result;
 use crate::{Error, Span, WithErrorInfo};
 
@@ -149,7 +149,6 @@ impl Resolver<'_> {
     }
 
     /// Folds function types, so they are resolved to material types, ready for type checking.
-    /// Requires id of the function call node, so it can be used to generic type arguments.
     pub fn fold_function_types(&mut self, mut func: Box<Func>) -> Result<Box<Func>> {
         func.params = func
             .params
@@ -162,8 +161,6 @@ impl Resolver<'_> {
             })
             .try_collect()?;
         func.return_ty = fold_type_opt(self, func.return_ty)?;
-
-        self.root_mod.module.names.remove(NS_GENERIC);
         Ok(func)
     }
 

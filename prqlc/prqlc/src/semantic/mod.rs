@@ -12,9 +12,8 @@ pub use lowering::lower_to_ir;
 
 use self::resolver::Resolver;
 pub use self::resolver::ResolverOptions;
-use crate::ir::constant::ConstExpr;
 use crate::ir::decl::{Module, RootModule};
-use crate::ir::pl::{self, Expr, ImportDef, ModuleDef, Stmt, StmtKind, TypeDef, VarDef};
+use crate::ir::pl::{self, ImportDef, ModuleDef, Stmt, StmtKind, TypeDef, VarDef};
 use crate::ir::rq::RelationalQuery;
 use crate::parser::is_mod_def_for;
 use crate::pr;
@@ -85,12 +84,6 @@ pub fn load_std_lib(module_tree: &mut pr::ModuleDef) {
     }
 }
 
-pub fn static_eval(expr: Expr, root_mod: &mut RootModule) -> Result<ConstExpr> {
-    let mut resolver = Resolver::new(root_mod);
-
-    resolver.static_eval_to_constant(expr)
-}
-
 pub fn is_ident_or_func_call(expr: &pl::Expr, name: &pr::Ident) -> bool {
     match &expr.kind {
         pl::ExprKind::Ident(i) if i == name => true,
@@ -119,8 +112,6 @@ pub const NS_INFER: &str = "_infer";
 
 // implies we can infer new module declarations in the containing module
 pub const NS_INFER_MODULE: &str = "_infer_module";
-
-pub const NS_GENERIC: &str = "_generic";
 
 impl Stmt {
     pub fn new(kind: StmtKind) -> Stmt {
