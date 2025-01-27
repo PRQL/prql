@@ -1,9 +1,7 @@
-use itertools::Itertools;
-
 use super::Resolver;
 use crate::codegen::{write_ty, write_ty_kind};
 use crate::ir::pl::*;
-use crate::pr::{PrimitiveSet, Ty, TyFunc, TyKind, TyTupleField};
+use crate::pr::{PrimitiveSet, Ty, TyKind, TyTupleField};
 use crate::Result;
 use crate::{Error, Reason, WithErrorInfo};
 
@@ -73,13 +71,6 @@ impl Resolver<'_> {
                 // TODO verify that types of all items are the same
                 let items_ty = item_tys.into_iter().next().map(Box::new);
                 TyKind::Array(items_ty)
-            }
-
-            ExprKind::All { within, except } => {
-                let base = Box::new(Resolver::infer_type(within)?.unwrap());
-                let exclude = Box::new(Resolver::infer_type(except)?.unwrap());
-
-                TyKind::Difference { base, exclude }
             }
 
             _ => return Ok(None),
@@ -167,87 +158,7 @@ impl Resolver<'_> {
             return Ok(());
         }
 
-        // if type is a generic, infer the constraint
-        if let TyKind::GenericArg(generic_id) = &expected.kind {
-            let domain = std::mem::take(self.generics.get_mut(generic_id).unwrap());
-
-            let (new_domain, _rejected): (Vec<_>, _) = domain
-                .into_iter()
-                .partition(|possible_type| is_super_type_of(possible_type, found));
-
-            if new_domain.is_empty() {
-                return Err(Error::new_simple(
-                    "this argument does not match any of the generic types",
-                ));
-            }
-
-            // infer the new constraint
-            *self.generics.get_mut(generic_id).unwrap() = new_domain;
-            return Ok(());
-        }
-
         Err(compose_type_error(found, expected, who))
-    }
-
-    pub fn resolve_generic_args(&mut self, mut ty: Ty) -> Result<Ty, Error> {
-        ty.kind = match ty.kind {
-            // the meaningful part
-            TyKind::GenericArg(id) => {
-                let domain = self.generics.remove(&id).unwrap();
-
-                if domain.len() > 1 {
-                    return Err(Error::new_simple(
-                        "cannot determine the type of generic arg",
-                    ));
-                }
-                // there will always be at least one, since we will never restrict to an empty domain
-                return Ok(domain.into_iter().next().unwrap());
-            }
-
-            // recurse into container types
-            // this could probably be implemented with folding, but I don't want another full fold impl
-            TyKind::Tuple(fields) => TyKind::Tuple(
-                fields
-                    .into_iter()
-                    .map(|field| -> Result<_, Error> {
-                        Ok(match field {
-                            TyTupleField::Single(name, ty) => {
-                                TyTupleField::Single(name, self.resolve_generic_args_opt(ty)?)
-                            }
-                            TyTupleField::Wildcard(ty) => {
-                                TyTupleField::Wildcard(self.resolve_generic_args_opt(ty)?)
-                            }
-                        })
-                    })
-                    .try_collect()?,
-            ),
-            TyKind::Array(ty) => {
-                TyKind::Array(Some(Box::new(self.resolve_generic_args(*ty.unwrap())?)))
-            }
-            TyKind::Function(func) => TyKind::Function(
-                func.map(|f| -> Result<_, Error> {
-                    Ok(TyFunc {
-                        params: f
-                            .params
-                            .into_iter()
-                            .map(|a| self.resolve_generic_args_opt(a))
-                            .try_collect()?,
-                        return_ty: self
-                            .resolve_generic_args_opt(f.return_ty.map(|x| *x))?
-                            .map(Box::new),
-                        name_hint: f.name_hint,
-                    })
-                })
-                .transpose()?,
-            ),
-
-            _ => ty.kind,
-        };
-        Ok(ty)
-    }
-
-    pub fn resolve_generic_args_opt(&mut self, ty: Option<Ty>) -> Result<Option<Ty>, Error> {
-        ty.map(|x| self.resolve_generic_args(x)).transpose()
     }
 }
 
@@ -472,18 +383,6 @@ fn maybe_type_intersection(a: Option<Ty>, b: Option<Ty>) -> Option<Ty> {
 
 pub fn type_intersection(a: Ty, b: Ty) -> Ty {
     match (a.kind, b.kind) {
-        // difference
-        (TyKind::Difference { base, exclude }, b_kind) => {
-            let b = Ty { kind: b_kind, ..b };
-            let base = Box::new(type_intersection(*base, b));
-            Ty::new(TyKind::Difference { base, exclude })
-        }
-        (a_kind, TyKind::Difference { base, exclude }) => {
-            let a = Ty { kind: a_kind, ..a };
-            let base = Box::new(type_intersection(a, *base));
-            Ty::new(TyKind::Difference { base, exclude })
-        }
-
         (a_kind, b_kind) if a_kind == b_kind => Ty { kind: a_kind, ..a },
 
         // tuple

@@ -67,7 +67,6 @@ pub fn expand_expr(expr: pr::Expr) -> Result<pl::Expr> {
                 name_hint: None,
                 args: Vec::new(),
                 env: HashMap::new(),
-                generic_type_params: v.generic_type_params,
             }
             .into(),
         ),
@@ -347,7 +346,6 @@ fn restrict_expr_kind(value: pl::ExprKind) -> pr::ExprKind {
                     body: restrict_expr_box(v.body),
                     params: restrict_func_params(v.params),
                     named_params: restrict_func_params(v.named_params),
-                    generic_type_params: v.generic_type_params,
                 }
                 .into(),
             );

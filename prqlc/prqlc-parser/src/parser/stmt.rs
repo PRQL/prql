@@ -551,7 +551,6 @@ mod tests {
                       name: ~
                     default_value: ~
                 named_params: []
-                generic_type_params: []
               span: "0:21-57"
           span: "0:0-57"
         "#);
@@ -584,7 +583,6 @@ mod tests {
                             name: ~
                           default_value: ~
                       named_params: []
-                      generic_type_params: []
                     span: "0:41-77"
                 span: "0:20-77"
               - VarDef:
@@ -606,7 +604,6 @@ mod tests {
                             name: ~
                           default_value: ~
                       named_params: []
-                      generic_type_params: []
                     span: "0:98-133"
                 span: "0:77-133"
           span: "0:0-139"

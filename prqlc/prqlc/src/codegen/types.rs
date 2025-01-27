@@ -59,12 +59,6 @@ impl WriteSource for pr::TyKind {
                 r += &func.return_ty.as_deref().write(opt)?;
                 Some(r)
             }
-            Difference { base, exclude } => {
-                let base = base.write(opt.clone())?;
-                let exclude = exclude.write(opt.clone())?;
-                Some(format!("{base} - {exclude}"))
-            }
-            GenericArg(_) => Some("?".to_string()),
         }
     }
 }

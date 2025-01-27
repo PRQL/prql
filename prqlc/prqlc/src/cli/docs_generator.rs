@@ -130,15 +130,6 @@ pub fn generate_html_docs(stmts: Vec<Stmt>) -> String {
         if let Some(expr) = &var_def.value {
             match &expr.kind {
                 ExprKind::Func(func) => {
-                    if !func.generic_type_params.is_empty() {
-                        docs.push_str("  <h4 class=\"h6\">Type parameters</h4>\n");
-                        docs.push_str("  <ul>\n");
-                        for param in &func.generic_type_params {
-                            docs.push_str(&format!("    <li><var>{}</var></li>\n", param.name));
-                        }
-                        docs.push_str("  </ul>\n");
-                    }
-
                     if !func.params.is_empty() {
                         docs.push_str("  <h4 class=\"h6\">Parameters</h4>\n");
                         docs.push_str("  <ul>\n");
@@ -284,14 +275,6 @@ Generated with [prqlc](https://prql-lang.org/) {}.
         if let Some(expr) = &var_def.value {
             match &expr.kind {
                 ExprKind::Func(func) => {
-                    if !func.generic_type_params.is_empty() {
-                        docs.push_str("#### Type Parameters\n");
-                        for param in &func.generic_type_params {
-                            docs.push_str(&format!("* *{}*\n", param.name));
-                        }
-                        docs.push('\n');
-                    }
-
                     if !func.params.is_empty() {
                         docs.push_str("#### Parameters\n");
                         for param in &func.params {

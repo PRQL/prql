@@ -7,7 +7,7 @@ use serde::{Deserialize, Serialize};
 
 use super::{Lineage, TransformCall};
 use crate::codegen::write_ty;
-use crate::pr::{GenericTypeParam, Ident, Literal, Span, Ty};
+use crate::pr::{Ident, Literal, Span, Ty};
 
 /// Expr is anything that has a value and thus a type.
 /// Most of these can contain other [Expr] themselves; literals should be [ExprKind::Literal].
@@ -111,9 +111,6 @@ pub struct Func {
 
     /// Named function parameters.
     pub named_params: Vec<FuncParam>,
-
-    /// Generic type arguments within this function.
-    pub generic_type_params: Vec<GenericTypeParam>,
 
     /// Arguments that have already been provided.
     pub args: Vec<Expr>,
