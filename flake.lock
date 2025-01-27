@@ -2,9 +2,7 @@
   "nodes": {
     "fenix": {
       "inputs": {
-        "nixpkgs": [
-          "nixpkgs"
-        ],
+        "nixpkgs": ["nixpkgs"],
         "rust-analyzer-src": "rust-analyzer-src"
       },
       "locked": {
@@ -41,15 +39,9 @@
     },
     "hyperlink": {
       "inputs": {
-        "flake-utils": [
-          "flake-utils"
-        ],
-        "naersk": [
-          "naersk"
-        ],
-        "nixpkgs": [
-          "nixpkgs"
-        ]
+        "flake-utils": ["flake-utils"],
+        "naersk": ["naersk"],
+        "nixpkgs": ["nixpkgs"]
       },
       "locked": {
         "lastModified": 1692898646,
@@ -67,15 +59,9 @@
     },
     "mdbook-footnote": {
       "inputs": {
-        "flake-utils": [
-          "flake-utils"
-        ],
-        "naersk": [
-          "naersk"
-        ],
-        "nixpkgs": [
-          "nixpkgs"
-        ]
+        "flake-utils": ["flake-utils"],
+        "naersk": ["naersk"],
+        "nixpkgs": ["nixpkgs"]
       },
       "locked": {
         "lastModified": 1692893171,
