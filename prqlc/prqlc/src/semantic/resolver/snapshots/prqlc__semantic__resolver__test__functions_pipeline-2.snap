@@ -1,7 +1,6 @@
 ---
 source: prqlc/prqlc/src/semantic/resolver/mod.rs
 expression: "resolve_derive(r#\"\n            let plus_one = x -> x + 1\n            let plus = x y -> x + y\n\n            from a\n            derive {b = (sum foo | plus_one | plus 2)}\n            \"#).unwrap()"
-snapshot_kind: text
 ---
 - RqOperator:
     name: std.add
@@ -27,28 +26,10 @@ snapshot_kind: text
                     span: "1:124-127"
                     ty:
                       kind:
-                        Array:
-                          kind: Any
-                          span: "0:1929-1936"
-                          name: ~
-                      span: "0:1928-1937"
+                        Array: ~
+                      span: "0:1699-1701"
                       name: array
               span: "1:120-127"
-              ty:
-                kind:
-                  Union:
-                    - - ~
-                      - kind:
-                          Primitive: Int
-                        span: "0:4123-4126"
-                        name: ~
-                    - - ~
-                      - kind:
-                          Primitive: Float
-                        span: "0:4130-4135"
-                        name: ~
-                span: "0:4123-4135"
-                name: ~
             - Literal:
                 Integer: 1
               span: "1:37-38"
@@ -58,55 +39,5 @@ snapshot_kind: text
                 span: ~
                 name: ~
         span: "1:130-138"
-        ty:
-          kind:
-            Union:
-              - - ~
-                - kind:
-                    Primitive: Int
-                  span: "0:893-896"
-                  name: ~
-              - - ~
-                - kind:
-                    Primitive: Float
-                  span: "0:900-905"
-                  name: ~
-              - - ~
-                - kind:
-                    Primitive: Timestamp
-                  span: "0:909-918"
-                  name: ~
-              - - ~
-                - kind:
-                    Primitive: Date
-                  span: "0:922-926"
-                  name: ~
-          span: "0:893-926"
-          name: ~
   span: "1:141-147"
   alias: b
-  ty:
-    kind:
-      Union:
-        - - ~
-          - kind:
-              Primitive: Int
-            span: "0:893-896"
-            name: ~
-        - - ~
-          - kind:
-              Primitive: Float
-            span: "0:900-905"
-            name: ~
-        - - ~
-          - kind:
-              Primitive: Timestamp
-            span: "0:909-918"
-            name: ~
-        - - ~
-          - kind:
-              Primitive: Date
-            span: "0:922-926"
-            name: ~
-    span: "0:893-926"
-    name: ~

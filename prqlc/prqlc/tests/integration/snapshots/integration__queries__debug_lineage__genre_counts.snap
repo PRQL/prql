@@ -2,7 +2,6 @@
 source: prqlc/prqlc/tests/integration/queries.rs
 expression: "# clickhouse:skip (ClickHouse prefers aliases to column names https://github.com/PRQL/prql/issues/2827)\n# mssql:test\nlet genre_count = (\n    from genres\n    aggregate {a = count name}\n)\n\nfrom genre_count\nfilter a > 0\nselect a = -a\n"
 input_file: prqlc/prqlc/tests/integration/queries/genre_counts.prql
-snapshot_kind: text
 ---
 frames:
 - - 1:204-216
@@ -11,10 +10,10 @@ frames:
       name:
       - genre_count
       - a
-      target_id: 136
+      target_id: 133
       target_name: a
     inputs:
-    - id: 136
+    - id: 133
       name: genre_count
       table:
       - genre_count
@@ -23,28 +22,28 @@ frames:
     - !Single
       name:
       - a
-      target_id: 143
+      target_id: 140
       target_name: null
     inputs:
-    - id: 136
+    - id: 133
       name: genre_count
       table:
       - genre_count
 nodes:
-- id: 136
+- id: 133
   kind: Ident
   span: 1:187-203
   ident: !Ident
   - genre_count
-  parent: 142
-- id: 138
+  parent: 139
+- id: 135
   kind: RqOperator
   span: 1:211-216
   targets:
-  - 140
-  - 141
-  parent: 142
-- id: 140
+  - 137
+  - 138
+  parent: 139
+- id: 137
   kind: Ident
   span: 1:211-212
   ident: !Ident
@@ -52,25 +51,25 @@ nodes:
   - genre_count
   - a
   targets:
-  - 136
-- id: 141
+  - 133
+- id: 138
   kind: Literal
   span: 1:215-216
-- id: 142
+- id: 139
   kind: 'TransformCall: Filter'
   span: 1:204-216
   children:
-  - 136
-  - 138
-  parent: 147
-- id: 143
+  - 133
+  - 135
+  parent: 144
+- id: 140
   kind: RqOperator
   span: 1:228-230
   alias: a
   targets:
-  - 145
-  parent: 146
-- id: 145
+  - 142
+  parent: 143
+- id: 142
   kind: Ident
   span: 1:229-230
   ident: !Ident
@@ -78,19 +77,19 @@ nodes:
   - genre_count
   - a
   targets:
-  - 136
-- id: 146
+  - 133
+- id: 143
   kind: Tuple
   span: 1:228-230
   children:
-  - 143
-  parent: 147
-- id: 147
+  - 140
+  parent: 144
+- id: 144
   kind: 'TransformCall: Select'
   span: 1:217-230
   children:
-  - 142
-  - 146
+  - 139
+  - 143
 ast:
   name: Project
   stmts:

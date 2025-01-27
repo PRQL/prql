@@ -2,16 +2,15 @@
 source: prqlc/prqlc/tests/integration/queries.rs
 expression: "# mssql:test\nfrom e=employees\nfilter first_name != \"Mitchell\"\nsort {first_name, last_name}\n\n# joining may use HashMerge, which can undo ORDER BY\njoin manager=employees side:left (e.reports_to == manager.employee_id)\n\nselect {e.first_name, e.last_name, manager.first_name}\n"
 input_file: prqlc/prqlc/tests/integration/queries/sort.prql
-snapshot_kind: text
 ---
 frames:
 - - 1:30-61
   - columns:
     - !All
-      input_id: 128
+      input_id: 125
       except: []
     inputs:
-    - id: 128
+    - id: 125
       name: e
       table:
       - default_db
@@ -19,10 +18,10 @@ frames:
 - - 1:62-90
   - columns:
     - !All
-      input_id: 128
+      input_id: 125
       except: []
     inputs:
-    - id: 128
+    - id: 125
       name: e
       table:
       - default_db
@@ -30,18 +29,18 @@ frames:
 - - 1:145-215
   - columns:
     - !All
-      input_id: 128
+      input_id: 125
       except: []
     - !All
-      input_id: 119
+      input_id: 116
       except: []
     inputs:
-    - id: 128
+    - id: 125
       name: e
       table:
       - default_db
       - employees
-    - id: 119
+    - id: 116
       name: manager
       table:
       - default_db
@@ -50,54 +49,54 @@ frames:
   - columns:
     - !Single
       name: null
-      target_id: 144
+      target_id: 141
       target_name: null
     - !Single
       name:
       - e
       - last_name
-      target_id: 145
+      target_id: 142
       target_name: null
     - !Single
       name:
       - manager
       - first_name
-      target_id: 146
+      target_id: 143
       target_name: null
     inputs:
-    - id: 128
+    - id: 125
       name: e
       table:
       - default_db
       - employees
-    - id: 119
+    - id: 116
       name: manager
       table:
       - default_db
       - employees
 nodes:
-- id: 119
+- id: 116
   kind: Ident
   span: 1:158-167
   ident: !Ident
   - default_db
   - employees
-  parent: 143
-- id: 128
+  parent: 140
+- id: 125
   kind: Ident
   span: 1:13-29
   ident: !Ident
   - default_db
   - employees
-  parent: 134
-- id: 130
+  parent: 131
+- id: 127
   kind: RqOperator
   span: 1:37-61
   targets:
-  - 132
-  - 133
-  parent: 134
-- id: 132
+  - 129
+  - 130
+  parent: 131
+- id: 129
   kind: Ident
   span: 1:37-47
   ident: !Ident
@@ -105,18 +104,18 @@ nodes:
   - e
   - first_name
   targets:
-  - 128
-- id: 133
+  - 125
+- id: 130
   kind: Literal
   span: 1:51-61
-- id: 134
+- id: 131
   kind: 'TransformCall: Filter'
   span: 1:30-61
   children:
-  - 128
-  - 130
-  parent: 138
-- id: 135
+  - 125
+  - 127
+  parent: 135
+- id: 132
   kind: Ident
   span: 1:68-78
   ident: !Ident
@@ -124,9 +123,9 @@ nodes:
   - e
   - first_name
   targets:
-  - 128
-  parent: 138
-- id: 136
+  - 125
+  parent: 135
+- id: 133
   kind: Ident
   span: 1:80-89
   ident: !Ident
@@ -134,24 +133,24 @@ nodes:
   - e
   - last_name
   targets:
-  - 128
-  parent: 138
-- id: 138
+  - 125
+  parent: 135
+- id: 135
   kind: 'TransformCall: Sort'
   span: 1:62-90
   children:
-  - 134
-  - 135
-  - 136
-  parent: 143
-- id: 139
+  - 131
+  - 132
+  - 133
+  parent: 140
+- id: 136
   kind: RqOperator
   span: 1:179-214
   targets:
-  - 141
-  - 142
-  parent: 143
-- id: 141
+  - 138
+  - 139
+  parent: 140
+- id: 138
   kind: Ident
   span: 1:180-191
   ident: !Ident
@@ -159,8 +158,8 @@ nodes:
   - e
   - reports_to
   targets:
-  - 128
-- id: 142
+  - 125
+- id: 139
   kind: Ident
   span: 1:202-214
   ident: !Ident
@@ -168,16 +167,16 @@ nodes:
   - manager
   - employee_id
   targets:
-  - 119
-- id: 143
+  - 116
+- id: 140
   kind: 'TransformCall: Join'
   span: 1:145-215
   children:
-  - 138
-  - 119
-  - 139
-  parent: 148
-- id: 144
+  - 135
+  - 116
+  - 136
+  parent: 145
+- id: 141
   kind: Ident
   span: 1:225-237
   ident: !Ident
@@ -185,9 +184,9 @@ nodes:
   - e
   - first_name
   targets:
-  - 128
-  parent: 147
-- id: 145
+  - 125
+  parent: 144
+- id: 142
   kind: Ident
   span: 1:239-250
   ident: !Ident
@@ -195,9 +194,9 @@ nodes:
   - e
   - last_name
   targets:
-  - 128
-  parent: 147
-- id: 146
+  - 125
+  parent: 144
+- id: 143
   kind: Ident
   span: 1:252-270
   ident: !Ident
@@ -205,22 +204,22 @@ nodes:
   - manager
   - first_name
   targets:
-  - 119
-  parent: 147
-- id: 147
+  - 116
+  parent: 144
+- id: 144
   kind: Tuple
   span: 1:224-271
   children:
-  - 144
-  - 145
-  - 146
-  parent: 148
-- id: 148
+  - 141
+  - 142
+  - 143
+  parent: 145
+- id: 145
   kind: 'TransformCall: Select'
   span: 1:217-271
   children:
-  - 143
-  - 147
+  - 140
+  - 144
 ast:
   name: Project
   stmts:

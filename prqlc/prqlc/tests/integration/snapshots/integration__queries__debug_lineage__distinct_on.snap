@@ -2,7 +2,6 @@
 source: prqlc/prqlc/tests/integration/queries.rs
 expression: "# mssql:test\nfrom tracks\nselect {genre_id, media_type_id, album_id}\ngroup {genre_id, media_type_id} (sort {-album_id} | take 1)\nsort {-genre_id, media_type_id}\n"
 input_file: prqlc/prqlc/tests/integration/queries/distinct_on.prql
-snapshot_kind: text
 ---
 frames:
 - - 1:25-67
@@ -11,22 +10,22 @@ frames:
       name:
       - tracks
       - genre_id
-      target_id: 126
+      target_id: 123
       target_name: null
     - !Single
       name:
       - tracks
       - media_type_id
-      target_id: 127
+      target_id: 124
       target_name: null
     - !Single
       name:
       - tracks
       - album_id
-      target_id: 128
+      target_id: 125
       target_name: null
     inputs:
-    - id: 124
+    - id: 121
       name: tracks
       table:
       - default_db
@@ -37,22 +36,22 @@ frames:
       name:
       - tracks
       - genre_id
-      target_id: 131
+      target_id: 128
       target_name: null
     - !Single
       name:
       - tracks
       - media_type_id
-      target_id: 132
+      target_id: 129
       target_name: null
     - !Single
       name:
       - tracks
       - album_id
-      target_id: 128
+      target_id: 125
       target_name: null
     inputs:
-    - id: 124
+    - id: 121
       name: tracks
       table:
       - default_db
@@ -63,35 +62,35 @@ frames:
       name:
       - tracks
       - genre_id
-      target_id: 131
+      target_id: 128
       target_name: null
     - !Single
       name:
       - tracks
       - media_type_id
-      target_id: 132
+      target_id: 129
       target_name: null
     - !Single
       name:
       - tracks
       - album_id
-      target_id: 128
+      target_id: 125
       target_name: null
     inputs:
-    - id: 124
+    - id: 121
       name: tracks
       table:
       - default_db
       - tracks
 nodes:
-- id: 124
+- id: 121
   kind: Ident
   span: 1:13-24
   ident: !Ident
   - default_db
   - tracks
-  parent: 130
-- id: 126
+  parent: 127
+- id: 123
   kind: Ident
   span: 1:33-41
   ident: !Ident
@@ -99,9 +98,9 @@ nodes:
   - tracks
   - genre_id
   targets:
-  - 124
-  parent: 129
-- id: 127
+  - 121
+  parent: 126
+- id: 124
   kind: Ident
   span: 1:43-56
   ident: !Ident
@@ -109,9 +108,9 @@ nodes:
   - tracks
   - media_type_id
   targets:
-  - 124
-  parent: 129
-- id: 128
+  - 121
+  parent: 126
+- id: 125
   kind: Ident
   span: 1:58-66
   ident: !Ident
@@ -119,24 +118,24 @@ nodes:
   - tracks
   - album_id
   targets:
-  - 124
-  parent: 129
-- id: 129
+  - 121
+  parent: 126
+- id: 126
   kind: Tuple
   span: 1:32-67
   children:
-  - 126
-  - 127
-  - 128
-  parent: 130
-- id: 130
+  - 123
+  - 124
+  - 125
+  parent: 127
+- id: 127
   kind: 'TransformCall: Select'
   span: 1:25-67
   children:
-  - 124
-  - 129
-  parent: 162
-- id: 131
+  - 121
+  - 126
+  parent: 159
+- id: 128
   kind: Ident
   span: 1:75-83
   ident: !Ident
@@ -144,9 +143,9 @@ nodes:
   - tracks
   - genre_id
   targets:
-  - 126
-  parent: 133
-- id: 132
+  - 123
+  parent: 130
+- id: 129
   kind: Ident
   span: 1:85-98
   ident: !Ident
@@ -154,15 +153,15 @@ nodes:
   - tracks
   - media_type_id
   targets:
-  - 127
-  parent: 133
-- id: 133
+  - 124
+  parent: 130
+- id: 130
   kind: Tuple
   span: 1:74-99
   children:
-  - 131
-  - 132
-- id: 158
+  - 128
+  - 129
+- id: 155
   kind: Ident
   span: 1:108-116
   ident: !Ident
@@ -170,18 +169,18 @@ nodes:
   - tracks
   - album_id
   targets:
-  - 128
-- id: 162
+  - 125
+- id: 159
   kind: 'TransformCall: Take'
   span: 1:120-126
   children:
-  - 130
-  - 163
-  parent: 171
-- id: 163
+  - 127
+  - 160
+  parent: 168
+- id: 160
   kind: Literal
-  parent: 162
-- id: 168
+  parent: 159
+- id: 165
   kind: Ident
   span: 1:135-143
   ident: !Ident
@@ -189,9 +188,9 @@ nodes:
   - tracks
   - genre_id
   targets:
-  - 131
-  parent: 171
-- id: 169
+  - 128
+  parent: 168
+- id: 166
   kind: Ident
   span: 1:145-158
   ident: !Ident
@@ -199,15 +198,15 @@ nodes:
   - tracks
   - media_type_id
   targets:
-  - 132
-  parent: 171
-- id: 171
+  - 129
+  parent: 168
+- id: 168
   kind: 'TransformCall: Sort'
   span: 1:128-159
   children:
-  - 162
-  - 168
-  - 169
+  - 159
+  - 165
+  - 166
 ast:
   name: Project
   stmts:

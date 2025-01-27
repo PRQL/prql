@@ -2,32 +2,31 @@
 source: prqlc/prqlc/tests/integration/queries.rs
 expression: "# clickhouse:skip problems with DISTINCT ON\n# glaredb:skip — TODO: started raising an error on 2024-05-20, from https://github.com/PRQL/prql/actions/runs/9154902656/job/25198160283:\n    # ERROR: This feature is not implemented: Unsupported ast node in sqltorel:\n    # Substring { expr: Identifier(Ident { value: \"title\", quote_style: None }),\n    # substring_from: Some(Value(Number(\"2\", false))), substring_for:\n    # Some(Value(Number(\"5\", false))), special: true }\nfrom tracks\ngroup genre_id (\n  sort milliseconds\n  derive {\n    num = row_number this,\n    total = count this,\n    last_val = last track_id,\n  }\n  take 10\n)\nsort {genre_id, milliseconds}\nselect {track_id, genre_id, num, total, last_val}\nfilter genre_id >= 22\n"
 input_file: prqlc/prqlc/tests/integration/queries/window.prql
-snapshot_kind: text
 ---
 frames:
 - - 1:519-612
   - columns:
     - !All
-      input_id: 127
+      input_id: 124
       except:
       - genre_id
     - !Single
       name:
       - num
-      target_id: 165
+      target_id: 162
       target_name: null
     - !Single
       name:
       - total
-      target_id: 173
+      target_id: 170
       target_name: null
     - !Single
       name:
       - last_val
-      target_id: 175
+      target_id: 172
       target_name: null
     inputs:
-    - id: 127
+    - id: 124
       name: tracks
       table:
       - default_db
@@ -38,29 +37,29 @@ frames:
       name:
       - tracks
       - genre_id
-      target_id: 129
+      target_id: 126
       target_name: null
     - !All
-      input_id: 127
+      input_id: 124
       except:
       - genre_id
     - !Single
       name:
       - num
-      target_id: 165
+      target_id: 162
       target_name: null
     - !Single
       name:
       - total
-      target_id: 173
+      target_id: 170
       target_name: null
     - !Single
       name:
       - last_val
-      target_id: 175
+      target_id: 172
       target_name: null
     inputs:
-    - id: 127
+    - id: 124
       name: tracks
       table:
       - default_db
@@ -71,29 +70,29 @@ frames:
       name:
       - tracks
       - genre_id
-      target_id: 129
+      target_id: 126
       target_name: null
     - !All
-      input_id: 127
+      input_id: 124
       except:
       - genre_id
     - !Single
       name:
       - num
-      target_id: 165
+      target_id: 162
       target_name: null
     - !Single
       name:
       - total
-      target_id: 173
+      target_id: 170
       target_name: null
     - !Single
       name:
       - last_val
-      target_id: 175
+      target_id: 172
       target_name: null
     inputs:
-    - id: 127
+    - id: 124
       name: tracks
       table:
       - default_db
@@ -104,31 +103,31 @@ frames:
       name:
       - tracks
       - track_id
-      target_id: 189
+      target_id: 186
       target_name: null
     - !Single
       name:
       - tracks
       - genre_id
-      target_id: 190
+      target_id: 187
       target_name: null
     - !Single
       name:
       - num
-      target_id: 191
+      target_id: 188
       target_name: null
     - !Single
       name:
       - total
-      target_id: 192
+      target_id: 189
       target_name: null
     - !Single
       name:
       - last_val
-      target_id: 193
+      target_id: 190
       target_name: null
     inputs:
-    - id: 127
+    - id: 124
       name: tracks
       table:
       - default_db
@@ -139,44 +138,44 @@ frames:
       name:
       - tracks
       - track_id
-      target_id: 189
+      target_id: 186
       target_name: null
     - !Single
       name:
       - tracks
       - genre_id
-      target_id: 190
+      target_id: 187
       target_name: null
     - !Single
       name:
       - num
-      target_id: 191
+      target_id: 188
       target_name: null
     - !Single
       name:
       - total
-      target_id: 192
+      target_id: 189
       target_name: null
     - !Single
       name:
       - last_val
-      target_id: 193
+      target_id: 190
       target_name: null
     inputs:
-    - id: 127
+    - id: 124
       name: tracks
       table:
       - default_db
       - tracks
 nodes:
-- id: 127
+- id: 124
   kind: Ident
   span: 1:468-479
   ident: !Ident
   - default_db
   - tracks
-  parent: 179
-- id: 129
+  parent: 176
+- id: 126
   kind: Ident
   span: 1:486-494
   ident: !Ident
@@ -184,14 +183,14 @@ nodes:
   - tracks
   - genre_id
   targets:
-  - 127
-  parent: 138
-- id: 138
+  - 124
+  parent: 135
+- id: 135
   kind: Tuple
   span: 1:486-494
   children:
-  - 129
-- id: 157
+  - 126
+- id: 154
   kind: Ident
   span: 1:504-516
   ident: !Ident
@@ -199,33 +198,33 @@ nodes:
   - tracks
   - milliseconds
   targets:
-  - 127
-- id: 165
+  - 124
+- id: 162
   kind: RqOperator
   span: 1:538-553
   alias: num
   targets:
-  - 166
-  parent: 178
-- id: 166
+  - 163
+  parent: 175
+- id: 163
   kind: Literal
-- id: 173
+- id: 170
   kind: RqOperator
   span: 1:567-577
   alias: total
   targets:
-  - 174
-  parent: 178
-- id: 174
+  - 171
+  parent: 175
+- id: 171
   kind: Literal
-- id: 175
+- id: 172
   kind: RqOperator
   span: 1:594-607
   alias: last_val
   targets:
-  - 177
-  parent: 178
-- id: 177
+  - 174
+  parent: 175
+- id: 174
   kind: Ident
   span: 1:599-607
   ident: !Ident
@@ -233,33 +232,33 @@ nodes:
   - tracks
   - track_id
   targets:
-  - 127
-- id: 178
+  - 124
+- id: 175
   kind: Tuple
   span: 1:526-612
   children:
-  - 165
-  - 173
-  - 175
-  parent: 179
-- id: 179
+  - 162
+  - 170
+  - 172
+  parent: 176
+- id: 176
   kind: 'TransformCall: Derive'
   span: 1:519-612
   children:
-  - 127
-  - 178
-  parent: 181
-- id: 181
+  - 124
+  - 175
+  parent: 178
+- id: 178
   kind: 'TransformCall: Take'
   span: 1:615-622
   children:
+  - 176
   - 179
-  - 182
-  parent: 188
-- id: 182
+  parent: 185
+- id: 179
   kind: Literal
-  parent: 181
-- id: 185
+  parent: 178
+- id: 182
   kind: Ident
   span: 1:631-639
   ident: !Ident
@@ -267,9 +266,9 @@ nodes:
   - tracks
   - genre_id
   targets:
-  - 129
-  parent: 188
-- id: 186
+  - 126
+  parent: 185
+- id: 183
   kind: Ident
   span: 1:641-653
   ident: !Ident
@@ -277,17 +276,17 @@ nodes:
   - tracks
   - milliseconds
   targets:
-  - 127
-  parent: 188
-- id: 188
+  - 124
+  parent: 185
+- id: 185
   kind: 'TransformCall: Sort'
   span: 1:625-654
   children:
-  - 181
-  - 185
-  - 186
-  parent: 195
-- id: 189
+  - 178
+  - 182
+  - 183
+  parent: 192
+- id: 186
   kind: Ident
   span: 1:663-671
   ident: !Ident
@@ -295,9 +294,9 @@ nodes:
   - tracks
   - track_id
   targets:
-  - 127
-  parent: 194
-- id: 190
+  - 124
+  parent: 191
+- id: 187
   kind: Ident
   span: 1:673-681
   ident: !Ident
@@ -305,60 +304,60 @@ nodes:
   - tracks
   - genre_id
   targets:
-  - 129
-  parent: 194
-- id: 191
+  - 126
+  parent: 191
+- id: 188
   kind: Ident
   span: 1:683-686
   ident: !Ident
   - this
   - num
   targets:
-  - 165
-  parent: 194
-- id: 192
+  - 162
+  parent: 191
+- id: 189
   kind: Ident
   span: 1:688-693
   ident: !Ident
   - this
   - total
   targets:
-  - 173
-  parent: 194
-- id: 193
+  - 170
+  parent: 191
+- id: 190
   kind: Ident
   span: 1:695-703
   ident: !Ident
   - this
   - last_val
   targets:
-  - 175
-  parent: 194
-- id: 194
+  - 172
+  parent: 191
+- id: 191
   kind: Tuple
   span: 1:662-704
   children:
+  - 186
+  - 187
+  - 188
   - 189
   - 190
-  - 191
-  - 192
-  - 193
-  parent: 195
-- id: 195
+  parent: 192
+- id: 192
   kind: 'TransformCall: Select'
   span: 1:655-704
   children:
-  - 188
-  - 194
-  parent: 200
-- id: 196
+  - 185
+  - 191
+  parent: 197
+- id: 193
   kind: RqOperator
   span: 1:712-726
   targets:
-  - 198
-  - 199
-  parent: 200
-- id: 198
+  - 195
+  - 196
+  parent: 197
+- id: 195
   kind: Ident
   span: 1:712-720
   ident: !Ident
@@ -366,16 +365,16 @@ nodes:
   - tracks
   - genre_id
   targets:
-  - 190
-- id: 199
+  - 187
+- id: 196
   kind: Literal
   span: 1:724-726
-- id: 200
+- id: 197
   kind: 'TransformCall: Filter'
   span: 1:705-726
   children:
-  - 195
-  - 196
+  - 192
+  - 193
 ast:
   name: Project
   stmts:

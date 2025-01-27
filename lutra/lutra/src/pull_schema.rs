@@ -48,8 +48,8 @@ fn convert_arrow_schema_to_table_def(table_name: String, schema: SchemaRef) -> R
         kind: prqlc::pr::VarDefKind::Let,
         name: table_name,
         value: None,
-        ty: Some(Ty::new(TyKind::Array(Box::new(Ty::new(TyKind::Tuple(
-            fields,
+        ty: Some(Ty::new(TyKind::Array(Some(Box::new(Ty::new(
+            TyKind::Tuple(fields),
         )))))),
     };
 

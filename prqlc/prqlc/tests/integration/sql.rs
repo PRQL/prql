@@ -2551,7 +2551,7 @@ fn test_join_side_literal_err() {
 #[test]
 fn test_join_side_literal_via_func() {
     assert_snapshot!((compile(r###"
-    let my_join = func m <relation> c <scalar> s <text>:"right" tbl <relation> -> (
+    let my_join = func m <relation> c s <text>:"right" tbl <relation> -> (
         join side:_param.s m (c == that.k) tbl
     )
 
@@ -2570,7 +2570,7 @@ fn test_join_side_literal_via_func() {
 #[test]
 fn test_join_side_literal_via_func_err() {
     assert_snapshot!((compile(r###"
-    let my_join = func m <relation> c <scalar> s <text>:"right" tbl <relation> -> (
+    let my_join = func m <relation> c s <text>:"right" tbl <relation> -> (
         join side:_param.s m (c == that.k) tbl
     )
 
@@ -5502,5 +5502,20 @@ sort { d }"###).unwrap(), @r#"
       _expr_0
     ORDER BY
       d
+    "#);
+}
+
+#[test]
+fn test_type_error_placement() {
+    assert_snapshot!(compile(r###"
+    let foo = x -> (x | as integer)
+    from t
+    select (true && (foo y))
+    "###).unwrap(), @r#"
+    SELECT
+      true
+      AND CAST(y AS integer)
+    FROM
+      t
     "#);
 }

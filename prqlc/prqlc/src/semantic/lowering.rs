@@ -358,14 +358,15 @@ impl Lowerer {
                 let tid = self.tid.gen();
 
                 // pull columns from the table decl
-                let frame = expr.lineage.as_ref().unwrap();
-                let columns = (frame.columns.iter())
-                    .map(|c| {
-                        RelationColumn::Single(
-                            c.as_single().unwrap().0.as_ref().map(|i| i.name.clone()),
-                        )
+                let lineage = expr.lineage.as_ref().unwrap();
+                let columns: Vec<_> = (lineage.columns.iter())
+                    .map(|c| match c {
+                        LineageColumn::Single { name, .. } => Ok(RelationColumn::Single(
+                            name.as_ref().map(|i| i.name.clone()),
+                        )),
+                        LineageColumn::All { .. } => Err(Error::new_bug(4317)),
                     })
-                    .collect_vec();
+                    .try_collect()?;
 
                 let lit = RelationLiteral {
                     columns: columns
