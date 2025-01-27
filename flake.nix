@@ -31,14 +31,20 @@
 
         essentials = with pkgs; [
           # rust toolchain
-          (fenix_pkgs.stable.withComponents [
-            "cargo"
-            "clippy"
-            "rust-src"
-            "rustc"
-            "rustfmt"
-            "rust-analyzer"
-            "llvm-tools-preview"
+          (fenix_pkgs.combine [
+            (fenix_pkgs.fromToolchainFile {
+              file = ./rust-toolchain.toml;
+              sha256 = "sha256-s1RPtyvDGJaX/BisLT+ifVfuhDT1nZkZ1NcK8sbwELM=";
+            })
+            (fenix_pkgs.stable.withComponents [
+              "cargo"
+              "clippy"
+              "rust-src"
+              "rustc"
+              "rustfmt"
+              "rust-analyzer"
+              "llvm-tools-preview"
+            ])
           ])
 
           # tooling

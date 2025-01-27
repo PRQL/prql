@@ -1,4 +1,3 @@
-use std::cmp::Ordering;
 use std::collections::hash_map::RandomState;
 use std::collections::{HashMap, HashSet};
 
@@ -538,8 +537,8 @@ fn col_refs(exprs: Vec<&Expr>) -> Vec<CId> {
         .collect()
 }
 
-/// Pull Compose transforms in front of other transforms if possible.
-/// Position of Compose is important for two reasons:
+/// Pull Compute transforms in front of other transforms if possible.
+/// Position of Compute is important for two reasons:
 /// - when splitting pipelines, they provide information in which pipeline the
 ///   column is computed and subsequently, with which table name should be used
 ///   for name materialization.
@@ -550,30 +549,45 @@ pub(in crate::sql) fn reorder(mut pipeline: Vec<SqlTransform>) -> Vec<SqlTransfo
     use SqlTransform::Super;
     use Transform::*;
 
-    // reorder Compose
-    pipeline.sort_by(|a, b| match (a, b) {
-        // don't reorder with From or Join or itself
-        (
-            SqlTransform::From(_) | SqlTransform::Join { .. } | Super(Compute(_)),
-            SqlTransform::From(_) | SqlTransform::Join { .. } | Super(Compute(_)),
-        ) => Ordering::Equal,
-
-        // reorder always
-        (Super(Sort(_)), Super(Compute(_))) => Ordering::Greater,
-        (Super(Compute(_)), Super(Sort(_))) => Ordering::Less,
-
-        // reorder if col decl is plain
-        (Super(Take(_)), Super(Compute(decl))) if infer_complexity(decl) == Complexity::Plain => {
-            Ordering::Greater
-        }
-        (Super(Compute(decl)), Super(Take(_))) if infer_complexity(decl) == Complexity::Plain => {
-            Ordering::Less
+    // iter over Computes
+    for i in 1..pipeline.len() {
+        if !matches!(&pipeline[i], Super(Compute(_))) {
+            continue;
         }
 
-        // don't reorder by default
-        _ => Ordering::Equal,
-    });
+        // iter all preceding transforms
+        for j in 0..(i - 1) {
+            let compute_i = i - j;
+            let prev_i = compute_i - 1;
 
+            let compute = pipeline[compute_i]
+                .as_super()
+                .unwrap()
+                .as_compute()
+                .unwrap();
+            let prev = &pipeline[prev_i];
+
+            let should_swap = match prev {
+                // don't reorder with From or Join or another Compute
+                SqlTransform::From(_) | SqlTransform::Join { .. } | Super(Compute(_)) => false,
+
+                // reorder always
+                Super(Sort(_)) => true,
+
+                // reorder if col decl is plain
+                Super(Take(_)) if infer_complexity(compute) == Complexity::Plain => true,
+
+                // don't reorder by default
+                _ => false,
+            };
+
+            if should_swap {
+                pipeline.swap(compute_i, prev_i);
+            } else {
+                break;
+            }
+        }
+    }
     pipeline
 }
 
