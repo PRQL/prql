@@ -95,7 +95,6 @@ impl PqMapper<RelationExpr, RelationExpr, (), ()> for SortingInference<'_> {
         transforms: Vec<SqlTransform<RelationExpr, ()>>,
     ) -> Result<Vec<SqlTransform<RelationExpr, ()>>> {
         let mut sorting = Vec::new();
-        let mut has_sort_transform = false;
 
         let mut result = Vec::with_capacity(transforms.len() + 1);
 
@@ -128,7 +127,6 @@ impl PqMapper<RelationExpr, RelationExpr, (), ()> for SortingInference<'_> {
                 // just store sorting and don't emit Sort
                 SqlTransform::Sort(expr) => {
                     sorting.clone_from(&expr);
-                    has_sort_transform = true;
                     continue;
                 }
 
@@ -159,13 +157,11 @@ impl PqMapper<RelationExpr, RelationExpr, (), ()> for SortingInference<'_> {
                 }
             }
 
-            if has_sort_transform {
-                // now revert the sort columns so that the output
-                // sorting reflects the input column cids, needed to
-                // ensure proper column reference lookup in the final
-                // steps
-                sorting = CidRedirector::revert_sorts(sorting, &mut self.ctx.anchor);
-            }
+            // now revert the sort columns so that the output
+            // sorting reflects the input column cids, needed to
+            // ensure proper column reference lookup in the final
+            // steps
+            sorting = CidRedirector::revert_sorts(sorting, &mut self.ctx.anchor);
         }
 
         // remember sorting for this pipeline

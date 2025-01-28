@@ -1,0 +1,21 @@
+---
+source: prqlc/prqlc/tests/integration/queries.rs
+expression: "from [{track_id=0, album_id=1, genre_id=2}]\nselect { AA=track_id, album_id, genre_id }\nsort AA\njoin side:left [{album_id=1, album_title=\"Songs\"}] (==album_id)\nselect { AA, AT = album_title ?? \"unknown\", genre_id }\nfilter AA < 25\njoin side:left [{genre_id=1, genre_title=\"Rock\"}] (==genre_id)\nselect { AA, AT, GT = genre_title ?? \"unknown\" }\n"
+input_file: prqlc/prqlc/tests/integration/queries/sort_3.prql
+---
+from [{track_id = 0, album_id = 1, genre_id = 2}]
+select {AA = track_id, album_id, genre_id}
+sort AA
+join side:left [
+  {album_id = 1, album_title = "Songs"},
+] (==album_id)
+select {
+  AA,
+  AT = album_title ?? "unknown",
+  genre_id,
+}
+filter AA < 25
+join side:left [
+  {genre_id = 1, genre_title = "Rock"},
+] (==genre_id)
+select {AA, AT, GT = genre_title ?? "unknown"}
