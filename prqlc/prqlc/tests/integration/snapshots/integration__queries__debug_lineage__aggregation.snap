@@ -206,20 +206,24 @@ ast:
           exprs:
           - FuncCall:
               name:
-                Ident: from
+                Ident:
+                - from
                 span: 1:89-93
               args:
-              - Ident: tracks
+              - Ident:
+                - tracks
                 span: 1:94-100
             span: 1:89-100
           - FuncCall:
               name:
-                Ident: filter
+                Ident:
+                - filter
                 span: 1:101-107
               args:
               - Binary:
                   left:
-                    Ident: genre_id
+                    Ident:
+                    - genre_id
                     span: 1:108-116
                   op: Eq
                   right:
@@ -230,12 +234,14 @@ ast:
             span: 1:101-123
           - FuncCall:
               name:
-                Ident: derive
+                Ident:
+                - derive
                 span: 1:124-130
               args:
               - Binary:
                   left:
-                    Ident: name
+                    Ident:
+                    - name
                     span: 1:144-148
                   op: Eq
                   right:
@@ -247,40 +253,49 @@ ast:
             span: 1:124-154
           - FuncCall:
               name:
-                Ident: aggregate
+                Ident:
+                - aggregate
                 span: 1:155-164
               args:
               - Tuple:
                 - FuncCall:
                     name:
-                      Ident: sum
+                      Ident:
+                      - sum
                       span: 1:166-169
                     args:
-                    - Ident: track_id
+                    - Ident:
+                      - track_id
                       span: 1:170-178
                   span: 1:166-178
                 - FuncCall:
                     name:
-                      Ident: concat_array
+                      Ident:
+                      - concat_array
                       span: 1:180-192
                     args:
-                    - Ident: name
+                    - Ident:
+                      - name
                       span: 1:193-197
                   span: 1:180-197
                 - FuncCall:
                     name:
-                      Ident: all
+                      Ident:
+                      - all
                       span: 1:199-202
                     args:
-                    - Ident: empty_name
+                    - Ident:
+                      - empty_name
                       span: 1:203-213
                   span: 1:199-213
                 - FuncCall:
                     name:
-                      Ident: any
+                      Ident:
+                      - any
                       span: 1:215-218
                     args:
-                    - Ident: empty_name
+                    - Ident:
+                      - empty_name
                       span: 1:219-229
                   span: 1:215-229
                 span: 1:165-230

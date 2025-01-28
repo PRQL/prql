@@ -52,12 +52,14 @@ ast:
           exprs:
           - FuncCall:
               name:
-                Ident: from
+                Ident:
+                - from
                 span: 1:43-47
               args:
               - FuncCall:
                   name:
-                    Ident: read_csv
+                    Ident:
+                    - read_csv
                     span: 1:49-57
                   args:
                   - Literal:
@@ -67,10 +69,12 @@ ast:
             span: 1:43-91
           - FuncCall:
               name:
-                Ident: sort
+                Ident:
+                - sort
                 span: 1:92-96
               args:
-              - Ident: media_type_id
+              - Ident:
+                - media_type_id
                 span: 1:97-110
             span: 1:92-110
         span: 1:43-110

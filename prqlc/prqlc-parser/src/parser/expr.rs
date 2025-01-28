@@ -27,7 +27,7 @@ pub(crate) fn expr() -> impl Parser<TokenKind, Expr, Error = PError> + Clone {
     recursive(|expr| {
         let literal = select! { TokenKind::Literal(lit) => ExprKind::Literal(lit) };
 
-        let ident_kind = ident_part().map(ExprKind::Ident);
+        let ident_kind = ident().map(ExprKind::Ident);
 
         let internal = keyword("internal")
             .ignore_then(ident())
@@ -69,7 +69,6 @@ pub(crate) fn expr() -> impl Parser<TokenKind, Expr, Error = PError> + Clone {
         )
         .boxed();
 
-        let term = field_lookup(term);
         let term = unary(term);
         let term = range(term);
 
@@ -168,28 +167,6 @@ where
             .map(|(op, expr)| ExprKind::Unary(UnaryExpr { op, expr }))
             .map_with_span(ExprKind::into_expr))
         .boxed()
-}
-
-fn field_lookup<'a, E>(expr: E) -> impl Parser<TokenKind, Expr, Error = PError> + Clone + 'a
-where
-    E: Parser<TokenKind, Expr, Error = PError> + Clone + 'a,
-{
-    expr.then(
-        ctrl('.')
-            .ignore_then(choice((
-                ident_part().map(IndirectionKind::Name),
-                ctrl('*').to(IndirectionKind::Star),
-                select! {
-                    TokenKind::Literal(Literal::Integer(i)) => IndirectionKind::Position(i)
-                },
-            )))
-            .map_with_span(|f, s| (f, s))
-            .repeated(),
-    )
-    .foldl(|base, (field, span)| {
-        let base = Box::new(base);
-        ExprKind::Indirection { base, field }.into_expr(span)
-    })
 }
 
 fn range<'a, E>(expr: E) -> impl Parser<TokenKind, Expr, Error = PError> + Clone + 'a
@@ -522,8 +499,9 @@ where
 
 pub(crate) fn ident() -> impl Parser<TokenKind, Ident, Error = PError> + Clone {
     ident_part()
-        .separated_by(ctrl('.'))
-        .at_least(1)
+        .then_ignore(ctrl('.'))
+        .repeated()
+        .chain(choice((ident_part(), ctrl('*').map(|_| "*".to_string()))).map(Some))
         .map(Ident::from_path::<String>)
 }
 
@@ -583,7 +561,8 @@ mod tests {
              @r#"
         FuncCall:
           name:
-            Ident: derive
+            Ident:
+              - derive
             span: "0:0-6"
           args:
             - Literal:
@@ -598,16 +577,19 @@ mod tests {
              @r#"
         FuncCall:
           name:
-            Ident: aggregate
+            Ident:
+              - aggregate
             span: "0:0-9"
           args:
             - Tuple:
                 - FuncCall:
                     name:
-                      Ident: sum
+                      Ident:
+                        - sum
                       span: "0:11-14"
                     args:
-                      - Ident: salary
+                      - Ident:
+                          - salary
                         span: "0:15-21"
                   span: "0:11-21"
               span: "0:10-22"
@@ -619,7 +601,8 @@ mod tests {
     fn aliased_in_expr() {
         assert_yaml_snapshot!(
             parse_with_parser(r#"x = 5"#, trim_start().ignore_then(expr())).unwrap(), @r#"
-        Ident: x
+        Ident:
+          - x
         span: "0:0-1"
         "#);
     }
@@ -670,17 +653,15 @@ mod tests {
         Tuple:
           - Pipeline:
               exprs:
-                - Ident: d
+                - Ident:
+                    - d
                   span: "0:10-11"
                 - FuncCall:
                     name:
-                      Indirection:
-                        base:
-                          Ident: date
-                          span: "0:14-18"
-                        field:
-                          Name: to_text
-                      span: "0:18-26"
+                      Ident:
+                        - date
+                        - to_text
+                      span: "0:14-26"
                     args:
                       - Literal:
                           String: "%Y/%m/%d"
@@ -724,15 +705,18 @@ mod tests {
           exprs:
             - FuncCall:
                 name:
-                  Ident: from
+                  Ident:
+                    - from
                   span: "0:29-33"
                 args:
-                  - Ident: artists
+                  - Ident:
+                      - artists
                     span: "0:34-41"
               span: "0:29-41"
             - FuncCall:
                 name:
-                  Ident: derive
+                  Ident:
+                    - derive
                   span: "0:56-62"
                 args:
                   - Literal:
@@ -762,7 +746,8 @@ mod tests {
             - condition:
                 Binary:
                   left:
-                    Ident: nickname
+                    Ident:
+                      - nickname
                     span: "0:30-38"
                   op: Ne
                   right:
@@ -770,7 +755,8 @@ mod tests {
                     span: "0:42-46"
                 span: "0:30-46"
               value:
-                Ident: nickname
+                Ident:
+                  - nickname
                 span: "0:50-58"
             - condition:
                 Literal:
@@ -849,12 +835,15 @@ mod tests {
             parse_with_parser(r#"f (a) b"#, trim_start().ignore_then(expr_call()).then_ignore(end())).unwrap(), @r#"
         FuncCall:
           name:
-            Ident: f
+            Ident:
+              - f
             span: "0:0-1"
           args:
-            - Ident: a
+            - Ident:
+                - a
               span: "0:3-4"
-            - Ident: b
+            - Ident:
+                - b
               span: "0:6-7"
         span: "0:0-7"
         "#);
@@ -863,14 +852,16 @@ mod tests {
             parse_with_parser(r#"f (a=2) b"#, trim_start().ignore_then(expr_call()).then_ignore(end())).unwrap(), @r#"
         FuncCall:
           name:
-            Ident: f
+            Ident:
+              - f
             span: "0:0-1"
           args:
             - Literal:
                 Integer: 2
               span: "0:5-6"
               alias: a
-            - Ident: b
+            - Ident:
+                - b
               span: "0:8-9"
         span: "0:0-9"
         "#);
@@ -879,15 +870,18 @@ mod tests {
             parse_with_parser(r#"f (a b)"#, trim_start().ignore_then(expr_call()).then_ignore(end())).unwrap(), @r#"
         FuncCall:
           name:
-            Ident: f
+            Ident:
+              - f
             span: "0:0-1"
           args:
             - FuncCall:
                 name:
-                  Ident: a
+                  Ident:
+                    - a
                   span: "0:3-4"
                 args:
-                  - Ident: b
+                  - Ident:
+                      - b
                     span: "0:5-6"
               span: "0:3-6"
         span: "0:0-7"
@@ -906,20 +900,19 @@ mod tests {
         assert_yaml_snapshot!(parse_with_parser(source, trim_start().ignore_then(pipeline(expr_call()))).unwrap(), @r#"
         Pipeline:
           exprs:
-            - Ident: tbl
+            - Ident:
+                - tbl
               span: "0:13-16"
             - FuncCall:
                 name:
-                  Ident: select
+                  Ident:
+                    - select
                   span: "0:23-29"
                 args:
-                  - Indirection:
-                      base:
-                        Ident: t
-                        span: "0:30-31"
-                      field:
-                        Name: date
-                    span: "0:31-36"
+                  - Ident:
+                      - t
+                      - date
+                    span: "0:30-36"
               span: "0:23-36"
         span: "0:5-42"
         "#);
@@ -934,21 +927,20 @@ mod tests {
         assert_yaml_snapshot!(parse_with_parser(source, trim_start().ignore_then(pipeline(expr_call()))).unwrap(), @r#"
         Pipeline:
           exprs:
-            - Ident: tbl
+            - Ident:
+                - tbl
               span: "0:17-20"
               alias: t
             - FuncCall:
                 name:
-                  Ident: select
+                  Ident:
+                    - select
                   span: "0:27-33"
                 args:
-                  - Indirection:
-                      base:
-                        Ident: t
-                        span: "0:34-35"
-                      field:
-                        Name: date
-                    span: "0:35-40"
+                  - Ident:
+                      - t
+                      - date
+                    span: "0:34-40"
               span: "0:27-40"
         span: "0:5-46"
         "#);

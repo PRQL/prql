@@ -91,23 +91,7 @@ impl WriteSource for pr::ExprKind {
         use pr::ExprKind::*;
 
         match &self {
-            Ident(ident) => Some(write_ident_part(ident).into_owned()),
-            Indirection { base, field } => {
-                let mut r = base.write(opt.clone())?;
-                opt.consume_width(r.len() as u16)?;
-
-                r += opt.consume(".")?;
-                match field {
-                    pr::IndirectionKind::Name(n) => {
-                        r += opt.consume(n)?;
-                    }
-                    pr::IndirectionKind::Position(i) => {
-                        r += &opt.consume(i.to_string())?;
-                    }
-                    pr::IndirectionKind::Star => r += "*",
-                }
-                Some(r)
-            }
+            Ident(ident) => Some(ident.to_string()),
 
             Pipeline(pipeline) => SeparatedExprs {
                 inline: " | ",
@@ -543,10 +527,12 @@ mod test {
 
     #[test]
     fn test_pipeline() {
-        let short = pr::Expr::new(pr::ExprKind::Ident("short".to_string()));
-        let long = pr::Expr::new(pr::ExprKind::Ident(
+        let short = pr::Expr::new(pr::ExprKind::Ident(pr::Ident::from_name(
+            "short".to_string(),
+        )));
+        let long = pr::Expr::new(pr::ExprKind::Ident(pr::Ident::from_name(
             "some_really_long_and_really_long_name".to_string(),
-        ));
+        )));
 
         let mut opt = WriteOpt {
             indent: 1,

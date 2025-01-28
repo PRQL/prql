@@ -222,41 +222,50 @@ ast:
           exprs:
           - FuncCall:
               name:
-                Ident: from
+                Ident:
+                - from
                 span: 1:0-4
               args:
-              - Ident: albums
+              - Ident:
+                - albums
                 span: 1:5-11
             span: 1:0-11
           - FuncCall:
               name:
-                Ident: select
+                Ident:
+                - select
                 span: 1:12-18
               args:
               - Tuple:
-                - Ident: album_id
+                - Ident:
+                  - album_id
                   span: 1:24-32
                   alias: AA
-                - Ident: artist_id
+                - Ident:
+                  - artist_id
                   span: 1:34-43
                 span: 1:19-45
             span: 1:12-45
           - FuncCall:
               name:
-                Ident: sort
+                Ident:
+                - sort
                 span: 1:46-50
               args:
-              - Ident: AA
+              - Ident:
+                - AA
                 span: 1:51-53
             span: 1:46-53
           - FuncCall:
               name:
-                Ident: filter
+                Ident:
+                - filter
                 span: 1:54-60
               args:
               - Binary:
                   left:
-                    Ident: AA
+                    Ident:
+                    - AA
                     span: 1:61-63
                   op: Gte
                   right:
@@ -267,15 +276,18 @@ ast:
             span: 1:54-69
           - FuncCall:
               name:
-                Ident: join
+                Ident:
+                - join
                 span: 1:70-74
               args:
-              - Ident: artists
+              - Ident:
+                - artists
                 span: 1:75-82
               - Unary:
                   op: EqSelf
                   expr:
-                    Ident: artist_id
+                    Ident:
+                    - artist_id
                     span: 1:86-95
                 span: 1:84-95
             span: 1:70-96

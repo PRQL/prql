@@ -105,7 +105,8 @@ fn test_ranges() {
                     Integer: 5
                   span: "0:7-8"
               span: "0:6-8"
-            - Ident: abs
+            - Ident:
+                - abs
               span: "0:11-14"
         span: "0:6-14"
     span: "0:0-16"
@@ -139,13 +140,10 @@ fn test_ranges() {
           Float: 1.6
         span: "0:0-3"
       end:
-        Indirection:
-          base:
-            Ident: rel
-            span: "0:5-8"
-          field:
-            Name: col
-        span: "0:8-12"
+        Ident:
+          - rel
+          - col
+        span: "0:5-12"
     span: "0:0-12"
     "#);
 
@@ -194,7 +192,8 @@ fn test_basic_exprs() {
     assert_yaml_snapshot!(parse_expr(r#"country == "USA""#).unwrap(), @r#"
     Binary:
       left:
-        Ident: country
+        Ident:
+          - country
         span: "0:0-7"
       op: Eq
       right:
@@ -206,15 +205,19 @@ fn test_basic_exprs() {
     assert_yaml_snapshot!(parse_expr("select {a, b, c}").unwrap(), @r#"
     FuncCall:
       name:
-        Ident: select
+        Ident:
+          - select
         span: "0:0-6"
       args:
         - Tuple:
-            - Ident: a
+            - Ident:
+                - a
               span: "0:8-9"
-            - Ident: b
+            - Ident:
+                - b
               span: "0:11-12"
-            - Ident: c
+            - Ident:
+                - c
               span: "0:14-15"
           span: "0:7-16"
     span: "0:0-16"
@@ -226,27 +229,33 @@ fn test_basic_exprs() {
         ).unwrap(), @r#"
     FuncCall:
       name:
-        Ident: group
+        Ident:
+          - group
         span: "0:0-5"
       args:
         - Tuple:
-            - Ident: title
+            - Ident:
+                - title
               span: "0:7-12"
-            - Ident: country
+            - Ident:
+                - country
               span: "0:14-21"
           span: "0:6-22"
         - FuncCall:
             name:
-              Ident: aggregate
+              Ident:
+                - aggregate
               span: "0:41-50"
             args:
               - Tuple:
                   - FuncCall:
                       name:
-                        Ident: sum
+                        Ident:
+                          - sum
                         span: "0:52-55"
                       args:
-                        - Ident: salary
+                        - Ident:
+                            - salary
                           span: "0:56-62"
                     span: "0:52-62"
                 span: "0:51-63"
@@ -258,12 +267,14 @@ fn test_basic_exprs() {
         ).unwrap(), @r#"
     FuncCall:
       name:
-        Ident: filter
+        Ident:
+          - filter
         span: "0:4-10"
       args:
         - Binary:
             left:
-              Ident: country
+              Ident:
+                - country
               span: "0:11-18"
             op: Eq
             right:
@@ -275,11 +286,14 @@ fn test_basic_exprs() {
     "#);
     assert_yaml_snapshot!(parse_expr("{a, b, c,}").unwrap(), @r#"
     Tuple:
-      - Ident: a
+      - Ident:
+          - a
         span: "0:1-2"
-      - Ident: b
+      - Ident:
+          - b
         span: "0:4-5"
-      - Ident: c
+      - Ident:
+          - c
         span: "0:7-8"
     span: "0:0-10"
     "#);
@@ -292,21 +306,25 @@ fn test_basic_exprs() {
     Tuple:
       - Binary:
           left:
-            Ident: salary
+            Ident:
+              - salary
             span: "0:19-25"
           op: Add
           right:
-            Ident: payroll_tax
+            Ident:
+              - payroll_tax
             span: "0:28-39"
         span: "0:19-39"
         alias: gross_salary
       - Binary:
           left:
-            Ident: gross_salary
+            Ident:
+              - gross_salary
             span: "0:58-70"
           op: Add
           right:
-            Ident: benefits_cost
+            Ident:
+              - benefits_cost
             span: "0:73-86"
         span: "0:58-86"
         alias: gross_cost
@@ -318,23 +336,28 @@ fn test_basic_exprs() {
         ).unwrap(), @r#"
     FuncCall:
       name:
-        Ident: join
+        Ident:
+          - join
         span: "0:0-4"
       args:
-        - Ident: country
+        - Ident:
+            - country
           span: "0:15-22"
         - Binary:
             left:
-              Ident: id
+              Ident:
+                - id
               span: "0:24-26"
             op: Eq
             right:
-              Ident: employee_id
+              Ident:
+                - employee_id
               span: "0:28-39"
           span: "0:24-39"
       named_args:
         side:
-          Ident: left
+          Ident:
+            - left
           span: "0:10-14"
     span: "0:0-40"
     "#);
@@ -439,7 +462,8 @@ fn test_s_string() {
       - String: SUM(
       - Expr:
           expr:
-            Ident: col
+            Ident:
+              - col
             span: "0:7-10"
           format: ~
       - String: )
@@ -450,13 +474,10 @@ fn test_s_string() {
       - String: SUM(
       - Expr:
           expr:
-            Indirection:
-              base:
-                Ident: rel
-                span: "0:7-10"
-              field:
-                Name: Col name
-            span: "0:11-21"
+            Ident:
+              - rel
+              - Col name
+            span: "0:7-21"
           format: ~
       - String: )
     span: "0:0-24"
@@ -509,7 +530,8 @@ fn test_tuple() {
           right:
             FuncCall:
               name:
-                Ident: f
+                Ident:
+                  - f
                 span: "0:6-7"
               args:
                 - Literal:
@@ -544,19 +566,23 @@ fn test_tuple() {
     Tuple:
       - FuncCall:
           name:
-            Ident: a
+            Ident:
+              - a
             span: "0:1-2"
           args:
-            - Ident: b
+            - Ident:
+                - b
               span: "0:3-4"
         span: "0:1-4"
     span: "0:0-5"
     "#);
     assert_yaml_snapshot!(a_comma_b, @r#"
     Tuple:
-      - Ident: a
+      - Ident:
+          - a
         span: "0:1-2"
-      - Ident: b
+      - Ident:
+          - b
         span: "0:4-5"
     span: "0:0-6"
     "#);
@@ -564,18 +590,21 @@ fn test_tuple() {
 
     assert_yaml_snapshot!(parse_expr(r#"{amount, +amount, -amount}"#).unwrap(), @r#"
     Tuple:
-      - Ident: amount
+      - Ident:
+          - amount
         span: "0:1-7"
       - Unary:
           op: Add
           expr:
-            Ident: amount
+            Ident:
+              - amount
             span: "0:10-16"
         span: "0:9-16"
       - Unary:
           op: Neg
           expr:
-            Ident: amount
+            Ident:
+              - amount
             span: "0:19-25"
         span: "0:18-25"
     span: "0:0-26"
@@ -583,18 +612,21 @@ fn test_tuple() {
     // Operators in tuple items
     assert_yaml_snapshot!(parse_expr(r#"{amount, +amount, -amount}"#).unwrap(), @r#"
     Tuple:
-      - Ident: amount
+      - Ident:
+          - amount
         span: "0:1-7"
       - Unary:
           op: Add
           expr:
-            Ident: amount
+            Ident:
+              - amount
             span: "0:10-16"
         span: "0:9-16"
       - Unary:
           op: Neg
           expr:
-            Ident: amount
+            Ident:
+              - amount
             span: "0:19-25"
         span: "0:18-25"
     span: "0:0-26"
@@ -641,7 +673,7 @@ fn test_number() {
     assert!(parse_expr("_2").unwrap().kind.into_ident().is_ok());
     assert!(parse_expr("_").unwrap().kind.into_ident().is_ok());
 
-    assert!(parse_expr("_2.3").unwrap().kind.is_indirection());
+    assert!(parse_expr("_2._3").unwrap().kind.is_ident());
 
     assert_yaml_snapshot!(parse_expr(r#"2e3"#).unwrap(), @r#"
     Literal:
@@ -660,7 +692,8 @@ fn test_derive() {
         , @r#"
     FuncCall:
       name:
-        Ident: derive
+        Ident:
+          - derive
         span: "0:0-6"
       args:
         - Tuple:
@@ -671,7 +704,8 @@ fn test_derive() {
             - Unary:
                 op: Neg
                 expr:
-                  Ident: x
+                  Ident:
+                    - x
                   span: "0:21-22"
               span: "0:19-23"
               alias: y
@@ -687,10 +721,12 @@ fn test_select() {
         , @r#"
     FuncCall:
       name:
-        Ident: select
+        Ident:
+          - select
         span: "0:0-6"
       args:
-        - Ident: x
+        - Ident:
+            - x
           span: "0:7-8"
     span: "0:0-8"
     "#);
@@ -700,14 +736,16 @@ fn test_select() {
         , @r#"
     FuncCall:
       name:
-        Ident: select
+        Ident:
+          - select
         span: "0:0-6"
       args:
         - Unary:
             op: Not
             expr:
               Tuple:
-                - Ident: x
+                - Ident:
+                    - x
                   span: "0:9-10"
               span: "0:8-11"
           span: "0:7-11"
@@ -719,13 +757,16 @@ fn test_select() {
         , @r#"
     FuncCall:
       name:
-        Ident: select
+        Ident:
+          - select
         span: "0:0-6"
       args:
         - Tuple:
-            - Ident: x
+            - Ident:
+                - x
               span: "0:8-9"
-            - Ident: y
+            - Ident:
+                - y
               span: "0:11-12"
           span: "0:7-13"
     span: "0:0-13"
@@ -739,7 +780,8 @@ fn test_expr() {
         , @r#"
     Binary:
       left:
-        Ident: country
+        Ident:
+          - country
         span: "0:0-7"
       op: Eq
       right:
@@ -756,21 +798,25 @@ fn test_expr() {
     Tuple:
       - Binary:
           left:
-            Ident: salary
+            Ident:
+              - salary
             span: "0:19-25"
           op: Add
           right:
-            Ident: payroll_tax
+            Ident:
+              - payroll_tax
             span: "0:28-39"
         span: "0:19-39"
         alias: gross_salary
       - Binary:
           left:
-            Ident: gross_salary
+            Ident:
+              - gross_salary
             span: "0:58-70"
           op: Add
           right:
-            Ident: benefits_cost
+            Ident:
+              - benefits_cost
             span: "0:73-86"
         span: "0:58-86"
         alias: gross_cost
@@ -785,11 +831,13 @@ fn test_expr() {
       left:
         Binary:
           left:
-            Ident: salary
+            Ident:
+              - salary
             span: "0:1-7"
           op: Add
           right:
-            Ident: payroll_tax
+            Ident:
+              - payroll_tax
             span: "0:10-21"
         span: "0:1-21"
       op: Mul
@@ -801,7 +849,8 @@ fn test_expr() {
             span: "0:26-27"
           op: Add
           right:
-            Ident: tax_rate
+            Ident:
+              - tax_rate
             span: "0:30-38"
         span: "0:26-38"
     span: "0:0-39"
@@ -835,14 +884,15 @@ fn test_func_call() {
     let ast = parse_expr(r#"count"#).unwrap();
     let ident = ast.kind.into_ident().unwrap();
     assert_yaml_snapshot!(
-            ident, @"count");
+            ident, @"- count");
 
     let ast = parse_expr(r#"s 'foo'"#).unwrap();
     assert_yaml_snapshot!(
             ast, @r#"
     FuncCall:
       name:
-        Ident: s
+        Ident:
+          - s
         span: "0:0-1"
       args:
         - Literal:
@@ -857,7 +907,8 @@ fn test_func_call() {
     assert_yaml_snapshot!(
             func_call, @r#"
     name:
-      Ident: count
+      Ident:
+        - count
       span: "0:0-5"
     args:
       - SString:
@@ -872,10 +923,12 @@ fn test_func_call() {
             ast, @r#"
     FuncCall:
       name:
-        Ident: add
+        Ident:
+          - add
         span: "0:0-3"
       args:
-        - Ident: bar
+        - Ident:
+            - bar
           span: "0:4-7"
         - Literal:
             Integer: 3
@@ -1044,11 +1097,13 @@ fn test_op_precedence() {
       left:
         Binary:
           left:
-            Ident: a
+            Ident:
+              - a
             span: "0:0-1"
           op: And
           right:
-            Ident: b
+            Ident:
+              - b
             span: "0:5-6"
         span: "0:0-6"
       op: Or
@@ -1058,12 +1113,14 @@ fn test_op_precedence() {
             Unary:
               op: Not
               expr:
-                Ident: c
+                Ident:
+                  - c
                 span: "0:11-12"
             span: "0:10-12"
           op: And
           right:
-            Ident: d
+            Ident:
+              - d
             span: "0:16-17"
         span: "0:10-17"
     span: "0:0-17"
@@ -1074,17 +1131,20 @@ fn test_op_precedence() {
       left:
         Binary:
           left:
-            Ident: a
+            Ident:
+              - a
             span: "0:0-1"
           op: And
           right:
             Binary:
               left:
-                Ident: b
+                Ident:
+                  - b
                 span: "0:5-6"
               op: Add
               right:
-                Ident: c
+                Ident:
+                  - c
                 span: "0:9-10"
             span: "0:5-10"
         span: "0:0-10"
@@ -1094,15 +1154,18 @@ fn test_op_precedence() {
           left:
             FuncCall:
               name:
-                Ident: d
+                Ident:
+                  - d
                 span: "0:15-16"
               args:
-                - Ident: e
+                - Ident:
+                    - e
                   span: "0:17-18"
             span: "0:15-18"
           op: And
           right:
-            Ident: f
+            Ident:
+              - f
             span: "0:23-24"
         span: "0:14-24"
     span: "0:0-24"
@@ -1114,11 +1177,13 @@ fn test_inline_pipeline() {
     assert_yaml_snapshot!(parse_expr("(salary | percentile 50)").unwrap(), @r#"
     Pipeline:
       exprs:
-        - Ident: salary
+        - Ident:
+            - salary
           span: "0:1-7"
         - FuncCall:
             name:
-              Ident: percentile
+              Ident:
+                - percentile
               span: "0:10-20"
             args:
               - Literal:
@@ -1160,19 +1225,25 @@ fn test_ident_with_keywords() {
     assert_yaml_snapshot!(parse_expr(r"select {andrew, orion, lettuce, falsehood, null0}").unwrap(), @r#"
     FuncCall:
       name:
-        Ident: select
+        Ident:
+          - select
         span: "0:0-6"
       args:
         - Tuple:
-            - Ident: andrew
+            - Ident:
+                - andrew
               span: "0:8-14"
-            - Ident: orion
+            - Ident:
+                - orion
               span: "0:16-21"
-            - Ident: lettuce
+            - Ident:
+                - lettuce
               span: "0:23-30"
-            - Ident: falsehood
+            - Ident:
+                - falsehood
               span: "0:32-41"
-            - Ident: null0
+            - Ident:
+                - null0
               span: "0:43-48"
           span: "0:7-49"
     span: "0:0-49"
@@ -1199,7 +1270,8 @@ fn test_case() {
       - condition:
           Binary:
             left:
-              Ident: nickname
+              Ident:
+                - nickname
               span: "0:28-36"
             op: Ne
             right:
@@ -1207,7 +1279,8 @@ fn test_case() {
               span: "0:40-44"
           span: "0:28-44"
         value:
-          Ident: nickname
+          Ident:
+            - nickname
           span: "0:48-56"
       - condition:
           Literal:
@@ -1238,25 +1311,15 @@ fn test_lookup_01() {
     assert_yaml_snapshot!(parse_expr(
     r#"{a = {x = 2}}.a.x"#,
     ).unwrap(), @r#"
-    Indirection:
-      base:
-        Indirection:
-          base:
-            Tuple:
-              - Tuple:
-                  - Literal:
-                      Integer: 2
-                    span: "0:10-11"
-                    alias: x
-                span: "0:5-12"
-                alias: a
-            span: "0:0-13"
-          field:
-            Name: a
-        span: "0:13-15"
-      field:
-        Name: x
-    span: "0:0-17"
+    Tuple:
+      - Tuple:
+          - Literal:
+              Integer: 2
+            span: "0:10-11"
+            alias: x
+        span: "0:5-12"
+        alias: a
+    span: "0:0-13"
     "#);
 }
 
@@ -1265,11 +1328,9 @@ fn test_lookup_02() {
     assert_yaml_snapshot!(parse_expr(
     r#"hello.*"#,
     ).unwrap(), @r#"
-    Indirection:
-      base:
-        Ident: hello
-        span: "0:0-5"
-      field: Star
+    Ident:
+      - hello
+      - "*"
     span: "0:0-7"
     "#);
 }

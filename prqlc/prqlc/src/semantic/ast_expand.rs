@@ -1,7 +1,6 @@
 use std::collections::HashMap;
 
 use itertools::Itertools;
-use prqlc_parser::error::WithErrorInfo;
 use prqlc_parser::generic;
 
 use crate::ir::decl;
@@ -13,28 +12,7 @@ use crate::{Error, Result};
 /// An AST pass that maps AST to PL.
 pub fn expand_expr(expr: pr::Expr) -> Result<pl::Expr> {
     let kind = match expr.kind {
-        pr::ExprKind::Ident(v) => pl::ExprKind::Ident(pr::Ident::from_name(v)),
-        pr::ExprKind::Indirection { base, field } => {
-            let field_as_name = match field {
-                pr::IndirectionKind::Name(n) => n,
-                pr::IndirectionKind::Position(_) => Err(Error::new_simple(
-                    "Positional indirection not supported yet",
-                )
-                .with_span(expr.span))?,
-                pr::IndirectionKind::Star => "*".to_string(),
-            };
-
-            // convert lookups into ident
-            // (in the future, resolve will support proper lookup handling)
-            let base = expand_expr_box(base)?;
-            let base_ident = base.kind.into_ident().map_err(|_| {
-                Error::new_simple("lookup (the dot) is supported only on names.")
-                    .with_span(expr.span)
-            })?;
-
-            let ident = base_ident + pr::Ident::from_name(field_as_name);
-            pl::ExprKind::Ident(ident)
-        }
+        pr::ExprKind::Ident(v) => pl::ExprKind::Ident(v),
         pr::ExprKind::Literal(v) => pl::ExprKind::Literal(v),
         pr::ExprKind::Pipeline(v) => {
             let mut e = desugar_pipeline(v)?;
@@ -318,15 +296,7 @@ fn restrict_exprs(exprs: Vec<pl::Expr>) -> Vec<pr::Expr> {
 
 fn restrict_expr_kind(value: pl::ExprKind) -> pr::ExprKind {
     match value {
-        pl::ExprKind::Ident(v) => {
-            let mut parts = v.into_iter();
-            let mut base = Box::new(pr::Expr::new(pr::ExprKind::Ident(parts.next().unwrap())));
-            for part in parts {
-                let field = pr::IndirectionKind::Name(part);
-                base = Box::new(pr::Expr::new(pr::ExprKind::Indirection { base, field }))
-            }
-            base.kind
-        }
+        pl::ExprKind::Ident(v) => pr::ExprKind::Ident(v),
         pl::ExprKind::Literal(v) => pr::ExprKind::Literal(v),
         pl::ExprKind::Tuple(v) => pr::ExprKind::Tuple(restrict_exprs(v)),
         pl::ExprKind::Array(v) => pr::ExprKind::Array(restrict_exprs(v)),
@@ -378,10 +348,13 @@ fn restrict_expr_kind(value: pl::ExprKind) -> pr::ExprKind {
 
         // TODO: these are not correct, they are producing invalid PRQL
         pl::ExprKind::All { within, .. } => restrict_expr(*within).kind,
-        pl::ExprKind::TransformCall(tc) => {
-            pr::ExprKind::Ident(format!("({} ...)", tc.kind.as_ref().as_ref()))
+        pl::ExprKind::TransformCall(tc) => pr::ExprKind::Ident(pr::Ident::from_name(format!(
+            "({} ...)",
+            tc.kind.as_ref().as_ref()
+        ))),
+        pl::ExprKind::RqOperator { name, .. } => {
+            pr::ExprKind::Ident(pr::Ident::from_name(format!("({} ...)", name)))
         }
-        pl::ExprKind::RqOperator { name, .. } => pr::ExprKind::Ident(format!("({} ...)", name)),
     }
 }
 

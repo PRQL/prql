@@ -482,25 +482,30 @@ ast:
           exprs:
           - FuncCall:
               name:
-                Ident: from
+                Ident:
+                - from
                 span: 1:113-117
               args:
-              - Ident: albums
+              - Ident:
+                - albums
                 span: 1:118-124
             span: 1:113-124
           - FuncCall:
               name:
-                Ident: select
+                Ident:
+                - select
                 span: 1:125-131
               args:
               - Tuple:
-                - Ident: title
+                - Ident:
+                  - title
                   span: 1:138-143
                 - FString:
                   - !String '  '
                   - !Expr
                     expr:
-                      Ident: title
+                      Ident:
+                      - title
                       span: 1:173-178
                     format: null
                   - !String '  '
@@ -508,88 +513,81 @@ ast:
                   alias: title_and_spaces
                 - Pipeline:
                     exprs:
-                    - Ident: title
+                    - Ident:
+                      - title
                       span: 1:195-200
-                    - Indirection:
-                        base:
-                          Ident: text
-                          span: 1:203-207
-                        field: !Name lower
+                    - Ident:
+                      - text
+                      - lower
                       span: 1:203-213
                   span: 1:194-214
                   alias: low
                 - Pipeline:
                     exprs:
-                    - Ident: title
+                    - Ident:
+                      - title
                       span: 1:226-231
-                    - Indirection:
-                        base:
-                          Ident: text
-                          span: 1:234-238
-                        field: !Name upper
+                    - Ident:
+                      - text
+                      - upper
                       span: 1:234-244
                   span: 1:225-245
                   alias: up
                 - Pipeline:
                     exprs:
-                    - Ident: title
+                    - Ident:
+                      - title
                       span: 1:263-268
-                    - Indirection:
-                        base:
-                          Ident: text
-                          span: 1:271-275
-                        field: !Name ltrim
+                    - Ident:
+                      - text
+                      - ltrim
                       span: 1:271-281
                   span: 1:262-282
                   alias: ltrimmed
                 - Pipeline:
                     exprs:
-                    - Ident: title
+                    - Ident:
+                      - title
                       span: 1:300-305
-                    - Indirection:
-                        base:
-                          Ident: text
-                          span: 1:308-312
-                        field: !Name rtrim
+                    - Ident:
+                      - text
+                      - rtrim
                       span: 1:308-318
                   span: 1:299-319
                   alias: rtrimmed
                 - Pipeline:
                     exprs:
-                    - Ident: title
+                    - Ident:
+                      - title
                       span: 1:336-341
-                    - Indirection:
-                        base:
-                          Ident: text
-                          span: 1:344-348
-                        field: !Name trim
+                    - Ident:
+                      - text
+                      - trim
                       span: 1:344-353
                   span: 1:335-354
                   alias: trimmed
                 - Pipeline:
                     exprs:
-                    - Ident: title
+                    - Ident:
+                      - title
                       span: 1:367-372
-                    - Indirection:
-                        base:
-                          Ident: text
-                          span: 1:375-379
-                        field: !Name length
+                    - Ident:
+                      - text
+                      - length
                       span: 1:375-386
                   span: 1:366-387
                   alias: len
                 - Pipeline:
                     exprs:
-                    - Ident: title
+                    - Ident:
+                      - title
                       span: 1:401-406
                     - FuncCall:
                         name:
-                          Indirection:
-                            base:
-                              Ident: text
-                              span: 1:409-413
-                            field: !Name extract
-                          span: 1:413-421
+                          Ident:
+                          - text
+                          - extract
+                          span: 1:409-421
                         args:
                         - Literal:
                             Integer: 2
@@ -602,16 +600,15 @@ ast:
                   alias: subs
                 - Pipeline:
                     exprs:
-                    - Ident: title
+                    - Ident:
+                      - title
                       span: 1:443-448
                     - FuncCall:
                         name:
-                          Indirection:
-                            base:
-                              Ident: text
-                              span: 1:451-455
-                            field: !Name replace
-                          span: 1:455-463
+                          Ident:
+                          - text
+                          - replace
+                          span: 1:451-463
                         args:
                         - Literal:
                             String: al
@@ -626,17 +623,20 @@ ast:
             span: 1:125-479
           - FuncCall:
               name:
-                Ident: sort
+                Ident:
+                - sort
                 span: 1:480-484
               args:
               - Tuple:
-                - Ident: title
+                - Ident:
+                  - title
                   span: 1:486-491
                 span: 1:485-492
             span: 1:480-492
           - FuncCall:
               name:
-                Ident: filter
+                Ident:
+                - filter
                 span: 1:493-499
               args:
               - Binary:
@@ -645,16 +645,15 @@ ast:
                       left:
                         Pipeline:
                           exprs:
-                          - Ident: title
+                          - Ident:
+                            - title
                             span: 1:501-506
                           - FuncCall:
                               name:
-                                Indirection:
-                                  base:
-                                    Ident: text
-                                    span: 1:509-513
-                                  field: !Name starts_with
-                                span: 1:513-525
+                                Ident:
+                                - text
+                                - starts_with
+                                span: 1:509-525
                               args:
                               - Literal:
                                   String: Black
@@ -665,16 +664,15 @@ ast:
                       right:
                         Pipeline:
                           exprs:
-                          - Ident: title
+                          - Ident:
+                            - title
                             span: 1:539-544
                           - FuncCall:
                               name:
-                                Indirection:
-                                  base:
-                                    Ident: text
-                                    span: 1:547-551
-                                  field: !Name contains
-                                span: 1:551-560
+                                Ident:
+                                - text
+                                - contains
+                                span: 1:547-560
                               args:
                               - Literal:
                                   String: Sabbath
@@ -686,16 +684,15 @@ ast:
                   right:
                     Pipeline:
                       exprs:
-                      - Ident: title
+                      - Ident:
+                        - title
                         span: 1:576-581
                       - FuncCall:
                           name:
-                            Indirection:
-                              base:
-                                Ident: text
-                                span: 1:584-588
-                              field: !Name ends_with
-                            span: 1:588-598
+                            Ident:
+                            - text
+                            - ends_with
+                            span: 1:584-598
                           args:
                           - Literal:
                               String: os

@@ -172,7 +172,7 @@ nodes:
   parent: 202
 - id: 194
   kind: Ident
-  span: 0:5987-5989
+  span: 0:5981-5989
   ident: !Ident
   - this
   - b
@@ -207,7 +207,7 @@ nodes:
   parent: 205
 - id: 205
   kind: Tuple
-  span: 0:3299-3301
+  span: 0:3298-3301
   children:
   - 204
   parent: 206
@@ -248,33 +248,32 @@ ast:
               exprs:
               - FuncCall:
                   name:
-                    Ident: from
+                    Ident:
+                    - from
                     span: 1:36-40
                   args:
-                  - Indirection:
-                      base:
-                        Ident: _param
-                        span: 1:45-51
-                      field: !Name rel
-                    span: 1:51-55
+                  - Ident:
+                    - _param
+                    - rel
+                    span: 1:45-55
                     alias: t
                 span: 1:36-55
               - FuncCall:
                   name:
-                    Ident: group
+                    Ident:
+                    - group
                     span: 1:58-63
                   args:
                   - Tuple:
-                    - Indirection:
-                        base:
-                          Ident: t
-                          span: 1:65-66
-                        field: Star
+                    - Ident:
+                      - t
+                      - '*'
                       span: 1:65-68
                     span: 1:64-69
                   - FuncCall:
                       name:
-                        Ident: take
+                        Ident:
+                        - take
                         span: 1:71-75
                       args:
                       - Literal:
@@ -297,7 +296,8 @@ ast:
           exprs:
           - FuncCall:
               name:
-                Ident: from_text
+                Ident:
+                - from_text
                 span: 1:81-90
               args:
               - Literal:
@@ -305,19 +305,23 @@ ast:
                 span: 1:103-155
               named_args:
                 format:
-                  Ident: json
+                  Ident:
+                  - json
                   span: 1:98-102
             span: 1:81-155
-          - Ident: distinct
+          - Ident:
+            - distinct
             span: 1:156-164
           - FuncCall:
               name:
-                Ident: remove
+                Ident:
+                - remove
                 span: 1:165-171
               args:
               - FuncCall:
                   name:
-                    Ident: from_text
+                    Ident:
+                    - from_text
                     span: 1:173-182
                   args:
                   - Literal:
@@ -325,16 +329,19 @@ ast:
                     span: 1:195-237
                   named_args:
                     format:
-                      Ident: json
+                      Ident:
+                      - json
                       span: 1:190-194
                 span: 1:173-237
             span: 1:165-238
           - FuncCall:
               name:
-                Ident: sort
+                Ident:
+                - sort
                 span: 1:239-243
               args:
-              - Ident: a
+              - Ident:
+                - a
                 span: 1:244-245
             span: 1:239-245
         span: 1:81-245

@@ -147,46 +147,55 @@ ast:
           exprs:
           - FuncCall:
               name:
-                Ident: from
+                Ident:
+                - from
                 span: 1:13-17
               args:
-              - Ident: tracks
+              - Ident:
+                - tracks
                 span: 1:18-24
             span: 1:13-24
           - FuncCall:
               name:
-                Ident: sort
+                Ident:
+                - sort
                 span: 1:25-29
               args:
               - Tuple:
                 - Unary:
                     op: Neg
                     expr:
-                      Ident: bytes
+                      Ident:
+                      - bytes
                       span: 1:32-37
                   span: 1:31-37
                 span: 1:30-38
             span: 1:25-38
           - FuncCall:
               name:
-                Ident: select
+                Ident:
+                - select
                 span: 1:39-45
               args:
               - Tuple:
-                - Ident: name
+                - Ident:
+                  - name
                   span: 1:52-56
                 - Binary:
                     left:
                       Pipeline:
                         exprs:
-                        - Ident: album_id
+                        - Ident:
+                          - album_id
                           span: 1:70-78
                         - FuncCall:
                             name:
-                              Ident: as
+                              Ident:
+                              - as
                               span: 1:81-83
                             args:
-                            - Ident: REAL
+                            - Ident:
+                              - REAL
                               span: 1:84-88
                           span: 1:81-88
                       span: 1:70-88
@@ -201,7 +210,8 @@ ast:
             span: 1:39-97
           - FuncCall:
               name:
-                Ident: take
+                Ident:
+                - take
                 span: 1:98-102
               args:
               - Literal:

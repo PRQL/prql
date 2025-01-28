@@ -161,13 +161,8 @@ impl<'de> Deserialize<'de> for Ident {
 }
 
 pub fn display_ident(f: &mut std::fmt::Formatter, ident: &Ident) -> Result<(), std::fmt::Error> {
-    let mut path = &ident.path[..];
+    let path = &ident.path[..];
 
-    // HACK: don't display `_local` prefix
-    // (this workaround is needed on feat-types branch)
-    if path.first().map_or(false, |f| f == "_local") {
-        path = &path[1..];
-    }
     for part in path {
         display_ident_part(f, part)?;
         f.write_char('.')?;
@@ -178,10 +173,10 @@ pub fn display_ident(f: &mut std::fmt::Formatter, ident: &Ident) -> Result<(), s
 
 pub fn display_ident_part(f: &mut std::fmt::Formatter, s: &str) -> Result<(), std::fmt::Error> {
     fn forbidden_start(c: char) -> bool {
-        !(c.is_ascii() || matches!(c, '_' | '$'))
+        !(c.is_ascii_alphabetic() || matches!(c, '_' | '$'))
     }
     fn forbidden_subsequent(c: char) -> bool {
-        !(c.is_ascii() || c.is_ascii_digit() || matches!(c, '_'))
+        !(c.is_ascii_alphabetic() || c.is_ascii_digit() || c == '_')
     }
     let needs_escape = s.is_empty()
         || s.starts_with(forbidden_start)

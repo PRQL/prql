@@ -2578,11 +2578,11 @@ fn test_join_side_literal_via_func_err() {
     my_join default_db.y this.id s:"four"
     "###).unwrap_err()), @r#"
     Error:
-       ╭─[:3:25]
+       ╭─[:3:19]
        │
      3 │         join side:_param.s m (c == that.k) tbl
-       │                         ─┬
-       │                          ╰── `side` expected inner, left, right or full, but found "four"
+       │                   ────┬───
+       │                       ╰───── `side` expected inner, left, right or full, but found "four"
     ───╯
     "#);
 }

@@ -888,7 +888,8 @@ ast:
           exprs:
           - FuncCall:
               name:
-                Ident: from
+                Ident:
+                - from
                 span: 1:13-17
               args:
               - Array:
@@ -1016,125 +1017,151 @@ ast:
             span: 1:13-317
           - FuncCall:
               name:
-                Ident: select
+                Ident:
+                - select
                 span: 1:318-324
               args:
               - Tuple:
-                - Ident: id
+                - Ident:
+                  - id
                   span: 1:331-333
                 - Binary:
                     left:
-                      Ident: x_int
+                      Ident:
+                      - x_int
                       span: 1:340-345
                     op: DivFloat
                     right:
-                      Ident: k_int
+                      Ident:
+                      - k_int
                       span: 1:348-353
                   span: 1:340-353
                 - Binary:
                     left:
-                      Ident: x_int
+                      Ident:
+                      - x_int
                       span: 1:359-364
                     op: DivFloat
                     right:
-                      Ident: k_float
+                      Ident:
+                      - k_float
                       span: 1:367-374
                   span: 1:359-374
                 - Binary:
                     left:
-                      Ident: x_float
+                      Ident:
+                      - x_float
                       span: 1:380-387
                     op: DivFloat
                     right:
-                      Ident: k_int
+                      Ident:
+                      - k_int
                       span: 1:390-395
                   span: 1:380-395
                 - Binary:
                     left:
-                      Ident: x_float
+                      Ident:
+                      - x_float
                       span: 1:401-408
                     op: DivFloat
                     right:
-                      Ident: k_float
+                      Ident:
+                      - k_float
                       span: 1:411-418
                   span: 1:401-418
                 - Binary:
                     left:
-                      Ident: x_int
+                      Ident:
+                      - x_int
                       span: 1:432-437
                     op: DivInt
                     right:
-                      Ident: k_int
+                      Ident:
+                      - k_int
                       span: 1:441-446
                   span: 1:432-446
                   alias: q_ii
                 - Binary:
                     left:
-                      Ident: x_int
+                      Ident:
+                      - x_int
                       span: 1:459-464
                     op: DivInt
                     right:
-                      Ident: k_float
+                      Ident:
+                      - k_float
                       span: 1:468-475
                   span: 1:459-475
                   alias: q_if
                 - Binary:
                     left:
-                      Ident: x_float
+                      Ident:
+                      - x_float
                       span: 1:488-495
                     op: DivInt
                     right:
-                      Ident: k_int
+                      Ident:
+                      - k_int
                       span: 1:499-504
                   span: 1:488-504
                   alias: q_fi
                 - Binary:
                     left:
-                      Ident: x_float
+                      Ident:
+                      - x_float
                       span: 1:517-524
                     op: DivInt
                     right:
-                      Ident: k_float
+                      Ident:
+                      - k_float
                       span: 1:528-535
                   span: 1:517-535
                   alias: q_ff
                 - Binary:
                     left:
-                      Ident: x_int
+                      Ident:
+                      - x_int
                       span: 1:549-554
                     op: Mod
                     right:
-                      Ident: k_int
+                      Ident:
+                      - k_int
                       span: 1:557-562
                   span: 1:549-562
                   alias: r_ii
                 - Binary:
                     left:
-                      Ident: x_int
+                      Ident:
+                      - x_int
                       span: 1:575-580
                     op: Mod
                     right:
-                      Ident: k_float
+                      Ident:
+                      - k_float
                       span: 1:583-590
                   span: 1:575-590
                   alias: r_if
                 - Binary:
                     left:
-                      Ident: x_float
+                      Ident:
+                      - x_float
                       span: 1:603-610
                     op: Mod
                     right:
-                      Ident: k_int
+                      Ident:
+                      - k_int
                       span: 1:613-618
                   span: 1:603-618
                   alias: r_fi
                 - Binary:
                     left:
-                      Ident: x_float
+                      Ident:
+                      - x_float
                       span: 1:631-638
                     op: Mod
                     right:
-                      Ident: k_float
+                      Ident:
+                      - k_float
                       span: 1:641-648
                   span: 1:631-648
                   alias: r_ff
@@ -1144,26 +1171,27 @@ ast:
                         left:
                           Binary:
                             left:
-                              Ident: q_ii
+                              Ident:
+                              - q_ii
                               span: 1:656-660
                             op: Mul
                             right:
-                              Ident: k_int
+                              Ident:
+                              - k_int
                               span: 1:663-668
                           span: 1:656-668
                         op: Add
                         right:
-                          Ident: r_ii
+                          Ident:
+                          - r_ii
                           span: 1:671-675
                       span: 1:656-675
                     - FuncCall:
                         name:
-                          Indirection:
-                            base:
-                              Ident: math
-                              span: 1:678-682
-                            field: !Name round
-                          span: 1:682-688
+                          Ident:
+                          - math
+                          - round
+                          span: 1:678-688
                         args:
                         - Literal:
                             Integer: 0
@@ -1176,26 +1204,27 @@ ast:
                         left:
                           Binary:
                             left:
-                              Ident: q_if
+                              Ident:
+                              - q_if
                               span: 1:698-702
                             op: Mul
                             right:
-                              Ident: k_float
+                              Ident:
+                              - k_float
                               span: 1:705-712
                           span: 1:698-712
                         op: Add
                         right:
-                          Ident: r_if
+                          Ident:
+                          - r_if
                           span: 1:715-719
                       span: 1:698-719
                     - FuncCall:
                         name:
-                          Indirection:
-                            base:
-                              Ident: math
-                              span: 1:722-726
-                            field: !Name round
-                          span: 1:726-732
+                          Ident:
+                          - math
+                          - round
+                          span: 1:722-732
                         args:
                         - Literal:
                             Integer: 0
@@ -1208,26 +1237,27 @@ ast:
                         left:
                           Binary:
                             left:
-                              Ident: q_fi
+                              Ident:
+                              - q_fi
                               span: 1:742-746
                             op: Mul
                             right:
-                              Ident: k_int
+                              Ident:
+                              - k_int
                               span: 1:749-754
                           span: 1:742-754
                         op: Add
                         right:
-                          Ident: r_fi
+                          Ident:
+                          - r_fi
                           span: 1:757-761
                       span: 1:742-761
                     - FuncCall:
                         name:
-                          Indirection:
-                            base:
-                              Ident: math
-                              span: 1:764-768
-                            field: !Name round
-                          span: 1:768-774
+                          Ident:
+                          - math
+                          - round
+                          span: 1:764-774
                         args:
                         - Literal:
                             Integer: 0
@@ -1240,26 +1270,27 @@ ast:
                         left:
                           Binary:
                             left:
-                              Ident: q_ff
+                              Ident:
+                              - q_ff
                               span: 1:784-788
                             op: Mul
                             right:
-                              Ident: k_float
+                              Ident:
+                              - k_float
                               span: 1:791-798
                           span: 1:784-798
                         op: Add
                         right:
-                          Ident: r_ff
+                          Ident:
+                          - r_ff
                           span: 1:801-805
                       span: 1:784-805
                     - FuncCall:
                         name:
-                          Indirection:
-                            base:
-                              Ident: math
-                              span: 1:808-812
-                            field: !Name round
-                          span: 1:812-818
+                          Ident:
+                          - math
+                          - round
+                          span: 1:808-818
                         args:
                         - Literal:
                             Integer: 0
@@ -1270,10 +1301,12 @@ ast:
             span: 1:318-824
           - FuncCall:
               name:
-                Ident: sort
+                Ident:
+                - sort
                 span: 1:825-829
               args:
-              - Ident: id
+              - Ident:
+                - id
                 span: 1:830-832
             span: 1:825-832
         span: 1:13-832

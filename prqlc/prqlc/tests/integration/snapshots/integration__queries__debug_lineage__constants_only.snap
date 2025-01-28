@@ -139,15 +139,18 @@ ast:
           exprs:
           - FuncCall:
               name:
-                Ident: from
+                Ident:
+                - from
                 span: 1:0-4
               args:
-              - Ident: genres
+              - Ident:
+                - genres
                 span: 1:5-11
             span: 1:0-11
           - FuncCall:
               name:
-                Ident: take
+                Ident:
+                - take
                 span: 1:12-16
               args:
               - Literal:
@@ -156,7 +159,8 @@ ast:
             span: 1:12-19
           - FuncCall:
               name:
-                Ident: filter
+                Ident:
+                - filter
                 span: 1:20-26
               args:
               - Literal:
@@ -165,7 +169,8 @@ ast:
             span: 1:20-31
           - FuncCall:
               name:
-                Ident: take
+                Ident:
+                - take
                 span: 1:32-36
               args:
               - Literal:
@@ -174,7 +179,8 @@ ast:
             span: 1:32-39
           - FuncCall:
               name:
-                Ident: filter
+                Ident:
+                - filter
                 span: 1:40-46
               args:
               - Literal:
@@ -183,7 +189,8 @@ ast:
             span: 1:40-51
           - FuncCall:
               name:
-                Ident: select
+                Ident:
+                - select
                 span: 1:52-58
               args:
               - Literal:
