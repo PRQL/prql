@@ -13,11 +13,11 @@ use walkdir::WalkDir;
 #[cfg(not(windows))] // Windows has slightly different output (e.g. `prqlc.exe`), so we exclude.
 #[test]
 fn help() {
-    assert_cmd_snapshot!(prqlc_command().arg("--help"), @r#"
+    assert_cmd_snapshot!(prqlc_command().arg("--help"), @r"
     success: true
     exit_code: 0
     ----- stdout -----
-    Usage: prqlc [OPTIONS] <COMMAND>
+    Usage: prqlc [OPTIONS] [COMMAND]
 
     Commands:
       parse             Parse into PL AST
@@ -39,7 +39,36 @@ fn help() {
       -V, --version       Print version
 
     ----- stderr -----
-    "#);
+    ");
+
+    // without arguments
+    assert_cmd_snapshot!(prqlc_command(), @r"
+    success: true
+    exit_code: 0
+    ----- stdout -----
+    Usage: prqlc [OPTIONS] [COMMAND]
+
+    Commands:
+      parse             Parse into PL AST
+      lex               Lex into Lexer Representation
+      fmt               Parse & generate PRQL code back
+      collect           Parse the whole project and collect it into a single PRQL source file
+      debug             Commands for meant for debugging, prone to change
+      experimental      Experimental commands are prone to change
+      compile           Parse, resolve, lower into RQ & compile to SQL
+      watch             Watch a directory and compile .prql files to .sql files
+      list-targets      Show available compile target names
+      shell-completion  Print a shell completion for supported shells
+      help              Print this message or the help of the given subcommand(s)
+
+    Options:
+          --color <WHEN>  Controls when to use color [default: auto] [possible values: auto, always,
+                          never]
+      -h, --help          Print help
+      -V, --version       Print version
+
+    ----- stderr -----
+    ");
 }
 
 #[test]
