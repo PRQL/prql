@@ -41,7 +41,7 @@ mod watch;
 
 /// Entrypoint called by [`crate::main`]
 pub fn main() -> color_eyre::eyre::Result<()> {
-    let mut cli = Cli::parse();
+    let cli = Cli::parse();
 
     // redirect all log messages into the [debug::DebugLog]
     if has_debug_log(&cli) {
@@ -54,24 +54,28 @@ pub fn main() -> color_eyre::eyre::Result<()> {
     color_eyre::install()?;
     cli.color.write_global();
 
-    if let Err(error) = cli.command.run() {
-        eprintln!("{error}");
-        // Copied from
-        // https://doc.rust-lang.org/src/std/backtrace.rs.html#1-504, since it's private
-        fn backtrace_enabled() -> bool {
-            match env::var("RUST_LIB_BACKTRACE") {
-                Ok(s) => s != "0",
-                Err(_) => match env::var("RUST_BACKTRACE") {
+    if let Some(mut subcommand) = cli.command {
+        if let Err(error) = subcommand.run() {
+            eprintln!("{error}");
+            // Copied from
+            // https://doc.rust-lang.org/src/std/backtrace.rs.html#1-504, since it's private
+            fn backtrace_enabled() -> bool {
+                match env::var("RUST_LIB_BACKTRACE") {
                     Ok(s) => s != "0",
-                    Err(_) => false,
-                },
+                    Err(_) => match env::var("RUST_BACKTRACE") {
+                        Ok(s) => s != "0",
+                        Err(_) => false,
+                    },
+                }
             }
-        }
-        if backtrace_enabled() {
-            eprintln!("{:#}", error.backtrace());
-        }
+            if backtrace_enabled() {
+                eprintln!("{:#}", error.backtrace());
+            }
 
-        exit(1)
+            exit(1)
+        }
+    } else {
+        Cli::command().print_help()?;
     }
 
     Ok(())
@@ -80,7 +84,7 @@ pub fn main() -> color_eyre::eyre::Result<()> {
 #[derive(Parser, Debug, Clone)]
 struct Cli {
     #[command(subcommand)]
-    command: Command,
+    command: Option<Command>,
     #[command(flatten)]
     color: colorchoice_clap::Color,
 }
@@ -533,10 +537,10 @@ impl Command {
 fn has_debug_log(cli: &Cli) -> bool {
     matches!(
         cli.command,
-        Command::Compile {
+        Some(Command::Compile {
             debug_log: Some(_),
             ..
-        }
+        })
     )
 }
 
