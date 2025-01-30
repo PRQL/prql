@@ -333,16 +333,7 @@ impl Command {
     }
 
     fn list_targets(&self) -> std::result::Result<(), anyhow::Error> {
-        let res: Result<std::string::String, anyhow::Error> = Ok(match self {
-            Command::ListTargets => Target::names().join("\n"),
-            _ => unreachable!(),
-        });
-
-        match res {
-            Ok(s) => println!("{s}"),
-            Err(_) => unreachable!(),
-        }
-
+        println!("{}", Target::names().join("\n"));
         Ok(())
     }
 
