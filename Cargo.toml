@@ -9,8 +9,6 @@ members = [
   "prqlc/prqlc-parser",
   "prqlc/prqlc",
   "prqlc/prqlc/examples/compile-files", # An example
-  "lutra/lutra",
-  "lutra/bindings/python",
   "web/book",
 ]
 resolver = "2"
