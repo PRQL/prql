@@ -3154,6 +3154,26 @@ dependencies = [
 ]
 
 [[package]]
+name = "recursive"
+version = "0.1.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "0786a43debb760f491b1bc0269fe5e84155353c67482b9e60d0cfb596054b43e"
+dependencies = [
+ "recursive-proc-macro-impl",
+ "stacker",
+]
+
+[[package]]
+name = "recursive-proc-macro-impl"
+version = "0.1.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "76009fbe0614077fc1a2ce255e3a1881a2e3a3527097d5dc6d8212c585e7e38b"
+dependencies = [
+ "quote",
+ "syn 2.0.96",
+]
+
+[[package]]
 name = "redox_syscall"
 version = "0.4.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -3746,11 +3766,12 @@ dependencies = [
 
 [[package]]
 name = "sqlparser"
-version = "0.53.0"
+version = "0.54.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "05a528114c392209b3264855ad491fcce534b94a38771b0a0b97a79379275ce8"
+checksum = "c66e3b7374ad4a6af849b08b3e7a6eda0edbd82f0fd59b57e22671bf16979899"
 dependencies = [
  "log",
+ "recursive",
  "serde",
 ]
 
