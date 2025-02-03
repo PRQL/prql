@@ -178,7 +178,6 @@ dependencies = [
  "arrow-schema",
  "arrow-select",
  "arrow-string",
- "pyo3",
 ]
 
 [[package]]
@@ -1292,19 +1291,6 @@ dependencies = [
 
 [[package]]
 name = "env_logger"
-version = "0.10.2"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "4cd405aab171cb85d6735e5c8d9db038c17d3ca007a4d2c25f337935c3d90580"
-dependencies = [
- "humantime",
- "is-terminal",
- "log",
- "regex",
- "termcolor",
-]
-
-[[package]]
-name = "env_logger"
 version = "0.11.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "e13fa619b91fb2381732789fc5de83b45675e882f66623b7d8cb4f643017018d"
@@ -2162,34 +2148,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "lutra"
-version = "0.13.4"
-dependencies = [
- "anyhow",
- "arrow",
- "clap 4.4.18",
- "connector_arrow",
- "env_logger 0.10.2",
- "insta",
- "itertools 0.13.0",
- "log",
- "prqlc",
- "rusqlite",
- "walkdir",
-]
-
-[[package]]
-name = "lutra-python"
-version = "0.13.4"
-dependencies = [
- "arrow",
- "itertools 0.13.0",
- "lutra",
- "pyo3",
- "pyo3-build-config",
-]
-
-[[package]]
 name = "md-5"
 version = "0.10.6"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2209,7 +2167,7 @@ dependencies = [
  "chrono",
  "clap 4.4.18",
  "clap_complete",
- "env_logger 0.11.5",
+ "env_logger",
  "handlebars",
  "log",
  "memchr",

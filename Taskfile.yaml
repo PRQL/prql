@@ -21,9 +21,6 @@ includes:
   zig:
     taskfile: ./prqlc/bindings/prqlc-c/examples/minimal-zig
     dir: ./prqlc/bindings/prqlc-c/examples/minimal-zig
-  lutra:
-    taskfile: ./lutra
-    dir: ./lutra
   web:
     taskfile: ./web
     dir: ./web

@@ -280,15 +280,11 @@ jobs:
         os: [ubuntu-22.04, windows-latest]
         package:
           - prqlc-python
-          - lutra-python
         target: [x86_64]
         include:
           # MacOS with universal builds
           - os: macos-14
             package: prqlc-python
-            target: universal2-apple-darwin
-          - os: macos-14
-            package: lutra-python
             target: universal2-apple-darwin
           # Also produce more targets for ubuntu:
           - os: ubuntu-22.04
@@ -296,12 +292,6 @@ jobs:
             target: aarch64
           - os: ubuntu-22.04
             package: prqlc-python
-            target: source
-          - os: ubuntu-22.04
-            package: lutra-python
-            target: aarch64
-          - os: ubuntu-22.04
-            package: lutra-python
             target: source
     steps:
       - name: 📂 Checkout code
@@ -322,8 +312,6 @@ jobs:
       matrix:
         package:
           - prqlc-python
-          # Excluding since there's a name conflict https://github.com/PRQL/prql/issues/4600
-          # - lutra-python
     steps:
       - uses: actions/download-artifact@v4
         with:
