@@ -110,7 +110,7 @@ duckdb = { version = "1.1.1", optional = true, features = [
   "chrono",
 ] }
 futures = { version = "0.3.31", optional = true }
-mysql = { version = "25", optional = true }
+mysql = { version = "26", optional = true }
 postgres = { version = "0.19.10", optional = true }
 rusqlite = { version = "0.32.0", optional = true, features = [
   "bundled",
