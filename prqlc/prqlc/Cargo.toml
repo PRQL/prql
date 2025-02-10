@@ -72,7 +72,7 @@ serde_yaml = { workspace = true, optional = true }
 sqlformat = "0.3.5"
 sqlparser = { version = "0.53.0", features = ["serde"] }
 strum = { version = "0.26.3", features = ["std", "derive"] }
-strum_macros = "0.26.4"
+strum_macros = "0.27.0"
 
 [build-dependencies]
 vergen-gitcl = { version = "1.0.0", features = ["build"] }
