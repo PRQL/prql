@@ -13,7 +13,7 @@
   },
   "dependencies": {
     "@duckdb/duckdb-wasm": "^1.29.0",
-    "@monaco-editor/react": "^4.6.0",
+    "@monaco-editor/react": "^4.7.0",
     "@testing-library/jest-dom": "^6.6.0",
     "@testing-library/react": "^16.2.0",
     "@testing-library/user-event": "^14.6.0",
