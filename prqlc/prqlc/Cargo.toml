@@ -71,7 +71,7 @@ serde_json = { workspace = true }
 serde_yaml = { workspace = true, optional = true }
 sqlformat = "0.3.5"
 sqlparser = { version = "0.53.0", features = ["serde"] }
-strum = { version = "0.27.0", features = ["std", "derive"] }
+strum = { version = "0.27.1", features = ["std", "derive"] }
 strum_macros = "0.27.0"
 
 [build-dependencies]
