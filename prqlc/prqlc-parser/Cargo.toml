@@ -20,7 +20,7 @@ schemars = {workspace = true}
 semver = {version = "1.0.25", features = ["serde"]}
 serde = {workspace = true}
 serde_yaml = {workspace = true, optional = true}
-strum = {version = "0.27.0", features = ["std", "derive"]}
+strum = {version = "0.27.1", features = ["std", "derive"]}
 
 # Chumsky's default features have issues when running in wasm (though we only
 # see it when compiling on macOS), so we only include features when running
