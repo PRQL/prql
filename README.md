@@ -64,20 +64,19 @@ For more on the language, more examples & comparisons with SQL, visit
 [prql-lang.org][prql website]. To experiment with PRQL in the browser, check out
 [PRQL Playground][prql playground].
 
-## Current Status - October 2024
+## Current Status - March 2025
 
-PRQL is being actively developed by a growing community. It's ready to use by
-the intrepid, either with our supported integrations, or within your own tools,
-using one of our supported language bindings.
+PRQL is ready to use by the intrepid, either with our supported integrations, or
+within your own tools, using one of our supported language bindings.
 
 PRQL still has some bugs and some missing features, and is probably only ready
 to be rolled out to non-technical teams for fairly simple queries.
 
-In particular, we're working on a new resolver, which will let us squash many
-bugs and simplify our code a lot. It'll also let us scale the language without
-scaling the complexity of the compiler.
+Development has slowed in the past few months as we decide how to work on a new
+resolver, which will let us squash many bugs and simplify our code a lot. It'll
+also let us scale the language without scaling the complexity of the compiler.
 
-While we work on that, we're also focusing on
+While we figure that out, we're also thinking about:
 
 - Ensuring our supported features feel extremely robust; resolving any
   [priority bugs](https://github.com/PRQL/prql/issues?q=is%3Aissue+is%3Aopen+label%3Abug+label%3Apriority).
@@ -88,7 +87,7 @@ While we work on that, we're also focusing on
 - Expanding our set of supported features — we are working to add experimental
   support for modules / multi-file projects, and for auto-formatting.
 
-We're also spending time thinking about:
+And:
 
 - Making it really easy to start using PRQL. We're doing that by building
   integrations with tools that folks already use; for example a VS Code
@@ -103,6 +102,10 @@ We're also spending time thinking about:
   quite concentrated. We're keen to expand this;
   [#1840](https://github.com/PRQL/prql/issues/1840) for feedback, some
   suggestions on starter issues are below.
+
+We're increasingly open to contributions for bigger rewrites of the resolver
+given how bottlenecked we are on it. If you're interested in contributing,
+please reach out in an issue or on Discord.
 
 ## Get involved
 
