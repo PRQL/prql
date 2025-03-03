@@ -397,13 +397,13 @@ impl WriteSource for pr::Stmt {
             }
             pr::StmtKind::VarDef(var_def) => match var_def.kind {
                 _ if var_def.value.is_none() || var_def.ty.is_some() => {
-                    let typ = if let Some(ty) = &var_def.ty {
+                    let typo = if let Some(ty) = &var_def.ty {
                         format!("<{}> ", ty.write(opt.clone())?)
                     } else {
                         "".to_string()
                     };
 
-                    r += opt.consume(&format!("let {} {}", var_def.name, typ))?;
+                    r += opt.consume(&format!("let {} {}", var_def.name, typo))?;
 
                     if let Some(val) = &var_def.value {
                         r += opt.consume("= ")?;
