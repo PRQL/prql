@@ -1093,6 +1093,23 @@ fn test_quoting_05() {
 }
 
 #[test]
+fn test_quoting_06() {
+    let prql = "
+prql target:sql.bigquery
+
+from `some_dataset.demo`
+select {`hash`}
+";
+
+    assert_snapshot!(compile(prql).unwrap(), @r#"
+    SELECT
+      `hash`
+    FROM
+      `some_dataset.demo`
+    "#);
+}
+
+#[test]
 fn test_sorts_01() {
     assert_snapshot!((compile(r###"
     from invoices
