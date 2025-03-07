@@ -373,7 +373,7 @@
       </context>
     </contexts>
 
-    <itemDatas>
+    <itemData>
       <itemData name="Normal Text"      defStyleNum="dsNormal"   spellChecking="false" />
 
       <itemData name="Keyword"          defStyleNum="dsKeyword"  spellChecking="false" />
@@ -398,7 +398,7 @@
       <itemData name="String Substitution" defStyleNum="dsSpecialChar" spellChecking="false"/>
       <itemData name="Annotation" defStyleNum="dsAttribute" spellChecking="false"/>
       <itemData name="Error" defStyleNum="dsError"/>
-    </itemDatas>
+    </itemData>
   </highlighting>
 
   <general>
