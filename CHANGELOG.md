@@ -14,6 +14,8 @@
 
 **Integrations**:
 
+- Add syntax highlight file for KSyntaxHighlighting. (@vanillajonathan, #5177)
+
 **Internal changes**:
 
 **New Contributors**:
