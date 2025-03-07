@@ -20,12 +20,24 @@ an index.
   file is at
   [`grammars/prql-lezer/README.md`](https://github.com/PRQL/prql/tree/main/grammars/prql-lezer/README.md).
 
+- GtkSourceView — used by GNOME Text Editor, GNOME Builder and other GTK applications.
+  File is at [`grammars/GtkSourceView/`](https://github.com/PRQL/prql/tree/main/grammars/GtkSourceView/).
+
 - [Handlebars](https://handlebarsjs.com/) — currently duplicated:
 
   - The book:
     [`book/highlight-prql.js`](https://github.com/PRQL/prql/blob/main/web/book/highlight-prql.js)
   - The website (outside of the book & playground):
     [`website/themes/prql-theme/static/plugins/highlight/prql.js`](https://github.com/PRQL/prql/blob/main/web/book/highlight-prql.js)
+
+- KSyntaxHighlighting — used by Kate, KWrite and KDevelop and other Qt applications.
+  File is at [`grammars/KSyntaxHighlighting/`](https://github.com/PRQL/prql/tree/main/grammars/KSyntaxHighlighting/).
+
+- [micro](https://micro-editor.github.io/) — used by terminal-based text editor Micro.
+  File is at [`grammars/micro/`](https://github.com/PRQL/prql/tree/main/grammars/micro/).
+
+- [nano](https://nano-editor.org/) — used by terminal-based text editor GNU nano.
+  File is at [`grammars/nano/`](https://github.com/PRQL/prql/tree/main/grammars/nano/).
 
 - Sublime Text — in the [`sublime-prql`](https://github.com/PRQL/sublime-prql/)
   repository.
