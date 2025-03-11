@@ -16,6 +16,9 @@ an index.
   ([prql.xml](https://github.com/alecthomas/chroma/blob/master/lexers/embedded/prql.xml)).
   See the [demo](https://swapoff.org/chroma/playground/).
 
+- [CotEditor](https://coteditor.com/) — text editor for macOS. File is at
+  [`grammars/CotEditor/`](https://github.com/PRQL/prql/tree/main/grammars/CotEditor/).
+
 - [Lezer](https://lezer.codemirror.net/) — used by CodeMirror editors. The PRQL
   file is at
   [`grammars/prql-lezer/README.md`](https://github.com/PRQL/prql/tree/main/grammars/prql-lezer/README.md).
