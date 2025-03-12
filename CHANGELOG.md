@@ -15,6 +15,7 @@
 **Integrations**:
 
 - Add syntax highlight file for KSyntaxHighlighting. (@vanillajonathan, #5177)
+- Add syntax highlight file for Vim. (@vanillajonathan, #5185)
 
 **Internal changes**:
 
