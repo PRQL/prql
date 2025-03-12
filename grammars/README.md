@@ -65,3 +65,6 @@ an index.
 - [Tree-Sitter](https://tree-sitter.github.io/tree-sitter) — used by the neovim
   and helix. The grammar can be found at
   [https://github.com/PRQL/tree-sitter-prql](https://github.com/PRQL/tree-sitter-prql).
+
+- [vim](https://www.vim.org/) — used by terminal-based text editor Vim. File is
+  at [`grammars/vim/`](https://github.com/PRQL/prql/tree/main/grammars/vim/).
