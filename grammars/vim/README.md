@@ -5,11 +5,13 @@ This is a syntax highlighting file for Vim and Neovim.
 ## Installation
 
 ### For Vim
+
 Copy the `prql.vim` file to:
 
     ~/.vim/syntax/
 
 Then, edit your `~/.vimrc` file and add the following:
+
 ```vim
 augroup PrqlFileType
   autocmd!
@@ -18,6 +20,7 @@ augroup END
 ```
 
 ### For Neovim
+
 Copy the `prql.vim` file to:
 
     ~/.config/nvim/syntax/
