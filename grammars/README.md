@@ -23,8 +23,7 @@ an index.
   file is at
   [`grammars/prql-lezer/README.md`](https://github.com/PRQL/prql/tree/main/grammars/prql-lezer/README.md).
 
-- emacs — used by terminal-based text editor GNU
-  Emacs. File is at
+- emacs — used by terminal-based text editor GNU Emacs. File is at
   [`grammars/emacs/`](https://github.com/PRQL/prql/tree/main/grammars/emacs/).
 
 - GtkSourceView — used by GNOME Text Editor, GNOME Builder and other GTK
