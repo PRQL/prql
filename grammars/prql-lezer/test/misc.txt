@@ -187,3 +187,13 @@ module foo {
 ==>
 
 Query(Module(module,Identifier,VariableDeclaration(let,VariableName,Equals,Lambda(SString))))
+
+# Pipeline within tuple
+
+derive {
+  a = (b | math.abs)
+}
+
+==>
+
+Query(Pipeline(CallExpression(Identifier,ArgList(TupleExpression(DeclarationTuple(DeclarationItem,Equals,NestedPipeline(Pipeline(Identifier,Identifier))))))))
