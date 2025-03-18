@@ -24,7 +24,7 @@ Module { kw<"module"> Identifier "{" statements "}" }
 
 pipelineStatement { Pipeline (~ambigNewline newline+ | end)}
 
-Pipeline { CallExpression (pipe CallExpression)* }
+Pipeline { CallExpression (pipe CallExpression)* | expression "|" Identifier }
 
 pipe { "|" | ~ambigNewline newline+ }
 
