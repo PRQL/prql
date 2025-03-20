@@ -35,6 +35,7 @@ use prqlc::{Options, SourceTree, Target};
 mod docs_generator;
 mod highlight;
 mod jinja;
+mod lsp;
 #[cfg(test)]
 mod test;
 mod watch;
@@ -164,6 +165,10 @@ enum Command {
     /// Show available compile target names
     #[command(name = "list-targets")]
     ListTargets,
+
+    /// Language Server Protocol
+    #[command(hide = true)]
+    Lsp,
 
     /// Print a shell completion for supported shells
     #[command(name = "shell-completion")]
@@ -332,6 +337,10 @@ impl Command {
                 io::stdout().write_all(&serde_json::to_string_pretty(&schema)?.into_bytes())?;
                 Ok(())
             }
+            Command::Lsp => match lsp::run() {
+                Ok(_) => Ok(()),
+                Err(err) => Err(anyhow!(err)),
+            },
             _ => self.run_io_command(),
         }
     }
