@@ -15,40 +15,42 @@ build = "build.rs"
 
 [features]
 cli = [
-  "anyhow",
-  "clap_complete_command",
-  "clap",
-  "clio",
-  "color-eyre",
-  "colorchoice-clap",
-  "is-terminal",
-  "minijinja",
-  "notify",
-  "serde_yaml",
-  "walkdir",
+    "anyhow",
+    "clap_complete_command",
+    "clap",
+    "clio",
+    "color-eyre",
+    "colorchoice-clap",
+    "is-terminal",
+    "lsp",
+    "minijinja",
+    "notify",
+    "serde_yaml",
+    "walkdir",
 ]
 default = ["cli"]
+lsp = ["lsp-server", "lsp-types"]
 serde_yaml = ["prqlc-parser/serde_yaml", "dep:serde_yaml"]
 test-dbs = [
-  "rusqlite",
-  "duckdb",
-  "connector_arrow",
-  "connector_arrow/src_sqlite",
-  "connector_arrow/src_duckdb",
+    "rusqlite",
+    "duckdb",
+    "connector_arrow",
+    "connector_arrow/src_sqlite",
+    "connector_arrow/src_duckdb",
 ]
 test-dbs-external = [
-  # We could attempt to allow running `test-dbs-external` without `test-dbs`,
-  # but it doesn't offer much value, and it's simpler to require both.
-  "test-dbs",
-  "postgres",
-  "mysql",
-  "tiberius",
-  "futures",
-  "tokio",
-  "tokio-util",
-  "connector_arrow/src_mysql",
-  "connector_arrow/src_postgres",
-  "connector_arrow/src_tiberius",
+    # We could attempt to allow running `test-dbs-external` without `test-dbs`,
+    # but it doesn't offer much value, and it's simpler to require both.
+    "test-dbs",
+    "postgres",
+    "mysql",
+    "tiberius",
+    "futures",
+    "tokio",
+    "tokio-util",
+    "connector_arrow/src_mysql",
+    "connector_arrow/src_postgres",
+    "connector_arrow/src_tiberius",
 ]
 
 [dependencies]
@@ -73,8 +75,8 @@ sqlformat = "0.3.5"
 sqlparser = { version = "0.53.0", features = ["serde"] }
 strum = { version = "0.27.0", features = ["std", "derive"] }
 strum_macros = "0.27.0"
-lsp-server = "0.7.8"
-lsp-types = "0.97.0"
+lsp-server = { version = "0.7.8", optional = true }
+lsp-types = { version = "0.97.0", optional = true }
 
 [build-dependencies]
 vergen-gitcl = { version = "1.0.0", features = ["build"] }
@@ -85,9 +87,9 @@ vergen-gitcl = { version = "1.0.0", features = ["build"] }
 # feature
 anyhow = { version = "1.0.95", features = ["backtrace"], optional = true }
 clap = { version = "4.4.18", features = [
-  "derive",
-  "env",
-  "wrap_help",
+    "derive",
+    "env",
+    "wrap_help",
 ], optional = true }
 clap_complete_command = { version = "0.5.1", optional = true }
 clio = { version = "0.3.3", features = ['clap-parse'], optional = true }
@@ -100,7 +102,7 @@ walkdir = { version = "2.5.0", optional = true }
 # We use minijinja just for the Jinja lexer, which is not part of the
 # public interface which is covered by semver guarantees.
 minijinja = { version = "2.7.0", features = [
-  "unstable_machinery",
+    "unstable_machinery",
 ], optional = true }
 
 # For integration tests. These are gated by the `test-dbs` and `test-dbs-external` features,
@@ -108,22 +110,22 @@ minijinja = { version = "2.7.0", features = [
 
 connector_arrow = { version = "0.6.0", optional = true }
 duckdb = { version = "1.1.1", optional = true, features = [
-  "bundled",
-  "chrono",
+    "bundled",
+    "chrono",
 ] }
 futures = { version = "0.3.31", optional = true }
 mysql = { version = "25", optional = true }
 postgres = { version = "0.19.10", optional = true }
 rusqlite = { version = "0.32.0", optional = true, features = [
-  "bundled",
-  "csvtab",
+    "bundled",
+    "csvtab",
 ] }
 tiberius = { version = "0.12.3", optional = true, default-features = false, features = [
-  "sql-browser-tokio",
-  "bigdecimal",
-  "time",
-  "rustls",
-  "tds73",
+    "sql-browser-tokio",
+    "bigdecimal",
+    "time",
+    "rustls",
+    "tds73",
 ] }
 tokio = { version = "1.43.0", optional = true, features = ["full"] }
 tokio-util = { version = "0.7.13", optional = true, features = ["compat"] }
