@@ -17,6 +17,8 @@
 - Add syntax highlight file for KSyntaxHighlighting. (@vanillajonathan, #5177)
 - Add syntax highlight file for Vim. (@vanillajonathan, #5185)
 - Add syntax highlight file for GNU Emacs. (@vanillajonathan, #5189)
+- [Kakoune](http://kakoune.org/), a terminal-based text editor has syntax
+  highlighting for PRQL. (@vanillajonathan)
 
 **Internal changes**:
 
