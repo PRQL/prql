@@ -40,6 +40,9 @@ an index.
 - [Helix](https://helix-editor.com/) — supported. The grammar is
   [upstream](https://github.com/helix-editor/helix/tree/master/runtime/queries/prql).
 
+- [Kakoune](https://kakoune.org/) — supported. The grammar is
+  [upstream](https://github.com/mawww/kakoune/blob/master/rc/filetype/prql.kak).
+
 - KSyntaxHighlighting — used by Kate, KWrite and KDevelop and other Qt
   applications. File is at
   [`grammars/KSyntaxHighlighting/`](https://github.com/PRQL/prql/tree/main/grammars/KSyntaxHighlighting/).
