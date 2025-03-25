@@ -35,6 +35,7 @@ use prqlc::{Options, SourceTree, Target};
 mod docs_generator;
 mod highlight;
 mod jinja;
+#[cfg(feature = "lsp")]
 mod lsp;
 #[cfg(test)]
 mod test;

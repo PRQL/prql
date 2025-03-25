@@ -671,6 +671,7 @@ fn lex() {
     "###);
 }
 
+#[cfg(feature = "lsp")]
 #[test]
 fn lsp() {
     let init = serde_json::to_string(&lsp_server::Message::Request(lsp_server::Request {
