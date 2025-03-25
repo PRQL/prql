@@ -52,6 +52,7 @@ Register-ArgumentCompleter -Native -CommandName 'prqlc' -ScriptBlock {
             [CompletionResult]::new('compile', 'compile', [CompletionResultType]::ParameterValue, 'Parse, resolve, lower into RQ & compile to SQL')
             [CompletionResult]::new('watch', 'watch', [CompletionResultType]::ParameterValue, 'Watch a directory and compile .prql files to .sql files')
             [CompletionResult]::new('list-targets', 'list-targets', [CompletionResultType]::ParameterValue, 'Show available compile target names')
+            [CompletionResult]::new('lsp', 'lsp', [CompletionResultType]::ParameterValue, 'Language Server Protocol')
             [CompletionResult]::new('shell-completion', 'shell-completion', [CompletionResultType]::ParameterValue, 'Print a shell completion for supported shells')
             [CompletionResult]::new('help', 'help', [CompletionResultType]::ParameterValue, 'Print this message or the help of the given subcommand(s)')
             break
@@ -204,6 +205,12 @@ Register-ArgumentCompleter -Native -CommandName 'prqlc' -ScriptBlock {
             [CompletionResult]::new('--help', 'help', [CompletionResultType]::ParameterName, 'Print help')
             break
         }
+        'prqlc;lsp' {
+            [CompletionResult]::new('--color', 'color', [CompletionResultType]::ParameterName, 'Controls when to use color')
+            [CompletionResult]::new('-h', 'h', [CompletionResultType]::ParameterName, 'Print help')
+            [CompletionResult]::new('--help', 'help', [CompletionResultType]::ParameterName, 'Print help')
+            break
+        }
         'prqlc;shell-completion' {
             [CompletionResult]::new('--color', 'color', [CompletionResultType]::ParameterName, 'Controls when to use color')
             [CompletionResult]::new('-h', 'h', [CompletionResultType]::ParameterName, 'Print help')
@@ -220,6 +227,7 @@ Register-ArgumentCompleter -Native -CommandName 'prqlc' -ScriptBlock {
             [CompletionResult]::new('compile', 'compile', [CompletionResultType]::ParameterValue, 'Parse, resolve, lower into RQ & compile to SQL')
             [CompletionResult]::new('watch', 'watch', [CompletionResultType]::ParameterValue, 'Watch a directory and compile .prql files to .sql files')
             [CompletionResult]::new('list-targets', 'list-targets', [CompletionResultType]::ParameterValue, 'Show available compile target names')
+            [CompletionResult]::new('lsp', 'lsp', [CompletionResultType]::ParameterValue, 'Language Server Protocol')
             [CompletionResult]::new('shell-completion', 'shell-completion', [CompletionResultType]::ParameterValue, 'Print a shell completion for supported shells')
             [CompletionResult]::new('help', 'help', [CompletionResultType]::ParameterValue, 'Print this message or the help of the given subcommand(s)')
             break
@@ -273,6 +281,9 @@ Register-ArgumentCompleter -Native -CommandName 'prqlc' -ScriptBlock {
             break
         }
         'prqlc;help;list-targets' {
+            break
+        }
+        'prqlc;help;lsp' {
             break
         }
         'prqlc;help;shell-completion' {
