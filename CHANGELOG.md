@@ -19,6 +19,8 @@
 - Add syntax highlight file for GNU Emacs. (@vanillajonathan, #5189)
 - [Kakoune](https://kakoune.org/), a terminal-based text editor has syntax
   highlighting for PRQL. (@vanillajonathan)
+- [Neovim](https://neovim.io/) 0.11 has syntax highlighting for PRQL.
+  (@vanillajonathan)
 
 **Internal changes**:
 
