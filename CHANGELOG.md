@@ -1,16 +1,11 @@
 # PRQL Changelog
 
-## [unreleased]
+## 0.13.4 — 2025-03-26
 
-**Language**:
+0.13.4 is a small bugfix release.
 
-**Features**:
-
-**Fixes**:
-
-**Documentation**:
-
-**Web**:
+It has 57 commits from 10 contributors. Selected changes (in particular, a few
+bugfixes aren't listed here):
 
 **Integrations**:
 
@@ -21,10 +16,6 @@
   highlighting for PRQL. (@vanillajonathan)
 - [Neovim](https://neovim.io/) 0.11 has syntax highlighting for PRQL.
   (@vanillajonathan)
-
-**Internal changes**:
-
-**New Contributors**:
 
 ## 0.13.3 — 2025-01-25
 
