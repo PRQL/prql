@@ -28,6 +28,7 @@ cli = [
   "walkdir",
 ]
 default = ["cli"]
+lsp = ["lsp-server", "lsp-types"]  # Just a stub without any real functionality
 serde_yaml = ["prqlc-parser/serde_yaml", "dep:serde_yaml"]
 test-dbs = [
   "rusqlite",
@@ -73,6 +74,8 @@ sqlformat = "0.3.5"
 sqlparser = { version = "0.53.0", features = ["serde"] }
 strum = { version = "0.27.0", features = ["std", "derive"] }
 strum_macros = "0.27.0"
+lsp-server = { version = "0.7.8", optional = true }
+lsp-types = { version = "0.97.0", optional = true }
 
 [build-dependencies]
 vergen-gitcl = { version = "1.0.0", features = ["build"] }
