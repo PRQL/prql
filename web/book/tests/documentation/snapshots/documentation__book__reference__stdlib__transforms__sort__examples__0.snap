@@ -1,7 +1,6 @@
 ---
 source: web/book/tests/documentation/book.rs
 expression: "from employees\nsort age\n"
-snapshot_kind: text
 ---
 SELECT
   *

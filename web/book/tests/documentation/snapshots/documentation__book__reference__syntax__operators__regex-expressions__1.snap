@@ -1,7 +1,6 @@
 ---
 source: web/book/tests/documentation/book.rs
 expression: "prql target:sql.duckdb\n\nfrom artists\nfilter (name ~= \"Love.*You\")\n"
-snapshot_kind: text
 ---
 SELECT
   *

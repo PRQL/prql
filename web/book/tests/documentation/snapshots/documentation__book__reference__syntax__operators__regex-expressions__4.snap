@@ -1,7 +1,6 @@
 ---
 source: web/book/tests/documentation/book.rs
 expression: "prql target:sql.mysql\n\nfrom tracks\nfilter (name ~= \"With You\")\n"
-snapshot_kind: text
 ---
 SELECT
   *

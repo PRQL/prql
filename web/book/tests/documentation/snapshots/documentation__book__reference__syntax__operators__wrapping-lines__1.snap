@@ -1,7 +1,6 @@
 ---
 source: web/book/tests/documentation/book.rs
 expression: "from tracks\n# This would be a really long line without being able to split it:\nselect listening_time_years = (spotify_plays + apple_music_plays + pandora_plays)\n# We can toggle between lines when developing:\n# \\ * length_seconds\n\\ * length_s\n#   min  hour day  year\n\\ / 60 / 60 / 24 / 365\n"
-snapshot_kind: text
 ---
 SELECT
   (

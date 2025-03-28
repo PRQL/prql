@@ -123,7 +123,7 @@ mod tests {
           shortest = min length,                      # Trailing commas are allowed
         }
 
-        "#), @r###"
+        "#), @r#"
         success: true
         exit_code: 0
         ----- stdout -----
@@ -138,7 +138,7 @@ mod tests {
 
 
         ----- stderr -----
-        "###);
+        "#);
     }
 
     // TODO: import from existing location, need to adjust visibility

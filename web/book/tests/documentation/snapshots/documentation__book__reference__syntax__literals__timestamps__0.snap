@@ -1,7 +1,6 @@
 ---
 source: web/book/tests/documentation/book.rs
 expression: "from commits\nderive first_prql_commit = @2020-01-01T13:19:55-08:00\nderive first_prql_commit_utc = @2020-01-02T21:19:55Z\n"
-snapshot_kind: text
 ---
 SELECT
   *,

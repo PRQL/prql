@@ -1,7 +1,6 @@
 ---
 source: web/book/tests/documentation/book.rs
 expression: "from employees\nderive age_at_year_end = (@2022-12-31 - dob)\n"
-snapshot_kind: text
 ---
 SELECT
   *,

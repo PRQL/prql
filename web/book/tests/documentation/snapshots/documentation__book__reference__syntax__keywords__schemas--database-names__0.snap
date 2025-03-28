@@ -1,7 +1,6 @@
 ---
 source: web/book/tests/documentation/book.rs
 expression: "from my_database.chinook.albums\n"
-snapshot_kind: text
 ---
 SELECT
   *

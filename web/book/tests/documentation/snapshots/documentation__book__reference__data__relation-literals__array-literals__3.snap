@@ -1,7 +1,6 @@
 ---
 source: web/book/tests/documentation/book.rs
 expression: "from_text format:json \"\"\"\n[\n    {\"a\": 1, \"m\": \"5\"},\n    {\"a\": 4, \"n\": \"6\"}\n]\n\"\"\"\n"
-snapshot_kind: text
 ---
 WITH table_0 AS (
   SELECT

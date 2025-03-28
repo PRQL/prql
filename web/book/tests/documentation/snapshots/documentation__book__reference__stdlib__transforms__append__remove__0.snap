@@ -1,7 +1,6 @@
 ---
 source: web/book/tests/documentation/book.rs
 expression: "from employees_1\nremove employees_2\n"
-snapshot_kind: text
 ---
 SELECT
   *

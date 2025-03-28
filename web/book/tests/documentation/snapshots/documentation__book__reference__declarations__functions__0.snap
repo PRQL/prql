@@ -1,7 +1,6 @@
 ---
 source: web/book/tests/documentation/book.rs
 expression: "let fahrenheit_to_celsius = temp -> (temp - 32) / 1.8\n\nfrom cities\nderive temp_c = (fahrenheit_to_celsius temp_f)\n"
-snapshot_kind: text
 ---
 SELECT
   *,

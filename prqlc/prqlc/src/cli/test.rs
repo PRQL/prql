@@ -73,7 +73,7 @@ fn help() {
 
 #[test]
 fn get_targets() {
-    assert_cmd_snapshot!(prqlc_command().arg("list-targets"), @r###"
+    assert_cmd_snapshot!(prqlc_command().arg("list-targets"), @r"
     success: true
     exit_code: 0
     ----- stdout -----
@@ -91,14 +91,14 @@ fn get_targets() {
     sql.snowflake
 
     ----- stderr -----
-    "###);
+    ");
 }
 
 #[test]
 fn compile() {
     assert_cmd_snapshot!(prqlc_command()
         .args(["compile", "--hide-signature-comment"])
-        .pass_stdin("from tracks"), @r###"
+        .pass_stdin("from tracks"), @r"
     success: true
     exit_code: 0
     ----- stdout -----
@@ -108,13 +108,13 @@ fn compile() {
       tracks
 
     ----- stderr -----
-    "###);
+    ");
 }
 
 #[cfg(not(windows))] // Windows has slightly different output (e.g. `prqlc.exe`), so we exclude.
 #[test]
 fn compile_help() {
-    assert_cmd_snapshot!(prqlc_command().args(["compile", "--help"]), @r#"
+    assert_cmd_snapshot!(prqlc_command().args(["compile", "--help"]), @r"
     success: true
     exit_code: 0
     ----- stdout -----
@@ -162,7 +162,7 @@ fn compile_help() {
               Print help (see a summary with '-h')
 
     ----- stderr -----
-    "#);
+    ");
 }
 
 #[test]
@@ -192,7 +192,7 @@ let long_query = (
   take 20
 )
 from long_query
-  "#), @r###"
+  "#), @r"
     success: true
     exit_code: 0
     ----- stdout -----
@@ -258,7 +258,7 @@ from long_query
       ct
 
     ----- stderr -----
-    "###);
+    ");
 
     // don't check the contents, they are very prone to change
     assert!(PathBuf::from_str("./log_test.html").unwrap().is_file());
@@ -276,7 +276,7 @@ fn compile_project() {
         "main",
     ]);
 
-    assert_cmd_snapshot!(cmd, @r###"
+    assert_cmd_snapshot!(cmd, @r"
     success: true
     exit_code: 0
     ----- stdout -----
@@ -318,7 +318,7 @@ fn compile_project() {
       LEFT JOIN input ON favorite_artists.artist_id = input.artist_id
 
     ----- stderr -----
-    "###);
+    ");
 
     // don't check the contents, they are very prone to change
     assert!(PathBuf::from_str("./log_test.json").unwrap().is_file());
@@ -330,7 +330,7 @@ fn compile_project() {
         project_path().to_str().unwrap(),
         "-",
         "favorite_artists",
-    ]), @r###"
+    ]), @r"
     success: true
     exit_code: 0
     ----- stdout -----
@@ -351,13 +351,13 @@ fn compile_project() {
       table_0
 
     ----- stderr -----
-    "###);
+    ");
 }
 
 #[test]
 fn format() {
     // Test stdin formatting
-    assert_cmd_snapshot!(prqlc_command().args(["fmt"]).pass_stdin("from tracks | take 20"), @r###"
+    assert_cmd_snapshot!(prqlc_command().args(["fmt"]).pass_stdin("from tracks | take 20"), @r"
     success: true
     exit_code: 0
     ----- stdout -----
@@ -365,7 +365,7 @@ fn format() {
     take 20
 
     ----- stderr -----
-    "###);
+    ");
 
     // Test formatting a path:
 
@@ -423,7 +423,7 @@ fn compare_directories(dir1: &Path, dir2: &Path) {
 fn debug() {
     assert_cmd_snapshot!(prqlc_command()
         .args(["debug", "lineage"])
-        .pass_stdin("from tracks | select {artist, album}"), @r#"
+        .pass_stdin("from tracks | select {artist, album}"), @r"
     success: true
     exit_code: 0
     ----- stdout -----
@@ -527,7 +527,7 @@ fn debug() {
         span: 1:0-36
 
     ----- stderr -----
-    "#);
+    ");
 
     // Don't test the output of this, since on one min-versions check it had
     // different results, and didn't repro on Mac. It having different results
@@ -603,20 +603,19 @@ fn normalize_prqlc(cmd: &mut Command) -> &mut Command {
 
 #[test]
 fn compile_no_prql_files() {
-    assert_cmd_snapshot!(prqlc_command().args(["compile", "README.md"]), @r###"
+    assert_cmd_snapshot!(prqlc_command().args(["compile", "README.md"]), @r"
     success: false
     exit_code: 1
     ----- stdout -----
 
     ----- stderr -----
     Error: No `.prql` files found in the source tree
-
-    "###);
+    ");
 }
 
 #[test]
 fn lex() {
-    assert_cmd_snapshot!(prqlc_command().args(["lex"]).pass_stdin("from tracks"), @r###"
+    assert_cmd_snapshot!(prqlc_command().args(["lex"]).pass_stdin("from tracks"), @r"
     success: true
     exit_code: 0
     ----- stdout -----
@@ -634,9 +633,9 @@ fn lex() {
         end: 11
 
     ----- stderr -----
-    "###);
+    ");
 
-    assert_cmd_snapshot!(prqlc_command().args(["lex", "--format=json"]).pass_stdin("from tracks"), @r###"
+    assert_cmd_snapshot!(prqlc_command().args(["lex", "--format=json"]).pass_stdin("from tracks"), @r#"
     success: true
     exit_code: 0
     ----- stdout -----
@@ -668,7 +667,7 @@ fn lex() {
       }
     ]
     ----- stderr -----
-    "###);
+    "#);
 }
 
 #[cfg(feature = "lsp")]

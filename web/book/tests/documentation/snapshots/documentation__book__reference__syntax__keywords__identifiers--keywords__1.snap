@@ -1,7 +1,6 @@
 ---
 source: web/book/tests/documentation/book.rs
 expression: "from invoices\njoin tracks (this.track_id==that.id)\n"
-snapshot_kind: text
 ---
 SELECT
   invoices.*,

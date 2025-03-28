@@ -1,7 +1,6 @@
 ---
 source: web/book/tests/documentation/book.rs
 expression: "from employees\ngroup role (\n  sort join_date  # taken from above\n  take 1\n)\n"
-snapshot_kind: text
 ---
 WITH table_0 AS (
   SELECT
