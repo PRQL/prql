@@ -5,7 +5,7 @@ snapshot_kind: text
 ---
 WITH table_0 AS (
   SELECT
-    '0.13.4' AS version
+    '0.13.5' AS version
 )
 SELECT
   version

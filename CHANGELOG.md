@@ -1,5 +1,23 @@
 # PRQL Changelog
 
+## [unreleased]
+
+**Language**:
+
+**Features**:
+
+**Fixes**:
+
+**Documentation**:
+
+**Web**:
+
+**Integrations**:
+
+**Internal changes**:
+
+**New Contributors**:
+
 ## 0.13.4 — 2025-03-26
 
 0.13.4 is a small bugfix release.
