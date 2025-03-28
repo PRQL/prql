@@ -251,7 +251,7 @@ impl Resolver<'_> {
 
                 let [pattern, value] = unpack::<2>(func.args);
 
-                if pattern.ty.as_ref().map_or(false, |x| x.kind.is_array()) {
+                if pattern.ty.as_ref().is_some_and(|x| x.kind.is_array()) {
                     return Ok(Expr::new(ExprKind::RqOperator {
                         name: "std.array_in".to_string(),
                         args: vec![value, pattern],
@@ -465,7 +465,7 @@ impl Resolver<'_> {
     /// Wraps non-tuple Exprs into a singleton Tuple.
     pub(super) fn coerce_into_tuple(&mut self, expr: Expr) -> Result<Expr> {
         let is_tuple_ty =
-            expr.ty.as_ref().map_or(false, |t| t.kind.is_tuple()) && !expr.kind.is_all();
+            expr.ty.as_ref().is_some_and(|t| t.kind.is_tuple()) && !expr.kind.is_all();
         Ok(if is_tuple_ty {
             // a helpful check for a common anti-pattern
             if let Some(alias) = expr.alias {
@@ -892,7 +892,7 @@ impl Lineage {
         }
 
         // special case: include a tuple
-        if expr.ty.as_ref().map_or(false, |x| x.kind.is_tuple()) && expr.kind.is_ident() {
+        if expr.ty.as_ref().is_some_and(|x| x.kind.is_tuple()) && expr.kind.is_ident() {
             // this ident is a tuple, which means it much point to an input
             let input_id = expr.target_id.unwrap();
 

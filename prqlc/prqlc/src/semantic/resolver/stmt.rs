@@ -109,7 +109,7 @@ impl super::Resolver<'_> {
                     // var value is not provided
 
                     // is this a relation?
-                    if expected_ty.as_ref().map_or(false, |t| t.is_relation()) {
+                    if expected_ty.as_ref().is_some_and(|t| t.is_relation()) {
                         // treat this var as a TableDecl
                         DeclKind::TableDecl(TableDecl {
                             ty: expected_ty,

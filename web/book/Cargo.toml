@@ -21,13 +21,13 @@ test = false
 ansi-to-html = "0.2.2"
 anyhow = {workspace = true}
 itertools = {workspace = true}
-mdbook = {version = "0.4.43", default-features = false}
+mdbook = {version = "0.4.44", default-features = false}
 mdbook-preprocessor-boilerplate = "0.1.2"
 prqlc = {path = "../../prqlc/prqlc", default-features = false}
 pulldown-cmark = {version = "0.10.3", default-features = false}
 pulldown-cmark-to-cmark = "14.0.1"
-strum = {version = "0.26.3", features = ["std", "derive"]}
-strum_macros = "0.26.4"
+strum = {version = "0.27.0", features = ["std", "derive"]}
+strum_macros = "0.27.0"
 
 [target.'cfg(not(target_family="wasm"))'.dev-dependencies]
 anstream = {version = "0.6.18"}

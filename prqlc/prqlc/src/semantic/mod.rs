@@ -86,7 +86,7 @@ pub fn is_ident_or_func_call(expr: &pl::Expr, name: &pr::Ident) -> bool {
     match &expr.kind {
         pl::ExprKind::Ident(i) if i == name => true,
         pl::ExprKind::FuncCall(pl::FuncCall { name: n_expr, .. })
-            if n_expr.kind.as_ident().map_or(false, |i| i == name) =>
+            if n_expr.kind.as_ident() == Some(name) =>
         {
             true
         }
