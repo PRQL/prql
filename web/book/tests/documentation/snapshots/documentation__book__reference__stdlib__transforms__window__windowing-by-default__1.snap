@@ -1,7 +1,6 @@
 ---
 source: web/book/tests/documentation/book.rs
 expression: "from employees\ngroup department (\n  sort age\n  derive {rnk = rank age}\n)\n"
-snapshot_kind: text
 ---
 SELECT
   *,

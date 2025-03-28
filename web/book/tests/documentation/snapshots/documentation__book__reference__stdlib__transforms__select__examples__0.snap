@@ -1,7 +1,6 @@
 ---
 source: web/book/tests/documentation/book.rs
 expression: "from employees\nselect name = f\"{first_name} {last_name}\"\n"
-snapshot_kind: text
 ---
 SELECT
   CONCAT(first_name, ' ', last_name) AS name

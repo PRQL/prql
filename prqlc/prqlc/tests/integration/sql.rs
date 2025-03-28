@@ -932,39 +932,39 @@ fn test_sort_in_nested_append() {
         take 2
     )
     "#).unwrap(),
-        @r#"
-        WITH table_0 AS (
-          SELECT
-            album_id,
-            title
-          FROM
-            albums
-          ORDER BY
-            album_id DESC
-          LIMIT
-            2
-        )
+        @r"
+    WITH table_0 AS (
+      SELECT
+        album_id,
+        title
+      FROM
+        albums
+      ORDER BY
+        album_id DESC
+      LIMIT
+        2
+    )
+    SELECT
+      *
+    FROM
+      (
         SELECT
-          *
+          album_id,
+          title
         FROM
-          (
-            SELECT
-              album_id,
-              title
-            FROM
-              albums
-            ORDER BY
-              album_id
-            LIMIT
-              2
-          ) AS table_1
-        UNION
-        ALL
-        SELECT
-          *
-        FROM
-          table_0
-    "#
+          albums
+        ORDER BY
+          album_id
+        LIMIT
+          2
+      ) AS table_1
+    UNION
+    ALL
+    SELECT
+      *
+    FROM
+      table_0
+    "
     );
 }
 
@@ -1101,12 +1101,12 @@ from `some_dataset.demo`
 select {`hash`}
 ";
 
-    assert_snapshot!(compile(prql).unwrap(), @r#"
+    assert_snapshot!(compile(prql).unwrap(), @r"
     SELECT
       `hash`
     FROM
       `some_dataset.demo`
-    "#);
+    ");
 }
 
 #[test]
@@ -5493,7 +5493,7 @@ derive { d = c }
 select !{ c } 
 
 group { d } ( aggregate { b = sum b } ) 
-sort { d }"###).unwrap(), @r#"
+sort { d }"###).unwrap(), @r"
     WITH table_1 AS (
       SELECT
         b
@@ -5519,7 +5519,7 @@ sort { d }"###).unwrap(), @r#"
       _expr_0
     ORDER BY
       d
-    "#);
+    ");
 }
 
 #[test]
@@ -5528,11 +5528,11 @@ fn test_type_error_placement() {
     let foo = x -> (x | as integer)
     from t
     select (true && (foo y))
-    "###).unwrap(), @r#"
+    "###).unwrap(), @r"
     SELECT
       true
       AND CAST(y AS integer)
     FROM
       t
-    "#);
+    ");
 }

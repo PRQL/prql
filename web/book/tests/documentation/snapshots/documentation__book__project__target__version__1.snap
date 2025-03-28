@@ -1,7 +1,6 @@
 ---
 source: web/book/tests/documentation/book.rs
 expression: "[{version = prql.version}]\n"
-snapshot_kind: text
 ---
 WITH table_0 AS (
   SELECT

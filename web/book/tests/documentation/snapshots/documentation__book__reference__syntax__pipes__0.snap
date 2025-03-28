@@ -1,7 +1,6 @@
 ---
 source: web/book/tests/documentation/book.rs
 expression: "from employees\nfilter department == \"Product\"\nselect {first_name, last_name}\n"
-snapshot_kind: text
 ---
 SELECT
   first_name,

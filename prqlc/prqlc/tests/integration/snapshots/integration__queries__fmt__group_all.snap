@@ -2,7 +2,6 @@
 source: prqlc/prqlc/tests/integration/queries.rs
 expression: "# mssql:test\nfrom a=albums\ntake 10\njoin tracks (==album_id)\ngroup {a.album_id, a.title} (aggregate price = (sum tracks.unit_price | math.round 2))\nsort album_id\n"
 input_file: prqlc/prqlc/tests/integration/queries/group_all.prql
-snapshot_kind: text
 ---
 from a = albums
 take 10

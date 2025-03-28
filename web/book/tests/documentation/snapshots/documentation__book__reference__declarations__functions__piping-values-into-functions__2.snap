@@ -1,7 +1,6 @@
 ---
 source: web/book/tests/documentation/book.rs
 expression: "let fahrenheit_to_celsius = temp -> (temp - 32) / 1.8\nlet interp = low:0 high x -> (x - low) / (high - low)\n\nfrom kettles\nderive boiling_proportion = (temp_c | fahrenheit_to_celsius | interp 100)\n"
-snapshot_kind: text
 ---
 SELECT
   *,

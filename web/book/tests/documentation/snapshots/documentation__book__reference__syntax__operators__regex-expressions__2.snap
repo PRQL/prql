@@ -1,7 +1,6 @@
 ---
 source: web/book/tests/documentation/book.rs
 expression: "prql target:sql.bigquery\n\nfrom tracks\nfilter (name ~= \"\\\\bLove\\\\b\")\n"
-snapshot_kind: text
 ---
 SELECT
   *

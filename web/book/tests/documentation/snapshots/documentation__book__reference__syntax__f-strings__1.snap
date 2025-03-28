@@ -1,7 +1,6 @@
 ---
 source: web/book/tests/documentation/book.rs
 expression: "from web\nselect url = f\"http{tls}://www.{domain}.{tld}/{page}\"\n"
-snapshot_kind: text
 ---
 SELECT
   CONCAT(

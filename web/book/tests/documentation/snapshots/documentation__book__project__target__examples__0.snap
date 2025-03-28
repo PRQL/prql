@@ -1,7 +1,6 @@
 ---
 source: web/book/tests/documentation/book.rs
 expression: "prql target:sql.postgres\n\nfrom employees\nsort age\ntake 10\n"
-snapshot_kind: text
 ---
 SELECT
   *

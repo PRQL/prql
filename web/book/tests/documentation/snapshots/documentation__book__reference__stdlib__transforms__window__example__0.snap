@@ -1,7 +1,6 @@
 ---
 source: web/book/tests/documentation/book.rs
 expression: "from employees\ngroup employee_id (\n  sort month\n  window rolling:12 (\n    derive {trail_12_m_comp = sum paycheck}\n  )\n)\n"
-snapshot_kind: text
 ---
 SELECT
   *,

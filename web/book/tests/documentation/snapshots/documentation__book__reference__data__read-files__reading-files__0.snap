@@ -1,7 +1,6 @@
 ---
 source: web/book/tests/documentation/book.rs
 expression: "prql target:sql.duckdb\n\nfrom (read_parquet \"artists.parquet\")\njoin (read_csv \"albums.csv\") (==track_id)\n"
-snapshot_kind: text
 ---
 WITH table_0 AS (
   SELECT

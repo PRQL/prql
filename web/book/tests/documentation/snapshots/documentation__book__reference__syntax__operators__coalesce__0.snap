@@ -1,7 +1,6 @@
 ---
 source: web/book/tests/documentation/book.rs
 expression: "from orders\nderive amount ?? 0\n"
-snapshot_kind: text
 ---
 SELECT
   *,

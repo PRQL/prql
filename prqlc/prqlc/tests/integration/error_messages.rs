@@ -158,7 +158,7 @@ fn test_bad_function_type() {
     group foo (take)
     "###,
     )
-    .unwrap_err(), @r#"
+    .unwrap_err(), @r"
     Error:
        ╭─[:3:16]
        │
@@ -168,7 +168,7 @@ fn test_bad_function_type() {
        │
        │ Help: Type `transform` expands to `func relation -> relation`
     ───╯
-    "#);
+    ");
 }
 
 #[test]

@@ -1,7 +1,6 @@
 ---
 source: web/book/tests/documentation/book.rs
 expression: "[\n  {a=2}      # No pipe from line break before & after this list item\n]\nderive {\n  c = 2 * a, # No pipe from line break before & after this tuple item\n}\n"
-snapshot_kind: text
 ---
 WITH table_0 AS (
   SELECT

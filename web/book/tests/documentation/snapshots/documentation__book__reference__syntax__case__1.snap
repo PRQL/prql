@@ -1,7 +1,6 @@
 ---
 source: web/book/tests/documentation/book.rs
 expression: "from employees\nderive distance = case [\n  city == \"Calgary\" => 0,\n  city == \"Edmonton\" => 300,\n  true => \"Unknown\",\n]\n"
-snapshot_kind: text
 ---
 SELECT
   *,

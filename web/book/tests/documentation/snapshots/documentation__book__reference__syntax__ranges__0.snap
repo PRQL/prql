@@ -1,7 +1,6 @@
 ---
 source: web/book/tests/documentation/book.rs
 expression: "from events\nfilter (created_at | in @1776-07-04..@1787-09-17)\nfilter (magnitude | in 50..100)\nderive is_northern = (latitude | in 0..)\n"
-snapshot_kind: text
 ---
 SELECT
   *,

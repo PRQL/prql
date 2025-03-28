@@ -2,7 +2,6 @@
 source: prqlc/prqlc/tests/integration/queries.rs
 expression: "# clickhouse:skip (DB::Exception: Syntax error)\n# glaredb:skip (DataFusion does not support recursive CTEs https://github.com/apache/arrow-datafusion/issues/462)\nfrom [{n = 1}]\nselect n = n - 2\nloop (filter n < 4 | select n = n + 1)\nselect n = n * 2\nsort n\n"
 input_file: prqlc/prqlc/tests/integration/queries/loop_01.prql
-snapshot_kind: text
 ---
 from [{n = 1}]
 select n = n - 2

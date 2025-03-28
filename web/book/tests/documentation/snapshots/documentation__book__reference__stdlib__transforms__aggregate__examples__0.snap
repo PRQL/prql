@@ -1,7 +1,6 @@
 ---
 source: web/book/tests/documentation/book.rs
 expression: "from employees\naggregate {\n  average salary,\n  ct = count salary\n}\n"
-snapshot_kind: text
 ---
 SELECT
   AVG(salary),
