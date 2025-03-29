@@ -315,7 +315,7 @@ fn compile_project() {
       input.*
     FROM
       favorite_artists
-      LEFT JOIN input ON favorite_artists.artist_id = input.artist_id
+      LEFT OUTER JOIN input ON favorite_artists.artist_id = input.artist_id
 
     ----- stderr -----
     ");

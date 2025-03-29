@@ -19,4 +19,4 @@ SELECT
   table_1.*
 FROM
   table_0
-  JOIN table_1 ON table_0.track_id = table_1.track_id
+  INNER JOIN table_1 ON table_0.track_id = table_1.track_id

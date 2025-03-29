@@ -7,5 +7,5 @@ SELECT
   s.*
 FROM
   dept_emp AS de
-  LEFT JOIN salaries AS s ON s.emp_no = de.emp_no
+  LEFT OUTER JOIN salaries AS s ON s.emp_no = de.emp_no
   AND (s.from_date, s.to_date) OVERLAPS (de.from_date, de.to_date)
