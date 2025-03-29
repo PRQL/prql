@@ -609,7 +609,7 @@ fn test_remove_03() {
       album.title
     FROM
       album
-      LEFT JOIN table_0 ON album.artist_id = table_0.artist_id
+      LEFT OUTER JOIN table_0 ON album.artist_id = table_0.artist_id
     WHERE
       table_0.artist_id IS NULL
     "
@@ -880,7 +880,7 @@ fn test_intersect_07() {
       COUNT(*)
     FROM
       foo.t1 AS ds2
-      JOIN bar.t2 AS ds1 ON ds2.idx = ds1.idx
+      INNER JOIN bar.t2 AS ds1 ON ds2.idx = ds1.idx
     "
     );
 }
@@ -911,7 +911,7 @@ fn test_sort_in_nested_join() {
       table_0.*
     FROM
       albums
-      LEFT JOIN table_0 ON albums.artist_id = table_0.artist_id
+      LEFT OUTER JOIN table_0 ON albums.artist_id = table_0.artist_id
     LIMIT
       10
     "#
@@ -1029,7 +1029,7 @@ fn test_quoting_01() {
       5 AS "from"
     FROM
       "UPPER"
-      JOIN "some_schema.tablename" ON "UPPER".id = "some_schema.tablename".id
+      INNER JOIN "some_schema.tablename" ON "UPPER".id = "some_schema.tablename".id
     "#);
 }
 
@@ -1062,8 +1062,8 @@ fn test_quoting_03() {
       c.*
     FROM
       `schema.table`
-      JOIN `schema.table2` ON `schema.table`.id = `schema.table2`.id
-      JOIN `schema.t-able` AS c ON `schema.table`.id = c.id
+      INNER JOIN `schema.table2` ON `schema.table`.id = `schema.table2`.id
+      INNER JOIN `schema.t-able` AS c ON `schema.table`.id = c.id
     ");
 }
 
@@ -1203,7 +1203,7 @@ fn test_sorts_03() {
         a.col AS _expr_0
       FROM
         a
-        LEFT JOIN b ON a.col = b.col
+        LEFT OUTER JOIN b ON a.col = b.col
       ORDER BY
         a._expr_0
       LIMIT
@@ -1489,7 +1489,7 @@ fn test_window_functions_02() {
         COALESCE(SUM(ol.price), 0) AS total_price
       FROM
         cust_order AS co
-        JOIN order_line AS ol ON co.order_id = ol.order_id
+        INNER JOIN order_line AS ol ON co.order_id = ol.order_id
       GROUP BY
         TO_CHAR(co.order_date, '%Y-%m'),
         TO_CHAR(co.order_date, '%Y-%m-%d')
@@ -2444,7 +2444,7 @@ fn test_distinct_on_04() {
       b.y
     FROM
       a
-      JOIN b ON b.a_id = a.id
+      INNER JOIN b ON b.a_id = a.id
     ORDER BY
       a.id,
       b.x
@@ -2524,7 +2524,7 @@ fn test_join() {
       y.*
     FROM
       x
-      JOIN y ON x.id = y.id
+      INNER JOIN y ON x.id = y.id
     ");
 
     compile("from x | join y {==x.id}").unwrap_err();
@@ -2543,7 +2543,7 @@ fn test_join_side_literal() {
       y.*
     FROM
       x
-      RIGHT JOIN y ON x.id = y.id
+      RIGHT OUTER JOIN y ON x.id = y.id
     ");
 }
 
@@ -2580,7 +2580,7 @@ fn test_join_side_literal_via_func() {
       y.*
     FROM
       x
-      LEFT JOIN y ON x.id = y.k
+      LEFT OUTER JOIN y ON x.id = y.k
     ");
 }
 
@@ -3033,7 +3033,7 @@ fn test_prql_to_sql_table() {
       average_salaries.average_country_salary
     FROM
       newest_employees
-      JOIN average_salaries ON newest_employees.country = average_salaries.country
+      INNER JOIN average_salaries ON newest_employees.country = average_salaries.country
     ORDER BY
       employees.tenure
     "
@@ -3163,7 +3163,7 @@ fn test_nonatomic_table() {
       b.average_country_salary
     FROM
       a
-      JOIN b ON a.country = b.country
+      INNER JOIN b ON a.country = b.country
     ");
 }
 
@@ -3183,7 +3183,7 @@ fn test_table_names_between_splits_01() {
         d.name
       FROM
         employees
-        JOIN department AS d ON employees.dept_no = d.dept_no
+        INNER JOIN department AS d ON employees.dept_no = d.dept_no
       LIMIT
         10
     )
@@ -3193,7 +3193,7 @@ fn test_table_names_between_splits_01() {
       s.salary
     FROM
       table_0
-      JOIN salaries AS s ON table_0.emp_no = s.emp_no
+      INNER JOIN salaries AS s ON table_0.emp_no = s.emp_no
     ");
 }
 
@@ -3218,7 +3218,7 @@ fn test_table_names_between_splits_02() {
       salaries.salary
     FROM
       table_0
-      JOIN salaries ON table_0.emp_no = salaries.emp_no
+      INNER JOIN salaries ON table_0.emp_no = salaries.emp_no
     ");
 }
 
@@ -3239,7 +3239,7 @@ fn test_table_alias_01() {
       AVG(salaries.salary) AS emp_salary
     FROM
       employees AS e
-      LEFT JOIN salaries ON salaries.emp_no = e.emp_no
+      LEFT OUTER JOIN salaries ON salaries.emp_no = e.emp_no
     GROUP BY
       e.emp_no
     ");
@@ -3432,7 +3432,7 @@ join y (foo == only_in_x)
       y.foo
     FROM
       x
-      JOIN y ON y.foo = x.only_in_x
+      INNER JOIN y ON y.foo = x.only_in_x
     "
     );
 }
@@ -3582,7 +3582,7 @@ fn test_inline_tables() {
       table_0.salary
     FROM
       employees
-      JOIN table_0 ON employees.emp_id = table_0.emp_id
+      INNER JOIN table_0 ON employees.emp_id = table_0.emp_id
     "
     );
 }
@@ -3713,7 +3713,7 @@ fn test_table_s_string_02() {
       table_1.*
     FROM
       table_0
-      JOIN table_1 ON table_0.id = table_1.id
+      INNER JOIN table_1 ON table_0.id = table_1.id
     "
     );
 }
@@ -4638,7 +4638,7 @@ fn test_loop_2() {
         manager.*
       FROM
         table_1
-        JOIN employees AS manager ON manager.employee_id = table_1.reports_to
+        INNER JOIN employees AS manager ON manager.employee_id = table_1.reports_to
     )
     SELECT
       *
@@ -4817,7 +4817,7 @@ fn test_read_parquet_duckdb() {
       table_1.*
     FROM
       table_0
-      JOIN table_1 ON table_0.foo = table_1.foo
+      INNER JOIN table_1 ON table_0.foo = table_1.foo
     "
     );
 
@@ -4994,7 +4994,7 @@ fn test_double_stars() {
         tb2.*
       FROM
         tb1
-        JOIN tb2 ON tb1.c2 = tb2.c2
+        INNER JOIN tb2 ON tb1.c2 = tb2.c2
       LIMIT
         5
     )
@@ -5022,7 +5022,7 @@ fn test_double_stars() {
         tb2.*
       FROM
         tb1
-        JOIN tb2 ON tb1.c2 = tb2.c2
+        INNER JOIN tb2 ON tb1.c2 = tb2.c2
       LIMIT
         5
     )
@@ -5236,7 +5236,7 @@ fn test_conflicting_names_at_split() {
         wp.workflow_id
       FROM
         workflow_steps AS s
-        JOIN workflow_phases AS wp ON s.phase_id = wp.id
+        INNER JOIN workflow_phases AS wp ON s.phase_id = wp.id
       WHERE
         wp.name = 'CREATE_OUTLET'
     )
@@ -5245,7 +5245,7 @@ fn test_conflicting_names_at_split() {
       table_0.id AS phase_id
     FROM
       table_0
-      JOIN workflow AS w ON table_0.workflow_id = w.id
+      INNER JOIN workflow AS w ON table_0.workflow_id = w.id
     ");
 }
 
@@ -5324,7 +5324,7 @@ fn test_relation_var_name_clashes_02() {
       table_0.*
     FROM
       t
-      JOIN t AS table_0 ON t.x = table_0.x
+      INNER JOIN t AS table_0 ON t.x = table_0.x
     ");
 }
 
@@ -5410,7 +5410,7 @@ fn test_table_declarations() {
       another_table.b
     FROM
       my_schema.my_table
-      JOIN another_table ON my_table.id = another_table.id
+      INNER JOIN another_table ON my_table.id = another_table.id
     LIMIT
       10
     ");

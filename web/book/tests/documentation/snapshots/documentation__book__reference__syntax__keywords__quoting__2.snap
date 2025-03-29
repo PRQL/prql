@@ -7,4 +7,4 @@ SELECT
   `project-bar.dataset.table`.*
 FROM
   `project-foo.dataset.table`
-  JOIN `project-bar.dataset.table` ON `project-foo.dataset.table`.col_bax = `project-bar.dataset.table`.col_bax
+  INNER JOIN `project-bar.dataset.table` ON `project-foo.dataset.table`.col_bax = `project-bar.dataset.table`.col_bax

@@ -7,6 +7,6 @@ SELECT
   locations.*
 FROM
   employees
-  JOIN locations ON employees.employee_id = locations.employee_id
+  INNER JOIN locations ON employees.employee_id = locations.employee_id
 ORDER BY
   employees.tenure

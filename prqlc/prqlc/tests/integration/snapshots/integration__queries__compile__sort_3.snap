@@ -29,7 +29,7 @@ table_4 AS (
     table_5.genre_id
   FROM
     table_5
-    LEFT JOIN table_1 ON table_5.album_id = table_1.album_id
+    LEFT OUTER JOIN table_1 ON table_5.album_id = table_1.album_id
 ),
 table_3 AS (
   SELECT
@@ -52,6 +52,6 @@ SELECT
   COALESCE(table_2.genre_title, 'unknown') AS "GT"
 FROM
   table_3
-  LEFT JOIN table_2 ON table_3.genre_id = table_2.genre_id
+  LEFT OUTER JOIN table_2 ON table_3.genre_id = table_2.genre_id
 ORDER BY
   table_3."AA"

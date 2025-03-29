@@ -25,6 +25,6 @@ SELECT
   artists.*
 FROM
   table_0
-  JOIN artists ON table_0.artist_id = artists.artist_id
+  INNER JOIN artists ON table_0.artist_id = artists.artist_id
 ORDER BY
   table_0."AA"

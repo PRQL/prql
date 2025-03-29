@@ -25,5 +25,5 @@ SELECT
   albums.title
 FROM
   artists
-  JOIN my_artists ON artists.artist = my_artists.artist
-  JOIN albums ON artists.artist_id = albums.artist_id
+  INNER JOIN my_artists ON artists.artist = my_artists.artist
+  INNER JOIN albums ON artists.artist_id = albums.artist_id

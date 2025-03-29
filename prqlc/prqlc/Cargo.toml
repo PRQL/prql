@@ -71,7 +71,7 @@ serde = { workspace = true }
 serde_json = { workspace = true }
 serde_yaml = { workspace = true, optional = true }
 sqlformat = "0.3.5"
-sqlparser = { version = "0.54.0", features = [
+sqlparser = { version = "0.55.0", features = [
   "serde",
   # enabling "recursive-protection" causes wasm compilation to fail on MacOS
 ], default-features = false }
