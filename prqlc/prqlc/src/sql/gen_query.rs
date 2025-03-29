@@ -308,7 +308,7 @@ fn translate_relation_expr(relation_expr: RelationExpr, ctx: &mut Context) -> Re
             // prepare names
             let table_name = decl.name.clone().unwrap();
 
-            let name = sql_ast::ObjectName(translate_ident(Some(table_name.clone()), None, ctx).into_iter().map(|ident| sqlparser::ast::ObjectNamePart::Identifier(ident)).collect());
+            let name = sql_ast::ObjectName(translate_ident(Some(table_name.clone()), None, ctx).into_iter().map(sqlparser::ast::ObjectNamePart::Identifier).collect());
 
             TableFactor::Table {
                 name,
