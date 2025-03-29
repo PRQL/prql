@@ -28,7 +28,7 @@ cli = [
   "walkdir",
 ]
 default = ["cli"]
-lsp = ["lsp-server", "lsp-types"]  # Just a stub without any real functionality
+lsp = ["lsp-server", "lsp-types"] # Just a stub without any real functionality
 serde_yaml = ["prqlc-parser/serde_yaml", "dep:serde_yaml"]
 test-dbs = [
   "rusqlite",
@@ -71,7 +71,10 @@ serde = { workspace = true }
 serde_json = { workspace = true }
 serde_yaml = { workspace = true, optional = true }
 sqlformat = "0.3.5"
-sqlparser = { version = "0.54.0", features = ["serde"] }
+sqlparser = { version = "0.54.0", features = [
+  "serde",
+  # enabling "recursive-protection" causes wasm compilation to fail on MacOS
+], default-features = false }
 strum = { version = "0.27.0", features = ["std", "derive"] }
 strum_macros = "0.27.0"
 lsp-server = { version = "0.7.8", optional = true }
