@@ -1,7 +1,6 @@
 ---
 source: web/book/tests/documentation/book.rs
 expression: "from my_table\nselect db_version = s\"version()\"\n"
-snapshot_kind: text
 ---
 SELECT
   version() AS db_version

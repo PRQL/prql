@@ -762,7 +762,7 @@ sort full
         )
         .unwrap();
 
-        assert_snapshot!(String::from_utf8(output).unwrap().trim(), @r#"
+        assert_snapshot!(String::from_utf8(output).unwrap().trim(), @r"
         name: Project
         stmts:
         - VarDef:
@@ -793,7 +793,7 @@ sort full
                   span: 1:9-17
               span: 1:0-17
           span: 1:0-17
-        "#);
+        ");
     }
     #[test]
     fn lex() {

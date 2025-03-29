@@ -1,7 +1,6 @@
 ---
 source: web/book/tests/documentation/book.rs
 expression: "prql target:sql.mysql\nfrom employees\nselect `first name`\n"
-snapshot_kind: text
 ---
 SELECT
   `first name`

@@ -1,7 +1,6 @@
 ---
 source: web/book/tests/documentation/book.rs
 expression: "from orders\nsort day\nwindow rows:-3..3 (\n  derive {centered_weekly_average = average value}\n)\ngroup {order_month} (\n  sort day\n  window expanding:true (\n    derive {monthly_running_total = sum value}\n  )\n)\n"
-snapshot_kind: text
 ---
 SELECT
   *,

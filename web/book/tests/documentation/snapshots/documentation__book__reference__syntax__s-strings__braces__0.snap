@@ -1,7 +1,6 @@
 ---
 source: web/book/tests/documentation/book.rs
 expression: "from employees\nderive {\n  has_valid_title = s\"regexp_contains(title, '([a-z0-9]*-){{2,}}')\"\n}\n"
-snapshot_kind: text
 ---
 SELECT
   *,

@@ -1,7 +1,6 @@
 ---
 source: web/book/tests/documentation/book.rs
 expression: "from employees\nfilter age > 25\n"
-snapshot_kind: text
 ---
 SELECT
   *

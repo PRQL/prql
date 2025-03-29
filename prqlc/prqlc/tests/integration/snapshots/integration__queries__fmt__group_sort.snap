@@ -2,7 +2,6 @@
 source: prqlc/prqlc/tests/integration/queries.rs
 expression: "# mssql:test\nfrom tracks\nderive d = album_id + 1\ngroup d (\n    aggregate {\n        n1 = (track_id | sum),\n    }\n)\nsort d\ntake 10\nselect { d1 = d, n1 }\n"
 input_file: prqlc/prqlc/tests/integration/queries/group_sort.prql
-snapshot_kind: text
 ---
 from tracks
 derive d = album_id + 1

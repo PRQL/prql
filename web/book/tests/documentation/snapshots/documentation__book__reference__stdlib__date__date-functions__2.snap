@@ -1,7 +1,6 @@
 ---
 source: web/book/tests/documentation/book.rs
 expression: "prql target:sql.mysql\n\nfrom invoices\nselect (invoice_date | date.to_text \"%d/%m/%Y\")\n\n"
-snapshot_kind: text
 ---
 SELECT
   DATE_FORMAT(invoice_date, '%d/%m/%Y')

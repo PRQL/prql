@@ -1,7 +1,6 @@
 ---
 source: web/book/tests/documentation/book.rs
 expression: "from employees\ngroup employees.* (take 1)\n"
-snapshot_kind: text
 ---
 SELECT
   DISTINCT *

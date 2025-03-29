@@ -24,7 +24,7 @@ fn test_bad_error_messages() {
     assert_snapshot!(compile(r###"
     from film
     group
-    "###).unwrap_err(), @r#"
+    "###).unwrap_err(), @r"
     Error:
        ╭─[:3:5]
        │
@@ -36,7 +36,7 @@ fn test_bad_error_messages() {
        │
        │ Note: Type `relation` expands to `[{..}]`
     ───╯
-    "#);
+    ");
 
     // This should suggest parentheses (this might not be an easy one to solve)
     assert_snapshot!(compile(r#"

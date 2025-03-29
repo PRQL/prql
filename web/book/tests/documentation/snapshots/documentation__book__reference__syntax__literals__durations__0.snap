@@ -1,7 +1,6 @@
 ---
 source: web/book/tests/documentation/book.rs
 expression: "from projects\nderive first_check_in = start + 10days\n"
-snapshot_kind: text
 ---
 SELECT
   *,

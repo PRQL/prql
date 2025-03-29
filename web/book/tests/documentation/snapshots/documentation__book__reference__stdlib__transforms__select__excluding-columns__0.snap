@@ -1,7 +1,6 @@
 ---
 source: web/book/tests/documentation/book.rs
 expression: "prql target:sql.bigquery\nfrom tracks\nselect !{milliseconds, bytes}\n"
-snapshot_kind: text
 ---
 SELECT
   * EXCEPT (milliseconds, bytes)

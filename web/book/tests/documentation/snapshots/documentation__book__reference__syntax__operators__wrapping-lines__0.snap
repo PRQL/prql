@@ -1,7 +1,6 @@
 ---
 source: web/book/tests/documentation/book.rs
 expression: "from artists\nselect is_europe =\n\\ country == \"DE\"\n\\ || country == \"FR\"\n\\ || country == \"ES\"\n"
-snapshot_kind: text
 ---
 SELECT
   country = 'DE'

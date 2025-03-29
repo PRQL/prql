@@ -1,7 +1,6 @@
 ---
 source: web/book/tests/documentation/book.rs
 expression: "let interp = low:0 high x -> (x - low) / (high - low)\n\nfrom students\nderive {\n  sat_proportion_1 = (sat_score | interp 1600),\n  sat_proportion_2 = (sat_score | interp low:0 1600),\n}\n"
-snapshot_kind: text
 ---
 SELECT
   *,

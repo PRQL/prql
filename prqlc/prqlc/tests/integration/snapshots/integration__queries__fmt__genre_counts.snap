@@ -2,7 +2,6 @@
 source: prqlc/prqlc/tests/integration/queries.rs
 expression: "# clickhouse:skip (ClickHouse prefers aliases to column names https://github.com/PRQL/prql/issues/2827)\n# mssql:test\nlet genre_count = (\n    from genres\n    aggregate {a = count name}\n)\n\nfrom genre_count\nfilter a > 0\nselect a = -a\n"
 input_file: prqlc/prqlc/tests/integration/queries/genre_counts.prql
-snapshot_kind: text
 ---
 let genre_count = (
   from genres
