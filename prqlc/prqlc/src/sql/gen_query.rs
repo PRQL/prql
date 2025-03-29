@@ -321,6 +321,7 @@ fn translate_relation_expr(relation_expr: RelationExpr, ctx: &mut Context) -> Re
                 version: None,
                 partitions: vec![],
                 json_path: None,
+                sample: None,
             }
         }
         RelationExprKind::SubQuery(query) => {
