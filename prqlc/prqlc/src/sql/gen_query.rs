@@ -201,9 +201,9 @@ fn translate_select_pipeline(
         }
         if order_by.is_empty() {
             order_by.push(sql_ast::OrderByExpr {
-                expr: sql_ast::Expr::Value(sql_ast::Value::Placeholder(
-                    "(SELECT NULL)".to_string(),
-                ).into()),
+                expr: sql_ast::Expr::Value(
+                    sql_ast::Value::Placeholder("(SELECT NULL)".to_string()).into(),
+                ),
                 options: sqlparser::ast::OrderByOptions {
                     asc: None,
                     nulls_first: None,
@@ -308,7 +308,12 @@ fn translate_relation_expr(relation_expr: RelationExpr, ctx: &mut Context) -> Re
             // prepare names
             let table_name = decl.name.clone().unwrap();
 
-            let name = sql_ast::ObjectName(translate_ident(Some(table_name.clone()), None, ctx).into_iter().map(sqlparser::ast::ObjectNamePart::Identifier).collect());
+            let name = sql_ast::ObjectName(
+                translate_ident(Some(table_name.clone()), None, ctx)
+                    .into_iter()
+                    .map(sqlparser::ast::ObjectNamePart::Identifier)
+                    .collect(),
+            );
 
             TableFactor::Table {
                 name,

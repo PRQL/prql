@@ -149,7 +149,15 @@ pub(super) fn translate_select_items(
             Ok(if ident.len() > 1 {
                 let mut object_name = ident;
                 object_name.pop();
-                SelectItem::QualifiedWildcard(sqlparser::ast::SelectItemQualifiedWildcardKind::ObjectName(ObjectName(object_name.into_iter().map(sqlparser::ast::ObjectNamePart::Identifier).collect())), opts)
+                SelectItem::QualifiedWildcard(
+                    sqlparser::ast::SelectItemQualifiedWildcardKind::ObjectName(ObjectName(
+                        object_name
+                            .into_iter()
+                            .map(sqlparser::ast::ObjectNamePart::Identifier)
+                            .collect(),
+                    )),
+                    opts,
+                )
             } else {
                 SelectItem::Wildcard(opts)
             })

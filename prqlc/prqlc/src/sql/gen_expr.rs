@@ -138,8 +138,8 @@ fn process_null(name: &str, args: &[rq::Expr], ctx: &mut Context) -> Result<sql_
 
     // If this were an Enum, we could match on it (see notes in `std.rs`).
     if name == "std.eq" {
-        let strength =
-            sql_ast::Expr::IsNull(Box::new(sql_ast::Expr::Value(Value::Null.into()))).binding_strength();
+        let strength = sql_ast::Expr::IsNull(Box::new(sql_ast::Expr::Value(Value::Null.into())))
+            .binding_strength();
         let expr = translate_operand(operand.clone(), true, strength, Associativity::Both, ctx)?;
         let expr = Box::new(expr.into_ast());
         Ok(sql_ast::Expr::IsNull(expr))
@@ -254,7 +254,9 @@ fn process_concat(expr: &rq::Expr, ctx: &mut Context) -> Result<sql_ast::Expr> {
         });
 
         Ok(sql_ast::Expr::Function(Function {
-            name: ObjectName(vec![sqlparser::ast::ObjectNamePart::Identifier(sql_ast::Ident::new("CONCAT"))]),
+            name: ObjectName(vec![sqlparser::ast::ObjectNamePart::Identifier(
+                sql_ast::Ident::new("CONCAT"),
+            )]),
             args,
             over: None,
             filter: None,
@@ -416,10 +418,9 @@ pub(super) fn translate_literal(l: Literal, ctx: &Context) -> Result<sql_ast::Ex
             };
             if ctx.dialect.requires_quotes_intervals() {
                 //postgres requires quotes around number and unit together eg '3 WEEK'
-                let value = Box::new(sql_ast::Expr::Value(Value::SingleQuotedString(format!(
-                    "{} {}",
-                    vau.n, sql_parser_datetime
-                )).into()));
+                let value = Box::new(sql_ast::Expr::Value(
+                    Value::SingleQuotedString(format!("{} {}", vau.n, sql_parser_datetime)).into(),
+                ));
                 sql_ast::Expr::Interval(sqlparser::ast::Interval {
                     value,
                     leading_field: None, //set to none since field is now contained in string
@@ -457,7 +458,10 @@ fn translate_datetime_literal_with_typed_string(
     data_type: sql_ast::DataType,
     value: String,
 ) -> sql_ast::Expr {
-    sql_ast::Expr::TypedString { data_type, value: sqlparser::ast::Value::SingleQuotedString(value) }
+    sql_ast::Expr::TypedString {
+        data_type,
+        value: sqlparser::ast::Value::SingleQuotedString(value),
+    }
 }
 
 fn translate_datetime_literal_with_sqlite_function(
@@ -495,7 +499,9 @@ fn translate_datetime_literal_with_sqlite_function(
     });
 
     sql_ast::Expr::Function(Function {
-        name: ObjectName(vec![sqlparser::ast::ObjectNamePart::Identifier(sql_ast::Ident::new(func_name))]),
+        name: ObjectName(vec![sqlparser::ast::ObjectNamePart::Identifier(
+            sql_ast::Ident::new(func_name),
+        )]),
         args,
         over: None,
         filter: None,
@@ -640,10 +646,7 @@ fn try_range_into_int(range: Range<rq::Expr>) -> Result<Range<i64>> {
 }
 
 pub(super) fn expr_of_i64(number: i64) -> sql_ast::Expr {
-    sql_ast::Expr::Value(Value::Number(
-        number.to_string(),
-        number.leading_zeros() < 32,
-    ).into())
+    sql_ast::Expr::Value(Value::Number(number.to_string(), number.leading_zeros() < 32).into())
 }
 
 pub(super) fn fetch_of_i64(take: i64, ctx: &mut Context) -> Fetch {
