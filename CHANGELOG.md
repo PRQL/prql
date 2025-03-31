@@ -14,6 +14,9 @@
 
 **Integrations**:
 
+- TEA 63.3.1, a Qt-based text editor has syntax syntax highlighting for PRQL.
+  (@vanillajonathan)
+
 **Internal changes**:
 
 **New Contributors**:

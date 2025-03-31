@@ -71,6 +71,9 @@ an index.
   ([prql.py](https://github.com/pygments/pygments/blob/master/pygments/lexers/prql.py)).
   See the [demo](https://pygments.org/demo/).
 
+- [TEA](https://github.com/psemiletov/tea-qt/) — supported. The grammar is
+  [upstream](https://github.com/psemiletov/tea-qt/blob/master/hls/prql.xml).
+
 - [Tree-Sitter](https://tree-sitter.github.io/tree-sitter) — used by the neovim
   and helix. The grammar can be found at
   [https://github.com/PRQL/tree-sitter-prql](https://github.com/PRQL/tree-sitter-prql).
