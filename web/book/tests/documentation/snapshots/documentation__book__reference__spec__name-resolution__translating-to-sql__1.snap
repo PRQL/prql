@@ -7,4 +7,4 @@ SELECT
   d.title
 FROM
   employees
-  JOIN departments AS d ON employees.dept_id = d.dept_id
+  INNER JOIN departments AS d ON employees.dept_id = d.dept_id

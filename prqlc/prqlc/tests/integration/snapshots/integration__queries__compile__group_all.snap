@@ -18,7 +18,7 @@ SELECT
   ROUND(COALESCE(SUM(tracks.unit_price), 0), 2) AS price
 FROM
   table_0
-  JOIN tracks ON table_0.album_id = tracks.album_id
+  INNER JOIN tracks ON table_0.album_id = tracks.album_id
 GROUP BY
   table_0.album_id,
   table_0.title

@@ -149,7 +149,15 @@ pub(super) fn translate_select_items(
             Ok(if ident.len() > 1 {
                 let mut object_name = ident;
                 object_name.pop();
-                SelectItem::QualifiedWildcard(ObjectName(object_name), opts)
+                SelectItem::QualifiedWildcard(
+                    sqlparser::ast::SelectItemQualifiedWildcardKind::ObjectName(ObjectName(
+                        object_name
+                            .into_iter()
+                            .map(sqlparser::ast::ObjectNamePart::Identifier)
+                            .collect(),
+                    )),
+                    opts,
+                )
             } else {
                 SelectItem::Wildcard(opts)
             })
@@ -165,7 +173,7 @@ pub(super) fn translate_select_items(
         // Here, first SELECT does not need to emit any columns as we don't need
         // any since we just count the number of rows.
         res.push(SelectItem::UnnamedExpr(sql_ast::Expr::Value(
-            sql_ast::Value::Null,
+            sql_ast::Value::Null.into(),
         )));
     }
     Ok(res)

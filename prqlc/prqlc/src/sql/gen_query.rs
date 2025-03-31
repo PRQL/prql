@@ -201,11 +201,13 @@ fn translate_select_pipeline(
         }
         if order_by.is_empty() {
             order_by.push(sql_ast::OrderByExpr {
-                expr: sql_ast::Expr::Value(sql_ast::Value::Placeholder(
-                    "(SELECT NULL)".to_string(),
-                )),
-                asc: None,
-                nulls_first: None,
+                expr: sql_ast::Expr::Value(
+                    sql_ast::Value::Placeholder("(SELECT NULL)".to_string()).into(),
+                ),
+                options: sqlparser::ast::OrderByOptions {
+                    asc: None,
+                    nulls_first: None,
+                },
                 with_fill: None,
             });
         }
@@ -218,7 +220,7 @@ fn translate_select_pipeline(
             None
         } else {
             Some(sql_ast::OrderBy {
-                exprs: order_by,
+                kind: sqlparser::ast::OrderByKind::Expressions(order_by),
                 interpolate: None,
             })
         },
@@ -306,7 +308,12 @@ fn translate_relation_expr(relation_expr: RelationExpr, ctx: &mut Context) -> Re
             // prepare names
             let table_name = decl.name.clone().unwrap();
 
-            let name = sql_ast::ObjectName(translate_ident(Some(table_name.clone()), None, ctx));
+            let name = sql_ast::ObjectName(
+                translate_ident(Some(table_name.clone()), None, ctx)
+                    .into_iter()
+                    .map(sqlparser::ast::ObjectNamePart::Identifier)
+                    .collect(),
+            );
 
             TableFactor::Table {
                 name,
@@ -322,6 +329,7 @@ fn translate_relation_expr(relation_expr: RelationExpr, ctx: &mut Context) -> Re
                 partitions: vec![],
                 json_path: None,
                 sample: None,
+                index_hints: vec![],
             }
         }
         RelationExprKind::SubQuery(query) => {
@@ -447,7 +455,7 @@ fn translate_relation_literal(data: RelationLiteral, ctx: &Context) -> Result<sq
     if data.rows.is_empty() {
         let mut nulls: Vec<_> = (data.columns.iter())
             .map(|col_name| SelectItem::ExprWithAlias {
-                expr: sql_ast::Expr::Value(sql_ast::Value::Null),
+                expr: sql_ast::Expr::Value(sql_ast::Value::Null.into()),
                 alias: translate_ident_part(col_name.clone(), ctx),
             })
             .collect();
@@ -455,13 +463,13 @@ fn translate_relation_literal(data: RelationLiteral, ctx: &Context) -> Result<sq
         // empty projection is a parse error in some dialects, let's inject a NULL
         if nulls.is_empty() {
             nulls.push(SelectItem::UnnamedExpr(sql_ast::Expr::Value(
-                sql_ast::Value::Null,
+                sql_ast::Value::Null.into(),
             )));
         }
 
         return Ok(default_query(sql_ast::SetExpr::Select(Box::new(Select {
             projection: nulls,
-            selection: Some(sql_ast::Expr::Value(sql_ast::Value::Boolean(false))),
+            selection: Some(sql_ast::Expr::Value(sql_ast::Value::Boolean(false).into())),
             ..default_select()
         }))));
     }
@@ -604,6 +612,7 @@ fn default_select() -> Select {
         connect_by: None,
         prewhere: None,
         select_token: sqlparser::ast::helpers::attached_token::AttachedToken::empty(),
+        flavor: sqlparser::ast::SelectFlavor::Standard,
     }
 }
 
