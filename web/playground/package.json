@@ -20,7 +20,7 @@
     "monaco-editor": "^0.52.0",
     "prqlc": "file:../../prqlc/bindings/js",
     "react": "^19.1.0",
-    "react-dom": "^19.0.0",
+    "react-dom": "^19.1.0",
     "react-syntax-highlighter": "^15.6.1",
     "web-vitals": "^4.2.0",
     "yaml": "^2.7.0"
