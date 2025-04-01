@@ -92,30 +92,31 @@ Check out these issues for more details:
 - https://github.com/zesterer/chumsky/releases/tag/0.10
 */
 
-// New imports for chumsky 0.10
+// Import chumsky 0.10 for the lexer implementation
 use chumsky_0_10::prelude::*;
-// Character has been moved in 0.10
-// use chumsky_0_10::text::Character;
 
-use super::lr::Token;
+// Import from the project
+use super::lr::{Token, Tokens};
 use crate::error::{Error, Reason};
 
-/// Placeholder for chumsky 0.10 implementation
-/// This is a stub that will be implemented in the future
-pub fn lex_source_recovery(_source: &str, _source_id: u16) -> (Option<Vec<Token>>, Vec<e>) {
-    log::error!("Chumsky 0.10 lexer is not yet implemented");
-    (
-        None,
-        vec![Error::new(Reason::Internal {
-            message: "Chumsky 0.10 lexer is not yet implemented".to_string(),
-        })],
-    )
+/// Stub implementation for chumsky 0.10
+pub fn lex_source_recovery(_source: &str, _source_id: u16) -> (Option<Vec<Token>>, Vec<Error>) {
+    // Simple placeholder implementation with no macros
+    let error = Error::new(Reason::Internal {
+        message: "Chumsky 0.10 lexer is not yet implemented".to_string(),
+    });
+    let mut errors = Vec::new();
+    errors.push(error);
+    (None, errors)
 }
 
-/// Placeholder for chumsky 0.10 implementation
-/// This is a stub that will be implemented in the future
-pub fn lex_source(_source: &str) -> Result<super::lr::Tokens, Vec<e>> {
-    Err(vec![Error::new(Reason::Internal {
+/// Stub implementation for chumsky 0.10
+pub fn lex_source(_source: &str) -> Result<Tokens, Vec<Error>> {
+    // Simple placeholder implementation with no macros
+    let error = Error::new(Reason::Internal {
         message: "Chumsky 0.10 lexer is not yet implemented".to_string(),
-    })])
+    });
+    let mut errors = Vec::new();
+    errors.push(error);
+    Err(errors)
 }

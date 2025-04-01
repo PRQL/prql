@@ -1,8 +1,6 @@
-#[cfg(not(feature = "chumsky-10"))]
+// For now, we keep using the chumsky 0.9 API for the parser, 
+// even when compiling with the chumsky-10 feature for the lexer
 use chumsky::{prelude::*, Stream};
-
-#[cfg(feature = "chumsky-10")]
-use chumsky_0_10::{prelude::*, stream::Stream};
 
 use self::perror::PError;
 use self::pr::{Annotation, Stmt, StmtKind};

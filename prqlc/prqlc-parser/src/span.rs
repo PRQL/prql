@@ -1,10 +1,9 @@
 use std::fmt::{self, Debug, Formatter};
 use std::ops::{Add, Range, Sub};
 
-#[cfg(not(feature = "chumsky-10"))]
+// For now, we keep using the chumsky 0.9 API for the parser,
+// even when compiling with the chumsky-10 feature for the lexer
 use chumsky::Stream;
-#[cfg(feature = "chumsky-10")]
-use chumsky_0_10::stream::Stream;
 
 use schemars::JsonSchema;
 use serde::de::Visitor;
@@ -110,35 +109,9 @@ impl<'de> Deserialize<'de> for Span {
     }
 }
 
-#[cfg(not(feature = "chumsky-10"))]
+// For now, we keep using the chumsky 0.9 API for the parser,
+// even when compiling with the chumsky-10 feature for the lexer
 impl chumsky::Span for Span {
-    type Context = u16;
-
-    type Offset = usize;
-
-    fn new(context: Self::Context, range: std::ops::Range<Self::Offset>) -> Self {
-        Self {
-            start: range.start,
-            end: range.end,
-            source_id: context,
-        }
-    }
-
-    fn context(&self) -> Self::Context {
-        self.source_id
-    }
-
-    fn start(&self) -> Self::Offset {
-        self.start
-    }
-
-    fn end(&self) -> Self::Offset {
-        self.end
-    }
-}
-
-#[cfg(feature = "chumsky-10")]
-impl chumsky_0_10::span::Span for Span {
     type Context = u16;
 
     type Offset = usize;
@@ -188,37 +161,12 @@ impl Sub<usize> for Span {
     }
 }
 
-#[cfg(not(feature = "chumsky-10"))]
+// For now, we keep using the chumsky 0.9 API for the parser,
+// even when compiling with the chumsky-10 feature for the lexer
 pub(crate) fn string_stream<'a>(
     s: String,
     span_base: Span,
 ) -> Stream<'a, char, Span, Box<dyn Iterator<Item = (char, Span)>>> {
-    let chars = s.chars().collect::<Vec<_>>();
-
-    Stream::from_iter(
-        Span {
-            start: span_base.start + chars.len(),
-            end: span_base.start + chars.len(),
-            source_id: span_base.source_id,
-        },
-        Box::new(chars.into_iter().enumerate().map(move |(i, c)| {
-            (
-                c,
-                Span {
-                    start: span_base.start + i,
-                    end: span_base.start + i + 1,
-                    source_id: span_base.source_id,
-                },
-            )
-        })),
-    )
-}
-
-#[cfg(feature = "chumsky-10")]
-pub(crate) fn string_stream<'a>(
-    s: String,
-    span_base: Span,
-) -> Stream<'a, char, Span, Box<dyn Iterator<Item = (char, Span)> + 'a>> {
     let chars = s.chars().collect::<Vec<_>>();
 
     Stream::from_iter(
