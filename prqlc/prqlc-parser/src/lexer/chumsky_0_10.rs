@@ -103,6 +103,9 @@ Check out these issues for more details:
 ### Tests
 - After each group of changes, run:
    ```
+   # cargo check for this module
+   cargo check -p prqlc-parser --features chumsky-10 -- chumsky_0_10
+
    # tests for this module
    cargo insta test --accept -p prqlc-parser --features chumsky-10 -- chumsky_0_10
 
@@ -116,7 +119,7 @@ Check out these issues for more details:
 use chumsky_0_10::error::Rich;
 use chumsky_0_10::input::{Input, Stream};
 use chumsky_0_10::prelude::*;
-use chumsky_0_10::text::{newline, Character};
+use chumsky_0_10::text::newline;
 
 use super::lr::{Literal, Token, TokenKind, Tokens, ValueAndUnit};
 use crate::error::{Error, ErrorSource, Reason, WithErrorInfo};
@@ -186,7 +189,8 @@ fn convert_lexer_error(source: &str, e: Rich<char, SimpleSpan>, source_id: u16) 
 }
 
 /// Lex chars to tokens until the end of the input
-pub(crate) fn lexer() -> impl Parser<char, Vec<Token>, Error = Rich<char>> {
+pub(crate) fn lexer<'src>(
+) -> impl Parser<'src, impl Input<'src> + Clone, Vec<Token>, Error = Rich<'src, char>> {
     lex_token()
         .repeated()
         .collect()
@@ -195,7 +199,8 @@ pub(crate) fn lexer() -> impl Parser<char, Vec<Token>, Error = Rich<char>> {
 }
 
 /// Lex chars to a single token
-fn lex_token() -> impl Parser<char, Token, Error = Rich<char>> {
+fn lex_token<'src>() -> impl Parser<'src, impl Input<'src> + Clone, Token, Error = Rich<'src, char>>
+{
     let control_multi = choice((
         just("->").to(TokenKind::ArrowThin),
         just("=>").to(TokenKind::ArrowFat),
@@ -285,18 +290,19 @@ fn lex_token() -> impl Parser<char, Token, Error = Rich<char>> {
     ))
 }
 
-fn ignored() -> impl Parser<char, (), Error = Rich<char>> {
+fn ignored<'src>() -> impl Parser<'src, impl Input<'src> + Clone, (), Error = Rich<'src, char>> {
     whitespace().repeated().ignored()
 }
 
-fn whitespace() -> impl Parser<char, (), Error = Rich<char>> {
-    filter(|x: &char| x.is_inline_whitespace())
+fn whitespace<'src>() -> impl Parser<'src, impl Input<'src> + Clone, (), Error = Rich<'src, char>> {
+    filter(|x: &char| *x == ' ' || *x == '\t')
         .repeated()
         .at_least(1)
         .ignored()
 }
 
-fn line_wrap() -> impl Parser<char, TokenKind, Error = Rich<char>> {
+fn line_wrap<'src>(
+) -> impl Parser<'src, impl Input<'src> + Clone, TokenKind, Error = Rich<'src, char>> {
     newline()
         .ignore_then(
             whitespace()
@@ -311,7 +317,8 @@ fn line_wrap() -> impl Parser<char, TokenKind, Error = Rich<char>> {
         .map(TokenKind::LineWrap)
 }
 
-fn comment() -> impl Parser<char, TokenKind, Error = Rich<char>> {
+fn comment<'src>(
+) -> impl Parser<'src, impl Input<'src> + Clone, TokenKind, Error = Rich<'src, char>> {
     just('#').ignore_then(choice((
         // One option would be to check that doc comments have new lines in the
         // lexer (we currently do in the parser); which would give better error
@@ -327,7 +334,8 @@ fn comment() -> impl Parser<char, TokenKind, Error = Rich<char>> {
     )))
 }
 
-pub(crate) fn ident_part() -> impl Parser<char, String, Error = Rich<char>> + Clone {
+pub(crate) fn ident_part<'src>(
+) -> impl Parser<'src, impl Input<'src> + Clone, String, Error = Rich<'src, char>> + Clone {
     let plain = filter(|c: &char| c.is_alphabetic() || *c == '_')
         .chain(filter(|c: &char| c.is_alphanumeric() || *c == '_').repeated());
 
@@ -336,7 +344,8 @@ pub(crate) fn ident_part() -> impl Parser<char, String, Error = Rich<char>> + Cl
     plain.or(backticks).collect()
 }
 
-fn literal() -> impl Parser<char, Literal, Error = Rich<char>> {
+fn literal<'src>() -> impl Parser<'src, impl Input<'src> + Clone, Literal, Error = Rich<'src, char>>
+{
     let binary_notation = just("0b")
         .then_ignore(just("_").or_not())
         .ignore_then(
@@ -528,7 +537,9 @@ fn literal() -> impl Parser<char, Literal, Error = Rich<char>> {
     ))
 }
 
-fn quoted_string(escaped: bool) -> impl Parser<char, String, Error = Rich<char>> {
+fn quoted_string<'src>(
+    escaped: bool,
+) -> impl Parser<'src, impl Input<'src> + Clone, String, Error = Rich<'src, char>> {
     choice((
         quoted_string_of_quote(&'"', escaped),
         quoted_string_of_quote(&'\'', escaped),
@@ -537,10 +548,10 @@ fn quoted_string(escaped: bool) -> impl Parser<char, String, Error = Rich<char>>
     .labelled("string")
 }
 
-fn quoted_string_of_quote(
-    quote: &char,
+fn quoted_string_of_quote<'src, 'a>(
+    quote: &'a char,
     escaping: bool,
-) -> impl Parser<char, Vec<char>, Error = Rich<char>> + '_ {
+) -> impl Parser<'src, impl Input<'src> + Clone, Vec<char>, Error = Rich<'src, char>> + 'a {
     let opening = just(*quote).repeated().at_least(1);
 
     opening.then_with(move |opening| {
@@ -572,7 +583,8 @@ fn quoted_string_of_quote(
     })
 }
 
-fn escaped_character() -> impl Parser<char, char, Error = Rich<char>> {
+fn escaped_character<'src>(
+) -> impl Parser<'src, impl Input<'src> + Clone, char, Error = Rich<'src, char>> {
     just('\\').ignore_then(choice((
         just('\\'),
         just('/'),
@@ -606,13 +618,15 @@ fn escaped_character() -> impl Parser<char, char, Error = Rich<char>> {
     )))
 }
 
-fn digits(count: usize) -> impl Parser<char, Vec<char>, Error = Rich<char>> {
+fn digits<'src>(
+    count: usize,
+) -> impl Parser<'src, impl Input<'src> + Clone, Vec<char>, Error = Rich<'src, char>> {
     filter(|c: &char| c.is_ascii_digit())
         .repeated()
         .exactly(count)
 }
 
-fn end_expr() -> impl Parser<char, (), Error = Rich<char>> {
+fn end_expr<'src>() -> impl Parser<'src, impl Input<'src> + Clone, (), Error = Rich<'src, char>> {
     choice((
         end(),
         one_of(",)]}\t >").to(()),
@@ -620,77 +634,4 @@ fn end_expr() -> impl Parser<char, (), Error = Rich<char>> {
         just("..").to(()),
     ))
     .rewind()
-}
-
-// Test compatibility functions
-#[allow(dead_code)]
-pub(crate) struct ParserWrapper<O> {
-    result: O,
-}
-
-#[allow(dead_code)]
-impl<O> ParserWrapper<O> {
-    pub fn parse(&self, _input: &str) -> Result<O, ()>
-    where
-        O: Clone,
-    {
-        Ok(self.result.clone())
-    }
-}
-
-#[allow(dead_code)]
-pub(crate) fn lexer() -> ParserWrapper<Vec<Token>> {
-    ParserWrapper {
-        result: vec![
-            Token {
-                kind: TokenKind::Start,
-                span: 0..0,
-            },
-            Token {
-                kind: TokenKind::Literal(Literal::Integer(5)),
-                span: 0..1,
-            },
-            Token {
-                kind: TokenKind::Control('+'),
-                span: 2..3,
-            },
-            Token {
-                kind: TokenKind::Literal(Literal::Integer(3)),
-                span: 4..5,
-            },
-        ],
-    }
-}
-
-#[allow(dead_code)]
-pub(crate) fn quoted_string(escaped: bool) -> ParserWrapper<String> {
-    ParserWrapper {
-        result: "".to_string(),
-    }
-}
-
-#[allow(dead_code)]
-pub(crate) fn literal() -> ParserWrapper<Literal> {
-    ParserWrapper {
-        result: Literal::Integer(42),
-    }
-}
-
-#[test]
-fn test_chumsky_10_lexer() {
-    use insta::assert_debug_snapshot;
-
-    // Basic test to verify our implementation works
-    assert_debug_snapshot!(lex_source("5 + 3"), @r"
-    Ok(
-        Tokens(
-            [
-                0..0: Start,
-                0..1: Literal(Integer(5)),
-                2..3: Control('+'),
-                4..5: Literal(Integer(3)),
-            ],
-        ),
-    )
-    ");
 }
