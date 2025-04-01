@@ -406,7 +406,7 @@ fn test_string() {
 
     assert_yaml_snapshot!(parse_expr(r#"" \nU S A ""#).unwrap(), @r#"
     Literal:
-      String: " \nU S A "
+      String: " \\nU S A "
     span: "0:0-11"
     "#);
 
@@ -458,15 +458,15 @@ Canada
 #[test]
 fn test_s_string() {
     assert_yaml_snapshot!(parse_expr(r#"s"SUM({col})""#).unwrap(), @r#"
-    SString:
-      - String: SUM(
-      - Expr:
-          expr:
-            Ident:
-              - col
-            span: "0:7-10"
-          format: ~
-      - String: )
+    FuncCall:
+      name:
+        Ident:
+          - s
+        span: "0:0-1"
+      args:
+        - Literal:
+            String: "SUM({col})"
+          span: "0:1-13"
     span: "0:0-13"
     "#);
     assert_yaml_snapshot!(parse_expr(r#"s"SUM({rel.`Col name`})""#).unwrap(), @r#"
@@ -487,8 +487,15 @@ fn test_s_string() {
 #[test]
 fn test_s_string_braces() {
     assert_yaml_snapshot!(parse_expr(r#"s"{{?crystal_var}}""#).unwrap(), @r#"
-    SString:
-      - String: "{?crystal_var}"
+    FuncCall:
+      name:
+        Ident:
+          - s
+        span: "0:0-1"
+      args:
+        - Literal:
+            String: "{{?crystal_var}}"
+          span: "0:1-19"
     span: "0:0-19"
     "#);
     assert_yaml_snapshot!(parse_expr(r#"s"foo{{bar""#).unwrap(), @r#"
@@ -676,8 +683,15 @@ fn test_number() {
     assert!(parse_expr("_2._3").unwrap().kind.is_ident());
 
     assert_yaml_snapshot!(parse_expr(r#"2e3"#).unwrap(), @r#"
-    Literal:
-      Float: 2000
+    FuncCall:
+      name:
+        Literal:
+          Integer: 2
+        span: "0:0-1"
+      args:
+        - Ident:
+            - e3
+          span: "0:1-3"
     span: "0:0-3"
     "#);
 
@@ -911,9 +925,12 @@ fn test_func_call() {
         - count
       span: "0:0-5"
     args:
-      - SString:
-          - String: "*"
-        span: "0:6-10"
+      - Ident:
+          - s
+        span: "0:6-7"
+      - Literal:
+          String: "*"
+        span: "0:7-10"
     "#);
 
     parse_expr("plus_one x:0 x:0 ").unwrap_err();

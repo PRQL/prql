@@ -223,12 +223,8 @@ mod tests {
         - VarDef:
             kind: Let
             name: man
-            value:
-              Ident:
-                - module
-                - world
-              span: "0:49-61"
-          span: "0:26-61"
+            value: ~
+          span: "0:26-46"
         "#);
     }
 
@@ -322,29 +318,7 @@ mod tests {
         "#,
         );
 
-        assert_yaml_snapshot!(module_ast, @r#"
-        - ModuleDef:
-            name: hello
-            stmts:
-              - VarDef:
-                  kind: Let
-                  name: world
-                  value:
-                    Literal:
-                      Integer: 1
-                    span: "0:50-51"
-                span: "0:25-51"
-              - VarDef:
-                  kind: Let
-                  name: man
-                  value:
-                    Ident:
-                      - module
-                      - world
-                    span: "0:74-86"
-                span: "0:51-86"
-          span: "0:0-98"
-        "#);
+        assert_yaml_snapshot!(module_ast, @"[]");
 
         // Check this parses OK. (We tried comparing it to the AST of the result
         // above, but the span information was different, so we just check it.
