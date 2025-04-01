@@ -1,4 +1,8 @@
+#[cfg(not(feature = "chumsky-10"))]
 use chumsky::{prelude::*, Stream};
+
+#[cfg(feature = "chumsky-10")]
+use chumsky_0_10::{prelude::*, stream::Stream};
 
 use self::perror::PError;
 use self::pr::{Annotation, Stmt, StmtKind};
