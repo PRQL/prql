@@ -7,11 +7,16 @@ use insta::assert_debug_snapshot;
 use insta::assert_snapshot;
 
 use crate::lexer::lr::{Literal, TokenKind, Tokens};
+
+// Import lex_source from the module level
+use crate::lexer::lex_source;
+
+// Import other needed functions from the respective module based on feature flag
 #[cfg(not(feature = "chumsky-10"))]
-use crate::lexer::{lex_source, lexer, literal, quoted_string};
+use crate::lexer::chumsky_0_9::{lexer, literal, quoted_string};
 
 #[cfg(feature = "chumsky-10")]
-use crate::lexer::chumsky_0_10::{lex_source, lexer, literal, quoted_string};
+use crate::lexer::chumsky_0_10::{lexer, literal, quoted_string};
 
 #[cfg(feature = "chumsky-10")]
 use chumsky_0_10::input::Stream;

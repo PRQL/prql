@@ -64,7 +64,7 @@ fn convert_lexer_error(source: &str, e: chumsky::error::Cheap<char>, source_id: 
 }
 
 /// Lex chars to tokens until the end of the input
-pub(crate) fn lexer() -> impl Parser<char, Vec<Token>, Error = Cheap<char>> {
+pub fn lexer() -> impl Parser<char, Vec<Token>, Error = Cheap<char>> {
     lex_token()
         .repeated()
         .then_ignore(ignored())
@@ -198,7 +198,7 @@ fn comment() -> impl Parser<char, TokenKind, Error = Cheap<char>> {
     )))
 }
 
-pub(crate) fn ident_part() -> impl Parser<char, String, Error = Cheap<char>> + Clone {
+pub fn ident_part() -> impl Parser<char, String, Error = Cheap<char>> + Clone {
     let plain = filter(|c: &char| c.is_alphabetic() || *c == '_')
         .chain(filter(|c: &char| c.is_alphanumeric() || *c == '_').repeated());
 
@@ -207,7 +207,7 @@ pub(crate) fn ident_part() -> impl Parser<char, String, Error = Cheap<char>> + C
     plain.or(backticks).collect()
 }
 
-fn literal() -> impl Parser<char, Literal, Error = Cheap<char>> {
+pub fn literal() -> impl Parser<char, Literal, Error = Cheap<char>> {
     let binary_notation = just("0b")
         .then_ignore(just("_").or_not())
         .ignore_then(
@@ -392,7 +392,7 @@ fn literal() -> impl Parser<char, Literal, Error = Cheap<char>> {
     ))
 }
 
-fn quoted_string(escaped: bool) -> impl Parser<char, String, Error = Cheap<char>> {
+pub fn quoted_string(escaped: bool) -> impl Parser<char, String, Error = Cheap<char>> {
     choice((
         quoted_string_of_quote(&'"', escaped),
         quoted_string_of_quote(&'\'', escaped),
