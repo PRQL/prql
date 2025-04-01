@@ -38,6 +38,14 @@ cargo run -p prqlc -- fmt "from employees | filter country == 'USA'"
 cargo run -p prqlc -- --help
 ```
 
+## Linting
+
+Run all lints with
+
+```sh
+pre-commit run --all-files
+```
+
 ## Documentation
 
 For Claude to view crate documentation:
