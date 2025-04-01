@@ -239,3 +239,183 @@ fn test_lex_source() {
     )
     "#);
 }
+
+// New test for chumsky 0.10 implementation
+#[cfg(feature = "chumsky-10")]
+#[test]
+fn test_chumsky_10_lexer() {
+    use insta::assert_debug_snapshot;
+
+    // Test basic lexing with the chumsky 0.10 implementation
+    assert_debug_snapshot!(lex_source("5 + 3"), @r"
+    Ok(
+        Tokens(
+            [
+                0..0: Start,
+                0..1: Literal(Integer(5)),
+                2..3: Control('+'),
+                4..5: Literal(Integer(3)),
+            ],
+        ),
+    )
+    ");
+
+    // Test error handling with the chumsky 0.10 implementation
+    assert_debug_snapshot!(lex_source("^"), @r#"
+    Err(
+        [
+            Error {
+                kind: Error,
+                span: Some(
+                    0:0-1,
+                ),
+                reason: Unexpected {
+                    found: "^",
+                },
+                hints: [],
+                code: None,
+            },
+        ],
+    )
+    "#);
+}
+
+// Comprehensive test for Phase III implementation
+#[cfg(feature = "chumsky-10")]
+#[test]
+fn test_chumsky_10_phase3() {
+    use insta::assert_debug_snapshot;
+
+    // Test a more complex query with various token types
+    let query = r#"
+    let x = 5
+    from employees
+    filter department == "Sales" && salary > 50000
+    select {
+        name,
+        salary,
+        # This is a comment
+        bonus: salary * 0.1
+    }
+    "#;
+
+    // Inline snapshot for complex query
+    assert_debug_snapshot!(lex_source(query), @r###"
+    Ok(
+        Tokens(
+            [
+                0..0: Start,
+                0..1: NewLine,
+                5..8: Keyword("let"),
+                9..10: Ident("x"),
+                11..12: Control('='),
+                13..14: Literal(Integer(5)),
+                14..15: NewLine,
+                19..23: Ident("from"),
+                24..33: Ident("employees"),
+                33..34: NewLine,
+                38..44: Ident("filter"),
+                45..55: Ident("department"),
+                56..58: Eq,
+                59..66: Literal(String("Sales")),
+                67..69: And,
+                70..76: Ident("salary"),
+                77..78: Control('>'),
+                79..84: Literal(Integer(50000)),
+                84..85: NewLine,
+                89..95: Ident("select"),
+                96..97: Control('{'),
+                97..98: NewLine,
+                106..110: Ident("name"),
+                110..111: Control(','),
+                111..112: NewLine,
+                120..126: Ident("salary"),
+                126..127: Control(','),
+                127..128: NewLine,
+                136..155: Comment(" This is a comment"),
+                155..156: NewLine,
+                164..169: Ident("bonus"),
+                169..170: Control(':'),
+                171..177: Ident("salary"),
+                178..179: Control('*'),
+                180..183: Literal(Float(0.1)),
+                183..184: NewLine,
+                188..189: Control('}'),
+                189..190: NewLine,
+            ],
+        ),
+    )
+    "###);
+    
+    // Test keywords
+    assert_debug_snapshot!(lex_source("let into case prql"), @r###"
+    Ok(
+        Tokens(
+            [
+                0..0: Start,
+                0..3: Keyword("let"),
+                4..8: Keyword("into"),
+                9..13: Keyword("case"),
+                14..18: Keyword("prql"),
+            ],
+        ),
+    )
+    "###);
+    
+    // Test operators
+    assert_debug_snapshot!(lex_source("-> => == != >="), @r###"
+    Ok(
+        Tokens(
+            [
+                0..0: Start,
+                0..2: ArrowThin,
+                3..5: ArrowFat,
+                6..8: Eq,
+                9..11: Ne,
+                12..14: Gte,
+            ],
+        ),
+    )
+    "###);
+    
+    // Test comments
+    assert_debug_snapshot!(lex_source("# This is a comment\n#! This is a doc comment"), @r###"
+    Ok(
+        Tokens(
+            [
+                0..0: Start,
+                0..19: Comment(" This is a comment"),
+                19..20: NewLine,
+                20..44: DocComment(" This is a doc comment"),
+            ],
+        ),
+    )
+    "###);
+    
+    // Test literal and identifier
+    assert_debug_snapshot!(lex_source("123 abc"), @r###"
+    Ok(
+        Tokens(
+            [
+                0..0: Start,
+                0..3: Literal(Integer(123)),
+                4..7: Ident("abc"),
+            ],
+        ),
+    )
+    "###);
+    
+    // Test boolean and null literals
+    assert_debug_snapshot!(lex_source("true false null"), @r###"
+    Ok(
+        Tokens(
+            [
+                0..0: Start,
+                0..4: Literal(Boolean(true)),
+                5..10: Literal(Boolean(false)),
+                11..15: Literal(Null),
+            ],
+        ),
+    )
+    "###);
+}
