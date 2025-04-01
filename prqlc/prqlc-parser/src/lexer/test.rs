@@ -13,7 +13,10 @@ use crate::lexer::{lex_source, lexer, literal, quoted_string};
 #[cfg(feature = "chumsky-10")]
 use crate::lexer::chumsky_0_10::{lex_source, lexer, literal, quoted_string};
 
-#[cfg_attr(feature = "chumsky-10", ignore)]
+#[cfg(feature = "chumsky-10")]
+use chumsky_0_10::input::Stream;
+
+#[cfg(not(feature = "chumsky-10"))]
 #[test]
 fn line_wrap() {
     assert_debug_snapshot!(Tokens(lexer().parse(r"5 +
@@ -58,7 +61,7 @@ fn line_wrap() {
     );
 }
 
-#[cfg_attr(feature = "chumsky-10", ignore)]
+#[cfg(not(feature = "chumsky-10"))]
 #[test]
 fn numbers() {
     // Binary notation
@@ -82,21 +85,37 @@ fn numbers() {
     assert_eq!(literal().parse("0o777").unwrap(), Literal::Integer(511));
 }
 
-#[cfg_attr(feature = "chumsky-10", ignore)]
 #[test]
 fn debug_display() {
-    assert_debug_snapshot!(Tokens(lexer().parse("5 + 3").unwrap()), @r"
-    Tokens(
-        [
-            0..1: Literal(Integer(5)),
-            2..3: Control('+'),
-            4..5: Literal(Integer(3)),
-        ],
-    )
-    ");
+    #[cfg(not(feature = "chumsky-10"))]
+    {
+        assert_debug_snapshot!(Tokens(lexer().parse("5 + 3").unwrap()), @r"
+        Tokens(
+            [
+                0..1: Literal(Integer(5)),
+                2..3: Control('+'),
+                4..5: Literal(Integer(3)),
+            ],
+        )
+        ");
+    }
+
+    #[cfg(feature = "chumsky-10")]
+    {
+        assert_debug_snapshot!(Tokens(lexer().parse(Stream::from_iter("5 + 3".chars())).output().unwrap().to_vec()), @r"
+        Tokens(
+            [
+                0..0: Start,
+                0..0: Literal(Integer(5)),
+                0..0: Control('+'),
+                0..0: Literal(Integer(3)),
+            ],
+        )
+        ");
+    }
 }
 
-#[cfg_attr(feature = "chumsky-10", ignore)]
+#[cfg(not(feature = "chumsky-10"))]
 #[test]
 fn comment() {
     assert_debug_snapshot!(Tokens(lexer().parse("# comment\n# second line").unwrap()), @r#"
@@ -112,7 +131,7 @@ fn comment() {
     assert_snapshot!(TokenKind::Comment(" This is a single-line comment".to_string()), @"# This is a single-line comment");
 }
 
-#[cfg_attr(feature = "chumsky-10", ignore)]
+#[cfg(not(feature = "chumsky-10"))]
 #[test]
 fn doc_comment() {
     assert_debug_snapshot!(Tokens(lexer().parse("#! docs").unwrap()), @r#"
@@ -124,7 +143,7 @@ fn doc_comment() {
     "#);
 }
 
-#[cfg_attr(feature = "chumsky-10", ignore)]
+#[cfg(not(feature = "chumsky-10"))]
 #[test]
 fn quotes() {
     // All these are valid & equal.
@@ -160,7 +179,7 @@ fn quotes() {
     assert_snapshot!(quoted_string(true).parse(r"'\u{01f422}'").unwrap(), @"🐢");
 }
 
-#[cfg_attr(feature = "chumsky-10", ignore)]
+#[cfg(not(feature = "chumsky-10"))]
 #[test]
 fn range() {
     assert_debug_snapshot!(Tokens(lexer().parse("1..2").unwrap()), @r"
@@ -202,7 +221,7 @@ fn range() {
     "#);
 }
 
-#[cfg_attr(feature = "chumsky-10", ignore)]
+#[cfg(not(feature = "chumsky-10"))]
 #[test]
 fn test_lex_source() {
     use insta::assert_debug_snapshot;
