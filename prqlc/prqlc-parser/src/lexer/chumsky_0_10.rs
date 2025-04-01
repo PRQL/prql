@@ -116,12 +116,13 @@ Check out these issues for more details:
 
 */
 
+use chumsky_0_10::combinator::*;
 use chumsky_0_10::error::{EmptyErr, Rich};
-use chumsky_0_10::input::Input;
+use chumsky_0_10::input::{Input, Stream as ChumskyStream};
 use chumsky_0_10::prelude::*;
-use chumsky_0_10::text::newline;
+use chumsky_0_10::primitive::{choice, empty, end, filter, just, none_of, one_of};
+use chumsky_0_10::text::{digits as text_digits, newline};
 use chumsky_0_10::Parser as ChumskyParser;
-use chumsky_0_10::Stream as ChumskyStream;
 
 use super::lr::{Literal, Token, TokenKind, Tokens, ValueAndUnit};
 use crate::error::{Error, ErrorSource, Reason, WithErrorInfo};
@@ -177,13 +178,13 @@ fn convert_lexer_error(source: &str, e: Rich<'_, char>, source_id: u16) -> Error
     // into the str.
     let span_start = e.span().start;
     let span_end = e.span().end();
-    
+
     let found = source
         .chars()
         .skip(span_start)
         .take(span_end - span_start)
         .collect();
-    
+
     let span = Some(Span {
         start: span_start,
         end: span_end,
@@ -197,7 +198,7 @@ fn convert_lexer_error(source: &str, e: Rich<'_, char>, source_id: u16) -> Error
 
 /// Lex chars to tokens until the end of the input
 pub(crate) fn lexer<'src>(
-) -> impl Parser<'src, impl Input<'src> + Clone, Vec<Token>, Error = Rich<'src, char>> {
+) -> impl ChumskyParser<'src, ChumskyStream<'src, char>, Vec<Token>, Error = Rich<'src, char>> {
     lex_token()
         .repeated()
         .collect()
@@ -206,8 +207,8 @@ pub(crate) fn lexer<'src>(
 }
 
 /// Lex chars to a single token
-fn lex_token<'src>() -> impl Parser<'src, impl Input<'src> + Clone, Token, Error = Rich<'src, char>>
-{
+fn lex_token<'src>(
+) -> impl ChumskyParser<'src, ChumskyStream<'src, char>, Token, Error = Rich<'src, char>> {
     let control_multi = choice((
         just("->").to(TokenKind::ArrowThin),
         just("=>").to(TokenKind::ArrowFat),
@@ -297,11 +298,13 @@ fn lex_token<'src>() -> impl Parser<'src, impl Input<'src> + Clone, Token, Error
     ))
 }
 
-fn ignored<'src>() -> impl Parser<'src, impl Input<'src> + Clone, (), Error = Rich<'src, char>> {
+fn ignored<'src>(
+) -> impl ChumskyParser<'src, ChumskyStream<'src, char>, (), Error = Rich<'src, char>> {
     whitespace().repeated().ignored()
 }
 
-fn whitespace<'src>() -> impl Parser<'src, impl Input<'src> + Clone, (), Error = Rich<'src, char>> {
+fn whitespace<'src>(
+) -> impl ChumskyParser<'src, ChumskyStream<'src, char>, (), Error = Rich<'src, char>> {
     filter(|x: &char| *x == ' ' || *x == '\t')
         .repeated()
         .at_least(1)
@@ -309,7 +312,7 @@ fn whitespace<'src>() -> impl Parser<'src, impl Input<'src> + Clone, (), Error =
 }
 
 fn line_wrap<'src>(
-) -> impl Parser<'src, impl Input<'src> + Clone, TokenKind, Error = Rich<'src, char>> {
+) -> impl ChumskyParser<'src, ChumskyStream<'src, char>, TokenKind, Error = Rich<'src, char>> {
     newline()
         .ignore_then(
             whitespace()
@@ -325,24 +328,28 @@ fn line_wrap<'src>(
 }
 
 fn comment<'src>(
-) -> impl Parser<'src, impl Input<'src> + Clone, TokenKind, Error = Rich<'src, char>> {
+) -> impl ChumskyParser<'src, ChumskyStream<'src, char>, TokenKind, Error = Rich<'src, char>> {
     just('#').ignore_then(choice((
         // One option would be to check that doc comments have new lines in the
         // lexer (we currently do in the parser); which would give better error
         // messages?
         just('!').ignore_then(
-            take_until(newline())
-                .map(|(chars, _)| chars.into_iter().collect::<String>())
+            // Replacement for take_until - capture chars until we see a newline
+            filter(|c: &char| *c != '\n' && *c != '\r')
+                .repeated()
+                .collect::<String>()
                 .map(TokenKind::DocComment),
         ),
-        take_until(newline())
-            .map(|(chars, _)| chars.into_iter().collect::<String>())
+        // Replacement for take_until - capture chars until we see a newline
+        filter(|c: &char| *c != '\n' && *c != '\r')
+            .repeated()
+            .collect::<String>()
             .map(TokenKind::Comment),
     )))
 }
 
 pub(crate) fn ident_part<'src>(
-) -> impl Parser<'src, impl Input<'src> + Clone, String, Error = Rich<'src, char>> + Clone {
+) -> impl ChumskyParser<'src, ChumskyStream<'src, char>, String, Error = Rich<'src, char>> + Clone {
     let plain = filter(|c: &char| c.is_alphabetic() || *c == '_')
         .chain(filter(|c: &char| c.is_alphanumeric() || *c == '_').repeated());
 
@@ -351,8 +358,8 @@ pub(crate) fn ident_part<'src>(
     plain.or(backticks).collect()
 }
 
-fn literal<'src>() -> impl Parser<'src, impl Input<'src> + Clone, Literal, Error = Rich<'src, char>>
-{
+fn literal<'src>(
+) -> impl ChumskyParser<'src, ChumskyStream<'src, char>, Literal, Error = Rich<'src, char>> {
     let binary_notation = just("0b")
         .then_ignore(just("_").or_not())
         .ignore_then(
@@ -361,7 +368,7 @@ fn literal<'src>() -> impl Parser<'src, impl Input<'src> + Clone, Literal, Error
                 .at_least(1)
                 .at_most(32)
                 .collect::<String>()
-                .try_map(|digits, span| {
+                .try_map(|digits: String, span| {
                     i64::from_str_radix(&digits, 2)
                         .map(Literal::Integer)
                         .map_err(|_| Rich::custom(span, "Invalid binary number"))
@@ -401,7 +408,9 @@ fn literal<'src>() -> impl Parser<'src, impl Input<'src> + Clone, Literal, Error
         )
         .labelled("number");
 
-    let exp = one_of("eE").chain(one_of("+-").or_not().chain(text::digits(10)));
+    let exp = one_of("eE").chain(one_of("+-").or_not().chain(
+        filter(|c: &char| c.is_ascii_digit()).repeated().at_least(1)
+    ));
 
     let integer = filter(|c: &char| c.is_ascii_digit() && *c != '0')
         .chain::<_, Vec<char>, _>(filter(|c: &char| c.is_ascii_digit() || *c == '_').repeated())
@@ -546,22 +555,22 @@ fn literal<'src>() -> impl Parser<'src, impl Input<'src> + Clone, Literal, Error
 
 fn quoted_string<'src>(
     escaped: bool,
-) -> impl Parser<'src, impl Input<'src> + Clone, String, Error = Rich<'src, char>> {
+) -> impl ChumskyParser<'src, ChumskyStream<'src, char>, String, Error = Rich<'src, char>> {
     choice((
         quoted_string_of_quote(&'"', escaped),
         quoted_string_of_quote(&'\'', escaped),
     ))
-    .collect::<String>()
+    .map(|chars| chars.into_iter().collect::<String>())
     .labelled("string")
 }
 
 fn quoted_string_of_quote<'src, 'a>(
     quote: &'a char,
     escaping: bool,
-) -> impl Parser<'src, impl Input<'src> + Clone, Vec<char>, Error = Rich<'src, char>> + 'a {
+) -> impl ChumskyParser<'src, ChumskyStream<'src, char>, Vec<char>, Error = Rich<'src, char>> + 'a {
     let opening = just(*quote).repeated().at_least(1);
 
-    opening.then_with(move |opening| {
+    opening.then_with_ctx(move |opening, _| {
         if opening.len() % 2 == 0 {
             // If we have an even number of quotes, it's an empty string.
             return empty().to(vec![]).boxed();
@@ -572,14 +581,14 @@ fn quoted_string_of_quote<'src, 'a>(
             choice((
                 // If we're escaping, don't allow consuming a backslash
                 // We need the `vec` to satisfy the type checker
-                not(delimiter.clone().or(just('\\').to(()))).to(()),
+                delimiter.clone().or(just('\\').to(())).not().to(()),
                 escaped_character(),
                 // Or escape the quote char of the current string
                 just('\\').ignore_then(just(*quote)),
             ))
             .boxed()
         } else {
-            not(delimiter.clone()).to(()).boxed()
+            delimiter.clone().not().to(()).boxed()
         };
 
         any()
@@ -591,7 +600,7 @@ fn quoted_string_of_quote<'src, 'a>(
 }
 
 fn escaped_character<'src>(
-) -> impl Parser<'src, impl Input<'src> + Clone, char, Error = Rich<'src, char>> {
+) -> impl ChumskyParser<'src, ChumskyStream<'src, char>, char, Error = Rich<'src, char>> {
     just('\\').ignore_then(choice((
         just('\\'),
         just('/'),
@@ -606,7 +615,7 @@ fn escaped_character<'src>(
                 .at_least(1)
                 .at_most(6)
                 .collect::<String>()
-                .try_map(|digits, span| {
+                .try_map(|digits: String, span| {
                     char::from_u32(u32::from_str_radix(&digits, 16).unwrap())
                         .ok_or_else(|| Rich::custom(span, "Invalid unicode character"))
                 })
@@ -617,7 +626,7 @@ fn escaped_character<'src>(
                 .repeated()
                 .exactly(2)
                 .collect::<String>()
-                .try_map(|digits, span| {
+                .try_map(|digits: String, span| {
                     char::from_u32(u32::from_str_radix(&digits, 16).unwrap())
                         .ok_or_else(|| Rich::custom(span, "Invalid character escape"))
                 }),
@@ -627,13 +636,14 @@ fn escaped_character<'src>(
 
 fn digits<'src>(
     count: usize,
-) -> impl Parser<'src, impl Input<'src> + Clone, Vec<char>, Error = Rich<'src, char>> {
+) -> impl ChumskyParser<'src, ChumskyStream<'src, char>, Vec<char>, Error = Rich<'src, char>> {
     filter(|c: &char| c.is_ascii_digit())
         .repeated()
         .exactly(count)
 }
 
-fn end_expr<'src>() -> impl Parser<'src, impl Input<'src> + Clone, (), Error = Rich<'src, char>> {
+fn end_expr<'src>(
+) -> impl ChumskyParser<'src, ChumskyStream<'src, char>, (), Error = Rich<'src, char>> {
     choice((
         end(),
         one_of(",)]}\t >").to(()),
