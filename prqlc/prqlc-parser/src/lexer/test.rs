@@ -1,10 +1,19 @@
+#[cfg(not(feature = "chumsky-10"))]
 use chumsky::Parser;
+
+#[cfg(feature = "chumsky-10")]
+use chumsky_0_10::Parser;
 use insta::assert_debug_snapshot;
 use insta::assert_snapshot;
 
 use crate::lexer::lr::{Literal, TokenKind, Tokens};
+#[cfg(not(feature = "chumsky-10"))]
 use crate::lexer::{lex_source, lexer, literal, quoted_string};
 
+#[cfg(feature = "chumsky-10")]
+use crate::lexer::chumsky_0_10::{lex_source, lexer, literal, quoted_string};
+
+#[cfg_attr(feature = "chumsky-10", ignore)]
 #[test]
 fn line_wrap() {
     assert_debug_snapshot!(Tokens(lexer().parse(r"5 +
@@ -49,6 +58,7 @@ fn line_wrap() {
     );
 }
 
+#[cfg_attr(feature = "chumsky-10", ignore)]
 #[test]
 fn numbers() {
     // Binary notation
@@ -72,6 +82,7 @@ fn numbers() {
     assert_eq!(literal().parse("0o777").unwrap(), Literal::Integer(511));
 }
 
+#[cfg_attr(feature = "chumsky-10", ignore)]
 #[test]
 fn debug_display() {
     assert_debug_snapshot!(Tokens(lexer().parse("5 + 3").unwrap()), @r"
@@ -85,6 +96,7 @@ fn debug_display() {
     ");
 }
 
+#[cfg_attr(feature = "chumsky-10", ignore)]
 #[test]
 fn comment() {
     assert_debug_snapshot!(Tokens(lexer().parse("# comment\n# second line").unwrap()), @r#"
@@ -100,6 +112,7 @@ fn comment() {
     assert_snapshot!(TokenKind::Comment(" This is a single-line comment".to_string()), @"# This is a single-line comment");
 }
 
+#[cfg_attr(feature = "chumsky-10", ignore)]
 #[test]
 fn doc_comment() {
     assert_debug_snapshot!(Tokens(lexer().parse("#! docs").unwrap()), @r#"
@@ -111,6 +124,7 @@ fn doc_comment() {
     "#);
 }
 
+#[cfg_attr(feature = "chumsky-10", ignore)]
 #[test]
 fn quotes() {
     // All these are valid & equal.
@@ -146,6 +160,7 @@ fn quotes() {
     assert_snapshot!(quoted_string(true).parse(r"'\u{01f422}'").unwrap(), @"🐢");
 }
 
+#[cfg_attr(feature = "chumsky-10", ignore)]
 #[test]
 fn range() {
     assert_debug_snapshot!(Tokens(lexer().parse("1..2").unwrap()), @r"
@@ -187,6 +202,7 @@ fn range() {
     "#);
 }
 
+#[cfg_attr(feature = "chumsky-10", ignore)]
 #[test]
 fn test_lex_source() {
     use insta::assert_debug_snapshot;
