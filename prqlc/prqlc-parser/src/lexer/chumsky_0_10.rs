@@ -99,6 +99,18 @@ Check out these issues for more details:
 - https://github.com/zesterer/chumsky/issues/747
 - https://github.com/zesterer/chumsky/issues/745
 - https://github.com/zesterer/chumsky/releases/tag/0.10
+
+### Tests
+- After each group of changes, run:
+   ```
+   # tests for this module
+   cargo insta test --accept -p prqlc-parser --features chumsky-10 -- chumsky_0_10
+
+   # confirm the existing tests still pass without this feature
+   cargo insta test -p prqlc-parser
+   ```
+- and the linting instructions in `CLAUDE.md`
+
 */
 
 // Import from the project
