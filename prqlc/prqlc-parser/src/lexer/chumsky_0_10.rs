@@ -208,7 +208,7 @@ fn convert_lexer_error(_source: &str, e: Simple<SimpleSpan>, source_id: u16) -> 
 }
 
 /// Lex chars to tokens until the end of the input
-pub(crate) fn lexer<'src>() -> impl Parser<'src, ParserInput<'src>, Vec<Token>, ParserError> {
+pub fn lexer<'src>() -> impl Parser<'src, ParserInput<'src>, Vec<Token>, ParserError> {
     lex_token()
         .repeated()
         .collect()
@@ -365,7 +365,7 @@ fn comment<'src>() -> impl Parser<'src, ParserInput<'src>, TokenKind, ParserErro
     )))
 }
 
-pub(crate) fn ident_part<'src>() -> impl Parser<'src, ParserInput<'src>, String, ParserError> {
+pub fn ident_part<'src>() -> impl Parser<'src, ParserInput<'src>, String, ParserError> {
     // Create a parser for a single alphanumeric/underscore character after the first
     let rest_char = my_filter(|c: &char| c.is_alphanumeric() || *c == '_');
 
@@ -388,7 +388,7 @@ pub(crate) fn ident_part<'src>() -> impl Parser<'src, ParserInput<'src>, String,
     choice((plain, backtick))
 }
 
-pub(crate) fn literal<'src>() -> impl Parser<'src, ParserInput<'src>, Literal, ParserError> {
+pub fn literal<'src>() -> impl Parser<'src, ParserInput<'src>, Literal, ParserError> {
     let binary_notation = just("0b")
         .then_ignore(just("_").or_not())
         .ignore_then(
@@ -714,7 +714,7 @@ pub(crate) fn literal<'src>() -> impl Parser<'src, ParserInput<'src>, Literal, P
     ))
 }
 
-pub(crate) fn quoted_string<'src>(
+pub fn quoted_string<'src>(
     escaped: bool,
 ) -> impl Parser<'src, ParserInput<'src>, String, ParserError> {
     choice((

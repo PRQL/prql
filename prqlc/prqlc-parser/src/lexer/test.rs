@@ -10,10 +10,10 @@ use crate::lexer::lr::{Literal, TokenKind, Tokens};
 
 // Import the appropriate lexer functions based on feature flag
 #[cfg(not(feature = "chumsky-10"))]
-use crate::lexer::{lex_source, lexer, literal, quoted_string};
+use crate::lexer::chumsky_0_9::{lexer, literal, quoted_string};
 
 #[cfg(feature = "chumsky-10")]
-use crate::lexer::chumsky_0_10::{lex_source, lexer, literal, quoted_string};
+use crate::lexer::chumsky_0_10::{lexer, literal, quoted_string};
 
 #[cfg(feature = "chumsky-10")]
 use chumsky_0_10::input::Stream;

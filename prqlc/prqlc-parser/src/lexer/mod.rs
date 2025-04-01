@@ -11,7 +11,7 @@ mod test;
 
 // Re-export the implementation based on the feature flag
 #[cfg(not(feature = "chumsky-10"))]
-pub use chumsky_0_9::*;
+pub use chumsky_0_9::{lex_source, lex_source_recovery};
 
 #[cfg(feature = "chumsky-10")]
-pub use chumsky_0_10::*;
+pub use chumsky_0_10::{lex_source, lex_source_recovery};
