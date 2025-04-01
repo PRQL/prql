@@ -1,3 +1,8 @@
+// TESTING APPROACH FOR CHUMSKY MIGRATION:
+// 1. Create the snapshots without chumsky-10 feature flag first (use `--accept`)
+// 2. Then test the snapshots with chumsky-10 feature to ensure compatibility
+// 3. For tests that can't be unified yet, use cfg attributes to conditionally run them
+
 #[cfg(not(feature = "chumsky-10"))]
 use chumsky::Parser;
 
@@ -6,6 +11,7 @@ use chumsky_0_10::Parser;
 use insta::assert_debug_snapshot;
 use insta::assert_snapshot;
 
+use crate::lexer::lex_source;
 use crate::lexer::lr::{Literal, TokenKind, Tokens};
 
 // Import the appropriate lexer functions based on feature flag
@@ -78,7 +84,9 @@ fn line_wrap() {
     );
 
     // Basic line wrap test
-    #[cfg(not(feature = "chumsky-10"))]
+    // Note: When adding or modifying tests:
+    // 1. Create snapshots without chumsky-10 feature first
+    // 2. Then test with chumsky-10 to ensure compatibility
     assert_debug_snapshot!(test_line_wrap_tokens(r"5 +
     \ 3 "), @r"
     Tokens(
@@ -91,21 +99,7 @@ fn line_wrap() {
     )
     ");
 
-    #[cfg(feature = "chumsky-10")]
-    assert_debug_snapshot!(test_line_wrap_tokens(r"5 +
-    \ 3 "), @r"
-    Tokens(
-        [
-            0..1: Literal(Integer(5)),
-            0..1: Control('+'),
-            0..1: LineWrap([]),
-            0..1: Literal(Integer(3)),
-        ],
-    )
-    ");
-
     // Comments in line wrap test
-    #[cfg(not(feature = "chumsky-10"))]
     assert_debug_snapshot!(test_line_wrap_tokens(r"5 +
 # comment
    # comment with whitespace
@@ -116,21 +110,6 @@ fn line_wrap() {
             2..3: Control('+'),
             3..46: LineWrap([Comment(" comment"), Comment(" comment with whitespace")]),
             47..48: Literal(Integer(3)),
-        ],
-    )
-    "#);
-
-    #[cfg(feature = "chumsky-10")]
-    assert_debug_snapshot!(test_line_wrap_tokens(r"5 +
-# comment
-   # comment with whitespace
-  \ 3 "), @r#"
-    Tokens(
-        [
-            0..1: Literal(Integer(5)),
-            0..1: Control('+'),
-            0..1: LineWrap([Comment(" comment"), Comment(" comment with whitespace")]),
-            0..1: Literal(Integer(3)),
         ],
     )
     "#);
@@ -192,26 +171,15 @@ fn debug_display() {
         }
     }
 
-    // The snapshots will be different due to span differences,
-    // but we can unify the test code
-    #[cfg(not(feature = "chumsky-10"))]
+    // Note: When adding or modifying tests:
+    // 1. Create snapshots without chumsky-10 feature first
+    // 2. Then test with chumsky-10 to ensure compatibility
     assert_debug_snapshot!(test_tokens("5 + 3"), @r"
     Tokens(
         [
             0..1: Literal(Integer(5)),
             2..3: Control('+'),
             4..5: Literal(Integer(3)),
-        ],
-    )
-    ");
-
-    #[cfg(feature = "chumsky-10")]
-    assert_debug_snapshot!(test_tokens("5 + 3"), @r"
-    Tokens(
-        [
-            0..1: Literal(Integer(5)),
-            0..1: Control('+'),
-            0..1: Literal(Integer(3)),
         ],
     )
     ");
@@ -242,25 +210,15 @@ fn comment() {
         }
     }
 
-    // The snapshots differ due to span information, but the test code is unified
-    #[cfg(not(feature = "chumsky-10"))]
+    // Note: When adding or modifying tests:
+    // 1. Create snapshots without chumsky-10 feature first
+    // 2. Then test with chumsky-10 to ensure compatibility
     assert_debug_snapshot!(test_comment_tokens("# comment\n# second line"), @r#"
     Tokens(
         [
             0..9: Comment(" comment"),
             9..10: NewLine,
             10..23: Comment(" second line"),
-        ],
-    )
-    "#);
-
-    #[cfg(feature = "chumsky-10")]
-    assert_debug_snapshot!(test_comment_tokens("# comment\n# second line"), @r#"
-    Tokens(
-        [
-            0..1: Comment(" comment"),
-            0..1: NewLine,
-            0..1: Comment(" second line"),
         ],
     )
     "#);
@@ -287,21 +245,13 @@ fn doc_comment() {
         }
     }
 
-    // Snapshots differ due to span information but test code is unified
-    #[cfg(not(feature = "chumsky-10"))]
+    // Note: When adding or modifying tests:
+    // 1. Create snapshots without chumsky-10 feature first
+    // 2. Then test with chumsky-10 to ensure compatibility
     assert_debug_snapshot!(test_doc_comment_tokens("#! docs"), @r#"
     Tokens(
         [
             0..7: DocComment(" docs"),
-        ],
-    )
-    "#);
-
-    #[cfg(feature = "chumsky-10")]
-    assert_debug_snapshot!(test_doc_comment_tokens("#! docs"), @r#"
-    Tokens(
-        [
-            0..1: DocComment(" docs"),
         ],
     )
     "#);
@@ -389,25 +339,15 @@ fn range() {
         }
     }
 
-    // Basic range test for both Chumsky versions
-    #[cfg(not(feature = "chumsky-10"))]
+    // Note: When adding or modifying tests:
+    // 1. Create snapshots without chumsky-10 feature first
+    // 2. Then test with chumsky-10 to ensure compatibility
     assert_debug_snapshot!(test_range_tokens("1..2"), @r"
     Tokens(
         [
             0..1: Literal(Integer(1)),
             1..3: Range { bind_left: true, bind_right: true },
             3..4: Literal(Integer(2)),
-        ],
-    )
-    ");
-
-    #[cfg(feature = "chumsky-10")]
-    assert_debug_snapshot!(test_range_tokens("1..2"), @r"
-    Tokens(
-        [
-            0..1: Literal(Integer(1)),
-            0..2: Range { bind_left: true, bind_right: true },
-            0..1: Literal(Integer(2)),
         ],
     )
     ");
@@ -423,7 +363,6 @@ fn range() {
             ],
         )
         ");
-
         assert_debug_snapshot!(test_range_tokens("1.."), @r"
         Tokens(
             [
@@ -432,7 +371,6 @@ fn range() {
             ],
         )
         ");
-
         assert_debug_snapshot!(test_range_tokens("in ..5"), @r#"
         Tokens(
             [
@@ -443,15 +381,24 @@ fn range() {
         )
         "#);
     }
+
+    // Alternatively, we can implement more features for chumsky-10
+    // and then use unified tests for both versions
+    #[cfg(feature = "chumsky-10")]
+    {
+        // TODO: Implement more range features in chumsky-10 and enable these tests
+        // assert_debug_snapshot!(test_range_tokens("..2"), @"range_left_open");
+        // assert_debug_snapshot!(test_range_tokens("1.."), @"range_right_open");
+    }
 }
 
 #[test]
 fn test_lex_source() {
     use insta::assert_debug_snapshot;
 
-    // Basic success test - unified for both Chumsky versions
-    // The snapshots are different but the test code is the same
-    #[cfg(not(feature = "chumsky-10"))]
+    // Note: When adding or modifying tests:
+    // 1. Create snapshots without chumsky-10 feature first
+    // 2. Then test with chumsky-10 to ensure compatibility
     assert_debug_snapshot!(lex_source("5 + 3"), @r"
     Ok(
         Tokens(
@@ -465,21 +412,11 @@ fn test_lex_source() {
     )
     ");
 
-    #[cfg(feature = "chumsky-10")]
-    assert_debug_snapshot!(lex_source("5 + 3"), @r"
-    Ok(
-        Tokens(
-            [
-                0..0: Start,
-                0..1: Literal(Integer(5)),
-                0..1: Control('+'),
-                0..1: Literal(Integer(3)),
-            ],
-        ),
-    )
-    ");
-
-    // Error test with invalid character - unified for both Chumsky versions
+    // We still need to keep separate error tests because error messages differ
+    // between chumsky versions.
+    //
+    // For new implementations, try to make error messages more consistent
+    // and informative across versions.
     #[cfg(not(feature = "chumsky-10"))]
     assert_debug_snapshot!(lex_source("^"), @r#"
     Err(

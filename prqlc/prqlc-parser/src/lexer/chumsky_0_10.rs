@@ -233,7 +233,6 @@ fn lex_token<'src>() -> impl Parser<'src, ParserInput<'src>, Token, ParserError>
         just("**").map(|_| TokenKind::Pow),
         // @{...} style annotations
         just("@{").map(|_| TokenKind::Annotate),
-        
         // @ followed by digit is often a date literal, but we handle as Control for now
         just('@').map(|_| TokenKind::Control('@')),
     ));
@@ -300,14 +299,12 @@ fn lex_token<'src>() -> impl Parser<'src, ParserInput<'src>, Token, ParserError>
         .boxed();
 
     // For other tokens, we'll use a simple map
-    let other_tokens = ignored()
-        .ignore_then(token)
-        .map(|kind| {
-            Token {
-                kind,
-                span: 0..1, // Fixed span for now - we'll need a better solution
-            }
-        });
+    let other_tokens = ignored().ignore_then(token).map(|kind| {
+        Token {
+            kind,
+            span: 0..1, // Fixed span for now - we'll need a better solution
+        }
+    });
 
     choice((range, other_tokens))
 }
@@ -521,7 +518,7 @@ pub fn literal<'src>() -> impl Parser<'src, ParserInput<'src>, Literal, ParserEr
         .then(
             my_filter(move |c: &char| *c != '\'' && *c != '"' && *c != '\n' && *c != '\r')
                 .repeated()
-                .collect::<Vec<char>>()
+                .collect::<Vec<char>>(),
         )
         .then(choice((just('\''), just('"'))))
         .map(|(((_, _), chars), _)| chars.into_iter().collect::<String>())
@@ -733,27 +730,27 @@ where
     'src: 'a,
 {
     let q = *quote;
-    
+
     // Parser for non-quote characters
     let regular_char = my_filter(move |c: &char| *c != q && *c != '\n' && *c != '\r' && *c != '\\');
-    
+
     // Parser for escaped characters if escaping is enabled
     let escaped_char = choice((
-        just('\\').ignore_then(just(q)), // Escaped quote
-        just('\\').ignore_then(just('\\')), // Escaped backslash
+        just('\\').ignore_then(just(q)),                 // Escaped quote
+        just('\\').ignore_then(just('\\')),              // Escaped backslash
         just('\\').ignore_then(just('n')).map(|_| '\n'), // Newline
         just('\\').ignore_then(just('r')).map(|_| '\r'), // Carriage return
         just('\\').ignore_then(just('t')).map(|_| '\t'), // Tab
         just('\\').ignore_then(any()), // Any other escaped char (just take it verbatim)
     ));
-    
+
     // Choose the right character parser based on whether escaping is enabled
     let char_parser = if escaping {
         choice((escaped_char, regular_char)).boxed()
     } else {
         regular_char.boxed()
     };
-    
+
     // Complete string parser
     just(q)
         .ignore_then(char_parser.repeated().collect())

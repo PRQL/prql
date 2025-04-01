@@ -28,7 +28,9 @@ pub enum ErrorSource {
     NameResolver,
     TypeResolver,
     SQL,
-    Internal { message: String },
+    Internal {
+        message: String,
+    },
 }
 
 #[cfg(feature = "chumsky-10")]
@@ -41,7 +43,9 @@ pub enum ErrorSource {
     NameResolver,
     TypeResolver,
     SQL,
-    Internal { message: String },
+    Internal {
+        message: String,
+    },
 }
 
 /// Multiple prqlc errors. Used internally, exposed as prqlc::ErrorMessages.
