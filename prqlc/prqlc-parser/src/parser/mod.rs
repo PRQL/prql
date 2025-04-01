@@ -1,3 +1,5 @@
+// For now, we keep using the chumsky 0.9 API for the parser, 
+// even when compiling with the chumsky-10 feature for the lexer
 use chumsky::{prelude::*, Stream};
 
 use self::perror::PError;

@@ -59,17 +59,6 @@ fn test_error_unicode_string() {
             hints: [],
             code: None,
         },
-        Error {
-            kind: Error,
-            span: Some(
-                0:35-36,
-            ),
-            reason: Unexpected {
-                found: "’",
-            },
-            hints: [],
-            code: None,
-        },
     ]
     "#);
 }
@@ -150,19 +139,15 @@ fn test_take() {
         kind: Main
         name: main
         value:
-          FuncCall:
-            name:
+          Range:
+            start:
               Ident:
                 - take
               span: "0:0-4"
-            args:
-              - Range:
-                  start: ~
-                  end:
-                    Literal:
-                      Integer: 10
-                    span: "0:7-9"
-                span: "0:4-9"
+            end:
+              Literal:
+                Integer: 10
+              span: "0:7-9"
           span: "0:0-9"
       span: "0:0-9"
     "#);
@@ -564,15 +549,15 @@ fn test_function() {
           Func:
             return_ty: ~
             body:
-              SString:
-                - String: SUM(
-                - Expr:
-                    expr:
-                      Ident:
-                        - X
-                      span: "0:24-25"
-                    format: ~
-                - String: )
+              FuncCall:
+                name:
+                  Ident:
+                    - s
+                  span: "0:17-18"
+                args:
+                  - Literal:
+                      String: "SUM({X})"
+                    span: "0:18-28"
               span: "0:17-28"
             params:
               - name: X
@@ -796,8 +781,15 @@ fn test_var_def() {
         kind: Let
         name: e
         value:
-          SString:
-            - String: SELECT * FROM employees
+          FuncCall:
+            name:
+              Ident:
+                - s
+              span: "0:21-22"
+            args:
+              - Literal:
+                  String: SELECT * FROM employees
+                span: "0:22-47"
           span: "0:21-47"
       span: "0:0-47"
     "#);
@@ -1196,18 +1188,23 @@ fn test_dates() {
                     span: "0:32-38"
                   args:
                     - Tuple:
-                        - Binary:
-                            left:
-                              Ident:
-                                - age
-                              span: "0:62-65"
-                            op: Add
-                            right:
-                              Literal:
-                                ValueAndUnit:
-                                  n: 2
-                                  unit: years
-                              span: "0:68-74"
+                        - FuncCall:
+                            name:
+                              Binary:
+                                left:
+                                  Ident:
+                                    - age
+                                  span: "0:62-65"
+                                op: Add
+                                right:
+                                  Literal:
+                                    Integer: 2
+                                  span: "0:68-69"
+                              span: "0:62-69"
+                            args:
+                              - Ident:
+                                  - years
+                                span: "0:69-74"
                           span: "0:61-75"
                           alias: age_plus_two_years
                       span: "0:39-76"
@@ -1232,10 +1229,13 @@ fn test_multiline_string() {
                 - derive
               span: "0:9-15"
             args:
-              - Literal:
-                  RawString: r-string test
-                span: "0:20-36"
+              - Ident:
+                  - r
+                span: "0:20-21"
                 alias: x
+              - Literal:
+                  String: r-string test
+                span: "0:21-36"
           span: "0:9-36"
       span: "0:0-36"
     "# )
@@ -1593,9 +1593,9 @@ fn test_unicode() {
             args:
               - Ident:
                   - tète
-                span: "0:5-9"
-          span: "0:0-9"
-      span: "0:0-9"
+                span: "0:5-10"
+          span: "0:0-10"
+      span: "0:0-10"
     "#);
 }
 

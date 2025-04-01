@@ -1,7 +1,10 @@
 use std::fmt::{self, Debug, Formatter};
 use std::ops::{Add, Range, Sub};
 
+// For now, we keep using the chumsky 0.9 API for the parser,
+// even when compiling with the chumsky-10 feature for the lexer
 use chumsky::Stream;
+
 use schemars::JsonSchema;
 use serde::de::Visitor;
 use serde::{Deserialize, Serialize};
@@ -106,6 +109,8 @@ impl<'de> Deserialize<'de> for Span {
     }
 }
 
+// For now, we keep using the chumsky 0.9 API for the parser,
+// even when compiling with the chumsky-10 feature for the lexer
 impl chumsky::Span for Span {
     type Context = u16;
 
@@ -156,6 +161,8 @@ impl Sub<usize> for Span {
     }
 }
 
+// For now, we keep using the chumsky 0.9 API for the parser,
+// even when compiling with the chumsky-10 feature for the lexer
 pub(crate) fn string_stream<'a>(
     s: String,
     span_base: Span,

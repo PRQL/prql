@@ -12,6 +12,11 @@ version.workspace = true
 bench = false
 doctest = false
 
+[features]
+# Enable chumsky-10 to use Chumsky 0.10.0 for the lexer
+chumsky-10 = ["dep:chumsky_0_10"]
+default = []
+
 [dependencies]
 enum-as-inner = {workspace = true}
 itertools = {workspace = true}
@@ -25,12 +30,13 @@ strum = {version = "0.27.0", features = ["std", "derive"]}
 # Chumsky's default features have issues when running in wasm (though we only
 # see it when compiling on macOS), so we only include features when running
 # outside wasm.
-[target.'cfg(not(target_family="wasm"))'.dependencies]
-chumsky = "0.9.2"
+# Always use chumsky 0.9.2 for the parser
+chumsky = { version = "0.9.2" }
+# Only use chumsky 0.10.0 for the lexer when feature is enabled
+chumsky_0_10 = { version = "0.10.0", package = "chumsky", optional = true }
+
 # Not direct dependencies, but pinning because of bugs in previous versions
 stacker = "0.1.18"
-[target.'cfg(target_family="wasm")'.dependencies]
-chumsky = {version = "0.9.2", features = ["ahash", "std"], default-features = false}
 
 [dev-dependencies]
 insta = {workspace = true}
