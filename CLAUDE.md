@@ -17,11 +17,20 @@ cargo insta test -p prqlc-parser --accept
 cargo insta test -p prqlc --test integration -- date
 ```
 
-Prefer inline snapshots for small outputs:
+Prefer inline snapshots for almost all tests:
 
 ```rust
 insta::assert_snapshot!(result, @"expected output");
 ```
+
+Initializing the test with:
+
+```rust
+insta::assert_snapshot!(result, @"");
+```
+
+...and then running the test commands above with `--accept` will then fill in
+the result.
 
 ## Running the CLI
 
