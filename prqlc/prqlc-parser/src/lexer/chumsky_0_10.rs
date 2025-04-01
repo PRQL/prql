@@ -110,7 +110,7 @@ Check out these issues for more details:
    cargo insta test --accept -p prqlc-parser --features chumsky-10 -- chumsky_0_10
 
    # confirm the existing tests still pass without this feature
-   cargo insta test -p prqlc-parser
+   cargo insta test --check -p prqlc-parser
    ```
 - and the linting instructions in `CLAUDE.md`
 
