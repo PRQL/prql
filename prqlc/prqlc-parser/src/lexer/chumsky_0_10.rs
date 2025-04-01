@@ -104,7 +104,7 @@ Check out these issues for more details:
 - After each group of changes, run:
    ```
    # cargo check for this module
-   cargo check -p prqlc-parser --features chumsky-10 -- chumsky_0_10
+   cargo check -p prqlc-parser --features chumsky-10
 
    # tests for this module
    cargo insta test --accept -p prqlc-parser --features chumsky-10 -- chumsky_0_10
@@ -116,20 +116,23 @@ Check out these issues for more details:
 
 */
 
-use chumsky_0_10::error::Rich;
-use chumsky_0_10::input::{Input, Stream};
+use chumsky_0_10::error::{EmptyErr, Rich};
+use chumsky_0_10::input::Input;
 use chumsky_0_10::prelude::*;
 use chumsky_0_10::text::newline;
+use chumsky_0_10::Parser as ChumskyParser;
+use chumsky_0_10::Stream as ChumskyStream;
 
 use super::lr::{Literal, Token, TokenKind, Tokens, ValueAndUnit};
 use crate::error::{Error, ErrorSource, Reason, WithErrorInfo};
 use crate::span::Span;
 
 type E = Error;
+type SimpleSpan = chumsky_0_10::span::SimpleSpan<usize>;
 
 /// Lex PRQL into LR, returning both the LR and any errors encountered
 pub fn lex_source_recovery(source: &str, source_id: u16) -> (Option<Vec<Token>>, Vec<E>) {
-    let stream = Stream::from_iter(source_id as usize..source_id as usize + 1, source.chars());
+    let stream = ChumskyStream::from_iter(source_id as usize.., source.chars());
 
     match lexer().parse(stream) {
         Ok(tokens) => (Some(insert_start(tokens)), vec![]),
@@ -145,7 +148,7 @@ pub fn lex_source_recovery(source: &str, source_id: u16) -> (Option<Vec<Token>>,
 
 /// Lex PRQL into LR, returning either the LR or the errors encountered
 pub fn lex_source(source: &str) -> Result<Tokens, Vec<E>> {
-    let stream = Stream::from_iter(0..1, source.chars());
+    let stream = ChumskyStream::from_iter(0.., source.chars());
 
     lexer()
         .parse(stream)
@@ -169,17 +172,21 @@ fn insert_start(tokens: Vec<Token>) -> Vec<Token> {
     .collect()
 }
 
-fn convert_lexer_error(source: &str, e: Rich<char, SimpleSpan>, source_id: u16) -> Error {
+fn convert_lexer_error(source: &str, e: Rich<'_, char>, source_id: u16) -> Error {
     // We want to slice based on the chars, not the bytes, so can't just index
     // into the str.
+    let span_start = e.span().start;
+    let span_end = e.span().end();
+    
     let found = source
         .chars()
-        .skip(e.span().start)
-        .take(e.span().end() - e.span().start)
+        .skip(span_start)
+        .take(span_end - span_start)
         .collect();
+    
     let span = Some(Span {
-        start: e.span().start,
-        end: e.span().end,
+        start: span_start,
+        end: span_end,
         source_id,
     });
 
