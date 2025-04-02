@@ -150,7 +150,8 @@ pub fn lexer<'src>() -> impl Parser<'src, ParserInput<'src>, Vec<Token>, ParserE
 
 // Parsers for date and time components
 fn digits<'src>(count: usize) -> impl Parser<'src, ParserInput<'src>, Vec<char>, ParserError> {
-    any().filter(|c: &char| c.is_ascii_digit())
+    any()
+        .filter(|c: &char| c.is_ascii_digit())
         .repeated()
         .exactly(count)
         .collect::<Vec<char>>()
@@ -207,7 +208,8 @@ fn time_inner<'src>() -> impl Parser<'src, ParserInput<'src>, Vec<char>, ParserE
         .then(
             just('.')
                 .then(
-                    any().filter(|c: &char| c.is_ascii_digit())
+                    any()
+                        .filter(|c: &char| c.is_ascii_digit())
                         .repeated()
                         .at_least(1)
                         .at_most(6)
@@ -340,7 +342,8 @@ fn lex_token<'src>() -> impl Parser<'src, ParserInput<'src>, Token, ParserError>
 
     let param = just('$')
         .ignore_then(
-            any().filter(|c: &char| c.is_alphanumeric() || *c == '_' || *c == '.')
+            any()
+                .filter(|c: &char| c.is_alphanumeric() || *c == '_' || *c == '.')
                 .repeated()
                 .collect::<String>(),
         )
@@ -400,7 +403,8 @@ fn ignored<'src>() -> impl Parser<'src, ParserInput<'src>, (), ParserError> {
 }
 
 fn whitespace<'src>() -> impl Parser<'src, ParserInput<'src>, (), ParserError> {
-    any().filter(|x: &char| *x == ' ' || *x == '\t')
+    any()
+        .filter(|x: &char| *x == ' ' || *x == '\t')
         .repeated()
         .at_least(1)
         .ignored()
@@ -435,13 +439,15 @@ fn comment<'src>() -> impl Parser<'src, ParserInput<'src>, TokenKind, ParserErro
         // messages?
         just('!').ignore_then(
             // Replacement for take_until - capture chars until we see a newline
-            any().filter(|c: &char| *c != '\n' && *c != '\r')
+            any()
+                .filter(|c: &char| *c != '\n' && *c != '\r')
                 .repeated()
                 .collect::<String>()
                 .map(TokenKind::DocComment),
         ),
         // Replacement for take_until - capture chars until we see a newline
-        any().filter(|c: &char| *c != '\n' && *c != '\r')
+        any()
+            .filter(|c: &char| *c != '\n' && *c != '\r')
             .repeated()
             .collect::<String>()
             .map(TokenKind::Comment),
@@ -453,7 +459,8 @@ pub fn ident_part<'src>() -> impl Parser<'src, ParserInput<'src>, String, Parser
     let rest_char = any().filter(|c: &char| c.is_alphanumeric() || *c == '_');
 
     // Parse a word: an alphabetic/underscore followed by alphanumerics/underscores
-    let plain = any().filter(|c: &char| c.is_alphabetic() || *c == '_')
+    let plain = any()
+        .filter(|c: &char| c.is_alphabetic() || *c == '_')
         .then(rest_char.repeated().collect::<Vec<char>>())
         .map(|(first, rest)| {
             let mut chars = vec![first];
@@ -475,7 +482,8 @@ pub fn literal<'src>() -> impl Parser<'src, ParserInput<'src>, Literal, ParserEr
     let binary_notation = just("0b")
         .then_ignore(just("_").or_not())
         .ignore_then(
-            any().filter(|c: &char| *c == '0' || *c == '1')
+            any()
+                .filter(|c: &char| *c == '0' || *c == '1')
                 .repeated()
                 .at_least(1)
                 .at_most(32)
@@ -490,7 +498,8 @@ pub fn literal<'src>() -> impl Parser<'src, ParserInput<'src>, Literal, ParserEr
     let hexadecimal_notation = just("0x")
         .then_ignore(just("_").or_not())
         .ignore_then(
-            any().filter(|c: &char| c.is_ascii_hexdigit())
+            any()
+                .filter(|c: &char| c.is_ascii_hexdigit())
                 .repeated()
                 .at_least(1)
                 .at_most(12)
@@ -505,7 +514,8 @@ pub fn literal<'src>() -> impl Parser<'src, ParserInput<'src>, Literal, ParserEr
     let octal_notation = just("0o")
         .then_ignore(just("_").or_not())
         .ignore_then(
-            any().filter(|c: &char| ('0'..='7').contains(c))
+            any()
+                .filter(|c: &char| ('0'..='7').contains(c))
                 .repeated()
                 .at_least(1)
                 .at_most(12)
@@ -522,7 +532,8 @@ pub fn literal<'src>() -> impl Parser<'src, ParserInput<'src>, Literal, ParserEr
             one_of("+-")
                 .or_not()
                 .then(
-                    any().filter(|c: &char| c.is_ascii_digit())
+                    any()
+                        .filter(|c: &char| c.is_ascii_digit())
                         .repeated()
                         .at_least(1)
                         .collect::<Vec<char>>(),
@@ -544,9 +555,11 @@ pub fn literal<'src>() -> impl Parser<'src, ParserInput<'src>, Literal, ParserEr
 
     // Define integer parsing separately so it can be reused
     let parse_integer = || {
-        any().filter(|c: &char| c.is_ascii_digit() && *c != '0')
+        any()
+            .filter(|c: &char| c.is_ascii_digit() && *c != '0')
             .then(
-                any().filter(|c: &char| c.is_ascii_digit() || *c == '_')
+                any()
+                    .filter(|c: &char| c.is_ascii_digit() || *c == '_')
                     .repeated()
                     .collect::<Vec<char>>(),
             )
@@ -563,7 +576,8 @@ pub fn literal<'src>() -> impl Parser<'src, ParserInput<'src>, Literal, ParserEr
     let frac = just('.')
         .then(any().filter(|c: &char| c.is_ascii_digit()))
         .then(
-            any().filter(|c: &char| c.is_ascii_digit() || *c == '_')
+            any()
+                .filter(|c: &char| c.is_ascii_digit() || *c == '_')
                 .repeated()
                 .collect::<Vec<char>>(),
         )
@@ -602,7 +616,8 @@ pub fn literal<'src>() -> impl Parser<'src, ParserInput<'src>, Literal, ParserEr
     let raw_string = just("r")
         .then(choice((just('\''), just('"'))))
         .then(
-            any().filter(move |c: &char| *c != '\'' && *c != '"' && *c != '\n' && *c != '\r')
+            any()
+                .filter(move |c: &char| *c != '\'' && *c != '"' && *c != '\n' && *c != '\r')
                 .repeated()
                 .collect::<Vec<char>>(),
         )
@@ -743,7 +758,9 @@ where
     let regular_char = if allow_multiline {
         any().filter(move |c: &char| *c != q && *c != '\\').boxed()
     } else {
-        any().filter(move |c: &char| *c != q && *c != '\n' && *c != '\r' && *c != '\\').boxed()
+        any()
+            .filter(move |c: &char| *c != q && *c != '\n' && *c != '\r' && *c != '\\')
+            .boxed()
     };
 
     // Parser for escaped characters if escaping is enabled
@@ -782,7 +799,8 @@ fn escaped_character<'src>() -> impl Parser<'src, ParserInput<'src>, char, Parse
         just('r').map(|_| '\r'),
         just('t').map(|_| '\t'),
         (just("u{").ignore_then(
-            any().filter(|c: &char| c.is_ascii_hexdigit())
+            any()
+                .filter(|c: &char| c.is_ascii_hexdigit())
                 .repeated()
                 .at_least(1)
                 .at_most(6)
@@ -794,7 +812,8 @@ fn escaped_character<'src>() -> impl Parser<'src, ParserInput<'src>, char, Parse
                 .then_ignore(just('}')),
         )),
         (just('x').ignore_then(
-            any().filter(|c: &char| c.is_ascii_hexdigit())
+            any()
+                .filter(|c: &char| c.is_ascii_hexdigit())
                 .repeated()
                 .exactly(2)
                 .collect::<String>()
