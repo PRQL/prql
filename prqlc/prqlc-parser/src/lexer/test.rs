@@ -403,18 +403,57 @@ fn test_lex_source() {
 #[test]
 fn test_annotation_tokens() {
     use insta::assert_debug_snapshot;
-    
-    #[cfg(feature = "chumsky-10")]
-    {
-        // Test basic annotation token
-        let result = super::debug::lex_debug("@{binding_strength=1}");
-        assert_debug_snapshot!(result);
-        
-        // Test multi-line annotation
-        let result = super::debug::lex_debug(r#"
+
+    // Test basic annotation token
+    let result = super::debug::lex_debug("@{binding_strength=1}");
+    assert_debug_snapshot!(result, @r#"
+        Ok(
+            Tokens(
+                [
+                    0..0: Start,
+                    0..1: Annotate,
+                    1..2: Control('{'),
+                    2..18: Ident("binding_strength"),
+                    18..19: Control('='),
+                    19..20: Literal(Integer(1)),
+                    20..21: Control('}'),
+                ],
+            ),
+        )
+        "#);
+
+    // Test multi-line annotation
+    let result = super::debug::lex_debug(
+        r#"
         @{binding_strength=1}
         let add = a b -> a + b
+        "#,
+    );
+    assert_debug_snapshot!(result, @r#"
+        Ok(
+            Tokens(
+                [
+                    0..0: Start,
+                    0..1: NewLine,
+                    9..10: Annotate,
+                    10..11: Control('{'),
+                    11..27: Ident("binding_strength"),
+                    27..28: Control('='),
+                    28..29: Literal(Integer(1)),
+                    29..30: Control('}'),
+                    30..31: NewLine,
+                    39..42: Keyword("let"),
+                    43..46: Ident("add"),
+                    47..48: Control('='),
+                    49..50: Ident("a"),
+                    51..52: Ident("b"),
+                    53..55: ArrowThin,
+                    56..57: Ident("a"),
+                    58..59: Control('+'),
+                    60..61: Ident("b"),
+                    61..62: NewLine,
+                ],
+            ),
+        )
         "#);
-        assert_debug_snapshot!(result);
-    }
 }
