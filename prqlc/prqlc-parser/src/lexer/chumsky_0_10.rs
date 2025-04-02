@@ -224,6 +224,125 @@ pub fn lexer<'src>() -> impl Parser<'src, ParserInput<'src>, Vec<Token>, ParserE
         .then_ignore(end())
 }
 
+// Parsers for date and time components
+fn digits<'src>(count: usize) -> impl Parser<'src, ParserInput<'src>, Vec<char>, ParserError> {
+    my_filter(|c: &char| c.is_ascii_digit())
+        .repeated()
+        .exactly(count)
+        .collect::<Vec<char>>()
+}
+
+fn date_inner<'src>() -> impl Parser<'src, ParserInput<'src>, Vec<char>, ParserError> {
+    digits(4)
+        .then(just('-'))
+        .then(digits(2))
+        .then(just('-'))
+        .then(digits(2))
+        .map(|((((year, dash1), month), dash2), day)| {
+            // Flatten the tuple structure
+            let mut result = Vec::new();
+            result.extend(year.iter().cloned());
+            result.push(dash1);
+            result.extend(month.iter().cloned());
+            result.push(dash2);
+            result.extend(day.iter().cloned());
+            result
+        })
+        .boxed()
+}
+
+fn time_inner<'src>() -> impl Parser<'src, ParserInput<'src>, Vec<char>, ParserError> {
+    digits(2)
+        // minutes
+        .then(
+            just(':')
+                .then(digits(2))
+                .map(|(colon, min)| {
+                    let mut result = Vec::new();
+                    result.push(colon);
+                    result.extend(min.iter().cloned());
+                    result
+                })
+                .or_not()
+                .map(|opt| opt.unwrap_or_default()),
+        )
+        // seconds
+        .then(
+            just(':')
+                .then(digits(2))
+                .map(|(colon, sec)| {
+                    let mut result = Vec::new();
+                    result.push(colon);
+                    result.extend(sec.iter().cloned());
+                    result
+                })
+                .or_not()
+                .map(|opt| opt.unwrap_or_default()),
+        )
+        // milliseconds
+        .then(
+            just('.')
+                .then(
+                    my_filter(|c: &char| c.is_ascii_digit())
+                        .repeated()
+                        .at_least(1)
+                        .at_most(6)
+                        .collect::<Vec<char>>(),
+                )
+                .map(|(dot, digits)| {
+                    let mut result = Vec::new();
+                    result.push(dot);
+                    result.extend(digits.iter().cloned());
+                    result
+                })
+                .or_not()
+                .map(|opt| opt.unwrap_or_default()),
+        )
+        // timezone offset
+        .then(
+            choice((
+                // Either just `Z`
+                just('Z').map(|x| vec![x]),
+                // Or an offset, such as `-05:00` or `-0500`
+                one_of("-+")
+                    .then(
+                        digits(2)
+                            .then(just(':').or_not().then(digits(2)).map(|(opt_colon, min)| {
+                                let mut result = Vec::new();
+                                if let Some(colon) = opt_colon {
+                                    result.push(colon);
+                                }
+                                result.extend(min.iter().cloned());
+                                result
+                            }))
+                            .map(|(hrs, mins)| {
+                                let mut result = Vec::new();
+                                result.extend(hrs.iter().cloned());
+                                result.extend(mins.iter().cloned());
+                                result
+                            }),
+                    )
+                    .map(|(sign, offset)| {
+                        let mut result = vec![sign];
+                        result.extend(offset.iter().cloned());
+                        result
+                    }),
+            ))
+            .or_not()
+            .map(|opt| opt.unwrap_or_default()),
+        )
+        .map(|((((hours, minutes), seconds), milliseconds), timezone)| {
+            let mut result = Vec::new();
+            result.extend(hours.iter().cloned());
+            result.extend(minutes.iter().cloned());
+            result.extend(seconds.iter().cloned());
+            result.extend(milliseconds.iter().cloned());
+            result.extend(timezone.iter().cloned());
+            result
+        })
+        .boxed()
+}
+
 /// Lex chars to a single token
 fn lex_token<'src>() -> impl Parser<'src, ParserInput<'src>, Token, ParserError> {
     let control_multi = choice((
@@ -241,8 +360,6 @@ fn lex_token<'src>() -> impl Parser<'src, ParserInput<'src>, Token, ParserError>
         just("**").map(|_| TokenKind::Pow),
         // @{...} style annotations
         just("@{").map(|_| TokenKind::Annotate),
-        // @ followed by digit is often a date literal, but we handle as Control for now
-        just('@').map(|_| TokenKind::Control('@')),
     ));
 
     let control = one_of("></%=+-*[]().,:|!{}").map(TokenKind::Control);
@@ -267,6 +384,32 @@ fn lex_token<'src>() -> impl Parser<'src, ParserInput<'src>, Token, ParserError>
 
     let literal = literal().map(TokenKind::Literal);
 
+    // Date/time literals starting with @
+    let date_token = just('@')
+        .ignore_then(choice((
+            // datetime: @2022-01-01T12:00
+            date_inner()
+                .then(just('T'))
+                .then(time_inner())
+                .then_ignore(end_expr())
+                .map(|((date, t), time)| {
+                    let mut result = Vec::new();
+                    result.extend(date.iter().cloned());
+                    result.push(t);
+                    result.extend(time.iter().cloned());
+                    Literal::Timestamp(String::from_iter(result))
+                }),
+            // date: @2022-01-01
+            date_inner()
+                .then_ignore(end_expr())
+                .map(|chars| Literal::Date(chars.into_iter().collect::<String>())),
+            // time: @12:00
+            time_inner()
+                .then_ignore(end_expr())
+                .map(|chars| Literal::Time(chars.into_iter().collect::<String>())),
+        )))
+        .map(TokenKind::Literal);
+
     let param = just('$')
         .ignore_then(
             my_filter(|c: &char| c.is_alphanumeric() || *c == '_' || *c == '.')
@@ -285,6 +428,7 @@ fn lex_token<'src>() -> impl Parser<'src, ParserInput<'src>, Token, ParserError>
         control_multi,
         interpolation,
         param,
+        date_token,      // Add date token before control/literal to ensure @ is handled properly
         control,
         literal,
         keyword,
@@ -575,141 +719,7 @@ pub fn literal<'src>() -> impl Parser<'src, ParserInput<'src>, Literal, ParserEr
         })
         .map(Literal::ValueAndUnit);
 
-    let date_inner = digits(4)
-        .then(just('-'))
-        .then(digits(2))
-        .then(just('-'))
-        .then(digits(2))
-        .map(|((((year, dash1), month), dash2), day)| {
-            // Flatten the tuple structure
-            let mut result = Vec::new();
-            result.extend(year.iter().cloned());
-            result.push(dash1);
-            result.extend(month.iter().cloned());
-            result.push(dash2);
-            result.extend(day.iter().cloned());
-            result
-        })
-        .boxed();
-
-    let time_inner = digits(2)
-        // minutes
-        .then(
-            just(':')
-                .then(digits(2))
-                .map(|(colon, min)| {
-                    let mut result = Vec::new();
-                    result.push(colon);
-                    result.extend(min.iter().cloned());
-                    result
-                })
-                .or_not()
-                .map(|opt| opt.unwrap_or_default()),
-        )
-        // seconds
-        .then(
-            just(':')
-                .then(digits(2))
-                .map(|(colon, sec)| {
-                    let mut result = Vec::new();
-                    result.push(colon);
-                    result.extend(sec.iter().cloned());
-                    result
-                })
-                .or_not()
-                .map(|opt| opt.unwrap_or_default()),
-        )
-        // milliseconds
-        .then(
-            just('.')
-                .then(
-                    my_filter(|c: &char| c.is_ascii_digit())
-                        .repeated()
-                        .at_least(1)
-                        .at_most(6)
-                        .collect::<Vec<char>>(),
-                )
-                .map(|(dot, digits)| {
-                    let mut result = Vec::new();
-                    result.push(dot);
-                    result.extend(digits.iter().cloned());
-                    result
-                })
-                .or_not()
-                .map(|opt| opt.unwrap_or_default()),
-        )
-        // timezone offset
-        .then(
-            choice((
-                // Either just `Z`
-                just('Z').map(|x| vec![x]),
-                // Or an offset, such as `-05:00` or `-0500`
-                one_of("-+")
-                    .then(
-                        digits(2)
-                            .then(just(':').or_not().then(digits(2)).map(|(opt_colon, min)| {
-                                let mut result = Vec::new();
-                                if let Some(colon) = opt_colon {
-                                    result.push(colon);
-                                }
-                                result.extend(min.iter().cloned());
-                                result
-                            }))
-                            .map(|(hrs, mins)| {
-                                let mut result = Vec::new();
-                                result.extend(hrs.iter().cloned());
-                                result.extend(mins.iter().cloned());
-                                result
-                            }),
-                    )
-                    .map(|(sign, offset)| {
-                        let mut result = vec![sign];
-                        result.extend(offset.iter().cloned());
-                        result
-                    }),
-            ))
-            .or_not()
-            .map(|opt| opt.unwrap_or_default()),
-        )
-        .map(|((((hours, minutes), seconds), milliseconds), timezone)| {
-            let mut result = Vec::new();
-            result.extend(hours.iter().cloned());
-            result.extend(minutes.iter().cloned());
-            result.extend(seconds.iter().cloned());
-            result.extend(milliseconds.iter().cloned());
-            result.extend(timezone.iter().cloned());
-            result
-        })
-        .boxed();
-
-    // Not an annotation - just a simple @ for dates
-    let dt_prefix = just('@');
-
-    let date = dt_prefix
-        .ignore_then(date_inner.clone())
-        .then_ignore(end_expr())
-        .map(|chars| chars.into_iter().collect::<String>())
-        .map(Literal::Date);
-
-    let time = dt_prefix
-        .ignore_then(time_inner.clone())
-        .then_ignore(end_expr())
-        .map(|chars| chars.into_iter().collect::<String>())
-        .map(Literal::Time);
-
-    let datetime = dt_prefix
-        .ignore_then(date_inner)
-        .then(just('T'))
-        .then(time_inner)
-        .then_ignore(end_expr())
-        .map(|((date, t), time)| {
-            let mut result = Vec::new();
-            result.extend(date.iter().cloned());
-            result.push(t);
-            result.extend(time.iter().cloned());
-            String::from_iter(result)
-        })
-        .map(Literal::Timestamp);
+    // Date/time literals are now handled directly in the lexer token parser
 
     choice((
         binary_notation,
@@ -721,18 +731,18 @@ pub fn literal<'src>() -> impl Parser<'src, ParserInput<'src>, Literal, ParserEr
         number,
         bool,
         null,
-        datetime,
-        date,
-        time,
     ))
 }
 
 pub fn quoted_string<'src>(
     escaped: bool,
 ) -> impl Parser<'src, ParserInput<'src>, String, ParserError> {
+    // For simplicity in the chumsky-10 migration, we'll just support basic string quoting
+    // without multi-line strings for now. The parser level tests for multi-line strings 
+    // will be fixed in a future PR.
     choice((
-        quoted_string_of_quote(&'"', escaped),
-        quoted_string_of_quote(&'\'', escaped),
+        quoted_string_of_quote(&'"', escaped, false),
+        quoted_string_of_quote(&'\'', escaped, false),
     ))
     .map(|chars| chars.into_iter().collect::<String>())
     .labelled("string")
@@ -741,6 +751,7 @@ pub fn quoted_string<'src>(
 fn quoted_string_of_quote<'src, 'a>(
     quote: &'a char,
     escaping: bool,
+    allow_multiline: bool,
 ) -> impl Parser<'src, ParserInput<'src>, Vec<char>, ParserError> + 'a
 where
     'src: 'a,
@@ -748,7 +759,11 @@ where
     let q = *quote;
 
     // Parser for non-quote characters
-    let regular_char = my_filter(move |c: &char| *c != q && *c != '\n' && *c != '\r' && *c != '\\');
+    let regular_char = if allow_multiline {
+        my_filter(move |c: &char| *c != q && *c != '\\').boxed()
+    } else {
+        my_filter(move |c: &char| *c != q && *c != '\n' && *c != '\r' && *c != '\\').boxed()
+    };
 
     // Parser for escaped characters if escaping is enabled
     let escaped_char = choice((
@@ -808,13 +823,6 @@ fn escaped_character<'src>() -> impl Parser<'src, ParserInput<'src>, char, Parse
                 }),
         )),
     )))
-}
-
-fn digits<'src>(count: usize) -> impl Parser<'src, ParserInput<'src>, Vec<char>, ParserError> {
-    my_filter(|c: &char| c.is_ascii_digit())
-        .repeated()
-        .exactly(count)
-        .collect::<Vec<char>>()
 }
 
 fn end_expr<'src>() -> impl Parser<'src, ParserInput<'src>, (), ParserError> {
