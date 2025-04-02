@@ -139,6 +139,7 @@ type E = Error;
 type ParserInput<'a> = Stream<std::str::Chars<'a>>;
 // Use the extra::Default type for error handling
 type ParserError = extra::Default;
+type SimpleSpan = chumsky_0_10::span::SimpleSpan<usize>;
 
 /// Lex PRQL into LR, returning both the LR and any errors encountered
 pub fn lex_source_recovery(source: &str, _source_id: u16) -> (Option<Vec<Token>>, Vec<E>) {
@@ -150,7 +151,8 @@ pub fn lex_source_recovery(source: &str, _source_id: u16) -> (Option<Vec<Token>>
     if let Some(tokens) = result.output() {
         (Some(insert_start(tokens.to_vec())), vec![])
     } else {
-        // Create a simple error based on the parse failure
+        // In chumsky 0.10, errors are handled differently
+        // For now, we'll create a simple error
         let errors = vec![Error::new(Reason::Unexpected {
             found: "Lexer error".to_string(),
         })
@@ -285,24 +287,31 @@ fn lex_token<'src>() -> impl Parser<'src, ParserInput<'src>, Token, ParserError>
     ));
 
     // Parse ranges with correct binding logic
-    let range = just("..")
-        .map(|_| {
-            // For now, match the chumsky-09 behavior
+    // In chumsky 0.10, we need to use the span-aware map function
+    let range = (whitespace().or_not())
+        .then_ignore(just(".."))
+        .then(whitespace().or_not())
+        .map_with(|input, extra| {
+            let (left, right) = input;
+            let span = extra.span();
             Token {
                 kind: TokenKind::Range {
-                    bind_left: true,
-                    bind_right: true,
+                    // If there was no whitespace before (after), then we mark the range
+                    // as bound on the left (right).
+                    bind_left: left.is_none(),
+                    bind_right: right.is_none(),
                 },
-                span: 0..2, // Fixed span for now - we'll fix this in a later update
+                span: span.start()..span.end(),
             }
         })
         .boxed();
 
-    // For other tokens, we'll use a simple map
-    let other_tokens = ignored().ignore_then(token).map(|kind| {
+    // For other tokens, use map_with to capture span information
+    let other_tokens = ignored().ignore_then(token).map_with(|kind, extra| {
+        let span = extra.span();
         Token {
             kind,
-            span: 0..1, // Fixed span for now - we'll need a better solution
+            span: span.start()..span.end(),
         }
     });
 
