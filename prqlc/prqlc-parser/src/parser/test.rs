@@ -416,40 +416,35 @@ fn test_string() {
     span: "0:0-12"
     "#);
 
-    // Multi-line string tests are skipped for chumsky-10
-    // These will be fixed in a future PR once the multi-line string support is fully implemented
-    #[cfg(not(feature = "chumsky-10"))]
-    {
-        let multi_double = parse_expr(
-            r#""""
+    let multi_double = parse_expr(
+        r#""""
 ''
 Canada
 "
 
 """"#,
-        )
-        .unwrap();
-        assert_yaml_snapshot!(multi_double, @r#"
-        Literal:
-          String: "\n''\nCanada\n\"\n\n"
-        span: "0:0-20"
-        "#);
+    )
+    .unwrap();
+    assert_yaml_snapshot!(multi_double, @r#"
+    Literal:
+      String: "\n''\nCanada\n\"\n\n"
+    span: "0:0-20"
+    "#);
 
-        let multi_single = parse_expr(
-            r#"'''
+    let multi_single = parse_expr(
+        r#"'''
 Canada
 "
 """
 
 '''"#,
-        )
-        .unwrap();
-        assert_yaml_snapshot!(multi_single, @r#"
-        Literal:
-          String: "\nCanada\n\"\n\"\"\"\n\n"
-        span: "0:0-21"
-        "#);
-    }
+    )
+    .unwrap();
+    assert_yaml_snapshot!(multi_single, @r#"
+    Literal:
+      String: "\nCanada\n\"\n\"\"\"\n\n"
+    span: "0:0-21"
+    "#);
 
     assert_yaml_snapshot!(
           parse_expr("''").unwrap(),
