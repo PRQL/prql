@@ -52,7 +52,7 @@ jobs:
     runs-on: ubuntu-22.04
     steps:
       - uses: actions/checkout@v4
-      - uses: clechasseur/rs-cargo@v2
+      - uses: clechasseur/rs-cargo@v3
         with:
           command: bench
           # GH Actions is fairly noisy, so the precise details don't matter that
@@ -89,11 +89,11 @@ jobs:
           crate: cargo-udeps
       # Once with all targets, once without, to find anything that should be in
       # `dev` but is more general.
-      - uses: clechasseur/rs-cargo@v2
+      - uses: clechasseur/rs-cargo@v3
         with:
           command: udeps
           args: --all-targets
-      - uses: clechasseur/rs-cargo@v2
+      - uses: clechasseur/rs-cargo@v3
         with:
           command: udeps
 
