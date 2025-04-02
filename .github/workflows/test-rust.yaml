@@ -98,7 +98,7 @@ jobs:
       # We split up the test compilation as recommended in
       # https://matklad.github.io/2021/09/04/fast-rust-builds.html
       - name: 🏭 Compile
-        uses: clechasseur/rs-cargo@v2
+        uses: clechasseur/rs-cargo@v3
         with:
           command: test
           args: >
@@ -111,7 +111,7 @@ jobs:
           timeout: 60000
         if: ${{ contains(inputs.features, 'test-dbs-external') }}
       - name: 📋 Test
-        uses: clechasseur/rs-cargo@v2
+        uses: clechasseur/rs-cargo@v3
         with:
           command: insta
           # Here, we also add:
@@ -125,7 +125,7 @@ jobs:
             '--unreferenced=auto' || '' }} ${{ inputs.target !=
             'wasm32-unknown-unknown' && '--test-runner=nextest' || '' }}
       - name: 📎 Clippy
-        uses: clechasseur/rs-cargo@v2
+        uses: clechasseur/rs-cargo@v3
         with:
           command: clippy
           # Note that `--all-targets` doesn't refer to targets like
@@ -135,7 +135,7 @@ jobs:
             --all-targets --target=${{ inputs.target }} --no-default-features
             --features=${{ inputs.features }} -- -D warnings
       - name: ⌨️ Fmt
-        uses: clechasseur/rs-cargo@v2
+        uses: clechasseur/rs-cargo@v3
         with:
           command: fmt
           args: --all --check
@@ -144,7 +144,7 @@ jobs:
         # https://github.com/duckdb/duckdb-rs/issues/179#issuecomment-1710986020.
         if:
           inputs.nightly == 'true' && inputs.target != 'wasm32-unknown-unknown'
-        uses: clechasseur/rs-cargo@v2
+        uses: clechasseur/rs-cargo@v3
         with:
           command: doc
           # Only run with deps on nightly, since it's much slower, and so far™
@@ -159,7 +159,7 @@ jobs:
         if:
           ${{ github.ref == 'refs/heads/main' && steps.cache.outputs.cache-hit
           == 'false' }}
-        uses: clechasseur/rs-cargo@v2
+        uses: clechasseur/rs-cargo@v3
         with:
           command: build
           args:
