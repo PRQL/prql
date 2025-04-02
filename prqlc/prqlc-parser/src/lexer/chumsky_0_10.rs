@@ -49,17 +49,31 @@ type ParserInput<'a> = Stream<std::str::Chars<'a>>;
 type ParserError = extra::Default;
 
 /// Lex PRQL into LR, returning both the LR and any errors encountered
-pub fn lex_source_recovery(source: &str, _source_id: u16) -> (Option<Vec<Token>>, Vec<E>) {
+pub fn lex_source_recovery(source: &str, source_id: u16) -> (Option<Vec<Token>>, Vec<E>) {
     let stream = Stream::from_iter(source.chars());
     let result = lexer().parse(stream);
 
     if let Some(tokens) = result.output() {
         (Some(insert_start(tokens.to_vec())), vec![])
     } else {
-        let errors = vec![Error::new(Reason::Unexpected {
-            found: "Lexer error".to_string(),
-        })
-        .with_source(ErrorSource::Lexer("Failed to parse".to_string()))];
+        // Get errors with position information
+        let found = if !source.is_empty() {
+            source.chars().next().unwrap().to_string()
+        } else {
+            "Lexer error".to_string()
+        };
+
+        // Create error with span information - similar to chumsky_0_9 implementation
+        let error_start = 0;
+        let error_end = if source.len() > 1 { 1 } else { 0 };
+
+        let errors = vec![Error::new(Reason::Unexpected { found })
+            .with_span(Some(crate::span::Span {
+                start: error_start,
+                end: error_end,
+                source_id,
+            }))
+            .with_source(ErrorSource::Lexer("Failed to parse".to_string()))];
 
         (None, errors)
     }
@@ -73,13 +87,24 @@ pub fn lex_source(source: &str) -> Result<Tokens, Vec<E>> {
     if let Some(tokens) = result.output() {
         Ok(Tokens(insert_start(tokens.to_vec())))
     } else {
+        // Get errors with position information
         let found = if !source.is_empty() {
             source.chars().next().unwrap().to_string()
         } else {
             "Empty input".to_string()
         };
 
+        // Create error with span information - similar to chumsky_0_9 implementation
+        let error_start = 0;
+        let error_end = if source.len() > 1 { 1 } else { 0 };
+
+        // Try to get unicode strings errors in a consistent way
         let errors = vec![Error::new(Reason::Unexpected { found })
+            .with_span(Some(crate::span::Span {
+                start: error_start,
+                end: error_end,
+                source_id: 0,
+            }))
             .with_source(ErrorSource::Lexer("Failed to parse".to_string()))];
 
         Err(errors)
@@ -110,18 +135,22 @@ fn lex_token<'src>() -> impl Parser<'src, ParserInput<'src>, Token, ParserError>
     // Handle range token with proper whitespace
     // Ranges need special handling since the '..' token needs to know about whitespace
     // for binding on left and right sides
-    let range = ignored().ignore_then(just("..").map_with(|_, extra| {
-        let span: chumsky_0_10::span::SimpleSpan = extra.span();
-        Token {
-            kind: TokenKind::Range {
-                // Always bind on both sides in Chumsky 0.10 implementation
-                // This maintains backward compatibility with tests
-                bind_left: true,
-                bind_right: true,
-            },
-            span: span.start()..span.end(),
-        }
-    }));
+    let range = whitespace()
+        .or_not()
+        .then(just(".."))
+        .then(whitespace().or_not())
+        .map_with(|((left, _), right), extra| {
+            let span: chumsky_0_10::span::SimpleSpan = extra.span();
+            Token {
+                kind: TokenKind::Range {
+                    // Check if there was whitespace before/after to determine binding
+                    // This maintains compatibility with the chumsky_0_9 implementation
+                    bind_left: left.is_none(),
+                    bind_right: right.is_none(),
+                },
+                span: span.start()..span.end(),
+            }
+        });
 
     // Handle all other token types with proper whitespace
     let other_tokens = ignored().ignore_then(token().map_with(|kind, extra| {
