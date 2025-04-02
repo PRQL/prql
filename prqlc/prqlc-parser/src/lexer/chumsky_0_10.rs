@@ -166,14 +166,14 @@ fn token<'a>() -> impl Parser<'a, ParserInput<'a>, TokenKind, ParserError<'a>> {
     // Main token parser for all tokens
     choice((
         line_wrap(),                           // Line continuation with backslash
-        newline().map(|_| TokenKind::NewLine), // Newline characters
+        newline().to(TokenKind::NewLine), // Newline characters
         multi_char_operators(),                // Multi-character operators (==, !=, etc.)
         interpolation(),                       // String interpolation (f"...", s"...")
         param(),                               // Parameters ($name)
         // Date literals must come before @ handling for annotations
         date_token(), // Date literals (@2022-01-01)
         // Special handling for @ annotations - must come after date_token
-        just('@').map(|_| TokenKind::Annotate), // @ annotation marker
+        just('@').to(TokenKind::Annotate), // @ annotation marker
         one_of("></%=+-*[]().,:|!{}").map(TokenKind::Control), // Single-character controls
         literal().map(TokenKind::Literal),      // Literals (numbers, strings, etc.)
         keyword(),                              // Keywords (let, func, etc.)
@@ -184,18 +184,18 @@ fn token<'a>() -> impl Parser<'a, ParserInput<'a>, TokenKind, ParserError<'a>> {
 
 fn multi_char_operators<'a>() -> impl Parser<'a, ParserInput<'a>, TokenKind, ParserError<'a>> {
     choice((
-        just("->").map(|_| TokenKind::ArrowThin),
-        just("=>").map(|_| TokenKind::ArrowFat),
-        just("==").map(|_| TokenKind::Eq),
-        just("!=").map(|_| TokenKind::Ne),
-        just(">=").map(|_| TokenKind::Gte),
-        just("<=").map(|_| TokenKind::Lte),
-        just("~=").map(|_| TokenKind::RegexSearch),
-        just("&&").then_ignore(end_expr()).map(|_| TokenKind::And),
-        just("||").then_ignore(end_expr()).map(|_| TokenKind::Or),
-        just("??").map(|_| TokenKind::Coalesce),
-        just("//").map(|_| TokenKind::DivInt),
-        just("**").map(|_| TokenKind::Pow),
+        just("->").to(TokenKind::ArrowThin),
+        just("=>").to(TokenKind::ArrowFat),
+        just("==").to(TokenKind::Eq),
+        just("!=").to(TokenKind::Ne),
+        just(">=").to(TokenKind::Gte),
+        just("<=").to(TokenKind::Lte),
+        just("~=").to(TokenKind::RegexSearch),
+        just("&&").then_ignore(end_expr()).to(TokenKind::And),
+        just("||").then_ignore(end_expr()).to(TokenKind::Or),
+        just("??").to(TokenKind::Coalesce),
+        just("//").to(TokenKind::DivInt),
+        just("**").to(TokenKind::Pow),
     ))
 }
 
@@ -583,13 +583,13 @@ fn raw_string<'a>() -> impl Parser<'a, ParserInput<'a>, Literal, ParserError<'a>
 }
 
 fn boolean<'a>() -> impl Parser<'a, ParserInput<'a>, Literal, ParserError<'a>> {
-    choice((just("true").map(|_| true), just("false").map(|_| false)))
+    choice((just("true").to(true), just("false").to(false)))
         .then_ignore(end_expr())
         .map(Literal::Boolean)
 }
 
 fn null<'a>() -> impl Parser<'a, ParserInput<'a>, Literal, ParserError<'a>> {
-    just("null").map(|_| Literal::Null).then_ignore(end_expr())
+    just("null").to(Literal::Null).then_ignore(end_expr())
 }
 
 fn value_and_unit<'a>() -> impl Parser<'a, ParserInput<'a>, Literal, ParserError<'a>> {
@@ -716,9 +716,9 @@ fn quoted_string_of_quote(
     let escaped_char = choice((
         just('\\').ignore_then(just(q)),                 // Escaped quote
         just('\\').ignore_then(just('\\')),              // Escaped backslash
-        just('\\').ignore_then(just('n')).map(|_| '\n'), // Newline
-        just('\\').ignore_then(just('r')).map(|_| '\r'), // Carriage return
-        just('\\').ignore_then(just('t')).map(|_| '\t'), // Tab
+        just('\\').ignore_then(just('n')).to('\n'), // Newline
+        just('\\').ignore_then(just('r')).to('\r'), // Carriage return
+        just('\\').ignore_then(just('t')).to('\t'), // Tab
         escaped_character(),                             // Handle all other escape sequences
     ));
 
@@ -739,11 +739,11 @@ fn escaped_character<'a>() -> impl Parser<'a, ParserInput<'a>, char, ParserError
     just('\\').ignore_then(choice((
         just('\\'),
         just('/'),
-        just('b').map(|_| '\x08'),
-        just('f').map(|_| '\x0C'),
-        just('n').map(|_| '\n'),
-        just('r').map(|_| '\r'),
-        just('t').map(|_| '\t'),
+        just('b').to('\x08'),
+        just('f').to('\x0C'),
+        just('n').to('\n'),
+        just('r').to('\r'),
+        just('t').to('\t'),
         just("u{").ignore_then(
             any()
                 .filter(|c: &char| c.is_ascii_hexdigit())
@@ -772,9 +772,9 @@ fn escaped_character<'a>() -> impl Parser<'a, ParserInput<'a>, char, ParserError
 fn end_expr<'a>() -> impl Parser<'a, ParserInput<'a>, (), ParserError<'a>> {
     choice((
         end(),
-        one_of(",)]}\t >").map(|_| ()),
+        one_of(",)]}\t >").to(()),
         newline(),
-        just("..").map(|_| ()),
+        just("..").to(()),
     ))
     .rewind()
 }
