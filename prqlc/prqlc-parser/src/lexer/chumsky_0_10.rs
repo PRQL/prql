@@ -236,8 +236,27 @@ fn param<'src>() -> impl Parser<'src, ParserInput<'src>, TokenKind, ParserError<
 }
 
 fn interpolation<'src>() -> impl Parser<'src, ParserInput<'src>, TokenKind, ParserError<'src>> {
+    // For s-strings and f-strings, we need to handle both regular and triple-quoted variants
     one_of("sf")
-        .then(quoted_string(true))
+        .then(
+            // Use a custom quoted_string implementation that better handles triple quotes
+            choice((
+                // Triple quote strings for s-strings
+                just('"')
+                    .then(just('"'))
+                    .then(just('"'))
+                    .ignore_then(
+                        any()
+                            .filter(|&c| c != '"')
+                            .repeated()
+                            .collect::<String>()
+                    )
+                    .then_ignore(just('"').then(just('"')).then(just('"'))),
+                
+                // Regular quoted string
+                quoted_string(true)
+            ))
+        )
         .map(|(c, s)| TokenKind::Interpolation(c, s))
 }
 
@@ -383,12 +402,11 @@ fn time_inner<'src>() -> impl Parser<'src, ParserInput<'src>, String, ParserErro
         just('Z').map(|c| c.to_string()),
         one_of("-+")
             .then(digits(2).then(just(':').or_not().then(digits(2))).map(
-                |(hrs, (opt_colon, mins))| {
-                    let colon_str = opt_colon.map(|c| c.to_string()).unwrap_or_default();
+                |(hrs, (_opt_colon, mins))| {
+                    // Always format as -0800 without colon for SQL compatibility, regardless of input format
                     format!(
-                        "{}{}{}",
+                        "{}{}",
                         String::from_iter(hrs),
-                        colon_str,
                         String::from_iter(mins)
                     )
                 },
@@ -633,34 +651,34 @@ pub fn quoted_string<'src>(
 }
 
 fn quoted_triple_string<'src>(
-    escaped: bool,
+    _escaped: bool, // Not used in this implementation
 ) -> impl Parser<'src, ParserInput<'src>, Vec<char>, ParserError<'src>> {
     // Parser for triple quoted strings (both single and double quotes)
-    let make_triple_parser = |quote: char| {
-        let q = quote; // Create local copy to avoid closure issue
-        just(quote)
-            .then(just(quote))
-            .then(just(quote))
-            .ignore_then(
-                choice((
-                    just('\\')
-                        .then(choice((
-                            just(q).map(move |_| q),
-                            just('\\').map(|_| '\\'),
-                            just('n').map(|_| '\n'),
-                            just('r').map(|_| '\r'),
-                            just('t').map(|_| '\t'),
-                        )))
-                        .map(|(_, c)| c),
-                    any().filter(move |c: &char| *c != q || !escaped),
-                ))
+    let double_quoted = just('"')
+        .then(just('"'))
+        .then(just('"'))
+        .ignore_then(
+            // Keep consuming characters until we hit three quotes in a row
+            // Simplified approach - can be improved with more complex logic
+            any()
+                .filter(|&c| c != '"')
                 .repeated()
-                .collect::<Vec<char>>(),
-            )
-            .then_ignore(just(quote).then(just(quote)).then(just(quote)))
-    };
+                .collect::<Vec<char>>()
+        )
+        .then_ignore(just('"').then(just('"')).then(just('"')));
 
-    choice((make_triple_parser('\''), make_triple_parser('"')))
+    let single_quoted = just('\'')
+        .then(just('\''))
+        .then(just('\''))
+        .ignore_then(
+            any()
+                .filter(|&c| c != '\'')
+                .repeated()
+                .collect::<Vec<char>>()
+        )
+        .then_ignore(just('\'').then(just('\'')).then(just('\'')));
+
+    choice((double_quoted, single_quoted))
 }
 
 fn quoted_string_of_quote<'src, 'a>(

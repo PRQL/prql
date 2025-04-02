@@ -299,12 +299,92 @@ fn quotes() {
     let basic_escaped = r#""hello\\""#; // Test just a backslash escape
     test_basic_string(basic_escaped, true, "hello\\");
 
-    // Skip triple-quoted string tests when using chumsky-10 for now
-    #[cfg(not(feature = "chumsky-10"))]
+    // Triple-quoted string tests
     test_basic_string(r#"'''aoeu'''"#, false, "aoeu");
+    test_basic_string(r#""""aoeu""""#, true, "aoeu");
 
     // Add more tests for our implementation
     test_basic_string(r#""hello world""#, true, "hello world");
+}
+
+#[test]
+fn interpolated_strings() {
+    // Helper function to test interpolated string tokens
+    fn test_interpolation_tokens(input: &str) -> Tokens {
+        #[cfg(not(feature = "chumsky-10"))]
+        {
+            Tokens(lexer().parse(input).unwrap())
+        }
+
+        #[cfg(feature = "chumsky-10")]
+        {
+            Tokens(
+                lexer()
+                    .parse(Stream::from_iter(input.chars()))
+                    .output()
+                    .unwrap()
+                    .to_vec(),
+            )
+        }
+    }
+    
+    // Test s-string and f-string with regular quotes
+    assert_debug_snapshot!(test_interpolation_tokens(r#"s"Hello {name}""#), @r#"
+    Tokens(
+        [
+            0..15: Interpolation('s', "Hello {name}"),
+        ],
+    )
+    "#);
+    
+    // Test s-string with triple quotes (important for multi-line SQL in s-strings)
+    assert_debug_snapshot!(test_interpolation_tokens(r#"s"""SELECT * FROM table WHERE id = {id}""" "#), @r#"
+    Tokens(
+        [
+            0..42: Interpolation('s', "SELECT * FROM table WHERE id = {id}"),
+        ],
+    )
+    "#);
+}
+
+#[test]
+fn timestamp_tests() {
+    // Helper function to test tokens with timestamps
+    fn test_timestamp_tokens(input: &str) -> Tokens {
+        #[cfg(not(feature = "chumsky-10"))]
+        {
+            Tokens(lexer().parse(input).unwrap())
+        }
+
+        #[cfg(feature = "chumsky-10")]
+        {
+            Tokens(
+                lexer()
+                    .parse(Stream::from_iter(input.chars()))
+                    .output()
+                    .unwrap()
+                    .to_vec(),
+            )
+        }
+    }
+    
+    // Test timestamp with timezone format -08:00 (with colon)
+    assert_debug_snapshot!(test_timestamp_tokens("@2020-01-01T13:19:55-08:00"), @r#"
+    Tokens(
+        [
+            0..26: Literal(Timestamp("2020-01-01T13:19:55-0800")),
+        ],
+    )
+    "#);
+    
+    // Test timestamp with timezone format Z
+    assert_debug_snapshot!(test_timestamp_tokens("@2020-01-02T21:19:55Z"), @r#"
+    Tokens(
+        [
+            0..21: Literal(Timestamp("2020-01-02T21:19:55Z")),
+        ],
+    )
+    "#);
 }
 
 #[test]
