@@ -59,7 +59,7 @@ type ParserInput<'a> = Stream<std::str::Chars<'a>>;
 type ParserError = extra::Default;
 
 /// Lex PRQL into LR, returning both the LR and any errors encountered
-pub fn lex_source_recovery(source: &str, source_id: u16) -> (Option<Vec<Token>>, Vec<E>) {
+pub fn lex_source_recovery(source: &str, _source_id: u16) -> (Option<Vec<Token>>, Vec<E>) {
     // Create a stream for the characters
     let stream = Stream::from_iter(source.chars());
 
@@ -290,8 +290,8 @@ fn lex_token<'src>() -> impl Parser<'src, ParserInput<'src>, Token, ParserError>
         just("??").map(|_| TokenKind::Coalesce),
         just("//").map(|_| TokenKind::DivInt),
         just("**").map(|_| TokenKind::Pow),
-        // @{...} style annotations - match this specifically for annotation test
-        just("@{").map(|_| TokenKind::Annotate),
+        // Handle @ annotations properly - match both @{...} and standalone @
+        just("@").then(just("{").not().rewind()).map(|_| TokenKind::Annotate),
     ));
 
     let control = one_of("></%=+-*[]().,:|!{}").map(TokenKind::Control);
@@ -318,6 +318,8 @@ fn lex_token<'src>() -> impl Parser<'src, ParserInput<'src>, Token, ParserError>
 
     // Date/time literals starting with @
     let date_token = just('@')
+        // Not an annotation (@{)
+        .then(just('{').not().rewind())
         .ignore_then(choice((
             // datetime: @2022-01-01T12:00
             date_inner()
