@@ -107,7 +107,7 @@ Check out these issues for more details:
    cargo check -p prqlc-parser --features chumsky-10
 
    # tests for this module
-   cargo insta test --check -p prqlc-parser --features chumsky-10 -- chumsky_0_10
+   cargo insta test --check -p prqlc-parser --features chumsky-10 -- lexer::
 
    # confirm the existing tests still pass without this feature
    cargo insta test --check -p prqlc-parser
