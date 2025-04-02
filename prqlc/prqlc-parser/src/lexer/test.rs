@@ -399,3 +399,22 @@ fn test_lex_source() {
     let result = lex_source("^");
     assert!(result.is_err());
 }
+
+#[test]
+fn test_annotation_tokens() {
+    use insta::assert_debug_snapshot;
+    
+    #[cfg(feature = "chumsky-10")]
+    {
+        // Test basic annotation token
+        let result = super::debug::lex_debug("@{binding_strength=1}");
+        assert_debug_snapshot!(result);
+        
+        // Test multi-line annotation
+        let result = super::debug::lex_debug(r#"
+        @{binding_strength=1}
+        let add = a b -> a + b
+        "#);
+        assert_debug_snapshot!(result);
+    }
+}

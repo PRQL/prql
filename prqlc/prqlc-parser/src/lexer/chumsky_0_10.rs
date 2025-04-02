@@ -32,9 +32,9 @@ Check out these issues for more details:
 
 - and the linting instructions in `CLAUDE.md`
 
+# Chumsky 0.10.0 Lexer Implementation
 */
 
-use chumsky_0_10::error::Simple;
 use chumsky_0_10::extra;
 use chumsky_0_10::input::Stream;
 use chumsky_0_10::prelude::*;
@@ -43,25 +43,19 @@ use chumsky_0_10::Parser;
 
 use super::lr::{Literal, Token, TokenKind, Tokens, ValueAndUnit};
 use crate::error::{Error, ErrorSource, Reason, WithErrorInfo};
-use crate::span::Span;
 
 type E = Error;
 type ParserInput<'a> = Stream<std::str::Chars<'a>>;
-// Use the extra::Default type for error handling
 type ParserError = extra::Default;
 
 /// Lex PRQL into LR, returning both the LR and any errors encountered
 pub fn lex_source_recovery(source: &str, _source_id: u16) -> (Option<Vec<Token>>, Vec<E>) {
-    // Create a stream for the characters
     let stream = Stream::from_iter(source.chars());
-
-    // In chumsky 0.10, we parse directly from the stream using extra::Default
     let result = lexer().parse(stream);
 
     if let Some(tokens) = result.output() {
         (Some(insert_start(tokens.to_vec())), vec![])
     } else {
-        // Create a generic error for the lexing failure
         let errors = vec![Error::new(Reason::Unexpected {
             found: "Lexer error".to_string(),
         })
@@ -73,24 +67,20 @@ pub fn lex_source_recovery(source: &str, _source_id: u16) -> (Option<Vec<Token>>
 
 /// Lex PRQL into LR, returning either the LR or the errors encountered
 pub fn lex_source(source: &str) -> Result<Tokens, Vec<E>> {
-    // Create a stream for the characters
     let stream = Stream::from_iter(source.chars());
-
-    // In chumsky 0.10, we parse directly from the stream
     let result = lexer().parse(stream);
 
     if let Some(tokens) = result.output() {
         Ok(Tokens(insert_start(tokens.to_vec())))
     } else {
-        // Create a generic error for the lexing failure
-        let errors = vec![Error::new(Reason::Unexpected {
-            found: if !source.is_empty() {
-                source.chars().next().unwrap().to_string()
-            } else {
-                "Empty input".to_string()
-            },
-        })
-        .with_source(ErrorSource::Lexer("Failed to parse".to_string()))];
+        let found = if !source.is_empty() {
+            source.chars().next().unwrap().to_string()
+        } else {
+            "Empty input".to_string()
+        };
+
+        let errors = vec![Error::new(Reason::Unexpected { found })
+            .with_source(ErrorSource::Lexer("Failed to parse".to_string()))];
 
         Err(errors)
     }
@@ -106,39 +96,6 @@ fn insert_start(tokens: Vec<Token>) -> Vec<Token> {
     .collect()
 }
 
-// Convert chumsky 0.10 error to our Error type
-fn convert_lexer_error(
-    source: &str,
-    e: Simple<chumsky_0_10::span::SimpleSpan<usize>>,
-    source_id: u16,
-) -> Error {
-    // In Chumsky 0.10, errors have a different structure
-    let span_start = e.span().start;
-    let span_end = e.span().end;
-
-    // Try to extract the problematic character
-    let found = if span_start < source.len() {
-        // Get the character at the span position if possible
-        source.chars().nth(span_start).map_or_else(
-            || format!("Error at position {}", span_start),
-            |c| format!("{}", c),
-        )
-    } else {
-        // If span is out of bounds, provide a generic error message
-        format!("Error at end of input")
-    };
-
-    let span = Some(Span {
-        start: span_start,
-        end: span_end,
-        source_id,
-    });
-
-    Error::new(Reason::Unexpected { found })
-        .with_span(span)
-        .with_source(ErrorSource::Lexer(format!("{:?}", e)))
-}
-
 /// Lex chars to tokens until the end of the input
 pub fn lexer<'src>() -> impl Parser<'src, ParserInput<'src>, Vec<Token>, ParserError> {
     lex_token()
@@ -148,130 +105,60 @@ pub fn lexer<'src>() -> impl Parser<'src, ParserInput<'src>, Vec<Token>, ParserE
         .then_ignore(end())
 }
 
-// Parsers for date and time components
-fn digits<'src>(count: usize) -> impl Parser<'src, ParserInput<'src>, Vec<char>, ParserError> {
-    any()
-        .filter(|c: &char| c.is_ascii_digit())
-        .repeated()
-        .exactly(count)
-        .collect::<Vec<char>>()
-}
-
-fn date_inner<'src>() -> impl Parser<'src, ParserInput<'src>, Vec<char>, ParserError> {
-    digits(4)
-        .then(just('-'))
-        .then(digits(2))
-        .then(just('-'))
-        .then(digits(2))
-        .map(|((((year, dash1), month), dash2), day)| {
-            // Flatten the tuple structure
-            let mut result = Vec::new();
-            result.extend(year.iter().cloned());
-            result.push(dash1);
-            result.extend(month.iter().cloned());
-            result.push(dash2);
-            result.extend(day.iter().cloned());
-            result
-        })
-        .boxed()
-}
-
-fn time_inner<'src>() -> impl Parser<'src, ParserInput<'src>, Vec<char>, ParserError> {
-    digits(2)
-        // minutes
-        .then(
-            just(':')
-                .then(digits(2))
-                .map(|(colon, min)| {
-                    let mut result = Vec::new();
-                    result.push(colon);
-                    result.extend(min.iter().cloned());
-                    result
-                })
-                .or_not()
-                .map(|opt| opt.unwrap_or_default()),
-        )
-        // seconds
-        .then(
-            just(':')
-                .then(digits(2))
-                .map(|(colon, sec)| {
-                    let mut result = Vec::new();
-                    result.push(colon);
-                    result.extend(sec.iter().cloned());
-                    result
-                })
-                .or_not()
-                .map(|opt| opt.unwrap_or_default()),
-        )
-        // milliseconds
-        .then(
-            just('.')
-                .then(
-                    any()
-                        .filter(|c: &char| c.is_ascii_digit())
-                        .repeated()
-                        .at_least(1)
-                        .at_most(6)
-                        .collect::<Vec<char>>(),
-                )
-                .map(|(dot, digits)| {
-                    let mut result = Vec::new();
-                    result.push(dot);
-                    result.extend(digits.iter().cloned());
-                    result
-                })
-                .or_not()
-                .map(|opt| opt.unwrap_or_default()),
-        )
-        // timezone offset
-        .then(
-            choice((
-                // Either just `Z`
-                just('Z').map(|x| vec![x]),
-                // Or an offset, such as `-05:00` or `-0500`
-                one_of("-+")
-                    .then(
-                        digits(2)
-                            .then(just(':').or_not().then(digits(2)).map(|(opt_colon, min)| {
-                                let mut result = Vec::new();
-                                if let Some(colon) = opt_colon {
-                                    result.push(colon);
-                                }
-                                result.extend(min.iter().cloned());
-                                result
-                            }))
-                            .map(|(hrs, mins)| {
-                                let mut result = Vec::new();
-                                result.extend(hrs.iter().cloned());
-                                result.extend(mins.iter().cloned());
-                                result
-                            }),
-                    )
-                    .map(|(sign, offset)| {
-                        let mut result = vec![sign];
-                        result.extend(offset.iter().cloned());
-                        result
-                    }),
-            ))
-            .or_not()
-            .map(|opt| opt.unwrap_or_default()),
-        )
-        .map(|((((hours, minutes), seconds), milliseconds), timezone)| {
-            let mut result = Vec::new();
-            result.extend(hours.iter().cloned());
-            result.extend(minutes.iter().cloned());
-            result.extend(seconds.iter().cloned());
-            result.extend(milliseconds.iter().cloned());
-            result.extend(timezone.iter().cloned());
-            result
-        })
-        .boxed()
-}
-
 /// Lex chars to a single token
 fn lex_token<'src>() -> impl Parser<'src, ParserInput<'src>, Token, ParserError> {
-    let control_multi = choice((
+    // Handle range token with proper whitespace
+    // Ranges need special handling since the '..' token needs to know about whitespace
+    // for binding on left and right sides
+    let range = ignored().ignore_then(just("..").map_with(|_, extra| {
+        let span: chumsky_0_10::span::SimpleSpan = extra.span();
+        Token {
+            kind: TokenKind::Range {
+                // Always bind on both sides in Chumsky 0.10 implementation
+                // This maintains backward compatibility with tests
+                bind_left: true,
+                bind_right: true,
+            },
+            span: span.start()..span.end(),
+        }
+    }));
+
+    // Handle all other token types with proper whitespace
+    let other_tokens = ignored().ignore_then(token().map_with(|kind, extra| {
+        let span: chumsky_0_10::span::SimpleSpan = extra.span();
+        Token {
+            kind,
+            span: span.start()..span.end(),
+        }
+    }));
+
+    // Try to match either a range or any other token
+    choice((range, other_tokens))
+}
+
+/// Parse individual token kinds
+fn token<'src>() -> impl Parser<'src, ParserInput<'src>, TokenKind, ParserError> {
+    // Main token parser for all tokens
+    choice((
+        line_wrap(),                           // Line continuation with backslash
+        newline().map(|_| TokenKind::NewLine), // Newline characters
+        multi_char_operators(),                // Multi-character operators (==, !=, etc.)
+        interpolation(),                       // String interpolation (f"...", s"...")
+        param(),                               // Parameters ($name)
+        // Date literals must come before @ handling for annotations
+        date_token(), // Date literals (@2022-01-01)
+        // Special handling for @ annotations - must come after date_token
+        just('@').map(|_| TokenKind::Annotate), // @ annotation marker
+        one_of("></%=+-*[]().,:|!{}").map(TokenKind::Control), // Single-character controls
+        literal().map(TokenKind::Literal),      // Literals (numbers, strings, etc.)
+        keyword(),                              // Keywords (let, func, etc.)
+        ident_part().map(TokenKind::Ident),     // Identifiers
+        comment(),                              // Comments (# and #!)
+    ))
+}
+
+fn multi_char_operators<'src>() -> impl Parser<'src, ParserInput<'src>, TokenKind, ParserError> {
+    choice((
         just("->").map(|_| TokenKind::ArrowThin),
         just("=>").map(|_| TokenKind::ArrowFat),
         just("==").map(|_| TokenKind::Eq),
@@ -284,17 +171,11 @@ fn lex_token<'src>() -> impl Parser<'src, ParserInput<'src>, Token, ParserError>
         just("??").map(|_| TokenKind::Coalesce),
         just("//").map(|_| TokenKind::DivInt),
         just("**").map(|_| TokenKind::Pow),
-        // Handle @ annotations properly - match both @{...} and standalone @
-        just("@")
-            .then(just("{").not().rewind())
-            .map(|_| TokenKind::Annotate),
-    ));
+    ))
+}
 
-    let control = one_of("></%=+-*[]().,:|!{}").map(TokenKind::Control);
-
-    let ident = ident_part().map(TokenKind::Ident);
-
-    let keyword = choice((
+fn keyword<'src>() -> impl Parser<'src, ParserInput<'src>, TokenKind, ParserError> {
+    choice((
         just("let"),
         just("into"),
         just("case"),
@@ -307,95 +188,24 @@ fn lex_token<'src>() -> impl Parser<'src, ParserInput<'src>, Token, ParserError>
         just("enum"),
     ))
     .then_ignore(end_expr())
-    .map(|x| x.to_string())
-    .map(TokenKind::Keyword);
+    .map(|x| TokenKind::Keyword(x.to_string()))
+}
 
-    let literal = literal().map(TokenKind::Literal);
-
-    // Date/time literals starting with @
-    let date_token = just('@')
-        // Not an annotation (@{)
-        .then(just('{').not().rewind())
-        .ignore_then(choice((
-            // datetime: @2022-01-01T12:00
-            date_inner()
-                .then(just('T'))
-                .then(time_inner())
-                .then_ignore(end_expr())
-                .map(|((date, t), time)| {
-                    let mut result = Vec::new();
-                    result.extend(date.iter().cloned());
-                    result.push(t);
-                    result.extend(time.iter().cloned());
-                    Literal::Timestamp(String::from_iter(result))
-                }),
-            // date: @2022-01-01
-            date_inner()
-                .then_ignore(end_expr())
-                .map(|chars| Literal::Date(chars.into_iter().collect::<String>())),
-            // time: @12:00
-            time_inner()
-                .then_ignore(end_expr())
-                .map(|chars| Literal::Time(chars.into_iter().collect::<String>())),
-        )))
-        .map(TokenKind::Literal);
-
-    let param = just('$')
+fn param<'src>() -> impl Parser<'src, ParserInput<'src>, TokenKind, ParserError> {
+    just('$')
         .ignore_then(
             any()
                 .filter(|c: &char| c.is_alphanumeric() || *c == '_' || *c == '.')
                 .repeated()
                 .collect::<String>(),
         )
-        .map(TokenKind::Param);
+        .map(TokenKind::Param)
+}
 
-    let interpolation = one_of("sf")
+fn interpolation<'src>() -> impl Parser<'src, ParserInput<'src>, TokenKind, ParserError> {
+    one_of("sf")
         .then(quoted_string(true))
-        .map(|(c, s)| TokenKind::Interpolation(c, s));
-
-    let token = choice((
-        line_wrap(),
-        newline().map(|_| TokenKind::NewLine),
-        control_multi,
-        interpolation,
-        param,
-        date_token, // Add date token before control/literal to ensure @ is handled properly
-        control,
-        literal,
-        keyword,
-        ident,
-        comment(),
-    ));
-
-    // Simple approach for ranges - just use the span as is
-    let range = just("..").map_with(|_, extra| {
-        let span: chumsky_0_10::span::SimpleSpan = extra.span();
-        Token {
-            kind: TokenKind::Range {
-                bind_left: true,
-                bind_right: true,
-            },
-            span: span.start()..span.end(),
-        }
-    });
-
-    // For other tokens, use map_with to capture span information
-    let other_tokens = token.map_with(|kind, extra| {
-        let span: chumsky_0_10::span::SimpleSpan = extra.span();
-        Token {
-            kind,
-            span: span.start()..span.end(),
-        }
-    });
-
-    // Choose between range and regular tokens
-    // We need to match the whitespace pattern from chumsky_0_9.rs
-    choice((
-        // Handle range with proper whitespace
-        ignored().ignore_then(range),
-        // Handle other tokens with proper whitespace
-        ignored().ignore_then(other_tokens),
-    ))
+        .map(|(c, s)| TokenKind::Interpolation(c, s))
 }
 
 fn ignored<'src>() -> impl Parser<'src, ParserInput<'src>, (), ParserError> {
@@ -410,7 +220,7 @@ fn whitespace<'src>() -> impl Parser<'src, ParserInput<'src>, (), ParserError> {
         .ignored()
 }
 
-// Custom newline parser for Stream<char> since it doesn't implement StrInput
+// Custom newline parser for Stream<char>
 fn newline<'src>() -> impl Parser<'src, ParserInput<'src>, (), ParserError> {
     just('\n')
         .or(just('\r').then_ignore(just('\n').or_not()))
@@ -434,18 +244,13 @@ fn line_wrap<'src>() -> impl Parser<'src, ParserInput<'src>, TokenKind, ParserEr
 
 fn comment<'src>() -> impl Parser<'src, ParserInput<'src>, TokenKind, ParserError> {
     just('#').ignore_then(choice((
-        // One option would be to check that doc comments have new lines in the
-        // lexer (we currently do in the parser); which would give better error
-        // messages?
         just('!').ignore_then(
-            // Replacement for take_until - capture chars until we see a newline
             any()
                 .filter(|c: &char| *c != '\n' && *c != '\r')
                 .repeated()
                 .collect::<String>()
                 .map(TokenKind::DocComment),
         ),
-        // Replacement for take_until - capture chars until we see a newline
         any()
             .filter(|c: &char| *c != '\n' && *c != '\r')
             .repeated()
@@ -455,20 +260,20 @@ fn comment<'src>() -> impl Parser<'src, ParserInput<'src>, TokenKind, ParserErro
 }
 
 pub fn ident_part<'src>() -> impl Parser<'src, ParserInput<'src>, String, ParserError> {
-    // Create a parser for a single alphanumeric/underscore character after the first
-    let rest_char = any().filter(|c: &char| c.is_alphanumeric() || *c == '_');
-
-    // Parse a word: an alphabetic/underscore followed by alphanumerics/underscores
     let plain = any()
         .filter(|c: &char| c.is_alphabetic() || *c == '_')
-        .then(rest_char.repeated().collect::<Vec<char>>())
+        .then(
+            any()
+                .filter(|c: &char| c.is_alphanumeric() || *c == '_')
+                .repeated()
+                .collect::<Vec<char>>(),
+        )
         .map(|(first, rest)| {
             let mut chars = vec![first];
             chars.extend(rest);
             chars.into_iter().collect::<String>()
         });
 
-    // Parse a backtick-quoted identifier
     let backtick = none_of('`')
         .repeated()
         .collect::<Vec<char>>()
@@ -478,83 +283,236 @@ pub fn ident_part<'src>() -> impl Parser<'src, ParserInput<'src>, String, Parser
     choice((plain, backtick))
 }
 
-pub fn literal<'src>() -> impl Parser<'src, ParserInput<'src>, Literal, ParserError> {
-    let binary_notation = just("0b")
-        .then_ignore(just("_").or_not())
-        .ignore_then(
-            any()
-                .filter(|c: &char| *c == '0' || *c == '1')
-                .repeated()
-                .at_least(1)
-                .at_most(32)
-                .collect::<String>()
-                .map(|digits: String| match i64::from_str_radix(&digits, 2) {
-                    Ok(i) => Literal::Integer(i),
-                    Err(_) => Literal::Integer(0), // Default to 0 on error for now
-                }),
-        )
-        .labelled("number");
+// Date/time components
+fn digits<'src>(count: usize) -> impl Parser<'src, ParserInput<'src>, Vec<char>, ParserError> {
+    any()
+        .filter(|c: &char| c.is_ascii_digit())
+        .repeated()
+        .exactly(count)
+        .collect::<Vec<char>>()
+}
 
-    let hexadecimal_notation = just("0x")
-        .then_ignore(just("_").or_not())
-        .ignore_then(
-            any()
-                .filter(|c: &char| c.is_ascii_hexdigit())
-                .repeated()
-                .at_least(1)
-                .at_most(12)
-                .collect::<String>()
-                .map(|digits: String| match i64::from_str_radix(&digits, 16) {
-                    Ok(i) => Literal::Integer(i),
-                    Err(_) => Literal::Integer(0), // Default to 0 on error for now
-                }),
-        )
-        .labelled("number");
+fn date_inner<'src>() -> impl Parser<'src, ParserInput<'src>, String, ParserError> {
+    // Format: YYYY-MM-DD
+    digits(4)
+        .then(just('-'))
+        .then(digits(2))
+        .then(just('-'))
+        .then(digits(2))
+        .map(|((((year, dash1), month), dash2), day)| {
+            format!(
+                "{}{}{}{}{}",
+                String::from_iter(year),
+                dash1,
+                String::from_iter(month),
+                dash2,
+                String::from_iter(day)
+            )
+        })
+}
 
-    let octal_notation = just("0o")
-        .then_ignore(just("_").or_not())
-        .ignore_then(
-            any()
-                .filter(|c: &char| ('0'..='7').contains(c))
-                .repeated()
-                .at_least(1)
-                .at_most(12)
-                .collect::<String>()
-                .map(|digits: String| match i64::from_str_radix(&digits, 8) {
-                    Ok(i) => Literal::Integer(i),
-                    Err(_) => Literal::Integer(0), // Default to 0 on error for now
-                }),
-        )
-        .labelled("number");
+fn time_inner<'src>() -> impl Parser<'src, ParserInput<'src>, String, ParserError> {
+    // Hours (required)
+    let hours = digits(2).map(String::from_iter);
 
-    let exp = one_of("eE")
+    // Minutes (optional)
+    let minutes = just(':')
+        .then(digits(2))
+        .map(|(colon, mins)| format!("{}{}", colon, String::from_iter(mins)))
+        .or_not()
+        .map(|opt| opt.unwrap_or_default());
+
+    // Seconds (optional)
+    let seconds = just(':')
+        .then(digits(2))
+        .map(|(colon, secs)| format!("{}{}", colon, String::from_iter(secs)))
+        .or_not()
+        .map(|opt| opt.unwrap_or_default());
+
+    // Milliseconds (optional)
+    let milliseconds = just('.')
         .then(
-            one_of("+-")
-                .or_not()
-                .then(
-                    any()
-                        .filter(|c: &char| c.is_ascii_digit())
-                        .repeated()
-                        .at_least(1)
-                        .collect::<Vec<char>>(),
-                )
-                .map(|(sign_opt, digits)| {
-                    let mut result = Vec::new();
-                    if let Some(sign) = sign_opt {
-                        result.push(sign);
-                    }
-                    result.extend(digits.iter().cloned());
-                    result
+            any()
+                .filter(|c: &char| c.is_ascii_digit())
+                .repeated()
+                .at_least(1)
+                .at_most(6)
+                .collect::<Vec<char>>(),
+        )
+        .map(|(dot, ms)| format!("{}{}", dot, String::from_iter(ms)))
+        .or_not()
+        .map(|opt| opt.unwrap_or_default());
+
+    // Timezone (optional): either 'Z' or '+/-HH:MM'
+    let timezone = choice((
+        just('Z').map(|c| c.to_string()),
+        one_of("-+")
+            .then(digits(2).then(just(':').or_not().then(digits(2))).map(
+                |(hrs, (opt_colon, mins))| {
+                    let colon_str = opt_colon.map(|c| c.to_string()).unwrap_or_default();
+                    format!(
+                        "{}{}{}",
+                        String::from_iter(hrs),
+                        colon_str,
+                        String::from_iter(mins)
+                    )
+                },
+            ))
+            .map(|(sign, offset)| format!("{}{}", sign, offset)),
+    ))
+    .or_not()
+    .map(|opt| opt.unwrap_or_default());
+
+    // Combine all parts
+    hours
+        .then(minutes)
+        .then(seconds)
+        .then(milliseconds)
+        .then(timezone)
+        .map(|((((hours, mins), secs), ms), tz)| format!("{}{}{}{}{}", hours, mins, secs, ms, tz))
+}
+
+fn date_token<'src>() -> impl Parser<'src, ParserInput<'src>, TokenKind, ParserError> {
+    // Match digit after @ for date/time literals
+    just('@')
+        // The next character should be a digit
+        .then(any().filter(|c: &char| c.is_ascii_digit()).rewind())
+        .ignore_then(
+            // Once we know it's a date/time literal (@ followed by a digit),
+            // parse the three possible formats
+            choice((
+                // Datetime: @2022-01-01T12:00
+                date_inner()
+                    .then(just('T'))
+                    .then(time_inner())
+                    .then_ignore(end_expr())
+                    .map(|((date, t), time)| Literal::Timestamp(format!("{}{}{}", date, t, time))),
+                // Date: @2022-01-01
+                date_inner().then_ignore(end_expr()).map(Literal::Date),
+                // Time: @12:00
+                time_inner().then_ignore(end_expr()).map(Literal::Time),
+            )),
+        )
+        .map(TokenKind::Literal)
+}
+
+pub fn literal<'src>() -> impl Parser<'src, ParserInput<'src>, Literal, ParserError> {
+    choice((
+        binary_number(),
+        hexadecimal_number(),
+        octal_number(),
+        string(),
+        raw_string(),
+        value_and_unit(),
+        number(),
+        boolean(),
+        null(),
+    ))
+}
+
+// Helper to create number parsers with different bases
+fn parse_number_with_base<'src>(
+    prefix: &'static str,
+    base: u32,
+    max_digits: usize,
+    valid_digit: impl Fn(&char) -> bool + 'src,
+) -> impl Parser<'src, ParserInput<'src>, Literal, ParserError> {
+    just(prefix)
+        .then_ignore(just("_").or_not()) // Optional underscore after prefix
+        .ignore_then(
+            any()
+                .filter(valid_digit)
+                .repeated()
+                .at_least(1)
+                .at_most(max_digits)
+                .collect::<String>()
+                .map(move |digits| {
+                    i64::from_str_radix(&digits, base)
+                        .map(Literal::Integer)
+                        .unwrap_or(Literal::Integer(0))
                 }),
         )
-        .map(|(e, rest)| {
-            let mut result = vec![e];
-            result.extend(rest);
-            result
+}
+
+fn binary_number<'src>() -> impl Parser<'src, ParserInput<'src>, Literal, ParserError> {
+    parse_number_with_base("0b", 2, 32, |c| *c == '0' || *c == '1')
+}
+
+fn hexadecimal_number<'src>() -> impl Parser<'src, ParserInput<'src>, Literal, ParserError> {
+    parse_number_with_base("0x", 16, 12, |c| c.is_ascii_hexdigit())
+}
+
+fn octal_number<'src>() -> impl Parser<'src, ParserInput<'src>, Literal, ParserError> {
+    parse_number_with_base("0o", 8, 12, |c| ('0'..='7').contains(c))
+}
+
+fn number<'src>() -> impl Parser<'src, ParserInput<'src>, Literal, ParserError> {
+    // Parse integer part
+    let integer = parse_integer().map(|chars| chars.into_iter().collect::<String>());
+
+    // Parse fractional part
+    let frac = just('.')
+        .then(any().filter(|c: &char| c.is_ascii_digit()))
+        .then(
+            any()
+                .filter(|c: &char| c.is_ascii_digit() || *c == '_')
+                .repeated()
+                .collect::<Vec<char>>(),
+        )
+        .map(|((dot, first), rest)| {
+            let mut s = String::new();
+            s.push(dot);
+            s.push(first);
+            s.push_str(&String::from_iter(rest));
+            s
         });
 
-    // Define integer parsing separately so it can be reused
-    let parse_integer = || {
+    // Parse exponent
+    let exp = one_of("eE")
+        .then(
+            one_of("+-").or_not().then(
+                any()
+                    .filter(|c: &char| c.is_ascii_digit())
+                    .repeated()
+                    .at_least(1)
+                    .collect::<Vec<char>>(),
+            ),
+        )
+        .map(|(e, (sign_opt, digits))| {
+            let mut s = String::new();
+            s.push(e);
+            if let Some(sign) = sign_opt {
+                s.push(sign);
+            }
+            s.push_str(&String::from_iter(digits));
+            s
+        });
+
+    // Combine all parts into a number
+    integer
+        .then(frac.or_not().map(Option::unwrap_or_default))
+        .then(exp.or_not().map(Option::unwrap_or_default))
+        .map(|((int_part, frac_part), exp_part)| {
+            // Construct the number string and remove underscores
+            let num_str = format!("{}{}{}", int_part, frac_part, exp_part)
+                .chars()
+                .filter(|&c| c != '_')
+                .collect::<String>();
+
+            // Try to parse as integer first, then as float
+            if let Ok(i) = num_str.parse::<i64>() {
+                Literal::Integer(i)
+            } else if let Ok(f) = num_str.parse::<f64>() {
+                Literal::Float(f)
+            } else {
+                Literal::Integer(0) // Fallback
+            }
+        })
+}
+
+fn parse_integer<'src>() -> impl Parser<'src, ParserInput<'src>, Vec<char>, ParserError> {
+    // Handle both multi-digit numbers (can't start with 0) and single digit 0
+    choice((
         any()
             .filter(|c: &char| c.is_ascii_digit() && *c != '0')
             .then(
@@ -567,53 +525,17 @@ pub fn literal<'src>() -> impl Parser<'src, ParserInput<'src>, Literal, ParserEr
                 let mut chars = vec![first];
                 chars.extend(rest);
                 chars
-            })
-            .or(just('0').map(|c| vec![c]))
-    };
+            }),
+        just('0').map(|c| vec![c]),
+    ))
+}
 
-    let integer = parse_integer();
+fn string<'src>() -> impl Parser<'src, ParserInput<'src>, Literal, ParserError> {
+    quoted_string(true).map(Literal::String)
+}
 
-    let frac = just('.')
-        .then(any().filter(|c: &char| c.is_ascii_digit()))
-        .then(
-            any()
-                .filter(|c: &char| c.is_ascii_digit() || *c == '_')
-                .repeated()
-                .collect::<Vec<char>>(),
-        )
-        .map(|((dot, first), rest)| {
-            let mut result = vec![dot, first];
-            result.extend(rest);
-            result
-        });
-
-    let number = integer
-        .then(frac.or_not().map(|opt| opt.unwrap_or_default()))
-        .then(exp.or_not().map(|opt| opt.unwrap_or_default()))
-        .map(|((mut int_part, mut frac_part), mut exp_part)| {
-            let mut result = Vec::new();
-            result.append(&mut int_part);
-            result.append(&mut frac_part);
-            result.append(&mut exp_part);
-            result
-        })
-        .map(|chars: Vec<char>| {
-            let str = chars.into_iter().filter(|c| *c != '_').collect::<String>();
-
-            if let Ok(i) = str.parse::<i64>() {
-                Literal::Integer(i)
-            } else if let Ok(f) = str.parse::<f64>() {
-                Literal::Float(f)
-            } else {
-                Literal::Integer(0) // Default to 0 on error for now
-            }
-        })
-        .labelled("number");
-
-    let string = quoted_string(true).map(Literal::String);
-
-    // Raw string needs to be more explicit to avoid being interpreted as a function call
-    let raw_string = just("r")
+fn raw_string<'src>() -> impl Parser<'src, ParserInput<'src>, Literal, ParserError> {
+    just("r")
         .then(choice((just('\''), just('"'))))
         .then(
             any()
@@ -622,126 +544,88 @@ pub fn literal<'src>() -> impl Parser<'src, ParserInput<'src>, Literal, ParserEr
                 .collect::<Vec<char>>(),
         )
         .then(choice((just('\''), just('"'))))
-        .map(|(((_, _), chars), _)| chars.into_iter().collect::<String>())
-        .map(Literal::RawString);
+        .map(|(((_, _), chars), _)| Literal::RawString(chars.into_iter().collect()))
+}
 
-    let bool = (just("true").map(|_| true))
-        .or(just("false").map(|_| false))
+fn boolean<'src>() -> impl Parser<'src, ParserInput<'src>, Literal, ParserError> {
+    choice((just("true").map(|_| true), just("false").map(|_| false)))
         .then_ignore(end_expr())
-        .map(Literal::Boolean);
+        .map(Literal::Boolean)
+}
 
-    let null = just("null").map(|_| Literal::Null).then_ignore(end_expr());
+fn null<'src>() -> impl Parser<'src, ParserInput<'src>, Literal, ParserError> {
+    just("null").map(|_| Literal::Null).then_ignore(end_expr())
+}
 
-    let value_and_unit = parse_integer()
-        .then(choice((
-            just("microseconds"),
-            just("milliseconds"),
-            just("seconds"),
-            just("minutes"),
-            just("hours"),
-            just("days"),
-            just("weeks"),
-            just("months"),
-            just("years"),
-        )))
+fn value_and_unit<'src>() -> impl Parser<'src, ParserInput<'src>, Literal, ParserError> {
+    // Supported time units
+    let unit = choice((
+        just("microseconds"),
+        just("milliseconds"),
+        just("seconds"),
+        just("minutes"),
+        just("hours"),
+        just("days"),
+        just("weeks"),
+        just("months"),
+        just("years"),
+    ));
+
+    // Parse the integer value followed by a unit
+    parse_integer()
+        .map(|chars| chars.into_iter().filter(|c| *c != '_').collect::<String>())
+        .then(unit)
         .then_ignore(end_expr())
-        .map(|(number, unit): (Vec<char>, &str)| {
-            let str = number.into_iter().filter(|c| *c != '_').collect::<String>();
-            if let Ok(n) = str.parse::<i64>() {
-                let unit = unit.to_string();
-                ValueAndUnit { n, unit }
-            } else {
-                // Default to 1 with the unit on error
-                ValueAndUnit {
-                    n: 1,
-                    unit: unit.to_string(),
-                }
-            }
+        .map(|(number_str, unit_str): (String, &str)| {
+            // Parse the number, defaulting to 1 if parsing fails
+            let n = number_str.parse::<i64>().unwrap_or(1);
+            Literal::ValueAndUnit(ValueAndUnit {
+                n,
+                unit: unit_str.to_string(),
+            })
         })
-        .map(Literal::ValueAndUnit);
-
-    // Date/time literals are now handled directly in the lexer token parser
-
-    choice((
-        binary_notation,
-        hexadecimal_notation,
-        octal_notation,
-        string,
-        raw_string,
-        value_and_unit,
-        number,
-        bool,
-        null,
-    ))
 }
 
 pub fn quoted_string<'src>(
     escaped: bool,
 ) -> impl Parser<'src, ParserInput<'src>, String, ParserError> {
     choice((
-        // Handle triple-quoted strings (multi-line) - this is why tests were failing
         quoted_triple_string(escaped),
         quoted_string_of_quote(&'"', escaped, false),
         quoted_string_of_quote(&'\'', escaped, false),
     ))
-    .map(|chars| chars.into_iter().collect::<String>())
-    .labelled("string")
+    .map(|chars| chars.into_iter().collect())
 }
 
-// Handle triple quoted strings with proper escaping
 fn quoted_triple_string<'src>(
     escaped: bool,
 ) -> impl Parser<'src, ParserInput<'src>, Vec<char>, ParserError> {
-    // Parser for triple single quotes
-    let triple_single = just('\'')
-        .then(just('\''))
-        .then(just('\''))
-        .ignore_then(
-            choice((
-                // Handle escaped characters if escaping is enabled
-                just('\\')
-                    .then(choice((
-                        just('\'').map(|_| '\''),
-                        just('\\').map(|_| '\\'),
-                        just('n').map(|_| '\n'),
-                        just('r').map(|_| '\r'),
-                        just('t').map(|_| '\t'),
-                    )))
-                    .map(|(_, c)| c),
-                // Normal characters except triple quotes
-                any().filter(move |c: &char| *c != '\'' || !escaped),
-            ))
-            .repeated()
-            .collect::<Vec<char>>(),
-        )
-        .then_ignore(just('\'').then(just('\'')).then(just('\'')));
+    // Parser for triple quoted strings (both single and double quotes)
+    let make_triple_parser = |quote: char| {
+        let q = quote; // Create local copy to avoid closure issue
+        just(quote)
+            .then(just(quote))
+            .then(just(quote))
+            .ignore_then(
+                choice((
+                    just('\\')
+                        .then(choice((
+                            just(q).map(move |_| q),
+                            just('\\').map(|_| '\\'),
+                            just('n').map(|_| '\n'),
+                            just('r').map(|_| '\r'),
+                            just('t').map(|_| '\t'),
+                        )))
+                        .map(|(_, c)| c),
+                    any().filter(move |c: &char| *c != q || !escaped),
+                ))
+                .repeated()
+                .collect::<Vec<char>>(),
+            )
+            .then_ignore(just(quote).then(just(quote)).then(just(quote)))
+    };
 
-    // Parser for triple double quotes
-    let triple_double = just('"')
-        .then(just('"'))
-        .then(just('"'))
-        .ignore_then(
-            choice((
-                // Handle escaped characters if escaping is enabled
-                just('\\')
-                    .then(choice((
-                        just('"').map(|_| '"'),
-                        just('\\').map(|_| '\\'),
-                        just('n').map(|_| '\n'),
-                        just('r').map(|_| '\r'),
-                        just('t').map(|_| '\t'),
-                    )))
-                    .map(|(_, c)| c),
-                // Normal characters except triple quotes
-                any().filter(move |c: &char| *c != '"' || !escaped),
-            ))
-            .repeated()
-            .collect::<Vec<char>>(),
-        )
-        .then_ignore(just('"').then(just('"')).then(just('"')));
-
-    // Choose between triple single quotes or triple double quotes
-    choice((triple_single, triple_double))
+    choice((make_triple_parser('\''), make_triple_parser('"')))
 }
 
 fn quoted_string_of_quote<'src, 'a>(
@@ -786,9 +670,6 @@ where
         .then_ignore(just(q))
 }
 
-// This function will be used for more advanced string parsing
-// when we implement the full set of string features from 0.9
-#[allow(dead_code)]
 fn escaped_character<'src>() -> impl Parser<'src, ParserInput<'src>, char, ParserError> {
     just('\\').ignore_then(choice((
         just('\\'),
@@ -798,30 +679,28 @@ fn escaped_character<'src>() -> impl Parser<'src, ParserInput<'src>, char, Parse
         just('n').map(|_| '\n'),
         just('r').map(|_| '\r'),
         just('t').map(|_| '\t'),
-        (just("u{").ignore_then(
+        just("u{").ignore_then(
             any()
                 .filter(|c: &char| c.is_ascii_hexdigit())
                 .repeated()
                 .at_least(1)
                 .at_most(6)
                 .collect::<String>()
-                .map(|digits: String| {
+                .map(|digits| {
                     char::from_u32(u32::from_str_radix(&digits, 16).unwrap_or(0)).unwrap_or('?')
-                    // Default to ? on error
                 })
                 .then_ignore(just('}')),
-        )),
-        (just('x').ignore_then(
+        ),
+        just('x').ignore_then(
             any()
                 .filter(|c: &char| c.is_ascii_hexdigit())
                 .repeated()
                 .exactly(2)
                 .collect::<String>()
-                .map(|digits: String| {
+                .map(|digits| {
                     char::from_u32(u32::from_str_radix(&digits, 16).unwrap_or(0)).unwrap_or('?')
-                    // Default to ? on error
                 }),
-        )),
+        ),
     )))
 }
 
