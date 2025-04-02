@@ -1,11 +1,4 @@
 /*
-# Implementation Plan for Chumsky 0.10.0 Lexer
-
-## Setup
-- ✅ Create feature flag structure
-- ✅ Set up parallel module for 0.10 implementation
-- ✅ Create stub functions for the new lexer
-
 ## Resources
 
 Check out these issues for more details:
@@ -125,7 +118,7 @@ fn insert_start(tokens: Vec<Token>) -> Vec<Token> {
 }
 
 /// Lex chars to tokens until the end of the input
-pub fn lexer<'src>() -> impl Parser<'src, ParserInput<'src>, Vec<Token>, ParserError<'src>> {
+pub fn lexer<'a>() -> impl Parser<'a, ParserInput<'a>, Vec<Token>, ParserError<'a>> {
     lex_token()
         .repeated()
         .collect()
@@ -134,7 +127,7 @@ pub fn lexer<'src>() -> impl Parser<'src, ParserInput<'src>, Vec<Token>, ParserE
 }
 
 /// Lex chars to a single token
-fn lex_token<'src>() -> impl Parser<'src, ParserInput<'src>, Token, ParserError<'src>> {
+fn lex_token<'a>() -> impl Parser<'a, ParserInput<'a>, Token, ParserError<'a>> {
     // Handle range token with proper whitespace
     // Ranges need special handling since the '..' token needs to know about whitespace
     // for binding on left and right sides
@@ -169,7 +162,7 @@ fn lex_token<'src>() -> impl Parser<'src, ParserInput<'src>, Token, ParserError<
 }
 
 /// Parse individual token kinds
-fn token<'src>() -> impl Parser<'src, ParserInput<'src>, TokenKind, ParserError<'src>> {
+fn token<'a>() -> impl Parser<'a, ParserInput<'a>, TokenKind, ParserError<'a>> {
     // Main token parser for all tokens
     choice((
         line_wrap(),                           // Line continuation with backslash
@@ -189,8 +182,7 @@ fn token<'src>() -> impl Parser<'src, ParserInput<'src>, TokenKind, ParserError<
     ))
 }
 
-fn multi_char_operators<'src>() -> impl Parser<'src, ParserInput<'src>, TokenKind, ParserError<'src>>
-{
+fn multi_char_operators<'a>() -> impl Parser<'a, ParserInput<'a>, TokenKind, ParserError<'a>> {
     choice((
         just("->").map(|_| TokenKind::ArrowThin),
         just("=>").map(|_| TokenKind::ArrowFat),
@@ -207,7 +199,7 @@ fn multi_char_operators<'src>() -> impl Parser<'src, ParserInput<'src>, TokenKin
     ))
 }
 
-fn keyword<'src>() -> impl Parser<'src, ParserInput<'src>, TokenKind, ParserError<'src>> {
+fn keyword<'a>() -> impl Parser<'a, ParserInput<'a>, TokenKind, ParserError<'a>> {
     choice((
         just("let"),
         just("into"),
@@ -224,7 +216,7 @@ fn keyword<'src>() -> impl Parser<'src, ParserInput<'src>, TokenKind, ParserErro
     .map(|x| TokenKind::Keyword(x.to_string()))
 }
 
-fn param<'src>() -> impl Parser<'src, ParserInput<'src>, TokenKind, ParserError<'src>> {
+fn param<'a>() -> impl Parser<'a, ParserInput<'a>, TokenKind, ParserError<'a>> {
     just('$')
         .ignore_then(
             any()
@@ -235,7 +227,7 @@ fn param<'src>() -> impl Parser<'src, ParserInput<'src>, TokenKind, ParserError<
         .map(TokenKind::Param)
 }
 
-fn interpolation<'src>() -> impl Parser<'src, ParserInput<'src>, TokenKind, ParserError<'src>> {
+fn interpolation<'a>() -> impl Parser<'a, ParserInput<'a>, TokenKind, ParserError<'a>> {
     // For s-strings and f-strings, we need to handle both regular and triple-quoted variants
     one_of("sf")
         .then(
@@ -254,11 +246,11 @@ fn interpolation<'src>() -> impl Parser<'src, ParserInput<'src>, TokenKind, Pars
         .map(|(c, s)| TokenKind::Interpolation(c, s))
 }
 
-fn ignored<'src>() -> impl Parser<'src, ParserInput<'src>, (), ParserError<'src>> {
+fn ignored<'a>() -> impl Parser<'a, ParserInput<'a>, (), ParserError<'a>> {
     whitespace().repeated().ignored()
 }
 
-fn whitespace<'src>() -> impl Parser<'src, ParserInput<'src>, (), ParserError<'src>> {
+fn whitespace<'a>() -> impl Parser<'a, ParserInput<'a>, (), ParserError<'a>> {
     any()
         .filter(|x: &char| *x == ' ' || *x == '\t')
         .repeated()
@@ -267,13 +259,13 @@ fn whitespace<'src>() -> impl Parser<'src, ParserInput<'src>, (), ParserError<'s
 }
 
 // Custom newline parser for Stream<char>
-fn newline<'src>() -> impl Parser<'src, ParserInput<'src>, (), ParserError<'src>> {
+fn newline<'a>() -> impl Parser<'a, ParserInput<'a>, (), ParserError<'a>> {
     just('\n')
         .or(just('\r').then_ignore(just('\n').or_not()))
         .ignored()
 }
 
-fn line_wrap<'src>() -> impl Parser<'src, ParserInput<'src>, TokenKind, ParserError<'src>> {
+fn line_wrap<'a>() -> impl Parser<'a, ParserInput<'a>, TokenKind, ParserError<'a>> {
     newline()
         .ignore_then(
             whitespace()
@@ -288,7 +280,7 @@ fn line_wrap<'src>() -> impl Parser<'src, ParserInput<'src>, TokenKind, ParserEr
         .map(TokenKind::LineWrap)
 }
 
-fn comment<'src>() -> impl Parser<'src, ParserInput<'src>, TokenKind, ParserError<'src>> {
+fn comment<'a>() -> impl Parser<'a, ParserInput<'a>, TokenKind, ParserError<'a>> {
     just('#').ignore_then(choice((
         just('!').ignore_then(
             any()
@@ -305,7 +297,7 @@ fn comment<'src>() -> impl Parser<'src, ParserInput<'src>, TokenKind, ParserErro
     )))
 }
 
-pub fn ident_part<'src>() -> impl Parser<'src, ParserInput<'src>, String, ParserError<'src>> {
+pub fn ident_part<'a>() -> impl Parser<'a, ParserInput<'a>, String, ParserError<'a>> {
     let plain = any()
         .filter(|c: &char| c.is_alphabetic() || *c == '_')
         .then(
@@ -330,9 +322,7 @@ pub fn ident_part<'src>() -> impl Parser<'src, ParserInput<'src>, String, Parser
 }
 
 // Date/time components
-fn digits<'src>(
-    count: usize,
-) -> impl Parser<'src, ParserInput<'src>, Vec<char>, ParserError<'src>> {
+fn digits<'a>(count: usize) -> impl Parser<'a, ParserInput<'a>, Vec<char>, ParserError<'a>> {
     any()
         .filter(|c: &char| c.is_ascii_digit())
         .repeated()
@@ -340,7 +330,7 @@ fn digits<'src>(
         .collect::<Vec<char>>()
 }
 
-fn date_inner<'src>() -> impl Parser<'src, ParserInput<'src>, String, ParserError<'src>> {
+fn date_inner<'a>() -> impl Parser<'a, ParserInput<'a>, String, ParserError<'a>> {
     // Format: YYYY-MM-DD
     digits(4)
         .then(just('-'))
@@ -359,7 +349,7 @@ fn date_inner<'src>() -> impl Parser<'src, ParserInput<'src>, String, ParserErro
         })
 }
 
-fn time_inner<'src>() -> impl Parser<'src, ParserInput<'src>, String, ParserError<'src>> {
+fn time_inner<'a>() -> impl Parser<'a, ParserInput<'a>, String, ParserError<'a>> {
     // Hours (required)
     let hours = digits(2).map(String::from_iter);
 
@@ -415,7 +405,7 @@ fn time_inner<'src>() -> impl Parser<'src, ParserInput<'src>, String, ParserErro
         .map(|((((hours, mins), secs), ms), tz)| format!("{}{}{}{}{}", hours, mins, secs, ms, tz))
 }
 
-fn date_token<'src>() -> impl Parser<'src, ParserInput<'src>, TokenKind, ParserError<'src>> {
+fn date_token<'a>() -> impl Parser<'a, ParserInput<'a>, TokenKind, ParserError<'a>> {
     // Match digit after @ for date/time literals
     just('@')
         // The next character should be a digit
@@ -439,7 +429,7 @@ fn date_token<'src>() -> impl Parser<'src, ParserInput<'src>, TokenKind, ParserE
         .map(TokenKind::Literal)
 }
 
-pub fn literal<'src>() -> impl Parser<'src, ParserInput<'src>, Literal, ParserError<'src>> {
+pub fn literal<'a>() -> impl Parser<'a, ParserInput<'a>, Literal, ParserError<'a>> {
     choice((
         binary_number(),
         hexadecimal_number(),
@@ -454,12 +444,12 @@ pub fn literal<'src>() -> impl Parser<'src, ParserInput<'src>, Literal, ParserEr
 }
 
 // Helper to create number parsers with different bases
-fn parse_number_with_base<'src>(
+fn parse_number_with_base<'a>(
     prefix: &'static str,
     base: u32,
     max_digits: usize,
-    valid_digit: impl Fn(&char) -> bool + 'src,
-) -> impl Parser<'src, ParserInput<'src>, Literal, ParserError<'src>> {
+    valid_digit: impl Fn(&char) -> bool + 'a,
+) -> impl Parser<'a, ParserInput<'a>, Literal, ParserError<'a>> {
     just(prefix)
         .then_ignore(just("_").or_not()) // Optional underscore after prefix
         .ignore_then(
@@ -477,19 +467,19 @@ fn parse_number_with_base<'src>(
         )
 }
 
-fn binary_number<'src>() -> impl Parser<'src, ParserInput<'src>, Literal, ParserError<'src>> {
+fn binary_number<'a>() -> impl Parser<'a, ParserInput<'a>, Literal, ParserError<'a>> {
     parse_number_with_base("0b", 2, 32, |c| *c == '0' || *c == '1')
 }
 
-fn hexadecimal_number<'src>() -> impl Parser<'src, ParserInput<'src>, Literal, ParserError<'src>> {
+fn hexadecimal_number<'a>() -> impl Parser<'a, ParserInput<'a>, Literal, ParserError<'a>> {
     parse_number_with_base("0x", 16, 12, |c| c.is_ascii_hexdigit())
 }
 
-fn octal_number<'src>() -> impl Parser<'src, ParserInput<'src>, Literal, ParserError<'src>> {
+fn octal_number<'a>() -> impl Parser<'a, ParserInput<'a>, Literal, ParserError<'a>> {
     parse_number_with_base("0o", 8, 12, |c| ('0'..='7').contains(c))
 }
 
-fn number<'src>() -> impl Parser<'src, ParserInput<'src>, Literal, ParserError<'src>> {
+fn number<'a>() -> impl Parser<'a, ParserInput<'a>, Literal, ParserError<'a>> {
     // Parse integer part
     let integer = parse_integer().map(|chars| chars.into_iter().collect::<String>());
 
@@ -553,7 +543,7 @@ fn number<'src>() -> impl Parser<'src, ParserInput<'src>, Literal, ParserError<'
         })
 }
 
-fn parse_integer<'src>() -> impl Parser<'src, ParserInput<'src>, Vec<char>, ParserError<'src>> {
+fn parse_integer<'a>() -> impl Parser<'a, ParserInput<'a>, Vec<char>, ParserError<'a>> {
     // Handle both multi-digit numbers (can't start with 0) and single digit 0
     choice((
         any()
@@ -564,6 +554,8 @@ fn parse_integer<'src>() -> impl Parser<'src, ParserInput<'src>, Vec<char>, Pars
                     .repeated()
                     .collect::<Vec<char>>(),
             )
+            // TODO: there's a few of these, which seems unlikely to be the
+            // idomatic approach. I tried `.to_slice()` but couldn't get it to work
             .map(|(first, rest)| {
                 let mut chars = vec![first];
                 chars.extend(rest);
@@ -573,11 +565,11 @@ fn parse_integer<'src>() -> impl Parser<'src, ParserInput<'src>, Vec<char>, Pars
     ))
 }
 
-fn string<'src>() -> impl Parser<'src, ParserInput<'src>, Literal, ParserError<'src>> {
+fn string<'a>() -> impl Parser<'a, ParserInput<'a>, Literal, ParserError<'a>> {
     quoted_string(true).map(Literal::String)
 }
 
-fn raw_string<'src>() -> impl Parser<'src, ParserInput<'src>, Literal, ParserError<'src>> {
+fn raw_string<'a>() -> impl Parser<'a, ParserInput<'a>, Literal, ParserError<'a>> {
     just("r")
         .then(choice((just('\''), just('"'))))
         .then(
@@ -590,17 +582,17 @@ fn raw_string<'src>() -> impl Parser<'src, ParserInput<'src>, Literal, ParserErr
         .map(|(((_, _), chars), _)| Literal::RawString(chars.into_iter().collect()))
 }
 
-fn boolean<'src>() -> impl Parser<'src, ParserInput<'src>, Literal, ParserError<'src>> {
+fn boolean<'a>() -> impl Parser<'a, ParserInput<'a>, Literal, ParserError<'a>> {
     choice((just("true").map(|_| true), just("false").map(|_| false)))
         .then_ignore(end_expr())
         .map(Literal::Boolean)
 }
 
-fn null<'src>() -> impl Parser<'src, ParserInput<'src>, Literal, ParserError<'src>> {
+fn null<'a>() -> impl Parser<'a, ParserInput<'a>, Literal, ParserError<'a>> {
     just("null").map(|_| Literal::Null).then_ignore(end_expr())
 }
 
-fn value_and_unit<'src>() -> impl Parser<'src, ParserInput<'src>, Literal, ParserError<'src>> {
+fn value_and_unit<'a>() -> impl Parser<'a, ParserInput<'a>, Literal, ParserError<'a>> {
     // Supported time units
     let unit = choice((
         just("microseconds"),
@@ -629,9 +621,9 @@ fn value_and_unit<'src>() -> impl Parser<'src, ParserInput<'src>, Literal, Parse
         })
 }
 
-pub fn quoted_string<'src>(
+pub fn quoted_string<'a>(
     escaped: bool,
-) -> impl Parser<'src, ParserInput<'src>, String, ParserError<'src>> {
+) -> impl Parser<'a, ParserInput<'a>, String, ParserError<'a>> {
     choice((
         quoted_triple_string(escaped),
         quoted_string_of_quote(&'"', escaped, false),
@@ -640,9 +632,9 @@ pub fn quoted_string<'src>(
     .map(|chars| chars.into_iter().collect())
 }
 
-fn quoted_triple_string<'src>(
+fn quoted_triple_string<'a>(
     _escaped: bool, // Not used in this implementation
-) -> impl Parser<'src, ParserInput<'src>, Vec<char>, ParserError<'src>> {
+) -> impl Parser<'a, ParserInput<'a>, Vec<char>, ParserError<'a>> {
     // Parser for triple quoted strings (both single and double quotes)
     let double_quoted = just('"')
         .then(just('"'))
@@ -670,6 +662,39 @@ fn quoted_triple_string<'src>(
 
     choice((double_quoted, single_quoted))
 }
+
+// TODO: not working, need to figure out how to convert the `then_with` in 0.9 to 0.10
+
+// fn quoted_string_of_quote2(
+//     quote: &char,
+//     escaping: bool,
+// ) -> impl Parser<'_, ParserInput<'_>, Vec<char>, ParserError<'_>> {
+//     let opening = just(*quote).repeated().at_least(1);
+
+//     opening.then_with_ctx(move |opening| {
+//         if opening.len() % 2 == 0 {
+//             // If we have an even number of quotes, it's an empty string.
+//             return (just(vec![])).boxed();
+//         }
+//         let delimiter = just(*quote).repeated().exactly(opening.len());
+
+//         let inner = if escaping {
+//             choice((
+//                 // If we're escaping, don't allow consuming a backslash
+//                 // We need the `vec` to satisfy the type checker
+//                 (delimiter.or(just(vec!['\\']))).not(),
+//                 escaped_character(),
+//                 // Or escape the quote char of the current string
+//                 just('\\').ignore_then(just(*quote)),
+//             ))
+//             .boxed()
+//         } else {
+//             delimiter.not().boxed()
+//         };
+
+//         inner.repeated().then_ignore(delimiter).boxed()
+//     })
+// }
 
 fn quoted_string_of_quote(
     quote: &char,
@@ -710,7 +735,7 @@ fn quoted_string_of_quote(
         .then_ignore(just(q))
 }
 
-fn escaped_character<'src>() -> impl Parser<'src, ParserInput<'src>, char, ParserError<'src>> {
+fn escaped_character<'a>() -> impl Parser<'a, ParserInput<'a>, char, ParserError<'a>> {
     just('\\').ignore_then(choice((
         just('\\'),
         just('/'),
@@ -744,7 +769,7 @@ fn escaped_character<'src>() -> impl Parser<'src, ParserInput<'src>, char, Parse
     )))
 }
 
-fn end_expr<'src>() -> impl Parser<'src, ParserInput<'src>, (), ParserError<'src>> {
+fn end_expr<'a>() -> impl Parser<'a, ParserInput<'a>, (), ParserError<'a>> {
     choice((
         end(),
         one_of(",)]}\t >").map(|_| ()),
