@@ -281,20 +281,17 @@ fn line_wrap<'a>() -> impl Parser<'a, ParserInput<'a>, TokenKind, ParserError<'a
 }
 
 fn comment<'a>() -> impl Parser<'a, ParserInput<'a>, TokenKind, ParserError<'a>> {
-    just('#').ignore_then(choice((
-        just('!').ignore_then(
-            any()
-                .filter(|c: &char| *c != '\n' && *c != '\r')
-                .repeated()
-                .collect::<String>()
-                .map(TokenKind::DocComment),
-        ),
-        any()
-            .filter(|c: &char| *c != '\n' && *c != '\r')
-            .repeated()
-            .collect::<String>()
-            .map(TokenKind::Comment),
-    )))
+    // Extract the common comment text parser
+    let comment_text = any()
+        .filter(|c: &char| *c != '\n' && *c != '\r')
+        .repeated()
+        .collect::<String>();
+    
+    just('#').ignore_then(
+        // If comment starts with '!', it's a doc comment, otherwise a regular comment
+        just('!').ignore_then(comment_text.clone().map(TokenKind::DocComment))
+            .or(comment_text.map(TokenKind::Comment))
+    )
 }
 
 pub fn ident_part<'a>() -> impl Parser<'a, ParserInput<'a>, String, ParserError<'a>> {
@@ -350,36 +347,34 @@ fn date_inner<'a>() -> impl Parser<'a, ParserInput<'a>, String, ParserError<'a>>
 }
 
 fn time_inner<'a>() -> impl Parser<'a, ParserInput<'a>, String, ParserError<'a>> {
+    // Helper function for parsing time components with separators
+    fn time_component<'p>(
+        separator: char,
+        component_parser: impl Parser<'p, ParserInput<'p>, Vec<char>, ParserError<'p>>,
+    ) -> impl Parser<'p, ParserInput<'p>, String, ParserError<'p>> {
+        just(separator)
+            .then(component_parser)
+            .map(move |(sep, comp)| format!("{}{}", sep, String::from_iter(comp)))
+            .or_not()
+            .map(|opt| opt.unwrap_or_default())
+    }
+    
     // Hours (required)
     let hours = digits(2).map(String::from_iter);
 
-    // Minutes (optional)
-    let minutes = just(':')
-        .then(digits(2))
-        .map(|(colon, mins)| format!("{}{}", colon, String::from_iter(mins)))
-        .or_not()
-        .map(|opt| opt.unwrap_or_default());
+    // Minutes and seconds (optional) - with colon separator
+    let minutes = time_component(':', digits(2));
+    let seconds = time_component(':', digits(2));
 
-    // Seconds (optional)
-    let seconds = just(':')
-        .then(digits(2))
-        .map(|(colon, secs)| format!("{}{}", colon, String::from_iter(secs)))
-        .or_not()
-        .map(|opt| opt.unwrap_or_default());
-
-    // Milliseconds (optional)
-    let milliseconds = just('.')
-        .then(
-            any()
-                .filter(|c: &char| c.is_ascii_digit())
-                .repeated()
-                .at_least(1)
-                .at_most(6)
-                .collect::<Vec<char>>(),
-        )
-        .map(|(dot, ms)| format!("{}{}", dot, String::from_iter(ms)))
-        .or_not()
-        .map(|opt| opt.unwrap_or_default());
+    // Milliseconds (optional) - with dot separator
+    let milliseconds = time_component('.', 
+        any()
+            .filter(|c: &char| c.is_ascii_digit())
+            .repeated()
+            .at_least(1)
+            .at_most(6)
+            .collect::<Vec<char>>()
+    );
 
     // Timezone (optional): either 'Z' or '+/-HH:MM'
     let timezone = choice((
@@ -387,7 +382,7 @@ fn time_inner<'a>() -> impl Parser<'a, ParserInput<'a>, String, ParserError<'a>>
         one_of("-+")
             .then(digits(2).then(just(':').or_not().then(digits(2))).map(
                 |(hrs, (_opt_colon, mins))| {
-                    // Always format as -0800 without colon for SQL compatibility, regardless of input format
+                    // Always format as -0800 without colon for SQL compatibility
                     format!("{}{}", String::from_iter(hrs), String::from_iter(mins))
                 },
             ))
@@ -480,51 +475,64 @@ fn octal_number<'a>() -> impl Parser<'a, ParserInput<'a>, Literal, ParserError<'
 }
 
 fn number<'a>() -> impl Parser<'a, ParserInput<'a>, Literal, ParserError<'a>> {
+    // Helper function to build a string from optional number components
+    fn optional_component<'p, T>(
+        parser: impl Parser<'p, ParserInput<'p>, T, ParserError<'p>>,
+        to_string: impl Fn(T) -> String + 'p,
+    ) -> impl Parser<'p, ParserInput<'p>, String, ParserError<'p>> {
+        parser
+            .map(to_string)
+            .or_not()
+            .map(|opt| opt.unwrap_or_default())
+    }
+    
     // Parse integer part
     let integer = parse_integer().map(|chars| chars.into_iter().collect::<String>());
 
     // Parse fractional part
-    let frac = just('.')
-        .then(any().filter(|c: &char| c.is_ascii_digit()))
+    let fraction_digits = any()
+        .filter(|c: &char| c.is_ascii_digit())
         .then(
             any()
                 .filter(|c: &char| c.is_ascii_digit() || *c == '_')
                 .repeated()
-                .collect::<Vec<char>>(),
+                .collect::<Vec<char>>()
         )
-        .map(|((dot, first), rest)| {
-            let mut s = String::new();
-            s.push(dot);
-            s.push(first);
-            s.push_str(&String::from_iter(rest));
-            s
+        .map(|(first, rest)| {
+            let mut chars = vec![first];
+            chars.extend(rest);
+            chars
         });
+        
+    let frac = just('.')
+        .then(fraction_digits)
+        .map(|(dot, digits)| format!("{}{}", dot, String::from_iter(digits)));
 
     // Parse exponent
-    let exp = one_of("eE")
+    let exp_digits = one_of("+-")
+        .or_not()
         .then(
-            one_of("+-").or_not().then(
-                any()
-                    .filter(|c: &char| c.is_ascii_digit())
-                    .repeated()
-                    .at_least(1)
-                    .collect::<Vec<char>>(),
-            ),
+            any()
+                .filter(|c: &char| c.is_ascii_digit())
+                .repeated()
+                .at_least(1)
+                .collect::<Vec<char>>()
         )
-        .map(|(e, (sign_opt, digits))| {
+        .map(|(sign_opt, digits)| {
             let mut s = String::new();
-            s.push(e);
             if let Some(sign) = sign_opt {
                 s.push(sign);
             }
             s.push_str(&String::from_iter(digits));
             s
         });
+        
+    let exp = one_of("eE").then(exp_digits).map(|(e, digits)| format!("{}{}", e, digits));
 
-    // Combine all parts into a number
+    // Combine all parts into a number using the helper function
     integer
-        .then(frac.or_not().map(Option::unwrap_or_default))
-        .then(exp.or_not().map(Option::unwrap_or_default))
+        .then(optional_component(frac, |f| f))
+        .then(optional_component(exp, |e| e))
         .map(|((int_part, frac_part), exp_part)| {
             // Construct the number string and remove underscores
             let num_str = format!("{}{}{}", int_part, frac_part, exp_part)
@@ -635,32 +643,26 @@ pub fn quoted_string<'a>(
 fn quoted_triple_string<'a>(
     _escaped: bool, // Not used in this implementation
 ) -> impl Parser<'a, ParserInput<'a>, Vec<char>, ParserError<'a>> {
-    // Parser for triple quoted strings (both single and double quotes)
-    let double_quoted = just('"')
-        .then(just('"'))
-        .then(just('"'))
-        .ignore_then(
+    // Helper function to create triple quoted string parsers
+    fn triple_quoted_parser<'p>(quote: char) -> impl Parser<'p, ParserInput<'p>, Vec<char>, ParserError<'p>> {
+        let triple_quote_open = just(quote).then(just(quote)).then(just(quote));
+        let triple_quote_close = just(quote).then(just(quote)).then(just(quote));
+        
+        triple_quote_open.ignore_then(
             // Keep consuming characters until we hit three quotes in a row
-            // Simplified approach - can be improved with more complex logic
             any()
-                .filter(|&c| c != '"')
+                .filter(move |&c| c != quote)
                 .repeated()
-                .collect::<Vec<char>>(),
+                .collect::<Vec<char>>()
         )
-        .then_ignore(just('"').then(just('"')).then(just('"')));
+        .then_ignore(triple_quote_close)
+    }
 
-    let single_quoted = just('\'')
-        .then(just('\''))
-        .then(just('\''))
-        .ignore_then(
-            any()
-                .filter(|&c| c != '\'')
-                .repeated()
-                .collect::<Vec<char>>(),
-        )
-        .then_ignore(just('\'').then(just('\'')).then(just('\'')));
-
-    choice((double_quoted, single_quoted))
+    // Parser for triple quoted strings (both single and double quotes)
+    choice((
+        triple_quoted_parser('"'),
+        triple_quoted_parser('\'')
+    ))
 }
 
 // TODO: not working, need to figure out how to convert the `then_with` in 0.9 to 0.10
