@@ -245,17 +245,11 @@ fn interpolation<'src>() -> impl Parser<'src, ParserInput<'src>, TokenKind, Pars
                 just('"')
                     .then(just('"'))
                     .then(just('"'))
-                    .ignore_then(
-                        any()
-                            .filter(|&c| c != '"')
-                            .repeated()
-                            .collect::<String>()
-                    )
+                    .ignore_then(any().filter(|&c| c != '"').repeated().collect::<String>())
                     .then_ignore(just('"').then(just('"')).then(just('"'))),
-                
                 // Regular quoted string
-                quoted_string(true)
-            ))
+                quoted_string(true),
+            )),
         )
         .map(|(c, s)| TokenKind::Interpolation(c, s))
 }
@@ -404,11 +398,7 @@ fn time_inner<'src>() -> impl Parser<'src, ParserInput<'src>, String, ParserErro
             .then(digits(2).then(just(':').or_not().then(digits(2))).map(
                 |(hrs, (_opt_colon, mins))| {
                     // Always format as -0800 without colon for SQL compatibility, regardless of input format
-                    format!(
-                        "{}{}",
-                        String::from_iter(hrs),
-                        String::from_iter(mins)
-                    )
+                    format!("{}{}", String::from_iter(hrs), String::from_iter(mins))
                 },
             ))
             .map(|(sign, offset)| format!("{}{}", sign, offset)),
@@ -663,7 +653,7 @@ fn quoted_triple_string<'src>(
             any()
                 .filter(|&c| c != '"')
                 .repeated()
-                .collect::<Vec<char>>()
+                .collect::<Vec<char>>(),
         )
         .then_ignore(just('"').then(just('"')).then(just('"')));
 
@@ -674,21 +664,18 @@ fn quoted_triple_string<'src>(
             any()
                 .filter(|&c| c != '\'')
                 .repeated()
-                .collect::<Vec<char>>()
+                .collect::<Vec<char>>(),
         )
         .then_ignore(just('\'').then(just('\'')).then(just('\'')));
 
     choice((double_quoted, single_quoted))
 }
 
-fn quoted_string_of_quote<'src, 'a>(
-    quote: &'a char,
+fn quoted_string_of_quote(
+    quote: &char,
     escaping: bool,
     allow_multiline: bool,
-) -> impl Parser<'src, ParserInput<'src>, Vec<char>, ParserError<'src>> + 'a
-where
-    'src: 'a,
-{
+) -> impl Parser<'_, ParserInput<'_>, Vec<char>, ParserError<'_>> {
     let q = *quote;
 
     // Parser for non-quote characters
