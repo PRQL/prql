@@ -168,7 +168,7 @@ jobs:
             exit 1
           fi
       - name: 📦 Build .deb package
-        uses: jiro4989/build-deb-action@v3
+        uses: jiro4989/build-deb-action@v4
         with:
           package: prqlc
           package_root: .debpkg
