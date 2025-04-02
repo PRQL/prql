@@ -165,20 +165,20 @@ fn lex_token<'a>() -> impl Parser<'a, ParserInput<'a>, Token, ParserError<'a>> {
 fn token<'a>() -> impl Parser<'a, ParserInput<'a>, TokenKind, ParserError<'a>> {
     // Main token parser for all tokens
     choice((
-        line_wrap(),                           // Line continuation with backslash
+        line_wrap(),                      // Line continuation with backslash
         newline().to(TokenKind::NewLine), // Newline characters
-        multi_char_operators(),                // Multi-character operators (==, !=, etc.)
-        interpolation(),                       // String interpolation (f"...", s"...")
-        param(),                               // Parameters ($name)
+        multi_char_operators(),           // Multi-character operators (==, !=, etc.)
+        interpolation(),                  // String interpolation (f"...", s"...")
+        param(),                          // Parameters ($name)
         // Date literals must come before @ handling for annotations
         date_token(), // Date literals (@2022-01-01)
         // Special handling for @ annotations - must come after date_token
         just('@').to(TokenKind::Annotate), // @ annotation marker
         one_of("></%=+-*[]().,:|!{}").map(TokenKind::Control), // Single-character controls
-        literal().map(TokenKind::Literal),      // Literals (numbers, strings, etc.)
-        keyword(),                              // Keywords (let, func, etc.)
-        ident_part().map(TokenKind::Ident),     // Identifiers
-        comment(),                              // Comments (# and #!)
+        literal().map(TokenKind::Literal), // Literals (numbers, strings, etc.)
+        keyword(),                         // Keywords (let, func, etc.)
+        ident_part().map(TokenKind::Ident), // Identifiers
+        comment(),                         // Comments (# and #!)
     ))
 }
 
@@ -286,13 +286,14 @@ fn comment<'a>() -> impl Parser<'a, ParserInput<'a>, TokenKind, ParserError<'a>>
         .filter(|c: &char| *c != '\n' && *c != '\r')
         .repeated()
         .collect::<String>();
-    
+
     just('#').ignore_then(
         // One option would be to check that doc comments have new lines in the
         // lexer (we currently do in the parser); which would give better error
         // messages?
-        just('!').ignore_then(comment_text.clone().map(TokenKind::DocComment))
-            .or(comment_text.map(TokenKind::Comment))
+        just('!')
+            .ignore_then(comment_text.clone().map(TokenKind::DocComment))
+            .or(comment_text.map(TokenKind::Comment)),
     )
 }
 
@@ -360,7 +361,7 @@ fn time_inner<'a>() -> impl Parser<'a, ParserInput<'a>, String, ParserError<'a>>
             .or_not()
             .map(|opt| opt.unwrap_or_default())
     }
-    
+
     // Hours (required)
     let hours = digits(2).map(String::from_iter);
 
@@ -369,13 +370,14 @@ fn time_inner<'a>() -> impl Parser<'a, ParserInput<'a>, String, ParserError<'a>>
     let seconds = time_component(':', digits(2));
 
     // Milliseconds (optional) - with dot separator
-    let milliseconds = time_component('.', 
+    let milliseconds = time_component(
+        '.',
         any()
             .filter(|c: &char| c.is_ascii_digit())
             .repeated()
             .at_least(1)
             .at_most(6)
-            .collect::<Vec<char>>()
+            .collect::<Vec<char>>(),
     );
 
     // Timezone (optional): either 'Z' or '+/-HH:MM'
@@ -488,7 +490,7 @@ fn number<'a>() -> impl Parser<'a, ParserInput<'a>, Literal, ParserError<'a>> {
             .or_not()
             .map(|opt| opt.unwrap_or_default())
     }
-    
+
     // Parse integer part
     let integer = parse_integer().map(|chars| chars.into_iter().collect::<String>());
 
@@ -499,14 +501,14 @@ fn number<'a>() -> impl Parser<'a, ParserInput<'a>, Literal, ParserError<'a>> {
             any()
                 .filter(|c: &char| c.is_ascii_digit() || *c == '_')
                 .repeated()
-                .collect::<Vec<char>>()
+                .collect::<Vec<char>>(),
         )
         .map(|(first, rest)| {
             let mut chars = vec![first];
             chars.extend(rest);
             chars
         });
-        
+
     let frac = just('.')
         .then(fraction_digits)
         .map(|(dot, digits)| format!("{}{}", dot, String::from_iter(digits)));
@@ -519,7 +521,7 @@ fn number<'a>() -> impl Parser<'a, ParserInput<'a>, Literal, ParserError<'a>> {
                 .filter(|c: &char| c.is_ascii_digit())
                 .repeated()
                 .at_least(1)
-                .collect::<Vec<char>>()
+                .collect::<Vec<char>>(),
         )
         .map(|(sign_opt, digits)| {
             let mut s = String::new();
@@ -529,8 +531,10 @@ fn number<'a>() -> impl Parser<'a, ParserInput<'a>, Literal, ParserError<'a>> {
             s.push_str(&String::from_iter(digits));
             s
         });
-        
-    let exp = one_of("eE").then(exp_digits).map(|(e, digits)| format!("{}{}", e, digits));
+
+    let exp = one_of("eE")
+        .then(exp_digits)
+        .map(|(e, digits)| format!("{}{}", e, digits));
 
     // Combine all parts into a number using the helper function
     integer
@@ -647,25 +651,25 @@ fn quoted_triple_string<'a>(
     _escaped: bool, // Not used in this implementation
 ) -> impl Parser<'a, ParserInput<'a>, Vec<char>, ParserError<'a>> {
     // Helper function to create triple quoted string parsers
-    fn triple_quoted_parser<'p>(quote: char) -> impl Parser<'p, ParserInput<'p>, Vec<char>, ParserError<'p>> {
+    fn triple_quoted_parser<'p>(
+        quote: char,
+    ) -> impl Parser<'p, ParserInput<'p>, Vec<char>, ParserError<'p>> {
         let triple_quote_open = just(quote).then(just(quote)).then(just(quote));
         let triple_quote_close = just(quote).then(just(quote)).then(just(quote));
-        
-        triple_quote_open.ignore_then(
-            // Keep consuming characters until we hit three quotes in a row
-            any()
-                .filter(move |&c| c != quote)
-                .repeated()
-                .collect::<Vec<char>>()
-        )
-        .then_ignore(triple_quote_close)
+
+        triple_quote_open
+            .ignore_then(
+                // Keep consuming characters until we hit three quotes in a row
+                any()
+                    .filter(move |&c| c != quote)
+                    .repeated()
+                    .collect::<Vec<char>>(),
+            )
+            .then_ignore(triple_quote_close)
     }
 
     // Parser for triple quoted strings (both single and double quotes)
-    choice((
-        triple_quoted_parser('"'),
-        triple_quoted_parser('\'')
-    ))
+    choice((triple_quoted_parser('"'), triple_quoted_parser('\'')))
 }
 
 // TODO: not working, need to figure out how to convert the `then_with` in 0.9 to 0.10
@@ -723,12 +727,12 @@ fn quoted_string_of_quote(
 
     // Parser for escaped characters if escaping is enabled
     let escaped_char = choice((
-        just('\\').ignore_then(just(q)),                 // Escaped quote
-        just('\\').ignore_then(just('\\')),              // Escaped backslash
+        just('\\').ignore_then(just(q)),            // Escaped quote
+        just('\\').ignore_then(just('\\')),         // Escaped backslash
         just('\\').ignore_then(just('n')).to('\n'), // Newline
         just('\\').ignore_then(just('r')).to('\r'), // Carriage return
         just('\\').ignore_then(just('t')).to('\t'), // Tab
-        escaped_character(),                             // Handle all other escape sequences
+        escaped_character(),                        // Handle all other escape sequences
     ));
 
     // Choose the right character parser based on whether escaping is enabled
