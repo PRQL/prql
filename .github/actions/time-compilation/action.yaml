@@ -25,7 +25,7 @@ runs:
       shell: bash
       run: rm -rf target/cargo-timings
     - name: 🏭 Compile
-      uses: clechasseur/rs-cargo@v2
+      uses: clechasseur/rs-cargo@v3
       with:
         command: build
         args: --timings --all-targets
