@@ -56,24 +56,34 @@ pub fn lex_source_recovery(source: &str, source_id: u16) -> (Option<Vec<Token>>,
     if let Some(tokens) = result.output() {
         (Some(insert_start(tokens.to_vec())), vec![])
     } else {
-        // Get errors with position information
-        let found = if !source.is_empty() {
-            source.chars().next().unwrap().to_string()
-        } else {
-            "Lexer error".to_string()
-        };
+        // Get errors with better position information - chumsky 0.10 has different error structure
+        let errors = result
+            .errors()
+            .into_iter()
+            .map(|_error| {
+                // We'll use a basic error since Extra::Default uses EmptyErr which doesn't provide span/found details
+                let error_start = 0;
+                let error_end = if source.len() > 1 { 1 } else { 0 };
+                let found = if !source.is_empty() {
+                    format!("'{}'", source.chars().next().unwrap())
+                } else {
+                    "end of input".to_string()
+                };
 
-        // Create error with span information - similar to chumsky_0_9 implementation
-        let error_start = 0;
-        let error_end = if source.len() > 1 { 1 } else { 0 };
-
-        let errors = vec![Error::new(Reason::Unexpected { found })
-            .with_span(Some(crate::span::Span {
-                start: error_start,
-                end: error_end,
-                source_id,
-            }))
-            .with_source(ErrorSource::Lexer("Failed to parse".to_string()))];
+                Error::new(Reason::Unexpected {
+                    found: found.clone(),
+                })
+                .with_span(Some(crate::span::Span {
+                    start: error_start,
+                    end: error_end,
+                    source_id,
+                }))
+                .with_source(ErrorSource::Lexer(format!(
+                    "Unexpected {} at position {}..{}",
+                    found, error_start, error_end
+                )))
+            })
+            .collect();
 
         (None, errors)
     }
@@ -87,25 +97,34 @@ pub fn lex_source(source: &str) -> Result<Tokens, Vec<E>> {
     if let Some(tokens) = result.output() {
         Ok(Tokens(insert_start(tokens.to_vec())))
     } else {
-        // Get errors with position information
-        let found = if !source.is_empty() {
-            source.chars().next().unwrap().to_string()
-        } else {
-            "Empty input".to_string()
-        };
+        // Get errors with better position information - chumsky 0.10 has different error structure
+        let errors = result
+            .errors()
+            .into_iter()
+            .map(|_error| {
+                // We'll use a basic error since Extra::Default uses EmptyErr which doesn't provide span/found details
+                let error_start = 0;
+                let error_end = if source.len() > 1 { 1 } else { 0 };
+                let found = if !source.is_empty() {
+                    format!("'{}'", source.chars().next().unwrap())
+                } else {
+                    "end of input".to_string()
+                };
 
-        // Create error with span information - similar to chumsky_0_9 implementation
-        let error_start = 0;
-        let error_end = if source.len() > 1 { 1 } else { 0 };
-
-        // Try to get unicode strings errors in a consistent way
-        let errors = vec![Error::new(Reason::Unexpected { found })
-            .with_span(Some(crate::span::Span {
-                start: error_start,
-                end: error_end,
-                source_id: 0,
-            }))
-            .with_source(ErrorSource::Lexer("Failed to parse".to_string()))];
+                Error::new(Reason::Unexpected {
+                    found: found.clone(),
+                })
+                .with_span(Some(crate::span::Span {
+                    start: error_start,
+                    end: error_end,
+                    source_id: 0,
+                }))
+                .with_source(ErrorSource::Lexer(format!(
+                    "Unexpected {} at position {}..{}",
+                    found, error_start, error_end
+                )))
+            })
+            .collect();
 
         Err(errors)
     }

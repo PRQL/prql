@@ -36,7 +36,8 @@ pub enum ErrorSource {
 #[cfg(feature = "chumsky-10")]
 #[derive(Clone, Debug, Default)]
 pub enum ErrorSource {
-    Lexer(String), // We'll store the error message as a string since we can't easily store the error type
+    // For chumsky 0.10, we'll use a more informative string but not the actual type
+    Lexer(String), // Formatted as "Unexpected {found} at position {start}..{end}"
     Parser(PError),
     #[default]
     Unknown,
