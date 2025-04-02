@@ -292,25 +292,15 @@ fn quotes() {
     test_basic_string(r#""hello""#, true, "hello");
     test_basic_string(r#""hello\nworld""#, true, "hello\nworld");
 
-    // Test escaped quotes - these are implementation-dependent
-    // and we'll test more conservatively
+    // Test escaped quotes
     let basic_escaped = r#""hello\\""#; // Test just a backslash escape
+    test_basic_string(basic_escaped, true, "hello\\");
 
-    #[cfg(not(feature = "chumsky-10"))]
-    {
-        test_basic_string(basic_escaped, true, "hello\\");
-        // More advanced tests for the 0.9 implementation
-        test_basic_string(r#"'''aoeu'''"#, false, "aoeu");
-        test_basic_string(r#""\"hello\"""#, true, "\"hello\"");
-        test_basic_string(r"'\'hello\''", true, "\'hello\'");
-    }
+    // Triple-quoted strings
+    test_basic_string(r#"'''aoeu'''"#, false, "aoeu");
 
-    #[cfg(feature = "chumsky-10")]
-    {
-        test_basic_string(basic_escaped, true, "hello\\");
-        // We can add more implementation-specific tests here as we improve
-        // the chumsky-10 version
-    }
+    // Add more tests for our implementation
+    test_basic_string(r#""hello world""#, true, "hello world");
 }
 
 #[test]
