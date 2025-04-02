@@ -46,87 +46,71 @@ use crate::error::{Error, ErrorSource, Reason, WithErrorInfo};
 
 type E = Error;
 type ParserInput<'a> = Stream<std::str::Chars<'a>>;
-type ParserError = extra::Default;
+// Define a custom error type with the `Simple` error type from chumsky_0_10
+type ParserError<'a> = extra::Err<Simple<'a, char>>;
+
+/// Convert a chumsky Simple error to our internal Error type
+fn convert_lexer_error(error: &Simple<'_, char>, source_id: u16) -> E {
+    // Get span information from the Simple error
+    let span = error.span();
+    let error_start = span.start();
+    let error_end = span.end();
+
+    // Get the found token from the Simple error
+    let found = error
+        .found()
+        .map_or_else(|| "end of input".to_string(), |c| format!("'{}'", c));
+
+    // Create a new Error with the extracted information
+    Error::new(Reason::Unexpected {
+        found: found.clone(),
+    })
+    .with_span(Some(crate::span::Span {
+        start: error_start,
+        end: error_end,
+        source_id,
+    }))
+    .with_source(ErrorSource::Lexer(format!(
+        "Unexpected {} at position {}..{}",
+        found, error_start, error_end
+    )))
+}
 
 /// Lex PRQL into LR, returning both the LR and any errors encountered
 pub fn lex_source_recovery(source: &str, source_id: u16) -> (Option<Vec<Token>>, Vec<E>) {
     let stream = Stream::from_iter(source.chars());
-    let result = lexer().parse(stream);
+    let result = lexer().parse(stream).into_result();
 
-    if let Some(tokens) = result.output() {
-        (Some(insert_start(tokens.to_vec())), vec![])
-    } else {
-        // Get errors with better position information - chumsky 0.10 has different error structure
-        let errors = result
-            .errors()
-            .into_iter()
-            .map(|_error| {
-                // We'll use a basic error since Extra::Default uses EmptyErr which doesn't provide span/found details
-                let error_start = 0;
-                let error_end = if source.len() > 1 { 1 } else { 0 };
-                let found = if !source.is_empty() {
-                    format!("'{}'", source.chars().next().unwrap())
-                } else {
-                    "end of input".to_string()
-                };
+    match result {
+        Ok(tokens) => (Some(insert_start(tokens.to_vec())), vec![]),
+        Err(errors) => {
+            // Convert chumsky Simple errors to our Error type
+            let errors = errors
+                .into_iter()
+                .map(|error| convert_lexer_error(&error, source_id))
+                .collect();
 
-                Error::new(Reason::Unexpected {
-                    found: found.clone(),
-                })
-                .with_span(Some(crate::span::Span {
-                    start: error_start,
-                    end: error_end,
-                    source_id,
-                }))
-                .with_source(ErrorSource::Lexer(format!(
-                    "Unexpected {} at position {}..{}",
-                    found, error_start, error_end
-                )))
-            })
-            .collect();
-
-        (None, errors)
+            (None, errors)
+        }
     }
 }
 
 /// Lex PRQL into LR, returning either the LR or the errors encountered
 pub fn lex_source(source: &str) -> Result<Tokens, Vec<E>> {
     let stream = Stream::from_iter(source.chars());
-    let result = lexer().parse(stream);
+    let result = lexer().parse(stream).into_result();
 
-    if let Some(tokens) = result.output() {
-        Ok(Tokens(insert_start(tokens.to_vec())))
-    } else {
-        // Get errors with better position information - chumsky 0.10 has different error structure
-        let errors = result
-            .errors()
-            .into_iter()
-            .map(|_error| {
-                // We'll use a basic error since Extra::Default uses EmptyErr which doesn't provide span/found details
-                let error_start = 0;
-                let error_end = if source.len() > 1 { 1 } else { 0 };
-                let found = if !source.is_empty() {
-                    format!("'{}'", source.chars().next().unwrap())
-                } else {
-                    "end of input".to_string()
-                };
+    match result {
+        Ok(tokens) => Ok(Tokens(insert_start(tokens.to_vec()))),
+        Err(errors) => {
+            // Convert chumsky Simple errors to our Error type
+            let errors = errors
+                .into_iter()
+                .map(|error| convert_lexer_error(&error, 0))
+                .collect();
 
-                Error::new(Reason::Unexpected {
-                    found: found.clone(),
-                })
-                .with_span(Some(crate::span::Span {
-                    start: error_start,
-                    end: error_end,
-                    source_id: 0,
-                }))
-                .with_source(ErrorSource::Lexer(format!(
-                    "Unexpected {} at position {}..{}",
-                    found, error_start, error_end
-                )))
-            })
-            .collect();
-
-        Err(errors)
+            Err(errors)
+        }
     }
 }
 
@@ -141,7 +125,7 @@ fn insert_start(tokens: Vec<Token>) -> Vec<Token> {
 }
 
 /// Lex chars to tokens until the end of the input
-pub fn lexer<'src>() -> impl Parser<'src, ParserInput<'src>, Vec<Token>, ParserError> {
+pub fn lexer<'src>() -> impl Parser<'src, ParserInput<'src>, Vec<Token>, ParserError<'src>> {
     lex_token()
         .repeated()
         .collect()
@@ -150,7 +134,7 @@ pub fn lexer<'src>() -> impl Parser<'src, ParserInput<'src>, Vec<Token>, ParserE
 }
 
 /// Lex chars to a single token
-fn lex_token<'src>() -> impl Parser<'src, ParserInput<'src>, Token, ParserError> {
+fn lex_token<'src>() -> impl Parser<'src, ParserInput<'src>, Token, ParserError<'src>> {
     // Handle range token with proper whitespace
     // Ranges need special handling since the '..' token needs to know about whitespace
     // for binding on left and right sides
@@ -185,7 +169,7 @@ fn lex_token<'src>() -> impl Parser<'src, ParserInput<'src>, Token, ParserError>
 }
 
 /// Parse individual token kinds
-fn token<'src>() -> impl Parser<'src, ParserInput<'src>, TokenKind, ParserError> {
+fn token<'src>() -> impl Parser<'src, ParserInput<'src>, TokenKind, ParserError<'src>> {
     // Main token parser for all tokens
     choice((
         line_wrap(),                           // Line continuation with backslash
@@ -205,7 +189,8 @@ fn token<'src>() -> impl Parser<'src, ParserInput<'src>, TokenKind, ParserError>
     ))
 }
 
-fn multi_char_operators<'src>() -> impl Parser<'src, ParserInput<'src>, TokenKind, ParserError> {
+fn multi_char_operators<'src>() -> impl Parser<'src, ParserInput<'src>, TokenKind, ParserError<'src>>
+{
     choice((
         just("->").map(|_| TokenKind::ArrowThin),
         just("=>").map(|_| TokenKind::ArrowFat),
@@ -222,7 +207,7 @@ fn multi_char_operators<'src>() -> impl Parser<'src, ParserInput<'src>, TokenKin
     ))
 }
 
-fn keyword<'src>() -> impl Parser<'src, ParserInput<'src>, TokenKind, ParserError> {
+fn keyword<'src>() -> impl Parser<'src, ParserInput<'src>, TokenKind, ParserError<'src>> {
     choice((
         just("let"),
         just("into"),
@@ -239,7 +224,7 @@ fn keyword<'src>() -> impl Parser<'src, ParserInput<'src>, TokenKind, ParserErro
     .map(|x| TokenKind::Keyword(x.to_string()))
 }
 
-fn param<'src>() -> impl Parser<'src, ParserInput<'src>, TokenKind, ParserError> {
+fn param<'src>() -> impl Parser<'src, ParserInput<'src>, TokenKind, ParserError<'src>> {
     just('$')
         .ignore_then(
             any()
@@ -250,17 +235,17 @@ fn param<'src>() -> impl Parser<'src, ParserInput<'src>, TokenKind, ParserError>
         .map(TokenKind::Param)
 }
 
-fn interpolation<'src>() -> impl Parser<'src, ParserInput<'src>, TokenKind, ParserError> {
+fn interpolation<'src>() -> impl Parser<'src, ParserInput<'src>, TokenKind, ParserError<'src>> {
     one_of("sf")
         .then(quoted_string(true))
         .map(|(c, s)| TokenKind::Interpolation(c, s))
 }
 
-fn ignored<'src>() -> impl Parser<'src, ParserInput<'src>, (), ParserError> {
+fn ignored<'src>() -> impl Parser<'src, ParserInput<'src>, (), ParserError<'src>> {
     whitespace().repeated().ignored()
 }
 
-fn whitespace<'src>() -> impl Parser<'src, ParserInput<'src>, (), ParserError> {
+fn whitespace<'src>() -> impl Parser<'src, ParserInput<'src>, (), ParserError<'src>> {
     any()
         .filter(|x: &char| *x == ' ' || *x == '\t')
         .repeated()
@@ -269,13 +254,13 @@ fn whitespace<'src>() -> impl Parser<'src, ParserInput<'src>, (), ParserError> {
 }
 
 // Custom newline parser for Stream<char>
-fn newline<'src>() -> impl Parser<'src, ParserInput<'src>, (), ParserError> {
+fn newline<'src>() -> impl Parser<'src, ParserInput<'src>, (), ParserError<'src>> {
     just('\n')
         .or(just('\r').then_ignore(just('\n').or_not()))
         .ignored()
 }
 
-fn line_wrap<'src>() -> impl Parser<'src, ParserInput<'src>, TokenKind, ParserError> {
+fn line_wrap<'src>() -> impl Parser<'src, ParserInput<'src>, TokenKind, ParserError<'src>> {
     newline()
         .ignore_then(
             whitespace()
@@ -290,7 +275,7 @@ fn line_wrap<'src>() -> impl Parser<'src, ParserInput<'src>, TokenKind, ParserEr
         .map(TokenKind::LineWrap)
 }
 
-fn comment<'src>() -> impl Parser<'src, ParserInput<'src>, TokenKind, ParserError> {
+fn comment<'src>() -> impl Parser<'src, ParserInput<'src>, TokenKind, ParserError<'src>> {
     just('#').ignore_then(choice((
         just('!').ignore_then(
             any()
@@ -307,7 +292,7 @@ fn comment<'src>() -> impl Parser<'src, ParserInput<'src>, TokenKind, ParserErro
     )))
 }
 
-pub fn ident_part<'src>() -> impl Parser<'src, ParserInput<'src>, String, ParserError> {
+pub fn ident_part<'src>() -> impl Parser<'src, ParserInput<'src>, String, ParserError<'src>> {
     let plain = any()
         .filter(|c: &char| c.is_alphabetic() || *c == '_')
         .then(
@@ -332,7 +317,9 @@ pub fn ident_part<'src>() -> impl Parser<'src, ParserInput<'src>, String, Parser
 }
 
 // Date/time components
-fn digits<'src>(count: usize) -> impl Parser<'src, ParserInput<'src>, Vec<char>, ParserError> {
+fn digits<'src>(
+    count: usize,
+) -> impl Parser<'src, ParserInput<'src>, Vec<char>, ParserError<'src>> {
     any()
         .filter(|c: &char| c.is_ascii_digit())
         .repeated()
@@ -340,7 +327,7 @@ fn digits<'src>(count: usize) -> impl Parser<'src, ParserInput<'src>, Vec<char>,
         .collect::<Vec<char>>()
 }
 
-fn date_inner<'src>() -> impl Parser<'src, ParserInput<'src>, String, ParserError> {
+fn date_inner<'src>() -> impl Parser<'src, ParserInput<'src>, String, ParserError<'src>> {
     // Format: YYYY-MM-DD
     digits(4)
         .then(just('-'))
@@ -359,7 +346,7 @@ fn date_inner<'src>() -> impl Parser<'src, ParserInput<'src>, String, ParserErro
         })
 }
 
-fn time_inner<'src>() -> impl Parser<'src, ParserInput<'src>, String, ParserError> {
+fn time_inner<'src>() -> impl Parser<'src, ParserInput<'src>, String, ParserError<'src>> {
     // Hours (required)
     let hours = digits(2).map(String::from_iter);
 
@@ -420,7 +407,7 @@ fn time_inner<'src>() -> impl Parser<'src, ParserInput<'src>, String, ParserErro
         .map(|((((hours, mins), secs), ms), tz)| format!("{}{}{}{}{}", hours, mins, secs, ms, tz))
 }
 
-fn date_token<'src>() -> impl Parser<'src, ParserInput<'src>, TokenKind, ParserError> {
+fn date_token<'src>() -> impl Parser<'src, ParserInput<'src>, TokenKind, ParserError<'src>> {
     // Match digit after @ for date/time literals
     just('@')
         // The next character should be a digit
@@ -444,7 +431,7 @@ fn date_token<'src>() -> impl Parser<'src, ParserInput<'src>, TokenKind, ParserE
         .map(TokenKind::Literal)
 }
 
-pub fn literal<'src>() -> impl Parser<'src, ParserInput<'src>, Literal, ParserError> {
+pub fn literal<'src>() -> impl Parser<'src, ParserInput<'src>, Literal, ParserError<'src>> {
     choice((
         binary_number(),
         hexadecimal_number(),
@@ -464,7 +451,7 @@ fn parse_number_with_base<'src>(
     base: u32,
     max_digits: usize,
     valid_digit: impl Fn(&char) -> bool + 'src,
-) -> impl Parser<'src, ParserInput<'src>, Literal, ParserError> {
+) -> impl Parser<'src, ParserInput<'src>, Literal, ParserError<'src>> {
     just(prefix)
         .then_ignore(just("_").or_not()) // Optional underscore after prefix
         .ignore_then(
@@ -482,19 +469,19 @@ fn parse_number_with_base<'src>(
         )
 }
 
-fn binary_number<'src>() -> impl Parser<'src, ParserInput<'src>, Literal, ParserError> {
+fn binary_number<'src>() -> impl Parser<'src, ParserInput<'src>, Literal, ParserError<'src>> {
     parse_number_with_base("0b", 2, 32, |c| *c == '0' || *c == '1')
 }
 
-fn hexadecimal_number<'src>() -> impl Parser<'src, ParserInput<'src>, Literal, ParserError> {
+fn hexadecimal_number<'src>() -> impl Parser<'src, ParserInput<'src>, Literal, ParserError<'src>> {
     parse_number_with_base("0x", 16, 12, |c| c.is_ascii_hexdigit())
 }
 
-fn octal_number<'src>() -> impl Parser<'src, ParserInput<'src>, Literal, ParserError> {
+fn octal_number<'src>() -> impl Parser<'src, ParserInput<'src>, Literal, ParserError<'src>> {
     parse_number_with_base("0o", 8, 12, |c| ('0'..='7').contains(c))
 }
 
-fn number<'src>() -> impl Parser<'src, ParserInput<'src>, Literal, ParserError> {
+fn number<'src>() -> impl Parser<'src, ParserInput<'src>, Literal, ParserError<'src>> {
     // Parse integer part
     let integer = parse_integer().map(|chars| chars.into_iter().collect::<String>());
 
@@ -558,7 +545,7 @@ fn number<'src>() -> impl Parser<'src, ParserInput<'src>, Literal, ParserError> 
         })
 }
 
-fn parse_integer<'src>() -> impl Parser<'src, ParserInput<'src>, Vec<char>, ParserError> {
+fn parse_integer<'src>() -> impl Parser<'src, ParserInput<'src>, Vec<char>, ParserError<'src>> {
     // Handle both multi-digit numbers (can't start with 0) and single digit 0
     choice((
         any()
@@ -578,11 +565,11 @@ fn parse_integer<'src>() -> impl Parser<'src, ParserInput<'src>, Vec<char>, Pars
     ))
 }
 
-fn string<'src>() -> impl Parser<'src, ParserInput<'src>, Literal, ParserError> {
+fn string<'src>() -> impl Parser<'src, ParserInput<'src>, Literal, ParserError<'src>> {
     quoted_string(true).map(Literal::String)
 }
 
-fn raw_string<'src>() -> impl Parser<'src, ParserInput<'src>, Literal, ParserError> {
+fn raw_string<'src>() -> impl Parser<'src, ParserInput<'src>, Literal, ParserError<'src>> {
     just("r")
         .then(choice((just('\''), just('"'))))
         .then(
@@ -595,17 +582,17 @@ fn raw_string<'src>() -> impl Parser<'src, ParserInput<'src>, Literal, ParserErr
         .map(|(((_, _), chars), _)| Literal::RawString(chars.into_iter().collect()))
 }
 
-fn boolean<'src>() -> impl Parser<'src, ParserInput<'src>, Literal, ParserError> {
+fn boolean<'src>() -> impl Parser<'src, ParserInput<'src>, Literal, ParserError<'src>> {
     choice((just("true").map(|_| true), just("false").map(|_| false)))
         .then_ignore(end_expr())
         .map(Literal::Boolean)
 }
 
-fn null<'src>() -> impl Parser<'src, ParserInput<'src>, Literal, ParserError> {
+fn null<'src>() -> impl Parser<'src, ParserInput<'src>, Literal, ParserError<'src>> {
     just("null").map(|_| Literal::Null).then_ignore(end_expr())
 }
 
-fn value_and_unit<'src>() -> impl Parser<'src, ParserInput<'src>, Literal, ParserError> {
+fn value_and_unit<'src>() -> impl Parser<'src, ParserInput<'src>, Literal, ParserError<'src>> {
     // Supported time units
     let unit = choice((
         just("microseconds"),
@@ -636,7 +623,7 @@ fn value_and_unit<'src>() -> impl Parser<'src, ParserInput<'src>, Literal, Parse
 
 pub fn quoted_string<'src>(
     escaped: bool,
-) -> impl Parser<'src, ParserInput<'src>, String, ParserError> {
+) -> impl Parser<'src, ParserInput<'src>, String, ParserError<'src>> {
     choice((
         quoted_triple_string(escaped),
         quoted_string_of_quote(&'"', escaped, false),
@@ -647,7 +634,7 @@ pub fn quoted_string<'src>(
 
 fn quoted_triple_string<'src>(
     escaped: bool,
-) -> impl Parser<'src, ParserInput<'src>, Vec<char>, ParserError> {
+) -> impl Parser<'src, ParserInput<'src>, Vec<char>, ParserError<'src>> {
     // Parser for triple quoted strings (both single and double quotes)
     let make_triple_parser = |quote: char| {
         let q = quote; // Create local copy to avoid closure issue
@@ -680,7 +667,7 @@ fn quoted_string_of_quote<'src, 'a>(
     quote: &'a char,
     escaping: bool,
     allow_multiline: bool,
-) -> impl Parser<'src, ParserInput<'src>, Vec<char>, ParserError> + 'a
+) -> impl Parser<'src, ParserInput<'src>, Vec<char>, ParserError<'src>> + 'a
 where
     'src: 'a,
 {
@@ -718,7 +705,7 @@ where
         .then_ignore(just(q))
 }
 
-fn escaped_character<'src>() -> impl Parser<'src, ParserInput<'src>, char, ParserError> {
+fn escaped_character<'src>() -> impl Parser<'src, ParserInput<'src>, char, ParserError<'src>> {
     just('\\').ignore_then(choice((
         just('\\'),
         just('/'),
@@ -752,7 +739,7 @@ fn escaped_character<'src>() -> impl Parser<'src, ParserInput<'src>, char, Parse
     )))
 }
 
-fn end_expr<'src>() -> impl Parser<'src, ParserInput<'src>, (), ParserError> {
+fn end_expr<'src>() -> impl Parser<'src, ParserInput<'src>, (), ParserError<'src>> {
     choice((
         end(),
         one_of(",)]}\t >").map(|_| ()),
