@@ -633,39 +633,47 @@ pub fn quoted_string<'a>(
     escaped: bool,
 ) -> impl Parser<'a, ParserInput<'a>, String, ParserError<'a>> {
     choice((
-        quoted_triple_string(escaped),
         quoted_string_of_quote(&'"', escaped, false),
         quoted_string_of_quote(&'\'', escaped, false),
     ))
     .map(|chars| chars.into_iter().collect())
 }
 
-fn quoted_triple_string<'a>(
-    _escaped: bool, // Not used in this implementation
-) -> impl Parser<'a, ParserInput<'a>, Vec<char>, ParserError<'a>> {
-    // Helper function to create triple quoted string parsers
-    fn triple_quoted_parser<'p>(
-        quote: char,
-    ) -> impl Parser<'p, ParserInput<'p>, Vec<char>, ParserError<'p>> {
-        let triple_quote_open = just(quote).then(just(quote)).then(just(quote));
-        let triple_quote_close = just(quote).then(just(quote)).then(just(quote));
+// TODO: not working, need to figure out how to convert the `then_with` in 0.9
+// to 0.10
+//
+// here's the comment from @zesterer:
 
-        triple_quote_open
-            .ignore_then(
-                // Keep consuming characters until we hit three quotes in a row
-                any()
-                    .filter(move |&c| c != quote)
-                    .repeated()
-                    .collect::<Vec<char>>(),
-            )
-            .then_ignore(triple_quote_close)
-    }
-
-    // Parser for triple quoted strings (both single and double quotes)
-    choice((triple_quoted_parser('"'), triple_quoted_parser('\'')))
-}
-
-// TODO: not working, need to figure out how to convert the `then_with` in 0.9 to 0.10
+// > Hello.
+// >
+// > `then_with` was removed for performance/introspection reasons (it's effectively a 'black box' to chumsky, and in the future we're likely to start doing more and more up-front optimisation work on parser creation, as well as automatic static-analysis of parsers, so creating parsers anew during a parse isn't a scaleable long-term solution).
+// >
+// > Its replacement comes in the form of the context-sensitive parsers, as you have guessed.
+// >
+// > Here's a rough mock-up of a design I imagine will work. It deliberately only handles the odd-numbered case for the sake of simplicity: I think empty strings are probably best handled as another branch of the parser above this, perhaps via `choice`/`or`.
+// >
+// > Hopefully the comments provide sufficient explanation!
+// >
+// > let quote: char = ...;
+// >
+// > // Parses an odd number of `quote`s, outputs the number of repeating pairs after the first quote
+// > // i.e: 5 quotes results in an output of 2
+// > let open = just(quote)
+// >     .ignore_then(just([quote; 2]).repeated().count());
+// >
+// > // Also parses an odd number of `quote`s, but takes the number of repeating pairs to expect from the context passed to it (from the `open` parser)
+// > let close = just(quote)
+// >     .ignore_then(just([quote; 2]).repeated().configure(|cfg, ctx| cfg.exactly(*ctx)));
+// >
+// > // Any number of tokens, provided the token is not the start of the final closing quotes
+// > // Outputs a `&str` slice of the parsed characters
+// > let inner = any().and_is(close.not()).repeated().to_slice();
+// >
+// > // A set of open quotes, the inner content, then a set of close quotes
+// > // `open` provides its output (the number of repeating pairs) as context for `inner` and `close`.
+// > open.ignore_with_ctx(inner.then_ignore(close))
+// >
+// > At some point I'll get some time to write some comprehensive docs showing exactly how to go about using the context-sensitive parsers, but hopefully for now this gives you a flavour of how they might be used.
 //
 // The commented code below shows how the 0.9 lexer handled multi-level quoted strings
 // by counting the number of opening quotes and then creating a closing delimiter
