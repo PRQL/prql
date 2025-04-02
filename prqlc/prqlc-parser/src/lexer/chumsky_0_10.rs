@@ -139,7 +139,6 @@ type E = Error;
 type ParserInput<'a> = Stream<std::str::Chars<'a>>;
 // Use the extra::Default type for error handling
 type ParserError = extra::Default;
-type SimpleSpan = chumsky_0_10::span::SimpleSpan<usize>;
 
 /// Lex PRQL into LR, returning both the LR and any errors encountered
 pub fn lex_source_recovery(source: &str, _source_id: u16) -> (Option<Vec<Token>>, Vec<E>) {
@@ -190,7 +189,14 @@ fn insert_start(tokens: Vec<Token>) -> Vec<Token> {
     .collect()
 }
 
-fn convert_lexer_error(_source: &str, e: Simple<SimpleSpan>, source_id: u16) -> Error {
+// This function is for future improvement of error reporting
+// when we have proper error handling in place
+#[allow(dead_code)]
+fn convert_lexer_error(
+    _source: &str,
+    e: Simple<chumsky_0_10::span::SimpleSpan<usize>>,
+    source_id: u16,
+) -> Error {
     // In Chumsky 0.10, errors have a different structure
     let span_start = e.span().start;
     let span_end = e.span().end;
@@ -307,7 +313,7 @@ fn lex_token<'src>() -> impl Parser<'src, ParserInput<'src>, Token, ParserError>
         .boxed();
 
     // For other tokens, use map_with to capture span information
-    let other_tokens = ignored().ignore_then(token).map_with(|kind, extra| {
+    let other_tokens = token.map_with(|kind, extra| {
         let span = extra.span();
         Token {
             kind,
@@ -315,7 +321,8 @@ fn lex_token<'src>() -> impl Parser<'src, ParserInput<'src>, Token, ParserError>
         }
     });
 
-    choice((range, other_tokens))
+    // Choose between range or tokens, but handle the whitespace properly
+    ignored().ignore_then(choice((range, other_tokens)))
 }
 
 fn ignored<'src>() -> impl Parser<'src, ParserInput<'src>, (), ParserError> {
@@ -766,6 +773,9 @@ where
         .then_ignore(just(q))
 }
 
+// This function will be used for more advanced string parsing
+// when we implement the full set of string features from 0.9
+#[allow(dead_code)]
 fn escaped_character<'src>() -> impl Parser<'src, ParserInput<'src>, char, ParserError> {
     just('\\').ignore_then(choice((
         just('\\'),

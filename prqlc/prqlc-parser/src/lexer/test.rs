@@ -24,32 +24,40 @@ use crate::lexer::chumsky_0_10::{lexer, literal, quoted_string};
 #[cfg(feature = "chumsky-10")]
 use chumsky_0_10::input::Stream;
 
-// Helper function to prepare input for parsing - abstracts the differences between versions
-#[cfg(not(feature = "chumsky-10"))]
-fn prepare_input(input: &str) -> &str {
-    input
-}
+// NOTE: These helper functions aren't used in the current implementation
+// but are kept for reference as we transition between Chumsky versions.
+// We use direct Stream::from_iter in the test functions for chumsky-10.
 
-#[cfg(feature = "chumsky-10")]
-fn prepare_input(input: &str) -> Stream<std::str::Chars> {
-    Stream::from_iter(input.chars())
-}
-
-// Helper function to extract output from parser result
-#[cfg(not(feature = "chumsky-10"))]
-fn extract_output<T>(result: Result<T, chumsky::error::Simple<char>>) -> T {
-    result.unwrap()
-}
-
-#[cfg(feature = "chumsky-10")]
-fn extract_output<T: Clone>(
-    result: chumsky_0_10::prelude::ParseResult<
-        T,
-        chumsky_0_10::error::Simple<chumsky_0_10::span::SimpleSpan<usize>>,
-    >,
-) -> T {
-    result.output().unwrap().clone()
-}
+// // Helper function to prepare input for parsing - abstracts the differences between versions
+// #[cfg(not(feature = "chumsky-10"))]
+// #[allow(dead_code)]
+// fn prepare_input(input: &str) -> &str {
+//     input
+// }
+// 
+// #[cfg(feature = "chumsky-10")]
+// #[allow(dead_code)]
+// fn prepare_input(input: &str) -> Stream<std::str::Chars> {
+//     Stream::from_iter(input.chars())
+// }
+// 
+// // Helper function to extract output from parser result
+// #[cfg(not(feature = "chumsky-10"))]
+// #[allow(dead_code)]
+// fn extract_output<T>(result: Result<T, chumsky::error::Simple<char>>) -> T {
+//     result.unwrap()
+// }
+// 
+// #[cfg(feature = "chumsky-10")]
+// #[allow(dead_code)]
+// fn extract_output<T: Clone>(
+//     result: chumsky_0_10::prelude::ParseResult<
+//         T,
+//         chumsky_0_10::error::Simple<chumsky_0_10::span::SimpleSpan<usize>>,
+//     >,
+// ) -> T {
+//     result.output().unwrap().clone()
+// }
 
 #[test]
 fn line_wrap() {
