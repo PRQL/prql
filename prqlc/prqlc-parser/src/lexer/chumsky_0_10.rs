@@ -288,7 +288,9 @@ fn comment<'a>() -> impl Parser<'a, ParserInput<'a>, TokenKind, ParserError<'a>>
         .collect::<String>();
     
     just('#').ignore_then(
-        // If comment starts with '!', it's a doc comment, otherwise a regular comment
+        // One option would be to check that doc comments have new lines in the
+        // lexer (we currently do in the parser); which would give better error
+        // messages?
         just('!').ignore_then(comment_text.clone().map(TokenKind::DocComment))
             .or(comment_text.map(TokenKind::Comment))
     )
@@ -382,7 +384,8 @@ fn time_inner<'a>() -> impl Parser<'a, ParserInput<'a>, String, ParserError<'a>>
         one_of("-+")
             .then(digits(2).then(just(':').or_not().then(digits(2))).map(
                 |(hrs, (_opt_colon, mins))| {
-                    // Always format as -0800 without colon for SQL compatibility
+                    // Always format as -0800 without colon for SQL compatibility, regardless of input format
+                    // We need to handle both -08:00 and -0800 input formats but standardize the output
                     format!("{}{}", String::from_iter(hrs), String::from_iter(mins))
                 },
             ))
@@ -666,20 +669,24 @@ fn quoted_triple_string<'a>(
 }
 
 // TODO: not working, need to figure out how to convert the `then_with` in 0.9 to 0.10
-
+//
+// The commented code below shows how the 0.9 lexer handled multi-level quoted strings
+// by counting the number of opening quotes and then creating a closing delimiter
+// with the same count:
+//
 // fn quoted_string_of_quote2(
 //     quote: &char,
 //     escaping: bool,
 // ) -> impl Parser<'_, ParserInput<'_>, Vec<char>, ParserError<'_>> {
 //     let opening = just(*quote).repeated().at_least(1);
-
+//
 //     opening.then_with_ctx(move |opening| {
 //         if opening.len() % 2 == 0 {
 //             // If we have an even number of quotes, it's an empty string.
 //             return (just(vec![])).boxed();
 //         }
 //         let delimiter = just(*quote).repeated().exactly(opening.len());
-
+//
 //         let inner = if escaping {
 //             choice((
 //                 // If we're escaping, don't allow consuming a backslash
@@ -693,7 +700,7 @@ fn quoted_triple_string<'a>(
 //         } else {
 //             delimiter.not().boxed()
 //         };
-
+//
 //         inner.repeated().then_ignore(delimiter).boxed()
 //     })
 // }
