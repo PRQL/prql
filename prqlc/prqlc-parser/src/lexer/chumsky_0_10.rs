@@ -29,7 +29,6 @@ Check out these issues for more details:
 */
 
 use chumsky_0_10::extra;
-use chumsky_0_10::input::Stream;
 use chumsky_0_10::prelude::*;
 use chumsky_0_10::primitive::{choice, end, just, none_of, one_of};
 use chumsky_0_10::Parser;
@@ -38,7 +37,7 @@ use super::lr::{Literal, Token, TokenKind, Tokens, ValueAndUnit};
 use crate::error::{Error, ErrorSource, Reason, WithErrorInfo};
 
 type E = Error;
-type ParserInput<'a> = Stream<std::str::Chars<'a>>;
+type ParserInput<'a> = &'a str;
 // Define a custom error type with the `Simple` error type from chumsky_0_10
 type ParserError<'a> = extra::Err<Simple<'a, char>>;
 
@@ -71,8 +70,7 @@ fn convert_lexer_error(error: &Simple<'_, char>, source_id: u16) -> E {
 
 /// Lex PRQL into LR, returning both the LR and any errors encountered
 pub fn lex_source_recovery(source: &str, source_id: u16) -> (Option<Vec<Token>>, Vec<E>) {
-    let stream = Stream::from_iter(source.chars());
-    let result = lexer().parse(stream).into_result();
+    let result = lexer().parse(source).into_result();
 
     match result {
         Ok(tokens) => (Some(insert_start(tokens.to_vec())), vec![]),
@@ -90,8 +88,7 @@ pub fn lex_source_recovery(source: &str, source_id: u16) -> (Option<Vec<Token>>,
 
 /// Lex PRQL into LR, returning either the LR or the errors encountered
 pub fn lex_source(source: &str) -> Result<Tokens, Vec<E>> {
-    let stream = Stream::from_iter(source.chars());
-    let result = lexer().parse(stream).into_result();
+    let result = lexer().parse(source).into_result();
 
     match result {
         Ok(tokens) => Ok(Tokens(insert_start(tokens.to_vec()))),
@@ -119,11 +116,7 @@ fn insert_start(tokens: Vec<Token>) -> Vec<Token> {
 
 /// Lex chars to tokens until the end of the input
 pub fn lexer<'a>() -> impl Parser<'a, ParserInput<'a>, Vec<Token>, ParserError<'a>> {
-    lex_token()
-        .repeated()
-        .collect()
-        .then_ignore(ignored())
-        .then_ignore(end())
+    lex_token().repeated().collect().then_ignore(ignored())
 }
 
 /// Lex chars to a single token
@@ -726,14 +719,15 @@ fn quoted_string_of_quote(
     };
 
     // Parser for escaped characters if escaping is enabled
-    let escaped_char = choice((
-        just('\\').ignore_then(just(q)),            // Escaped quote
-        just('\\').ignore_then(just('\\')),         // Escaped backslash
-        just('\\').ignore_then(just('n')).to('\n'), // Newline
-        just('\\').ignore_then(just('r')).to('\r'), // Carriage return
-        just('\\').ignore_then(just('t')).to('\t'), // Tab
-        escaped_character(),                        // Handle all other escape sequences
-    ));
+    let escaped_char = just('\\')
+        .ignore_then(choice((
+            just(q),            // Escaped quote
+            just('\\'),         // Escaped backslash
+            just('n').to('\n'), // Newline
+            just('r').to('\r'), // Carriage return
+            just('t').to('\t'), // Tab
+        )))
+        .or(escaped_character()); // Handle all other escape sequences
 
     // Choose the right character parser based on whether escaping is enabled
     let char_parser = if escaping {

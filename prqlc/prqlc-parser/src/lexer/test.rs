@@ -21,8 +21,7 @@ use crate::lexer::chumsky_0_9::{lexer, literal, quoted_string};
 #[cfg(feature = "chumsky-10")]
 use crate::lexer::chumsky_0_10::{lexer, literal, quoted_string};
 
-#[cfg(feature = "chumsky-10")]
-use chumsky_0_10::input::Stream;
+// We no longer need Stream since we're using &str directly
 
 // NOTE: These helper functions aren't used in the current implementation
 // but are kept for reference as we transition between Chumsky versions.
@@ -70,13 +69,7 @@ fn line_wrap() {
 
         #[cfg(feature = "chumsky-10")]
         {
-            Tokens(
-                lexer()
-                    .parse(Stream::from_iter(input.chars()))
-                    .output()
-                    .unwrap()
-                    .to_vec(),
-            )
+            Tokens(lexer().parse(input).output().unwrap().to_vec())
         }
     }
 
@@ -136,13 +129,7 @@ fn numbers() {
 
         #[cfg(feature = "chumsky-10")]
         {
-            assert_eq!(
-                literal()
-                    .parse(Stream::from_iter(input.chars()))
-                    .output()
-                    .unwrap(),
-                &expected
-            );
+            assert_eq!(literal().parse(input).output().unwrap(), &expected);
         }
     }
 
@@ -169,13 +156,7 @@ fn debug_display() {
 
         #[cfg(feature = "chumsky-10")]
         {
-            Tokens(
-                lexer()
-                    .parse(Stream::from_iter(input.chars()))
-                    .output()
-                    .unwrap()
-                    .to_vec(),
-            )
+            Tokens(lexer().parse(input).output().unwrap().to_vec())
         }
     }
 
@@ -208,13 +189,7 @@ fn comment() {
 
         #[cfg(feature = "chumsky-10")]
         {
-            Tokens(
-                lexer()
-                    .parse(Stream::from_iter(input.chars()))
-                    .output()
-                    .unwrap()
-                    .to_vec(),
-            )
+            Tokens(lexer().parse(input).output().unwrap().to_vec())
         }
     }
 
@@ -243,13 +218,7 @@ fn doc_comment() {
 
         #[cfg(feature = "chumsky-10")]
         {
-            Tokens(
-                lexer()
-                    .parse(Stream::from_iter(input.chars()))
-                    .output()
-                    .unwrap()
-                    .to_vec(),
-            )
+            Tokens(lexer().parse(input).output().unwrap().to_vec())
         }
     }
 
@@ -277,8 +246,7 @@ fn quotes() {
 
         #[cfg(feature = "chumsky-10")]
         {
-            let stream = Stream::from_iter(input.chars());
-            let parse_result = quoted_string(escaped).parse(stream);
+            let parse_result = quoted_string(escaped).parse(input);
             if let Some(result) = parse_result.output() {
                 assert_eq!(result, expected_str);
             } else {
@@ -318,16 +286,10 @@ fn interpolated_strings() {
 
         #[cfg(feature = "chumsky-10")]
         {
-            Tokens(
-                lexer()
-                    .parse(Stream::from_iter(input.chars()))
-                    .output()
-                    .unwrap()
-                    .to_vec(),
-            )
+            Tokens(lexer().parse(input).output().unwrap().to_vec())
         }
     }
-    
+
     // Test s-string and f-string with regular quotes
     assert_debug_snapshot!(test_interpolation_tokens(r#"s"Hello {name}""#), @r#"
     Tokens(
@@ -336,7 +298,7 @@ fn interpolated_strings() {
         ],
     )
     "#);
-    
+
     // Test s-string with triple quotes (important for multi-line SQL in s-strings)
     assert_debug_snapshot!(test_interpolation_tokens(r#"s"""SELECT * FROM table WHERE id = {id}""" "#), @r#"
     Tokens(
@@ -358,16 +320,10 @@ fn timestamp_tests() {
 
         #[cfg(feature = "chumsky-10")]
         {
-            Tokens(
-                lexer()
-                    .parse(Stream::from_iter(input.chars()))
-                    .output()
-                    .unwrap()
-                    .to_vec(),
-            )
+            Tokens(lexer().parse(input).output().unwrap().to_vec())
         }
     }
-    
+
     // Test timestamp with timezone format -08:00 (with colon)
     assert_debug_snapshot!(test_timestamp_tokens("@2020-01-01T13:19:55-08:00"), @r#"
     Tokens(
@@ -376,7 +332,7 @@ fn timestamp_tests() {
         ],
     )
     "#);
-    
+
     // Test timestamp with timezone format Z
     assert_debug_snapshot!(test_timestamp_tokens("@2020-01-02T21:19:55Z"), @r#"
     Tokens(
@@ -398,13 +354,7 @@ fn range() {
 
         #[cfg(feature = "chumsky-10")]
         {
-            Tokens(
-                lexer()
-                    .parse(Stream::from_iter(input.chars()))
-                    .output()
-                    .unwrap()
-                    .to_vec(),
-            )
+            Tokens(lexer().parse(input).output().unwrap().to_vec())
         }
     }
 
