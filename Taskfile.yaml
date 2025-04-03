@@ -381,9 +381,10 @@ tasks:
       - mix test
 
   test-lint:
-    desc: Run pre-commit
+    desc: Run pre-commit & cargo clippy.
     cmds:
-      - pre-commit run -a
+      - pre-commit run --all-files
+      - cargo clippy --all-targets --all-features
 
   build-php:
     - cargo build --package prqlc-c --release

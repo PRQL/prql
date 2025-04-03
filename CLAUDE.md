@@ -6,7 +6,7 @@ Prefer `cargo insta` tests.
 
 When running tests, prefer:
 
-```bash
+```sh
 # Run tests and automatically accept snapshot changes
 cargo insta test --accept
 
@@ -32,11 +32,17 @@ insta::assert_snapshot!(result, @"");
 ...and then running the test commands above with `--accept` will then fill in
 the result.
 
+To run all tests, accepting snapshots, run
+
+```sh
+task test-all
+```
+
 ## Running the CLI
 
 For viewing `prqlc` output, for any stage of the compilation process:
 
-```bash
+```sh
 # Compile PRQL to SQL
 cargo run -p prqlc -- compile "from employees | filter country == 'USA'"
 
@@ -52,14 +58,14 @@ cargo run -p prqlc -- --help
 Run all lints with
 
 ```sh
-pre-commit run --all-files
+task test-lint
 ```
 
 ## Documentation
 
 For Claude to view crate documentation:
 
-```bash
+```sh
 # Build documentation for a specific crate
 cargo doc -p prqlc
 
