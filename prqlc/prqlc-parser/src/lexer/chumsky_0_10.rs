@@ -116,7 +116,10 @@ fn insert_start(tokens: Vec<Token>) -> Vec<Token> {
 
 /// Lex chars to tokens until the end of the input
 pub fn lexer<'a>() -> impl Parser<'a, ParserInput<'a>, Vec<Token>, ParserError<'a>> {
-    lex_token().repeated().collect().then_ignore(ignored())
+    lex_token()
+        .repeated()
+        .collect()
+        .then_ignore(whitespace().or_not())
 }
 
 /// Lex chars to a single token
@@ -142,13 +145,15 @@ fn lex_token<'a>() -> impl Parser<'a, ParserInput<'a>, Token, ParserError<'a>> {
         });
 
     // Handle all other token types with proper whitespace
-    let other_tokens = ignored().ignore_then(token().map_with(|kind, extra| {
-        let span: chumsky_0_10::span::SimpleSpan = extra.span();
-        Token {
-            kind,
-            span: span.start()..span.end(),
-        }
-    }));
+    let other_tokens = whitespace()
+        .or_not()
+        .ignore_then(token().map_with(|kind, extra| {
+            let span: chumsky_0_10::span::SimpleSpan = extra.span();
+            Token {
+                kind,
+                span: span.start()..span.end(),
+            }
+        }));
 
     // Try to match either a range or any other token
     choice((range, other_tokens))
@@ -227,9 +232,7 @@ fn interpolation<'a>() -> impl Parser<'a, ParserInput<'a>, TokenKind, ParserErro
             // Use a custom quoted_string implementation that better handles triple quotes
             choice((
                 // Triple quote strings for s-strings
-                just('"')
-                    .then(just('"'))
-                    .then(just('"'))
+                just(['"'; 3])
                     .ignore_then(any().filter(|&c| c != '"').repeated().collect::<String>())
                     .then_ignore(just('"').then(just('"')).then(just('"'))),
                 // Regular quoted string
@@ -239,16 +242,8 @@ fn interpolation<'a>() -> impl Parser<'a, ParserInput<'a>, TokenKind, ParserErro
         .map(|(c, s)| TokenKind::Interpolation(c, s))
 }
 
-fn ignored<'a>() -> impl Parser<'a, ParserInput<'a>, (), ParserError<'a>> {
-    whitespace().repeated().ignored()
-}
-
 fn whitespace<'a>() -> impl Parser<'a, ParserInput<'a>, (), ParserError<'a>> {
-    any()
-        .filter(|x: &char| *x == ' ' || *x == '\t')
-        .repeated()
-        .at_least(1)
-        .ignored()
+    text::inline_whitespace().at_least(1)
 }
 
 // Custom newline parser for Stream<char>
@@ -275,17 +270,14 @@ fn line_wrap<'a>() -> impl Parser<'a, ParserInput<'a>, TokenKind, ParserError<'a
 
 fn comment<'a>() -> impl Parser<'a, ParserInput<'a>, TokenKind, ParserError<'a>> {
     // Extract the common comment text parser
-    let comment_text = any()
-        .filter(|c: &char| *c != '\n' && *c != '\r')
-        .repeated()
-        .collect::<String>();
+    let comment_text = none_of("\n\r").repeated().collect::<String>();
 
     just('#').ignore_then(
         // One option would be to check that doc comments have new lines in the
         // lexer (we currently do in the parser); which would give better error
         // messages?
         just('!')
-            .ignore_then(comment_text.clone().map(TokenKind::DocComment))
+            .ignore_then(comment_text.map(TokenKind::DocComment))
             .or(comment_text.map(TokenKind::Comment)),
     )
 }
@@ -294,6 +286,10 @@ pub fn ident_part<'a>() -> impl Parser<'a, ParserInput<'a>, String, ParserError<
     let plain = any()
         .filter(|c: &char| c.is_alphabetic() || *c == '_')
         .then(
+            // this could _almost_ just be, but we don't currently allow numbers
+            // (should we?)
+            //
+            // .then(text::ascii::ident())
             any()
                 .filter(|c: &char| c.is_alphanumeric() || *c == '_')
                 .repeated()
@@ -307,39 +303,30 @@ pub fn ident_part<'a>() -> impl Parser<'a, ParserInput<'a>, String, ParserError<
 
     let backtick = none_of('`')
         .repeated()
-        .collect::<Vec<char>>()
-        .delimited_by(just('`'), just('`'))
-        .map(|chars| chars.into_iter().collect::<String>());
+        .collect::<String>()
+        .delimited_by(just('`'), just('`'));
 
     choice((plain, backtick))
 }
 
 // Date/time components
 fn digits<'a>(count: usize) -> impl Parser<'a, ParserInput<'a>, Vec<char>, ParserError<'a>> {
-    any()
-        .filter(|c: &char| c.is_ascii_digit())
-        .repeated()
+    chumsky_0_10::text::digits(10)
         .exactly(count)
         .collect::<Vec<char>>()
 }
 
 fn date_inner<'a>() -> impl Parser<'a, ParserInput<'a>, String, ParserError<'a>> {
     // Format: YYYY-MM-DD
-    digits(4)
+    text::digits(10)
+        .exactly(4)
         .then(just('-'))
-        .then(digits(2))
+        .then(text::digits(10).exactly(2))
         .then(just('-'))
-        .then(digits(2))
-        .map(|((((year, dash1), month), dash2), day)| {
-            format!(
-                "{}{}{}{}{}",
-                String::from_iter(year),
-                dash1,
-                String::from_iter(month),
-                dash2,
-                String::from_iter(day)
-            )
-        })
+        .then(text::digits(10).exactly(2))
+        .to_slice()
+        // TODO: can change this to return the slice and avoid the allocation
+        .map(|s: &str| s.to_owned())
 }
 
 fn time_inner<'a>() -> impl Parser<'a, ParserInput<'a>, String, ParserError<'a>> {
