@@ -224,6 +224,8 @@ impl<'a> FileTreeCache<'a> {
 
 impl Cache<PathBuf> for FileTreeCache<'_> {
     type Storage = String;
+    // ariadne 0.5.1
+    // fn fetch(&mut self, id: &PathBuf) -> Result<&Source<Self::Storage>, impl fmt::Debug> {
     fn fetch(&mut self, id: &PathBuf) -> Result<&Source, Box<dyn fmt::Debug + '_>> {
         let file_contents = match self.file_tree.sources.get(id) {
             Some(v) => v,
@@ -242,4 +244,8 @@ impl Cache<PathBuf> for FileTreeCache<'_> {
             None => None,
         }
     }
+    // ariadne 0.5.1
+    // fn display<'b>(&self, id: &'b PathBuf) -> Option<impl fmt::Display + 'b> {
+    //     id.as_os_str().to_str().map(Box::new)
+    // }
 }
