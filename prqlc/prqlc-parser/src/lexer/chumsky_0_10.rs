@@ -726,20 +726,9 @@ fn quoted_string_of_quote(
             .boxed()
     };
 
-    // Parser for escaped characters if escaping is enabled
-    let escaped_char = just('\\')
-        .ignore_then(choice((
-            just(q),            // Escaped quote
-            just('\\'),         // Escaped backslash
-            just('n').to('\n'), // Newline
-            just('r').to('\r'), // Carriage return
-            just('t').to('\t'), // Tab
-        )))
-        .or(escaped_character()); // Handle all other escape sequences
-
     // Choose the right character parser based on whether escaping is enabled
     let char_parser = if escaping {
-        choice((escaped_char, regular_char)).boxed()
+        choice((escaped_character(), regular_char)).boxed()
     } else {
         regular_char.boxed()
     };
