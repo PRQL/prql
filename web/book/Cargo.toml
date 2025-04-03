@@ -19,25 +19,25 @@ test = false
 
 [target.'cfg(not(target_family="wasm"))'.dependencies]
 ansi-to-html = "0.2.2"
-anyhow = {workspace = true}
-itertools = {workspace = true}
-mdbook = {version = "0.4.48", default-features = false}
+anyhow = { workspace = true }
+itertools = { workspace = true }
+mdbook = { version = "0.4.48", default-features = false }
 mdbook-preprocessor-boilerplate = "0.1.2"
-prqlc = {path = "../../prqlc/prqlc", default-features = false}
-pulldown-cmark = {version = "0.10.3", default-features = false}
+prqlc = { path = "../../prqlc/prqlc", default-features = false }
+pulldown-cmark = { version = "0.10.3", default-features = false }
 pulldown-cmark-to-cmark = "14.0.1"
-strum = {version = "0.27.1", features = ["std", "derive"]}
-strum_macros = "0.27.0"
+strum = { version = "0.27.1", features = ["std", "derive"] }
+strum_macros = "0.27.1"
 
 [target.'cfg(not(target_family="wasm"))'.dev-dependencies]
-anstream = {version = "0.6.18"}
+anstream = { version = "0.6.18" }
 globset = "0.4.16"
-insta = {workspace = true}
-log = {workspace = true}
+insta = { workspace = true }
+log = { workspace = true }
 regex = "1.11.1"
-serde_json = {workspace = true}
-serde_yaml = {workspace = true}
-similar-asserts = {workspace = true}
+serde_json = { workspace = true }
+serde_yaml = { workspace = true }
+similar-asserts = { workspace = true }
 walkdir = "2.5.0"
 
 [package.metadata.release]
