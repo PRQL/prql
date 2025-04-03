@@ -706,11 +706,9 @@ fn quoted_string_of_quote(
 
     // Parser for non-quote characters
     let regular_char = if allow_multiline {
-        any().filter(move |c: &char| *c != q && *c != '\\').boxed()
+        none_of(format!("{}\\", q))
     } else {
-        any()
-            .filter(move |c: &char| *c != q && *c != '\n' && *c != '\r' && *c != '\\')
-            .boxed()
+        none_of(format!("{}\n\r\\", q))
     };
 
     // Choose the right character parser based on whether escaping is enabled
