@@ -30,7 +30,6 @@ Check out these issues for more details:
 
 use chumsky_0_10::extra;
 use chumsky_0_10::prelude::*;
-use chumsky_0_10::primitive::{choice, end, just, none_of, one_of};
 use chumsky_0_10::Parser;
 
 use super::lr::{Literal, Token, TokenKind, Tokens, ValueAndUnit};
@@ -211,6 +210,7 @@ fn keyword<'a>() -> impl Parser<'a, ParserInput<'a>, TokenKind, ParserError<'a>>
         just("enum"),
     ))
     .then_ignore(end_expr())
+    // TODO: possibly we can avoid an allocation by using `.map(TokenKind::Keyword)`
     .map(|x| TokenKind::Keyword(x.to_string()))
 }
 
@@ -633,7 +633,7 @@ pub fn quoted_string<'a>(
 
 // > Hello.
 // >
-// > `then_with` was removed for performance/introspection reasons (it's effectively a 'black box' to chumsky, and in the future we're likely to start doing more and more up-front optimisation work on parser creation, as well as automatic static-analysis of parsers, so creating parsers anew during a parse isn't a scaleable long-term solution).
+// > `then_with` was removed for performance/introspection reasons (it's effectively a 'black box' to chumsky, and in the future we're likely to start doing more and more up-front optimisation work on parser creation, as well as automatic static-analysis of parsers, so creating parsers anew during a parse isn't a scalable long-term solution).
 // >
 // > Its replacement comes in the form of the context-sensitive parsers, as you have guessed.
 // >
