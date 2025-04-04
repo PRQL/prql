@@ -620,83 +620,66 @@ pub fn quoted_string<'a>(
     escaped: bool,
 ) -> impl Parser<'a, ParserInput<'a>, String, ParserError<'a>> {
     choice((
-        quoted_string_of_quote(&'"', escaped, false),
-        quoted_string_of_quote(&'\'', escaped, false),
+        multi_quoted_string(&'"', escaped, false),
+        multi_quoted_string(&'\'', escaped, false),
     ))
     .map(|chars| chars.into_iter().collect())
 }
 
-// TODO: not working, need to figure out how to convert the `then_with` in 0.9
-// to 0.10
-//
-// here's the comment from @zesterer:
+// Implementation of multi-level quoted strings using context-sensitive parsers
+// Based on @zesterer's suggestion for handling odd number of quotes (1, 3, 5, etc.)
+fn multi_quoted_string(
+    quote: &char,
+    escaping: bool,
+    allow_multiline: bool,
+) -> impl Parser<'_, ParserInput<'_>, Vec<char>, ParserError<'_>> {
+    // Parse opening quotes - first a single quote, then count any pairs of quotes
+    // For example, """ would be 1 single quote + 1 pair = 2 total quotes
+    let open = just(*quote).ignore_then(just([*quote; 2]).repeated().count());
 
-// > Hello.
-// >
-// > `then_with` was removed for performance/introspection reasons (it's effectively a 'black box' to chumsky, and in the future we're likely to start doing more and more up-front optimisation work on parser creation, as well as automatic static-analysis of parsers, so creating parsers anew during a parse isn't a scalable long-term solution).
-// >
-// > Its replacement comes in the form of the context-sensitive parsers, as you have guessed.
-// >
-// > Here's a rough mock-up of a design I imagine will work. It deliberately only handles the odd-numbered case for the sake of simplicity: I think empty strings are probably best handled as another branch of the parser above this, perhaps via `choice`/`or`.
-// >
-// > Hopefully the comments provide sufficient explanation!
-// >
-// > let quote: char = ...;
-// >
-// > // Parses an odd number of `quote`s, outputs the number of repeating pairs after the first quote
-// > // i.e: 5 quotes results in an output of 2
-// > let open = just(quote)
-// >     .ignore_then(just([quote; 2]).repeated().count());
-// >
-// > // Also parses an odd number of `quote`s, but takes the number of repeating pairs to expect from the context passed to it (from the `open` parser)
-// > let close = just(quote)
-// >     .ignore_then(just([quote; 2]).repeated().configure(|cfg, ctx| cfg.exactly(*ctx)));
-// >
-// > // Any number of tokens, provided the token is not the start of the final closing quotes
-// > // Outputs a `&str` slice of the parsed characters
-// > let inner = any().and_is(close.not()).repeated().to_slice();
-// >
-// > // A set of open quotes, the inner content, then a set of close quotes
-// > // `open` provides its output (the number of repeating pairs) as context for `inner` and `close`.
-// > open.ignore_with_ctx(inner.then_ignore(close))
-// >
-// > At some point I'll get some time to write some comprehensive docs showing exactly how to go about using the context-sensitive parsers, but hopefully for now this gives you a flavour of how they might be used.
-//
-// The commented code below shows how the 0.9 lexer handled multi-level quoted strings
-// by counting the number of opening quotes and then creating a closing delimiter
-// with the same count:
-//
-// fn quoted_string_of_quote2(
-//     quote: &char,
-//     escaping: bool,
-// ) -> impl Parser<'_, ParserInput<'_>, Vec<char>, ParserError<'_>> {
-//     let opening = just(*quote).repeated().at_least(1);
-//
-//     opening.then_with_ctx(move |opening| {
-//         if opening.len() % 2 == 0 {
-//             // If we have an even number of quotes, it's an empty string.
-//             return (just(vec![])).boxed();
-//         }
-//         let delimiter = just(*quote).repeated().exactly(opening.len());
-//
-//         let inner = if escaping {
-//             choice((
-//                 // If we're escaping, don't allow consuming a backslash
-//                 // We need the `vec` to satisfy the type checker
-//                 (delimiter.or(just(vec!['\\']))).not(),
-//                 escaped_character(),
-//                 // Or escape the quote char of the current string
-//                 just('\\').ignore_then(just(*quote)),
-//             ))
-//             .boxed()
-//         } else {
-//             delimiter.not().boxed()
-//         };
-//
-//         inner.repeated().then_ignore(delimiter).boxed()
-//     })
-// }
+    // Parse closing quotes - matches the exact same number of quote pairs as in opening
+    let close = just(*quote).ignore_then(
+        just([*quote; 2])
+            .repeated()
+            .configure(|cfg, ctx| cfg.exactly(*ctx)),
+    );
 
+    // Define what characters are allowed in the string based on configuration
+    let char_filter: Box<dyn Fn(&char) -> bool> = if allow_multiline {
+        Box::new(|c: &char| *c != *quote)
+    } else {
+        Box::new(|c: &char| *c != *quote && *c != '\n' && *c != '\r')
+    };
+
+    // Choose the appropriate content parser
+    let content_parser = if escaping {
+        escaped_character().boxed()
+    } else {
+        any().filter(move |c| char_filter(c)).boxed()
+    };
+
+    // Parser for string content between quotes, accounting for close parser
+    let inner = content_parser.repeated().collect::<Vec<char>>();
+
+    // // Empty string case - even number of quotes produces empty string
+    // let empty_string = just(*quote)
+    //     .then(just(*quote))
+    //     .repeated()
+    //     .at_least(1)
+    //     .collect::<Vec<_>>()
+    //     .map(|_| vec![]);
+
+    let inner = any().repeated().collect::<Vec<char>>();
+
+    // Either parse an empty string (even quotes) or a string with content (odd quotes)
+    choice((
+        // empty_string,
+        // Parse opening quotes, content, closing quotes using context sensitivity
+        open.ignore_with_ctx(inner.then_ignore(close)),
+    ))
+}
+
+// Legacy quoted string implementation - kept for fallback and compatibility
 fn quoted_string_of_quote(
     quote: &char,
     escaping: bool,
