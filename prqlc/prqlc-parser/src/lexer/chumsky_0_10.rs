@@ -628,14 +628,15 @@ pub fn quoted_string<'a>(
 
 // Implementation of multi-level quoted strings using context-sensitive parsers
 // Based on @zesterer's suggestion for handling odd number of quotes (1, 3, 5, etc.)
-fn multi_quoted_string(
+fn multi_quoted_string<'a>(
     quote: &char,
     escaping: bool,
     allow_multiline: bool,
-) -> impl Parser<'_, ParserInput<'_>, Vec<char>, ParserError<'_>> {
+) -> impl Parser<'a, ParserInput<'a>, Vec<char>, ParserError<'a>> {
     // Parse opening quotes - first a single quote, then count any pairs of quotes
     // For example, """ would be 1 single quote + 1 pair = 2 total quotes
-    let open = just(*quote).ignore_then(just([*quote; 2]).repeated().count());
+    let open = just::<'a, _, ParserInput, ParserError>(*quote)
+        .ignore_then(just([*quote; 2]).repeated().count());
 
     // Parse closing quotes - matches the exact same number of quote pairs as in opening
     let close = just(*quote).ignore_then(
@@ -645,38 +646,43 @@ fn multi_quoted_string(
     );
 
     // Define what characters are allowed in the string based on configuration
-    let char_filter: Box<dyn Fn(&char) -> bool> = if allow_multiline {
-        Box::new(|c: &char| *c != *quote)
+    let regular_char = if allow_multiline {
+        none_of(format!("{}\\", quote))
     } else {
-        Box::new(|c: &char| *c != *quote && *c != '\n' && *c != '\r')
-    };
-
-    // Choose the appropriate content parser
-    let content_parser = if escaping {
-        escaped_character().boxed()
-    } else {
-        any().filter(move |c| char_filter(c)).boxed()
+        none_of(format!("{}\n\r\\", quote))
     };
 
     // Parser for string content between quotes, accounting for close parser
-    let inner = content_parser.repeated().collect::<Vec<char>>();
 
-    // // Empty string case - even number of quotes produces empty string
-    // let empty_string = just(*quote)
-    //     .then(just(*quote))
-    //     .repeated()
-    //     .at_least(1)
-    //     .collect::<Vec<_>>()
-    //     .map(|_| vec![]);
+    // Empty string case - even number of quotes produces empty string
+    let empty_string = just::<[char; 2], ParserInput, ParserError>([*quote; 2])
+        // .ignored()
+        .repeated()
+        .at_least(1)
+        .collect::<Vec<_>>()
+        .map::<Vec<char>, _>(|_| vec![]);
 
-    let inner = any().repeated().collect::<Vec<char>>();
+    // THIS SECTION
+    let content_parser = if escaping {
+        choice((escaped_character(), regular_char)).boxed()
+    } else {
+        regular_char.boxed()
+    };
+
+    // (even without swapping these lines)
+    // let inner = content_parser.repeated().collect::<Vec<char>>();
+    let inner = regular_char.repeated().collect::<Vec<char>>();
 
     // Either parse an empty string (even quotes) or a string with content (odd quotes)
     choice((
-        // empty_string,
-        // Parse opening quotes, content, closing quotes using context sensitivity
+        empty_string,
+        // Parse opening quotes, content, closing quotes using context
+        // sensitivity
+        // inner,
         open.ignore_with_ctx(inner.then_ignore(close)),
     ))
+
+    // Choose the appropriate content parser
 }
 
 // Legacy quoted string implementation - kept for fallback and compatibility
