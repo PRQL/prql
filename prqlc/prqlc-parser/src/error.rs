@@ -1,6 +1,5 @@
 use std::fmt::Debug;
 
-use chumsky::error::Cheap;
 use serde::Serialize;
 
 use super::parser::perror::PError;
@@ -19,15 +18,35 @@ pub struct Error {
     // pub source: ErrorSource
 }
 
+#[cfg(not(feature = "chumsky-10"))]
 #[derive(Clone, Debug, Default)]
 pub enum ErrorSource {
-    Lexer(Cheap<char>),
+    Lexer(chumsky::error::Cheap<char>),
     Parser(PError),
     #[default]
     Unknown,
     NameResolver,
     TypeResolver,
     SQL,
+    Internal {
+        message: String,
+    },
+}
+
+#[cfg(feature = "chumsky-10")]
+#[derive(Clone, Debug, Default)]
+pub enum ErrorSource {
+    // For chumsky 0.10, we'll use a more informative string but not the actual type
+    Lexer(String), // Formatted as "Unexpected {found} at position {start}..{end}"
+    Parser(PError),
+    #[default]
+    Unknown,
+    NameResolver,
+    TypeResolver,
+    SQL,
+    Internal {
+        message: String,
+    },
 }
 
 /// Multiple prqlc errors. Used internally, exposed as prqlc::ErrorMessages.
@@ -64,6 +83,9 @@ pub enum Reason {
     Bug {
         issue: Option<i32>,
         details: Option<String>,
+    },
+    Internal {
+        message: String,
     },
 }
 
@@ -127,6 +149,9 @@ impl std::fmt::Display for Reason {
                     )?;
                 }
                 Ok(())
+            }
+            Reason::Internal { message } => {
+                write!(f, "internal error: {message}")
             }
         }
     }
