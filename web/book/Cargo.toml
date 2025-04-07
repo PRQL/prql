@@ -24,7 +24,7 @@ itertools = { workspace = true }
 mdbook = { version = "0.4.48", default-features = false }
 mdbook-preprocessor-boilerplate = "0.1.2"
 prqlc = { path = "../../prqlc/prqlc", default-features = false }
-pulldown-cmark = { version = "0.10.3", default-features = false }
+pulldown-cmark = { version = "0.13.0", default-features = false }
 pulldown-cmark-to-cmark = "14.0.1"
 strum = { workspace = true }
 strum_macros = { workspace = true }
