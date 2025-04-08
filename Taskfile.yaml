@@ -290,7 +290,7 @@ tasks:
       - task: test-rust
       - task: test-js
       # No nextest here as doesn't work with wasm
-      - cargo insta test --accept --target=wasm32-unknown-unknown
+      - cargo test --target=wasm32-unknown-unknown
       - task: python:test
       - task: build-all
 
