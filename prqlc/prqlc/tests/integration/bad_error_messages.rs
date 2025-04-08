@@ -26,7 +26,7 @@ fn test_bad_error_messages() {
     group
     "###).unwrap_err(), @r"
     Error:
-       ╭─[:3:5]
+       ╭─[ :3:5 ]
        │
      3 │     group
        │     ──┬──
@@ -46,7 +46,7 @@ fn test_bad_error_messages() {
     filter f location
     "#).unwrap_err(), @r"
     Error:
-       ╭─[:5:14]
+       ╭─[ :5:14 ]
        │
      5 │     filter f location
        │              ────┬───
@@ -60,7 +60,7 @@ fn test_bad_error_messages() {
     from artists
     "###).unwrap_err(), @r"
     Error:
-       ╭─[:3:5]
+       ╭─[ :3:5 ]
        │
      3 │     from artists
        │     ──────┬─────
@@ -82,7 +82,7 @@ fn test_bad_error_messages() {
 fn interpolation_end() {
     assert_snapshot!(compile(r#"from x | select f"{}"#).unwrap_err(), @r#"
     Error:
-       ╭─[:1:21]
+       ╭─[ :1:21 ]
        │
      1 │ from x | select f"{}
        │                     │
@@ -99,7 +99,7 @@ fn select_with_extra_fstr() {
     select lower f"{x}/{y}"
     "#).unwrap_err(), @r#"
     Error:
-       ╭─[:3:21]
+       ╭─[ :3:21 ]
        │
      3 │     select lower f"{x}/{y}"
        │                     ┬
@@ -119,7 +119,7 @@ fn misplaced_type_error() {
     select (true && foo)
     "###).unwrap_err(), @r"
     Error:
-       ╭─[:2:15]
+       ╭─[ :2:15 ]
        │
      2 │     let foo = 123
        │               ─┬─
@@ -148,7 +148,7 @@ fn test_hint_missing_args() {
     select {film_id, lag film_id}
     "###).unwrap_err(), @r"
     Error:
-       ╭─[:3:22]
+       ╭─[ :3:22 ]
        │
      3 │     select {film_id, lag film_id}
        │                      ─────┬─────
@@ -165,7 +165,7 @@ fn test_relation_literal_contains_literals() {
     [{a=(1+1)}]
     "###).unwrap_err(), @r"
     Error:
-       ╭─[:2:9]
+       ╭─[ :2:9 ]
        │
      2 │     [{a=(1+1)}]
        │         ──┬──
@@ -192,7 +192,7 @@ fn nested_groups() {
     )
     "###).unwrap_err(), @r"
     Error:
-        ╭─[:9:9]
+        ╭─[ :9:9 ]
         │
       9 │ ╭─▶         aggregate {
         ┆ ┆
@@ -218,7 +218,7 @@ fn just_std() {
     std
     "###).unwrap_err(), @r"
     Error:
-       ╭─[:1:1]
+       ╭─[ :1:1 ]
        │
      1 │ ╭─▶
      2 │ ├─▶     std

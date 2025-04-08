@@ -3,7 +3,7 @@ source: web/book/tests/documentation/book.rs
 expression: "from employees\nderive total_distance = sum distance\n"
 ---
 Error:
-   ╭─[:2:29]
+   ╭─[ :2:29 ]
    │
  2 │ derive total_distance = sum distance
    │                             ────┬───

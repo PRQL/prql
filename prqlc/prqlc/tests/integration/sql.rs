@@ -1363,7 +1363,7 @@ fn test_in_values_err_01() {
     derive { ng = ([1, 2] | in [3, 4]) }
     "###).unwrap_err()), @r"
     Error:
-       ╭─[:3:29]
+       ╭─[ :3:29 ]
        │
      3 │     derive { ng = ([1, 2] | in [3, 4]) }
        │                             ────┬────
@@ -2063,7 +2063,7 @@ fn test_take_07() {
     take 0..1
     "###).unwrap_err()), @r"
     Error:
-       ╭─[:3:5]
+       ╭─[ :3:5 ]
        │
      3 │     take 0..1
        │     ────┬────
@@ -2079,7 +2079,7 @@ fn test_take_08() {
     take (-1..)
     "###).unwrap_err()), @r"
     Error:
-       ╭─[:3:5]
+       ╭─[ :3:5 ]
        │
      3 │     take (-1..)
        │     ─────┬─────
@@ -2096,7 +2096,7 @@ fn test_take_09() {
     take 5..5.6
     "###).unwrap_err()), @r"
     Error:
-       ╭─[:4:5]
+       ╭─[ :4:5 ]
        │
      4 │     take 5..5.6
        │     ─────┬─────
@@ -2112,7 +2112,7 @@ fn test_take_10() {
     take (-1)
     "###).unwrap_err()), @r"
     Error:
-       ╭─[:3:5]
+       ╭─[ :3:5 ]
        │
      3 │     take (-1)
        │     ────┬────
@@ -2556,7 +2556,7 @@ fn test_join_side_literal_err() {
     join y (==id) side:my_side
     "###).unwrap_err()), @r"
     Error:
-       ╭─[:5:24]
+       ╭─[ :5:24 ]
        │
      5 │     join y (==id) side:my_side
        │                        ───┬───
@@ -2595,7 +2595,7 @@ fn test_join_side_literal_via_func_err() {
     my_join default_db.y this.id s:"four"
     "###).unwrap_err()), @r#"
     Error:
-       ╭─[:3:19]
+       ╭─[ :3:19 ]
        │
      3 │         join side:_param.s m (c == that.k) tbl
        │                   ────┬───
@@ -3650,7 +3650,7 @@ fn test_unused_alias() {
     select n = {account.name}
     "###).unwrap_err(), @r"
     Error:
-       ╭─[:3:16]
+       ╭─[ :3:16 ]
        │
      3 │     select n = {account.name}
        │                ───────┬──────
@@ -3816,7 +3816,7 @@ fn test_direct_table_references() {
     )
     .unwrap_err(), @r#"
     Error:
-       ╭─[:3:15]
+       ╭─[ :3:15 ]
        │
      3 │     select s"{x}.field"
        │               ┬
@@ -4523,7 +4523,7 @@ fn test_header_target_error() {
     from a
     "#).unwrap_err(),@r"
     Error:
-       ╭─[:1:1]
+       ╭─[ :1:1 ]
        │
      1 │ ╭─▶
      2 │ ├─▶     prql dialect:foo.bar
@@ -5361,7 +5361,7 @@ fn test_group_exclude() {
     )
     .unwrap_err(), @r"
     Error:
-       ╭─[:4:27]
+       ╭─[ :4:27 ]
        │
      4 │     group {a} (derive c = a + 1)
        │                           ┬
