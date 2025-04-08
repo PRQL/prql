@@ -52,7 +52,7 @@ arrow = { version = "53", features = [
 enum-as-inner = "0.6.1"
 insta = { version = "1.42.2", features = ["colors", "glob", "yaml", "filters"] }
 insta-cmd = "0.6.0"
-itertools = "0.13.0"
+itertools = "0.14.0"
 log = "0.4.27"
 pyo3 = { version = "0.24.1", features = ["abi3-py37", "anyhow"] }
 pyo3-build-config = "0.24.1"
