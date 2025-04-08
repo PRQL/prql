@@ -1,8 +1,7 @@
-# Note that this doesn't apply when compiling from the workspace root. Because
-# we're not currently compiling for Mac, it's also impotent for now.
+# Note that this doesn't apply when compiling from the workspace root
 
+# (also it seems to work at first glance without this? but it's referenced at
+# https://github.com/philss/rustler_precompiled/blob/main/PRECOMPILATION_GUIDE.md,
+# and I don't know enough to remove it
 [target.'cfg(target_os = "macos")']
-rustflags = [
-    "-C", "link-arg=-undefined",
-    "-C", "link-arg=dynamic_lookup",
-]
+rustflags = ["-C", "link-arg=-undefined", "-C", "link-arg=dynamic_lookup"]
