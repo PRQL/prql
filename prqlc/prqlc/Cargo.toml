@@ -139,7 +139,7 @@ criterion = { version = "0.5.1", default-features = false }
 glob = { version = "0.3.2" }
 insta = { workspace = true }
 insta-cmd = { workspace = true }
-rstest = "0.24.0"
+rstest = "0.25.0"
 similar = { workspace = true }
 similar-asserts = { workspace = true }
 tempfile = { version = "3.19.1" }
