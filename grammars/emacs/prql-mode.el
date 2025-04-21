@@ -1,4 +1,4 @@
-;;; prql-mode.el --- Major mode for PRQL language
+;;; prql-mode.el --- Major mode for PRQL language -*- lexical-binding: t;
 
 ;; URL: https://github.com/PRQL/prql
 ;; Keywords: languages
