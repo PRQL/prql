@@ -23,7 +23,7 @@
     "react-dom": "^19.1.0",
     "react-syntax-highlighter": "^15.6.1",
     "web-vitals": "^5.0.1",
-    "yaml": "^2.7.0"
+    "yaml": "^2.8.0"
   },
   "devDependencies": {
     "@vitejs/plugin-react": "^4.4.0",
