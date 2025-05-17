@@ -94,7 +94,7 @@ clap = { version = "4.4.18", features = [
   "wrap_help",
 ], optional = true }
 clap_complete_command = { version = "0.5.1", optional = true }
-clio = { version = "0.3.3", features = ['clap-parse'], optional = true }
+clio = { version = "0.3.5", features = ['clap-parse'], optional = true }
 color-eyre = { version = "0.6.3", optional = true }
 colorchoice-clap = { version = "1.0.4", optional = true }
 is-terminal = { version = "0.4.16", optional = true }
