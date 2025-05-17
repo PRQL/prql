@@ -41,6 +41,6 @@ jobs:
         with:
           repo-token: "${{ secrets.GITHUB_TOKEN }}"
       - name: 🔧 Setup Zig
-        uses: mlugg/setup-zig@v1
+        uses: mlugg/setup-zig@v2
       - name: Run example minimal-zig
         run: task zig
