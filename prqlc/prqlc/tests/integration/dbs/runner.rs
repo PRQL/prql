@@ -373,12 +373,14 @@ pub(crate) mod external {
         }
     }
 
+    #[allow(dead_code)]
     pub(crate) struct GlareDbTestRunner {
         protocol: connector_arrow::postgres::PostgresConnection,
         data_file_root: String,
     }
 
     impl GlareDbTestRunner {
+        #[allow(dead_code)]
         pub(crate) fn new(url: &str, data_file_root: String) -> Self {
             use connector_arrow::postgres::PostgresConnection;
             let client = ::postgres::Client::connect(url, ::postgres::NoTls).unwrap();
