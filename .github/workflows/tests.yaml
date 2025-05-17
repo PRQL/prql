@@ -413,6 +413,9 @@ jobs:
       - name: 📂 Checkout code
         uses: actions/checkout@v4
       - run: ./.github/workflows/scripts/set_version.sh
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
       - uses: baptiste0928/cargo-install@v3
         with:
           crate: cargo-llvm-cov
