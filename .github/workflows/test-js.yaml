@@ -5,12 +5,12 @@ on:
     inputs:
       oss:
         type: string
-        default: '["ubuntu-22.04"]'
+        default: '["ubuntu-24.04"]'
   workflow_dispatch:
     inputs:
       oss:
         type: string
-        default: '["ubuntu-22.04"]'
+        default: '["ubuntu-24.04"]'
 
 # We need consistent env vars across all workflows for the cache to work
 env:

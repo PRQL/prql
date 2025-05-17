@@ -35,7 +35,7 @@ jobs:
   # the changes in PR, others also define a set of other criteria, such as
   # whether a label has been added, or we're on `main` branch.
   rules:
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-24.04
     permissions:
       pull-requests: read
     outputs:
@@ -180,17 +180,17 @@ jobs:
       matrix:
         include:
           - target: x86_64-unknown-linux-gnu
-            os: ubuntu-22.04
+            os: ubuntu-24.04
             features: default,test-dbs-external
           # Only run wasm on ubuntu, given it's the same rust target. (There is
           # a possibility of having a failure on just one platform, but it's
           # quite unlikely. If we do observe this, we can add those tests them
           # to nightly.
           - target: wasm32-unknown-unknown
-            os: ubuntu-22.04
+            os: ubuntu-24.04
             features: default
     with:
-      os: ubuntu-22.04
+      os: ubuntu-24.04
       target: ${{ matrix.target }}
       features: ${{ matrix.features }}
       nightly: ${{ needs.rules.outputs.nightly == 'true' }}
@@ -209,8 +209,8 @@ jobs:
       # 20 workflow limit.
       oss:
         ${{ (needs.rules.outputs.python == 'true' || needs.rules.outputs.nightly
-        == 'true') && '["ubuntu-22.04", "macos-14", "windows-latest"]' ||
-        '["ubuntu-22.04"]' }}
+        == 'true') && '["ubuntu-24.04", "macos-14", "windows-latest"]' ||
+        '["ubuntu-24.04"]' }}
 
   test-js:
     needs: rules
@@ -220,8 +220,8 @@ jobs:
       # Only run on ubuntu unless there's a lang-specific change or we're running nightly.
       oss:
         ${{ (needs.rules.outputs.js == 'true' || needs.rules.outputs.nightly ==
-        'true') && '["ubuntu-22.04", "macos-14", "windows-latest"]' ||
-        '["ubuntu-22.04"]' }}
+        'true') && '["ubuntu-24.04", "macos-14", "windows-latest"]' ||
+        '["ubuntu-24.04"]' }}
 
   test-dotnet:
     needs: rules
@@ -242,7 +242,7 @@ jobs:
       # Currently we never run windows
       oss:
         ${{ (needs.rules.outputs.java == 'true' || needs.rules.outputs.nightly
-        == 'true') && '["ubuntu-22.04", "macos-14"]' || '["ubuntu-22.04"]' }}
+        == 'true') && '["ubuntu-24.04", "macos-14"]' || '["ubuntu-24.04"]' }}
 
   test-elixir:
     needs: rules
@@ -253,7 +253,7 @@ jobs:
       # Currently we never run Mac, see prql-elixir docs for details
       oss:
         ${{ (needs.rules.outputs.elixir == 'true' || needs.rules.outputs.nightly
-        == 'true') && '["ubuntu-22.04", "windows-latest"]' || '["ubuntu-22.04"]'
+        == 'true') && '["ubuntu-24.04", "windows-latest"]' || '["ubuntu-24.04"]'
         }}
 
   test-prqlc-c:
@@ -316,13 +316,13 @@ jobs:
             target: x86_64-pc-windows-msvc
             # We'd like to reenable integration tests on Windows, ref https://github.com/wangfenjin/duckdb-rs/issues/179.
             features: default
-          - os: ubuntu-22.04
+          - os: ubuntu-24.04
             target: x86_64-unknown-linux-gnu
             # One test with no features
             features: ""
 
           # TODO: potentially enable these
-          # - os: ubuntu-22.04
+          # - os: ubuntu-24.04
           #   target: aarch64-unknown-linux-musl
 
     uses: ./.github/workflows/test-rust.yaml
@@ -354,7 +354,7 @@ jobs:
     # Another option is https://github.com/lycheeverse/lychee, but it was
     # weirdly difficult to exclude a directory, and I managed to get
     # rate-limited by GH because of it scanning node_modules.
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-24.04
     steps:
       - name: 📂 Checkout code
         uses: actions/checkout@v4
@@ -380,7 +380,7 @@ jobs:
       needs.rules.outputs.book == 'true' || needs.rules.outputs.nightly ==
       'true'
 
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-24.04
 
     steps:
       - name: 📂 Checkout code
@@ -407,7 +407,7 @@ jobs:
         run: hyperlink web/book/book/
 
   measure-code-cov:
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-24.04
     needs: rules
     steps:
       - name: 📂 Checkout code
@@ -473,7 +473,7 @@ jobs:
   test-grammars:
     # Currently tests lezer grammars. We could split that out into a separate
     # job if we want when we add more.
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-24.04
     needs: rules
     if:
       needs.rules.outputs.grammars == 'true' || needs.rules.outputs.main ==
@@ -510,7 +510,7 @@ jobs:
       push: ${{ needs.rules.outputs.devcontainer-push == 'true' }}
 
   test-msrv:
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-24.04
     needs: rules
     if: needs.rules.outputs.nightly == 'true'
     steps:
@@ -531,7 +531,7 @@ jobs:
         run: cargo msrv verify
 
   test-deps-min-versions:
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-24.04
     needs: rules
     if: needs.rules.outputs.nightly == 'true'
     steps:
@@ -579,7 +579,7 @@ jobs:
       - test-rust
       - test-rust-main
       - test-taskfile
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-24.04
     steps:
       - name: Decide whether the needed jobs succeeded or failed
         # https://github.com/re-actors/alls-green/issues/23
@@ -637,14 +637,14 @@ jobs:
       matrix:
         include:
           # Match the features with the available caches from tests
-          - os: ubuntu-22.04
+          - os: ubuntu-24.04
             target: x86_64-unknown-linux-musl
             features: default
           # TODO: Until we have tests for these, we don't have a cache for them.
           # If we can add tests, then re-enable them. They run on `release.yaml`
           # regardless.
           #
-          # - os: ubuntu-22.04
+          # - os: ubuntu-24.04
           #   target: aarch64-unknown-linux-musl
           - os: macos-14
             target: aarch64-apple-darwin
@@ -676,7 +676,7 @@ jobs:
       matrix:
         include:
           # Match the features with the available caches from tests
-          - os: ubuntu-22.04
+          - os: ubuntu-24.04
             target: x86_64-unknown-linux-musl
             features: default
           - os: macos-14
@@ -701,7 +701,7 @@ jobs:
       RUSTDOCFLAGS: "-Dwarnings"
 
   create-issue-on-nightly-failure:
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-24.04
     needs:
       - check-ok-to-merge
       - rules
@@ -726,7 +726,7 @@ jobs:
           search_existing: open
 
   update-rust-toolchain:
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-24.04
     needs: rules
     if: ${{ needs.rules.outputs.nightly-upstream == 'true' }}
     # Note that this doesn't change the minimum supported version, only the

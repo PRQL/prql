@@ -18,7 +18,7 @@ env:
 
 jobs:
   cargo-audit:
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-24.04
     # We can't read PRQL repo security events on forks, which causes this to
     # incorrectly fail (
     # https://github.com/PRQL/prql/actions/runs/5718693342/job/15495030808?pr=3195#step:3:28
@@ -49,7 +49,7 @@ jobs:
           token: ${{ secrets.GITHUB_TOKEN }}
 
   cargo-bench:
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v4
       - uses: clechasseur/rs-cargo@v3
@@ -61,7 +61,7 @@ jobs:
           args: -- --warm-up-time=0.3 --measurement-time=1
 
   time-compilation:
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-24.04
     strategy:
       matrix:
         use_cache: [true, false]
@@ -79,7 +79,7 @@ jobs:
       RUSTDOCFLAGS: "-Dwarnings"
 
   check-unused-dependencies:
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-24.04
     steps:
       - name: 📂 Checkout code
         uses: actions/checkout@v4
@@ -102,7 +102,7 @@ jobs:
 
   # test-docker:
   #   # We only test the build in `test-all`; this also runs tests.
-  #   runs-on: ubuntu-22.04
+  #   runs-on: ubuntu-24.04
   #   steps:
   #     - name: 📂 Checkout code
   #       uses: actions/checkout@v4
@@ -128,7 +128,7 @@ jobs:
 
   code-ql:
     # Currently almost the default code-ql config
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-24.04
     permissions:
       actions: read
       contents: read

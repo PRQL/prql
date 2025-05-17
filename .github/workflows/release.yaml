@@ -22,7 +22,7 @@ env:
 jobs:
   brew-dispatcher:
     name: Release on homebrew-prql
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-24.04
     if: github.event_name == 'release'
     steps:
       - uses: actions/github-script@v7
@@ -46,9 +46,9 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - os: ubuntu-22.04
+          - os: ubuntu-24.04
             target: x86_64-unknown-linux-musl
-          - os: ubuntu-22.04
+          - os: ubuntu-24.04
             target: aarch64-unknown-linux-musl
           - os: macos-14
             target: aarch64-apple-darwin
@@ -97,9 +97,9 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - os: ubuntu-22.04
+          - os: ubuntu-24.04
             target: x86_64-unknown-linux-musl
-          - os: ubuntu-22.04
+          - os: ubuntu-24.04
             target: aarch64-unknown-linux-musl
           - os: macos-14
             target: aarch64-apple-darwin
@@ -123,7 +123,7 @@ jobs:
           files: ${{ steps.build-artifact.outputs.artifact-name }}
 
   publish-winget:
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-24.04
     needs: build-prqlc
     if: github.event_name == 'release'
     steps:
@@ -137,7 +137,7 @@ jobs:
           fork-user: prql-bot
 
   build-deb-package:
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-24.04
     strategy:
       fail-fast: false
       matrix:
@@ -192,7 +192,7 @@ jobs:
           files: prqlc_*.deb
 
   build-rpm-package:
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-24.04
     strategy:
       fail-fast: false
       matrix:
@@ -252,7 +252,7 @@ jobs:
           files: prqlc-*.rpm
 
   build-and-publish-snap:
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-24.04
     if: ${{ github.event_name == 'release' }}
     steps:
       - name: 📂 Checkout code
@@ -277,7 +277,7 @@ jobs:
     strategy:
       fail-fast: true
       matrix:
-        os: [ubuntu-22.04, windows-latest]
+        os: [ubuntu-24.04, windows-latest]
         package:
           - prqlc-python
         target: [x86_64]
@@ -287,10 +287,10 @@ jobs:
             package: prqlc-python
             target: universal2-apple-darwin
           # Also produce more targets for ubuntu:
-          - os: ubuntu-22.04
+          - os: ubuntu-24.04
             package: prqlc-python
             target: aarch64
-          - os: ubuntu-22.04
+          - os: ubuntu-24.04
             package: prqlc-python
             target: source
     steps:
@@ -303,7 +303,7 @@ jobs:
           profile: release
 
   publish-python:
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-24.04
     needs: [build-python-wheels]
     if: github.event_name == 'release'
     permissions:
@@ -325,7 +325,7 @@ jobs:
           args: --skip-existing *
 
   publish-js:
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-24.04
     steps:
       - name: 📂 Checkout code
         uses: actions/checkout@v4
@@ -361,7 +361,7 @@ jobs:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
 
   publish-to-cargo:
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-24.04
     steps:
       - name: 📂 Checkout code
         uses: actions/checkout@v4
@@ -379,7 +379,7 @@ jobs:
 
   # Requires another pass: https://github.com/PRQL/prql/issues/850
   # publish-prql-java:
-  #   runs-on: ubuntu-22.04
+  #   runs-on: ubuntu-24.04
   #   steps:
   #     - name: Checkout code
   #       uses: actions/checkout@v4
@@ -397,7 +397,7 @@ jobs:
   #         directory: prql-java/java/
 
   push-web-branch:
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-24.04
     if: github.event_name == 'release'
     steps:
       - name: 📂 Checkout code
