@@ -54,7 +54,7 @@ pub fn rq_to_sql(rq_json: &str) -> Option<String> {
 #[wasm_bindgen]
 #[derive(Clone)]
 pub struct CompileOptions {
-    /// Pass generated SQL string trough a formatter that splits it
+    /// Pass generated SQL string through a formatter that splits it
     /// into multiple lines and prettifies indentation and spacing.
     ///
     /// Defaults to true.

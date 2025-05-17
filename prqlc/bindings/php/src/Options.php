@@ -32,7 +32,7 @@ namespace Prql\Compiler;
 final class Options
 {
     /**
-     * Pass generated SQL string trough a formatter that splits it into
+     * Pass generated SQL string through a formatter that splits it into
      * multiple lines and prettifies indentation and spacing.
      */
     public bool $format = true;
