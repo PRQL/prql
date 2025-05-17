@@ -9,7 +9,7 @@ namespace Prql.Compiler
     public class PrqlCompilerOptions
     {
         /// <summary>
-        /// Pass generated SQL string trough a formatter that splits it into
+        /// Pass generated SQL string through a formatter that splits it into
         /// multiple lines and prettifies indentation and spacing.
         /// </summary>
         /// <remarks>Defaults to <c>true</c>.</remarks>
