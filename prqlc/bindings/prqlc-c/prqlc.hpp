@@ -69,7 +69,7 @@ struct CompileResult {
 
 /// Compilation options
 struct Options {
-  /// Pass generated SQL string trough a formatter that splits it
+  /// Pass generated SQL string through a formatter that splits it
   /// into multiple lines and prettifies indentation and spacing.
   ///
   /// Defaults to true.
