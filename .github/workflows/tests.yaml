@@ -35,7 +35,7 @@ jobs:
   # the changes in PR, others also define a set of other criteria, such as
   # whether a label has been added, or we're on `main` branch.
   rules:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-22.04
     permissions:
       pull-requests: read
     outputs:
@@ -66,6 +66,8 @@ jobs:
     steps:
       - name: 📂 Checkout code
         uses: actions/checkout@v4
+        with:
+          fetch-tags: true
       - uses: dorny/paths-filter@v3
         id: changes
         with:
@@ -178,17 +180,17 @@ jobs:
       matrix:
         include:
           - target: x86_64-unknown-linux-gnu
-            os: ubuntu-latest
+            os: ubuntu-22.04
             features: default,test-dbs-external
           # Only run wasm on ubuntu, given it's the same rust target. (There is
           # a possibility of having a failure on just one platform, but it's
           # quite unlikely. If we do observe this, we can add those tests them
           # to nightly.
           - target: wasm32-unknown-unknown
-            os: ubuntu-latest
+            os: ubuntu-22.04
             features: default
     with:
-      os: ubuntu-latest
+      os: ubuntu-22.04
       target: ${{ matrix.target }}
       features: ${{ matrix.features }}
       nightly: ${{ needs.rules.outputs.nightly == 'true' }}
@@ -207,8 +209,8 @@ jobs:
       # 20 workflow limit.
       oss:
         ${{ (needs.rules.outputs.python == 'true' || needs.rules.outputs.nightly
-        == 'true') && '["ubuntu-latest", "macos-14", "windows-latest"]' ||
-        '["ubuntu-latest"]' }}
+        == 'true') && '["ubuntu-22.04", "macos-14", "windows-latest"]' ||
+        '["ubuntu-22.04"]' }}
 
   test-js:
     needs: rules
@@ -218,8 +220,8 @@ jobs:
       # Only run on ubuntu unless there's a lang-specific change or we're running nightly.
       oss:
         ${{ (needs.rules.outputs.js == 'true' || needs.rules.outputs.nightly ==
-        'true') && '["ubuntu-latest", "macos-14", "windows-latest"]' ||
-        '["ubuntu-latest"]' }}
+        'true') && '["ubuntu-22.04", "macos-14", "windows-latest"]' ||
+        '["ubuntu-22.04"]' }}
 
   test-dotnet:
     needs: rules
@@ -240,7 +242,7 @@ jobs:
       # Currently we never run windows
       oss:
         ${{ (needs.rules.outputs.java == 'true' || needs.rules.outputs.nightly
-        == 'true') && '["ubuntu-latest", "macos-14"]' || '["ubuntu-latest"]' }}
+        == 'true') && '["ubuntu-22.04", "macos-14"]' || '["ubuntu-22.04"]' }}
 
   test-elixir:
     needs: rules
@@ -251,8 +253,8 @@ jobs:
       # Currently we never run Mac, see prql-elixir docs for details
       oss:
         ${{ (needs.rules.outputs.elixir == 'true' || needs.rules.outputs.nightly
-        == 'true') && '["ubuntu-latest", "windows-latest"]' ||
-        '["ubuntu-latest"]' }}
+        == 'true') && '["ubuntu-22.04", "windows-latest"]' || '["ubuntu-22.04"]'
+        }}
 
   test-prqlc-c:
     needs: rules
@@ -266,8 +268,11 @@ jobs:
     if:
       # We only run on nightly scheduled, since this is very expensive and we
       # don't want to have to run it on, for example, every dependency change.
-      needs.rules.outputs.taskfile == 'true' ||
-      needs.rules.outputs.nightly-upstream == 'true'
+      #
+      # Disabling due to https://github.com/PRQL/prql/pull/4876
+      false
+      # needs.rules.outputs.taskfile == 'true' ||
+      # needs.rules.outputs.nightly-upstream == 'true'
     runs-on: macos-14
     steps:
       - name: 📂 Checkout code
@@ -276,7 +281,7 @@ jobs:
       - name: 💰 Cache
         uses: Swatinem/rust-cache@v2
         with:
-          prefix-key: ${{ env.version }}
+          prefix-key: ${{ env.version }}-${{ hashFiles('Cargo.lock') }}
           # The mac rust cache key. It's not _that_ useful since this will build
           # much more, but it's better than nothing. This task can't have our own
           # cache, since we're out of cache space and this workflow takes 1.5GB.
@@ -311,13 +316,13 @@ jobs:
             target: x86_64-pc-windows-msvc
             # We'd like to reenable integration tests on Windows, ref https://github.com/wangfenjin/duckdb-rs/issues/179.
             features: default
-          - os: ubuntu-latest
+          - os: ubuntu-22.04
             target: x86_64-unknown-linux-gnu
             # One test with no features
             features: ""
 
           # TODO: potentially enable these
-          # - os: ubuntu-latest
+          # - os: ubuntu-22.04
           #   target: aarch64-unknown-linux-musl
 
     uses: ./.github/workflows/test-rust.yaml
@@ -349,7 +354,7 @@ jobs:
     # Another option is https://github.com/lycheeverse/lychee, but it was
     # weirdly difficult to exclude a directory, and I managed to get
     # rate-limited by GH because of it scanning node_modules.
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-22.04
     steps:
       - name: 📂 Checkout code
         uses: actions/checkout@v4
@@ -375,7 +380,7 @@ jobs:
       needs.rules.outputs.book == 'true' || needs.rules.outputs.nightly ==
       'true'
 
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-22.04
 
     steps:
       - name: 📂 Checkout code
@@ -391,7 +396,7 @@ jobs:
       - name: Cache
         uses: Swatinem/rust-cache@v2
         with:
-          prefix-key: ${{ env.version }}
+          prefix-key: ${{ env.version }}-${{ hashFiles('Cargo.lock') }}
           shared-key: web
           # Created by `build-web`
           save-if: false
@@ -402,7 +407,7 @@ jobs:
         run: hyperlink web/book/book/
 
   measure-code-cov:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-22.04
     needs: rules
     steps:
       - name: 📂 Checkout code
@@ -414,8 +419,8 @@ jobs:
       - name: 💰 Cache
         uses: Swatinem/rust-cache@v2
         with:
+          prefix-key: ${{ env.version }}-${{ hashFiles('Cargo.lock') }}
           save-if: ${{ github.ref == 'refs/heads/main' }}
-          prefix-key: ${{ env.version }}
       # Ensure nothing remains from caching
       - run: cargo llvm-cov clean --workspace
       - run:
@@ -451,7 +456,7 @@ jobs:
           # accuracy is important.
           ${{ github.repository_owner == 'prql' && github.event_name !=
           'schedule' }}
-        uses: codecov/codecov-action@v4
+        uses: codecov/codecov-action@v5
         with:
           files: cobertura.xml
           fail_ci_if_error: true
@@ -468,7 +473,7 @@ jobs:
   test-grammars:
     # Currently tests lezer grammars. We could split that out into a separate
     # job if we want when we add more.
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-22.04
     needs: rules
     if:
       needs.rules.outputs.grammars == 'true' || needs.rules.outputs.main ==
@@ -505,7 +510,7 @@ jobs:
       push: ${{ needs.rules.outputs.devcontainer-push == 'true' }}
 
   test-msrv:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-22.04
     needs: rules
     if: needs.rules.outputs.nightly == 'true'
     steps:
@@ -514,6 +519,9 @@ jobs:
       - uses: baptiste0928/cargo-install@v3
         with:
           crate: cargo-msrv
+          # TODO: remove this version pinning
+          # The latest 0.16 supports workspace inheritance, so the check will fail
+          version: "0.15"
         # Note this currently uses a manually maintained key in
         # `prqlc/prqlc/Cargo.toml`, because of
         # https://github.com/foresterre/cargo-msrv/issues/590
@@ -523,13 +531,13 @@ jobs:
         run: cargo msrv verify
 
   test-deps-min-versions:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-22.04
     needs: rules
     if: needs.rules.outputs.nightly == 'true'
     steps:
       - name: 📂 Checkout code
         uses: actions/checkout@v4
-      - run: rustup override set nightly-2024-06-30
+      - run: rustup override set nightly-2025-01-12
       - uses: baptiste0928/cargo-install@v3
         with:
           crate: cargo-hack
@@ -540,8 +548,8 @@ jobs:
       - name: 💰 Cache
         uses: Swatinem/rust-cache@v2
         with:
+          prefix-key: ${{ env.version }}-${{ hashFiles('Cargo.lock') }}
           save-if: ${{ github.ref == 'refs/heads/main' }}
-          prefix-key: ${{ env.version }}
       - name: Verify minimum rust version
         run: cargo minimal-versions test --direct
 
@@ -571,7 +579,7 @@ jobs:
       - test-rust
       - test-rust-main
       - test-taskfile
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-22.04
     steps:
       - name: Decide whether the needed jobs succeeded or failed
         # https://github.com/re-actors/alls-green/issues/23
@@ -629,14 +637,14 @@ jobs:
       matrix:
         include:
           # Match the features with the available caches from tests
-          - os: ubuntu-latest
+          - os: ubuntu-22.04
             target: x86_64-unknown-linux-musl
             features: default
           # TODO: Until we have tests for these, we don't have a cache for them.
           # If we can add tests, then re-enable them. They run on `release.yaml`
           # regardless.
           #
-          # - os: ubuntu-latest
+          # - os: ubuntu-22.04
           #   target: aarch64-unknown-linux-musl
           - os: macos-14
             target: aarch64-apple-darwin
@@ -668,7 +676,7 @@ jobs:
       matrix:
         include:
           # Match the features with the available caches from tests
-          - os: ubuntu-latest
+          - os: ubuntu-22.04
             target: x86_64-unknown-linux-musl
             features: default
           - os: macos-14
@@ -693,7 +701,7 @@ jobs:
       RUSTDOCFLAGS: "-Dwarnings"
 
   create-issue-on-nightly-failure:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-22.04
     needs:
       - check-ok-to-merge
       - rules
@@ -718,7 +726,7 @@ jobs:
           search_existing: open
 
   update-rust-toolchain:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-22.04
     needs: rules
     if: ${{ needs.rules.outputs.nightly-upstream == 'true' }}
     # Note that this doesn't change the minimum supported version, only the

@@ -6,4 +6,3 @@ SELECT
   "first name"
 FROM
   employees
-

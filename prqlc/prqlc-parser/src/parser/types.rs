@@ -9,7 +9,6 @@ use crate::lexer::lr::TokenKind;
 pub(crate) fn type_expr() -> impl Parser<TokenKind, Ty, Error = PError> + Clone {
     recursive(|nested_type_expr| {
         let basic = select! {
-            TokenKind::Literal(lit) => TyKind::Singleton(lit),
             TokenKind::Ident(i) if i == "int"=> TyKind::Primitive(PrimitiveSet::Int),
             TokenKind::Ident(i) if i == "float"=> TyKind::Primitive(PrimitiveSet::Float),
             TokenKind::Ident(i) if i == "bool"=> TyKind::Primitive(PrimitiveSet::Bool),
@@ -17,7 +16,6 @@ pub(crate) fn type_expr() -> impl Parser<TokenKind, Ty, Error = PError> + Clone 
             TokenKind::Ident(i) if i == "date"=> TyKind::Primitive(PrimitiveSet::Date),
             TokenKind::Ident(i) if i == "time"=> TyKind::Primitive(PrimitiveSet::Time),
             TokenKind::Ident(i) if i == "timestamp"=> TyKind::Primitive(PrimitiveSet::Timestamp),
-            TokenKind::Ident(i) if i == "anytype"=> TyKind::Any,
         };
 
         let ident = ident().map(TyKind::Ident);
@@ -29,7 +27,7 @@ pub(crate) fn type_expr() -> impl Parser<TokenKind, Ty, Error = PError> + Clone 
                     .map(Some)
                     .repeated()
                     .then_ignore(just(TokenKind::ArrowThin))
-                    .then(nested_type_expr.clone().map(Some).map(Box::new))
+                    .then(nested_type_expr.clone().map(Box::new).map(Some))
                     .map(|(params, return_ty)| TyFunc {
                         name_hint: None,
                         params,
@@ -40,14 +38,16 @@ pub(crate) fn type_expr() -> impl Parser<TokenKind, Ty, Error = PError> + Clone 
             .map(TyKind::Function);
 
         let tuple = sequence(choice((
+            select! { TokenKind::Range { bind_right: false, bind_left: _ } => () }
+                .to(TyTupleField::Wildcard(None)),
             select! { TokenKind::Range { bind_right: true, bind_left: _ } => () }
-                .ignore_then(nested_type_expr.clone())
-                .map(|ty| TyTupleField::Wildcard(Some(ty))),
+                .ignore_then(nested_type_expr.clone().or_not())
+                .map(TyTupleField::Wildcard),
             ident_part()
                 .then_ignore(ctrl('='))
                 .or_not()
-                .then(nested_type_expr.clone())
-                .map(|(name, ty)| TyTupleField::Single(name, Some(ty))),
+                .then(ctrl('*').to(None).or(nested_type_expr.clone().map(Some)))
+                .map(|(name, ty)| TyTupleField::Single(name, ty)),
         )))
         .delimited_by(ctrl('{'), ctrl('}'))
         .recover_with(nested_delimiters(
@@ -76,35 +76,9 @@ pub(crate) fn type_expr() -> impl Parser<TokenKind, Ty, Error = PError> + Clone 
         .map(TyKind::Tuple)
         .labelled("tuple");
 
-        let enum_ = keyword("enum")
-            .ignore_then(
-                sequence(
-                    ident_part()
-                        .then(ctrl('=').ignore_then(nested_type_expr.clone()).or_not())
-                        .map(|(name, ty)| {
-                            (
-                                Some(name),
-                                ty.unwrap_or_else(|| Ty::new(TyKind::Tuple(vec![]))),
-                            )
-                        }),
-                )
-                .delimited_by(ctrl('{'), ctrl('}'))
-                .recover_with(nested_delimiters(
-                    TokenKind::Control('{'),
-                    TokenKind::Control('}'),
-                    [
-                        (TokenKind::Control('{'), TokenKind::Control('}')),
-                        (TokenKind::Control('('), TokenKind::Control(')')),
-                        (TokenKind::Control('['), TokenKind::Control(']')),
-                    ],
-                    |_| vec![],
-                )),
-            )
-            .map(TyKind::Union)
-            .labelled("union");
-
         let array = nested_type_expr
             .map(Box::new)
+            .or_not()
             .padded_by(new_line().repeated())
             .delimited_by(ctrl('['), ctrl(']'))
             .recover_with(nested_delimiters(
@@ -115,14 +89,12 @@ pub(crate) fn type_expr() -> impl Parser<TokenKind, Ty, Error = PError> + Clone 
                     (TokenKind::Control('('), TokenKind::Control(')')),
                     (TokenKind::Control('['), TokenKind::Control(']')),
                 ],
-                |_| Box::new(Ty::new(TyKind::Tuple(vec![]))),
+                |_| None,
             ))
             .map(TyKind::Array)
             .labelled("array");
 
-        let term = choice((basic, ident, func, tuple, array, enum_))
-            .map_with_span(TyKind::into_ty)
-            .boxed();
+        choice((basic, ident, func, tuple, array)).map_with_span(TyKind::into_ty)
 
         // exclude
         // term.clone()
@@ -142,20 +114,6 @@ pub(crate) fn type_expr() -> impl Parser<TokenKind, Ty, Error = PError> + Clone 
         //         };
         //         into_ty(kind, span)
         //     });
-
-        // union
-        term.clone()
-            .then(just(TokenKind::Or).ignore_then(term).repeated())
-            .map_with_span(|(first, following), span| {
-                if following.is_empty() {
-                    first
-                } else {
-                    let mut all = Vec::with_capacity(following.len() + 1);
-                    all.push((None, first));
-                    all.extend(following.into_iter().map(|x| (None, x)));
-                    TyKind::Union(all).into_ty(span)
-                }
-            })
     })
     .labelled("type expression")
 }

@@ -196,15 +196,7 @@ impl<T: fmt::Display + Hash + Eq + Debug> fmt::Display for ChumError<T> {
 
 impl From<PError> for Error {
     fn from(p: PError) -> Error {
-        let mut span = p.span();
-
-        if p.found().is_none() {
-            // found end of file
-            // fix for span outside of source
-            if span.start > 0 && span.end > 0 {
-                span = span - 1;
-            }
-        }
+        let span = p.span();
 
         fn construct_parser_error(e: PError) -> Error {
             if let Some(message) = e.reason() {
@@ -325,14 +317,14 @@ mod tests {
     #[test]
     fn display() {
         assert_snapshot!(create_simple_error(),
-            @r###"Error { kind: Error, span: None, reason: Simple("A simple error message"), hints: ["take a hint"], code: Some("E001") }"###
+            @r#"Error { kind: Error, span: None, reason: Simple("A simple error message"), hints: ["take a hint"], code: Some("E001") }"#
         );
 
         let errors = Errors(vec![create_simple_error()]);
         assert_snapshot!(errors,
-            @r###"Errors([Error { kind: Error, span: None, reason: Simple("A simple error message"), hints: ["take a hint"], code: Some("E001") }])"###
+            @r#"Errors([Error { kind: Error, span: None, reason: Simple("A simple error message"), hints: ["take a hint"], code: Some("E001") }])"#
         );
-        assert_debug_snapshot!(errors, @r###"
+        assert_debug_snapshot!(errors, @r#"
         Errors(
             [
                 Error {
@@ -350,13 +342,13 @@ mod tests {
                 },
             ],
         )
-        "###)
+        "#)
     }
 
     #[test]
     fn test_simple_error() {
         let err = create_simple_error();
-        assert_debug_snapshot!(err, @r###"
+        assert_debug_snapshot!(err, @r#"
         Error {
             kind: Error,
             span: None,
@@ -370,7 +362,7 @@ mod tests {
                 "E001",
             ),
         }
-        "###);
+        "#);
     }
 
     #[test]
@@ -381,7 +373,7 @@ mod tests {
             expected: "expected_value".to_string(),
             found: "found_value".to_string(),
         })
-        .with_code("E002"), @r###"
+        .with_code("E002"), @r#"
         Error {
             kind: Error,
             span: None,
@@ -397,7 +389,7 @@ mod tests {
                 "E002",
             ),
         }
-        "###);
+        "#);
     }
 
     #[test]
@@ -406,7 +398,7 @@ mod tests {
             .with_hints(vec!["Take a hint"])
             .push_hint("Take another hint")
             .with_code("E001");
-        assert_debug_snapshot!(result, @r###"
+        assert_debug_snapshot!(result, @r#"
         Err(
             Error {
                 kind: Error,
@@ -423,6 +415,6 @@ mod tests {
                 ),
             },
         )
-        "###);
+        "#);
     }
 }

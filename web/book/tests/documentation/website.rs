@@ -15,15 +15,17 @@ fn sql_normalize(sql: &str) -> String {
 fn test_website_examples() {
     for example in read_dir("../website/data/examples").unwrap().flatten() {
         let file = std::fs::File::open(example.path()).unwrap();
-        let example: Value = serde_yaml::from_reader(file).unwrap();
-        let prql = example.get("prql").unwrap().as_str().unwrap();
+        let example_value: Value = serde_yaml::from_reader(&file).unwrap();
+        let prql = example_value.get("prql").unwrap().as_str().unwrap();
 
         let compiled_sql = compile(prql).unwrap();
 
-        if let Some(sql) = example.get("sql") {
+        if let Some(sql) = example_value.get("sql") {
             assert_eq!(
                 sql_normalize(&compiled_sql),
-                sql_normalize(sql.as_str().unwrap())
+                sql_normalize(sql.as_str().unwrap()),
+                "Failed for file: {:?}",
+                example.path()
             );
         }
     }

@@ -7,5 +7,4 @@ SELECT
   p.*
 FROM
   employees
-  LEFT JOIN positions AS p ON employees.id = p.employee_id
-
+  LEFT OUTER JOIN positions AS p ON employees.id = p.employee_id

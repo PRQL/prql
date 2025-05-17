@@ -1,13 +1,13 @@
 use std::collections::{HashMap, HashSet};
 
 use super::{
-    NS_DEFAULT_DB, NS_GENERIC, NS_INFER, NS_INFER_MODULE, NS_MAIN, NS_PARAM, NS_QUERY_DEF, NS_SELF,
-    NS_STD, NS_THAT, NS_THIS,
+    NS_DEFAULT_DB, NS_INFER, NS_INFER_MODULE, NS_MAIN, NS_PARAM, NS_QUERY_DEF, NS_SELF, NS_STD,
+    NS_THAT, NS_THIS,
 };
 use crate::ir::decl::{Decl, DeclKind, Module, RootModule, TableDecl, TableExpr};
 use crate::ir::pl::{Annotation, Expr, Ident, Lineage, LineageColumn};
 use crate::pr::QueryDef;
-use crate::pr::{Literal, Span, Ty, TyKind, TyTupleField};
+use crate::pr::{Span, Ty, TyKind, TyTupleField};
 use crate::Error;
 use crate::Result;
 
@@ -36,7 +36,6 @@ impl Module {
                 Ident::from_name(NS_THAT),
                 Ident::from_name(NS_PARAM),
                 Ident::from_name(NS_STD),
-                Ident::from_name(NS_GENERIC),
             ],
         }
     }
@@ -196,7 +195,7 @@ impl Module {
         let namespace = self.names.entry(namespace.to_string()).or_default();
         let namespace = namespace.kind.as_module_mut().unwrap();
 
-        let lin_ty = *ty_of_lineage(lineage).kind.into_array().unwrap();
+        let lin_ty = *ty_of_lineage(lineage).kind.into_array().unwrap().unwrap();
 
         for (col_index, column) in lineage.columns.iter().enumerate() {
             // determine input name
@@ -372,52 +371,6 @@ impl Module {
         }
         r
     }
-
-    /// Recursively finds all declarations that end in suffix.
-    pub fn find_by_suffix(&self, suffix: &str) -> Vec<Ident> {
-        let mut res = Vec::new();
-
-        for (name, decl) in &self.names {
-            if let DeclKind::Module(module) = &decl.kind {
-                let nested = module.find_by_suffix(suffix);
-                res.extend(nested.into_iter().map(|x| x.prepend(vec![name.clone()])));
-                continue;
-            }
-
-            if name == suffix {
-                res.push(Ident::from_name(name));
-            }
-        }
-
-        res
-    }
-
-    /// Recursively finds all declarations with an annotation that has a specific name.
-    pub fn find_by_annotation_name(&self, annotation_name: &Ident) -> Vec<Ident> {
-        let mut res = Vec::new();
-
-        for (name, decl) in &self.names {
-            if let DeclKind::Module(module) = &decl.kind {
-                let nested = module.find_by_annotation_name(annotation_name);
-                res.extend(nested.into_iter().map(|x| x.prepend(vec![name.clone()])));
-            }
-
-            let has_annotation = decl_has_annotation(decl, annotation_name);
-            if has_annotation {
-                res.push(Ident::from_name(name));
-            }
-        }
-        res
-    }
-}
-
-fn decl_has_annotation(decl: &Decl, annotation_name: &Ident) -> bool {
-    for ann in &decl.annotations {
-        if super::is_ident_or_func_call(&ann.expr, annotation_name) {
-            return true;
-        }
-    }
-    false
 }
 
 type HintAndSpan = (Option<String>, Option<Span>);
@@ -508,16 +461,6 @@ impl RootModule {
         let decl = self.module.get(&ident)?;
         decl.kind.as_query_def()
     }
-
-    /// Finds all main pipelines.
-    pub fn find_mains(&self) -> Vec<Ident> {
-        self.module.find_by_suffix(NS_MAIN)
-    }
-
-    /// Finds declarations that are annotated with a specific name.
-    pub fn find_by_annotation_name(&self, annotation_name: &Ident) -> Vec<Ident> {
-        self.module.find_by_annotation_name(annotation_name)
-    }
 }
 
 pub fn ty_of_lineage(lineage: &Lineage) -> Ty {
@@ -527,10 +470,9 @@ pub fn ty_of_lineage(lineage: &Lineage) -> Ty {
             .iter()
             .map(|col| match col {
                 LineageColumn::All { .. } => TyTupleField::Wildcard(None),
-                LineageColumn::Single { name, .. } => TyTupleField::Single(
-                    name.as_ref().map(|i| i.name.clone()),
-                    Some(Ty::new(Literal::Null)),
-                ),
+                LineageColumn::Single { name, .. } => {
+                    TyTupleField::Single(name.as_ref().map(|i| i.name.clone()), None)
+                }
             })
             .collect(),
     )
@@ -538,6 +480,8 @@ pub fn ty_of_lineage(lineage: &Lineage) -> Ty {
 
 #[cfg(test)]
 mod tests {
+    use prqlc_parser::lexer::lr::Literal;
+
     use super::*;
     use crate::ir::pl::ExprKind;
 

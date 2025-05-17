@@ -1,38 +1,42 @@
 ---
 source: prqlc/prqlc/tests/integration/queries.rs
-expression: "# mssql:skip\n# mysql:skip\n# clickhouse:skip\n# glaredb:skip (the string_agg function is not supported)\nfrom tracks\nfilter genre_id == 100\nderive empty_name = name == ''\naggregate {sum track_id, concat_array name, all empty_name, any empty_name}\n"
+expression: "# mysql:skip\n# clickhouse:skip\n# glaredb:skip (the string_agg function is not supported)\nfrom tracks\nfilter genre_id == 100\nderive empty_name = name == ''\naggregate {sum track_id, concat_array name, all empty_name, any empty_name}\n"
 input_file: prqlc/prqlc/tests/integration/queries/aggregation.prql
 ---
 frames:
-- - 1:114-136
+- - 1:101-123
   - columns:
     - !All
-      input_id: 124
+      input_id: 121
       except: []
     inputs:
-    - id: 124
+    - id: 121
       name: tracks
       table:
       - default_db
       - tracks
-- - 1:137-167
+- - 1:124-154
   - columns:
     - !All
-      input_id: 124
+      input_id: 121
       except: []
     - !Single
       name:
       - empty_name
-      target_id: 131
+      target_id: 128
       target_name: null
     inputs:
-    - id: 124
+    - id: 121
       name: tracks
       table:
       - default_db
       - tracks
-- - 1:168-243
+- - 1:155-230
   - columns:
+    - !Single
+      name: null
+      target_id: 134
+      target_name: null
     - !Single
       name: null
       target_id: 137
@@ -45,156 +49,152 @@ frames:
       name: null
       target_id: 143
       target_name: null
-    - !Single
-      name: null
-      target_id: 146
-      target_name: null
     inputs:
-    - id: 124
+    - id: 121
       name: tracks
       table:
       - default_db
       - tracks
 nodes:
-- id: 124
+- id: 121
   kind: Ident
-  span: 1:102-113
+  span: 1:89-100
   ident: !Ident
   - default_db
   - tracks
-  parent: 130
-- id: 126
+  parent: 127
+- id: 123
   kind: RqOperator
-  span: 1:121-136
+  span: 1:108-123
   targets:
-  - 128
-  - 129
-  parent: 130
-- id: 128
+  - 125
+  - 126
+  parent: 127
+- id: 125
   kind: Ident
-  span: 1:121-129
+  span: 1:108-116
   ident: !Ident
   - this
   - tracks
   - genre_id
   targets:
-  - 124
-- id: 129
+  - 121
+- id: 126
   kind: Literal
-  span: 1:133-136
-- id: 130
+  span: 1:120-123
+- id: 127
   kind: 'TransformCall: Filter'
-  span: 1:114-136
+  span: 1:101-123
   children:
-  - 124
-  - 126
-  parent: 136
-- id: 131
+  - 121
+  - 123
+  parent: 133
+- id: 128
   kind: RqOperator
-  span: 1:157-167
+  span: 1:144-154
   alias: empty_name
   targets:
-  - 133
-  - 134
-  parent: 135
-- id: 133
+  - 130
+  - 131
+  parent: 132
+- id: 130
   kind: Ident
-  span: 1:157-161
+  span: 1:144-148
   ident: !Ident
   - this
   - tracks
   - name
   targets:
-  - 124
-- id: 134
+  - 121
+- id: 131
   kind: Literal
-  span: 1:165-167
-- id: 135
+  span: 1:152-154
+- id: 132
   kind: Tuple
-  span: 1:157-167
+  span: 1:144-154
   children:
-  - 131
-  parent: 136
-- id: 136
+  - 128
+  parent: 133
+- id: 133
   kind: 'TransformCall: Derive'
-  span: 1:137-167
+  span: 1:124-154
   children:
-  - 130
-  - 135
-  parent: 150
-- id: 137
+  - 127
+  - 132
+  parent: 147
+- id: 134
   kind: RqOperator
-  span: 1:179-191
+  span: 1:166-178
   targets:
-  - 139
-  parent: 149
-- id: 139
+  - 136
+  parent: 146
+- id: 136
   kind: Ident
-  span: 1:183-191
+  span: 1:170-178
   ident: !Ident
   - this
   - tracks
   - track_id
   targets:
-  - 124
-- id: 140
+  - 121
+- id: 137
   kind: RqOperator
-  span: 1:193-210
+  span: 1:180-197
   targets:
-  - 142
-  parent: 149
-- id: 142
+  - 139
+  parent: 146
+- id: 139
   kind: Ident
-  span: 1:206-210
+  span: 1:193-197
   ident: !Ident
   - this
   - tracks
   - name
   targets:
-  - 124
+  - 121
+- id: 140
+  kind: RqOperator
+  span: 1:199-213
+  targets:
+  - 142
+  parent: 146
+- id: 142
+  kind: Ident
+  span: 1:203-213
+  ident: !Ident
+  - this
+  - empty_name
+  targets:
+  - 128
 - id: 143
   kind: RqOperator
-  span: 1:212-226
+  span: 1:215-229
   targets:
   - 145
-  parent: 149
+  parent: 146
 - id: 145
   kind: Ident
-  span: 1:216-226
+  span: 1:219-229
   ident: !Ident
   - this
   - empty_name
   targets:
-  - 131
+  - 128
 - id: 146
-  kind: RqOperator
-  span: 1:228-242
-  targets:
-  - 148
-  parent: 149
-- id: 148
-  kind: Ident
-  span: 1:232-242
-  ident: !Ident
-  - this
-  - empty_name
-  targets:
-  - 131
-- id: 149
   kind: Tuple
-  span: 1:178-243
+  span: 1:165-230
   children:
+  - 134
   - 137
   - 140
   - 143
-  - 146
-  parent: 150
-- id: 150
+  parent: 147
+- id: 147
   kind: 'TransformCall: Aggregate'
-  span: 1:168-243
+  span: 1:155-230
   children:
-  - 136
-  - 149
+  - 133
+  - 146
 ast:
   name: Project
   stmts:
@@ -206,84 +206,99 @@ ast:
           exprs:
           - FuncCall:
               name:
-                Ident: from
-                span: 1:102-106
+                Ident:
+                - from
+                span: 1:89-93
               args:
-              - Ident: tracks
-                span: 1:107-113
-            span: 1:102-113
+              - Ident:
+                - tracks
+                span: 1:94-100
+            span: 1:89-100
           - FuncCall:
               name:
-                Ident: filter
-                span: 1:114-120
+                Ident:
+                - filter
+                span: 1:101-107
               args:
               - Binary:
                   left:
-                    Ident: genre_id
-                    span: 1:121-129
+                    Ident:
+                    - genre_id
+                    span: 1:108-116
                   op: Eq
                   right:
                     Literal:
                       Integer: 100
-                    span: 1:133-136
-                span: 1:121-136
-            span: 1:114-136
+                    span: 1:120-123
+                span: 1:108-123
+            span: 1:101-123
           - FuncCall:
               name:
-                Ident: derive
-                span: 1:137-143
+                Ident:
+                - derive
+                span: 1:124-130
               args:
               - Binary:
                   left:
-                    Ident: name
-                    span: 1:157-161
+                    Ident:
+                    - name
+                    span: 1:144-148
                   op: Eq
                   right:
                     Literal:
                       String: ''
-                    span: 1:165-167
-                span: 1:157-167
+                    span: 1:152-154
+                span: 1:144-154
                 alias: empty_name
-            span: 1:137-167
+            span: 1:124-154
           - FuncCall:
               name:
-                Ident: aggregate
-                span: 1:168-177
+                Ident:
+                - aggregate
+                span: 1:155-164
               args:
               - Tuple:
                 - FuncCall:
                     name:
-                      Ident: sum
-                      span: 1:179-182
+                      Ident:
+                      - sum
+                      span: 1:166-169
                     args:
-                    - Ident: track_id
-                      span: 1:183-191
-                  span: 1:179-191
+                    - Ident:
+                      - track_id
+                      span: 1:170-178
+                  span: 1:166-178
                 - FuncCall:
                     name:
-                      Ident: concat_array
-                      span: 1:193-205
+                      Ident:
+                      - concat_array
+                      span: 1:180-192
                     args:
-                    - Ident: name
-                      span: 1:206-210
-                  span: 1:193-210
+                    - Ident:
+                      - name
+                      span: 1:193-197
+                  span: 1:180-197
                 - FuncCall:
                     name:
-                      Ident: all
-                      span: 1:212-215
+                      Ident:
+                      - all
+                      span: 1:199-202
                     args:
-                    - Ident: empty_name
-                      span: 1:216-226
-                  span: 1:212-226
+                    - Ident:
+                      - empty_name
+                      span: 1:203-213
+                  span: 1:199-213
                 - FuncCall:
                     name:
-                      Ident: any
-                      span: 1:228-231
+                      Ident:
+                      - any
+                      span: 1:215-218
                     args:
-                    - Ident: empty_name
-                      span: 1:232-242
-                  span: 1:228-242
-                span: 1:178-243
-            span: 1:168-243
-        span: 1:102-243
-    span: 1:0-243
+                    - Ident:
+                      - empty_name
+                      span: 1:219-229
+                  span: 1:215-229
+                span: 1:165-230
+            span: 1:155-230
+        span: 1:89-230
+    span: 1:0-230

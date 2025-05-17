@@ -1,9 +1,8 @@
 ---
 source: web/book/tests/documentation/book.rs
-expression: "from db.employees\ngroup employees.* (take 1)\n"
+expression: "from employees\ngroup employees.* (take 1)\n"
 ---
 SELECT
   DISTINCT *
 FROM
   employees
-

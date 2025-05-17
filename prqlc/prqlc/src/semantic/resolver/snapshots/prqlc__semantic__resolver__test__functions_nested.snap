@@ -29,21 +29,6 @@ expression: "resolve_derive(r#\"\n            let lag_day = x -> s\"lag_day_todo
                       - String: )
                     span: "1:102-111"
               span: "1:97-112"
-              ty:
-                kind:
-                  Union:
-                    - - ~
-                      - kind:
-                          Primitive: Int
-                        span: "0:779-782"
-                        name: ~
-                    - - ~
-                      - kind:
-                          Primitive: Float
-                        span: "0:786-791"
-                        name: ~
-                span: "0:779-791"
-                name: ~
             - Literal:
                 Integer: 1
               span: "1:115-116"
@@ -53,59 +38,9 @@ expression: "resolve_derive(r#\"\n            let lag_day = x -> s\"lag_day_todo
                 span: ~
                 name: ~
         span: "1:97-116"
-        ty:
-          kind:
-            Union:
-              - - ~
-                - kind:
-                    Primitive: Int
-                  span: "0:970-973"
-                  name: ~
-              - - ~
-                - kind:
-                    Primitive: Float
-                  span: "0:977-982"
-                  name: ~
-              - - ~
-                - kind:
-                    Primitive: Timestamp
-                  span: "0:986-995"
-                  name: ~
-              - - ~
-                - kind:
-                    Primitive: Date
-                  span: "0:999-1003"
-                  name: ~
-          span: "0:970-1003"
-          name: ~
       - Ident:
           - this
           - a
           - c
         span: "1:181-182"
   span: "1:175-182"
-  ty:
-    kind:
-      Union:
-        - - ~
-          - kind:
-              Primitive: Int
-            span: "0:893-896"
-            name: ~
-        - - ~
-          - kind:
-              Primitive: Float
-            span: "0:900-905"
-            name: ~
-        - - ~
-          - kind:
-              Primitive: Timestamp
-            span: "0:909-918"
-            name: ~
-        - - ~
-          - kind:
-              Primitive: Date
-            span: "0:922-926"
-            name: ~
-    span: "0:893-926"
-    name: ~

@@ -13,21 +13,18 @@ TransformCall:
         Array:
           kind:
             Tuple:
-              - Wildcard:
-                  kind: Any
-                  span: "0:2045-2052"
-                  name: ~
-          span: "0:2042-2053"
-          name: tuple
-      span: "0:2158-2165"
+              - Wildcard: ~
+          span: "0:1740-1744"
+          name: ~
+      span: "0:1739-1745"
       name: relation
     lineage:
       columns:
         - All:
-            input_id: 118
+            input_id: 115
             except: []
       inputs:
-        - id: 118
+        - id: 115
           name: c_invoice
           table:
             - default_db
@@ -46,48 +43,17 @@ TransformCall:
                   span: "1:81-87"
                   ty:
                     kind:
-                      Array:
-                        kind: Any
-                        span: "0:1929-1936"
-                        name: ~
-                    span: "0:1928-1937"
+                      Array: ~
+                    span: "0:1699-1701"
                     name: array
             span: "1:73-87"
-            ty:
-              kind:
-                Union:
-                  - - ~
-                    - kind:
-                        Primitive: Float
-                      span: "0:4188-4193"
-                      name: ~
-                  - - ~
-                    - kind:
-                        Singleton: "Null"
-                      span: "0:4197-4201"
-                      name: ~
-              span: "0:4188-4201"
-              name: ~
         span: "1:73-87"
         ty:
           kind:
             Tuple:
               - Single:
                   - ~
-                  - kind:
-                      Union:
-                        - - ~
-                          - kind:
-                              Primitive: Float
-                            span: "0:4188-4193"
-                            name: ~
-                        - - ~
-                          - kind:
-                              Singleton: "Null"
-                            span: "0:4197-4201"
-                            name: ~
-                    span: "0:4188-4201"
-                    name: ~
+                  - ~
           span: ~
           name: ~
   partition:
@@ -97,129 +63,13 @@ TransformCall:
           - c_invoice
           - issued_at
         span: "1:38-47"
-        ty:
-          kind:
-            Union:
-              - - ~
-                - kind:
-                    Union:
-                      - - ~
-                        - kind:
-                            Primitive: Int
-                          span: "0:1963-1966"
-                          name: ~
-                      - - ~
-                        - kind:
-                            Primitive: Float
-                          span: "0:1970-1975"
-                          name: ~
-                      - - ~
-                        - kind:
-                            Primitive: Bool
-                          span: "0:1979-1983"
-                          name: ~
-                      - - ~
-                        - kind:
-                            Primitive: Text
-                          span: "0:1987-1991"
-                          name: ~
-                      - - ~
-                        - kind:
-                            Primitive: Date
-                          span: "0:1995-1999"
-                          name: ~
-                      - - ~
-                        - kind:
-                            Primitive: Time
-                          span: "0:2003-2007"
-                          name: ~
-                      - - ~
-                        - kind:
-                            Primitive: Timestamp
-                          span: "0:2011-2020"
-                          name: ~
-                      - - ~
-                        - kind:
-                            Singleton: "Null"
-                          span: "0:2024-2028"
-                          name: ~
-                  span: "0:1963-2028"
-                  name: scalar
-              - - ~
-                - kind:
-                    Tuple:
-                      - Wildcard:
-                          kind: Any
-                          span: "0:2045-2052"
-                          name: ~
-                  span: "0:2042-2053"
-                  name: tuple
-          span: "0:3013-3028"
-          name: ~
     span: "1:38-47"
     ty:
       kind:
         Tuple:
           - Single:
               - issued_at
-              - kind:
-                  Union:
-                    - - ~
-                      - kind:
-                          Union:
-                            - - ~
-                              - kind:
-                                  Primitive: Int
-                                span: "0:1963-1966"
-                                name: ~
-                            - - ~
-                              - kind:
-                                  Primitive: Float
-                                span: "0:1970-1975"
-                                name: ~
-                            - - ~
-                              - kind:
-                                  Primitive: Bool
-                                span: "0:1979-1983"
-                                name: ~
-                            - - ~
-                              - kind:
-                                  Primitive: Text
-                                span: "0:1987-1991"
-                                name: ~
-                            - - ~
-                              - kind:
-                                  Primitive: Date
-                                span: "0:1995-1999"
-                                name: ~
-                            - - ~
-                              - kind:
-                                  Primitive: Time
-                                span: "0:2003-2007"
-                                name: ~
-                            - - ~
-                              - kind:
-                                  Primitive: Timestamp
-                                span: "0:2011-2020"
-                                name: ~
-                            - - ~
-                              - kind:
-                                  Singleton: "Null"
-                                span: "0:2024-2028"
-                                name: ~
-                        span: "0:1963-2028"
-                        name: scalar
-                    - - ~
-                      - kind:
-                          Tuple:
-                            - Wildcard:
-                                kind: Any
-                                span: "0:2045-2052"
-                                name: ~
-                        span: "0:2042-2053"
-                        name: tuple
-                span: "0:3013-3028"
-                name: ~
+              - ~
       span: ~
       name: ~
 span: "1:62-88"
@@ -230,80 +80,10 @@ ty:
         Tuple:
           - Single:
               - issued_at
-              - kind:
-                  Union:
-                    - - ~
-                      - kind:
-                          Union:
-                            - - ~
-                              - kind:
-                                  Primitive: Int
-                                span: "0:1963-1966"
-                                name: ~
-                            - - ~
-                              - kind:
-                                  Primitive: Float
-                                span: "0:1970-1975"
-                                name: ~
-                            - - ~
-                              - kind:
-                                  Primitive: Bool
-                                span: "0:1979-1983"
-                                name: ~
-                            - - ~
-                              - kind:
-                                  Primitive: Text
-                                span: "0:1987-1991"
-                                name: ~
-                            - - ~
-                              - kind:
-                                  Primitive: Date
-                                span: "0:1995-1999"
-                                name: ~
-                            - - ~
-                              - kind:
-                                  Primitive: Time
-                                span: "0:2003-2007"
-                                name: ~
-                            - - ~
-                              - kind:
-                                  Primitive: Timestamp
-                                span: "0:2011-2020"
-                                name: ~
-                            - - ~
-                              - kind:
-                                  Singleton: "Null"
-                                span: "0:2024-2028"
-                                name: ~
-                        span: "0:1963-2028"
-                        name: scalar
-                    - - ~
-                      - kind:
-                          Tuple:
-                            - Wildcard:
-                                kind: Any
-                                span: "0:2045-2052"
-                                name: ~
-                        span: "0:2042-2053"
-                        name: tuple
-                span: "0:3013-3028"
-                name: ~
+              - ~
           - Single:
               - ~
-              - kind:
-                  Union:
-                    - - ~
-                      - kind:
-                          Primitive: Float
-                        span: "0:4188-4193"
-                        name: ~
-                    - - ~
-                      - kind:
-                          Singleton: "Null"
-                        span: "0:4197-4201"
-                        name: ~
-                span: "0:4188-4201"
-                name: ~
+              - ~
       span: ~
       name: ~
   span: ~
@@ -314,14 +94,14 @@ lineage:
         name:
           - c_invoice
           - issued_at
-        target_id: 120
+        target_id: 117
         target_name: ~
     - Single:
         name: ~
-        target_id: 136
+        target_id: 133
         target_name: ~
   inputs:
-    - id: 118
+    - id: 115
       name: c_invoice
       table:
         - default_db

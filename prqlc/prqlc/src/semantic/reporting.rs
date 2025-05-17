@@ -12,7 +12,9 @@ use crate::pr;
 use crate::{Result, Span};
 
 pub fn label_references(root_mod: &RootModule, source_id: String, source: String) -> Vec<u8> {
-    let mut report = Report::build(ReportKind::Custom("Info", Color::Blue), &source_id, 0);
+    let report_span = (source_id.clone(), 0..source.len());
+
+    let mut report = Report::build(ReportKind::Custom("Info", Color::Blue), report_span);
 
     let source = Source::from(source);
 
@@ -41,7 +43,7 @@ struct Labeler<'a> {
     report: &'a mut ReportBuilder<'static, (String, Range<usize>)>,
 }
 
-impl<'a> Labeler<'a> {
+impl Labeler<'_> {
     fn label_module(&mut self, module: &Module) {
         for (_, decl) in module.names.iter() {
             if let DeclKind::TableDecl(TableDecl {
@@ -67,7 +69,7 @@ impl<'a> Labeler<'a> {
     }
 }
 
-impl<'a> pl::PlFold for Labeler<'a> {
+impl pl::PlFold for Labeler<'_> {
     fn fold_expr(&mut self, node: pl::Expr) -> Result<pl::Expr> {
         if let Some(ident) = node.kind.as_ident() {
             if let Some(span) = node.span {
@@ -117,8 +119,10 @@ impl<'a> pl::PlFold for Labeler<'a> {
                     ("".to_string(), Color::White)
                 };
 
+                let label_span = (self.source_id.to_string(), span.start..span.end);
+
                 self.report.add_label(
-                    Label::new((self.source_id.to_string(), Range::from(span)))
+                    Label::new(label_span)
                         .with_message(format!("{ident} {decl}"))
                         .with_color(color),
                 );

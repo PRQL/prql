@@ -8,6 +8,8 @@ extend-exclude = [
 ]
 
 [default.extend-words]
+# <itemDatas> in grammars/KSyntaxHighlighting/prql.xml
+datas = "datas"
 # Java test framework
 testng = "testng"
 # Readme highlighting the first characters of these words
@@ -17,3 +19,4 @@ ipelined = "ipelined"
 uery = "uery"
 # `wee-alloc` is a crate name
 wee = "wee"
+flate = "flate"

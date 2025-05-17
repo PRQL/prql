@@ -3,7 +3,7 @@
   "description": "JavaScript bindings for prqlc",
   "devDependencies": {
     "chai": "^5.0.0",
-    "mocha": "^10.3.0",
+    "mocha": "^11.0.1",
     "cross-env": "^7.0.3"
   },
   "files": [
@@ -35,5 +35,5 @@
     "test": "mocha tests"
   },
   "types": "dist/node/prqlc_js.d.ts",
-  "version": "0.13.1"
+  "version": "0.13.5"
 }

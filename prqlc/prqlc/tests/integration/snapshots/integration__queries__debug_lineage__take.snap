@@ -7,10 +7,10 @@ frames:
 - - 1:25-41
   - columns:
     - !All
-      input_id: 121
+      input_id: 118
       except: []
     inputs:
-    - id: 121
+    - id: 118
       name: tracks
       table:
       - default_db
@@ -18,23 +18,23 @@ frames:
 - - 1:42-51
   - columns:
     - !All
-      input_id: 121
+      input_id: 118
       except: []
     inputs:
-    - id: 121
+    - id: 118
       name: tracks
       table:
       - default_db
       - tracks
 nodes:
-- id: 121
+- id: 118
   kind: Ident
   span: 1:13-24
   ident: !Ident
   - default_db
   - tracks
-  parent: 125
-- id: 123
+  parent: 122
+- id: 120
   kind: Ident
   span: 1:31-40
   ident: !Ident
@@ -42,32 +42,32 @@ nodes:
   - tracks
   - track_id
   targets:
-  - 121
-  parent: 125
-- id: 125
+  - 118
+  parent: 122
+- id: 122
   kind: 'TransformCall: Sort'
   span: 1:25-41
   children:
-  - 121
-  - 123
-  parent: 129
-- id: 126
+  - 118
+  - 120
+  parent: 126
+- id: 123
   kind: Literal
   span: 1:47-48
   alias: start
-  parent: 129
-- id: 127
+  parent: 126
+- id: 124
   kind: Literal
   span: 1:50-51
   alias: end
-  parent: 129
-- id: 129
+  parent: 126
+- id: 126
   kind: 'TransformCall: Take'
   span: 1:42-51
   children:
-  - 125
-  - 126
-  - 127
+  - 122
+  - 123
+  - 124
 ast:
   name: Project
   stmts:
@@ -79,29 +79,34 @@ ast:
           exprs:
           - FuncCall:
               name:
-                Ident: from
+                Ident:
+                - from
                 span: 1:13-17
               args:
-              - Ident: tracks
+              - Ident:
+                - tracks
                 span: 1:18-24
             span: 1:13-24
           - FuncCall:
               name:
-                Ident: sort
+                Ident:
+                - sort
                 span: 1:25-29
               args:
               - Tuple:
                 - Unary:
                     op: Add
                     expr:
-                      Ident: track_id
+                      Ident:
+                      - track_id
                       span: 1:32-40
                   span: 1:31-40
                 span: 1:30-41
             span: 1:25-41
           - FuncCall:
               name:
-                Ident: take
+                Ident:
+                - take
                 span: 1:42-46
               args:
               - Range:

@@ -15,12 +15,12 @@
 
 # Operators
 
-let mul = left right -> <int || float> internal std.mul
-let div_i = left right -> <int || float> internal std.div_i
-let div_f = left right -> <int || float> internal std.div_f
-let mod = left right -> <int || float> internal std.mod
-let add = left right -> <int || float || timestamp || date> internal std.add
-let sub = left right -> <int || float || timestamp || date> internal std.sub
+let mul = left right -> internal std.mul
+let div_i = left right -> internal std.div_i
+let div_f = left right -> internal std.div_f
+let mod = left right -> internal std.mod
+let add = left right -> internal std.add
+let sub = left right -> internal std.sub
 let eq = left right -> <bool> internal std.eq
 let ne = left right -> <bool> internal std.ne
 let gt = left right -> <bool> internal std.gt
@@ -32,7 +32,7 @@ let or = left<bool> right<bool> -> <bool> internal std.or
 let coalesce = left right -> internal std.coalesce
 let regex_search = text pattern -> <bool> internal std.regex_search
 
-let neg = expr<int || float> -> <int || float> internal std.neg
+let neg = expr -> internal std.neg
 let not = expr<bool> -> <bool> internal std.not
 
 # Types
@@ -46,21 +46,15 @@ type date = date
 type time = time
 type timestamp = timestamp
 type `func` = func
-type anytype = anytype
 
 ## Generic array
-# TODO: an array of anything, not just nulls
-type array = [anytype]
+type array = []
 
-## Scalar
-type scalar = int || float || bool || text || date || time || timestamp || null
-type tuple = {..anytype}
+## Generic relation
+type relation = [{..}]
 
 ## Range
-type range = {start = scalar, end = scalar}
-
-## Relation (an array of tuples)
-type relation = [tuple]
+type range = {start = *, end = *}
 
 ## Transform
 type transform = func relation -> relation
@@ -73,7 +67,7 @@ let from = func
   -> <relation> source
 
 let select = func
-  columns <anytype>
+  columns
   tbl <relation>
   -> <relation> internal select
 
@@ -83,22 +77,22 @@ let filter = func
   -> <relation> internal filter
 
 let derive = func
-  columns <anytype>
+  columns
   tbl <relation>
   -> <relation> internal derive
 
 let aggregate = func
-  columns <anytype>
+  columns
   tbl <relation>
   -> <relation> internal aggregate
 
 let sort = func
-  by <anytype>
+  by
   tbl <relation>
   -> <relation> internal sort
 
 let take = func
-  expr <anytype>
+  expr
   tbl <relation>
   -> <relation> internal take
 
@@ -110,7 +104,7 @@ let join = func
   -> <relation> internal join
 
 let group = func
-  by<scalar || tuple>
+  by
   pipeline <transform>
   tbl <relation>
   -> <relation> internal group
@@ -144,15 +138,15 @@ let loop = func
 ## Aggregate functions
 # These return either a scalar when used within `aggregate`, or a column when used anywhere else.
 
-let min = column <array> -> <int || float || null> internal std.min
+let min = column <array> -> internal std.min
 
-let max = column <array> -> <int || float || null> internal std.max
+let max = column <array> -> internal std.max
 
-let sum = column <array> -> <int || float> internal std.sum
+let sum = column <array> -> internal std.sum
 
-let average = column <array> -> <float || null> internal std.average
+let average = column <array> -> internal std.average
 
-let stddev = column <array> -> <float || null> internal std.stddev
+let stddev = column <array> -> internal std.stddev
 
 let all = column <array> -> <bool> internal std.all
 
@@ -179,29 +173,29 @@ let row_number = column <array> -> internal row_number
 
 # Mathematical functions
 module math {
-  let abs = column -> <int || float> internal std.math.abs
+  let abs = column -> internal std.math.abs
   let floor = column -> <int> internal std.math.floor
   let ceil = column -> <int> internal std.math.ceil
   let pi = -> <float> internal std.math.pi
-  let exp = column -> <int || float> internal std.math.exp
-  let ln = column -> <int || float> internal std.math.ln
-  let log10 = column -> <int || float> internal std.math.log10
-  let log = base<int || float> column -> <int || float> internal std.math.log
-  let sqrt = column -> <int || float> internal std.math.sqrt
-  let degrees = column -> <int || float> internal std.math.degrees
-  let radians = column -> <int || float> internal std.math.radians
-  let cos = column -> <int || float> internal std.math.cos
-  let acos = column -> <int || float> internal std.math.acos
-  let sin = column -> <int || float> internal std.math.sin
-  let asin = column -> <int || float> internal std.math.asin
-  let tan = column -> <int || float> internal std.math.tan
-  let atan = column -> <int || float> internal std.math.atan
-  let pow = exponent<int || float> column -> <int || float> internal std.math.pow
-  let round = n_digits column -> <scalar> internal std.math.round
+  let exp = column -> internal std.math.exp
+  let ln = column -> internal std.math.ln
+  let log10 = column -> internal std.math.log10
+  let log = func base column -> internal std.math.log
+  let sqrt = column -> internal std.math.sqrt
+  let degrees = column -> internal std.math.degrees
+  let radians = column -> internal std.math.radians
+  let cos = column -> internal std.math.cos
+  let acos = column -> internal std.math.acos
+  let sin = column -> internal std.math.sin
+  let asin = column -> internal std.math.asin
+  let tan = column -> internal std.math.tan
+  let atan = column -> internal std.math.atan
+  let pow = exponent column -> internal std.math.pow
+  let round = n_digits column -> internal std.math.round
 }
 
 ## Misc functions
-let as = `noresolve.type` column -> <scalar> internal std.as
+let as = `noresolve.type` column -> internal std.as
 let in = pattern value -> <bool> internal in
 
 ## Tuple functions

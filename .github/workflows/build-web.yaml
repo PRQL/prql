@@ -13,7 +13,7 @@ env:
 
 jobs:
   build-web:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-22.04
 
     steps:
       - name: 📂 Checkout code
@@ -47,7 +47,7 @@ jobs:
       - name: 💰 Cache
         uses: Swatinem/rust-cache@v2
         with:
-          prefix-key: ${{ env.version }}
+          prefix-key: ${{ env.version }}-${{ hashFiles('Cargo.lock') }}
           shared-key: web
           save-if:
             ${{ github.ref == 'refs/heads/web' || github.ref ==
@@ -65,7 +65,7 @@ jobs:
           path: web/website/public/
 
   build-codemirror-demo:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-22.04
 
     steps:
       - name: 📂 Checkout code

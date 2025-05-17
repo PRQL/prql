@@ -105,19 +105,11 @@ fn query_def() -> impl Parser<TokenKind, Stmt, Error = PError> + Clone {
             let other = args
                 .remove("target")
                 .map(|v| {
-                    match v.kind {
-                        ExprKind::Ident(name) => return Ok(name.to_string()),
-                        ExprKind::Indirection {
-                            base,
-                            field: IndirectionKind::Name(field),
-                        } => {
-                            if let ExprKind::Ident(name) = base.kind {
-                                return Ok(name.to_string() + "." + &field);
-                            }
-                        }
-                        _ => {}
-                    };
-                    Err("target must be a string literal".to_string())
+                    if let ExprKind::Ident(name) = v.kind {
+                        Ok(name.to_string())
+                    } else {
+                        Err("target must be a string literal".to_string())
+                    }
                 })
                 .transpose()
                 .map_err(|msg| PError::custom(span, msg))?
@@ -194,7 +186,7 @@ fn var_def() -> impl Parser<TokenKind, StmtKind, Error = PError> + Clone {
 fn type_def() -> impl Parser<TokenKind, StmtKind, Error = PError> + Clone {
     keyword("type")
         .ignore_then(ident_part())
-        .then(ctrl('=').ignore_then(type_expr()).or_not())
+        .then(ctrl('=').ignore_then(type_expr()))
         .map(|(name, value)| StmtKind::TypeDef(TypeDef { name, value }))
         .labelled("type definition")
 }
@@ -219,8 +211,7 @@ mod tests {
         assert_yaml_snapshot!(parse_with_parser(r#"
             let world = 1
             let man = module.world
-        "#, module_contents()).unwrap(), @r###"
-        ---
+        "#, module_contents()).unwrap(), @r#"
         - VarDef:
             kind: Let
             name: world
@@ -233,15 +224,12 @@ mod tests {
             kind: Let
             name: man
             value:
-              Indirection:
-                base:
-                  Ident: module
-                  span: "0:49-55"
-                field:
-                  Name: world
+              Ident:
+                - module
+                - world
               span: "0:49-61"
           span: "0:26-61"
-        "###);
+        "#);
     }
 
     #[test]
@@ -249,39 +237,41 @@ mod tests {
         assert_yaml_snapshot!(parse_with_parser(r#"
             from artists
             into x
-        "#, var_def()).unwrap(), @r###"
-        ---
+        "#, var_def()).unwrap(), @r#"
         VarDef:
           kind: Into
           name: x
           value:
             FuncCall:
               name:
-                Ident: from
+                Ident:
+                  - from
                 span: "0:13-17"
               args:
-                - Ident: artists
+                - Ident:
+                    - artists
                   span: "0:18-25"
             span: "0:13-25"
-        "###);
+        "#);
 
         assert_yaml_snapshot!(parse_with_parser(r#"
             from artists | into x
-        "#, var_def()).unwrap(), @r###"
-        ---
+        "#, var_def()).unwrap(), @r#"
         VarDef:
           kind: Into
           name: x
           value:
             FuncCall:
               name:
-                Ident: from
+                Ident:
+                  - from
                 span: "0:13-17"
               args:
-                - Ident: artists
+                - Ident:
+                    - artists
                   span: "0:18-25"
             span: "0:13-25"
-        "###);
+        "#);
     }
 
     #[test]
@@ -291,7 +281,7 @@ mod tests {
             from artists
             into x
         )
-        "#, module_contents().then_ignore(end())).unwrap_err(), @r###"
+        "#, module_contents().then_ignore(end())).unwrap_err(), @r#"
         [
             Error {
                 kind: Error,
@@ -307,7 +297,7 @@ mod tests {
             Error {
                 kind: Error,
                 span: Some(
-                    0:72-73,
+                    0:73-73,
                 ),
                 reason: Simple(
                     "unexpected end of input",
@@ -316,7 +306,7 @@ mod tests {
                 code: None,
             },
         ]
-        "###);
+        "#);
     }
 
     #[test]
@@ -332,8 +322,7 @@ mod tests {
         "#,
         );
 
-        assert_yaml_snapshot!(module_ast, @r###"
-        ---
+        assert_yaml_snapshot!(module_ast, @r#"
         - ModuleDef:
             name: hello
             stmts:
@@ -349,16 +338,13 @@ mod tests {
                   kind: Let
                   name: man
                   value:
-                    Indirection:
-                      base:
-                        Ident: module
-                        span: "0:74-80"
-                      field:
-                        Name: world
+                    Ident:
+                      - module
+                      - world
                     span: "0:74-86"
                 span: "0:51-86"
           span: "0:0-98"
-        "###);
+        "#);
 
         // Check this parses OK. (We tried comparing it to the AST of the result
         // above, but the span information was different, so we just check it.
@@ -382,8 +368,7 @@ mod tests {
     fn test_module_def() {
         // Same line
         assert_yaml_snapshot!(parse_with_parser(r#"module two {let houses = both.alike}
-        "#, module_contents()).unwrap(), @r###"
-        ---
+        "#, module_contents()).unwrap(), @r#"
         - ModuleDef:
             name: two
             stmts:
@@ -391,24 +376,20 @@ mod tests {
                   kind: Let
                   name: houses
                   value:
-                    Indirection:
-                      base:
-                        Ident: both
-                        span: "0:25-29"
-                      field:
-                        Name: alike
+                    Ident:
+                      - both
+                      - alike
                     span: "0:25-35"
                 span: "0:12-35"
           span: "0:0-36"
-        "###);
+        "#);
 
         assert_yaml_snapshot!(parse_with_parser(r#"
           module dignity {
             let fair = 1
             let verona = we.lay
          }
-        "#, module_contents()).unwrap(), @r###"
-        ---
+        "#, module_contents()).unwrap(), @r#"
         - ModuleDef:
             name: dignity
             stmts:
@@ -424,16 +405,13 @@ mod tests {
                   kind: Let
                   name: verona
                   value:
-                    Indirection:
-                      base:
-                        Ident: we
-                        span: "0:78-80"
-                      field:
-                        Name: lay
+                    Ident:
+                      - we
+                      - lay
                     span: "0:78-84"
                 span: "0:52-84"
           span: "0:0-95"
-        "###);
+        "#);
     }
 
     #[test]
@@ -443,23 +421,24 @@ mod tests {
         #! first doc comment
         from foo
 
-        "#, module_contents()).unwrap(), @r###"
-        ---
+        "#, module_contents()).unwrap(), @r#"
         - VarDef:
             kind: Main
             name: main
             value:
               FuncCall:
                 name:
-                  Ident: from
+                  Ident:
+                    - from
                   span: "0:39-43"
                 args:
-                  - Ident: foo
+                  - Ident:
+                      - foo
                     span: "0:44-47"
               span: "0:39-47"
           span: "0:30-47"
           doc_comment: " first doc comment"
-        "###);
+        "#);
 
         assert_yaml_snapshot!(parse_with_parser(r#"
 
@@ -471,18 +450,19 @@ mod tests {
         #! second doc comment
         from bar
 
-        "#, module_contents()).unwrap(), @r###"
-        ---
+        "#, module_contents()).unwrap(), @r#"
         - VarDef:
             kind: Into
             name: x
             value:
               FuncCall:
                 name:
-                  Ident: from
+                  Ident:
+                    - from
                   span: "0:40-44"
                 args:
-                  - Ident: foo
+                  - Ident:
+                      - foo
                     span: "0:45-48"
               span: "0:40-48"
           span: "0:31-63"
@@ -493,15 +473,17 @@ mod tests {
             value:
               FuncCall:
                 name:
-                  Ident: from
+                  Ident:
+                    - from
                   span: "0:103-107"
                 args:
-                  - Ident: bar
+                  - Ident:
+                      - bar
                     span: "0:108-111"
               span: "0:103-111"
           span: "0:94-111"
           doc_comment: " second doc comment"
-        "###);
+        "#);
     }
 
     #[test]
@@ -513,8 +495,7 @@ mod tests {
           #! first doc comment
           from foo
         }
-        "#, module_contents()).unwrap(), @r###"
-        ---
+        "#, module_contents()).unwrap(), @r#"
         - ModuleDef:
             name: bar
             stmts:
@@ -524,24 +505,25 @@ mod tests {
                   value:
                     FuncCall:
                       name:
-                        Ident: from
+                        Ident:
+                          - from
                         span: "0:63-67"
                       args:
-                        - Ident: foo
+                        - Ident:
+                            - foo
                           span: "0:68-71"
                     span: "0:63-71"
                 span: "0:52-71"
                 doc_comment: " first doc comment"
           span: "0:0-81"
-        "###);
+        "#);
     }
 
     #[test]
     fn lambdas() {
         assert_yaml_snapshot!(parse_with_parser(r#"
         let first = column <array> -> internal std.first
-        "#, module_contents()).unwrap(), @r###"
-        ---
+        "#, module_contents()).unwrap(), @r#"
         - VarDef:
             kind: Let
             name: first
@@ -561,18 +543,16 @@ mod tests {
                       name: ~
                     default_value: ~
                 named_params: []
-                generic_type_params: []
               span: "0:21-57"
           span: "0:0-57"
-        "###);
+        "#);
 
         assert_yaml_snapshot!(parse_with_parser(r#"
       module defs {
         let first = column <array> -> internal std.first
         let last  = column <array> -> internal std.last
     }
-        "#, module_contents()).unwrap(), @r###"
-        ---
+        "#, module_contents()).unwrap(), @r#"
         - ModuleDef:
             name: defs
             stmts:
@@ -595,7 +575,6 @@ mod tests {
                             name: ~
                           default_value: ~
                       named_params: []
-                      generic_type_params: []
                     span: "0:41-77"
                 span: "0:20-77"
               - VarDef:
@@ -617,10 +596,9 @@ mod tests {
                             name: ~
                           default_value: ~
                       named_params: []
-                      generic_type_params: []
                     span: "0:98-133"
                 span: "0:77-133"
           span: "0:0-139"
-        "###);
+        "#);
     }
 }

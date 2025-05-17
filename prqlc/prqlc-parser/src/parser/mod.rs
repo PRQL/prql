@@ -51,7 +51,7 @@ pub(crate) fn prepare_stream<'a>(
         .map(move |token| (token.kind, Span::new(source_id, token.span)));
     let eoi = Span {
         start: final_span,
-        end: final_span + 1,
+        end: final_span,
         source_id,
     };
     Stream::from_iter(eoi, tokens)
@@ -60,7 +60,6 @@ pub(crate) fn prepare_stream<'a>(
 fn ident_part() -> impl Parser<TokenKind, String, Error = PError> + Clone {
     select! {
         TokenKind::Ident(ident) => ident,
-        TokenKind::Keyword(ident) if &ident == "module" => ident,
     }
     .map_err(|e: PError| {
         PError::expected_input_found(
@@ -180,31 +179,33 @@ mod tests {
         #! doc comment
         #! another line
 
-        "#, doc_comment()), @r###"
+        "#, doc_comment()), @r#"
         Ok(
             " doc comment\n another line",
         )
-        "###);
+        "#);
     }
 
     #[test]
     fn test_doc_comment_or_not() {
         assert_debug_snapshot!(parse_with_parser(r#"hello"#, doc_comment().or_not()).unwrap(), @"None");
-        assert_debug_snapshot!(parse_with_parser(r#"hello"#, doc_comment().or_not().then_ignore(new_line().repeated()).then(ident_part())).unwrap(), @r###"
+        assert_debug_snapshot!(parse_with_parser(r#"hello"#, doc_comment().or_not().then_ignore(new_line().repeated()).then(ident_part())).unwrap(), @r#"
         (
             None,
             "hello",
         )
-        "###);
+        "#);
+    }
+
+    #[cfg(test)]
+    impl SupportsDocComment for String {
+        fn with_doc_comment(self, _doc_comment: Option<String>) -> Self {
+            self
+        }
     }
 
     #[test]
     fn test_no_doc_comment_in_with_doc_comment() {
-        impl SupportsDocComment for String {
-            fn with_doc_comment(self, _doc_comment: Option<String>) -> Self {
-                self
-            }
-        }
-        assert_debug_snapshot!(parse_with_parser(r#"hello"#, with_doc_comment(new_line().ignore_then(ident_part()))).unwrap(), @r###""hello""###);
+        assert_debug_snapshot!(parse_with_parser(r#"hello"#, with_doc_comment(new_line().ignore_then(ident_part()))).unwrap(), @r#""hello""#);
     }
 }

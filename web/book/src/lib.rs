@@ -244,7 +244,7 @@ this is an error
 ```
     "###;
 
-    assert_snapshot!(replace_examples(md)?, md, @r###"
+    assert_snapshot!(replace_examples(md)?, md, @r#"
     # PRQL Doc
 
     <div class="comparison">
@@ -293,7 +293,7 @@ this is an error
     <h4>Error</h4>
 
     <pre><code class="hljs language-undefined"><span style='color:var(--red,#a00)'>Error:</span>
-       <span style='color:#949494'>╭─[</span>:1:1<span style='color:#949494'>]</span>
+       <span style='color:#949494'>╭─[</span> :1:1 <span style='color:#949494'>]</span>
        <span style='color:#949494'>│</span>
      <span style='color:#949494'>1 │</span> this<span style='color:#b2b2b2'> is an error</span>
      <span style='color:#585858'>  │</span> ──┬─
@@ -304,7 +304,7 @@ this is an error
     </div>
 
     </div>
-    "###);
+    "#);
 
     Ok(())
 }
@@ -326,7 +326,7 @@ fn test_table() -> Result<()> {
 
 ";
 
-    assert_snapshot!(replace_examples(table)?, @r###"
+    assert_snapshot!(replace_examples(table)?, @r"
     # Syntax
 
     |a|
@@ -336,7 +336,7 @@ fn test_table() -> Result<()> {
     |a|
     |-|
     |\||
-    "###);
+    ");
 
     Ok(())
 }

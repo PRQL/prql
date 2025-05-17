@@ -167,11 +167,13 @@ impl ErrorMessage {
         // We always pass color to ariadne as true, and then (currently) strip later.
         let config = Config::default().with_color(true);
 
+        // Create a span tuple with the source path and the error range
         let span = Range::from(self.span?);
+        let error_span = (source_path.clone(), span.start..span.end);
 
-        let mut report = Report::build(ReportKind::Error, source_path.clone(), span.start)
+        let mut report = Report::build(ReportKind::Error, error_span.clone())
             .with_config(config)
-            .with_label(Label::new((source_path, span)).with_message(&self.reason));
+            .with_label(Label::new(error_span).with_message(&self.reason));
 
         if let Some(code) = &self.code {
             report = report.with_code(code);
@@ -220,12 +222,12 @@ impl<'a> FileTreeCache<'a> {
     }
 }
 
-impl<'a> Cache<PathBuf> for FileTreeCache<'a> {
+impl Cache<PathBuf> for FileTreeCache<'_> {
     type Storage = String;
-    fn fetch(&mut self, id: &PathBuf) -> Result<&Source, Box<dyn fmt::Debug + '_>> {
+    fn fetch(&mut self, id: &PathBuf) -> Result<&Source<Self::Storage>, impl fmt::Debug> {
         let file_contents = match self.file_tree.sources.get(id) {
             Some(v) => v,
-            None => return Err(Box::new(format!("Unknown file `{id:?}`"))),
+            None => return Err(format!("Unknown file `{id:?}`")),
         };
 
         Ok(self
@@ -234,10 +236,7 @@ impl<'a> Cache<PathBuf> for FileTreeCache<'a> {
             .or_insert_with(|| Source::from(file_contents.to_string())))
     }
 
-    fn display<'b>(&self, id: &'b PathBuf) -> Option<Box<dyn fmt::Display + 'b>> {
-        match id.as_os_str().to_str() {
-            Some(s) => Some(Box::new(s)),
-            None => None,
-        }
+    fn display<'b>(&self, id: &'b PathBuf) -> Option<impl fmt::Display + 'b> {
+        id.as_os_str().to_str().map(str::to_string)
     }
 }

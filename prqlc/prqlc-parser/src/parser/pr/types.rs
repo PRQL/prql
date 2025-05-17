@@ -3,7 +3,6 @@ use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 use strum::AsRefStr;
 
-use crate::lexer::lr::Literal;
 use crate::parser::pr::ident::Ident;
 use crate::span::Span;
 
@@ -25,30 +24,14 @@ pub enum TyKind {
     /// Type of a built-in primitive type
     Primitive(PrimitiveSet),
 
-    /// Type that contains only a one value
-    Singleton(Literal),
-
-    /// Union of sets (sum)
-    Union(Vec<(Option<String>, Ty)>),
-
     /// Type of tuples (product)
     Tuple(Vec<TyTupleField>),
 
     /// Type of arrays
-    Array(Box<Ty>),
+    Array(Option<Box<Ty>>),
 
     /// Type of functions with defined params and return types.
     Function(Option<TyFunc>),
-
-    /// Type of every possible value. Super type of all other types.
-    /// The breaker of chains. Mother of types.
-    Any,
-
-    /// Type that is the largest subtype of `base` while not a subtype of `exclude`.
-    Difference { base: Box<Ty>, exclude: Box<Ty> },
-
-    /// A generic argument. Contains id of the function call node and generic type param name.
-    GenericArg((usize, String)),
 }
 
 impl TyKind {
@@ -105,7 +88,7 @@ pub enum PrimitiveSet {
 pub struct TyFunc {
     pub name_hint: Option<Ident>,
     pub params: Vec<Option<Ty>>,
-    pub return_ty: Box<Option<Ty>>,
+    pub return_ty: Option<Box<Ty>>,
 }
 
 impl Ty {
@@ -119,32 +102,24 @@ impl Ty {
 
     pub fn relation(tuple_fields: Vec<TyTupleField>) -> Self {
         let tuple = Ty::new(TyKind::Tuple(tuple_fields));
-        Ty::new(TyKind::Array(Box::new(tuple)))
-    }
-
-    pub fn never() -> Self {
-        Ty::new(TyKind::Union(Vec::new()))
-    }
-
-    pub fn is_never(&self) -> bool {
-        self.kind.as_union().map_or(false, |x| x.is_empty())
+        Ty::new(TyKind::Array(Some(Box::new(tuple))))
     }
 
     pub fn as_relation(&self) -> Option<&Vec<TyTupleField>> {
-        self.kind.as_array()?.kind.as_tuple()
+        self.kind.as_array()?.as_ref()?.kind.as_tuple()
     }
 
     pub fn as_relation_mut(&mut self) -> Option<&mut Vec<TyTupleField>> {
-        self.kind.as_array_mut()?.kind.as_tuple_mut()
+        self.kind.as_array_mut()?.as_mut()?.kind.as_tuple_mut()
     }
 
     pub fn into_relation(self) -> Option<Vec<TyTupleField>> {
-        self.kind.into_array().ok()?.kind.into_tuple().ok()
+        self.kind.into_array().ok()??.kind.into_tuple().ok()
     }
 
     pub fn is_relation(&self) -> bool {
         match &self.kind {
-            TyKind::Array(elem) => {
+            TyKind::Array(Some(elem)) => {
                 matches!(elem.kind, TyKind::Tuple(_))
             }
             _ => false,
@@ -170,11 +145,5 @@ impl From<PrimitiveSet> for TyKind {
 impl From<TyFunc> for TyKind {
     fn from(value: TyFunc) -> Self {
         TyKind::Function(Some(value))
-    }
-}
-
-impl From<Literal> for TyKind {
-    fn from(value: Literal) -> Self {
-        TyKind::Singleton(value)
     }
 }

@@ -27,7 +27,7 @@ pub(crate) fn expr() -> impl Parser<TokenKind, Expr, Error = PError> + Clone {
     recursive(|expr| {
         let literal = select! { TokenKind::Literal(lit) => ExprKind::Literal(lit) };
 
-        let ident_kind = ident_part().map(ExprKind::Ident);
+        let ident_kind = ident().map(ExprKind::Ident);
 
         let internal = keyword("internal")
             .ignore_then(ident())
@@ -69,7 +69,6 @@ pub(crate) fn expr() -> impl Parser<TokenKind, Expr, Error = PError> + Clone {
         )
         .boxed();
 
-        let term = field_lookup(term);
         let term = unary(term);
         let term = range(term);
 
@@ -168,28 +167,6 @@ where
             .map(|(op, expr)| ExprKind::Unary(UnaryExpr { op, expr }))
             .map_with_span(ExprKind::into_expr))
         .boxed()
-}
-
-fn field_lookup<'a, E>(expr: E) -> impl Parser<TokenKind, Expr, Error = PError> + Clone + 'a
-where
-    E: Parser<TokenKind, Expr, Error = PError> + Clone + 'a,
-{
-    expr.then(
-        ctrl('.')
-            .ignore_then(choice((
-                ident_part().map(IndirectionKind::Name),
-                ctrl('*').to(IndirectionKind::Star),
-                select! {
-                    TokenKind::Literal(Literal::Integer(i)) => IndirectionKind::Position(i)
-                },
-            )))
-            .map_with_span(|f, s| (f, s))
-            .repeated(),
-    )
-    .foldl(|base, (field, span)| {
-        let base = Box::new(base);
-        ExprKind::Indirection { base, field }.into_expr(span)
-    })
 }
 
 fn range<'a, E>(expr: E) -> impl Parser<TokenKind, Expr, Error = PError> + Clone + 'a
@@ -480,19 +457,9 @@ where
         .then(type_expr().delimited_by(ctrl('<'), ctrl('>')).or_not())
         .then(ctrl(':').ignore_then(expr.clone().map(Box::new)).or_not());
 
-    let generic_args = ident_part()
-        .then_ignore(ctrl(':'))
-        .then(type_expr().separated_by(ctrl('|')))
-        .map(|(name, domain)| GenericTypeParam { name, domain })
-        .separated_by(ctrl(','))
-        .at_least(1)
-        .delimited_by(ctrl('<'), ctrl('>'))
-        .or_not()
-        .map(|x| x.unwrap_or_default());
-
     choice((
         // func
-        keyword("func").ignore_then(generic_args).then(
+        keyword("func").ignore_then(
             param
                 .clone()
                 .separated_by(new_line().repeated())
@@ -500,14 +467,14 @@ where
                 .allow_trailing(),
         ),
         // plain
-        param.repeated().map(|params| (Vec::new(), params)),
+        param.repeated(),
     ))
     .then_ignore(just(TokenKind::ArrowThin))
     // return type
     .then(type_expr().delimited_by(ctrl('<'), ctrl('>')).or_not())
     // body
     .then(func_call(expr))
-    .map(|(((generic_type_params, params), return_ty), body)| {
+    .map(|((params, return_ty), body)| {
         let (pos, name) = params
             .into_iter()
             .map(|((name, ty), default_value)| FuncParam {
@@ -523,7 +490,6 @@ where
 
             body: Box::new(body),
             return_ty,
-            generic_type_params,
         })
     })
     .map(ExprKind::Func)
@@ -533,8 +499,9 @@ where
 
 pub(crate) fn ident() -> impl Parser<TokenKind, Ident, Error = PError> + Clone {
     ident_part()
-        .separated_by(ctrl('.'))
-        .at_least(1)
+        .then_ignore(ctrl('.'))
+        .repeated()
+        .chain(choice((ident_part(), ctrl('*').map(|_| "*".to_string()))).map(Some))
         .map(Ident::from_path::<String>)
 }
 
@@ -591,11 +558,11 @@ mod tests {
     fn test_expr_call() {
         assert_yaml_snapshot!(
             parse_with_parser(r#"derive x = 5"#, trim_start().ignore_then(expr_call())).unwrap(),
-             @r###"
-        ---
+             @r#"
         FuncCall:
           name:
-            Ident: derive
+            Ident:
+              - derive
             span: "0:0-6"
           args:
             - Literal:
@@ -603,39 +570,41 @@ mod tests {
               span: "0:11-12"
               alias: x
         span: "0:0-12"
-        "###);
+        "#);
 
         assert_yaml_snapshot!(
             parse_with_parser(r#"aggregate {sum salary}"#, trim_start().ignore_then(expr_call())).unwrap(),
-             @r###"
-        ---
+             @r#"
         FuncCall:
           name:
-            Ident: aggregate
+            Ident:
+              - aggregate
             span: "0:0-9"
           args:
             - Tuple:
                 - FuncCall:
                     name:
-                      Ident: sum
+                      Ident:
+                        - sum
                       span: "0:11-14"
                     args:
-                      - Ident: salary
+                      - Ident:
+                          - salary
                         span: "0:15-21"
                   span: "0:11-21"
               span: "0:10-22"
         span: "0:0-22"
-        "###);
+        "#);
     }
 
     #[test]
     fn aliased_in_expr() {
         assert_yaml_snapshot!(
-            parse_with_parser(r#"x = 5"#, trim_start().ignore_then(expr())).unwrap(), @r###"
-        ---
-        Ident: x
+            parse_with_parser(r#"x = 5"#, trim_start().ignore_then(expr())).unwrap(), @r#"
+        Ident:
+          - x
         span: "0:0-1"
-        "###);
+        "#);
     }
 
     #[test]
@@ -643,8 +612,7 @@ mod tests {
         let tuple = || trim_start().ignore_then(tuple(expr()));
         assert_yaml_snapshot!(
             parse_with_parser(r#"{a = 5, b = 6}"#, tuple()).unwrap(),
-            @r###"
-        ---
+            @r#"
         Tuple:
           - Literal:
               Integer: 5
@@ -654,13 +622,13 @@ mod tests {
               Integer: 6
             span: "0:12-13"
             alias: b
-        "###);
+        "#);
 
         assert_debug_snapshot!(
             parse_with_parser(r#"
             {a = 5
              b = 6}"#, tuple()).unwrap_err(),
-            @r###"
+            @r#"
         [
             Error {
                 kind: Error,
@@ -678,25 +646,22 @@ mod tests {
                 code: None,
             },
         ]
-        "###);
+        "#);
 
         assert_yaml_snapshot!(parse_with_parser(r#"{d_str = (d | date.to_text "%Y/%m/%d")}"#, tuple()).unwrap(),
-        @r###"
-        ---
+        @r#"
         Tuple:
           - Pipeline:
               exprs:
-                - Ident: d
+                - Ident:
+                    - d
                   span: "0:10-11"
                 - FuncCall:
                     name:
-                      Indirection:
-                        base:
-                          Ident: date
-                          span: "0:14-18"
-                        field:
-                          Name: to_text
-                      span: "0:18-26"
+                      Ident:
+                        - date
+                        - to_text
+                      span: "0:14-26"
                     args:
                       - Literal:
                           String: "%Y/%m/%d"
@@ -704,15 +669,14 @@ mod tests {
                   span: "0:14-37"
             span: "0:10-37"
             alias: d_str
-        "###);
+        "#);
     }
 
     #[test]
     fn test_expr() {
         assert_yaml_snapshot!(
             parse_with_parser(r#"5+5"#, trim_start().ignore_then(expr())).unwrap(),
-             @r###"
-        ---
+             @r#"
         Binary:
           left:
             Literal:
@@ -724,7 +688,7 @@ mod tests {
               Integer: 5
             span: "0:2-3"
         span: "0:0-3"
-        "###);
+        "#);
     }
 
     #[test]
@@ -736,21 +700,23 @@ mod tests {
               derive x = 5
             )
             "#, trim_start().ignore_then(pipeline(expr_call()))).unwrap(),
-            @r###"
-        ---
+            @r#"
         Pipeline:
           exprs:
             - FuncCall:
                 name:
-                  Ident: from
+                  Ident:
+                    - from
                   span: "0:29-33"
                 args:
-                  - Ident: artists
+                  - Ident:
+                      - artists
                     span: "0:34-41"
               span: "0:29-41"
             - FuncCall:
                 name:
-                  Ident: derive
+                  Ident:
+                    - derive
                   span: "0:56-62"
                 args:
                   - Literal:
@@ -759,7 +725,7 @@ mod tests {
                     alias: x
               span: "0:56-68"
         span: "0:13-82"
-        "###);
+        "#);
     }
 
     #[test]
@@ -774,14 +740,14 @@ mod tests {
 
         ]
             "#, trim_start().then(case(expr()))).unwrap(),
-        @r###"
-        ---
+        @r#"
         - ~
         - Case:
             - condition:
                 Binary:
                   left:
-                    Ident: nickname
+                    Ident:
+                      - nickname
                     span: "0:30-38"
                   op: Ne
                   right:
@@ -789,7 +755,8 @@ mod tests {
                     span: "0:42-46"
                 span: "0:30-46"
               value:
-                Ident: nickname
+                Ident:
+                  - nickname
                 span: "0:50-58"
             - condition:
                 Literal:
@@ -798,7 +765,7 @@ mod tests {
               value:
                 Literal: "Null"
                 span: "0:80-84"
-        "###);
+        "#);
     }
 
     // this should return an error but doesn't yet
@@ -822,7 +789,7 @@ mod tests {
               z = 3
             }
             "#.trim(), trim_start().ignore_then(expr_call()).then_ignore(end())).unwrap_err(),
-            @r###"
+            @r#"
         [
             Error {
                 kind: Error,
@@ -840,7 +807,7 @@ mod tests {
                 code: None,
             },
         ]
-        "###);
+        "#);
     }
 
     #[test]
@@ -865,55 +832,60 @@ mod tests {
     fn args_in_parens() {
         // Ensure function arguments allow parentheses
         assert_yaml_snapshot!(
-            parse_with_parser(r#"f (a) b"#, trim_start().ignore_then(expr_call()).then_ignore(end())).unwrap(), @r###"
-        ---
+            parse_with_parser(r#"f (a) b"#, trim_start().ignore_then(expr_call()).then_ignore(end())).unwrap(), @r#"
         FuncCall:
           name:
-            Ident: f
+            Ident:
+              - f
             span: "0:0-1"
           args:
-            - Ident: a
+            - Ident:
+                - a
               span: "0:3-4"
-            - Ident: b
+            - Ident:
+                - b
               span: "0:6-7"
         span: "0:0-7"
-        "###);
+        "#);
 
         assert_yaml_snapshot!(
-            parse_with_parser(r#"f (a=2) b"#, trim_start().ignore_then(expr_call()).then_ignore(end())).unwrap(), @r###"
-        ---
+            parse_with_parser(r#"f (a=2) b"#, trim_start().ignore_then(expr_call()).then_ignore(end())).unwrap(), @r#"
         FuncCall:
           name:
-            Ident: f
+            Ident:
+              - f
             span: "0:0-1"
           args:
             - Literal:
                 Integer: 2
               span: "0:5-6"
               alias: a
-            - Ident: b
+            - Ident:
+                - b
               span: "0:8-9"
         span: "0:0-9"
-        "###);
+        "#);
 
         assert_yaml_snapshot!(
-            parse_with_parser(r#"f (a b)"#, trim_start().ignore_then(expr_call()).then_ignore(end())).unwrap(), @r###"
-        ---
+            parse_with_parser(r#"f (a b)"#, trim_start().ignore_then(expr_call()).then_ignore(end())).unwrap(), @r#"
         FuncCall:
           name:
-            Ident: f
+            Ident:
+              - f
             span: "0:0-1"
           args:
             - FuncCall:
                 name:
-                  Ident: a
+                  Ident:
+                    - a
                   span: "0:3-4"
                 args:
-                  - Ident: b
+                  - Ident:
+                      - b
                     span: "0:5-6"
               span: "0:3-6"
         span: "0:0-7"
-        "###);
+        "#);
     }
 
     #[test]
@@ -925,27 +897,25 @@ mod tests {
     )
     "#;
 
-        assert_yaml_snapshot!(parse_with_parser(source, trim_start().ignore_then(pipeline(expr_call()))).unwrap(), @r###"
-        ---
+        assert_yaml_snapshot!(parse_with_parser(source, trim_start().ignore_then(pipeline(expr_call()))).unwrap(), @r#"
         Pipeline:
           exprs:
-            - Ident: tbl
+            - Ident:
+                - tbl
               span: "0:13-16"
             - FuncCall:
                 name:
-                  Ident: select
+                  Ident:
+                    - select
                   span: "0:23-29"
                 args:
-                  - Indirection:
-                      base:
-                        Ident: t
-                        span: "0:30-31"
-                      field:
-                        Name: date
-                    span: "0:31-36"
+                  - Ident:
+                      - t
+                      - date
+                    span: "0:30-36"
               span: "0:23-36"
         span: "0:5-42"
-        "###);
+        "#);
 
         let source = r#"
     (
@@ -954,28 +924,26 @@ mod tests {
     )
     "#;
 
-        assert_yaml_snapshot!(parse_with_parser(source, trim_start().ignore_then(pipeline(expr_call()))).unwrap(), @r###"
-        ---
+        assert_yaml_snapshot!(parse_with_parser(source, trim_start().ignore_then(pipeline(expr_call()))).unwrap(), @r#"
         Pipeline:
           exprs:
-            - Ident: tbl
+            - Ident:
+                - tbl
               span: "0:17-20"
               alias: t
             - FuncCall:
                 name:
-                  Ident: select
+                  Ident:
+                    - select
                   span: "0:27-33"
                 args:
-                  - Indirection:
-                      base:
-                        Ident: t
-                        span: "0:34-35"
-                      field:
-                        Name: date
-                    span: "0:35-40"
+                  - Ident:
+                      - t
+                      - date
+                    span: "0:34-40"
               span: "0:27-40"
         span: "0:5-46"
-        "###);
+        "#);
     }
 
     // TODO: I think this should pass...

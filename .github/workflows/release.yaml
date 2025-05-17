@@ -22,7 +22,7 @@ env:
 jobs:
   brew-dispatcher:
     name: Release on homebrew-prql
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-22.04
     if: github.event_name == 'release'
     steps:
       - uses: actions/github-script@v7
@@ -46,14 +46,18 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - os: ubuntu-latest
+          - os: ubuntu-22.04
             target: x86_64-unknown-linux-musl
-          - os: ubuntu-latest
+          - os: ubuntu-22.04
             target: aarch64-unknown-linux-musl
           - os: macos-14
             target: aarch64-apple-darwin
           - os: windows-latest
             target: x86_64-pc-windows-msvc
+          # Still building for intel but can disable when runners go away
+          - os: macos-13
+            target: x86_64-apple-darwin
+            features: default,test-dbs
     permissions:
       contents: write
     steps:
@@ -93,9 +97,9 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - os: ubuntu-latest
+          - os: ubuntu-22.04
             target: x86_64-unknown-linux-musl
-          - os: ubuntu-latest
+          - os: ubuntu-22.04
             target: aarch64-unknown-linux-musl
           - os: macos-14
             target: aarch64-apple-darwin
@@ -119,7 +123,7 @@ jobs:
           files: ${{ steps.build-artifact.outputs.artifact-name }}
 
   publish-winget:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-22.04
     needs: build-prqlc
     if: github.event_name == 'release'
     steps:
@@ -133,7 +137,7 @@ jobs:
           fork-user: prql-bot
 
   build-deb-package:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-22.04
     strategy:
       fail-fast: false
       matrix:
@@ -164,7 +168,7 @@ jobs:
             exit 1
           fi
       - name: 📦 Build .deb package
-        uses: jiro4989/build-deb-action@v3
+        uses: jiro4989/build-deb-action@v4
         with:
           package: prqlc
           package_root: .debpkg
@@ -188,7 +192,7 @@ jobs:
           files: prqlc_*.deb
 
   build-rpm-package:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-22.04
     strategy:
       fail-fast: false
       matrix:
@@ -248,7 +252,7 @@ jobs:
           files: prqlc-*.rpm
 
   build-and-publish-snap:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-22.04
     if: ${{ github.event_name == 'release' }}
     steps:
       - name: 📂 Checkout code
@@ -273,31 +277,21 @@ jobs:
     strategy:
       fail-fast: true
       matrix:
-        os: [ubuntu-latest, windows-latest]
+        os: [ubuntu-22.04, windows-latest]
         package:
           - prqlc-python
-          - lutra-python
         target: [x86_64]
         include:
           # MacOS with universal builds
           - os: macos-14
             package: prqlc-python
             target: universal2-apple-darwin
-          - os: macos-14
-            package: lutra-python
-            target: universal2-apple-darwin
           # Also produce more targets for ubuntu:
-          - os: ubuntu-latest
+          - os: ubuntu-22.04
             package: prqlc-python
             target: aarch64
-          - os: ubuntu-latest
+          - os: ubuntu-22.04
             package: prqlc-python
-            target: source
-          - os: ubuntu-latest
-            package: lutra-python
-            target: aarch64
-          - os: ubuntu-latest
-            package: lutra-python
             target: source
     steps:
       - name: 📂 Checkout code
@@ -309,14 +303,15 @@ jobs:
           profile: release
 
   publish-python:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-22.04
     needs: [build-python-wheels]
     if: github.event_name == 'release'
+    permissions:
+      id-token: write
     strategy:
       matrix:
         package:
           - prqlc-python
-          - lutra-python
     steps:
       - uses: actions/download-artifact@v4
         with:
@@ -325,14 +320,12 @@ jobs:
           merge-multiple: true
       - name: Publish to PyPI
         uses: PyO3/maturin-action@v1
-        env:
-          MATURIN_PYPI_TOKEN: ${{ secrets.PYPI_API_TOKEN }}
         with:
           command: upload
           args: --skip-existing *
 
   publish-js:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-22.04
     steps:
       - name: 📂 Checkout code
         uses: actions/checkout@v4
@@ -350,7 +343,7 @@ jobs:
       - name: 💰 Cache
         uses: Swatinem/rust-cache@v2
         with:
-          prefix-key: ${{ env.version }}
+          prefix-key: ${{ env.version }}-${{ hashFiles('Cargo.lock') }}
           # Share key with the `build-web` job
           shared-key: web
           save-if: false
@@ -368,7 +361,7 @@ jobs:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
 
   publish-to-cargo:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-22.04
     steps:
       - name: 📂 Checkout code
         uses: actions/checkout@v4
@@ -386,7 +379,7 @@ jobs:
 
   # Requires another pass: https://github.com/PRQL/prql/issues/850
   # publish-prql-java:
-  #   runs-on: ubuntu-latest
+  #   runs-on: ubuntu-22.04
   #   steps:
   #     - name: Checkout code
   #       uses: actions/checkout@v4
@@ -404,7 +397,7 @@ jobs:
   #         directory: prql-java/java/
 
   push-web-branch:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-22.04
     if: github.event_name == 'release'
     steps:
       - name: 📂 Checkout code

@@ -60,23 +60,21 @@ pub(super) fn translate_expr(expr: rq::Expr, ctx: &mut Context) -> Result<ExprOr
             }
 
             let else_result = default
-                .or(Some(sql_ast::Expr::Value(Value::Null)))
+                .or(Some(sql_ast::Expr::Value(Value::Null.into())))
                 .map(Box::new);
 
-            let cases: Vec<_> = cases
+            let conditions = cases
                 .into_iter()
                 .map(|case| -> Result<_> {
-                    let cond = translate_expr(case.condition, ctx)?.into_ast();
-                    let value = translate_expr(case.value, ctx)?.into_ast();
-                    Ok((cond, value))
+                    let condition = translate_expr(case.condition, ctx)?.into_ast();
+                    let result = translate_expr(case.value, ctx)?.into_ast();
+                    Ok(sql_ast::CaseWhen { condition, result })
                 })
                 .try_collect()?;
-            let (conditions, results) = cases.into_iter().unzip();
 
             sql_ast::Expr::Case {
                 operand: None,
                 conditions,
-                results,
                 else_result,
             }
             .into()
@@ -140,13 +138,13 @@ fn process_null(name: &str, args: &[rq::Expr], ctx: &mut Context) -> Result<sql_
 
     // If this were an Enum, we could match on it (see notes in `std.rs`).
     if name == "std.eq" {
-        let strength =
-            sql_ast::Expr::IsNull(Box::new(sql_ast::Expr::Value(Value::Null))).binding_strength();
+        let strength = sql_ast::Expr::IsNull(Box::new(sql_ast::Expr::Value(Value::Null.into())))
+            .binding_strength();
         let expr = translate_operand(operand.clone(), true, strength, Associativity::Both, ctx)?;
         let expr = Box::new(expr.into_ast());
         Ok(sql_ast::Expr::IsNull(expr))
     } else if name == "std.ne" {
-        let strength = sql_ast::Expr::IsNotNull(Box::new(sql_ast::Expr::Value(Value::Null)))
+        let strength = sql_ast::Expr::IsNotNull(Box::new(sql_ast::Expr::Value(Value::Null.into())))
             .binding_strength();
         let expr = translate_operand(operand.clone(), true, strength, Associativity::Both, ctx)?;
         let expr = Box::new(expr.into_ast());
@@ -179,7 +177,7 @@ fn process_array_in(
                 // We avoid producing `in ()` expressions since they are not syntactically valid
                 // in some engines like PostgreSQL or MySQL.
                 // We can instead optimize this to a condition that is always false
-                Ok(sql_ast::Expr::Value(Value::Boolean(false)))
+                Ok(sql_ast::Expr::Value(Value::Boolean(false).into()))
             } else {
                 Ok(sql_ast::Expr::InList {
                     expr: Box::new(translate_expr(col_expr.clone(), ctx)?.into_ast()),
@@ -256,13 +254,16 @@ fn process_concat(expr: &rq::Expr, ctx: &mut Context) -> Result<sql_ast::Expr> {
         });
 
         Ok(sql_ast::Expr::Function(Function {
-            name: ObjectName(vec![sql_ast::Ident::new("CONCAT")]),
+            name: ObjectName(vec![sqlparser::ast::ObjectNamePart::Identifier(
+                sql_ast::Ident::new("CONCAT"),
+            )]),
             args,
             over: None,
             filter: None,
             null_treatment: None,
             within_group: vec![],
             parameters: sql_ast::FunctionArguments::None,
+            uses_odbc_syntax: false,
         }))
     } else {
         let concat_args = collect_concat_args(expr);
@@ -379,11 +380,13 @@ fn operator_from_name(name: &str) -> Option<BinaryOperator> {
 
 pub(super) fn translate_literal(l: Literal, ctx: &Context) -> Result<sql_ast::Expr> {
     Ok(match l {
-        Literal::Null => sql_ast::Expr::Value(Value::Null),
-        Literal::String(s) => sql_ast::Expr::Value(Value::SingleQuotedString(s)),
-        Literal::Boolean(b) => sql_ast::Expr::Value(Value::Boolean(b)),
-        Literal::Float(f) => sql_ast::Expr::Value(Value::Number(format!("{f:?}"), false)),
-        Literal::Integer(i) => sql_ast::Expr::Value(Value::Number(format!("{i}"), false)),
+        Literal::Null => sql_ast::Expr::Value(Value::Null.into()),
+        Literal::String(s) | Literal::RawString(s) => {
+            sql_ast::Expr::Value(Value::SingleQuotedString(s).into())
+        }
+        Literal::Boolean(b) => sql_ast::Expr::Value(Value::Boolean(b).into()),
+        Literal::Float(f) => sql_ast::Expr::Value(Value::Number(format!("{f:?}"), false).into()),
+        Literal::Integer(i) => sql_ast::Expr::Value(Value::Number(format!("{i}"), false).into()),
         Literal::Date(value) => translate_datetime_literal(sql_ast::DataType::Date, value, ctx),
         Literal::Time(value) => translate_datetime_literal(
             sql_ast::DataType::Time(None, sql_ast::TimezoneInfo::None),
@@ -415,10 +418,9 @@ pub(super) fn translate_literal(l: Literal, ctx: &Context) -> Result<sql_ast::Ex
             };
             if ctx.dialect.requires_quotes_intervals() {
                 //postgres requires quotes around number and unit together eg '3 WEEK'
-                let value = Box::new(sql_ast::Expr::Value(Value::SingleQuotedString(format!(
-                    "{} {}",
-                    vau.n, sql_parser_datetime
-                ))));
+                let value = Box::new(sql_ast::Expr::Value(
+                    Value::SingleQuotedString(format!("{} {}", vau.n, sql_parser_datetime)).into(),
+                ));
                 sql_ast::Expr::Interval(sqlparser::ast::Interval {
                     value,
                     leading_field: None, //set to none since field is now contained in string
@@ -456,7 +458,10 @@ fn translate_datetime_literal_with_typed_string(
     data_type: sql_ast::DataType,
     value: String,
 ) -> sql_ast::Expr {
-    sql_ast::Expr::TypedString { data_type, value }
+    sql_ast::Expr::TypedString {
+        data_type,
+        value: sqlparser::ast::Value::SingleQuotedString(value),
+    }
 }
 
 fn translate_datetime_literal_with_sqlite_function(
@@ -477,7 +482,7 @@ fn translate_datetime_literal_with_sqlite_function(
     };
 
     let arg = FunctionArg::Unnamed(FunctionArgExpr::Expr(sql_ast::Expr::Value(
-        Value::SingleQuotedString(time_value),
+        Value::SingleQuotedString(time_value).into(),
     )));
 
     let func_name = match data_type {
@@ -494,13 +499,16 @@ fn translate_datetime_literal_with_sqlite_function(
     });
 
     sql_ast::Expr::Function(Function {
-        name: ObjectName(vec![sql_ast::Ident::new(func_name)]),
+        name: ObjectName(vec![sqlparser::ast::ObjectNamePart::Identifier(
+            sql_ast::Ident::new(func_name),
+        )]),
         args,
         over: None,
         filter: None,
         null_treatment: None,
         within_group: vec![],
         parameters: sql_ast::FunctionArguments::None,
+        uses_odbc_syntax: false,
     })
 }
 
@@ -638,10 +646,7 @@ fn try_range_into_int(range: Range<rq::Expr>) -> Result<Range<i64>> {
 }
 
 pub(super) fn expr_of_i64(number: i64) -> sql_ast::Expr {
-    sql_ast::Expr::Value(Value::Number(
-        number.to_string(),
-        number.leading_zeros() < 32,
-    ))
+    sql_ast::Expr::Value(Value::Number(number.to_string(), number.leading_zeros() < 32).into())
 }
 
 pub(super) fn fetch_of_i64(take: i64, ctx: &mut Context) -> Fetch {
@@ -743,10 +748,10 @@ fn try_into_window_frame(frame: WindowFrame<rq::Expr>) -> Result<sql_ast::Window
         Ok(match as_int {
             0 => WindowFrameBound::CurrentRow,
             1.. => WindowFrameBound::Following(Some(Box::new(sql_ast::Expr::Value(
-                sql_ast::Value::Number(as_int.to_string(), false),
+                sql_ast::Value::Number(as_int.to_string(), false).into(),
             )))),
             _ => WindowFrameBound::Preceding(Some(Box::new(sql_ast::Expr::Value(
-                sql_ast::Value::Number((-as_int).to_string(), false),
+                sql_ast::Value::Number((-as_int).to_string(), false).into(),
             )))),
         })
     }
@@ -775,12 +780,15 @@ pub(super) fn translate_column_sort(
 ) -> Result<OrderByExpr> {
     Ok(OrderByExpr {
         expr: translate_cid(sort.column, ctx)?.into_ast(),
-        asc: if matches!(sort.direction, SortDirection::Asc) {
-            None // default order is ASC, so there is no need to emit it
-        } else {
-            Some(false)
+        options: sqlparser::ast::OrderByOptions {
+            asc: if matches!(sort.direction, SortDirection::Asc) {
+                None // default order is ASC, so there is no need to emit it
+            } else {
+                Some(false)
+            },
+            nulls_first: None,
         },
-        nulls_first: None,
+        with_fill: None,
     })
 }
 
@@ -1072,66 +1080,56 @@ mod test {
 
         assert!(range_of_ranges(vec![range_1_10.clone()])?.end.is_some());
 
-        assert_yaml_snapshot!(range_of_ranges(vec![range_1_10.clone()])?, @r###"
-        ---
+        assert_yaml_snapshot!(range_of_ranges(vec![range_1_10.clone()])?, @r"
         start: 1
         end: 10
-        "###);
+        ");
 
-        assert_yaml_snapshot!(range_of_ranges(vec![range_1_10.clone(), range_1_10.clone()])?, @r###"
-        ---
+        assert_yaml_snapshot!(range_of_ranges(vec![range_1_10.clone(), range_1_10.clone()])?, @r"
         start: 1
         end: 10
-        "###);
+        ");
 
-        assert_yaml_snapshot!(range_of_ranges(vec![range_1_10.clone(), range_5_6.clone()])?, @r###"
-        ---
+        assert_yaml_snapshot!(range_of_ranges(vec![range_1_10.clone(), range_5_6.clone()])?, @r"
         start: 5
         end: 6
-        "###);
+        ");
 
-        assert_yaml_snapshot!(range_of_ranges(vec![range_5_6.clone(), range_1_10.clone()])?, @r###"
-        ---
+        assert_yaml_snapshot!(range_of_ranges(vec![range_5_6.clone(), range_1_10.clone()])?, @r"
         start: 5
         end: 6
-        "###);
+        ");
 
         // empty range
-        assert_yaml_snapshot!(range_of_ranges(vec![range_5_6.clone(), range_5_6.clone()])?, @r###"
-        ---
+        assert_yaml_snapshot!(range_of_ranges(vec![range_5_6.clone(), range_5_6.clone()])?, @r"
         start: ~
         end: 0
-        "###);
+        ");
 
-        assert_yaml_snapshot!(range_of_ranges(vec![range_5_inf.clone(), range_5_inf.clone()])?, @r###"
-        ---
+        assert_yaml_snapshot!(range_of_ranges(vec![range_5_inf.clone(), range_5_inf.clone()])?, @r"
         start: 9
         end: ~
-        "###);
+        ");
 
-        assert_yaml_snapshot!(range_of_ranges(vec![range_1_10, range_5_inf])?, @r###"
-        ---
+        assert_yaml_snapshot!(range_of_ranges(vec![range_1_10, range_5_inf])?, @r"
         start: 5
         end: 10
-        "###);
+        ");
 
-        assert_yaml_snapshot!(range_of_ranges(vec![range_5_6, range_inf_8.clone()])?, @r###"
-        ---
+        assert_yaml_snapshot!(range_of_ranges(vec![range_5_6, range_inf_8.clone()])?, @r"
         start: 5
         end: 6
-        "###);
+        ");
 
-        assert_yaml_snapshot!(range_of_ranges(vec![range_inf_8.clone(), range_inf_8])?, @r###"
-        ---
+        assert_yaml_snapshot!(range_of_ranges(vec![range_inf_8.clone(), range_inf_8])?, @r"
         start: ~
         end: 8
-        "###);
+        ");
 
-        assert_yaml_snapshot!(range_of_ranges(vec![range_5_5])?, @r###"
-        ---
+        assert_yaml_snapshot!(range_of_ranges(vec![range_5_5])?, @r"
         start: 5
         end: 5
-        "###);
+        ");
 
         Ok(())
     }

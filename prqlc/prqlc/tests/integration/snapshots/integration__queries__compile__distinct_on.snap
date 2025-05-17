@@ -28,4 +28,3 @@ WHERE
 ORDER BY
   genre_id DESC,
   media_type_id
-

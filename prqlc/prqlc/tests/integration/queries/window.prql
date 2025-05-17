@@ -1,7 +1,4 @@
-# mssql:skip Conversion("cannot interpret I64(Some(1)) as an i32 value")', connection.rs:200:34
-# duckdb:skip problems with DISTINCT ON (duckdb internal error: [with INPUT_TYPE = int; RESULT_TYPE = unsigned char]: Assertion `min_val <= input' failed.)
 # clickhouse:skip problems with DISTINCT ON
-# postgres:skip problems with DISTINCT ON
 # glaredb:skip — TODO: started raising an error on 2024-05-20, from https://github.com/PRQL/prql/actions/runs/9154902656/job/25198160283:
     # ERROR: This feature is not implemented: Unsupported ast node in sqltorel:
     # Substring { expr: Identifier(Ident { value: "title", quote_style: None }),

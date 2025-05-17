@@ -7,5 +7,4 @@ SELECT
   artists.*
 FROM
   tracks
-  JOIN artists ON tracks.id = artists.artist_id
-
+  INNER JOIN artists ON tracks.id = artists.artist_id

@@ -13,7 +13,7 @@ env:
 
 jobs:
   test-c:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-22.04
     steps:
       - name: 📂 Checkout code
         uses: actions/checkout@v4
@@ -21,11 +21,11 @@ jobs:
       - name: 💰 Cache
         uses: Swatinem/rust-cache@v2
         with:
-          prefix-key: ${{ env.version }}
+          prefix-key: ${{ env.version }}-${{ hashFiles('Cargo.lock') }}
           save-if: ${{ github.ref == 'refs/heads/main' }}
           shared-key: lib
       - name: Build
-        uses: clechasseur/rs-cargo@v2
+        uses: clechasseur/rs-cargo@v3
         with:
           command: build
           # Currently requires a release build; would be useful to allow a debug build.
@@ -41,10 +41,6 @@ jobs:
         with:
           repo-token: "${{ secrets.GITHUB_TOKEN }}"
       - name: 🔧 Setup Zig
-        uses: goto-bus-stop/setup-zig@v2
-        with:
-          cache: false
-          # Pinned version — https://github.com/PRQL/prql/issues/4050
-          version: 0.11.0
+        uses: mlugg/setup-zig@v1
       - name: Run example minimal-zig
         run: task zig

@@ -10,10 +10,10 @@ frames:
       name:
       - genre_count
       - a
-      target_id: 136
+      target_id: 133
       target_name: a
     inputs:
-    - id: 136
+    - id: 133
       name: genre_count
       table:
       - genre_count
@@ -22,28 +22,28 @@ frames:
     - !Single
       name:
       - a
-      target_id: 143
+      target_id: 140
       target_name: null
     inputs:
-    - id: 136
+    - id: 133
       name: genre_count
       table:
       - genre_count
 nodes:
-- id: 136
+- id: 133
   kind: Ident
   span: 1:187-203
   ident: !Ident
   - genre_count
-  parent: 142
-- id: 138
+  parent: 139
+- id: 135
   kind: RqOperator
   span: 1:211-216
   targets:
-  - 140
-  - 141
-  parent: 142
-- id: 140
+  - 137
+  - 138
+  parent: 139
+- id: 137
   kind: Ident
   span: 1:211-212
   ident: !Ident
@@ -51,25 +51,25 @@ nodes:
   - genre_count
   - a
   targets:
-  - 136
-- id: 141
+  - 133
+- id: 138
   kind: Literal
   span: 1:215-216
-- id: 142
+- id: 139
   kind: 'TransformCall: Filter'
   span: 1:204-216
   children:
-  - 136
-  - 138
-  parent: 147
-- id: 143
+  - 133
+  - 135
+  parent: 144
+- id: 140
   kind: RqOperator
   span: 1:228-230
   alias: a
   targets:
-  - 145
-  parent: 146
-- id: 145
+  - 142
+  parent: 143
+- id: 142
   kind: Ident
   span: 1:229-230
   ident: !Ident
@@ -77,19 +77,19 @@ nodes:
   - genre_count
   - a
   targets:
-  - 136
-- id: 146
+  - 133
+- id: 143
   kind: Tuple
   span: 1:228-230
   children:
-  - 143
-  parent: 147
-- id: 147
+  - 140
+  parent: 144
+- id: 144
   kind: 'TransformCall: Select'
   span: 1:217-230
   children:
-  - 142
-  - 146
+  - 139
+  - 143
 ast:
   name: Project
   stmts:
@@ -101,24 +101,29 @@ ast:
           exprs:
           - FuncCall:
               name:
-                Ident: from
+                Ident:
+                - from
                 span: 1:141-145
               args:
-              - Ident: genres
+              - Ident:
+                - genres
                 span: 1:146-152
             span: 1:141-152
           - FuncCall:
               name:
-                Ident: aggregate
+                Ident:
+                - aggregate
                 span: 1:157-166
               args:
               - Tuple:
                 - FuncCall:
                     name:
-                      Ident: count
+                      Ident:
+                      - count
                       span: 1:172-177
                     args:
-                    - Ident: name
+                    - Ident:
+                      - name
                       span: 1:178-182
                   span: 1:172-182
                   alias: a
@@ -134,20 +139,24 @@ ast:
           exprs:
           - FuncCall:
               name:
-                Ident: from
+                Ident:
+                - from
                 span: 1:187-191
               args:
-              - Ident: genre_count
+              - Ident:
+                - genre_count
                 span: 1:192-203
             span: 1:187-203
           - FuncCall:
               name:
-                Ident: filter
+                Ident:
+                - filter
                 span: 1:204-210
               args:
               - Binary:
                   left:
-                    Ident: a
+                    Ident:
+                    - a
                     span: 1:211-212
                   op: Gt
                   right:
@@ -158,13 +167,15 @@ ast:
             span: 1:204-216
           - FuncCall:
               name:
-                Ident: select
+                Ident:
+                - select
                 span: 1:217-223
               args:
               - Unary:
                   op: Neg
                   expr:
-                    Ident: a
+                    Ident:
+                    - a
                     span: 1:229-230
                 span: 1:228-230
                 alias: a

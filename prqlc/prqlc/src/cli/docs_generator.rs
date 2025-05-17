@@ -28,8 +28,8 @@ pub fn generate_html_docs(stmts: Vec<Stmt>) -> String {
   </body>
 </html>
 "#,
-        *prqlc::compiler_version(),
-        *prqlc::compiler_version()
+        prqlc::compiler_version(),
+        prqlc::compiler_version()
     );
 
     let mut docs = String::new();
@@ -73,14 +73,10 @@ pub fn generate_html_docs(stmts: Vec<Stmt>) -> String {
             .filter(|stmt| matches!(stmt.kind, StmtKind::TypeDef(_)))
         {
             let type_def = stmt.kind.as_type_def().unwrap();
-            if let Some(value) = &type_def.value {
-                docs.push_str(&format!(
-                    "  <li><code>{}</code> – {:?}</li>\n",
-                    type_def.name, value.kind
-                ));
-            } else {
-                docs.push_str(&format!("  <li>{}</li>\n", type_def.name));
-            }
+            docs.push_str(&format!(
+                "  <li><code>{}</code> – {:?}</li>\n",
+                type_def.name, type_def.value.kind
+            ));
         }
         docs.push_str("</ul>\n");
     }
@@ -130,15 +126,6 @@ pub fn generate_html_docs(stmts: Vec<Stmt>) -> String {
         if let Some(expr) = &var_def.value {
             match &expr.kind {
                 ExprKind::Func(func) => {
-                    if !func.generic_type_params.is_empty() {
-                        docs.push_str("  <h4 class=\"h6\">Type parameters</h4>\n");
-                        docs.push_str("  <ul>\n");
-                        for param in &func.generic_type_params {
-                            docs.push_str(&format!("    <li><var>{}</var></li>\n", param.name));
-                        }
-                        docs.push_str("  </ul>\n");
-                    }
-
                     if !func.params.is_empty() {
                         docs.push_str("  <h4 class=\"h6\">Parameters</h4>\n");
                         docs.push_str("  <ul>\n");
@@ -160,22 +147,11 @@ pub fn generate_html_docs(stmts: Vec<Stmt>) -> String {
                     if let Some(return_ty) = &func.return_ty {
                         docs.push_str("  <h4 class=\"h6\">Returns</h4>\n");
                         match &return_ty.kind {
-                            TyKind::Any => docs.push_str("  <p>Any</p>\n"),
                             TyKind::Ident(ident) => {
                                 docs.push_str(&format!("  <p><code>{}</code></p>\n", ident.name));
                             }
                             TyKind::Primitive(primitive) => {
                                 docs.push_str(&format!("  <p><code>{primitive}</code></p>\n"));
-                            }
-                            TyKind::Singleton(literal) => {
-                                docs.push_str(&format!("  <p><code>{literal}</code></p>\n"));
-                            }
-                            TyKind::Union(vec) => {
-                                docs.push_str("  <ul class=\"list-unstyled\">\n");
-                                for (_, ty) in vec {
-                                    docs.push_str(&format!("    <li>{:?}</li>\n", ty.kind));
-                                }
-                                docs.push_str("  </ul>\n");
                             }
                             _ => docs.push_str("  <p class=\"text-danger\">Not implemented</p>\n"),
                         }
@@ -204,7 +180,7 @@ pub fn generate_markdown_docs(stmts: Vec<Stmt>) -> String {
 
 Generated with [prqlc](https://prql-lang.org/) {}.
 "#,
-        *prqlc::compiler_version()
+        prqlc::compiler_version()
     );
 
     let mut docs = String::new();
@@ -244,11 +220,10 @@ Generated with [prqlc](https://prql-lang.org/) {}.
             .filter(|stmt| matches!(stmt.kind, StmtKind::TypeDef(_)))
         {
             let type_def = stmt.kind.as_type_def().unwrap();
-            if let Some(value) = &type_def.value {
-                docs.push_str(&format!("* `{}` – {:?}\n", type_def.name, value.kind));
-            } else {
-                docs.push_str(&format!("* {}\n", type_def.name));
-            }
+            docs.push_str(&format!(
+                "* `{}` – {:?}\n",
+                type_def.name, type_def.value.kind
+            ));
         }
         docs.push('\n');
     }
@@ -292,14 +267,6 @@ Generated with [prqlc](https://prql-lang.org/) {}.
         if let Some(expr) = &var_def.value {
             match &expr.kind {
                 ExprKind::Func(func) => {
-                    if !func.generic_type_params.is_empty() {
-                        docs.push_str("#### Type Parameters\n");
-                        for param in &func.generic_type_params {
-                            docs.push_str(&format!("* *{}*\n", param.name));
-                        }
-                        docs.push('\n');
-                    }
-
                     if !func.params.is_empty() {
                         docs.push_str("#### Parameters\n");
                         for param in &func.params {
@@ -319,20 +286,11 @@ Generated with [prqlc](https://prql-lang.org/) {}.
                     if let Some(return_ty) = &func.return_ty {
                         docs.push_str("#### Returns\n");
                         match &return_ty.kind {
-                            TyKind::Any => docs.push_str("Any\n"),
                             TyKind::Ident(ident) => {
                                 docs.push_str(&format!("`{}`\n", ident.name));
                             }
                             TyKind::Primitive(primitive) => {
                                 docs.push_str(&format!("`{primitive}`\n"));
-                            }
-                            TyKind::Singleton(literal) => {
-                                docs.push_str(&format!("`{literal}`\n"));
-                            }
-                            TyKind::Union(vec) => {
-                                for (_, ty) in vec {
-                                    docs.push_str(&format!("* {:?}\n", ty.kind));
-                                }
                             }
                             _ => docs.push_str("Not implemented\n"),
                         }
@@ -359,6 +317,8 @@ mod tests {
 
     #[test]
     fn generate_html_docs() {
+        std::env::set_var("PRQL_VERSION_OVERRIDE", env!("CARGO_PKG_VERSION"));
+
         let input = r"
         #! This is the x function.
         let x = arg1 arg2 -> c
@@ -366,7 +326,6 @@ mod tests {
         let fn_returns_bool = -> <bool> true
         let fn_returns_float = -> <float> float
         let fn_returns_int = -> <int> 0
-        let fn_returns_null = -> <null> null
         let fn_returns_text = -> <text> 'text'
 
         module foo {}
@@ -374,113 +333,107 @@ mod tests {
         type user_id = int
         ";
 
-        assert_cmd_snapshot!(prqlc_command().args(["experimental", "doc", "--format=html"]).pass_stdin(input), @r###"
-success: true
-exit_code: 0
------ stdout -----
-<!doctype html>
-<html lang="en">
-  <head>
-    <meta charset="utf-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1">
-    <meta name="keywords" content="prql">
-    <meta name="generator" content="prqlc 0.13.1">
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-T3c6CoIi6uLrA9TneNEoa7RxnatzjcDSCmG1MXxSR1GAsXEV/Dwwykc2MPK8M2HN" crossorigin="anonymous">
-    <title>PRQL Docs</title>
-  </head>
-  <body>
-    <header class="bg-body-tertiary">
-      <div class="container">
-        <h1>Documentation</h1>
-      </div>
-    </header>
-    <main class="container">
-      <h2>Functions</h2>
-<ul>
-  <li><a href="#fn-x">x</a></li>
-  <li><a href="#fn-fn_returns_array">fn_returns_array</a></li>
-  <li><a href="#fn-fn_returns_bool">fn_returns_bool</a></li>
-  <li><a href="#fn-fn_returns_float">fn_returns_float</a></li>
-  <li><a href="#fn-fn_returns_int">fn_returns_int</a></li>
-  <li><a href="#fn-fn_returns_null">fn_returns_null</a></li>
-  <li><a href="#fn-fn_returns_text">fn_returns_text</a></li>
-</ul>
+        assert_cmd_snapshot!(prqlc_command().args(["experimental", "doc", "--format=html"]).pass_stdin(input), @r##"
+        success: true
+        exit_code: 0
+        ----- stdout -----
+        <!doctype html>
+        <html lang="en">
+          <head>
+            <meta charset="utf-8">
+            <meta name="viewport" content="width=device-width, initial-scale=1">
+            <meta name="keywords" content="prql">
+            <meta name="generator" content="prqlc 0.13.5">
+            <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-T3c6CoIi6uLrA9TneNEoa7RxnatzjcDSCmG1MXxSR1GAsXEV/Dwwykc2MPK8M2HN" crossorigin="anonymous">
+            <title>PRQL Docs</title>
+          </head>
+          <body>
+            <header class="bg-body-tertiary">
+              <div class="container">
+                <h1>Documentation</h1>
+              </div>
+            </header>
+            <main class="container">
+              <h2>Functions</h2>
+        <ul>
+          <li><a href="#fn-x">x</a></li>
+          <li><a href="#fn-fn_returns_array">fn_returns_array</a></li>
+          <li><a href="#fn-fn_returns_bool">fn_returns_bool</a></li>
+          <li><a href="#fn-fn_returns_float">fn_returns_float</a></li>
+          <li><a href="#fn-fn_returns_int">fn_returns_int</a></li>
+          <li><a href="#fn-fn_returns_text">fn_returns_text</a></li>
+        </ul>
 
-<h2>Types</h2>
-<ul>
-  <li><code>user_id</code> – Primitive(Int)</li>
-</ul>
-<h2>Modules</h2>
-<ul>
-  <li>foo</li>
-</ul>
-<section>
-  <h3 id="fn-x">x</h3>
-<div class="ms-3">
-  <p> This is the x function.</p>
-  <h4 class="h6">Parameters</h4>
-  <ul>
-    <li><var>arg1</var></li>
-    <li><var>arg2</var></li>
-  </ul>
-</div>
-</section>
-<section>
-  <h3 id="fn-fn_returns_array">fn_returns_array</h3>
-<div class="ms-3">
-  <h4 class="h6">Returns</h4>
-  <p><code>array</code></p>
-</div>
-</section>
-<section>
-  <h3 id="fn-fn_returns_bool">fn_returns_bool</h3>
-<div class="ms-3">
-  <h4 class="h6">Returns</h4>
-  <p><code>bool</code></p>
-</div>
-</section>
-<section>
-  <h3 id="fn-fn_returns_float">fn_returns_float</h3>
-<div class="ms-3">
-  <h4 class="h6">Returns</h4>
-  <p><code>float</code></p>
-</div>
-</section>
-<section>
-  <h3 id="fn-fn_returns_int">fn_returns_int</h3>
-<div class="ms-3">
-  <h4 class="h6">Returns</h4>
-  <p><code>int</code></p>
-</div>
-</section>
-<section>
-  <h3 id="fn-fn_returns_null">fn_returns_null</h3>
-<div class="ms-3">
-  <h4 class="h6">Returns</h4>
-  <p><code>null</code></p>
-</div>
-</section>
-<section>
-  <h3 id="fn-fn_returns_text">fn_returns_text</h3>
-<div class="ms-3">
-  <h4 class="h6">Returns</h4>
-  <p><code>text</code></p>
-</div>
-</section>
+        <h2>Types</h2>
+        <ul>
+          <li><code>user_id</code> – Primitive(Int)</li>
+        </ul>
+        <h2>Modules</h2>
+        <ul>
+          <li>foo</li>
+        </ul>
+        <section>
+          <h3 id="fn-x">x</h3>
+        <div class="ms-3">
+          <p> This is the x function.</p>
+          <h4 class="h6">Parameters</h4>
+          <ul>
+            <li><var>arg1</var></li>
+            <li><var>arg2</var></li>
+          </ul>
+        </div>
+        </section>
+        <section>
+          <h3 id="fn-fn_returns_array">fn_returns_array</h3>
+        <div class="ms-3">
+          <h4 class="h6">Returns</h4>
+          <p><code>array</code></p>
+        </div>
+        </section>
+        <section>
+          <h3 id="fn-fn_returns_bool">fn_returns_bool</h3>
+        <div class="ms-3">
+          <h4 class="h6">Returns</h4>
+          <p><code>bool</code></p>
+        </div>
+        </section>
+        <section>
+          <h3 id="fn-fn_returns_float">fn_returns_float</h3>
+        <div class="ms-3">
+          <h4 class="h6">Returns</h4>
+          <p><code>float</code></p>
+        </div>
+        </section>
+        <section>
+          <h3 id="fn-fn_returns_int">fn_returns_int</h3>
+        <div class="ms-3">
+          <h4 class="h6">Returns</h4>
+          <p><code>int</code></p>
+        </div>
+        </section>
+        <section>
+          <h3 id="fn-fn_returns_text">fn_returns_text</h3>
+        <div class="ms-3">
+          <h4 class="h6">Returns</h4>
+          <p><code>text</code></p>
+        </div>
+        </section>
 
-    </main>
-    <footer class="container border-top">
-      <small class="text-body-secondary">Generated with <a href="https://prql-lang.org/" rel="external" target="_blank">prqlc</a> 0.13.1.</small>
-    </footer>
-  </body>
-</html>
+            </main>
+            <footer class="container border-top">
+              <small class="text-body-secondary">Generated with <a href="https://prql-lang.org/" rel="external" target="_blank">prqlc</a> 0.13.5.</small>
+            </footer>
+          </body>
+        </html>
 
------ stderr -----
-        "###);
+        ----- stderr -----
+        "##);
     }
 
     #[test]
     fn generate_markdown_docs() {
+        std::env::set_var("PRQL_VERSION_OVERRIDE", env!("CARGO_PKG_VERSION"));
+
         let input = r"
         #! This is the x function.
         let x = arg1 arg2 -> c
@@ -488,7 +441,6 @@ exit_code: 0
         let fn_returns_bool = -> <bool> true
         let fn_returns_float = -> <float> float
         let fn_returns_int = -> <int> 0
-        let fn_returns_null = -> <null> null
         let fn_returns_text = -> <text> 'text'
 
         module foo {}
@@ -496,7 +448,7 @@ exit_code: 0
         type user_id = int
         ";
 
-        assert_cmd_snapshot!(prqlc_command().args(["experimental", "doc"]).pass_stdin(input), @r###"
+        assert_cmd_snapshot!(prqlc_command().args(["experimental", "doc"]).pass_stdin(input), @r"
         success: true
         exit_code: 0
         ----- stdout -----
@@ -508,7 +460,6 @@ exit_code: 0
         * [fn_returns_bool](#fn_returns_bool)
         * [fn_returns_float](#fn_returns_float)
         * [fn_returns_int](#fn_returns_int)
-        * [fn_returns_null](#fn_returns_null)
         * [fn_returns_text](#fn_returns_text)
 
         ## Types
@@ -545,11 +496,6 @@ exit_code: 0
         #### Returns
         `int`
 
-        ### fn_returns_null
-
-        #### Returns
-        `null`
-
         ### fn_returns_text
 
         #### Returns
@@ -557,10 +503,10 @@ exit_code: 0
 
 
 
-        Generated with [prqlc](https://prql-lang.org/) 0.13.1.
+        Generated with [prqlc](https://prql-lang.org/) 0.13.5.
 
         ----- stderr -----
-        "###);
+        ");
     }
 
     fn prqlc_command() -> Command {

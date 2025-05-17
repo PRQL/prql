@@ -15,13 +15,13 @@ use anyhow::bail;
 use anyhow::Result;
 use ariadne::Source;
 use clap::{CommandFactory, Parser, Subcommand, ValueHint};
-use clap_verbosity_flag::LogLevel;
 use clio::has_extension;
 use clio::Output;
 use is_terminal::IsTerminal;
 use itertools::Itertools;
 use schemars::schema_for;
 
+use prqlc::compiler_version;
 use prqlc::debug;
 use prqlc::internal::pl_to_lineage;
 use prqlc::ir::{pl, rq};
@@ -35,41 +35,49 @@ use prqlc::{Options, SourceTree, Target};
 mod docs_generator;
 mod highlight;
 mod jinja;
+#[cfg(feature = "lsp")]
+mod lsp;
 #[cfg(test)]
 mod test;
 mod watch;
 
 /// Entrypoint called by [`crate::main`]
 pub fn main() -> color_eyre::eyre::Result<()> {
-    let mut cli = Cli::parse();
+    let cli = Cli::parse();
 
     // redirect all log messages into the [debug::DebugLog]
-    static LOGGER: debug::MessageLogger = debug::MessageLogger;
-    log::set_logger(&LOGGER)
-        .map(|()| log::set_max_level(cli.verbose.log_level_filter()))
-        .unwrap();
+    if has_debug_log(&cli) {
+        static LOGGER: debug::MessageLogger = debug::MessageLogger;
+        log::set_logger(&LOGGER)
+            .map(|()| log::set_max_level(log::LevelFilter::max()))
+            .unwrap();
+    }
 
     color_eyre::install()?;
     cli.color.write_global();
 
-    if let Err(error) = cli.command.run() {
-        eprintln!("{error}");
-        // Copied from
-        // https://doc.rust-lang.org/src/std/backtrace.rs.html#1-504, since it's private
-        fn backtrace_enabled() -> bool {
-            match env::var("RUST_LIB_BACKTRACE") {
-                Ok(s) => s != "0",
-                Err(_) => match env::var("RUST_BACKTRACE") {
+    if let Some(mut subcommand) = cli.command {
+        if let Err(error) = subcommand.run() {
+            eprintln!("{error}");
+            // Copied from
+            // https://doc.rust-lang.org/src/std/backtrace.rs.html#1-504, since it's private
+            fn backtrace_enabled() -> bool {
+                match env::var("RUST_LIB_BACKTRACE") {
                     Ok(s) => s != "0",
-                    Err(_) => false,
-                },
+                    Err(_) => match env::var("RUST_BACKTRACE") {
+                        Ok(s) => s != "0",
+                        Err(_) => false,
+                    },
+                }
             }
-        }
-        if backtrace_enabled() {
-            eprintln!("{:#}", error.backtrace());
-        }
+            if backtrace_enabled() {
+                eprintln!("{:#}", error.backtrace());
+            }
 
-        exit(1)
+            exit(1)
+        }
+    } else {
+        Cli::command().print_help()?;
     }
 
     Ok(())
@@ -78,16 +86,21 @@ pub fn main() -> color_eyre::eyre::Result<()> {
 #[derive(Parser, Debug, Clone)]
 struct Cli {
     #[command(subcommand)]
-    command: Command,
+    command: Option<Command>,
     #[command(flatten)]
     color: colorchoice_clap::Color,
+}
 
-    #[command(flatten)]
-    verbose: clap_verbosity_flag::Verbosity<LoggingHelp>,
+/// This seems to be required because passing `compiler_version()` directly to
+/// `command` fails because it's not a string, and we can't seem to convert it
+/// to a string inline.
+pub fn compiler_version_str() -> &'static str {
+    static COMPILER_VERSION: std::sync::OnceLock<String> = std::sync::OnceLock::new();
+    COMPILER_VERSION.get_or_init(|| compiler_version().to_string())
 }
 
 #[derive(Subcommand, Debug, Clone)]
-#[command(name = env!("CARGO_PKG_NAME"), about, version)]
+#[command(name = env!("CARGO_PKG_NAME"), about, version=compiler_version_str())]
 enum Command {
     /// Parse into PL AST
     Parse {
@@ -153,6 +166,10 @@ enum Command {
     /// Show available compile target names
     #[command(name = "list-targets")]
     ListTargets,
+
+    /// Language Server Protocol
+    #[command(hide = true)]
+    Lsp,
 
     /// Print a shell completion for supported shells
     #[command(name = "shell-completion")]
@@ -250,37 +267,6 @@ pub struct IoArgs {
     main_path: Option<String>,
 }
 
-#[derive(Copy, Clone, Debug, Default)]
-struct LoggingHelp;
-
-impl LogLevel for LoggingHelp {
-    /// By default, this will only report errors.
-    fn default() -> Option<log::Level> {
-        Some(log::Level::Error)
-    }
-    fn verbose_help() -> Option<&'static str> {
-        Some("Increase logging verbosity")
-    }
-
-    fn verbose_long_help() -> Option<&'static str> {
-        Some(
-            r#"More `v`s, More vebose logging:
--v shows warnings
--vv shows info
--vvv shows debug
--vvvv shows trace"#,
-        )
-    }
-
-    fn quiet_help() -> Option<&'static str> {
-        Some("Silences logging output")
-    }
-
-    fn quiet_long_help() -> Option<&'static str> {
-        Some("Silences logging output")
-    }
-}
-
 #[derive(clap::ValueEnum, Clone, Debug)]
 enum DocsFormat {
     Html,
@@ -352,21 +338,17 @@ impl Command {
                 io::stdout().write_all(&serde_json::to_string_pretty(&schema)?.into_bytes())?;
                 Ok(())
             }
+            #[cfg(feature = "lsp")]
+            Command::Lsp => match lsp::run() {
+                Ok(_) => Ok(()),
+                Err(err) => Err(anyhow!(err)),
+            },
             _ => self.run_io_command(),
         }
     }
 
     fn list_targets(&self) -> std::result::Result<(), anyhow::Error> {
-        let res: Result<std::string::String, anyhow::Error> = Ok(match self {
-            Command::ListTargets => Target::names().join("\n"),
-            _ => unreachable!(),
-        });
-
-        match res {
-            Ok(s) => println!("{s}"),
-            Err(_) => unreachable!(),
-        }
-
+        println!("{}", Target::names().join("\n"));
         Ok(())
     }
 
@@ -563,6 +545,16 @@ impl Command {
     }
 }
 
+fn has_debug_log(cli: &Cli) -> bool {
+    matches!(
+        cli.command,
+        Some(Command::Compile {
+            debug_log: Some(_),
+            ..
+        })
+    )
+}
+
 pub fn write_log(path: &std::path::Path) -> Result<()> {
     let debug_log = if let Some(debug_log) = debug::log_finish() {
         debug_log
@@ -682,14 +674,14 @@ sort full
         )
         .unwrap();
         assert_snapshot!(String::from_utf8(output).unwrap().trim(),
-        @r###"
+        @r#"
         from initial_table
         select {f = first_name, l = last_name, gender}  # [f, l, initial_table.gender]
         derive full_name = f"{f} {l}"                   # [f, l, initial_table.gender, full_name]
         take 23                                         # [f, l, initial_table.gender, full_name]
         select {f"{l} {f}", full = full_name, gender}   # [?, full, initial_table.gender]
         sort full                                       # [?, full, initial_table.gender]
-        "###);
+        "#);
     }
 
     /// Check we get an error on a bad input
@@ -709,15 +701,15 @@ sort full
             "",
         );
 
-        assert_snapshot!(&result.unwrap_err().to_string(), @r###"
+        assert_snapshot!(&result.unwrap_err().to_string(), @r"
         Error:
-           ╭─[:1:1]
+           ╭─[ :1:1 ]
            │
          1 │ asdf
            │ ──┬─
            │   ╰─── Unknown name `asdf`
         ───╯
-        "###);
+        ");
     }
 
     #[test]
@@ -743,7 +735,7 @@ sort full
             "main",
         )
         .unwrap();
-        assert_snapshot!(String::from_utf8(result).unwrap().trim(), @r###"
+        assert_snapshot!(String::from_utf8(result).unwrap().trim(), @r"
         WITH x AS (
           SELECT
             y,
@@ -755,7 +747,7 @@ sort full
           y
         FROM
           x
-        "###);
+        ");
     }
 
     #[test]
@@ -770,7 +762,7 @@ sort full
         )
         .unwrap();
 
-        assert_snapshot!(String::from_utf8(output).unwrap().trim(), @r###"
+        assert_snapshot!(String::from_utf8(output).unwrap().trim(), @r"
         name: Project
         stmts:
         - VarDef:
@@ -781,23 +773,27 @@ sort full
                 exprs:
                 - FuncCall:
                     name:
-                      Ident: from
+                      Ident:
+                      - from
                       span: 1:0-4
                     args:
-                    - Ident: x
+                    - Ident:
+                      - x
                       span: 1:5-6
                   span: 1:0-6
                 - FuncCall:
                     name:
-                      Ident: select
+                      Ident:
+                      - select
                       span: 1:9-15
                     args:
-                    - Ident: y
+                    - Ident:
+                      - y
                       span: 1:16-17
                   span: 1:9-17
               span: 1:0-17
           span: 1:0-17
-        "###);
+        ");
     }
     #[test]
     fn lex() {
@@ -813,7 +809,7 @@ sort full
 
         // TODO: terser output; maybe serialize span as `0..4`? Remove the
         // `!Ident` complication?
-        assert_snapshot!(String::from_utf8(output).unwrap().trim(), @r###"
+        assert_snapshot!(String::from_utf8(output).unwrap().trim(), @r"
         - kind: Start
           span:
             start: 0
@@ -838,7 +834,7 @@ sort full
           span:
             start: 16
             end: 17
-        "###);
+        ");
     }
     #[test]
     fn lex_nested_enum() {
@@ -856,7 +852,7 @@ sort full
         )
         .unwrap();
 
-        assert_snapshot!(String::from_utf8(output).unwrap().trim(), @r###"
+        assert_snapshot!(String::from_utf8(output).unwrap().trim(), @r"
         - kind: Start
           span:
             start: 0
@@ -890,6 +886,6 @@ sort full
           span:
             start: 44
             end: 45
-        "###);
+        ");
     }
 }

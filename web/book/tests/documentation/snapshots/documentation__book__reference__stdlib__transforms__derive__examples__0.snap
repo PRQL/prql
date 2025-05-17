@@ -7,4 +7,3 @@ SELECT
   salary + payroll_tax AS gross_salary
 FROM
   employees
-

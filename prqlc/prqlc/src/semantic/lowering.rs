@@ -6,6 +6,7 @@ use enum_as_inner::EnumAsInner;
 use itertools::Itertools;
 use prqlc_parser::generic::{InterpolateItem, Range, SwitchCase};
 use prqlc_parser::lexer::lr::Literal;
+use semver::{Prerelease, Version};
 
 use crate::compiler_version;
 use crate::ir::decl::{self, DeclKind, Module, RootModule, TableExpr};
@@ -125,8 +126,20 @@ fn tuple_fields_to_relation_columns(columns: Vec<TyTupleField>) -> Vec<RelationC
 
 fn validate_query_def(query_def: &QueryDef) -> Result<()> {
     if let Some(requirement) = &query_def.version {
-        if !requirement.matches(compiler_version()) {
-            return Err(Error::new_simple("This query uses a version of PRQL that is not supported by prqlc. Please upgrade the compiler."));
+        let current_version = compiler_version();
+
+        // We need to remove the pre-release part of the version, because
+        // otherwise those will fail the match.
+        let clean_version = Version {
+            pre: Prerelease::EMPTY,
+            ..current_version.clone()
+        };
+
+        if !requirement.matches(&clean_version) {
+            return Err(Error::new_simple(format!(
+                "This query requires version {} of PRQL that is not supported by prqlc version {} (shortened from {}). Please upgrade the compiler.",
+                requirement, clean_version, current_version
+            )));
         }
     }
     Ok(())
@@ -345,14 +358,15 @@ impl Lowerer {
                 let tid = self.tid.gen();
 
                 // pull columns from the table decl
-                let frame = expr.lineage.as_ref().unwrap();
-                let columns = (frame.columns.iter())
-                    .map(|c| {
-                        RelationColumn::Single(
-                            c.as_single().unwrap().0.as_ref().map(|i| i.name.clone()),
-                        )
+                let lineage = expr.lineage.as_ref().unwrap();
+                let columns: Vec<_> = (lineage.columns.iter())
+                    .map(|c| match c {
+                        LineageColumn::Single { name, .. } => Ok(RelationColumn::Single(
+                            name.as_ref().map(|i| i.name.clone()),
+                        )),
+                        LineageColumn::All { .. } => Err(Error::new_bug(4317)),
                     })
-                    .collect_vec();
+                    .try_collect()?;
 
                 let lit = RelationLiteral {
                     columns: columns
@@ -668,7 +682,7 @@ impl Lowerer {
 
     fn declare_as_columns(&mut self, exprs: pl::Expr, is_aggregation: bool) -> Result<Vec<CId>> {
         // special case: reference to a tuple that is a relational input
-        if exprs.ty.as_ref().map_or(false, |x| x.kind.is_tuple()) && exprs.kind.is_ident() {
+        if exprs.ty.as_ref().is_some_and(|x| x.kind.is_tuple()) && exprs.kind.is_ident() {
             // return all contained columns
             let input_id = exprs.target_id.as_ref().unwrap();
             let id_mapping = self.node_mapping.get(input_id).unwrap();
@@ -727,7 +741,7 @@ impl Lowerer {
 
             let id = e.target_id.unwrap();
             match e.kind {
-                pl::ExprKind::Ident(_) if e.ty.as_ref().map_or(false, |x| x.kind.is_tuple()) => {
+                pl::ExprKind::Ident(_) if e.ty.as_ref().is_some_and(|x| x.kind.is_tuple()) => {
                     res.extend(self.find_selected_all(e, None).with_span(except.span)?);
                 }
                 pl::ExprKind::Ident(ident) => {
@@ -821,7 +835,7 @@ impl Lowerer {
             pl::ExprKind::Ident(ident) => {
                 log::debug!("lowering ident {ident} (target {:?})", expr.target_id);
 
-                if expr.ty.as_ref().map_or(false, |x| x.kind.is_tuple()) {
+                if expr.ty.as_ref().is_some_and(|x| x.kind.is_tuple()) {
                     // special case: tuple ref
                     let expr = pl::Expr {
                         kind: pl::ExprKind::Ident(ident),

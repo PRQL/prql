@@ -1,20 +1,17 @@
 //! Semantic resolver (name resolution, type checking and lowering to RQ)
 
 pub mod ast_expand;
-mod eval;
 mod lowering;
 mod module;
 pub mod reporting;
 mod resolver;
 
-pub use eval::eval;
 pub use lowering::lower_to_ir;
 
 use self::resolver::Resolver;
 pub use self::resolver::ResolverOptions;
-use crate::ir::constant::ConstExpr;
 use crate::ir::decl::{Module, RootModule};
-use crate::ir::pl::{self, Expr, ImportDef, ModuleDef, Stmt, StmtKind, TypeDef, VarDef};
+use crate::ir::pl::{self, ImportDef, ModuleDef, Stmt, StmtKind, TypeDef, VarDef};
 use crate::ir::rq::RelationalQuery;
 use crate::parser::is_mod_def_for;
 use crate::pr;
@@ -85,17 +82,11 @@ pub fn load_std_lib(module_tree: &mut pr::ModuleDef) {
     }
 }
 
-pub fn static_eval(expr: Expr, root_mod: &mut RootModule) -> Result<ConstExpr> {
-    let mut resolver = Resolver::new(root_mod);
-
-    resolver.static_eval_to_constant(expr)
-}
-
 pub fn is_ident_or_func_call(expr: &pl::Expr, name: &pr::Ident) -> bool {
     match &expr.kind {
         pl::ExprKind::Ident(i) if i == name => true,
         pl::ExprKind::FuncCall(pl::FuncCall { name: n_expr, .. })
-            if n_expr.kind.as_ident().map_or(false, |i| i == name) =>
+            if n_expr.kind.as_ident() == Some(name) =>
         {
             true
         }
@@ -119,8 +110,6 @@ pub const NS_INFER: &str = "_infer";
 
 // implies we can infer new module declarations in the containing module
 pub const NS_INFER_MODULE: &str = "_infer_module";
-
-pub const NS_GENERIC: &str = "_generic";
 
 impl Stmt {
     pub fn new(kind: StmtKind) -> Stmt {
@@ -191,10 +180,7 @@ pub mod test {
         assert_yaml_snapshot!(parse_resolve_and_lower(r###"
         from employees
         select !{foo}
-        "###).unwrap().relation.columns, @r###"
-        ---
-        - Wildcard
-        "###)
+        "###).unwrap().relation.columns, @"- Wildcard")
     }
 
     #[test]
@@ -205,13 +191,12 @@ pub mod test {
         window range:-4..4 (
             derive {next_four_days = sum b}
         )
-        "###).unwrap().relation.columns, @r###"
-        ---
+        "###).unwrap().relation.columns, @r"
         - Single: day
         - Single: b
         - Wildcard
         - Single: next_four_days
-        "###)
+        ")
     }
 
     #[test]
@@ -220,11 +205,10 @@ pub mod test {
         from a=albums
         filter is_sponsored
         select {a.*}
-        "###).unwrap().relation.columns, @r###"
-        ---
+        "###).unwrap().relation.columns, @r"
         - Single: is_sponsored
         - Wildcard
-        "###)
+        ")
     }
 
     #[test]
@@ -232,12 +216,11 @@ pub mod test {
         assert_yaml_snapshot!(parse_resolve_and_lower(r###"
         from x
         select {a, a, a = a + 1}
-        "###).unwrap().relation.columns, @r###"
-        ---
+        "###).unwrap().relation.columns, @r"
         - Single: ~
         - Single: ~
         - Single: a
-        "###)
+        ")
     }
 
     #[test]
@@ -246,8 +229,7 @@ pub mod test {
         prql target:sql.mssql version:"0"
 
         from employees
-        "#).unwrap(), @r###"
-        ---
+        "#).unwrap(), @r"
         def:
           version: ^0
           other:
@@ -275,7 +257,7 @@ pub mod test {
                   - 0
           columns:
             - Wildcard
-        "### );
+        " );
 
         assert!(parse_resolve_and_lower(
             r###"

@@ -31,12 +31,12 @@ runs:
 
     - uses: Swatinem/rust-cache@v2
       with:
+        prefix-key: ${{ env.version }}-${{ hashFiles('Cargo.lock') }}
         # Share cache with `test-rust`, except for `musl` targets.
         save-if:
           ${{ (github.ref == 'refs/heads/main') && contains(inputs.target,
           'musl') }}
         shared-key: rust-${{ inputs.target }}
-        prefix-key: ${{ env.version }}
 
     - if: runner.os == 'Linux'
       shell: bash
@@ -57,7 +57,7 @@ runs:
         echo 'CC=aarch64-linux-gnu-gcc' >>"$GITHUB_ENV"
 
     - name: cargo build
-      uses: clechasseur/rs-cargo@v2
+      uses: clechasseur/rs-cargo@v3
       with:
         command: build
         args:

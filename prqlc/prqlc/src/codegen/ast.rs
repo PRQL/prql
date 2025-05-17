@@ -1,3 +1,4 @@
+use std::borrow::Cow;
 use std::collections::HashSet;
 use std::sync::OnceLock;
 
@@ -27,7 +28,7 @@ impl WriteSource for pr::Expr {
         let mut r = String::new();
 
         if let Some(alias) = &self.alias {
-            r += opt.consume(alias)?;
+            r += opt.consume(&write_ident_part(alias))?;
             r += opt.consume(" = ")?;
             opt.unbound_expr = false;
         }
@@ -90,23 +91,7 @@ impl WriteSource for pr::ExprKind {
         use pr::ExprKind::*;
 
         match &self {
-            Ident(ident) => Some(write_ident_part(ident)),
-            Indirection { base, field } => {
-                let mut r = base.write(opt.clone())?;
-                opt.consume_width(r.len() as u16)?;
-
-                r += opt.consume(".")?;
-                match field {
-                    pr::IndirectionKind::Name(n) => {
-                        r += opt.consume(n)?;
-                    }
-                    pr::IndirectionKind::Position(i) => {
-                        r += &opt.consume(i.to_string())?;
-                    }
-                    pr::IndirectionKind::Star => r += "*",
-                }
-                Some(r)
-            }
+            Ident(ident) => Some(ident.to_string()),
 
             Pipeline(pipeline) => SeparatedExprs {
                 inline: " | ",
@@ -194,22 +179,6 @@ impl WriteSource for pr::ExprKind {
             }
             Func(c) => {
                 let mut r = "func ".to_string();
-                if !c.generic_type_params.is_empty() {
-                    r += opt.consume("<")?;
-                    for generic_param in &c.generic_type_params {
-                        r += opt.consume(&write_ident_part(&generic_param.name))?;
-                        r += opt.consume(": ")?;
-                        r += &opt.consume(
-                            SeparatedExprs {
-                                exprs: &generic_param.domain,
-                                inline: " | ",
-                                line_end: "|",
-                            }
-                            .write(opt.clone())?,
-                        )?;
-                    }
-                    r += opt.consume("> ")?;
-                }
 
                 for param in &c.params {
                     r += opt.consume(&write_ident_part(&param.name))?;
@@ -378,11 +347,11 @@ fn valid_prql_ident() -> &'static Regex {
     })
 }
 
-pub fn write_ident_part(s: &str) -> String {
+pub fn write_ident_part(s: &str) -> Cow<str> {
     if valid_prql_ident().is_match(s) && !keywords().contains(s) {
-        s.to_string()
+        s.into()
     } else {
-        format!("`{}`", s)
+        format!("`{}`", s).into()
     }
 }
 
@@ -428,13 +397,13 @@ impl WriteSource for pr::Stmt {
             }
             pr::StmtKind::VarDef(var_def) => match var_def.kind {
                 _ if var_def.value.is_none() || var_def.ty.is_some() => {
-                    let typ = if let Some(ty) = &var_def.ty {
+                    let typo = if let Some(ty) = &var_def.ty {
                         format!("<{}> ", ty.write(opt.clone())?)
                     } else {
                         "".to_string()
                     };
 
-                    r += opt.consume(&format!("let {} {}", var_def.name, typ))?;
+                    r += opt.consume(&format!("let {} {}", var_def.name, typo))?;
 
                     if let Some(val) = &var_def.value {
                         r += opt.consume("= ")?;
@@ -472,11 +441,8 @@ impl WriteSource for pr::Stmt {
             },
             pr::StmtKind::TypeDef(type_def) => {
                 r += opt.consume(&format!("type {}", type_def.name))?;
-
-                if let Some(ty) = &type_def.value {
-                    r += opt.consume(" = ")?;
-                    r += &ty.kind.write(opt)?;
-                }
+                r += opt.consume(" = ")?;
+                r += &type_def.value.kind.write(opt)?;
                 r += "\n";
             }
             pr::StmtKind::ModuleDef(module_def) => {
@@ -561,10 +527,12 @@ mod test {
 
     #[test]
     fn test_pipeline() {
-        let short = pr::Expr::new(pr::ExprKind::Ident("short".to_string()));
-        let long = pr::Expr::new(pr::ExprKind::Ident(
+        let short = pr::Expr::new(pr::ExprKind::Ident(pr::Ident::from_name(
+            "short".to_string(),
+        )));
+        let long = pr::Expr::new(pr::ExprKind::Ident(pr::Ident::from_name(
             "some_really_long_and_really_long_name".to_string(),
-        ));
+        )));
 
         let mut opt = WriteOpt {
             indent: 1,
@@ -582,14 +550,14 @@ mod test {
             exprs: vec![short.clone(), long.clone(), long, short.clone()],
         }));
         // colons are a workaround to avoid trimming
-        assert_snapshot!(pipeline.write(opt.clone()).unwrap(), @r###"
+        assert_snapshot!(pipeline.write(opt.clone()).unwrap(), @r"
         (
             short
             some_really_long_and_really_long_name
             some_really_long_and_really_long_name
             short
           )
-        "###);
+        ");
 
         // sometimes, there is just not enough space
         opt.rem_width = 4;
@@ -641,6 +609,15 @@ mod test {
 aggregate average_country_salary = (
   average salary
 )"#,
+        );
+    }
+
+    #[test]
+    fn test_alias() {
+        assert_is_formatted(
+            r#"
+from artists
+select {`customer name` = foo, x = bar.baz}"#,
         );
     }
 

@@ -1,0 +1,767 @@
+---
+source: prqlc/prqlc/tests/integration/queries.rs
+expression: "from [{track_id=0, album_id=1, genre_id=2}]\nselect { AA=track_id, album_id, genre_id }\nsort AA\njoin side:left [{album_id=1, album_title=\"Songs\"}] (==album_id)\nselect { AA, AT = album_title ?? \"unknown\", genre_id }\nfilter AA < 25\njoin side:left [{genre_id=1, genre_title=\"Rock\"}] (==genre_id)\nselect { AA, AT, GT = genre_title ?? \"unknown\" }\n"
+input_file: prqlc/prqlc/tests/integration/queries/sort_3.prql
+---
+frames:
+- - 1:44-86
+  - columns:
+    - !Single
+      name:
+      - AA
+      target_id: 147
+      target_name: null
+    - !Single
+      name:
+      - _literal_141
+      - album_id
+      target_id: 148
+      target_name: null
+    - !Single
+      name:
+      - _literal_141
+      - genre_id
+      target_id: 149
+      target_name: null
+    inputs:
+    - id: 141
+      name: _literal_141
+      table:
+      - default_db
+      - _literal_141
+- - 1:87-94
+  - columns:
+    - !Single
+      name:
+      - AA
+      target_id: 147
+      target_name: null
+    - !Single
+      name:
+      - _literal_141
+      - album_id
+      target_id: 148
+      target_name: null
+    - !Single
+      name:
+      - _literal_141
+      - genre_id
+      target_id: 149
+      target_name: null
+    inputs:
+    - id: 141
+      name: _literal_141
+      table:
+      - default_db
+      - _literal_141
+- - 1:95-158
+  - columns:
+    - !Single
+      name:
+      - AA
+      target_id: 147
+      target_name: null
+    - !Single
+      name:
+      - _literal_141
+      - album_id
+      target_id: 148
+      target_name: null
+    - !Single
+      name:
+      - _literal_141
+      - genre_id
+      target_id: 149
+      target_name: null
+    - !Single
+      name:
+      - _literal_129
+      - album_id
+      target_id: 129
+      target_name: album_id
+    - !Single
+      name:
+      - _literal_129
+      - album_title
+      target_id: 129
+      target_name: album_title
+    inputs:
+    - id: 141
+      name: _literal_141
+      table:
+      - default_db
+      - _literal_141
+    - id: 129
+      name: _literal_129
+      table:
+      - default_db
+      - _literal_129
+- - 1:159-213
+  - columns:
+    - !Single
+      name:
+      - AA
+      target_id: 160
+      target_name: null
+    - !Single
+      name:
+      - AT
+      target_id: 161
+      target_name: null
+    - !Single
+      name:
+      - _literal_141
+      - genre_id
+      target_id: 165
+      target_name: null
+    inputs:
+    - id: 141
+      name: _literal_141
+      table:
+      - default_db
+      - _literal_141
+    - id: 129
+      name: _literal_129
+      table:
+      - default_db
+      - _literal_129
+- - 1:214-228
+  - columns:
+    - !Single
+      name:
+      - AA
+      target_id: 160
+      target_name: null
+    - !Single
+      name:
+      - AT
+      target_id: 161
+      target_name: null
+    - !Single
+      name:
+      - _literal_141
+      - genre_id
+      target_id: 165
+      target_name: null
+    inputs:
+    - id: 141
+      name: _literal_141
+      table:
+      - default_db
+      - _literal_141
+    - id: 129
+      name: _literal_129
+      table:
+      - default_db
+      - _literal_129
+- - 1:229-291
+  - columns:
+    - !Single
+      name:
+      - AA
+      target_id: 160
+      target_name: null
+    - !Single
+      name:
+      - AT
+      target_id: 161
+      target_name: null
+    - !Single
+      name:
+      - _literal_141
+      - genre_id
+      target_id: 165
+      target_name: null
+    - !Single
+      name:
+      - _literal_116
+      - genre_id
+      target_id: 116
+      target_name: genre_id
+    - !Single
+      name:
+      - _literal_116
+      - genre_title
+      target_id: 116
+      target_name: genre_title
+    inputs:
+    - id: 141
+      name: _literal_141
+      table:
+      - default_db
+      - _literal_141
+    - id: 129
+      name: _literal_129
+      table:
+      - default_db
+      - _literal_129
+    - id: 116
+      name: _literal_116
+      table:
+      - default_db
+      - _literal_116
+- - 1:292-340
+  - columns:
+    - !Single
+      name:
+      - AA
+      target_id: 178
+      target_name: null
+    - !Single
+      name:
+      - AT
+      target_id: 179
+      target_name: null
+    - !Single
+      name:
+      - GT
+      target_id: 180
+      target_name: null
+    inputs:
+    - id: 141
+      name: _literal_141
+      table:
+      - default_db
+      - _literal_141
+    - id: 129
+      name: _literal_129
+      table:
+      - default_db
+      - _literal_129
+    - id: 116
+      name: _literal_116
+      table:
+      - default_db
+      - _literal_116
+nodes:
+- id: 116
+  kind: Array
+  span: 1:244-278
+  children:
+  - 117
+  parent: 177
+- id: 117
+  kind: Tuple
+  span: 1:245-277
+  children:
+  - 118
+  - 119
+  parent: 116
+- id: 118
+  kind: Literal
+  span: 1:255-256
+  alias: genre_id
+  parent: 117
+- id: 119
+  kind: Literal
+  span: 1:270-276
+  alias: genre_title
+  parent: 117
+- id: 129
+  kind: Array
+  span: 1:110-145
+  children:
+  - 130
+  parent: 159
+- id: 130
+  kind: Tuple
+  span: 1:111-144
+  children:
+  - 131
+  - 132
+  parent: 129
+- id: 131
+  kind: Literal
+  span: 1:121-122
+  alias: album_id
+  parent: 130
+- id: 132
+  kind: Literal
+  span: 1:136-143
+  alias: album_title
+  parent: 130
+- id: 141
+  kind: Array
+  span: 1:0-43
+  children:
+  - 142
+  parent: 151
+- id: 142
+  kind: Tuple
+  span: 1:6-42
+  children:
+  - 143
+  - 144
+  - 145
+  parent: 141
+- id: 143
+  kind: Literal
+  span: 1:16-17
+  alias: track_id
+  parent: 142
+- id: 144
+  kind: Literal
+  span: 1:28-29
+  alias: album_id
+  parent: 142
+- id: 145
+  kind: Literal
+  span: 1:40-41
+  alias: genre_id
+  parent: 142
+- id: 147
+  kind: Ident
+  span: 1:56-64
+  alias: AA
+  ident: !Ident
+  - this
+  - _literal_141
+  - track_id
+  targets:
+  - 141
+  parent: 150
+- id: 148
+  kind: Ident
+  span: 1:66-74
+  ident: !Ident
+  - this
+  - _literal_141
+  - album_id
+  targets:
+  - 141
+  parent: 150
+- id: 149
+  kind: Ident
+  span: 1:76-84
+  ident: !Ident
+  - this
+  - _literal_141
+  - genre_id
+  targets:
+  - 141
+  parent: 150
+- id: 150
+  kind: Tuple
+  span: 1:51-86
+  children:
+  - 147
+  - 148
+  - 149
+  parent: 151
+- id: 151
+  kind: 'TransformCall: Select'
+  span: 1:44-86
+  children:
+  - 141
+  - 150
+  parent: 154
+- id: 152
+  kind: Ident
+  span: 1:92-94
+  ident: !Ident
+  - this
+  - AA
+  targets:
+  - 147
+  parent: 154
+- id: 154
+  kind: 'TransformCall: Sort'
+  span: 1:87-94
+  children:
+  - 151
+  - 152
+  parent: 159
+- id: 155
+  kind: RqOperator
+  span: 1:147-157
+  targets:
+  - 157
+  - 158
+  parent: 159
+- id: 157
+  kind: Ident
+  span: 1:149-157
+  ident: !Ident
+  - this
+  - _literal_141
+  - album_id
+  targets:
+  - 148
+- id: 158
+  kind: Ident
+  span: 1:149-157
+  ident: !Ident
+  - that
+  - _literal_129
+  - album_id
+  targets:
+  - 129
+- id: 159
+  kind: 'TransformCall: Join'
+  span: 1:95-158
+  children:
+  - 154
+  - 129
+  - 155
+  parent: 167
+- id: 160
+  kind: Ident
+  span: 1:168-170
+  ident: !Ident
+  - this
+  - AA
+  targets:
+  - 147
+  parent: 166
+- id: 161
+  kind: RqOperator
+  span: 1:177-201
+  alias: AT
+  targets:
+  - 163
+  - 164
+  parent: 166
+- id: 163
+  kind: Ident
+  span: 1:177-188
+  ident: !Ident
+  - this
+  - _literal_129
+  - album_title
+  targets:
+  - 129
+- id: 164
+  kind: Literal
+  span: 1:192-201
+- id: 165
+  kind: Ident
+  span: 1:203-211
+  ident: !Ident
+  - this
+  - _literal_141
+  - genre_id
+  targets:
+  - 149
+  parent: 166
+- id: 166
+  kind: Tuple
+  span: 1:166-213
+  children:
+  - 160
+  - 161
+  - 165
+  parent: 167
+- id: 167
+  kind: 'TransformCall: Select'
+  span: 1:159-213
+  children:
+  - 159
+  - 166
+  parent: 172
+- id: 168
+  kind: RqOperator
+  span: 1:221-228
+  targets:
+  - 170
+  - 171
+  parent: 172
+- id: 170
+  kind: Ident
+  span: 1:221-223
+  ident: !Ident
+  - this
+  - AA
+  targets:
+  - 160
+- id: 171
+  kind: Literal
+  span: 1:226-228
+- id: 172
+  kind: 'TransformCall: Filter'
+  span: 1:214-228
+  children:
+  - 167
+  - 168
+  parent: 177
+- id: 173
+  kind: RqOperator
+  span: 1:280-290
+  targets:
+  - 175
+  - 176
+  parent: 177
+- id: 175
+  kind: Ident
+  span: 1:282-290
+  ident: !Ident
+  - this
+  - _literal_141
+  - genre_id
+  targets:
+  - 165
+- id: 176
+  kind: Ident
+  span: 1:282-290
+  ident: !Ident
+  - that
+  - _literal_116
+  - genre_id
+  targets:
+  - 116
+- id: 177
+  kind: 'TransformCall: Join'
+  span: 1:229-291
+  children:
+  - 172
+  - 116
+  - 173
+  parent: 185
+- id: 178
+  kind: Ident
+  span: 1:301-303
+  ident: !Ident
+  - this
+  - AA
+  targets:
+  - 160
+  parent: 184
+- id: 179
+  kind: Ident
+  span: 1:305-307
+  ident: !Ident
+  - this
+  - AT
+  targets:
+  - 161
+  parent: 184
+- id: 180
+  kind: RqOperator
+  span: 1:314-338
+  alias: GT
+  targets:
+  - 182
+  - 183
+  parent: 184
+- id: 182
+  kind: Ident
+  span: 1:314-325
+  ident: !Ident
+  - this
+  - _literal_116
+  - genre_title
+  targets:
+  - 116
+- id: 183
+  kind: Literal
+  span: 1:329-338
+- id: 184
+  kind: Tuple
+  span: 1:299-340
+  children:
+  - 178
+  - 179
+  - 180
+  parent: 185
+- id: 185
+  kind: 'TransformCall: Select'
+  span: 1:292-340
+  children:
+  - 177
+  - 184
+ast:
+  name: Project
+  stmts:
+  - VarDef:
+      kind: Main
+      name: main
+      value:
+        Pipeline:
+          exprs:
+          - FuncCall:
+              name:
+                Ident:
+                - from
+                span: 1:0-4
+              args:
+              - Array:
+                - Tuple:
+                  - Literal:
+                      Integer: 0
+                    span: 1:16-17
+                    alias: track_id
+                  - Literal:
+                      Integer: 1
+                    span: 1:28-29
+                    alias: album_id
+                  - Literal:
+                      Integer: 2
+                    span: 1:40-41
+                    alias: genre_id
+                  span: 1:6-42
+                span: 1:5-43
+            span: 1:0-43
+          - FuncCall:
+              name:
+                Ident:
+                - select
+                span: 1:44-50
+              args:
+              - Tuple:
+                - Ident:
+                  - track_id
+                  span: 1:56-64
+                  alias: AA
+                - Ident:
+                  - album_id
+                  span: 1:66-74
+                - Ident:
+                  - genre_id
+                  span: 1:76-84
+                span: 1:51-86
+            span: 1:44-86
+          - FuncCall:
+              name:
+                Ident:
+                - sort
+                span: 1:87-91
+              args:
+              - Ident:
+                - AA
+                span: 1:92-94
+            span: 1:87-94
+          - FuncCall:
+              name:
+                Ident:
+                - join
+                span: 1:95-99
+              args:
+              - Array:
+                - Tuple:
+                  - Literal:
+                      Integer: 1
+                    span: 1:121-122
+                    alias: album_id
+                  - Literal:
+                      String: Songs
+                    span: 1:136-143
+                    alias: album_title
+                  span: 1:111-144
+                span: 1:110-145
+              - Unary:
+                  op: EqSelf
+                  expr:
+                    Ident:
+                    - album_id
+                    span: 1:149-157
+                span: 1:147-157
+              named_args:
+                side:
+                  Ident:
+                  - left
+                  span: 1:105-109
+            span: 1:95-158
+          - FuncCall:
+              name:
+                Ident:
+                - select
+                span: 1:159-165
+              args:
+              - Tuple:
+                - Ident:
+                  - AA
+                  span: 1:168-170
+                - Binary:
+                    left:
+                      Ident:
+                      - album_title
+                      span: 1:177-188
+                    op: Coalesce
+                    right:
+                      Literal:
+                        String: unknown
+                      span: 1:192-201
+                  span: 1:177-201
+                  alias: AT
+                - Ident:
+                  - genre_id
+                  span: 1:203-211
+                span: 1:166-213
+            span: 1:159-213
+          - FuncCall:
+              name:
+                Ident:
+                - filter
+                span: 1:214-220
+              args:
+              - Binary:
+                  left:
+                    Ident:
+                    - AA
+                    span: 1:221-223
+                  op: Lt
+                  right:
+                    Literal:
+                      Integer: 25
+                    span: 1:226-228
+                span: 1:221-228
+            span: 1:214-228
+          - FuncCall:
+              name:
+                Ident:
+                - join
+                span: 1:229-233
+              args:
+              - Array:
+                - Tuple:
+                  - Literal:
+                      Integer: 1
+                    span: 1:255-256
+                    alias: genre_id
+                  - Literal:
+                      String: Rock
+                    span: 1:270-276
+                    alias: genre_title
+                  span: 1:245-277
+                span: 1:244-278
+              - Unary:
+                  op: EqSelf
+                  expr:
+                    Ident:
+                    - genre_id
+                    span: 1:282-290
+                span: 1:280-290
+              named_args:
+                side:
+                  Ident:
+                  - left
+                  span: 1:239-243
+            span: 1:229-291
+          - FuncCall:
+              name:
+                Ident:
+                - select
+                span: 1:292-298
+              args:
+              - Tuple:
+                - Ident:
+                  - AA
+                  span: 1:301-303
+                - Ident:
+                  - AT
+                  span: 1:305-307
+                - Binary:
+                    left:
+                      Ident:
+                      - genre_title
+                      span: 1:314-325
+                    op: Coalesce
+                    right:
+                      Literal:
+                        String: unknown
+                      span: 1:329-338
+                  span: 1:314-338
+                  alias: GT
+                span: 1:299-340
+            span: 1:292-340
+        span: 1:0-340
+    span: 1:0-340

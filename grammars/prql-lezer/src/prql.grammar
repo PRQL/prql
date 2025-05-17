@@ -4,6 +4,7 @@
 // - A few small TODOs included below
 
 @precedence {
+  power @right,
   prefix,
   times @left,
   plus @left,
@@ -24,7 +25,7 @@ Module { kw<"module"> Identifier "{" statements "}" }
 
 pipelineStatement { Pipeline (~ambigNewline newline+ | end)}
 
-Pipeline { CallExpression (pipe CallExpression)* }
+Pipeline { CallExpression (pipe CallExpression)* | expression "|" Identifier }
 
 pipe { "|" | ~ambigNewline newline+ }
 
@@ -93,7 +94,8 @@ ArrayExpression { "[" commaSep<test | "*" expression>? "]" }
 
 BinaryExpression {
   expression !plus ArithOp<"+" | "-"> expression |
-  expression !times ArithOp<"*" | "/" | "%" | "//"> expression
+  expression !times ArithOp<"*" | "/" | "%" | "//"> expression |
+  expression !power ArithOp{"**"} expression
 }
 
 ParenthesizedExpression { "(" expression ")" }

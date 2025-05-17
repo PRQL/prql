@@ -1,7 +1,0 @@
-let x = [
-  {genre_id = 1, title = "Rock"},
-  {genre_id = 2, title = "Blues"},
-]
-
-x
-into main

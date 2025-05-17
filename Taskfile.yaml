@@ -21,9 +21,6 @@ includes:
   zig:
     taskfile: ./prqlc/bindings/prqlc-c/examples/minimal-zig
     dir: ./prqlc/bindings/prqlc-c/examples/minimal-zig
-  lutra:
-    taskfile: ./lutra
-    dir: ./lutra
   web:
     taskfile: ./web
     dir: ./web
@@ -42,7 +39,9 @@ vars:
   cargo_crates: >
     bacon cbindgen cargo-audit cargo-insta cargo-llvm-cov cargo-release
     cargo-nextest default-target mdbook mdbook-admonish mdbook-footnote
-    mdbook-toc nextest wasm-bindgen-cli wasm-opt wasm-pack
+    mdbook-toc wasm-bindgen-cli wasm-opt
+  # wasm-pack waiting on https://github.com/rustwasm/wasm-pack/issues/1426
+  #
   # Excluding `elixir` atm given it's not enabled on Mac and currently unsupported
   brew_dependencies: |
     hugo
@@ -123,12 +122,14 @@ tasks:
       # `--locked` installs from the underlying lock files (which is not the
       # default...)
       - "cargo install --locked {{.cargo_crates}}"
+      - cargo install wasm-pack
 
   install-cargo-tools-binstall:
     cmds:
       - cmd: cargo install --locked cargo-binstall
         platforms: [linux, darwin]
       - "cargo binstall -y --locked {{.cargo_crates}}"
+      - cargo binstall -y wasm-pack
 
   check-vscode-extensions:
     desc: Check and suggest VS Code extensions.
@@ -289,7 +290,7 @@ tasks:
       - task: test-rust
       - task: test-js
       # No nextest here as doesn't work with wasm
-      - cargo insta test --accept --target=wasm32-unknown-unknown
+      - cargo test --target=wasm32-unknown-unknown
       - task: python:test
       - task: build-all
 
@@ -344,6 +345,26 @@ tasks:
       - cargo llvm-cov --lcov --output-path lcov.info
         --features=default,test-dbs
 
+  test-rust-external-dbs:
+    desc: Run tests which require external databases, with docker
+    cmds:
+      - cmd:
+          echo "🔵 Starting docker containers. In some circumstances the tests
+          will start before images are ready. After one initial failure, try
+          re-running."
+        silent: true
+      - cd prqlc/prqlc/tests/integration/dbs && docker compose up --wait
+      # This _only_ runs the external dbs tests, but we could make it run
+      # everything?
+      - cargo test --features=test-dbs-external --test=integration --
+        --nocapture queries::results
+      # We could run this ourselves, but makes iteration times much longer
+      - cmd: |
+          echo "🔵 To remove containers and remove local built images, run
+
+          cd prqlc/prqlc/tests/integration/dbs && docker compose down --rmi local"
+        silent: true
+
   test-js:
     dir: prqlc/bindings/js
     cmds:
@@ -360,9 +381,10 @@ tasks:
       - mix test
 
   test-lint:
-    desc: Run pre-commit
+    desc: Run pre-commit & cargo clippy.
     cmds:
-      - pre-commit run -a
+      - pre-commit run --all-files
+      - cargo clippy --all-targets --all-features
 
   build-php:
     - cargo build --package prqlc-c --release

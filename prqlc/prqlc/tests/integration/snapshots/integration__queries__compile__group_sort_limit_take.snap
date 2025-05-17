@@ -29,8 +29,7 @@ SELECT
   table_0.milliseconds
 FROM
   table_0
-  JOIN genres ON table_0.genre_id = genres.genre_id
+  INNER JOIN genres ON table_0.genre_id = genres.genre_id
 ORDER BY
   genres.name,
   table_0.milliseconds DESC
-

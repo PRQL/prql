@@ -7,10 +7,10 @@ frames:
 - - 1:101-118
   - columns:
     - !All
-      input_id: 124
+      input_id: 121
       except: []
     inputs:
-    - id: 124
+    - id: 121
       name: tracks
       table:
       - default_db
@@ -20,10 +20,10 @@ frames:
     - !Single
       name:
       - display
-      target_id: 129
+      target_id: 126
       target_name: null
     inputs:
-    - id: 124
+    - id: 121
       name: tracks
       table:
       - default_db
@@ -33,23 +33,23 @@ frames:
     - !Single
       name:
       - display
-      target_id: 129
+      target_id: 126
       target_name: null
     inputs:
-    - id: 124
+    - id: 121
       name: tracks
       table:
       - default_db
       - tracks
 nodes:
-- id: 124
+- id: 121
   kind: Ident
   span: 1:89-100
   ident: !Ident
   - default_db
   - tracks
-  parent: 128
-- id: 126
+  parent: 125
+- id: 123
   kind: Ident
   span: 1:106-118
   ident: !Ident
@@ -57,34 +57,34 @@ nodes:
   - tracks
   - milliseconds
   targets:
-  - 124
-  parent: 128
-- id: 128
+  - 121
+  parent: 125
+- id: 125
   kind: 'TransformCall: Sort'
   span: 1:101-118
   children:
-  - 124
-  - 126
-  parent: 143
-- id: 129
+  - 121
+  - 123
+  parent: 140
+- id: 126
   kind: Case
   span: 1:136-246
   alias: display
   targets:
-  - 130
-  - 134
-  - 135
-  - 139
-  - 140
-  - 141
-  parent: 142
-- id: 130
+  - 127
+  - 131
+  - 132
+  - 136
+  - 137
+  - 138
+  parent: 139
+- id: 127
   kind: RqOperator
   span: 1:147-163
   targets:
-  - 132
-  - 133
-- id: 132
+  - 129
+  - 130
+- id: 129
   kind: Ident
   span: 1:147-155
   ident: !Ident
@@ -92,11 +92,11 @@ nodes:
   - tracks
   - composer
   targets:
-  - 124
-- id: 133
+  - 121
+- id: 130
   kind: Literal
   span: 1:159-163
-- id: 134
+- id: 131
   kind: Ident
   span: 1:167-175
   ident: !Ident
@@ -104,14 +104,14 @@ nodes:
   - tracks
   - composer
   targets:
-  - 124
-- id: 135
+  - 121
+- id: 132
   kind: RqOperator
   span: 1:181-194
   targets:
-  - 137
-  - 138
-- id: 137
+  - 134
+  - 135
+- id: 134
   kind: Ident
   span: 1:181-189
   ident: !Ident
@@ -119,41 +119,41 @@ nodes:
   - tracks
   - genre_id
   targets:
-  - 124
-- id: 138
+  - 121
+- id: 135
   kind: Literal
   span: 1:192-194
-- id: 139
+- id: 136
   kind: Literal
   span: 1:198-211
-- id: 140
+- id: 137
   kind: Literal
   span: 1:217-221
-- id: 141
+- id: 138
   kind: FString
   span: 1:225-244
-- id: 142
+- id: 139
   kind: Tuple
   span: 1:136-246
   children:
-  - 129
-  parent: 143
-- id: 143
+  - 126
+  parent: 140
+- id: 140
   kind: 'TransformCall: Select'
   span: 1:119-246
   children:
-  - 128
-  - 142
-  parent: 145
-- id: 145
+  - 125
+  - 139
+  parent: 142
+- id: 142
   kind: 'TransformCall: Take'
   span: 1:247-254
   children:
+  - 140
   - 143
-  - 146
-- id: 146
+- id: 143
   kind: Literal
-  parent: 145
+  parent: 142
 ast:
   name: Project
   stmts:
@@ -165,30 +165,36 @@ ast:
           exprs:
           - FuncCall:
               name:
-                Ident: from
+                Ident:
+                - from
                 span: 1:89-93
               args:
-              - Ident: tracks
+              - Ident:
+                - tracks
                 span: 1:94-100
             span: 1:89-100
           - FuncCall:
               name:
-                Ident: sort
+                Ident:
+                - sort
                 span: 1:101-105
               args:
-              - Ident: milliseconds
+              - Ident:
+                - milliseconds
                 span: 1:106-118
             span: 1:101-118
           - FuncCall:
               name:
-                Ident: select
+                Ident:
+                - select
                 span: 1:119-125
               args:
               - Case:
                 - condition:
                     Binary:
                       left:
-                        Ident: composer
+                        Ident:
+                        - composer
                         span: 1:147-155
                       op: Ne
                       right:
@@ -196,12 +202,14 @@ ast:
                         span: 1:159-163
                     span: 1:147-163
                   value:
-                    Ident: composer
+                    Ident:
+                    - composer
                     span: 1:167-175
                 - condition:
                     Binary:
                       left:
-                        Ident: genre_id
+                        Ident:
+                        - genre_id
                         span: 1:181-189
                       op: Lt
                       right:
@@ -226,7 +234,8 @@ ast:
             span: 1:119-246
           - FuncCall:
               name:
-                Ident: take
+                Ident:
+                - take
                 span: 1:247-251
               args:
               - Literal:

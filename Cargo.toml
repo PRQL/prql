@@ -9,8 +9,6 @@ members = [
   "prqlc/prqlc-parser",
   "prqlc/prqlc",
   "prqlc/prqlc/examples/compile-files", # An example
-  "lutra/lutra",
-  "lutra/bindings/python",
   "web/book",
 ]
 resolver = "2"
@@ -22,10 +20,11 @@ license = "Apache-2.0"
 repository = "https://github.com/PRQL/prql"
 # This isn't tested since `cargo-msrv` doesn't support workspaces; instead we
 # test `metadata.msrv` in `prqlc`
-rust-version = "1.70.0"
-version = "0.13.1"
+rust-version = "1.75.0"
+version = "0.13.5"
 
 [profile.release]
+lto = true
 # Optimize for binary size in releases of all crates,
 # since compiler is fast enough as it is (for now).
 opt-level = "s"
@@ -45,18 +44,24 @@ allow-branch = ["*"]
 consolidate-commits = true
 
 [workspace.dependencies]
-anyhow = "1.0.86"
-enum-as-inner = "0.6.0"
-insta = {version = "1.39.0", features = ["colors", "glob", "yaml"]}
+anyhow = "1.0.98"
+arrow = { version = "53", features = [
+  "pyarrow",
+  "prettyprint",
+], default-features = false }
+enum-as-inner = "0.6.1"
+insta = { version = "1.42.2", features = ["colors", "glob", "yaml", "filters"] }
 insta-cmd = "0.6.0"
-itertools = "0.13.0"
-log = "0.4.22"
-pyo3 = {version = "0.20.1", features = ["abi3-py37", "anyhow"]}
-pyo3-build-config = "0.22.2"
-schemars = "1.0.0-alpha.2"
-semver = {version = "1.0.23", features = ["serde"]}
-serde = {version = "1.0.204", features = ["derive"]}
-serde_json = "1.0.120"
-serde_yaml = {version = "0.9.34"}
-similar = "2.6.0"
-similar-asserts = "1.5.0"
+itertools = "0.14.0"
+log = "0.4.27"
+pyo3 = { version = "0.24.1", features = ["abi3-py37", "anyhow"] }
+pyo3-build-config = "0.24.1"
+schemars = "1.0.0-alpha.17"
+semver = { version = "1.0.26", features = ["serde"] }
+serde = { version = "1.0.219", features = ["derive"] }
+serde_json = "1.0.140"
+serde_yaml = { version = "0.9.34" }
+similar = "2.7.0"
+similar-asserts = "1.7.0"
+strum = { version = "0.27.1", features = ["std", "derive"] }
+strum_macros = "0.27.1"

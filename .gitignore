@@ -49,3 +49,5 @@ codecov.json
 vendor
 .mypy_cache/
 .hypothesis/
+.aider*
+.env

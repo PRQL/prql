@@ -28,8 +28,7 @@ fn test_prepare_stream() {
     let tokens = lex_source(input).unwrap();
 
     let mut stream = prepare_stream(tokens.0, 0);
-    assert_yaml_snapshot!(stream.fetch_tokens().collect::<Vec<(TokenKind, Span)>>(), @r###"
-    ---
+    assert_yaml_snapshot!(stream.fetch_tokens().collect::<Vec<(TokenKind, Span)>>(), @r#"
     - - Start
       - "0:0-0"
     - - Ident: from
@@ -47,13 +46,12 @@ fn test_prepare_stream() {
     - - Literal:
           String: John
       - "0:30-36"
-    "###);
+    "#);
 }
 
 #[test]
 fn test_ranges() {
-    assert_yaml_snapshot!(parse_expr(r#"3..5"#).unwrap(), @r###"
-    ---
+    assert_yaml_snapshot!(parse_expr(r#"3..5"#).unwrap(), @r#"
     Range:
       start:
         Literal:
@@ -64,10 +62,9 @@ fn test_ranges() {
           Integer: 5
         span: "0:3-4"
     span: "0:0-4"
-    "###);
+    "#);
 
-    assert_yaml_snapshot!(parse_expr(r#"-2..-5"#).unwrap(), @r###"
-    ---
+    assert_yaml_snapshot!(parse_expr(r#"-2..-5"#).unwrap(), @r#"
     Range:
       start:
         Unary:
@@ -86,10 +83,9 @@ fn test_ranges() {
             span: "0:5-6"
         span: "0:4-6"
     span: "0:0-6"
-    "###);
+    "#);
 
-    assert_yaml_snapshot!(parse_expr(r#"(-2..(-5 | abs))"#).unwrap(), @r###"
-    ---
+    assert_yaml_snapshot!(parse_expr(r#"(-2..(-5 | abs))"#).unwrap(), @r#"
     Range:
       start:
         Unary:
@@ -109,14 +105,14 @@ fn test_ranges() {
                     Integer: 5
                   span: "0:7-8"
               span: "0:6-8"
-            - Ident: abs
+            - Ident:
+                - abs
               span: "0:11-14"
         span: "0:6-14"
     span: "0:0-16"
-    "###);
+    "#);
 
-    assert_yaml_snapshot!(parse_expr(r#"(2 + 5)..'a'"#).unwrap(), @r###"
-    ---
+    assert_yaml_snapshot!(parse_expr(r#"(2 + 5)..'a'"#).unwrap(), @r#"
     Range:
       start:
         Binary:
@@ -135,28 +131,23 @@ fn test_ranges() {
           String: a
         span: "0:9-12"
     span: "0:0-12"
-    "###);
+    "#);
 
-    assert_yaml_snapshot!(parse_expr(r#"1.6..rel.col"#).unwrap(), @r###"
-    ---
+    assert_yaml_snapshot!(parse_expr(r#"1.6..rel.col"#).unwrap(), @r#"
     Range:
       start:
         Literal:
           Float: 1.6
         span: "0:0-3"
       end:
-        Indirection:
-          base:
-            Ident: rel
-            span: "0:5-8"
-          field:
-            Name: col
-        span: "0:8-12"
+        Ident:
+          - rel
+          - col
+        span: "0:5-12"
     span: "0:0-12"
-    "###);
+    "#);
 
-    assert_yaml_snapshot!(parse_expr(r#"6.."#).unwrap(), @r###"
-    ---
+    assert_yaml_snapshot!(parse_expr(r#"6.."#).unwrap(), @r#"
     Range:
       start:
         Literal:
@@ -164,9 +155,8 @@ fn test_ranges() {
         span: "0:0-1"
       end: ~
     span: "0:0-3"
-    "###);
-    assert_yaml_snapshot!(parse_expr(r#"..7"#).unwrap(), @r###"
-    ---
+    "#);
+    assert_yaml_snapshot!(parse_expr(r#"..7"#).unwrap(), @r#"
     Range:
       start: ~
       end:
@@ -174,18 +164,16 @@ fn test_ranges() {
           Integer: 7
         span: "0:2-3"
     span: "0:0-3"
-    "###);
+    "#);
 
-    assert_yaml_snapshot!(parse_expr(r#".."#).unwrap(), @r###"
-    ---
+    assert_yaml_snapshot!(parse_expr(r#".."#).unwrap(), @r#"
     Range:
       start: ~
       end: ~
     span: "0:0-2"
-    "###);
+    "#);
 
-    assert_yaml_snapshot!(parse_expr(r#"@2020-01-01..@2021-01-01"#).unwrap(), @r###"
-    ---
+    assert_yaml_snapshot!(parse_expr(r#"@2020-01-01..@2021-01-01"#).unwrap(), @r#"
     Range:
       start:
         Literal:
@@ -196,16 +184,16 @@ fn test_ranges() {
           Date: 2021-01-01
         span: "0:13-24"
     span: "0:0-24"
-    "###);
+    "#);
 }
 
 #[test]
 fn test_basic_exprs() {
-    assert_yaml_snapshot!(parse_expr(r#"country == "USA""#).unwrap(), @r###"
-    ---
+    assert_yaml_snapshot!(parse_expr(r#"country == "USA""#).unwrap(), @r#"
     Binary:
       left:
-        Ident: country
+        Ident:
+          - country
         span: "0:0-7"
       op: Eq
       right:
@@ -213,71 +201,80 @@ fn test_basic_exprs() {
           String: USA
         span: "0:11-16"
     span: "0:0-16"
-    "###);
-    assert_yaml_snapshot!(parse_expr("select {a, b, c}").unwrap(), @r###"
-    ---
+    "#);
+    assert_yaml_snapshot!(parse_expr("select {a, b, c}").unwrap(), @r#"
     FuncCall:
       name:
-        Ident: select
+        Ident:
+          - select
         span: "0:0-6"
       args:
         - Tuple:
-            - Ident: a
+            - Ident:
+                - a
               span: "0:8-9"
-            - Ident: b
+            - Ident:
+                - b
               span: "0:11-12"
-            - Ident: c
+            - Ident:
+                - c
               span: "0:14-15"
           span: "0:7-16"
     span: "0:0-16"
-    "###);
+    "#);
     assert_yaml_snapshot!(parse_expr(
             "group {title, country} (
                 aggregate {sum salary}
             )"
-        ).unwrap(), @r###"
-    ---
+        ).unwrap(), @r#"
     FuncCall:
       name:
-        Ident: group
+        Ident:
+          - group
         span: "0:0-5"
       args:
         - Tuple:
-            - Ident: title
+            - Ident:
+                - title
               span: "0:7-12"
-            - Ident: country
+            - Ident:
+                - country
               span: "0:14-21"
           span: "0:6-22"
         - FuncCall:
             name:
-              Ident: aggregate
+              Ident:
+                - aggregate
               span: "0:41-50"
             args:
               - Tuple:
                   - FuncCall:
                       name:
-                        Ident: sum
+                        Ident:
+                          - sum
                         span: "0:52-55"
                       args:
-                        - Ident: salary
+                        - Ident:
+                            - salary
                           span: "0:56-62"
                     span: "0:52-62"
                 span: "0:51-63"
           span: "0:41-63"
     span: "0:0-77"
-    "###);
+    "#);
     assert_yaml_snapshot!(parse_expr(
             r#"    filter country == "USA""#
-        ).unwrap(), @r###"
-    ---
+        ).unwrap(), @r#"
     FuncCall:
       name:
-        Ident: filter
+        Ident:
+          - filter
         span: "0:4-10"
       args:
         - Binary:
             left:
-              Ident: country
+              Ident:
+                - country
               span: "0:11-18"
             op: Eq
             right:
@@ -286,77 +283,85 @@ fn test_basic_exprs() {
               span: "0:22-27"
           span: "0:11-27"
     span: "0:4-27"
-    "###);
-    assert_yaml_snapshot!(parse_expr("{a, b, c,}").unwrap(), @r###"
-    ---
+    "#);
+    assert_yaml_snapshot!(parse_expr("{a, b, c,}").unwrap(), @r#"
     Tuple:
-      - Ident: a
+      - Ident:
+          - a
         span: "0:1-2"
-      - Ident: b
+      - Ident:
+          - b
         span: "0:4-5"
-      - Ident: c
+      - Ident:
+          - c
         span: "0:7-8"
     span: "0:0-10"
-    "###);
+    "#);
     assert_yaml_snapshot!(parse_expr(
             r#"{
   gross_salary = salary + payroll_tax,
   gross_cost   = gross_salary + benefits_cost
 }"#
-        ).unwrap(), @r###"
-    ---
+        ).unwrap(), @r#"
     Tuple:
       - Binary:
           left:
-            Ident: salary
+            Ident:
+              - salary
             span: "0:19-25"
           op: Add
           right:
-            Ident: payroll_tax
+            Ident:
+              - payroll_tax
             span: "0:28-39"
         span: "0:19-39"
         alias: gross_salary
       - Binary:
           left:
-            Ident: gross_salary
+            Ident:
+              - gross_salary
             span: "0:58-70"
           op: Add
           right:
-            Ident: benefits_cost
+            Ident:
+              - benefits_cost
             span: "0:73-86"
         span: "0:58-86"
         alias: gross_cost
     span: "0:0-88"
-    "###);
+    "#);
 
     assert_yaml_snapshot!(parse_expr(
             "join side:left country (id==employee_id)"
-        ).unwrap(), @r###"
-    ---
+        ).unwrap(), @r#"
     FuncCall:
       name:
-        Ident: join
+        Ident:
+          - join
         span: "0:0-4"
       args:
-        - Ident: country
+        - Ident:
+            - country
           span: "0:15-22"
         - Binary:
             left:
-              Ident: id
+              Ident:
+                - id
               span: "0:24-26"
             op: Eq
             right:
-              Ident: employee_id
+              Ident:
+                - employee_id
               span: "0:28-39"
           span: "0:24-39"
       named_args:
         side:
-          Ident: left
+          Ident:
+            - left
           span: "0:10-14"
     span: "0:0-40"
-    "###);
-    assert_yaml_snapshot!(parse_expr("1  + 2").unwrap(), @r###"
-    ---
+    "#);
+    assert_yaml_snapshot!(parse_expr("1  + 2").unwrap(), @r#"
     Binary:
       left:
         Literal:
@@ -368,53 +373,48 @@ fn test_basic_exprs() {
           Integer: 2
         span: "0:5-6"
     span: "0:0-6"
-    "###)
+    "#)
 }
 
 #[test]
 fn test_string() {
     let double_quoted_ast = parse_expr(r#"" U S A ""#).unwrap();
-    assert_yaml_snapshot!(double_quoted_ast, @r###"
-    ---
+    assert_yaml_snapshot!(double_quoted_ast, @r#"
     Literal:
       String: " U S A "
     span: "0:0-9"
-    "###);
+    "#);
 
     let single_quoted_ast = parse_expr(r#"' U S A '"#).unwrap();
     assert_eq!(single_quoted_ast, double_quoted_ast);
 
     // Single quotes within double quotes should produce a string containing
     // the single quotes (and vice versa).
-    assert_yaml_snapshot!(parse_expr(r#""' U S A '""#).unwrap(), @r###"
-    ---
+    assert_yaml_snapshot!(parse_expr(r#""' U S A '""#).unwrap(), @r#"
     Literal:
       String: "' U S A '"
     span: "0:0-11"
-    "###);
-    assert_yaml_snapshot!(parse_expr(r#"'" U S A "'"#).unwrap(), @r###"
-    ---
+    "#);
+    assert_yaml_snapshot!(parse_expr(r#"'" U S A "'"#).unwrap(), @r#"
     Literal:
       String: "\" U S A \""
     span: "0:0-11"
-    "###);
+    "#);
 
     parse_expr(r#"" U S A"#).unwrap_err();
     parse_expr(r#"" U S A '"#).unwrap_err();
 
-    assert_yaml_snapshot!(parse_expr(r#"" \nU S A ""#).unwrap(), @r###"
-    ---
+    assert_yaml_snapshot!(parse_expr(r#"" \nU S A ""#).unwrap(), @r#"
     Literal:
       String: " \nU S A "
     span: "0:0-11"
-    "###);
+    "#);
 
-    assert_yaml_snapshot!(parse_expr(r#"r" \nU S A ""#).unwrap(), @r###"
-    ---
+    assert_yaml_snapshot!(parse_expr(r#"r" \nU S A ""#).unwrap(), @r#"
     Literal:
-      String: " \\nU S A "
+      RawString: " \\nU S A "
     span: "0:0-12"
-    "###);
+    "#);
 
     let multi_double = parse_expr(
         r#""""
@@ -425,12 +425,11 @@ Canada
 """"#,
     )
     .unwrap();
-    assert_yaml_snapshot!(multi_double, @r###"
-    ---
+    assert_yaml_snapshot!(multi_double, @r#"
     Literal:
       String: "\n''\nCanada\n\"\n\n"
     span: "0:0-20"
-    "###);
+    "#);
 
     let multi_single = parse_expr(
         r#"'''
@@ -441,77 +440,68 @@ Canada
 '''"#,
     )
     .unwrap();
-    assert_yaml_snapshot!(multi_single, @r###"
-    ---
+    assert_yaml_snapshot!(multi_single, @r#"
     Literal:
       String: "\nCanada\n\"\n\"\"\"\n\n"
     span: "0:0-21"
-    "###);
+    "#);
 
     assert_yaml_snapshot!(
           parse_expr("''").unwrap(),
-          @r###"
-    ---
+          @r#"
     Literal:
       String: ""
     span: "0:0-2"
-    "###);
+    "#);
 }
 
 #[test]
 fn test_s_string() {
-    assert_yaml_snapshot!(parse_expr(r#"s"SUM({col})""#).unwrap(), @r###"
-    ---
+    assert_yaml_snapshot!(parse_expr(r#"s"SUM({col})""#).unwrap(), @r#"
     SString:
       - String: SUM(
       - Expr:
           expr:
-            Ident: col
+            Ident:
+              - col
             span: "0:7-10"
           format: ~
       - String: )
     span: "0:0-13"
-    "###);
-    assert_yaml_snapshot!(parse_expr(r#"s"SUM({rel.`Col name`})""#).unwrap(), @r###"
-    ---
+    "#);
+    assert_yaml_snapshot!(parse_expr(r#"s"SUM({rel.`Col name`})""#).unwrap(), @r#"
     SString:
       - String: SUM(
       - Expr:
           expr:
-            Indirection:
-              base:
-                Ident: rel
-                span: "0:7-10"
-              field:
-                Name: Col name
-            span: "0:11-21"
+            Ident:
+              - rel
+              - Col name
+            span: "0:7-21"
           format: ~
       - String: )
     span: "0:0-24"
-    "###)
+    "#)
 }
 
 #[test]
 fn test_s_string_braces() {
-    assert_yaml_snapshot!(parse_expr(r#"s"{{?crystal_var}}""#).unwrap(), @r###"
-    ---
+    assert_yaml_snapshot!(parse_expr(r#"s"{{?crystal_var}}""#).unwrap(), @r#"
     SString:
       - String: "{?crystal_var}"
     span: "0:0-19"
-    "###);
-    assert_yaml_snapshot!(parse_expr(r#"s"foo{{bar""#).unwrap(), @r###"
-    ---
+    "#);
+    assert_yaml_snapshot!(parse_expr(r#"s"foo{{bar""#).unwrap(), @r#"
     SString:
       - String: "foo{bar"
     span: "0:0-11"
-    "###);
+    "#);
     parse_expr(r#"s"foo{{bar}""#).unwrap_err();
 }
 
 #[test]
 fn test_tuple() {
-    assert_yaml_snapshot!(parse_expr(r#"{1 + 1, 2}"#).unwrap(), @r###"
-    ---
+    assert_yaml_snapshot!(parse_expr(r#"{1 + 1, 2}"#).unwrap(), @r#"
     Tuple:
       - Binary:
           left:
@@ -528,9 +518,8 @@ fn test_tuple() {
           Integer: 2
         span: "0:8-9"
     span: "0:0-10"
-    "###);
-    assert_yaml_snapshot!(parse_expr(r#"{1 + (f 1), 2}"#).unwrap(), @r###"
-    ---
+    "#);
+    assert_yaml_snapshot!(parse_expr(r#"{1 + (f 1), 2}"#).unwrap(), @r#"
     Tuple:
       - Binary:
           left:
@@ -541,7 +530,8 @@ fn test_tuple() {
           right:
             FuncCall:
               name:
-                Ident: f
+                Ident:
+                  - f
                 span: "0:6-7"
               args:
                 - Literal:
@@ -553,14 +543,13 @@ fn test_tuple() {
           Integer: 2
         span: "0:12-13"
     span: "0:0-14"
-    "###);
+    "#);
     // Line breaks
     assert_yaml_snapshot!(parse_expr(
             r#"{1,
 
                 2}"#
-        ).unwrap(), @r###"
-    ---
+        ).unwrap(), @r#"
     Tuple:
       - Literal:
           Integer: 1
@@ -569,103 +558,104 @@ fn test_tuple() {
           Integer: 2
         span: "0:21-22"
     span: "0:0-23"
-    "###);
+    "#);
     // Function call in a tuple
     let ab = parse_expr(r#"{a b}"#).unwrap();
     let a_comma_b = parse_expr(r#"{a, b}"#).unwrap();
-    assert_yaml_snapshot!(ab, @r###"
-    ---
+    assert_yaml_snapshot!(ab, @r#"
     Tuple:
       - FuncCall:
           name:
-            Ident: a
+            Ident:
+              - a
             span: "0:1-2"
           args:
-            - Ident: b
+            - Ident:
+                - b
               span: "0:3-4"
         span: "0:1-4"
     span: "0:0-5"
-    "###);
-    assert_yaml_snapshot!(a_comma_b, @r###"
-    ---
+    "#);
+    assert_yaml_snapshot!(a_comma_b, @r#"
     Tuple:
-      - Ident: a
+      - Ident:
+          - a
         span: "0:1-2"
-      - Ident: b
+      - Ident:
+          - b
         span: "0:4-5"
     span: "0:0-6"
-    "###);
+    "#);
     assert_ne!(ab, a_comma_b);
 
-    assert_yaml_snapshot!(parse_expr(r#"{amount, +amount, -amount}"#).unwrap(), @r###"
-    ---
+    assert_yaml_snapshot!(parse_expr(r#"{amount, +amount, -amount}"#).unwrap(), @r#"
     Tuple:
-      - Ident: amount
+      - Ident:
+          - amount
         span: "0:1-7"
       - Unary:
           op: Add
           expr:
-            Ident: amount
+            Ident:
+              - amount
             span: "0:10-16"
         span: "0:9-16"
       - Unary:
           op: Neg
           expr:
-            Ident: amount
+            Ident:
+              - amount
             span: "0:19-25"
         span: "0:18-25"
     span: "0:0-26"
-    "###);
+    "#);
     // Operators in tuple items
-    assert_yaml_snapshot!(parse_expr(r#"{amount, +amount, -amount}"#).unwrap(), @r###"
-    ---
+    assert_yaml_snapshot!(parse_expr(r#"{amount, +amount, -amount}"#).unwrap(), @r#"
     Tuple:
-      - Ident: amount
+      - Ident:
+          - amount
         span: "0:1-7"
       - Unary:
           op: Add
           expr:
-            Ident: amount
+            Ident:
+              - amount
             span: "0:10-16"
         span: "0:9-16"
       - Unary:
           op: Neg
           expr:
-            Ident: amount
+            Ident:
+              - amount
             span: "0:19-25"
         span: "0:18-25"
     span: "0:0-26"
-    "###);
+    "#);
 }
 
 #[test]
 fn test_number() {
-    assert_yaml_snapshot!(parse_expr(r#"23"#).unwrap(), @r###"
-    ---
+    assert_yaml_snapshot!(parse_expr(r#"23"#).unwrap(), @r#"
     Literal:
       Integer: 23
     span: "0:0-2"
-    "###);
-    assert_yaml_snapshot!(parse_expr(r#"2_3_4.5_6"#).unwrap(), @r###"
-    ---
+    "#);
+    assert_yaml_snapshot!(parse_expr(r#"2_3_4.5_6"#).unwrap(), @r#"
     Literal:
       Float: 234.56
     span: "0:0-9"
-    "###);
-    assert_yaml_snapshot!(parse_expr(r#"23.6"#).unwrap(), @r###"
-    ---
+    "#);
+    assert_yaml_snapshot!(parse_expr(r#"23.6"#).unwrap(), @r#"
     Literal:
       Float: 23.6
     span: "0:0-4"
-    "###);
-    assert_yaml_snapshot!(parse_expr(r#"23.0"#).unwrap(), @r###"
-    ---
+    "#);
+    assert_yaml_snapshot!(parse_expr(r#"23.0"#).unwrap(), @r#"
     Literal:
       Float: 23
     span: "0:0-4"
-    "###);
-    assert_yaml_snapshot!(parse_expr(r#"2 + 2"#).unwrap(), @r###"
-    ---
+    "#);
+    assert_yaml_snapshot!(parse_expr(r#"2 + 2"#).unwrap(), @r#"
     Binary:
       left:
         Literal:
@@ -677,20 +667,19 @@ fn test_number() {
           Integer: 2
         span: "0:4-5"
     span: "0:0-5"
-    "###);
+    "#);
 
     // Underscores at the beginning are parsed as ident
     assert!(parse_expr("_2").unwrap().kind.into_ident().is_ok());
     assert!(parse_expr("_").unwrap().kind.into_ident().is_ok());
 
-    assert!(parse_expr("_2.3").unwrap().kind.is_indirection());
+    assert!(parse_expr("_2._3").unwrap().kind.is_ident());
 
-    assert_yaml_snapshot!(parse_expr(r#"2e3"#).unwrap(), @r###"
-    ---
+    assert_yaml_snapshot!(parse_expr(r#"2e3"#).unwrap(), @r#"
     Literal:
       Float: 2000
     span: "0:0-3"
-    "###);
+    "#);
 
     // expr_of_string("2_").unwrap_err(); // TODO
     // expr_of_string("2.3_").unwrap_err(); // TODO
@@ -700,11 +689,11 @@ fn test_number() {
 fn test_derive() {
     assert_yaml_snapshot!(
             parse_expr(r#"derive {x = 5, y = (-x)}"#).unwrap()
-        , @r###"
-    ---
+        , @r#"
     FuncCall:
       name:
-        Ident: derive
+        Ident:
+          - derive
         span: "0:0-6"
       args:
         - Tuple:
@@ -715,79 +704,84 @@ fn test_derive() {
             - Unary:
                 op: Neg
                 expr:
-                  Ident: x
+                  Ident:
+                    - x
                   span: "0:21-22"
               span: "0:19-23"
               alias: y
           span: "0:7-24"
     span: "0:0-24"
-    "###);
+    "#);
 }
 
 #[test]
 fn test_select() {
     assert_yaml_snapshot!(
             parse_expr(r#"select x"#).unwrap()
-        , @r###"
-    ---
+        , @r#"
     FuncCall:
       name:
-        Ident: select
+        Ident:
+          - select
         span: "0:0-6"
       args:
-        - Ident: x
+        - Ident:
+            - x
           span: "0:7-8"
     span: "0:0-8"
-    "###);
+    "#);
 
     assert_yaml_snapshot!(
             parse_expr(r#"select !{x}"#).unwrap()
-        , @r###"
-    ---
+        , @r#"
     FuncCall:
       name:
-        Ident: select
+        Ident:
+          - select
         span: "0:0-6"
       args:
         - Unary:
             op: Not
             expr:
               Tuple:
-                - Ident: x
+                - Ident:
+                    - x
                   span: "0:9-10"
               span: "0:8-11"
           span: "0:7-11"
     span: "0:0-11"
-    "###);
+    "#);
 
     assert_yaml_snapshot!(
             parse_expr(r#"select {x, y}"#).unwrap()
-        , @r###"
-    ---
+        , @r#"
     FuncCall:
       name:
-        Ident: select
+        Ident:
+          - select
         span: "0:0-6"
       args:
         - Tuple:
-            - Ident: x
+            - Ident:
+                - x
               span: "0:8-9"
-            - Ident: y
+            - Ident:
+                - y
               span: "0:11-12"
           span: "0:7-13"
     span: "0:0-13"
-    "###);
+    "#);
 }
 
 #[test]
 fn test_expr() {
     assert_yaml_snapshot!(
             parse_expr(r#"country == "USA""#).unwrap()
-        , @r###"
-    ---
+        , @r#"
     Binary:
       left:
-        Ident: country
+        Ident:
+          - country
         span: "0:0-7"
       op: Eq
       right:
@@ -795,51 +789,55 @@ fn test_expr() {
           String: USA
         span: "0:11-16"
     span: "0:0-16"
-    "###);
+    "#);
     assert_yaml_snapshot!(parse_expr(
                 r#"{
   gross_salary = salary + payroll_tax,
   gross_cost   = gross_salary + benefits_cost,
-}"#).unwrap(), @r###"
-    ---
+}"#).unwrap(), @r#"
     Tuple:
       - Binary:
           left:
-            Ident: salary
+            Ident:
+              - salary
             span: "0:19-25"
           op: Add
           right:
-            Ident: payroll_tax
+            Ident:
+              - payroll_tax
             span: "0:28-39"
         span: "0:19-39"
         alias: gross_salary
       - Binary:
           left:
-            Ident: gross_salary
+            Ident:
+              - gross_salary
             span: "0:58-70"
           op: Add
           right:
-            Ident: benefits_cost
+            Ident:
+              - benefits_cost
             span: "0:73-86"
         span: "0:58-86"
         alias: gross_cost
     span: "0:0-89"
-    "###);
+    "#);
     assert_yaml_snapshot!(
             parse_expr(
                 "(salary + payroll_tax) * (1 + tax_rate)"
             ).unwrap(),
-            @r###"
-    ---
+            @r#"
     Binary:
       left:
         Binary:
           left:
-            Ident: salary
+            Ident:
+              - salary
             span: "0:1-7"
           op: Add
           right:
-            Ident: payroll_tax
+            Ident:
+              - payroll_tax
             span: "0:10-21"
         span: "0:1-21"
       op: Mul
@@ -851,11 +849,12 @@ fn test_expr() {
             span: "0:26-27"
           op: Add
           right:
-            Ident: tax_rate
+            Ident:
+              - tax_rate
             span: "0:30-38"
         span: "0:26-38"
     span: "0:0-39"
-    "###);
+    "#);
 }
 
 #[test]
@@ -864,8 +863,7 @@ fn test_regex() {
             parse_expr(
                 "'oba' ~= 'foobar'"
             ).unwrap(),
-            @r###"
-    ---
+            @r#"
     Binary:
       left:
         Literal:
@@ -877,7 +875,7 @@ fn test_regex() {
           String: foobar
         span: "0:9-17"
     span: "0:0-17"
-    "###);
+    "#);
 }
 
 #[test]
@@ -886,66 +884,63 @@ fn test_func_call() {
     let ast = parse_expr(r#"count"#).unwrap();
     let ident = ast.kind.into_ident().unwrap();
     assert_yaml_snapshot!(
-            ident, @r###"
-    ---
-    count
-    "###);
+            ident, @"- count");
 
     let ast = parse_expr(r#"s 'foo'"#).unwrap();
     assert_yaml_snapshot!(
-            ast, @r###"
-    ---
+            ast, @r#"
     FuncCall:
       name:
-        Ident: s
+        Ident:
+          - s
         span: "0:0-1"
       args:
         - Literal:
             String: foo
           span: "0:2-7"
     span: "0:0-7"
-    "###);
+    "#);
 
     // A non-friendly option for #154
     let ast = parse_expr(r#"count s'*'"#).unwrap();
     let func_call: FuncCall = ast.kind.into_func_call().unwrap();
     assert_yaml_snapshot!(
-            func_call, @r###"
-    ---
+            func_call, @r#"
     name:
-      Ident: count
+      Ident:
+        - count
       span: "0:0-5"
     args:
       - SString:
           - String: "*"
         span: "0:6-10"
-    "###);
+    "#);
 
     parse_expr("plus_one x:0 x:0 ").unwrap_err();
 
     let ast = parse_expr(r#"add bar to=3"#).unwrap();
     assert_yaml_snapshot!(
-            ast, @r###"
-    ---
+            ast, @r#"
     FuncCall:
       name:
-        Ident: add
+        Ident:
+          - add
         span: "0:0-3"
       args:
-        - Ident: bar
+        - Ident:
+            - bar
           span: "0:4-7"
         - Literal:
             Integer: 3
           span: "0:11-12"
           alias: to
     span: "0:0-12"
-    "###);
+    "#);
 }
 
 #[test]
 fn test_right_assoc() {
-    assert_yaml_snapshot!(parse_expr(r#"2 ** 3 ** 4"#).unwrap(), @r###"
-    ---
+    assert_yaml_snapshot!(parse_expr(r#"2 ** 3 ** 4"#).unwrap(), @r#"
     Binary:
       left:
         Literal:
@@ -965,9 +960,8 @@ fn test_right_assoc() {
             span: "0:10-11"
         span: "0:5-11"
     span: "0:0-11"
-    "###);
-    assert_yaml_snapshot!(parse_expr(r#"1 + 2 ** (3 + 4) ** 4"#).unwrap(), @r###"
-    ---
+    "#);
+    assert_yaml_snapshot!(parse_expr(r#"1 + 2 ** (3 + 4) ** 4"#).unwrap(), @r#"
     Binary:
       left:
         Literal:
@@ -1003,13 +997,12 @@ fn test_right_assoc() {
             span: "0:9-21"
         span: "0:4-21"
     span: "0:0-21"
-    "###);
+    "#);
 }
 
 #[test]
 fn test_op_precedence() {
-    assert_yaml_snapshot!(parse_expr(r#"1 + 2 - 3 - 4"#).unwrap(), @r###"
-    ---
+    assert_yaml_snapshot!(parse_expr(r#"1 + 2 - 3 - 4"#).unwrap(), @r#"
     Binary:
       left:
         Binary:
@@ -1037,10 +1030,9 @@ fn test_op_precedence() {
           Integer: 4
         span: "0:12-13"
     span: "0:0-13"
-    "###);
+    "#);
 
-    assert_yaml_snapshot!(parse_expr(r#"1 / (3 * 4)"#).unwrap(), @r###"
-    ---
+    assert_yaml_snapshot!(parse_expr(r#"1 / (3 * 4)"#).unwrap(), @r#"
     Binary:
       left:
         Literal:
@@ -1060,10 +1052,9 @@ fn test_op_precedence() {
             span: "0:9-10"
         span: "0:5-10"
     span: "0:0-11"
-    "###);
+    "#);
 
-    assert_yaml_snapshot!(parse_expr(r#"1 / 2 - 3 * 4 + 1"#).unwrap(), @r###"
-    ---
+    assert_yaml_snapshot!(parse_expr(r#"1 / 2 - 3 * 4 + 1"#).unwrap(), @r#"
     Binary:
       left:
         Binary:
@@ -1099,19 +1090,20 @@ fn test_op_precedence() {
           Integer: 1
         span: "0:16-17"
     span: "0:0-17"
-    "###);
+    "#);
 
-    assert_yaml_snapshot!(parse_expr(r#"a && b || !c && d"#).unwrap(), @r###"
-    ---
+    assert_yaml_snapshot!(parse_expr(r#"a && b || !c && d"#).unwrap(), @r#"
     Binary:
       left:
         Binary:
           left:
-            Ident: a
+            Ident:
+              - a
             span: "0:0-1"
           op: And
           right:
-            Ident: b
+            Ident:
+              - b
             span: "0:5-6"
         span: "0:0-6"
       op: Or
@@ -1121,34 +1113,38 @@ fn test_op_precedence() {
             Unary:
               op: Not
               expr:
-                Ident: c
+                Ident:
+                  - c
                 span: "0:11-12"
             span: "0:10-12"
           op: And
           right:
-            Ident: d
+            Ident:
+              - d
             span: "0:16-17"
         span: "0:10-17"
     span: "0:0-17"
-    "###);
+    "#);
 
-    assert_yaml_snapshot!(parse_expr(r#"a && b + c || (d e) && f"#).unwrap(), @r###"
-    ---
+    assert_yaml_snapshot!(parse_expr(r#"a && b + c || (d e) && f"#).unwrap(), @r#"
     Binary:
       left:
         Binary:
           left:
-            Ident: a
+            Ident:
+              - a
             span: "0:0-1"
           op: And
           right:
             Binary:
               left:
-                Ident: b
+                Ident:
+                  - b
                 span: "0:5-6"
               op: Add
               right:
-                Ident: c
+                Ident:
+                  - c
                 span: "0:9-10"
             span: "0:5-10"
         span: "0:0-10"
@@ -1158,32 +1154,36 @@ fn test_op_precedence() {
           left:
             FuncCall:
               name:
-                Ident: d
+                Ident:
+                  - d
                 span: "0:15-16"
               args:
-                - Ident: e
+                - Ident:
+                    - e
                   span: "0:17-18"
             span: "0:15-18"
           op: And
           right:
-            Ident: f
+            Ident:
+              - f
             span: "0:23-24"
         span: "0:14-24"
     span: "0:0-24"
-    "###);
+    "#);
 }
 
 #[test]
 fn test_inline_pipeline() {
-    assert_yaml_snapshot!(parse_expr("(salary | percentile 50)").unwrap(), @r###"
-    ---
+    assert_yaml_snapshot!(parse_expr("(salary | percentile 50)").unwrap(), @r#"
     Pipeline:
       exprs:
-        - Ident: salary
+        - Ident:
+            - salary
           span: "0:1-7"
         - FuncCall:
             name:
-              Ident: percentile
+              Ident:
+                - percentile
               span: "0:10-20"
             args:
               - Literal:
@@ -1191,29 +1191,26 @@ fn test_inline_pipeline() {
                 span: "0:21-23"
           span: "0:10-23"
     span: "0:0-24"
-    "###);
+    "#);
 }
 
 #[test]
 fn test_dates() {
-    assert_yaml_snapshot!(parse_expr("@2011-02-01").unwrap(), @r###"
-    ---
+    assert_yaml_snapshot!(parse_expr("@2011-02-01").unwrap(), @r#"
     Literal:
       Date: 2011-02-01
     span: "0:0-11"
-    "###);
-    assert_yaml_snapshot!(parse_expr("@2011-02-01T10:00").unwrap(), @r###"
-    ---
+    "#);
+    assert_yaml_snapshot!(parse_expr("@2011-02-01T10:00").unwrap(), @r#"
     Literal:
       Timestamp: "2011-02-01T10:00"
     span: "0:0-17"
-    "###);
-    assert_yaml_snapshot!(parse_expr("@14:00").unwrap(), @r###"
-    ---
+    "#);
+    assert_yaml_snapshot!(parse_expr("@14:00").unwrap(), @r#"
     Literal:
       Time: "14:00"
     span: "0:0-6"
-    "###);
+    "#);
     // assert_yaml_snapshot!(parse_expr("@2011-02-01T10:00<datetime>").unwrap(), @"");
 
     parse_expr("@2020-01-0").unwrap_err();
@@ -1225,36 +1222,40 @@ fn test_dates() {
 
 #[test]
 fn test_ident_with_keywords() {
-    assert_yaml_snapshot!(parse_expr(r"select {andrew, orion, lettuce, falsehood, null0}").unwrap(), @r###"
-    ---
+    assert_yaml_snapshot!(parse_expr(r"select {andrew, orion, lettuce, falsehood, null0}").unwrap(), @r#"
     FuncCall:
       name:
-        Ident: select
+        Ident:
+          - select
         span: "0:0-6"
       args:
         - Tuple:
-            - Ident: andrew
+            - Ident:
+                - andrew
               span: "0:8-14"
-            - Ident: orion
+            - Ident:
+                - orion
               span: "0:16-21"
-            - Ident: lettuce
+            - Ident:
+                - lettuce
               span: "0:23-30"
-            - Ident: falsehood
+            - Ident:
+                - falsehood
               span: "0:32-41"
-            - Ident: null0
+            - Ident:
+                - null0
               span: "0:43-48"
           span: "0:7-49"
     span: "0:0-49"
-    "###);
+    "#);
 
-    assert_yaml_snapshot!(parse_expr(r"{false}").unwrap(), @r###"
-    ---
+    assert_yaml_snapshot!(parse_expr(r"{false}").unwrap(), @r#"
     Tuple:
       - Literal:
           Boolean: false
         span: "0:1-6"
     span: "0:0-7"
-    "###);
+    "#);
 }
 
 #[test]
@@ -1264,13 +1265,13 @@ fn test_case() {
             nickname != null => nickname,
             true => null
         ]
-        "#).unwrap(), @r###"
-    ---
+        "#).unwrap(), @r#"
     Case:
       - condition:
           Binary:
             left:
-              Ident: nickname
+              Ident:
+                - nickname
               span: "0:28-36"
             op: Ne
             right:
@@ -1278,7 +1279,8 @@ fn test_case() {
               span: "0:40-44"
           span: "0:28-44"
         value:
-          Ident: nickname
+          Ident:
+            - nickname
           span: "0:48-56"
       - condition:
           Literal:
@@ -1288,63 +1290,47 @@ fn test_case() {
           Literal: "Null"
           span: "0:78-82"
     span: "0:9-92"
-    "###);
+    "#);
 }
 
 #[test]
 fn test_params() {
-    assert_yaml_snapshot!(parse_expr(r#"$2"#).unwrap(), @r###"
-    ---
+    assert_yaml_snapshot!(parse_expr(r#"$2"#).unwrap(), @r#"
     Param: "2"
     span: "0:0-2"
-    "###);
+    "#);
 
-    assert_yaml_snapshot!(parse_expr(r#"$2_any_text"#).unwrap(), @r###"
-    ---
+    assert_yaml_snapshot!(parse_expr(r#"$2_any_text"#).unwrap(), @r#"
     Param: 2_any_text
     span: "0:0-11"
-    "###);
+    "#);
 }
 
 #[test]
 fn test_lookup_01() {
     assert_yaml_snapshot!(parse_expr(
     r#"{a = {x = 2}}.a.x"#,
-    ).unwrap(), @r###"
-    ---
-    Indirection:
-      base:
-        Indirection:
-          base:
-            Tuple:
-              - Tuple:
-                  - Literal:
-                      Integer: 2
-                    span: "0:10-11"
-                    alias: x
-                span: "0:5-12"
-                alias: a
-            span: "0:0-13"
-          field:
-            Name: a
-        span: "0:13-15"
-      field:
-        Name: x
-    span: "0:0-17"
-    "###);
+    ).unwrap(), @r#"
+    Tuple:
+      - Tuple:
+          - Literal:
+              Integer: 2
+            span: "0:10-11"
+            alias: x
+        span: "0:5-12"
+        alias: a
+    span: "0:0-13"
+    "#);
 }
 
 #[test]
 fn test_lookup_02() {
     assert_yaml_snapshot!(parse_expr(
     r#"hello.*"#,
-    ).unwrap(), @r###"
-    ---
-    Indirection:
-      base:
-        Ident: hello
-        span: "0:0-5"
-      field: Star
+    ).unwrap(), @r#"
+    Ident:
+      - hello
+      - "*"
     span: "0:0-7"
-    "###);
+    "#);
 }

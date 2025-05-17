@@ -108,7 +108,7 @@ impl pl::PlFold for Resolver<'_> {
 
                     DeclKind::Expr(expr) => match &expr.kind {
                         pl::ExprKind::Func(closure) => {
-                            let closure = self.fold_function_types(closure.clone(), id)?;
+                            let closure = self.fold_function_types(closure.clone())?;
 
                             let expr = pl::Expr::new(pl::ExprKind::Func(closure));
 
@@ -150,7 +150,7 @@ impl pl::PlFold for Resolver<'_> {
             }
 
             pl::ExprKind::FuncCall(pl::FuncCall { name, args, .. })
-                if (name.kind.as_ident()).map_or(false, |i| i.to_string() == "std.not")
+                if (name.kind.as_ident()).is_some_and(|i| i.to_string() == "std.not")
                     && matches!(args[0].kind, pl::ExprKind::Tuple(_)) =>
             {
                 let arg = args.into_iter().exactly_one().unwrap();
@@ -173,10 +173,10 @@ impl pl::PlFold for Resolver<'_> {
 
                 // fold function
                 let func = self.apply_args_to_closure(func, args, named_args)?;
-                self.fold_function(func, id, *span)?
+                self.fold_function(func, *span)?
             }
 
-            pl::ExprKind::Func(closure) => self.fold_function(closure, id, *span)?,
+            pl::ExprKind::Func(closure) => self.fold_function(closure, *span)?,
 
             pl::ExprKind::Tuple(exprs) => {
                 let exprs = self.fold_exprs(exprs)?;
@@ -226,6 +226,8 @@ impl Resolver<'_> {
             if let pl::ExprKind::TransformCall(call) = &r.kind {
                 r.lineage = Some(call.infer_lineage()?);
             } else if let Some(relation_columns) = r.ty.as_ref().and_then(|t| t.as_relation()) {
+                log::debug!("found a relational type without lineage: declaring a new table for it: {relation_columns:?}");
+
                 // lineage from ty
                 let columns = Some(relation_columns.clone());
 
@@ -316,10 +318,9 @@ fn ty_of_lineage(lineage: &pl::Lineage) -> Ty {
             .iter()
             .map(|col| match col {
                 pl::LineageColumn::All { .. } => TyTupleField::Wildcard(None),
-                pl::LineageColumn::Single { name, .. } => TyTupleField::Single(
-                    name.as_ref().map(|i| i.name.clone()),
-                    Some(Ty::new(pl::Literal::Null)),
-                ),
+                pl::LineageColumn::Single { name, .. } => {
+                    TyTupleField::Single(name.as_ref().map(|i| i.name.clone()), None)
+                }
             })
             .collect(),
     )

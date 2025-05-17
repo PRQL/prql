@@ -1,6 +1,6 @@
 ---
 source: prqlc/prqlc-parser/src/test.rs
-expression: "parse_single(r#\"\nfrom employees\nfilter country == \"USA\"                      # Each line transforms the previous result.\nderive {                                     # This adds columns / variables.\n  gross_salary = salary + payroll_tax,\n  gross_cost = gross_salary + benefits_cost  # Variables can use other variables.\n}\nfilter gross_cost > 0\ngroup {title, country} (                     # For each group use a nested pipeline\n  aggregate {                                # Aggregate each group to a single row\n    average salary,\n    average gross_salary,\n    sum salary,\n    sum gross_salary,\n    average gross_cost,\n    sum_gross_cost = sum gross_cost,\n    ct = count salary,\n  }\n)\nsort sum_gross_cost\nfilter ct > 200\ntake 20\n        \"#).unwrap()"
+expression: "parse_source(r#\"\nfrom employees\nfilter country == \"USA\"                      # Each line transforms the previous result.\nderive {                                     # This adds columns / variables.\n  gross_salary = salary + payroll_tax,\n  gross_cost = gross_salary + benefits_cost  # Variables can use other variables.\n}\nfilter gross_cost > 0\ngroup {title, country} (                     # For each group use a nested pipeline\n  aggregate {                                # Aggregate each group to a single row\n    average salary,\n    average gross_salary,\n    sum salary,\n    sum gross_salary,\n    average gross_cost,\n    sum_gross_cost = sum gross_cost,\n    ct = count salary,\n  }\n)\nsort sum_gross_cost\nfilter ct > 200\ntake 20\n        \"#).unwrap()"
 ---
 - VarDef:
     kind: Main
@@ -10,20 +10,24 @@ expression: "parse_single(r#\"\nfrom employees\nfilter country == \"USA\"       
         exprs:
           - FuncCall:
               name:
-                Ident: from
+                Ident:
+                  - from
                 span: "0:1-5"
               args:
-                - Ident: employees
+                - Ident:
+                    - employees
                   span: "0:6-15"
             span: "0:1-15"
           - FuncCall:
               name:
-                Ident: filter
+                Ident:
+                  - filter
                 span: "0:16-22"
               args:
                 - Binary:
                     left:
-                      Ident: country
+                      Ident:
+                        - country
                       span: "0:23-30"
                     op: Eq
                     right:
@@ -34,27 +38,32 @@ expression: "parse_single(r#\"\nfrom employees\nfilter country == \"USA\"       
             span: "0:16-39"
           - FuncCall:
               name:
-                Ident: derive
+                Ident:
+                  - derive
                 span: "0:105-111"
               args:
                 - Tuple:
                     - Binary:
                         left:
-                          Ident: salary
+                          Ident:
+                            - salary
                           span: "0:200-206"
                         op: Add
                         right:
-                          Ident: payroll_tax
+                          Ident:
+                            - payroll_tax
                           span: "0:209-220"
                       span: "0:200-220"
                       alias: gross_salary
                     - Binary:
                         left:
-                          Ident: gross_salary
+                          Ident:
+                            - gross_salary
                           span: "0:237-249"
                         op: Add
                         right:
-                          Ident: benefits_cost
+                          Ident:
+                            - benefits_cost
                           span: "0:252-265"
                       span: "0:237-265"
                       alias: gross_cost
@@ -62,12 +71,14 @@ expression: "parse_single(r#\"\nfrom employees\nfilter country == \"USA\"       
             span: "0:105-305"
           - FuncCall:
               name:
-                Ident: filter
+                Ident:
+                  - filter
                 span: "0:306-312"
               args:
                 - Binary:
                     left:
-                      Ident: gross_cost
+                      Ident:
+                        - gross_cost
                       span: "0:313-323"
                     op: Gt
                     right:
@@ -78,76 +89,94 @@ expression: "parse_single(r#\"\nfrom employees\nfilter country == \"USA\"       
             span: "0:306-327"
           - FuncCall:
               name:
-                Ident: group
+                Ident:
+                  - group
                 span: "0:328-333"
               args:
                 - Tuple:
-                    - Ident: title
+                    - Ident:
+                        - title
                       span: "0:335-340"
-                    - Ident: country
+                    - Ident:
+                        - country
                       span: "0:342-349"
                   span: "0:334-350"
                 - FuncCall:
                     name:
-                      Ident: aggregate
+                      Ident:
+                        - aggregate
                       span: "0:414-423"
                     args:
                       - Tuple:
                           - FuncCall:
                               name:
-                                Ident: average
+                                Ident:
+                                  - average
                                 span: "0:500-507"
                               args:
-                                - Ident: salary
+                                - Ident:
+                                    - salary
                                   span: "0:508-514"
                             span: "0:500-514"
                           - FuncCall:
                               name:
-                                Ident: average
+                                Ident:
+                                  - average
                                 span: "0:520-527"
                               args:
-                                - Ident: gross_salary
+                                - Ident:
+                                    - gross_salary
                                   span: "0:528-540"
                             span: "0:520-540"
                           - FuncCall:
                               name:
-                                Ident: sum
+                                Ident:
+                                  - sum
                                 span: "0:546-549"
                               args:
-                                - Ident: salary
+                                - Ident:
+                                    - salary
                                   span: "0:550-556"
                             span: "0:546-556"
                           - FuncCall:
                               name:
-                                Ident: sum
+                                Ident:
+                                  - sum
                                 span: "0:562-565"
                               args:
-                                - Ident: gross_salary
+                                - Ident:
+                                    - gross_salary
                                   span: "0:566-578"
                             span: "0:562-578"
                           - FuncCall:
                               name:
-                                Ident: average
+                                Ident:
+                                  - average
                                 span: "0:584-591"
                               args:
-                                - Ident: gross_cost
+                                - Ident:
+                                    - gross_cost
                                   span: "0:592-602"
                             span: "0:584-602"
                           - FuncCall:
                               name:
-                                Ident: sum
+                                Ident:
+                                  - sum
                                 span: "0:625-628"
                               args:
-                                - Ident: gross_cost
+                                - Ident:
+                                    - gross_cost
                                   span: "0:629-639"
                             span: "0:625-639"
                             alias: sum_gross_cost
                           - FuncCall:
                               name:
-                                Ident: count
+                                Ident:
+                                  - count
                                 span: "0:650-655"
                               args:
-                                - Ident: salary
+                                - Ident:
+                                    - salary
                                   span: "0:656-662"
                             span: "0:650-662"
                             alias: ct
@@ -156,20 +185,24 @@ expression: "parse_single(r#\"\nfrom employees\nfilter country == \"USA\"       
             span: "0:328-669"
           - FuncCall:
               name:
-                Ident: sort
+                Ident:
+                  - sort
                 span: "0:670-674"
               args:
-                - Ident: sum_gross_cost
+                - Ident:
+                    - sum_gross_cost
                   span: "0:675-689"
             span: "0:670-689"
           - FuncCall:
               name:
-                Ident: filter
+                Ident:
+                  - filter
                 span: "0:690-696"
               args:
                 - Binary:
                     left:
-                      Ident: ct
+                      Ident:
+                        - ct
                       span: "0:697-699"
                     op: Gt
                     right:
@@ -180,7 +213,8 @@ expression: "parse_single(r#\"\nfrom employees\nfilter country == \"USA\"       
             span: "0:690-705"
           - FuncCall:
               name:
-                Ident: take
+                Ident:
+                  - take
                 span: "0:706-710"
               args:
                 - Literal:

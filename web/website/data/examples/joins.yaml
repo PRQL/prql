@@ -11,5 +11,5 @@ sql: |
     b.vision_coverage
   FROM
     employees
-    JOIN benefits AS b ON employees.employee_id = b.employee_id
-    LEFT JOIN positions AS p ON p.id = employees.employee_id
+    INNER JOIN benefits AS b ON employees.employee_id = b.employee_id
+    LEFT OUTER JOIN positions AS p ON p.id = employees.employee_id

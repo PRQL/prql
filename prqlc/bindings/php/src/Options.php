@@ -40,7 +40,7 @@ final class Options
     /**
      * Target and dialect to compile to.
      */
-    public ?string $target;
+    public ?string $target = null;
 
     /**
      * Emits the compiler signature as a comment after generated SQL.

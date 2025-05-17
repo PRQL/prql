@@ -11,4 +11,3 @@ ORDER BY
   created_at
 LIMIT
   10 OFFSET 100
-

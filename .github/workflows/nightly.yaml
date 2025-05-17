@@ -18,7 +18,7 @@ env:
 
 jobs:
   cargo-audit:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-22.04
     # We can't read PRQL repo security events on forks, which causes this to
     # incorrectly fail (
     # https://github.com/PRQL/prql/actions/runs/5718693342/job/15495030808?pr=3195#step:3:28
@@ -27,9 +27,14 @@ jobs:
     #
     # Would be better if we could only run when we know we have permissions. But
     # this will do...
+
+    # 2024-12-09 — this is failing on normal PRs despite clearing the advisories
+    # in GitHub, and the action is archived. We have the GitHub security audits,
+    # `prqlc` doesn't cross any trust boundaries, so disabling for the moment.
+    # We can re-enable if a supported action is available.
     if:
       ${{ github.repository_owner == 'prql' &&
-      !github.event.pull_request.head.repo.fork }}
+      !github.event.pull_request.head.repo.fork && 'run' == 'no' }}
     permissions:
       actions: read
       contents: read
@@ -39,15 +44,15 @@ jobs:
 
     steps:
       - uses: actions/checkout@v4
-      - uses: rustsec/audit-check@v1.4.1
+      - uses: rustsec/audit-check@v2.0.0
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
 
   cargo-bench:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-22.04
     steps:
       - uses: actions/checkout@v4
-      - uses: clechasseur/rs-cargo@v2
+      - uses: clechasseur/rs-cargo@v3
         with:
           command: bench
           # GH Actions is fairly noisy, so the precise details don't matter that
@@ -56,7 +61,7 @@ jobs:
           args: -- --warm-up-time=0.3 --measurement-time=1
 
   time-compilation:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-22.04
     strategy:
       matrix:
         use_cache: [true, false]
@@ -74,21 +79,21 @@ jobs:
       RUSTDOCFLAGS: "-Dwarnings"
 
   check-unused-dependencies:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-22.04
     steps:
       - name: 📂 Checkout code
         uses: actions/checkout@v4
-      - run: rustup override set nightly-2024-06-30
+      - run: rustup override set nightly-2025-01-12
       - uses: baptiste0928/cargo-install@v3
         with:
           crate: cargo-udeps
       # Once with all targets, once without, to find anything that should be in
       # `dev` but is more general.
-      - uses: clechasseur/rs-cargo@v2
+      - uses: clechasseur/rs-cargo@v3
         with:
           command: udeps
           args: --all-targets
-      - uses: clechasseur/rs-cargo@v2
+      - uses: clechasseur/rs-cargo@v3
         with:
           command: udeps
 
@@ -97,7 +102,7 @@ jobs:
 
   # test-docker:
   #   # We only test the build in `test-all`; this also runs tests.
-  #   runs-on: ubuntu-latest
+  #   runs-on: ubuntu-22.04
   #   steps:
   #     - name: 📂 Checkout code
   #       uses: actions/checkout@v4
@@ -123,7 +128,7 @@ jobs:
 
   code-ql:
     # Currently almost the default code-ql config
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-22.04
     permissions:
       actions: read
       contents: read

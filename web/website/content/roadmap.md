@@ -13,7 +13,7 @@ url: roadmap
 > the current stage and fallen, so this requires compounding on what we've done
 > so far.
 >
-> -- <cite>PRQL Developers</cite>
+> -- {{< cite >}}PRQL Developers{{< /cite >}}
 
 ## Medium term
 

@@ -19,8 +19,7 @@ SELECT
   manager.first_name
 FROM
   table_0
-  LEFT JOIN employees AS manager ON table_0.reports_to = manager.employee_id
+  LEFT OUTER JOIN employees AS manager ON table_0.reports_to = manager.employee_id
 ORDER BY
   table_0.first_name,
   table_0.last_name
-

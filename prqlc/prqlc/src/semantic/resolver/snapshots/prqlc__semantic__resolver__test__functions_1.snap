@@ -17,28 +17,3 @@ expression: "resolve_derive(r#\"\n            let subtract = a b -> a - b\n\n   
         span: "1:141-144"
   span: "1:119-144"
   alias: net_salary
-  ty:
-    kind:
-      Union:
-        - - ~
-          - kind:
-              Primitive: Int
-            span: "0:970-973"
-            name: ~
-        - - ~
-          - kind:
-              Primitive: Float
-            span: "0:977-982"
-            name: ~
-        - - ~
-          - kind:
-              Primitive: Timestamp
-            span: "0:986-995"
-            name: ~
-        - - ~
-          - kind:
-              Primitive: Date
-            span: "0:999-1003"
-            name: ~
-    span: "0:970-1003"
-    name: ~

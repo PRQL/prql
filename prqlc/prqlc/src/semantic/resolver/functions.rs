@@ -6,20 +6,15 @@ use itertools::{Itertools, Position};
 use super::Resolver;
 use crate::ir::decl::{Decl, DeclKind, Module};
 use crate::ir::pl::*;
-use crate::pr::{Ty, TyFunc, TyKind};
+use crate::pr::{Ty, TyFunc};
 use crate::semantic::resolver::types;
-use crate::semantic::{NS_GENERIC, NS_PARAM, NS_THAT, NS_THIS};
+use crate::semantic::{NS_PARAM, NS_THAT, NS_THIS};
 use crate::Result;
 use crate::{Error, Span, WithErrorInfo};
 
 impl Resolver<'_> {
-    pub fn fold_function(
-        &mut self,
-        closure: Box<Func>,
-        id: usize,
-        span: Option<Span>,
-    ) -> Result<Expr> {
-        let closure = self.fold_function_types(closure, id)?;
+    pub fn fold_function(&mut self, closure: Box<Func>, span: Option<Span>) -> Result<Expr> {
+        let closure = self.fold_function_types(closure)?;
 
         log::debug!(
             "func {} {}/{} params",
@@ -65,14 +60,12 @@ impl Resolver<'_> {
         }
         let res = self.resolve_function_args(closure)?;
 
-        let mut closure = match res {
+        let closure = match res {
             Ok(func) => func,
             Err(func) => {
                 return Ok(*expr_of_func(func, span));
             }
         };
-
-        closure.return_ty = self.resolve_generic_args_opt(closure.return_ty)?;
 
         let needs_window = (closure.params.last())
             .and_then(|p| p.ty.as_ref())
@@ -141,15 +134,14 @@ impl Resolver<'_> {
                 named_params: Default::default(),
                 return_ty: Default::default(),
                 env: Default::default(),
-                generic_type_params: Default::default(),
             })))
         } else {
             // resolved, return result
 
             // make sure to use the resolved type
             let mut body = body;
-            if let Some(ret_ty) = *return_ty {
-                body.ty = Some(ret_ty);
+            if let Some(ret_ty) = return_ty.map(|x| *x) {
+                body.ty = Some(ret_ty.clone());
             }
 
             body
@@ -157,27 +149,7 @@ impl Resolver<'_> {
     }
 
     /// Folds function types, so they are resolved to material types, ready for type checking.
-    /// Requires id of the function call node, so it can be used to generic type arguments.
-    pub fn fold_function_types(&mut self, mut func: Box<Func>, id: usize) -> Result<Box<Func>> {
-        // prepare generic arguments
-        for generic_param in &func.generic_type_params {
-            // fold the domain
-            let domain: Vec<Ty> = generic_param
-                .domain
-                .iter()
-                .map(|t| self.fold_type(t.clone()))
-                .try_collect()?;
-
-            // register the generic type param in the resolver
-            let generic_id = (id, generic_param.name.clone());
-            self.generics.insert(generic_id.clone(), domain);
-
-            // insert _generic.name declaration
-            let ident = Ident::from_path(vec![NS_GENERIC, generic_param.name.as_str()]);
-            let decl = Decl::from(DeclKind::Ty(Ty::new(TyKind::GenericArg(generic_id))));
-            self.root_mod.module.insert(ident, decl).unwrap();
-        }
-
+    pub fn fold_function_types(&mut self, mut func: Box<Func>) -> Result<Box<Func>> {
         func.params = func
             .params
             .into_iter()
@@ -189,8 +161,6 @@ impl Resolver<'_> {
             })
             .try_collect()?;
         func.return_ty = fold_type_opt(self, func.return_ty)?;
-
-        self.root_mod.module.names.remove(NS_GENERIC);
         Ok(func)
     }
 
@@ -453,11 +423,10 @@ fn extract_partial_application(mut func: Box<Func>, position: usize) -> Box<Func
         named_params: Default::default(),
         args: Default::default(),
         env: Default::default(),
-        generic_type_params: Default::default(),
     })
 }
 
-fn env_of_closure(closure: Func) -> (Module, Expr, Box<Option<Ty>>) {
+fn env_of_closure(closure: Func) -> (Module, Expr, Option<Box<Ty>>) {
     let mut func_env = Module::default();
 
     for (param, arg) in zip(closure.params, closure.args) {
@@ -470,7 +439,7 @@ fn env_of_closure(closure: Func) -> (Module, Expr, Box<Option<Ty>>) {
         func_env.names.insert(param_name.to_string(), v);
     }
 
-    (func_env, *closure.body, Box::new(closure.return_ty))
+    (func_env, *closure.body, closure.return_ty.map(Box::new))
 }
 
 pub fn expr_of_func(func: Box<Func>, span: Option<Span>) -> Box<Expr> {
@@ -481,7 +450,11 @@ pub fn expr_of_func(func: Box<Func>, span: Option<Span>) -> Box<Expr> {
             .skip(func.args.len())
             .map(|a| a.ty.clone())
             .collect(),
-        return_ty: Box::new(func.return_ty.clone().or_else(|| func.body.ty.clone())),
+        return_ty: func
+            .return_ty
+            .clone()
+            .or_else(|| func.clone().body.ty)
+            .map(Box::new),
         name_hint: func.name_hint.clone(),
     };
 

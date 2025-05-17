@@ -30,14 +30,7 @@ impl super::Resolver<'_> {
                 }
                 StmtKind::VarDef(var_def) => self.fold_var_def(var_def)?,
                 StmtKind::TypeDef(ty_def) => {
-                    let value = if let Some(value) = ty_def.value {
-                        value
-                    } else {
-                        Ty::new(Literal::Null)
-                    };
-
-                    let ty = fold_type_opt(self, Some(value))?.unwrap();
-                    let mut ty = super::types::normalize_type(ty);
+                    let mut ty = self.fold_type(ty_def.value)?;
                     ty.name = Some(ident.name.clone());
 
                     let decl = DeclKind::Ty(ty);
@@ -116,7 +109,7 @@ impl super::Resolver<'_> {
                     // var value is not provided
 
                     // is this a relation?
-                    if expected_ty.as_ref().map_or(false, |t| t.is_relation()) {
+                    if expected_ty.as_ref().is_some_and(|t| t.is_relation()) {
                         // treat this var as a TableDecl
                         DeclKind::TableDecl(TableDecl {
                             ty: expected_ty,

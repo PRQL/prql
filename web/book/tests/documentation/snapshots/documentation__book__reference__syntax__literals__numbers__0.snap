@@ -6,9 +6,8 @@ SELECT
   1.0000001 AS small,
   5000000 AS big,
   5000000000.0 AS huge,
-  17 AS binary,
+  17 AS "binary",
   128 AS hex,
   511 AS octal
 FROM
   numbers
-

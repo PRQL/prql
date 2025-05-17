@@ -1,13 +1,7 @@
-use std::collections::HashMap;
-use std::iter::zip;
-
-use itertools::Itertools;
-
 use super::Resolver;
 use crate::codegen::{write_ty, write_ty_kind};
-use crate::ir::decl::DeclKind;
 use crate::ir::pl::*;
-use crate::pr::{PrimitiveSet, Ty, TyFunc, TyKind, TyTupleField};
+use crate::pr::{PrimitiveSet, Ty, TyKind, TyTupleField};
 use crate::Result;
 use crate::{Error, Reason, WithErrorInfo};
 
@@ -19,11 +13,12 @@ impl Resolver<'_> {
 
         let kind = match &expr.kind {
             ExprKind::Literal(ref literal) => match literal {
-                Literal::Null => TyKind::Singleton(Literal::Null),
+                Literal::Null => return Ok(None),
                 Literal::Integer(_) => TyKind::Primitive(PrimitiveSet::Int),
                 Literal::Float(_) => TyKind::Primitive(PrimitiveSet::Float),
                 Literal::Boolean(_) => TyKind::Primitive(PrimitiveSet::Bool),
                 Literal::String(_) => TyKind::Primitive(PrimitiveSet::Text),
+                Literal::RawString(_) => TyKind::Primitive(PrimitiveSet::Text),
                 Literal::Date(_) => TyKind::Primitive(PrimitiveSet::Date),
                 Literal::Time(_) => TyKind::Primitive(PrimitiveSet::Time),
                 Literal::Timestamp(_) => TyKind::Primitive(PrimitiveSet::Timestamp),
@@ -66,23 +61,16 @@ impl Resolver<'_> {
                 ty_tuple_kind(ty_fields)
             }
             ExprKind::Array(items) => {
-                let mut variants = Vec::with_capacity(items.len());
+                let mut item_tys = Vec::with_capacity(items.len());
                 for item in items {
                     let item_ty = Resolver::infer_type(item)?;
                     if let Some(item_ty) = item_ty {
-                        variants.push((None, item_ty));
+                        item_tys.push(item_ty);
                     }
                 }
-                let items_ty = Ty::new(TyKind::Union(variants));
-                let items_ty = normalize_type(items_ty);
-                TyKind::Array(Box::new(items_ty))
-            }
-
-            ExprKind::All { within, except } => {
-                let base = Box::new(Resolver::infer_type(within)?.unwrap());
-                let exclude = Box::new(Resolver::infer_type(except)?.unwrap());
-
-                normalize_type(Ty::new(TyKind::Difference { base, exclude })).kind
+                // TODO verify that types of all items are the same
+                let items_ty = item_tys.into_iter().next().map(Box::new);
+                TyKind::Array(items_ty)
             }
 
             _ => return Ok(None),
@@ -170,108 +158,7 @@ impl Resolver<'_> {
             return Ok(());
         }
 
-        // if type is a generic, infer the constraint
-        if let TyKind::GenericArg(generic_id) = &expected.kind {
-            let domain = std::mem::take(self.generics.get_mut(generic_id).unwrap());
-
-            let (new_domain, _rejected): (Vec<_>, _) = domain
-                .into_iter()
-                .partition(|possible_type| is_super_type_of(possible_type, found));
-
-            if new_domain.is_empty() {
-                return Err(Error::new_simple(
-                    "this argument does not match any of the generic types",
-                ));
-            }
-
-            // infer the new constraint
-            *self.generics.get_mut(generic_id).unwrap() = new_domain;
-            return Ok(());
-        }
-
         Err(compose_type_error(found, expected, who))
-    }
-
-    /// Saves information that declaration identified by `fq_ident` must be of type `sub_ty`.
-    /// Param `sub_ty` must be a sub type of the current type of the declaration.
-    #[allow(dead_code)]
-    pub fn push_type_info(&mut self, fq_ident: &Ident, sub_ty: Ty) {
-        let decl = self.root_mod.module.get_mut(fq_ident).unwrap();
-
-        match &mut decl.kind {
-            DeclKind::Expr(expr) => {
-                restrict_type_opt(&mut expr.ty, Some(sub_ty));
-            }
-
-            DeclKind::Module(_)
-            | DeclKind::LayeredModules(_)
-            | DeclKind::Column(_)
-            | DeclKind::Infer(_)
-            | DeclKind::TableDecl(_)
-            | DeclKind::Ty(_)
-            | DeclKind::InstanceOf { .. }
-            | DeclKind::QueryDef(_)
-            | DeclKind::Import(_) => {
-                panic!("declaration {decl} is not able to have a type")
-            }
-        }
-    }
-
-    pub fn resolve_generic_args(&mut self, mut ty: Ty) -> Result<Ty, Error> {
-        ty.kind = match ty.kind {
-            // the meaningful part
-            TyKind::GenericArg(id) => {
-                let domain = self.generics.remove(&id).unwrap();
-
-                if domain.len() > 1 {
-                    return Err(Error::new_simple(
-                        "cannot determine the type of generic arg",
-                    ));
-                }
-                // there will always be at least one, since we will never restrict to an empty domain
-                return Ok(domain.into_iter().next().unwrap());
-            }
-
-            // recurse into container types
-            // this could probably be implemented with folding, but I don't want another full fold impl
-            TyKind::Tuple(fields) => TyKind::Tuple(
-                fields
-                    .into_iter()
-                    .map(|field| -> Result<_, Error> {
-                        Ok(match field {
-                            TyTupleField::Single(name, ty) => {
-                                TyTupleField::Single(name, self.resolve_generic_args_opt(ty)?)
-                            }
-                            TyTupleField::Wildcard(ty) => {
-                                TyTupleField::Wildcard(self.resolve_generic_args_opt(ty)?)
-                            }
-                        })
-                    })
-                    .try_collect()?,
-            ),
-            TyKind::Array(ty) => TyKind::Array(Box::new(self.resolve_generic_args(*ty)?)),
-            TyKind::Function(func) => TyKind::Function(
-                func.map(|f| -> Result<_, Error> {
-                    Ok(TyFunc {
-                        params: f
-                            .params
-                            .into_iter()
-                            .map(|a| self.resolve_generic_args_opt(a))
-                            .try_collect()?,
-                        return_ty: Box::new(self.resolve_generic_args_opt(*f.return_ty)?),
-                        name_hint: f.name_hint,
-                    })
-                })
-                .transpose()?,
-            ),
-
-            _ => ty.kind,
-        };
-        Ok(ty)
-    }
-
-    pub fn resolve_generic_args_opt(&mut self, ty: Option<Ty>) -> Result<Option<Ty>, Error> {
-        ty.map(|x| self.resolve_generic_args(x)).transpose()
     }
 }
 
@@ -291,416 +178,6 @@ pub fn ty_tuple_kind(fields: Vec<TyTupleField>) -> TyKind {
         res.push(field);
     }
     TyKind::Tuple(res)
-}
-
-/// Sink type difference operators down in the type expression,
-/// float unions operators up, simplify type expression.
-///
-/// For more info, read web/book/src/reference/spec/type-system.md
-pub(crate) fn normalize_type(ty: Ty) -> Ty {
-    match ty.kind {
-        TyKind::Union(variants) => {
-            let variants = sink_union_into_array_and_tuple(variants);
-
-            let mut res: Vec<(_, Ty)> = Vec::with_capacity(variants.len());
-
-            for (variant_name, variant_ty) in variants {
-                let variant_ty = normalize_type(variant_ty);
-
-                // (A || ()) = A
-                // skip never
-                if variant_ty.is_never() && variant_name.is_none() {
-                    continue;
-                }
-
-                // (A || A || B) = A || B
-                // skip duplicates
-                let already_included = res.iter().any(|(_, r)| is_super_type_of(r, &variant_ty));
-                if already_included {
-                    continue;
-                }
-
-                res.push((variant_name, variant_ty));
-            }
-
-            if res.len() == 1 {
-                res.into_iter().next().unwrap().1
-            } else {
-                Ty {
-                    kind: TyKind::Union(res),
-                    ..ty
-                }
-            }
-        }
-
-        TyKind::Difference { base, exclude } => {
-            let (base, exclude) = match (*base, *exclude) {
-                // (A || B) - C = (A - C) || (B - C)
-                (
-                    Ty {
-                        kind: TyKind::Union(variants),
-                        name,
-                        span,
-                    },
-                    c,
-                ) => {
-                    let kind = TyKind::Union(
-                        variants
-                            .into_iter()
-                            .map(|(name, ty)| {
-                                (
-                                    name,
-                                    Ty::new(TyKind::Difference {
-                                        base: Box::new(ty),
-                                        exclude: Box::new(c.clone()),
-                                    }),
-                                )
-                            })
-                            .collect(),
-                    );
-                    return normalize_type(Ty { kind, name, span });
-                }
-                // (A - B) - C = A - (B || C)
-                (
-                    Ty {
-                        kind:
-                            TyKind::Difference {
-                                base: a,
-                                exclude: b,
-                            },
-                        ..
-                    },
-                    c,
-                ) => {
-                    let kind = TyKind::Difference {
-                        base: a,
-                        exclude: Box::new(union_and_flatten(*b, c)),
-                    };
-                    return normalize_type(Ty { kind, ..ty });
-                }
-
-                // A - (B - C) =
-                // = A & not (B & not C)
-                // = A & (not B || C)
-                // = (A & not B) || (A & C)
-                // = (A - B) || (A & C)
-                (
-                    a,
-                    Ty {
-                        kind:
-                            TyKind::Difference {
-                                base: b,
-                                exclude: c,
-                            },
-                        ..
-                    },
-                ) => {
-                    let first = Ty::new(TyKind::Difference {
-                        base: Box::new(a.clone()),
-                        exclude: b,
-                    });
-                    let second = type_intersection(a, *c);
-                    let kind = TyKind::Union(vec![(None, first), (None, second)]);
-                    return normalize_type(Ty { kind, ..ty });
-                }
-
-                // [A] - [B] = [A - B]
-                (
-                    Ty {
-                        kind: TyKind::Array(base),
-                        ..
-                    },
-                    Ty {
-                        kind: TyKind::Array(exclude),
-                        ..
-                    },
-                ) => {
-                    let item = Ty::new(TyKind::Difference { base, exclude });
-                    let kind = TyKind::Array(Box::new(item));
-                    return normalize_type(Ty { kind, ..ty });
-                }
-                // [A] - non-array = [A]
-                (
-                    Ty {
-                        kind: TyKind::Array(item),
-                        ..
-                    },
-                    _,
-                ) => {
-                    return normalize_type(Ty {
-                        kind: TyKind::Array(item),
-                        ..ty
-                    });
-                }
-                // non-array - [B] = non-array
-                (
-                    base,
-                    Ty {
-                        kind: TyKind::Array(_),
-                        ..
-                    },
-                ) => {
-                    return normalize_type(base);
-                }
-
-                // {A, B} - {C, D} = {A - C, B - D}
-                (
-                    Ty {
-                        kind: TyKind::Tuple(base_fields),
-                        ..
-                    },
-                    Ty {
-                        kind: TyKind::Tuple(exclude_fields),
-                        ..
-                    },
-                ) => {
-                    let exclude_fields: HashMap<&String, &Option<Ty>> = exclude_fields
-                        .iter()
-                        .flat_map(|field| match field {
-                            TyTupleField::Single(Some(name), ty) => Some((name, ty)),
-                            _ => None,
-                        })
-                        .collect();
-
-                    let mut res = Vec::new();
-                    for field in base_fields {
-                        // TODO: this whole block should be redone - I'm not sure it fully correct.
-                        match field {
-                            TyTupleField::Single(Some(name), Some(ty)) => {
-                                if let Some(right_field) = exclude_fields.get(&name) {
-                                    let right_tuple =
-                                        right_field.as_ref().map_or(false, |x| x.kind.is_tuple());
-
-                                    if right_tuple {
-                                        // recursively erase selection
-                                        let ty = Ty::new(TyKind::Difference {
-                                            base: Box::new(ty),
-                                            exclude: Box::new((*right_field).clone().unwrap()),
-                                        });
-                                        let ty = normalize_type(ty);
-                                        res.push(TyTupleField::Single(Some(name), Some(ty)))
-                                    } else {
-                                        // erase completely
-                                    }
-                                } else {
-                                    res.push(TyTupleField::Single(Some(name), Some(ty)))
-                                }
-                            }
-                            TyTupleField::Single(Some(name), None) => {
-                                if exclude_fields.contains_key(&name) {
-                                    // TODO: I'm not sure what should happen in this case
-                                    continue;
-                                } else {
-                                    res.push(TyTupleField::Single(Some(name), None))
-                                }
-                            }
-                            TyTupleField::Single(None, ty) => {
-                                res.push(TyTupleField::Single(None, ty));
-                            }
-                            TyTupleField::Wildcard(_) => res.push(field),
-                        }
-                    }
-                    return Ty {
-                        kind: TyKind::Tuple(res),
-                        ..ty
-                    };
-                }
-
-                // noop
-                (a, b) => (a, b),
-            };
-
-            let base = Box::new(normalize_type(base));
-            let exclude = Box::new(normalize_type(exclude));
-
-            // A - (A || B) = ()
-            if let TyKind::Union(excluded) = &exclude.kind {
-                for (_, e) in excluded {
-                    if base.as_ref() == e {
-                        return Ty::never();
-                    }
-                }
-            }
-            let kind = TyKind::Difference { base, exclude };
-            Ty { kind, ..ty }
-        }
-
-        TyKind::Array(items_ty) => Ty {
-            kind: TyKind::Array(Box::new(normalize_type(*items_ty))),
-            ..ty
-        },
-
-        kind => Ty { kind, ..ty },
-    }
-}
-
-/// Sinks union into arrays and tuples.
-/// [A] || [B] -> [A || B]
-/// {a = A, B} || {c = C, D} -> {a = A, c = C, B || D}
-fn sink_union_into_array_and_tuple(
-    variants: Vec<(Option<String>, Ty)>,
-) -> Vec<(Option<String>, Ty)> {
-    let mut remaining = Vec::with_capacity(variants.len());
-
-    let mut array_variants = Vec::new();
-    let mut tuple_variants = Vec::new();
-    for (variant_name, variant_ty) in variants {
-        // handle array variants separately
-        if let TyKind::Array(item) = variant_ty.kind {
-            array_variants.push((None, *item));
-            continue;
-        }
-        // handle tuple variants separately
-        if let TyKind::Tuple(fields) = variant_ty.kind {
-            tuple_variants.push(fields);
-            continue;
-        }
-        remaining.push((variant_name, variant_ty));
-    }
-
-    match array_variants.len() {
-        2.. => {
-            let item_ty = Ty::new(TyKind::Union(array_variants));
-            remaining.push((None, Ty::new(TyKind::Array(Box::new(item_ty)))));
-        }
-        1 => {
-            let item_ty = array_variants.into_iter().next().unwrap().1;
-            remaining.push((None, Ty::new(TyKind::Array(Box::new(item_ty)))));
-        }
-        _ => {}
-    }
-
-    match tuple_variants.len() {
-        2.. => {
-            remaining.push((None, union_of_tuples(tuple_variants)));
-        }
-        1 => {
-            let fields = tuple_variants.into_iter().next().unwrap();
-            remaining.push((None, Ty::new(TyKind::Tuple(fields))));
-        }
-        _ => {}
-    }
-
-    remaining
-}
-
-fn union_of_tuples(tuple_variants: Vec<Vec<TyTupleField>>) -> Ty {
-    let mut fields = Vec::<TyTupleField>::new();
-    let mut has_wildcard = false;
-
-    for tuple_variant in tuple_variants {
-        for field in tuple_variant {
-            match field {
-                TyTupleField::Single(Some(name), ty) => {
-                    // find by name
-                    let existing = fields.iter_mut().find_map(|f| match f {
-                        TyTupleField::Single(n, t) if n.as_ref() == Some(&name) => Some(t),
-                        _ => None,
-                    });
-                    if let Some(existing) = existing {
-                        // union with the existing
-                        *existing = maybe_union(existing.take(), ty);
-                    } else {
-                        // push
-                        fields.push(TyTupleField::Single(Some(name), ty));
-                    }
-                }
-                TyTupleField::Single(None, ty) => {
-                    // push
-                    fields.push(TyTupleField::Single(None, ty));
-                }
-                TyTupleField::Wildcard(_) => has_wildcard = true,
-            }
-        }
-    }
-    if has_wildcard {
-        fields.push(TyTupleField::Wildcard(None));
-    }
-    Ty::new(TyKind::Tuple(fields))
-}
-
-fn restrict_type_opt(ty: &mut Option<Ty>, sub_ty: Option<Ty>) {
-    let Some(sub_ty) = sub_ty else {
-        return;
-    };
-    if let Some(ty) = ty {
-        restrict_type(ty, sub_ty)
-    } else {
-        *ty = Some(sub_ty);
-    }
-}
-
-fn restrict_type(ty: &mut Ty, sub_ty: Ty) {
-    match (&mut ty.kind, sub_ty.kind) {
-        (TyKind::Any, sub) => ty.kind = sub,
-
-        (TyKind::Union(variants), sub_kind) => {
-            let sub_ty = Ty {
-                kind: sub_kind,
-                ..sub_ty
-            };
-            let drained = variants
-                .drain(..)
-                .filter(|(_, variant)| is_super_type_of(variant, &sub_ty))
-                .map(|(name, mut ty)| {
-                    restrict_type(&mut ty, sub_ty.clone());
-                    (name, ty)
-                })
-                .collect_vec();
-            variants.extend(drained);
-        }
-
-        (kind, TyKind::Union(sub_variants)) => {
-            todo!("restrict {kind:?} to union of {sub_variants:?}")
-        }
-
-        (TyKind::Primitive(_), _) => {}
-
-        (TyKind::Singleton(_), _) => {}
-
-        (TyKind::Tuple(tuple), TyKind::Tuple(sub_tuple)) => {
-            for sub_field in sub_tuple {
-                match sub_field {
-                    TyTupleField::Single(sub_name, sub_ty) => {
-                        if let Some(sub_name) = sub_name {
-                            let existing = tuple
-                                .iter_mut()
-                                .filter_map(|x| x.as_single_mut())
-                                .find(|f| f.0.as_ref() == Some(&sub_name));
-
-                            if let Some((_, existing)) = existing {
-                                restrict_type_opt(existing, sub_ty)
-                            } else {
-                                tuple.push(TyTupleField::Single(Some(sub_name), sub_ty));
-                            }
-                        } else {
-                            // TODO: insert unnamed fields?
-                        }
-                    }
-                    TyTupleField::Wildcard(_) => todo!("remove TupleField::Wildcard"),
-                }
-            }
-        }
-
-        (TyKind::Array(ty), TyKind::Array(sub_ty)) => restrict_type(ty, *sub_ty),
-
-        (TyKind::Function(ty), TyKind::Function(sub_ty)) => {
-            if sub_ty.is_none() {
-                return;
-            }
-            if ty.is_none() {
-                *ty = sub_ty;
-                return;
-            }
-            if let (Some(func), Some(sub_func)) = (ty, sub_ty) {
-                todo!("restrict function {func:?} to function {sub_func:?}")
-            }
-        }
-
-        _ => {
-            panic!("trying to restrict a type with a non sub type")
-        }
-    }
 }
 
 fn compose_type_error<F>(found_ty: &mut Ty, expected: &Ty, who: &F) -> Error
@@ -757,7 +234,7 @@ where
 
 /// Analogous to [crate::ir::pl::Lineage::rename()]
 pub fn rename_relation(ty_kind: &mut TyKind, alias: String) {
-    if let TyKind::Array(items_ty) = ty_kind {
+    if let TyKind::Array(Some(items_ty)) = ty_kind {
         rename_tuples(&mut items_ty.kind, alias);
     }
 }
@@ -804,37 +281,36 @@ pub fn is_super_type_of(superset: &Ty, subset: &Ty) -> bool {
     is_super_type_of_kind(&superset.kind, &subset.kind)
 }
 
+pub fn is_super_type_of_opt(superset: Option<&Ty>, subset: Option<&Ty>) -> bool {
+    let Some(subset) = subset else {
+        return true;
+    };
+    let Some(superset) = superset else {
+        return true;
+    };
+    is_super_type_of_kind(&superset.kind, &subset.kind)
+}
+
 pub fn is_sub_type_of_array(ty: &Ty) -> bool {
-    let array = TyKind::Array(Box::new(Ty::new(TyKind::Any)));
+    let array = TyKind::Array(None);
     is_super_type_of_kind(&array, &ty.kind)
 }
 
 fn is_super_type_of_kind(superset: &TyKind, subset: &TyKind) -> bool {
     match (superset, subset) {
-        (TyKind::Any, _) => true,
-        (_, TyKind::Any) => false,
-
         (TyKind::Primitive(l0), TyKind::Primitive(r0)) => l0 == r0,
-
-        (one, TyKind::Union(many)) => many
-            .iter()
-            .all(|(_, each)| is_super_type_of_kind(one, &each.kind)),
-
-        (TyKind::Union(many), one) => many
-            .iter()
-            .any(|(_, any)| is_super_type_of_kind(&any.kind, one)),
 
         (TyKind::Function(None), TyKind::Function(_)) => true,
         (TyKind::Function(Some(_)), TyKind::Function(None)) => true,
         (TyKind::Function(Some(sup)), TyKind::Function(Some(sub))) => {
-            if is_not_super_type_of(sup.return_ty.as_ref(), sub.return_ty.as_ref()) {
+            if is_not_super_type_of(sup.return_ty.as_deref(), sub.return_ty.as_deref()) {
                 return false;
             }
             if sup.params.len() != sub.params.len() {
                 return false;
             }
-            for (sup_arg, sub_arg) in zip(&sup.params, &sub.params) {
-                if is_not_super_type_of(sup_arg, sub_arg) {
+            for (sup_arg, sub_arg) in sup.params.iter().zip(&sub.params) {
+                if is_not_super_type_of(sup_arg.as_ref(), sub_arg.as_ref()) {
                     return false;
                 }
             }
@@ -842,7 +318,9 @@ fn is_super_type_of_kind(superset: &TyKind, subset: &TyKind) -> bool {
             true
         }
 
-        (TyKind::Array(sup), TyKind::Array(sub)) => is_super_type_of(sup, sub),
+        (TyKind::Array(sup), TyKind::Array(sub)) => {
+            is_super_type_of_opt(sup.as_deref(), sub.as_deref())
+        }
 
         (TyKind::Tuple(sup_tuple), TyKind::Tuple(sub_tuple)) => {
             let sup_has_wildcard = sup_tuple
@@ -861,7 +339,7 @@ fn is_super_type_of_kind(superset: &TyKind, subset: &TyKind) -> bool {
 
                 match (sup, sub) {
                     (Some(TyTupleField::Single(_, sup)), Some(TyTupleField::Single(_, sub))) => {
-                        if is_not_super_type_of(sup, sub) {
+                        if is_not_super_type_of(sup.as_ref(), sub.as_ref()) {
                             return false;
                         }
                     }
@@ -885,7 +363,7 @@ fn is_super_type_of_kind(superset: &TyKind, subset: &TyKind) -> bool {
     }
 }
 
-fn is_not_super_type_of(sup: &Option<Ty>, sub: &Option<Ty>) -> bool {
+fn is_not_super_type_of(sup: Option<&Ty>, sub: Option<&Ty>) -> bool {
     if let Some(sub_ret) = sub {
         if let Some(sup_ret) = sup {
             if !is_super_type_of(sup_ret, sub_ret) {
@@ -905,31 +383,6 @@ fn maybe_type_intersection(a: Option<Ty>, b: Option<Ty>) -> Option<Ty> {
 
 pub fn type_intersection(a: Ty, b: Ty) -> Ty {
     match (a.kind, b.kind) {
-        (TyKind::Any, b_kind) => Ty { kind: b_kind, ..b },
-        (a_kind, TyKind::Any) => Ty { kind: a_kind, ..a },
-
-        // union
-        (TyKind::Union(a_variants), b_kind) => {
-            let b = Ty { kind: b_kind, ..b };
-            type_intersection_with_union(a_variants, b)
-        }
-        (a_kind, TyKind::Union(b_variants)) => {
-            let a = Ty { kind: a_kind, ..a };
-            type_intersection_with_union(b_variants, a)
-        }
-
-        // difference
-        (TyKind::Difference { base, exclude }, b_kind) => {
-            let b = Ty { kind: b_kind, ..b };
-            let base = Box::new(type_intersection(*base, b));
-            Ty::new(TyKind::Difference { base, exclude })
-        }
-        (a_kind, TyKind::Difference { base, exclude }) => {
-            let a = Ty { kind: a_kind, ..a };
-            let base = Box::new(type_intersection(a, *base));
-            Ty::new(TyKind::Difference { base, exclude })
-        }
-
         (a_kind, b_kind) if a_kind == b_kind => Ty { kind: a_kind, ..a },
 
         // tuple
@@ -938,24 +391,12 @@ pub fn type_intersection(a: Ty, b: Ty) -> Ty {
         }
 
         // array
-        (TyKind::Array(a), TyKind::Array(b)) => {
-            Ty::new(TyKind::Array(Box::new(type_intersection(*a, *b))))
+        (TyKind::Array(Some(a)), TyKind::Array(Some(b))) => {
+            Ty::new(TyKind::Array(Some(Box::new(type_intersection(*a, *b)))))
         }
 
-        _ => Ty::never(),
+        _ => todo!(),
     }
-}
-fn type_intersection_with_union(variants: Vec<(Option<String>, Ty)>, b: Ty) -> Ty {
-    let variants = variants
-        .into_iter()
-        .map(|(name, variant)| {
-            let inter = type_intersection(variant, b.clone());
-
-            (name, inter)
-        })
-        .collect_vec();
-
-    Ty::new(TyKind::Union(variants))
 }
 
 fn type_intersection_of_tuples(a: Vec<TyTupleField>, b: Vec<TyTupleField>) -> Ty {
@@ -972,14 +413,14 @@ fn type_intersection_of_tuples(a: Vec<TyTupleField>, b: Vec<TyTupleField>) -> Ty
             (None, None) => break,
             (None, Some(b_field)) => {
                 if !a_has_other {
-                    return Ty::never();
+                    todo!();
                 }
                 has_other = true;
                 fields.push(TyTupleField::Single(b_field.0, b_field.1));
             }
             (Some(a_field), None) => {
                 if !b_has_other {
-                    return Ty::never();
+                    todo!();
                 }
                 has_other = true;
                 fields.push(TyTupleField::Single(a_field.0, a_field.1));
@@ -1001,30 +442,4 @@ fn type_intersection_of_tuples(a: Vec<TyTupleField>, b: Vec<TyTupleField>) -> Ty
     }
 
     Ty::new(TyKind::Tuple(fields))
-}
-
-/// Converts:
-/// - A, B into A | B and
-/// - A, B | C into A | B | C and
-/// - A | B, C into A | B | C.
-fn union_and_flatten(a: Ty, b: Ty) -> Ty {
-    let mut variants = Vec::with_capacity(2);
-    if let TyKind::Union(v) = a.kind {
-        variants.extend(v)
-    } else {
-        variants.push((None, a));
-    }
-    if let TyKind::Union(v) = b.kind {
-        variants.extend(v)
-    } else {
-        variants.push((None, b));
-    }
-    Ty::new(TyKind::Union(variants))
-}
-
-fn maybe_union(a: Option<Ty>, b: Option<Ty>) -> Option<Ty> {
-    match (a, b) {
-        (Some(a), Some(b)) => Some(Ty::new(TyKind::Union(vec![(None, a), (None, b)]))),
-        (None, x) | (x, None) => x,
-    }
 }

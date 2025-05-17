@@ -186,11 +186,11 @@ integrations_section:
       link: https://github.com/ywelsch/duckdb-prql
       text: A DuckDB extension to execute PRQL
 
-    - label: "qStudio"
+    - label: "QStudio"
       link: https://www.timestored.com/qstudio/prql-ide
       text:
-        "qStudio is a SQL GUI that lets you browse tables, run SQL scripts, and
-        chart and export the results. qStudio runs on Windows, macOS and Linux,
+        "QStudio is a SQL GUI that lets you browse tables, run SQL scripts, and
+        chart and export the results. QStudio runs on Windows, macOS and Linux,
         and works with every popular database including mysql, postgresql,
         mssql, kdb..."
 

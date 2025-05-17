@@ -1,3 +1,5 @@
+//! # prqlc
+//!
 //! Compiler for PRQL language. Targets SQL and exposes PL and RQ abstract
 //! syntax trees.
 //!
@@ -31,6 +33,8 @@
 //!
 //!            SQL
 //! ```
+//!
+#![doc = include_str!("../ARCHITECTURE.md")]
 //!
 //! ## Common use-cases
 //!
@@ -91,14 +95,6 @@
 //! strip = "debuginfo"
 //! ```
 
-#![forbid(unsafe_code)]
-// Our error type is 128 bytes, because it contains 5 strings & an Enum, which
-// is exactly the default warning level. Given we're not that performance
-// sensitive, it's fine to ignore this at the moment (and not worth having a
-// clippy config file for a single setting). We can consider adjusting it as a
-// yak-shaving exercise in the future.
-#![allow(clippy::result_large_err)]
-
 use std::sync::OnceLock;
 use std::{collections::HashMap, path::PathBuf, str::FromStr};
 
@@ -127,11 +123,53 @@ pub(crate) mod utils;
 
 pub type Result<T, E = Error> = core::result::Result<T, E>;
 
-pub fn compiler_version() -> &'static Version {
+/// Get the version of the compiler. This is determined by the first of:
+/// - An optional environment variable `PRQL_VERSION_OVERRIDE`; primarily useful
+///   for internal testing.
+///   - Note that this env var is checked on every call of this function.
+///     Without checking each read, we found some internal tests were flaky. If
+///     this caused any perf issues, we could adjust the tests that rely on
+///     versions to run in a more encapsulated way (for example, use `prqlc`
+///     binary tests, which we can guarantee won't have anything call this
+///     before setting up the env var).
+/// - The version returned by `git describe --tags`
+/// - The version in the cargo manifest
+pub fn compiler_version() -> Version {
+    if let Ok(prql_version_override) = std::env::var("PRQL_VERSION_OVERRIDE") {
+        return Version::parse(&prql_version_override).unwrap_or_else(|e| {
+            panic!(
+                "Could not parse PRQL version {}\n{}",
+                prql_version_override, e
+            )
+        });
+    };
+
     static COMPILER_VERSION: OnceLock<Version> = OnceLock::new();
-    COMPILER_VERSION.get_or_init(|| {
-        Version::parse(env!("CARGO_PKG_VERSION")).expect("Invalid prqlc version number")
-    })
+    COMPILER_VERSION
+        .get_or_init(|| {
+            if let Ok(prql_version_override) = std::env::var("PRQL_VERSION_OVERRIDE") {
+                return Version::parse(&prql_version_override).unwrap_or_else(|e| {
+                    panic!(
+                        "Could not parse PRQL version {}\n{}",
+                        prql_version_override, e
+                    )
+                });
+            }
+            let git_version = env!("VERGEN_GIT_DESCRIBE");
+            let cargo_version = env!("CARGO_PKG_VERSION");
+            Version::parse(git_version)
+                .or_else(|e| {
+                    log::info!("Could not parse git version number {}\n{}", git_version, e);
+                    Version::parse(cargo_version)
+                })
+                .unwrap_or_else(|e| {
+                    panic!(
+                        "Could not parse prqlc version number {}\n{}",
+                        cargo_version, e
+                    )
+                })
+        })
+        .clone()
 }
 
 /// Compile a PRQL string into a SQL string.
@@ -536,7 +574,7 @@ mod tests {
 
     #[test]
     fn test_target_from_str() {
-        assert_debug_snapshot!(Target::from_str("sql.postgres"), @r###"
+        assert_debug_snapshot!(Target::from_str("sql.postgres"), @r"
         Ok(
             Sql(
                 Some(
@@ -544,9 +582,9 @@ mod tests {
                 ),
             ),
         )
-        "###);
+        ");
 
-        assert_debug_snapshot!(Target::from_str("sql.poostgres"), @r###"
+        assert_debug_snapshot!(Target::from_str("sql.poostgres"), @r#"
         Err(
             Error {
                 kind: Error,
@@ -559,9 +597,9 @@ mod tests {
                 code: None,
             },
         )
-        "###);
+        "#);
 
-        assert_debug_snapshot!(Target::from_str("postgres"), @r###"
+        assert_debug_snapshot!(Target::from_str("postgres"), @r#"
         Err(
             Error {
                 kind: Error,
@@ -574,7 +612,7 @@ mod tests {
                 code: None,
             },
         )
-        "###);
+        "#);
     }
 
     /// Confirm that all target names can be parsed.

@@ -33,12 +33,8 @@ _prqlc() {
     local context curcontext="$curcontext" state line
     _arguments "${_arguments_options[@]}" \
 '--color=[Controls when to use color]:WHEN:(auto always never)' \
-'*-v[Increase logging verbosity]' \
-'*--verbose[Increase logging verbosity]' \
-'(-v --verbose)*-q[Silences logging output]' \
-'(-v --verbose)*--quiet[Silences logging output]' \
-'-h[Print help (see more with '\''--help'\'')]' \
-'--help[Print help (see more with '\''--help'\'')]' \
+'-h[Print help]' \
+'--help[Print help]' \
 '-V[Print version]' \
 '--version[Print version]' \
 ":: :_prqlc_commands" \
@@ -54,12 +50,8 @@ _prqlc() {
 _arguments "${_arguments_options[@]}" \
 '--format=[]:FORMAT:(json yaml)' \
 '--color=[Controls when to use color]:WHEN:(auto always never)' \
-'*-v[Increase logging verbosity]' \
-'*--verbose[Increase logging verbosity]' \
-'(-v --verbose)*-q[Silences logging output]' \
-'(-v --verbose)*--quiet[Silences logging output]' \
-'-h[Print help (see more with '\''--help'\'')]' \
-'--help[Print help (see more with '\''--help'\'')]' \
+'-h[Print help]' \
+'--help[Print help]' \
 '::input:_files' \
 '::output:_files' \
 '::main_path -- Identifier of the main pipeline:' \
@@ -69,12 +61,8 @@ _arguments "${_arguments_options[@]}" \
 _arguments "${_arguments_options[@]}" \
 '--format=[]:FORMAT:(json yaml)' \
 '--color=[Controls when to use color]:WHEN:(auto always never)' \
-'*-v[Increase logging verbosity]' \
-'*--verbose[Increase logging verbosity]' \
-'(-v --verbose)*-q[Silences logging output]' \
-'(-v --verbose)*--quiet[Silences logging output]' \
-'-h[Print help (see more with '\''--help'\'')]' \
-'--help[Print help (see more with '\''--help'\'')]' \
+'-h[Print help]' \
+'--help[Print help]' \
 '::input:_files' \
 '::output:_files' \
 '::main_path -- Identifier of the main pipeline:' \
@@ -83,24 +71,16 @@ _arguments "${_arguments_options[@]}" \
 (fmt)
 _arguments "${_arguments_options[@]}" \
 '--color=[Controls when to use color]:WHEN:(auto always never)' \
-'*-v[Increase logging verbosity]' \
-'*--verbose[Increase logging verbosity]' \
-'(-v --verbose)*-q[Silences logging output]' \
-'(-v --verbose)*--quiet[Silences logging output]' \
-'-h[Print help (see more with '\''--help'\'')]' \
-'--help[Print help (see more with '\''--help'\'')]' \
+'-h[Print help]' \
+'--help[Print help]' \
 '::input:_files' \
 && ret=0
 ;;
 (collect)
 _arguments "${_arguments_options[@]}" \
 '--color=[Controls when to use color]:WHEN:(auto always never)' \
-'*-v[Increase logging verbosity]' \
-'*--verbose[Increase logging verbosity]' \
-'(-v --verbose)*-q[Silences logging output]' \
-'(-v --verbose)*--quiet[Silences logging output]' \
-'-h[Print help (see more with '\''--help'\'')]' \
-'--help[Print help (see more with '\''--help'\'')]' \
+'-h[Print help]' \
+'--help[Print help]' \
 '::input:_files' \
 '::output:_files' \
 '::main_path -- Identifier of the main pipeline:' \
@@ -109,12 +89,8 @@ _arguments "${_arguments_options[@]}" \
 (debug)
 _arguments "${_arguments_options[@]}" \
 '--color=[Controls when to use color]:WHEN:(auto always never)' \
-'*-v[Increase logging verbosity]' \
-'*--verbose[Increase logging verbosity]' \
-'(-v --verbose)*-q[Silences logging output]' \
-'(-v --verbose)*--quiet[Silences logging output]' \
-'-h[Print help (see more with '\''--help'\'')]' \
-'--help[Print help (see more with '\''--help'\'')]' \
+'-h[Print help]' \
+'--help[Print help]' \
 ":: :_prqlc__debug_commands" \
 "*::: :->debug" \
 && ret=0
@@ -128,12 +104,8 @@ _arguments "${_arguments_options[@]}" \
             (annotate)
 _arguments "${_arguments_options[@]}" \
 '--color=[Controls when to use color]:WHEN:(auto always never)' \
-'*-v[Increase logging verbosity]' \
-'*--verbose[Increase logging verbosity]' \
-'(-v --verbose)*-q[Silences logging output]' \
-'(-v --verbose)*--quiet[Silences logging output]' \
-'-h[Print help (see more with '\''--help'\'')]' \
-'--help[Print help (see more with '\''--help'\'')]' \
+'-h[Print help]' \
+'--help[Print help]' \
 '::input:_files' \
 '::output:_files' \
 '::main_path -- Identifier of the main pipeline:' \
@@ -143,10 +115,6 @@ _arguments "${_arguments_options[@]}" \
 _arguments "${_arguments_options[@]}" \
 '--format=[]:FORMAT:(json yaml)' \
 '--color=[Controls when to use color]:WHEN:(auto always never)' \
-'*-v[Increase logging verbosity]' \
-'*--verbose[Increase logging verbosity]' \
-'(-v --verbose)*-q[Silences logging output]' \
-'(-v --verbose)*--quiet[Silences logging output]' \
 '-h[Print help (see more with '\''--help'\'')]' \
 '--help[Print help (see more with '\''--help'\'')]' \
 '::input:_files' \
@@ -157,24 +125,16 @@ _arguments "${_arguments_options[@]}" \
 (ast)
 _arguments "${_arguments_options[@]}" \
 '--color=[Controls when to use color]:WHEN:(auto always never)' \
-'*-v[Increase logging verbosity]' \
-'*--verbose[Increase logging verbosity]' \
-'(-v --verbose)*-q[Silences logging output]' \
-'(-v --verbose)*--quiet[Silences logging output]' \
-'-h[Print help (see more with '\''--help'\'')]' \
-'--help[Print help (see more with '\''--help'\'')]' \
+'-h[Print help]' \
+'--help[Print help]' \
 && ret=0
 ;;
 (json-schema)
 _arguments "${_arguments_options[@]}" \
 '--ir-type=[]:IR_TYPE:(pl rq lineage)' \
 '--color=[Controls when to use color]:WHEN:(auto always never)' \
-'*-v[Increase logging verbosity]' \
-'*--verbose[Increase logging verbosity]' \
-'(-v --verbose)*-q[Silences logging output]' \
-'(-v --verbose)*--quiet[Silences logging output]' \
-'-h[Print help (see more with '\''--help'\'')]' \
-'--help[Print help (see more with '\''--help'\'')]' \
+'-h[Print help]' \
+'--help[Print help]' \
 && ret=0
 ;;
 (help)
@@ -220,12 +180,8 @@ esac
 (experimental)
 _arguments "${_arguments_options[@]}" \
 '--color=[Controls when to use color]:WHEN:(auto always never)' \
-'*-v[Increase logging verbosity]' \
-'*--verbose[Increase logging verbosity]' \
-'(-v --verbose)*-q[Silences logging output]' \
-'(-v --verbose)*--quiet[Silences logging output]' \
-'-h[Print help (see more with '\''--help'\'')]' \
-'--help[Print help (see more with '\''--help'\'')]' \
+'-h[Print help]' \
+'--help[Print help]' \
 ":: :_prqlc__experimental_commands" \
 "*::: :->experimental" \
 && ret=0
@@ -240,12 +196,8 @@ _arguments "${_arguments_options[@]}" \
 _arguments "${_arguments_options[@]}" \
 '--format=[]:FORMAT:(html markdown)' \
 '--color=[Controls when to use color]:WHEN:(auto always never)' \
-'*-v[Increase logging verbosity]' \
-'*--verbose[Increase logging verbosity]' \
-'(-v --verbose)*-q[Silences logging output]' \
-'(-v --verbose)*--quiet[Silences logging output]' \
-'-h[Print help (see more with '\''--help'\'')]' \
-'--help[Print help (see more with '\''--help'\'')]' \
+'-h[Print help]' \
+'--help[Print help]' \
 '::input:_files' \
 '::output:_files' \
 '::main_path -- Identifier of the main pipeline:' \
@@ -254,12 +206,8 @@ _arguments "${_arguments_options[@]}" \
 (highlight)
 _arguments "${_arguments_options[@]}" \
 '--color=[Controls when to use color]:WHEN:(auto always never)' \
-'*-v[Increase logging verbosity]' \
-'*--verbose[Increase logging verbosity]' \
-'(-v --verbose)*-q[Silences logging output]' \
-'(-v --verbose)*--quiet[Silences logging output]' \
-'-h[Print help (see more with '\''--help'\'')]' \
-'--help[Print help (see more with '\''--help'\'')]' \
+'-h[Print help]' \
+'--help[Print help]' \
 '::input:_files' \
 '::output:_files' \
 '::main_path -- Identifier of the main pipeline:' \
@@ -305,10 +253,6 @@ _arguments "${_arguments_options[@]}" \
 '--color=[Controls when to use color]:WHEN:(auto always never)' \
 '--hide-signature-comment[Exclude the signature comment containing the PRQL version]' \
 '--no-format[Emit unformatted, dense SQL]' \
-'*-v[Increase logging verbosity]' \
-'*--verbose[Increase logging verbosity]' \
-'(-v --verbose)*-q[Silences logging output]' \
-'(-v --verbose)*--quiet[Silences logging output]' \
 '-h[Print help (see more with '\''--help'\'')]' \
 '--help[Print help (see more with '\''--help'\'')]' \
 '::input:_files' \
@@ -321,35 +265,30 @@ _arguments "${_arguments_options[@]}" \
 '--color=[Controls when to use color]:WHEN:(auto always never)' \
 '--no-format[]' \
 '--no-signature[]' \
-'*-v[Increase logging verbosity]' \
-'*--verbose[Increase logging verbosity]' \
-'(-v --verbose)*-q[Silences logging output]' \
-'(-v --verbose)*--quiet[Silences logging output]' \
-'-h[Print help (see more with '\''--help'\'')]' \
-'--help[Print help (see more with '\''--help'\'')]' \
+'-h[Print help]' \
+'--help[Print help]' \
 ':path -- Directory or file to watch for changes:' \
 && ret=0
 ;;
 (list-targets)
 _arguments "${_arguments_options[@]}" \
 '--color=[Controls when to use color]:WHEN:(auto always never)' \
-'*-v[Increase logging verbosity]' \
-'*--verbose[Increase logging verbosity]' \
-'(-v --verbose)*-q[Silences logging output]' \
-'(-v --verbose)*--quiet[Silences logging output]' \
-'-h[Print help (see more with '\''--help'\'')]' \
-'--help[Print help (see more with '\''--help'\'')]' \
+'-h[Print help]' \
+'--help[Print help]' \
+&& ret=0
+;;
+(lsp)
+_arguments "${_arguments_options[@]}" \
+'--color=[Controls when to use color]:WHEN:(auto always never)' \
+'-h[Print help]' \
+'--help[Print help]' \
 && ret=0
 ;;
 (shell-completion)
 _arguments "${_arguments_options[@]}" \
 '--color=[Controls when to use color]:WHEN:(auto always never)' \
-'*-v[Increase logging verbosity]' \
-'*--verbose[Increase logging verbosity]' \
-'(-v --verbose)*-q[Silences logging output]' \
-'(-v --verbose)*--quiet[Silences logging output]' \
-'-h[Print help (see more with '\''--help'\'')]' \
-'--help[Print help (see more with '\''--help'\'')]' \
+'-h[Print help]' \
+'--help[Print help]' \
 ':shell:(bash elvish fig fish nushell powershell zsh)' \
 && ret=0
 ;;
@@ -449,6 +388,10 @@ _arguments "${_arguments_options[@]}" \
 _arguments "${_arguments_options[@]}" \
 && ret=0
 ;;
+(lsp)
+_arguments "${_arguments_options[@]}" \
+&& ret=0
+;;
 (shell-completion)
 _arguments "${_arguments_options[@]}" \
 && ret=0
@@ -478,6 +421,7 @@ _prqlc_commands() {
 'compile:Parse, resolve, lower into RQ & compile to SQL' \
 'watch:Watch a directory and compile .prql files to .sql files' \
 'list-targets:Show available compile target names' \
+'lsp:Language Server Protocol' \
 'shell-completion:Print a shell completion for supported shells' \
 'help:Print this message or the help of the given subcommand(s)' \
     )
@@ -638,6 +582,7 @@ _prqlc__help_commands() {
 'compile:Parse, resolve, lower into RQ & compile to SQL' \
 'watch:Watch a directory and compile .prql files to .sql files' \
 'list-targets:Show available compile target names' \
+'lsp:Language Server Protocol' \
 'shell-completion:Print a shell completion for supported shells' \
 'help:Print this message or the help of the given subcommand(s)' \
     )
@@ -712,6 +657,16 @@ _prqlc__help__list-targets_commands() {
 _prqlc__list-targets_commands() {
     local commands; commands=()
     _describe -t commands 'prqlc list-targets commands' commands "$@"
+}
+(( $+functions[_prqlc__help__lsp_commands] )) ||
+_prqlc__help__lsp_commands() {
+    local commands; commands=()
+    _describe -t commands 'prqlc help lsp commands' commands "$@"
+}
+(( $+functions[_prqlc__lsp_commands] )) ||
+_prqlc__lsp_commands() {
+    local commands; commands=()
+    _describe -t commands 'prqlc lsp commands' commands "$@"
 }
 (( $+functions[_prqlc__help__parse_commands] )) ||
 _prqlc__help__parse_commands() {

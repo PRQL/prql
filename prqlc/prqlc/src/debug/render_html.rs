@@ -1,11 +1,13 @@
 use std::collections::HashMap;
 use std::fmt::{Debug, Result, Write};
+use std::iter::Peekable;
 
 use crate::sql::pq_ast;
-use crate::SourceTree;
+use crate::{codegen, SourceTree};
 
 use super::log::*;
 use crate::ir::{decl, pl, rq};
+use itertools::Itertools;
 use prqlc_parser::lexer::lr;
 use prqlc_parser::parser::pr;
 
@@ -41,76 +43,188 @@ fn write_debug_log<W: Write>(w: &mut W, debug_log: &DebugLog) -> Result {
     writeln!(w, "<body>")?;
 
     // header
-    writeln!(w, "<header>")?;
-    writeln!(w, "<h1>prqlc debug log</h1>")?;
+    {
+        writeln!(w, "<header>")?;
+        writeln!(w, "<h1>prqlc debug log</h1>")?;
 
-    write_key_values(
-        w,
-        &[
-            ("started_at", &debug_log.started_at),
-            ("version", &debug_log.version),
-        ],
-    )?;
+        write_key_values(
+            w,
+            &[
+                ("started_at", &debug_log.started_at),
+                ("version", &debug_log.version),
+            ],
+        )?;
+        writeln!(w, "</header>")?;
+    }
 
-    writeln!(w, "</header>")?;
-    writeln!(w, "<main>")?;
-
-    for entry in debug_log.entries.iter() {
-        writeln!(w, r#"<div class="entry">"#)?;
+    // pre-stage entries (this should be mostly source PRQL)
+    for (index, entry) in debug_log.entries.iter().enumerate() {
+        if let DebugEntryKind::NewStage(_) = &entry.kind {
+            break;
+        }
 
         match &entry.kind {
-            DebugEntryKind::NewStage(stage) => {
-                let substage = stage
-                    .sub_stage()
-                    .map(|s| s.to_lowercase())
-                    .unwrap_or_default();
-                let stage = stage.as_ref().to_lowercase();
-
-                writeln!(w, r#"<h2 class="muted">{stage} {substage}</h2>"#)?;
-            }
             DebugEntryKind::Message(message) => {
                 write_message(w, message)?;
             }
             _ => {
-                write_titled_entry(w, entry)?;
+                write_titled_entry(w, index, entry)?;
             }
         }
-
-        writeln!(w, "</div>")?; // entry
     }
 
-    writeln!(w, "</main>")?;
+    {
+        writeln!(w, "<div class=message-filter>")?;
+        for level in ["off", "error", "warn", "info", "debug", "trace"] {
+            writeln!(
+                w,
+                r#"<input type="radio" name="message-filter" id="msg-filter-{level}">"#
+            )?;
+            writeln!(w, r#"<label for="msg-filter-{level}">{level}</label>"#)?;
+        }
+
+        writeln!(w, "</div>")?;
+    }
+
+    {
+        writeln!(w, "<main class=tab-container>")?;
+        // stage tabs
+
+        // tab handles
+        let mut entries = debug_log.entries.iter().peekable();
+        while entries.peek().is_some() {
+            write_stage_handles(w, &mut entries)?;
+        }
+
+        // tab panels
+        writeln!(w, "<div class=tab-panels>")?;
+        let mut entries = debug_log.entries.iter().enumerate().peekable();
+        while entries.peek().is_some() {
+            write_stage_contents(w, &mut entries)?;
+        }
+        writeln!(w, "</div>")?;
+
+        writeln!(w, "</main>")?;
+    }
+
     writeln!(w, "</body>")?;
     writeln!(w, "</html>")?;
 
     Ok(())
 }
 
-fn write_titled_entry<W: Write>(w: &mut W, entry: &DebugEntry) -> Result {
-    writeln!(w, "<details open>")?;
-    writeln!(w, r#"<summary class="entry-label clickable">"#)?;
-    let kind = entry.kind.as_ref()[4..].to_ascii_uppercase();
+fn write_stage_handles<'a, W: Write>(
+    w: &mut W,
+    entries: &mut Peekable<impl Iterator<Item = &'a DebugEntry>>,
+) -> Result {
+    // find a new stage
+    let stage = loop {
+        match entries.next() {
+            Some(entry) => {
+                if let DebugEntryKind::NewStage(s) = entry.kind {
+                    break s;
+                }
+            }
+            None => return Ok(()),
+        }
+    };
+
+    let stage_name = stage.full_name();
+
     writeln!(
         w,
-        r#"[<b>REPRESENTATION</b>] <span class="yellow">{kind}</span>"#,
+        r#"<input type="radio" name="stage-tab" id="{stage_name}-tab" aria-controls="{stage_name}">"#
     )?;
-    writeln!(w, "</summary>")?;
-    writeln!(w, r#"<div class="entry-content">"#)?;
-    match &entry.kind {
-        DebugEntryKind::ReprPrql(a) => write_repr_prql(w, a)?,
-        DebugEntryKind::ReprLr(a) => write_repr_lr(w, a)?,
-        DebugEntryKind::ReprPr(a) => write_repr_pr(w, a)?,
-        DebugEntryKind::ReprPl(a) => write_repr_pl(w, a)?,
-        DebugEntryKind::ReprDecl(a) => write_repr_decl(w, a)?,
-        DebugEntryKind::ReprRq(a) => write_repr_rq(w, a)?,
-        DebugEntryKind::ReprPqEarly(a) => write_repr_pq_early(w, a)?,
-        DebugEntryKind::ReprPq(a) => write_repr_pq(w, a)?,
-        DebugEntryKind::ReprSqlParser(a) => write_repr_sql_parser(w, a)?,
-        DebugEntryKind::ReprSql(a) => write_repr_sql(w, a)?,
-        DebugEntryKind::NewStage(_) | DebugEntryKind::Message(_) => unreachable!(),
+    writeln!(w, r#"<label for="{stage_name}-tab">{stage_name}</label>"#)?;
+
+    Ok(())
+}
+
+fn write_stage_contents<'a, W: Write>(
+    w: &mut W,
+    entries: &mut Peekable<impl Iterator<Item = (usize, &'a DebugEntry)>>,
+) -> Result {
+    // find a new stage
+    let stage = loop {
+        match entries.next() {
+            Some((_, entry)) => {
+                if let DebugEntryKind::NewStage(s) = entry.kind {
+                    break s;
+                }
+            }
+            None => return Ok(()),
+        }
+    };
+
+    writeln!(w, "<section id={} class=tab-panel>", stage.full_name())?;
+    while let Some((_, entry)) = entries.peek() {
+        if matches!(entry.kind, DebugEntryKind::NewStage(_)) {
+            break;
+        }
+        let (index, entry) = entries.next().unwrap();
+
+        match &entry.kind {
+            DebugEntryKind::Message(message) => {
+                write_message(w, message)?;
+            }
+            _ => {
+                write_titled_entry(w, index, entry)?;
+            }
+        }
     }
+    writeln!(w, "</section>")?;
+    Ok(())
+}
+
+fn write_message<W: Write>(w: &mut W, message: &Message) -> Result {
+    writeln!(w, r#"<div class="entry msg-{}">"#, message.level)?;
+    write!(w, "[<b>{}</b>", message.level)?;
+    if let Some(module_path) = &message.module_path {
+        write!(w, r#" {}"#, module_path)?;
+    }
+    writeln!(w, "] {}", message.text)?;
+    writeln!(w, "</div>")
+}
+
+fn write_titled_entry<W: Write>(w: &mut W, index: usize, entry: &DebugEntry) -> Result {
+    writeln!(w, r#"<div class=entry>"#)?;
+    let entry_id = format!("entry-{index}");
+
+    writeln!(
+        w,
+        "<input id={entry_id} class=entry-collapse type=checkbox>"
+    )?;
+
+    {
+        writeln!(w, r#"<label for={entry_id} class="entry-label clickable">"#)?;
+        let kind = entry.kind.as_ref()[4..].to_ascii_uppercase();
+        writeln!(
+            w,
+            r#"[<b>REPRESENTATION</b>] <span class="yellow">{kind}</span>"#,
+        )?;
+        writeln!(w, r#"</label>"#)?;
+    }
+
+    {
+        writeln!(w, r#"<div class="entry-content">"#)?;
+        match &entry.kind {
+            DebugEntryKind::ReprPrql(a) => write_repr_prql(w, a)?,
+            DebugEntryKind::ReprLr(a) => write_repr_lr(w, a)?,
+            DebugEntryKind::ReprPr(a) => write_repr_pr(w, a)?,
+            DebugEntryKind::ReprPl(a) => write_repr_pl(w, a)?,
+            DebugEntryKind::ReprDecl(a) => write_repr_decl(w, a)?,
+            DebugEntryKind::ReprRq(a) => write_repr_rq(w, a)?,
+            DebugEntryKind::ReprPqEarly(a) => write_repr_pq_early(w, a)?,
+            DebugEntryKind::ReprPq(a) => write_repr_pq(w, a)?,
+            DebugEntryKind::ReprSqlParser(a) => write_repr_sql_parser(w, a)?,
+            DebugEntryKind::ReprSql(a) => write_repr_sql(w, a)?,
+            DebugEntryKind::NewStage(_) | DebugEntryKind::Message(_) => unreachable!(),
+        }
+        writeln!(w, "</div>")?;
+    }
+
     writeln!(w, "</div>")?;
-    writeln!(w, "</details>")
+    Ok(())
 }
 
 fn write_repr_prql<W: Write>(w: &mut W, source_tree: &SourceTree) -> Result {
@@ -146,7 +260,7 @@ fn write_repr_lr<W: Write>(w: &mut W, tokens: &lr::Tokens) -> Result {
 
     for token in &tokens.0 {
         writeln!(w, r#"<tr class="token">"#,)?;
-        writeln!(w, "<td>{:?}</td>", token.kind)?;
+        writeln!(w, "<td>{}</td>", escape_html(&format!("{:?}", token.kind)))?;
         writeln!(
             w,
             r#"<td><span class="span">{}:{}</span></td>"#,
@@ -178,12 +292,12 @@ fn write_repr_pl<W: Write>(w: &mut W, ast: &pl::ModuleDef) -> Result {
     writeln!(w, "</div>")
 }
 
-fn write_repr_decl<W: Write>(w: &mut W, ast: &decl::RootModule) -> Result {
+fn write_repr_decl<W: Write>(w: &mut W, root_mod: &decl::RootModule) -> Result {
     writeln!(w, r#"<div class="decl repr">"#)?;
 
-    let json = serde_json::to_string(ast).unwrap();
-    let json_node: serde_json::Value = serde_json::from_str(&json).unwrap();
-    write_json_ast_node(w, json_node, false)?;
+    for (name, decl) in root_mod.module.names.iter().sorted_by_key(|x| x.0.as_str()) {
+        write_decl(w, decl, name, &root_mod.span_map)?;
+    }
 
     writeln!(w, "</div>")
 }
@@ -234,15 +348,6 @@ fn write_repr_sql<W: Write>(w: &mut W, query: &str) -> Result {
     writeln!(w, "</div>")
 }
 
-fn write_message<W: Write>(w: &mut W, message: &Message) -> Result {
-    write!(w, "<div>[<b>{}</b>", message.level)?;
-    if let Some(module_path) = &message.module_path {
-        write!(w, r#" {}"#, module_path)?;
-    }
-    writeln!(w, "] {}", message.text)?;
-    writeln!(w, "</div>")
-}
-
 fn write_key_values<W: Write>(w: &mut W, pairs: &[(&'static str, &dyn Debug)]) -> Result {
     writeln!(w, r#"<div class="key-values">"#)?;
     for (k, v) in pairs {
@@ -274,22 +379,28 @@ fn write_json_ast_node<W: Write>(
             writeln!(w, "</ul>")?;
             Ok(())
         }
-        serde_json::Value::Object(mut map) => {
-            let span: Option<String> = map.remove("span").and_then(|s| match s {
-                serde_json::Value::Null => None,
-                serde_json::Value::String(s) => Some(s),
-                _ => unreachable!("expected span to be string, got: {}", s),
-            });
-
-            if span.is_some() || (!is_node_contents && map.len() == 1) {
-                let first_item = map.into_iter().next();
-                let (name, inner) =
-                    first_item.unwrap_or_else(|| ("<empty>".into(), serde_json::Value::Null));
-                return write_ast_node(w, &name, span, inner);
+        serde_json::Value::Object(properties) => {
+            let is_ast_node = properties.contains_key("span")
+                || properties.contains_key("id")
+                || (properties.len() == 1
+                    && !is_node_contents
+                    && properties.values().next().unwrap().is_object());
+            if is_ast_node {
+                return write_ast_node_from_object(w, properties);
             }
 
             writeln!(w, r#"<div class="json-object">"#)?;
-            for (key, value) in map {
+            for (key, value) in properties {
+                if key == "ty" || key == "return_ty" {
+                    // special case for better type printing
+                    let ty_json = value.to_string();
+                    if let Ok(ty) = serde_json::from_str::<pr::Ty>(&ty_json) {
+                        let ty_prql = escape_html(&codegen::write_ty(&ty));
+                        write!(w, r#"<span>{key}: {ty_prql}</span>"#)?;
+                    }
+                    continue;
+                }
+
                 write!(w, r#"<span>{key}: </span><div class="json-value">"#)?;
                 write_json_ast_node(w, value, false)?;
                 writeln!(w, "</div>")?;
@@ -299,25 +410,112 @@ fn write_json_ast_node<W: Write>(
     }
 }
 
-fn write_ast_node<W: Write>(
+fn write_ast_node_from_object<W: Write>(
     w: &mut W,
-    name: &str,
-    span: Option<String>,
-    contents: serde_json::Value,
+    mut properties: serde_json::Map<String, serde_json::Value>,
 ) -> Result {
-    write!(w, r#"<div class="ast-node" tabindex="2">"#)?;
+    let id: Option<i64> = properties.remove("id").and_then(|s| match s {
+        serde_json::Value::Null => None,
+        serde_json::Value::Number(n) if n.is_i64() => n.as_i64(),
+        _ => unreachable!("expected id to be int, got: {}", s),
+    });
+    let span: Option<String> = properties.remove("span").and_then(|s| match s {
+        serde_json::Value::Null => None,
+        serde_json::Value::String(s) => Some(s),
+        _ => None,
+        // We previously used to error, but sqlparser now has a type that
+        // doesn't include spans, so we just ignore it.
+        // _ => unreachable!("expected span to be string, got: {}", s),
+    });
+    let ty: Option<serde_json::Value> = properties.remove("ty");
 
-    write!(w, r#"<div class="header">"#)?;
-    write!(w, r#"<h2 class="clickable">{name}</h2>"#)?;
-    if let Some(span) = span {
-        write!(w, r#"<span class="span">{span}</span>"#)?;
+    let first_item = properties.into_iter().next();
+    let (name, contents) =
+        first_item.unwrap_or_else(|| ("<empty>".into(), serde_json::Value::Null));
+
+    write!(w, r#"<details class=ast-node open tabindex=2>"#)?;
+
+    {
+        write!(w, "<summary class=header>")?;
+
+        let h2_id = id.map(|i| format!("id=ast-{i} ")).unwrap_or_default();
+        write!(w, "<h2 {h2_id}class=clickable>{name}</h2>")?;
+
+        if let Some(id) = id {
+            write!(w, r#"<span>id={id}</span>"#)?;
+        }
+        if let Some(span) = span {
+            write!(w, r#"<span class="span">{span}</span>"#)?;
+        }
+        if let Some(ty) = ty {
+            let ty_json = ty.to_string();
+            if let Ok(ty) = serde_json::from_str::<pr::Ty>(&ty_json) {
+                let ty_prql = codegen::write_ty(&ty);
+                write!(w, r#"<span class="ty">{ty_prql}</span>"#)?;
+            }
+        }
+        write!(w, "</summary>")?;
     }
-    write!(w, "</div>")?;
 
-    write!(w, r#"<div class="contents indent">"#)?;
-    write_json_ast_node(w, contents, true)?;
-    write!(w, "</div>")?;
-    write!(w, "</div>")
+    {
+        write!(w, r#"<content class="contents indent">"#)?;
+        write_json_ast_node(w, contents, true)?;
+        write!(w, "</content>")?;
+    }
+
+    write!(w, "</details>")
+}
+
+fn write_decl<W: Write>(
+    w: &mut W,
+    decl: &decl::Decl,
+    name: &String,
+    span_map: &HashMap<usize, pr::Span>,
+) -> Result {
+    let open = if name != "std" { " open" } else { "" };
+    write!(w, r#"<details class="ast-node" {open} tabindex=2>"#)?;
+
+    // header
+    {
+        write!(w, "<summary class=header>")?;
+        write!(w, r#"<h2 class="clickable blue">{name}</h2>"#)?;
+
+        let span = decl.declared_at.as_ref().and_then(|id| span_map.get(id));
+        if let Some(span) = span {
+            write!(w, r#"<span class="span">{span:?}</span>"#)?;
+        }
+        write!(w, "</summary>")?; // header
+    }
+
+    {
+        write!(w, r#"<content class="contents indent">"#)?;
+        match &decl.kind {
+            decl::DeclKind::Module(m) => {
+                for (name, decl) in m.names.iter().sorted_by_key(|x| x.0.as_str()) {
+                    write_decl(w, decl, name, span_map)?;
+                }
+            }
+            decl::DeclKind::Expr(expr) => {
+                let json = serde_json::to_string(expr).unwrap();
+                let json_node: serde_json::Value = serde_json::from_str(&json).unwrap();
+                write_json_ast_node(w, json_node, false)?;
+            }
+            decl::DeclKind::Ty(ty) => {
+                writeln!(w, r#"<span>{}</span>"#, escape_html(&codegen::write_ty(ty)))?;
+            }
+            decl::DeclKind::TableDecl(table_decl) => {
+                let json = serde_json::to_string(table_decl).unwrap();
+                let json_node: serde_json::Value = serde_json::from_str(&json).unwrap();
+                write_json_ast_node(w, json_node, false)?;
+            }
+            _ => {
+                write!(w, r#"<div>{}</div>"#, decl.kind)?;
+            }
+        }
+        write!(w, "</content>")?;
+    }
+
+    write!(w, "</details>")
 }
 
 fn escape_html(text: &str) -> String {
@@ -364,7 +562,7 @@ summary::marker {
 .yellow {
     color: var(--text-yellow);
 }
-.blue {
+.blue:not(#fakeId) {
     color: var(--text-blue);
 }
 .muted {
@@ -376,26 +574,85 @@ summary::marker {
     gap: 1em;
 }
 
+.tab-container > .tab-panels > .tab-panel {
+    display: none;
+}
+.tab-container > input:first-child:checked ~ .tab-panels > .tab-panel:first-child,
+.tab-container > input:nth-child(3):checked ~ .tab-panels > .tab-panel:nth-child(2),
+.tab-container > input:nth-child(5):checked ~ .tab-panels > .tab-panel:nth-child(3),
+.tab-container > input:nth-child(7):checked ~ .tab-panels > .tab-panel:nth-child(4),
+.tab-container > input:nth-child(9):checked ~ .tab-panels > .tab-panel:nth-child(5),
+.tab-container > input:nth-child(11):checked ~ .tab-panels > .tab-panel:nth-child(6),
+.tab-container > input:nth-child(13):checked ~ .tab-panels > .tab-panel:nth-child(7),
+.tab-container > input:nth-child(15):checked ~ .tab-panels > .tab-panel:nth-child(8),
+.tab-container > input:nth-child(17):checked ~ .tab-panels > .tab-panel:nth-child(9) {
+    display: block;
+}
+.tab-container > input {
+    display: none;
+}
+.tab-container > label {
+    display: inline-block;
+    padding: 1em;
+    cursor: pointer;
+    border: 1px solid transparent;
+    border-bottom: 0;
+}
+.tab-container > input:checked + label {
+    border-color: var(--text);
+    border-bottom: 1px solid var(--background);
+    margin-bottom: -1px;
+}
+
+section.tab-panel {
+    border-top: 1px solid;
+    padding-top: 1rem;
+}
+
 .entry {
-    &.entry-label {
+    &>.entry-label {
         margin: 0;
         display: block;
     }
-    &.entry-collapse {
+    &>.entry-collapse {
         display: none;
     }
-    &.entry-collapse:checked + .entry-label + .entry-content {
+    &>.entry-collapse:checked + .entry-label + .entry-content {
         display: none;
     }
-    &.entry-content {
+    &>.entry-content {
         display: flex;
         flex-direction: column;
     }
 }
-.entry>h2 {
-    border-bottom: solid;
-    margin-top: 2rem;
-    margin-bottom: 0.5rem;
+
+.msg-ERROR, .msg-WARN, .msg-INFO, .msg-DEBUG, .msg-TRACE {
+    display: none;
+}
+.msg-filter-error .msg-ERROR {
+    display: block;
+}
+.msg-filter-warn .msg-WARN,
+.msg-filter-warn .msg-ERROR {
+    display: block;
+}
+.msg-filter-info .msg-INFO,
+.msg-filter-info .msg-WARN,
+.msg-filter-info .msg-ERROR {
+    display: block;
+}
+.msg-filter-debug .msg-DEBUG,
+.msg-filter-debug .msg-INFO,
+.msg-filter-debug .msg-WARN,
+.msg-filter-debug .msg-ERROR {
+    display: block;
+}
+.msg-filter-trace .msg-TRACE,
+.msg-filter-trace .msg-DEBUG,
+.msg-filter-trace .msg-INFO,
+.msg-filter-trace .msg-WARN,
+.msg-filter-trace .msg-ERROR {
+    display: block;
 }
 
 code {
@@ -409,28 +666,29 @@ code {
 }
 .span {
     color: var(--text-muted);
-    display: inline-block;
-    margin-left: 1em;
 }
 table.repr.lr {
     border-collapse: collapse;
-    width: min-content;
 }
 
 .ast-node>.header {
     display: flex;
+}
+.ast-node>.contents {
+    display: block;
 }
 .ast-node>.header>h2 {
     font-size: inherit;
     color: var(--text-green);
     margin: 0;
 }
-.ast-node.collapsed>.header::after {
-    content: '...';
+.ast-node>.header>span {
+    display: inline-block;
     margin-left: 1em;
 }
-.ast-node.collapsed>.contents {
-    display: none;
+.ast-node:not([open])>.header::after {
+    content: '...';
+    margin-left: 1em;
 }
 .ast-node>.contents.indent>.json-array,
 .ast-node>.contents.indent>.json-object {
@@ -543,10 +801,19 @@ const extract_span = (span_element) => {
     return { source_id, start, end };
 };
 
-const ast_node_title_click = (event) => {
-    event.stopPropagation();
-    const ast_node = event.target.parentElement.parentElement;
-    ast_node.classList.toggle("collapsed");
+const message_filter_change = (event) => {
+    if (!event.target.checked) {
+        return;
+    }
+    const active_id = document.querySelector(".message-filter > input:checked").id;
+
+    const main = document.getElementsByTagName('main')[0];
+    main.classList.forEach(c => {
+        if (c.startsWith("msg-filter-")) {
+            main.classList.remove(c);
+        }
+    });
+    main.classList.add(active_id);
 };
 
 document.addEventListener('DOMContentLoaded', () => {
@@ -555,9 +822,11 @@ document.addEventListener('DOMContentLoaded', () => {
         ast_node.addEventListener("mouseover", ast_node_mouseover);
         ast_node.addEventListener("mousedown", ast_node_mousedown);
         ast_node.addEventListener("focus", ast_node_focus);
+    });
 
-        const h2 = ast_node.querySelector(":scope > .header > h2");
-        h2.addEventListener("click", ast_node_title_click);
+    const message_filter_nodes = document.querySelectorAll(".message-filter > input");
+    message_filter_nodes.forEach(node => {
+        node.addEventListener("change", message_filter_change);
     });
 });
 "#;

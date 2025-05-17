@@ -65,24 +65,24 @@ class Output extends React.Component {
       });
 
       const converters = arrow.schema.fields.map((f) => {
-        const typ = f.type.toString();
-        if (typ.startsWith("Timestamp")) {
+        const typo = f.type.toString();
+        if (typo.startsWith("Timestamp")) {
           // TODO: handle timezone (which Date does not support)
 
           // HACK: due to bug in arrow or duckdb, we are getting MICROSECOND here,
           // but the values are actually milliseconds. I'm not sure what is going on,
           // so let's just assume the values will always be in milliseconds.
           /*
-          if (typ.endsWith("<SECOND>")) {
+          if (typo.endsWith("<SECOND>")) {
             return (x) => new Date(x * 1000).toISOString();
           }
-          if (typ.endsWith("<MILLISECOND>")) {
+          if (typo.endsWith("<MILLISECOND>")) {
             return (x) => new Date(x).toISOString();
           }
-          if (typ.endsWith("<MICROSECOND>")) {
+          if (typo.endsWith("<MICROSECOND>")) {
             return (x) => new Date(x / 1000).toISOString();
           }
-          if (typ.endsWith("<NANOSECOND>")) {
+          if (typo.endsWith("<NANOSECOND>")) {
             return (x) => new Date(x / 1000000).toISOString();
           }
           */

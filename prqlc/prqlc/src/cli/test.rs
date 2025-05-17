@@ -13,11 +13,11 @@ use walkdir::WalkDir;
 #[cfg(not(windows))] // Windows has slightly different output (e.g. `prqlc.exe`), so we exclude.
 #[test]
 fn help() {
-    assert_cmd_snapshot!(prqlc_command().arg("--help"), @r###"
+    assert_cmd_snapshot!(prqlc_command().arg("--help"), @r"
     success: true
     exit_code: 0
     ----- stdout -----
-    Usage: prqlc [OPTIONS] <COMMAND>
+    Usage: prqlc [OPTIONS] [COMMAND]
 
     Commands:
       parse             Parse into PL AST
@@ -33,35 +33,47 @@ fn help() {
       help              Print this message or the help of the given subcommand(s)
 
     Options:
-          --color <WHEN>
-              Controls when to use color
-              
-              [default: auto]
-              [possible values: auto, always, never]
-
-      -v, --verbose...
-              More `v`s, More vebose logging:
-              -v shows warnings
-              -vv shows info
-              -vvv shows debug
-              -vvvv shows trace
-
-      -q, --quiet...
-              Silences logging output
-
-      -h, --help
-              Print help (see a summary with '-h')
-
-      -V, --version
-              Print version
+          --color <WHEN>  Controls when to use color [default: auto] [possible values: auto, always,
+                          never]
+      -h, --help          Print help
+      -V, --version       Print version
 
     ----- stderr -----
-    "###);
+    ");
+
+    // without arguments
+    assert_cmd_snapshot!(prqlc_command(), @r"
+    success: true
+    exit_code: 0
+    ----- stdout -----
+    Usage: prqlc [OPTIONS] [COMMAND]
+
+    Commands:
+      parse             Parse into PL AST
+      lex               Lex into Lexer Representation
+      fmt               Parse & generate PRQL code back
+      collect           Parse the whole project and collect it into a single PRQL source file
+      debug             Commands for meant for debugging, prone to change
+      experimental      Experimental commands are prone to change
+      compile           Parse, resolve, lower into RQ & compile to SQL
+      watch             Watch a directory and compile .prql files to .sql files
+      list-targets      Show available compile target names
+      shell-completion  Print a shell completion for supported shells
+      help              Print this message or the help of the given subcommand(s)
+
+    Options:
+          --color <WHEN>  Controls when to use color [default: auto] [possible values: auto, always,
+                          never]
+      -h, --help          Print help
+      -V, --version       Print version
+
+    ----- stderr -----
+    ");
 }
 
 #[test]
 fn get_targets() {
-    assert_cmd_snapshot!(prqlc_command().arg("list-targets"), @r###"
+    assert_cmd_snapshot!(prqlc_command().arg("list-targets"), @r"
     success: true
     exit_code: 0
     ----- stdout -----
@@ -79,14 +91,14 @@ fn get_targets() {
     sql.snowflake
 
     ----- stderr -----
-    "###);
+    ");
 }
 
 #[test]
 fn compile() {
     assert_cmd_snapshot!(prqlc_command()
         .args(["compile", "--hide-signature-comment"])
-        .pass_stdin("from tracks"), @r###"
+        .pass_stdin("from tracks"), @r"
     success: true
     exit_code: 0
     ----- stdout -----
@@ -96,13 +108,13 @@ fn compile() {
       tracks
 
     ----- stderr -----
-    "###);
+    ");
 }
 
 #[cfg(not(windows))] // Windows has slightly different output (e.g. `prqlc.exe`), so we exclude.
 #[test]
 fn compile_help() {
-    assert_cmd_snapshot!(prqlc_command().args(["compile", "--help"]), @r###"
+    assert_cmd_snapshot!(prqlc_command().args(["compile", "--help"]), @r"
     success: true
     exit_code: 0
     ----- stdout -----
@@ -146,27 +158,17 @@ fn compile_help() {
               [default: auto]
               [possible values: auto, always, never]
 
-      -v, --verbose...
-              More `v`s, More vebose logging:
-              -v shows warnings
-              -vv shows info
-              -vvv shows debug
-              -vvvv shows trace
-
-      -q, --quiet...
-              Silences logging output
-
       -h, --help
               Print help (see a summary with '-h')
 
     ----- stderr -----
-    "###);
+    ");
 }
 
 #[test]
 fn long_query() {
     assert_cmd_snapshot!(prqlc_command()
-        .args(["compile", "--hide-signature-comment", "-vvv", "--debug-log=log_test.html"])
+        .args(["compile", "--hide-signature-comment", "--debug-log=log_test.html"])
         .pass_stdin(r#"
 let long_query = (
   from employees
@@ -190,7 +192,7 @@ let long_query = (
   take 20
 )
 from long_query
-  "#), @r###"
+  "#), @r"
     success: true
     exit_code: 0
     ----- stdout -----
@@ -256,7 +258,7 @@ from long_query
       ct
 
     ----- stderr -----
-    "###);
+    ");
 
     // don't check the contents, they are very prone to change
     assert!(PathBuf::from_str("./log_test.html").unwrap().is_file());
@@ -274,7 +276,7 @@ fn compile_project() {
         "main",
     ]);
 
-    assert_cmd_snapshot!(cmd, @r###"
+    assert_cmd_snapshot!(cmd, @r"
     success: true
     exit_code: 0
     ----- stdout -----
@@ -313,10 +315,10 @@ fn compile_project() {
       input.*
     FROM
       favorite_artists
-      LEFT JOIN input ON favorite_artists.artist_id = input.artist_id
+      LEFT OUTER JOIN input ON favorite_artists.artist_id = input.artist_id
 
     ----- stderr -----
-    "###);
+    ");
 
     // don't check the contents, they are very prone to change
     assert!(PathBuf::from_str("./log_test.json").unwrap().is_file());
@@ -328,7 +330,7 @@ fn compile_project() {
         project_path().to_str().unwrap(),
         "-",
         "favorite_artists",
-    ]), @r###"
+    ]), @r"
     success: true
     exit_code: 0
     ----- stdout -----
@@ -349,13 +351,13 @@ fn compile_project() {
       table_0
 
     ----- stderr -----
-    "###);
+    ");
 }
 
 #[test]
 fn format() {
     // Test stdin formatting
-    assert_cmd_snapshot!(prqlc_command().args(["fmt"]).pass_stdin("from tracks | take 20"), @r###"
+    assert_cmd_snapshot!(prqlc_command().args(["fmt"]).pass_stdin("from tracks | take 20"), @r"
     success: true
     exit_code: 0
     ----- stdout -----
@@ -363,7 +365,7 @@ fn format() {
     take 20
 
     ----- stderr -----
-    "###);
+    ");
 
     // Test formatting a path:
 
@@ -421,7 +423,7 @@ fn compare_directories(dir1: &Path, dir2: &Path) {
 fn debug() {
     assert_cmd_snapshot!(prqlc_command()
         .args(["debug", "lineage"])
-        .pass_stdin("from tracks | select {artist, album}"), @r###"
+        .pass_stdin("from tracks | select {artist, album}"), @r"
     success: true
     exit_code: 0
     ----- stdout -----
@@ -432,29 +434,29 @@ fn debug() {
           name:
           - tracks
           - artist
-          target_id: 120
+          target_id: 117
           target_name: null
         - !Single
           name:
           - tracks
           - album
-          target_id: 121
+          target_id: 118
           target_name: null
         inputs:
-        - id: 118
+        - id: 115
           name: tracks
           table:
           - default_db
           - tracks
     nodes:
-    - id: 118
+    - id: 115
       kind: Ident
       span: 1:0-11
       ident: !Ident
       - default_db
       - tracks
-      parent: 123
-    - id: 120
+      parent: 120
+    - id: 117
       kind: Ident
       span: 1:22-28
       ident: !Ident
@@ -462,9 +464,9 @@ fn debug() {
       - tracks
       - artist
       targets:
-      - 118
-      parent: 122
-    - id: 121
+      - 115
+      parent: 119
+    - id: 118
       kind: Ident
       span: 1:30-35
       ident: !Ident
@@ -472,21 +474,21 @@ fn debug() {
       - tracks
       - album
       targets:
-      - 118
-      parent: 122
-    - id: 122
+      - 115
+      parent: 119
+    - id: 119
       kind: Tuple
       span: 1:21-36
       children:
-      - 120
-      - 121
-      parent: 123
-    - id: 123
+      - 117
+      - 118
+      parent: 120
+    - id: 120
       kind: 'TransformCall: Select'
       span: 1:14-36
       children:
-      - 118
-      - 122
+      - 115
+      - 119
     ast:
       name: Project
       stmts:
@@ -498,21 +500,26 @@ fn debug() {
               exprs:
               - FuncCall:
                   name:
-                    Ident: from
+                    Ident:
+                    - from
                     span: 1:0-4
                   args:
-                  - Ident: tracks
+                  - Ident:
+                    - tracks
                     span: 1:5-11
                 span: 1:0-11
               - FuncCall:
                   name:
-                    Ident: select
+                    Ident:
+                    - select
                     span: 1:14-20
                   args:
                   - Tuple:
-                    - Ident: artist
+                    - Ident:
+                      - artist
                       span: 1:22-28
-                    - Ident: album
+                    - Ident:
+                      - album
                       span: 1:30-35
                     span: 1:21-36
                 span: 1:14-36
@@ -520,7 +527,7 @@ fn debug() {
         span: 1:0-36
 
     ----- stderr -----
-    "###);
+    ");
 
     // Don't test the output of this, since on one min-versions check it had
     // different results, and didn't repro on Mac. It having different results
@@ -596,20 +603,19 @@ fn normalize_prqlc(cmd: &mut Command) -> &mut Command {
 
 #[test]
 fn compile_no_prql_files() {
-    assert_cmd_snapshot!(prqlc_command().args(["compile", "README.md"]), @r###"
+    assert_cmd_snapshot!(prqlc_command().args(["compile", "README.md"]), @r"
     success: false
     exit_code: 1
     ----- stdout -----
 
     ----- stderr -----
     Error: No `.prql` files found in the source tree
-
-    "###);
+    ");
 }
 
 #[test]
 fn lex() {
-    assert_cmd_snapshot!(prqlc_command().args(["lex"]).pass_stdin("from tracks"), @r###"
+    assert_cmd_snapshot!(prqlc_command().args(["lex"]).pass_stdin("from tracks"), @r"
     success: true
     exit_code: 0
     ----- stdout -----
@@ -627,9 +633,9 @@ fn lex() {
         end: 11
 
     ----- stderr -----
-    "###);
+    ");
 
-    assert_cmd_snapshot!(prqlc_command().args(["lex", "--format=json"]).pass_stdin("from tracks"), @r###"
+    assert_cmd_snapshot!(prqlc_command().args(["lex", "--format=json"]).pass_stdin("from tracks"), @r#"
     success: true
     exit_code: 0
     ----- stdout -----
@@ -661,5 +667,50 @@ fn lex() {
       }
     ]
     ----- stderr -----
+    "#);
+}
+
+#[cfg(feature = "lsp")]
+#[test]
+fn lsp() {
+    let init = serde_json::to_string(&lsp_server::Message::Request(lsp_server::Request {
+        method: "initialize".into(),
+        id: lsp_server::RequestId::from(1),
+        params: serde_json::json!({"capabilities": {}}),
+    }))
+    .unwrap();
+    let initialized = serde_json::to_string(&lsp_server::Message::Notification(
+        lsp_server::Notification {
+            method: "initialized".into(),
+            params: serde_json::json!({}),
+        },
+    ))
+    .unwrap();
+    let ex1 = serde_json::to_string(&lsp_server::Message::Notification(
+        lsp_server::Notification {
+            method: "exit".into(),
+            params: serde_json::Value::Null,
+        },
+    ))
+    .unwrap();
+
+    assert_cmd_snapshot!(prqlc_command().args(["lsp"])
+        .pass_stdin(format!("Content-Length: {}\r\n\r\n{}Content-Length: {}\r\n\r\n{}Content-Length: {}\r\n\r\n{}",
+            init.len(), init,
+            initialized.len(), initialized,
+            ex1.len(), ex1))
+        , @r###"
+    success: true
+    exit_code: 0
+    ----- stdout -----
+    Content-Length: 78
+
+    {"jsonrpc":"2.0","id":1,"result":{"capabilities":{"definitionProvider":true}}}
+    ----- stderr -----
+    starting PRQL LSP server
+    starting main loop
+    got msg: Notification(Notification { method: "exit", params: Null })
+    got notification: Notification { method: "exit", params: Null }
+    shutting down server
     "###);
 }

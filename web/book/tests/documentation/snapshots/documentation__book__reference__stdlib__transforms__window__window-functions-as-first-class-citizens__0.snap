@@ -15,4 +15,3 @@ FROM
   table_0
 WHERE
   salary < _expr_0
-

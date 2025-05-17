@@ -7,4 +7,3 @@ SELECT
   (temp_f - 32) / 1.8 AS temp_c
 FROM
   cities
-

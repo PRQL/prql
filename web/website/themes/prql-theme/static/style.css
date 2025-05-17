@@ -17,10 +17,12 @@
   --main-color: #202b38;
   --secondary-color: #c92a2a;
   --third-color: #1864ab;
-  --title-font: InterExtraBold, -apple-system, BlinkMacSystemFont, "Segoe UI",
-    Roboto, Oxygen-Sans, Ubuntu, Cantarell, "Helvetica Neue", sans-serif;
-  --body-font: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
+  --title-font:
+    InterExtraBold, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
     Oxygen-Sans, Ubuntu, Cantarell, "Helvetica Neue", sans-serif;
+  --body-font:
+    -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen-Sans, Ubuntu,
+    Cantarell, "Helvetica Neue", sans-serif;
 }
 
 body {
@@ -185,7 +187,8 @@ pre ::-webkit-scrollbar-thumb:hover {
   width: 100%;
   min-height: calc(100vh - 81px);
   background: #f2f9ff;
-  background: repeating-linear-gradient(
+  background:
+    repeating-linear-gradient(
       45deg,
       transparent,
       transparent 150px,
@@ -281,7 +284,8 @@ section {
 .section-bg,
 .services .icon-box {
   background: #f2f9ff;
-  background: repeating-linear-gradient(
+  background:
+    repeating-linear-gradient(
       45deg,
       transparent,
       transparent 150px,
@@ -420,7 +424,8 @@ section {
 # testimonials-section
 --------------------------------------------------------------*/
 .testimonials-section {
-  background: repeating-linear-gradient(
+  background:
+    repeating-linear-gradient(
       45deg,
       transparent,
       transparent 150px,

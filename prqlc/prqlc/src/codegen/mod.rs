@@ -149,7 +149,7 @@ struct SeparatedExprs<'a, T: WriteSource> {
     line_end: &'static str,
 }
 
-impl<'a, T: WriteSource> WriteSource for SeparatedExprs<'a, T> {
+impl<T: WriteSource> WriteSource for SeparatedExprs<'_, T> {
     fn write(&self, mut opt: WriteOpt) -> Option<String> {
         // try inline
         if let Some(inline) = self.write_inline(opt.clone()) {
@@ -180,7 +180,7 @@ impl<'a, T: WriteSource> WriteSource for SeparatedExprs<'a, T> {
     }
 }
 
-impl<'a, T: WriteSource> SeparatedExprs<'a, T> {
+impl<T: WriteSource> SeparatedExprs<'_, T> {
     fn write_inline(&self, mut opt: WriteOpt) -> Option<String> {
         let mut exprs = Vec::new();
         for expr in self.exprs {
@@ -198,45 +198,5 @@ impl<'a, T: WriteSource> SeparatedExprs<'a, T> {
         opt.consume_width(separators as u16)?;
 
         Some(exprs.join(self.inline))
-    }
-}
-
-#[cfg(test)]
-mod test {
-    use insta::assert_snapshot;
-
-    use super::*;
-    use crate::pr::{Expr, ExprKind, Literal};
-
-    #[test]
-    fn test_string_quoting() {
-        fn mk_str(s: &str) -> Expr {
-            Expr::new(ExprKind::Literal(Literal::String(s.to_string())))
-        }
-
-        assert_snapshot!(
-            write_expr(&mk_str("hello")),
-            @r###""hello""###
-        );
-
-        assert_snapshot!(
-            write_expr(&mk_str(r#"he's nice"#)),
-            @r###""he's nice""###
-        );
-
-        assert_snapshot!(
-            write_expr(&mk_str(r#"he said "what up""#)),
-            @r###"'he said "what up"'"###
-        );
-
-        assert_snapshot!(
-            write_expr(&mk_str(r#"he said "what's up""#)),
-            @r###"""he said "what's up""""###
-        );
-
-        assert_snapshot!(
-            write_expr(&mk_str(r#" single' three double""" found double"""" "#)),
-            @r###"""""" single' three double""" found double"""" """"""###
-        );
     }
 }

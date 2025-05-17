@@ -7,5 +7,4 @@ SELECT
   tracks.*
 FROM
   invoices
-  JOIN tracks ON invoices.track_id = tracks.id
-
+  INNER JOIN tracks ON invoices.track_id = tracks.id

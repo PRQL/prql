@@ -3,10 +3,9 @@ source: web/book/tests/documentation/book.rs
 expression: "from invoices\nderive t = time\n"
 ---
 Error:
-   ╭─[:2:12]
+   ╭─[ :2:12 ]
    │
  2 │ derive t = time
    │            ──┬─
    │              ╰─── expected a value, but found a type
 ───╯
-

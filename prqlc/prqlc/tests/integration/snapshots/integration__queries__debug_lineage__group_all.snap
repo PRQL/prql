@@ -7,10 +7,10 @@ frames:
 - - 1:27-34
   - columns:
     - !All
-      input_id: 128
+      input_id: 125
       except: []
     inputs:
-    - id: 128
+    - id: 125
       name: a
       table:
       - default_db
@@ -18,18 +18,18 @@ frames:
 - - 1:35-59
   - columns:
     - !All
-      input_id: 128
+      input_id: 125
       except: []
     - !All
-      input_id: 122
+      input_id: 119
       except: []
     inputs:
-    - id: 128
+    - id: 125
       name: a
       table:
       - default_db
       - albums
-    - id: 122
+    - id: 119
       name: tracks
       table:
       - default_db
@@ -40,26 +40,26 @@ frames:
       name:
       - a
       - album_id
-      target_id: 138
+      target_id: 135
       target_name: null
     - !Single
       name:
       - a
       - title
-      target_id: 139
+      target_id: 136
       target_name: null
     - !Single
       name:
       - price
-      target_id: 157
+      target_id: 154
       target_name: null
     inputs:
-    - id: 128
+    - id: 125
       name: a
       table:
       - default_db
       - albums
-    - id: 122
+    - id: 119
       name: tracks
       table:
       - default_db
@@ -70,63 +70,63 @@ frames:
       name:
       - a
       - album_id
-      target_id: 138
+      target_id: 135
       target_name: null
     - !Single
       name:
       - a
       - title
-      target_id: 139
+      target_id: 136
       target_name: null
     - !Single
       name:
       - price
-      target_id: 157
+      target_id: 154
       target_name: null
     inputs:
-    - id: 128
+    - id: 125
       name: a
       table:
       - default_db
       - albums
-    - id: 122
+    - id: 119
       name: tracks
       table:
       - default_db
       - tracks
 nodes:
-- id: 122
+- id: 119
   kind: Ident
   span: 1:40-46
   ident: !Ident
   - default_db
   - tracks
-  parent: 137
-- id: 128
+  parent: 134
+- id: 125
   kind: Ident
   span: 1:13-26
   ident: !Ident
   - default_db
   - albums
-  parent: 131
-- id: 131
+  parent: 128
+- id: 128
   kind: 'TransformCall: Take'
   span: 1:27-34
   children:
-  - 128
-  - 132
-  parent: 137
-- id: 132
+  - 125
+  - 129
+  parent: 134
+- id: 129
   kind: Literal
-  parent: 131
-- id: 133
+  parent: 128
+- id: 130
   kind: RqOperator
   span: 1:48-58
   targets:
-  - 135
-  - 136
-  parent: 137
-- id: 135
+  - 132
+  - 133
+  parent: 134
+- id: 132
   kind: Ident
   span: 1:50-58
   ident: !Ident
@@ -134,8 +134,8 @@ nodes:
   - a
   - album_id
   targets:
-  - 128
-- id: 136
+  - 125
+- id: 133
   kind: Ident
   span: 1:50-58
   ident: !Ident
@@ -143,16 +143,16 @@ nodes:
   - tracks
   - album_id
   targets:
-  - 122
-- id: 137
+  - 119
+- id: 134
   kind: 'TransformCall: Join'
   span: 1:35-59
   children:
-  - 131
-  - 122
-  - 133
-  parent: 165
-- id: 138
+  - 128
+  - 119
+  - 130
+  parent: 162
+- id: 135
   kind: Ident
   span: 1:67-77
   ident: !Ident
@@ -160,9 +160,9 @@ nodes:
   - a
   - album_id
   targets:
-  - 128
-  parent: 140
-- id: 139
+  - 125
+  parent: 137
+- id: 136
   kind: Ident
   span: 1:79-86
   ident: !Ident
@@ -170,55 +170,55 @@ nodes:
   - a
   - title
   targets:
-  - 128
-  parent: 140
-- id: 140
+  - 125
+  parent: 137
+- id: 137
   kind: Tuple
   span: 1:66-87
   children:
-  - 138
-  - 139
-  parent: 165
-- id: 157
+  - 135
+  - 136
+  parent: 162
+- id: 154
   kind: RqOperator
   span: 1:132-144
   alias: price
   targets:
-  - 160
-  - 161
-  parent: 164
-- id: 160
+  - 157
+  - 158
+  parent: 161
+- id: 157
   kind: Literal
   span: 1:143-144
-- id: 161
+- id: 158
   kind: RqOperator
   span: 1:108-129
   targets:
-  - 163
-- id: 163
+  - 160
+- id: 160
   kind: Ident
-  span: 1:118-129
+  span: 1:112-129
   ident: !Ident
   - this
   - tracks
   - unit_price
   targets:
-  - 122
-- id: 164
+  - 119
+- id: 161
   kind: Tuple
   span: 1:132-144
   children:
-  - 157
-  parent: 165
-- id: 165
+  - 154
+  parent: 162
+- id: 162
   kind: 'TransformCall: Aggregate'
   span: 1:89-145
   children:
+  - 134
+  - 161
   - 137
-  - 164
-  - 140
-  parent: 170
-- id: 168
+  parent: 167
+- id: 165
   kind: Ident
   span: 1:152-160
   ident: !Ident
@@ -226,14 +226,14 @@ nodes:
   - a
   - album_id
   targets:
-  - 138
-  parent: 170
-- id: 170
+  - 135
+  parent: 167
+- id: 167
   kind: 'TransformCall: Sort'
   span: 1:147-160
   children:
+  - 162
   - 165
-  - 168
 ast:
   name: Project
   stmts:
@@ -245,16 +245,19 @@ ast:
           exprs:
           - FuncCall:
               name:
-                Ident: from
+                Ident:
+                - from
                 span: 1:13-17
               args:
-              - Ident: albums
+              - Ident:
+                - albums
                 span: 1:20-26
                 alias: a
             span: 1:13-26
           - FuncCall:
               name:
-                Ident: take
+                Ident:
+                - take
                 span: 1:27-31
               args:
               - Literal:
@@ -263,64 +266,62 @@ ast:
             span: 1:27-34
           - FuncCall:
               name:
-                Ident: join
+                Ident:
+                - join
                 span: 1:35-39
               args:
-              - Ident: tracks
+              - Ident:
+                - tracks
                 span: 1:40-46
               - Unary:
                   op: EqSelf
                   expr:
-                    Ident: album_id
+                    Ident:
+                    - album_id
                     span: 1:50-58
                 span: 1:48-58
             span: 1:35-59
           - FuncCall:
               name:
-                Ident: group
+                Ident:
+                - group
                 span: 1:60-65
               args:
               - Tuple:
-                - Indirection:
-                    base:
-                      Ident: a
-                      span: 1:67-68
-                    field: !Name album_id
+                - Ident:
+                  - a
+                  - album_id
                   span: 1:67-77
-                - Indirection:
-                    base:
-                      Ident: a
-                      span: 1:79-80
-                    field: !Name title
+                - Ident:
+                  - a
+                  - title
                   span: 1:79-86
                 span: 1:66-87
               - FuncCall:
                   name:
-                    Ident: aggregate
+                    Ident:
+                    - aggregate
                     span: 1:89-98
                   args:
                   - Pipeline:
                       exprs:
                       - FuncCall:
                           name:
-                            Ident: sum
+                            Ident:
+                            - sum
                             span: 1:108-111
                           args:
-                          - Indirection:
-                              base:
-                                Ident: tracks
-                                span: 1:112-118
-                              field: !Name unit_price
-                            span: 1:118-129
+                          - Ident:
+                            - tracks
+                            - unit_price
+                            span: 1:112-129
                         span: 1:108-129
                       - FuncCall:
                           name:
-                            Indirection:
-                              base:
-                                Ident: math
-                                span: 1:132-136
-                              field: !Name round
-                            span: 1:136-142
+                            Ident:
+                            - math
+                            - round
+                            span: 1:132-142
                           args:
                           - Literal:
                               Integer: 2
@@ -332,10 +333,12 @@ ast:
             span: 1:60-146
           - FuncCall:
               name:
-                Ident: sort
+                Ident:
+                - sort
                 span: 1:147-151
               args:
-              - Ident: album_id
+              - Ident:
+                - album_id
                 span: 1:152-160
             span: 1:147-160
         span: 1:13-160

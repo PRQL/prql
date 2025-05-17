@@ -27,6 +27,7 @@ fn infer_sorts(query: SqlQuery, ctx: &mut Context) -> SqlQuery {
     let mut s = SortingInference {
         last_sorting: Vec::new(),
         ctes_sorting: HashMap::new(),
+        main_relation: false,
         ctx,
     };
 
@@ -36,63 +37,41 @@ fn infer_sorts(query: SqlQuery, ctx: &mut Context) -> SqlQuery {
 struct SortingInference<'a> {
     last_sorting: Sorting,
     ctes_sorting: HashMap<TId, CteSorting>,
+    main_relation: bool,
     ctx: &'a mut Context,
 }
 
 struct CteSorting {
     sorting: Sorting,
-    has_been_used: bool,
 }
 
-impl<'a> RqFold for SortingInference<'a> {}
+impl RqFold for SortingInference<'_> {}
 
-impl<'a> PqFold for SortingInference<'a> {
+impl PqFold for SortingInference<'_> {
     fn fold_sql_query(&mut self, query: SqlQuery) -> Result<SqlQuery> {
         let mut ctes = Vec::with_capacity(query.ctes.len());
         for cte in query.ctes {
+            log::debug!("infer_sorts: {0:?}", cte.tid);
             let cte = self.fold_cte(cte)?;
 
             // store sorting to be used later in From references
             let sorting = self.last_sorting.drain(..).collect();
-            let sorting = CteSorting {
-                sorting,
-                has_been_used: false,
-            };
+            log::debug!("--- sorting {sorting:?}");
+            let sorting = CteSorting { sorting };
             self.ctes_sorting.insert(cte.tid, sorting);
 
             ctes.push(cte);
         }
 
-        // fold main_relation using a made-up tid
+        // fold main_relation
+        log::debug!("infer_sorts: main relation");
+        self.main_relation = true;
         let mut main_relation = self.fold_sql_relation(query.main_relation)?;
+        log::debug!("--== last_sorting {0:?}", self.last_sorting);
 
         // push a sort at the back of the main pipeline
         if let SqlRelation::AtomicPipeline(pipeline) = &mut main_relation {
             pipeline.push(SqlTransform::Sort(self.last_sorting.drain(..).collect()));
-        }
-
-        // make sure that all CTEs whose sorting was used actually SELECT it
-        for cte in &mut ctes {
-            let sorting = self.ctes_sorting.get(&cte.tid).unwrap();
-            if !sorting.has_been_used {
-                continue;
-            }
-
-            let CteKind::Normal(sql_relation) = &mut cte.kind else {
-                continue;
-            };
-            let Some(pipeline) = sql_relation.as_atomic_pipeline_mut() else {
-                continue;
-            };
-            let select = pipeline.iter_mut().find_map(|x| x.as_select_mut()).unwrap();
-
-            for column_sort in &sorting.sorting {
-                let cid = column_sort.column;
-                let is_selected = select.contains(&cid);
-                if !is_selected {
-                    select.push(cid);
-                }
-            }
         }
 
         Ok(SqlQuery {
@@ -102,7 +81,7 @@ impl<'a> PqFold for SortingInference<'a> {
     }
 }
 
-impl<'a> PqMapper<RelationExpr, RelationExpr, (), ()> for SortingInference<'a> {
+impl PqMapper<RelationExpr, RelationExpr, (), ()> for SortingInference<'_> {
     fn fold_rel(&mut self, rel: RelationExpr) -> Result<RelationExpr> {
         Ok(rel)
     }
@@ -126,7 +105,6 @@ impl<'a> PqMapper<RelationExpr, RelationExpr, (), ()> for SortingInference<'a> {
                         RelationExprKind::Ref(ref tid) => {
                             // infer sorting from referenced pipeline
                             if let Some(cte_sorting) = self.ctes_sorting.get_mut(tid) {
-                                cte_sorting.has_been_used = true;
                                 sorting.clone_from(&cte_sorting.sorting);
                             } else {
                                 sorting = Vec::new();
@@ -147,8 +125,8 @@ impl<'a> PqMapper<RelationExpr, RelationExpr, (), ()> for SortingInference<'a> {
                 }
 
                 // just store sorting and don't emit Sort
-                SqlTransform::Sort(s) => {
-                    sorting.clone_from(&s);
+                SqlTransform::Sort(expr) => {
+                    sorting.clone_from(&expr);
                     continue;
                 }
 
@@ -164,6 +142,26 @@ impl<'a> PqMapper<RelationExpr, RelationExpr, (), ()> for SortingInference<'a> {
                 _ => {}
             }
             result.push(transform)
+        }
+
+        if !self.main_relation {
+            // if this is a CTE, make sure that its SELECT includes the
+            // columns from the sort
+            let select = result.iter_mut().find_map(|x| x.as_select_mut()).unwrap();
+            for column_sort in &sorting {
+                let cid = column_sort.column;
+                let is_selected = select.contains(&cid);
+                if !is_selected {
+                    log::debug!("adding {cid:?} to {select:?}");
+                    select.push(cid);
+                }
+            }
+
+            // now revert the sort columns so that the output
+            // sorting reflects the input column cids, needed to
+            // ensure proper column reference lookup in the final
+            // steps
+            sorting = CidRedirector::revert_sorts(sorting, &mut self.ctx.anchor);
         }
 
         // remember sorting for this pipeline
@@ -200,9 +198,9 @@ struct RelVarNameAssigner<'a> {
     ctx: &'a mut Context,
 }
 
-impl<'a> RqFold for RelVarNameAssigner<'a> {}
+impl RqFold for RelVarNameAssigner<'_> {}
 
-impl<'a> PqFold for RelVarNameAssigner<'a> {
+impl PqFold for RelVarNameAssigner<'_> {
     fn fold_sql_relation(&mut self, relation: SqlRelation) -> Result<SqlRelation> {
         // only fold AtomicPipelines
         Ok(match relation {
@@ -221,7 +219,7 @@ impl<'a> PqFold for RelVarNameAssigner<'a> {
     }
 }
 
-impl<'a> PqMapper<RelationExpr, RelationExpr, (), ()> for RelVarNameAssigner<'a> {
+impl PqMapper<RelationExpr, RelationExpr, (), ()> for RelVarNameAssigner<'_> {
     fn fold_rel(&mut self, mut rel: RelationExpr) -> Result<RelationExpr> {
         // normal fold
         rel.kind = match rel.kind {

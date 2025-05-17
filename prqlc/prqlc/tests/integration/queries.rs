@@ -65,6 +65,9 @@ mod fmt {
         with_settings!({ input_file => prql_path }, {
             assert_snapshot!(test_name, &formatted, &prql)
         });
+
+        // Check the formatted queries can still compile
+        prqlc::prql_to_pl(&formatted).unwrap();
     }
 }
 
@@ -91,125 +94,57 @@ mod debug_lineage {
 
 #[cfg(any(feature = "test-dbs", feature = "test-dbs-external"))]
 mod results {
-    use std::ops::DerefMut;
-    use std::sync::Mutex;
-    use std::sync::OnceLock;
 
+    use itertools::Itertools;
     use prqlc::sql::SupportLevel;
 
     use super::*;
-    use crate::dbs::{ConnectionCfg, DbConnection, DbProtocol};
-
-    fn connections() -> &'static Mutex<Vec<DbConnection>> {
-        static CONNECTIONS: OnceLock<Mutex<Vec<DbConnection>>> = OnceLock::new();
-        CONNECTIONS.get_or_init(|| {
-            Mutex::new({
-                [
-                    ConnectionCfg {
-                        dialect: Dialect::SQLite,
-                        data_file_root: "tests/integration/data/chinook".to_string(),
-
-                        protocol: DbProtocol::SQLite,
-                    },
-                    ConnectionCfg {
-                        dialect: Dialect::DuckDb,
-                        data_file_root: "tests/integration/data/chinook".to_string(),
-
-                        protocol: DbProtocol::DuckDb,
-                    },
-                    ConnectionCfg {
-                        dialect: Dialect::Postgres,
-                        data_file_root: "/tmp/chinook".to_string(),
-
-                        protocol: DbProtocol::Postgres {
-                            url: "host=localhost user=root password=root dbname=dummy".to_string(),
-                        },
-                    },
-                    ConnectionCfg {
-                        dialect: Dialect::MySql,
-                        data_file_root: "/tmp/chinook".to_string(),
-
-                        protocol: DbProtocol::MySql {
-                            url: "mysql://root:root@localhost:3306/dummy".to_string(),
-                        },
-                    },
-                    ConnectionCfg {
-                        dialect: Dialect::ClickHouse,
-                        data_file_root: "chinook".to_string(),
-
-                        protocol: DbProtocol::MySql {
-                            url: "mysql://default:@localhost:9004/dummy".to_string(),
-                        },
-                    },
-                    ConnectionCfg {
-                        dialect: Dialect::GlareDb,
-                        data_file_root: "/tmp/chinook".to_string(),
-
-                        protocol: DbProtocol::Postgres {
-                            url: "host=localhost user=glaredb dbname=glaredb port=6543".to_string(),
-                        },
-                    },
-                    ConnectionCfg {
-                        dialect: Dialect::MsSql,
-                        data_file_root: "/tmp/chinook".to_string(),
-
-                        protocol: DbProtocol::MsSql,
-                    },
-                ]
-                .into_iter()
-                .filter(|cfg| {
-                    matches!(
-                        cfg.dialect.support_level(),
-                        SupportLevel::Supported | SupportLevel::Unsupported
-                    )
-                })
-                // The filtering is not a great design, since it doesn't proactively
-                // check that we can get connections; but it's a compromise given we
-                // implement the external_dbs feature using this.
-                .filter_map(DbConnection::new)
-                .map(|conn| conn.setup())
-                .collect()
-            })
-        })
-    }
+    use crate::dbs::{batch_to_csv, runners};
 
     test_each_path! { in "./prqlc/prqlc/tests/integration/queries" => run }
+
+    fn should_run_query(dialect: Dialect, prql: &str) -> bool {
+        let dialect_str = dialect.to_string().to_lowercase();
+
+        match dialect.support_level() {
+            SupportLevel::Supported => !prql.contains(&format!("{dialect_str}:skip")),
+            SupportLevel::Unsupported => prql.contains(&format!("{dialect_str}:test")),
+            SupportLevel::Nascent => false,
+        }
+    }
 
     fn run(prql_path: &Path) {
         let test_name = prql_path.file_stem().unwrap().to_str().unwrap();
         let prql = fs::read_to_string(prql_path).unwrap();
 
-        let data_file_root_keyword = "data_file_root";
-        let is_contains_data_root = prql.contains(data_file_root_keyword);
+        // for each of the runners, get the query
+        let results: Vec<(Dialect, String)> = runners()
+            .iter()
+            .filter_map(|runner| {
+                let mut runner = runner.lock().unwrap();
+                let dialect = runner.dialect();
+                if !should_run_query(dialect, &prql) {
+                    return None;
+                }
 
-        // for each of the connections
-        let mut results = Vec::new();
-        for con in connections().lock().unwrap().deref_mut() {
-            if !con.should_run_query(&prql) {
-                continue;
-            }
+                eprintln!("Executing {test_name} for {dialect}");
 
-            let mut prql = prql.clone();
-            if is_contains_data_root {
-                prql = prql.replace(data_file_root_keyword, &con.cfg.data_file_root);
-            }
+                match runner.query(&prql) {
+                    Ok(batch) => {
+                        let csv = batch_to_csv(batch);
+                        Some(Ok((dialect, csv)))
+                    }
+                    Err(e) => Some(Err(e)),
+                }
+            })
+            .try_collect()
+            .unwrap();
 
-            let dialect = con.cfg.dialect;
-
-            println!("Executing {test_name} for {dialect}");
-            let rows = con.run_query(&prql).unwrap();
-
-            // convert into ad-hoc CSV
-            let result = rows
-                .iter()
-                .map(|r| r.join(","))
-                .collect::<Vec<_>>()
-                .join("\n");
-
-            results.push((dialect, result));
+        if results.is_empty() {
+            panic!("No valid dialects to run the query at {prql_path:#?} against");
         }
 
-        // insta::allow_duplicates!, but with reporting of which two cases are
+        // similar to `insta::allow_duplicates!`, but with reporting of which two cases are
         // not matching.
         let ((first_dialect, first_text), others) = results.split_first().unwrap();
 
