@@ -50,7 +50,7 @@ arrow = { version = "53", features = [
   "prettyprint",
 ], default-features = false }
 enum-as-inner = "0.6.1"
-insta = { version = "1.42.2", features = ["colors", "glob", "yaml", "filters"] }
+insta = { version = "1.43.1", features = ["colors", "glob", "yaml", "filters"] }
 insta-cmd = "0.6.0"
 itertools = "0.14.0"
 log = "0.4.27"

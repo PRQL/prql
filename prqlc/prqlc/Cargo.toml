@@ -130,7 +130,7 @@ tiberius = { version = "0.12.3", optional = true, default-features = false, feat
   "tds73",
 ] }
 tokio = { version = "1.44.2", optional = true, features = ["full"] }
-tokio-util = { version = "0.7.14", optional = true, features = ["compat"] }
+tokio-util = { version = "0.7.15", optional = true, features = ["compat"] }
 
 [dev-dependencies]
 # default-features=false required to allow wasm compilation (which we don't use
@@ -143,7 +143,7 @@ rstest = "0.25.0"
 similar = { workspace = true }
 similar-asserts = { workspace = true }
 tempfile = { version = "3.19.1" }
-test_each_file = "0.3.4"
+test_each_file = "0.3.5"
 
 # We use `benches/bench.rs` for the benchmark harness so disable searching for
 # benchmarks in bin & lib here to simplify using criterion
