@@ -165,13 +165,13 @@ mod test {
                         start_line: 2,
                         start_col: 9,
                         start_offset: 0,
-                        end_line: 12_123_123,
-                        end_col: 2_930_293,
+                        end_line: 1234,
+                        end_col: 5678,
                         end_offset: 0
                     },
                     Span {
-                        start_line: 7_893_648,
-                        start_col: 79678,
+                        start_line: 9999,
+                        start_col: 65535,
                         start_offset: 0,
                         end_line: 3,
                         end_col: 31,
