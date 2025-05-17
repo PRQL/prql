@@ -272,7 +272,7 @@ impl FromStr for Target {
 /// Compilation options for SQL backend of the compiler.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Options {
-    /// Pass generated SQL string trough a formatter that splits it
+    /// Pass generated SQL string through a formatter that splits it
     /// into multiple lines and prettifies indentation and spacing.
     ///
     /// Defaults to true.
