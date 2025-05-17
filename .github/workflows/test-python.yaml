@@ -5,12 +5,12 @@ on:
     inputs:
       oss:
         type: string
-        default: '["ubuntu-22.04"]'
+        default: '["ubuntu-24.04"]'
   workflow_dispatch:
     inputs:
       oss:
         type: string
-        default: '["ubuntu-22.04"]'
+        default: '["ubuntu-24.04"]'
 
 # We need consistent env vars across all workflows for the cache to work
 env:
@@ -31,7 +31,7 @@ jobs:
       - name: Build wheel
         uses: ./.github/actions/build-python
         with:
-          target: ${{ matrix.os == 'ubuntu-22.04' && 'x86_64' || '' }}
+          target: ${{ matrix.os == 'ubuntu-24.04' && 'x86_64' || '' }}
           package: prqlc-python
           profile: dev
       - uses: actions/download-artifact@v4

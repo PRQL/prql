@@ -29,7 +29,7 @@ jobs:
 
   deploy-web:
     needs: build-web
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-24.04
 
     # Don't attempt to publish if on a fork or on a PR running on upstream.
     if:

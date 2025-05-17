@@ -30,7 +30,7 @@ concurrency:
 jobs:
   megalinter:
     name: MegaLinter
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-24.04
 
     # Give the default GITHUB_TOKEN write permission to commit and push, comment
     # issues & post new PR; remove the ones you do not need

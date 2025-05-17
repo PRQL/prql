@@ -78,8 +78,6 @@ jobs:
           save-if:
             ${{ github.ref == 'refs/heads/main' && inputs.features != '' }}
       - uses: actions/setup-python@v5
-        # python isn't natively installed on macos-14, so we need to install it
-        if: ${{ inputs.os == 'macos-14' }}
         with:
           python-version: "3.11"
       - name: Free up disk space
