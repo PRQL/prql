@@ -172,7 +172,7 @@ fn quote_string(s: &str) -> String {
         .map(|quote_sequence| quote_sequence.len())
         .max()
         .unwrap_or(0);
-    let next_odd = (max_consecutive + 1) / 2 * 2 + 1;
+    let next_odd = max_consecutive.div_ceil(2) * 2 + 1;
     let delim = quote.to_string().repeat(next_odd);
 
     format!("{}{}{}", delim, s, delim)
