@@ -120,6 +120,44 @@ pub(super) fn translate_wildcards(ctx: &AnchorContext, cols: Vec<CId>) -> (Vec<C
     (output, excluded)
 }
 
+fn deduplicate_select_items(items: &mut Vec<SelectItem>) {
+    // Dropping all duplicated identifiers
+    let mut seen = HashSet::new();
+    items.retain(|select_item| match select_item {
+        SelectItem::UnnamedExpr(expr) => {
+            if let sql_ast::Expr::CompoundIdentifier(idents) = expr {
+                // If any of the identifiers hadn't been seen yet, retain the expr
+                idents.iter().any(|ident| seen.insert(ident.clone()))
+            } else {
+                true
+            }
+        }
+        SelectItem::ExprWithAlias { alias, .. } => seen.insert(alias.clone()),
+        _ => true,
+    });
+
+    // Dropping all expressions which are already selected as an alias
+    let compounds_with_aliases = items
+        .iter()
+        .filter_map(|select_item| {
+            if let SelectItem::ExprWithAlias { expr, .. } = select_item {
+                if matches!(expr, sql_ast::Expr::CompoundIdentifier(_)) {
+                    Some(expr.clone())
+                } else {
+                    None
+                }
+            } else {
+                None
+            }
+        })
+        .collect::<HashSet<_>>();
+
+    items.retain(|select_item| match select_item {
+        SelectItem::UnnamedExpr(expr) => !compounds_with_aliases.contains(expr),
+        _ => true,
+    });
+}
+
 pub(super) fn translate_select_items(
     cols: Vec<CId>,
     mut excluded: Excluded,
@@ -163,6 +201,8 @@ pub(super) fn translate_select_items(
             })
         })
         .try_collect()?;
+
+    deduplicate_select_items(&mut res);
 
     if res.is_empty() && !ctx.dialect.supports_zero_columns() {
         // In some cases, no columns will appear in the projection
