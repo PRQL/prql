@@ -919,6 +919,57 @@ fn test_sort_in_nested_join() {
 }
 
 #[test]
+fn test_sort_in_nested_join_with_extra_derive_and_select() {
+    // #5302
+    assert_snapshot!(compile(r#"
+    from albums
+    join side:left  (
+      from artists
+      derive {
+        my_new_col = f"artist: {name}"
+      }
+      group {my_new_col} (aggregate { first_name = first this.`name`})
+      sort {this.my_new_col, first_name}
+      derive {new_name = first_name}
+      select {this.my_new_col, this.new_name}
+    ) (this.id == that.my_new_col)
+    "#).unwrap(),
+        @r#"
+    WITH table_1 AS (
+      SELECT
+        CONCAT('artist: ', name) AS my_new_col,
+        FIRST_VALUE(name) AS _expr_0
+      FROM
+        artists
+      GROUP BY
+        CONCAT('artist: ', name)
+    ),
+    table_2 AS (
+      SELECT
+        my_new_col,
+        _expr_0 AS new_name
+      FROM
+        table_1
+    ),
+    table_0 AS (
+      SELECT
+        my_new_col,
+        new_name
+      FROM
+        table_2
+    )
+    SELECT
+      albums.*,
+      table_0.my_new_col,
+      table_0.new_name
+    FROM
+      albums
+      LEFT OUTER JOIN table_0 ON albums.id = table_0.my_new_col
+    "#
+    );
+}
+
+#[test]
 fn test_sort_in_nested_append() {
     assert_snapshot!(compile(r#"
     from `albums`
@@ -3886,7 +3937,6 @@ fn test_name_shadowing() {
         @r"
     SELECT
       a AS _expr_0,
-      a AS _expr_0,
       a + 1 AS a
     FROM
       x
@@ -3903,7 +3953,6 @@ fn test_name_shadowing() {
     "###).unwrap(),
         @r"
     SELECT
-      a AS _expr_0,
       a AS _expr_0,
       a + 1,
       a + 1 + 2 AS a
@@ -5098,7 +5147,6 @@ fn test_lineage() {
         '    3' AS a
     )
     SELECT
-      a,
       a
     FROM
       table_0
@@ -5513,22 +5561,22 @@ fn unstable_ordering() {
     assert_snapshot!(compile(r###"
   # All lines are mandatory
 from foo
-take 10000 
+take 10000
 # We need 8+ aliases to trigger the issue
 derive { a1 = 1, a2 = 1, a3 = 1, a4 = 1, a5 = 1, a6 = 1, a7 = 1, a8 = 1 }
 # The `select !` itself is required, but its content is not
-select !{ a1, a2, a3, a4, a5, a6, a7, a8 } 
+select !{ a1, a2, a3, a4, a5, a6, a7, a8 }
 
 # We may remove `u` from both these statements, but the `select !` must remain
 select { b, c, u }
-select !{ u } 
+select !{ u }
 
 # Aggregate verb seems to not matter
-group { b } ( aggregate { c = count c } ) 
-derive { d = c } 
-select !{ c } 
+group { b } ( aggregate { c = count c } )
+derive { d = c }
+select !{ c }
 
-group { d } ( aggregate { b = sum b } ) 
+group { d } ( aggregate { b = sum b } )
 sort { d }"###).unwrap(), @r"
     WITH table_1 AS (
       SELECT
