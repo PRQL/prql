@@ -930,8 +930,8 @@ fn test_sort_in_nested_join_with_extra_derive_and_select() {
       }
       group {my_new_col} (aggregate { first_name = first this.`name`})
       sort {this.my_new_col, first_name}
-      derive {new_name = first_name}
-      select {this.my_new_col, this.new_name}
+      derive {new_name = first_name, other_new_name = first_name}
+      select {this.my_new_col, this.new_name, this.other_new_name}
     ) (this.id == that.my_new_col)
     "#).unwrap(),
         @r#"
@@ -947,21 +947,26 @@ fn test_sort_in_nested_join_with_extra_derive_and_select() {
     table_2 AS (
       SELECT
         my_new_col,
-        _expr_0 AS new_name
+        _expr_0 AS new_name,
+        _expr_0 AS other_new_name,
+        _expr_0
       FROM
         table_1
     ),
     table_0 AS (
       SELECT
         my_new_col,
-        new_name
+        new_name,
+        other_new_name,
+        FIRST_VALUE(name) AS _expr_0
       FROM
         table_2
     )
     SELECT
       albums.*,
       table_0.my_new_col,
-      table_0.new_name
+      table_0.new_name,
+      table_0.other_new_name
     FROM
       albums
       LEFT OUTER JOIN table_0 ON albums.id = table_0.my_new_col

@@ -135,27 +135,6 @@ fn deduplicate_select_items(items: &mut Vec<SelectItem>) {
         SelectItem::ExprWithAlias { alias, .. } => seen.insert(alias.clone()),
         _ => true,
     });
-
-    // Dropping all expressions which are already selected as an alias
-    let compounds_with_aliases = items
-        .iter()
-        .filter_map(|select_item| {
-            if let SelectItem::ExprWithAlias { expr, .. } = select_item {
-                if matches!(expr, sql_ast::Expr::CompoundIdentifier(_)) {
-                    Some(expr.clone())
-                } else {
-                    None
-                }
-            } else {
-                None
-            }
-        })
-        .collect::<HashSet<_>>();
-
-    items.retain(|select_item| match select_item {
-        SelectItem::UnnamedExpr(expr) => !compounds_with_aliases.contains(expr),
-        _ => true,
-    });
 }
 
 pub(super) fn translate_select_items(
