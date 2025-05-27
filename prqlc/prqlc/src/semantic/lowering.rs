@@ -1,5 +1,5 @@
 use std::collections::hash_map::RandomState;
-use std::collections::{HashMap, HashSet};
+use std::collections::{BTreeSet, HashMap, HashSet};
 use std::iter::zip;
 
 use enum_as_inner::EnumAsInner;
@@ -302,9 +302,12 @@ impl Lowerer {
 
                 // lower the expr
                 let items = self.lower_interpolations(items)?;
+                let columns = tuple_fields_to_relation_columns(columns);
+                let columns = try_extract_sql_columns(columns, &items);
+
                 let relation = rq::Relation {
                     kind: rq::RelationKind::SString(items),
-                    columns: tuple_fields_to_relation_columns(columns),
+                    columns,
                 };
 
                 self.table_buffer.push(TableDecl {
@@ -990,6 +993,93 @@ impl Lowerer {
 
         Ok(cid)
     }
+}
+
+/// Attempts to extract column names from an S-String to avoid wildcards when possible
+fn try_extract_sql_columns(
+    columns: Vec<RelationColumn>,
+    items: &[InterpolateItem<rq::Expr>],
+) -> Vec<RelationColumn> {
+    use sqlparser::ast;
+
+    let mut has_wildcard = false;
+
+    let sql_columns = items
+        .iter()
+        .map(|item| match item {
+            InterpolateItem::String(s) => {
+                let sql_ast =
+                    sqlparser::parser::Parser::parse_sql(&sqlparser::dialect::GenericDialect {}, s)
+                        .map_err(|err| format!("could not parse {item:?}: {err:?}"))?;
+                if sql_ast.len() != 1 {
+                    return Err(format!(
+                        "expected exactly one statement, got {}",
+                        sql_ast.len()
+                    ));
+                }
+
+                let statement = sql_ast.into_iter().next().unwrap();
+
+                if let sqlparser::ast::Statement::Query(query) = statement {
+                    if let sqlparser::ast::SetExpr::Select(select_stmt) = *query.body {
+                        select_stmt
+                            .projection
+                            .into_iter()
+                            .map(|expr| match expr {
+                                ast::SelectItem::UnnamedExpr(expr) => {
+                                    if let ast::Expr::Identifier(ast::Ident { value, .. }) = expr {
+                                        Ok(value)
+                                    } else {
+                                        Err(format!("Only Idents are supported, got {expr:?}"))
+                                    }
+                                }
+                                ast::SelectItem::ExprWithAlias { alias, .. } => Ok(alias.value), // Store alias
+                                ast::SelectItem::QualifiedWildcard(_, _)
+                                | ast::SelectItem::Wildcard(_) => {
+                                    has_wildcard = true;
+                                    Err("columns contain a wildcard".into())
+                                }
+                            })
+                            .collect::<Result<Vec<String>, String>>()
+                    } else {
+                        Err(format!("not a SELECT statement: {query:?}"))
+                    }
+                } else {
+                    Err(format!("not a Query: {statement:?}"))
+                }
+            }
+            InterpolateItem::Expr { .. } => Err(format!(
+                "could not extract columns from item {item:?}: not a string"
+            )),
+        })
+        .collect::<Result<Vec<Vec<String>>, _>>();
+
+    let sql_columns = match sql_columns {
+        Ok(sql_columns) => sql_columns,
+        Err(cause) => {
+            log::warn!("Could not extract SQL columns: {cause}");
+            return columns;
+        }
+    }
+    .into_iter()
+    .flatten()
+    // deduplicate extracted columns, but preserve their order
+    .collect::<BTreeSet<String>>();
+
+    if has_wildcard {
+        log::debug!("s-string contains a wildcard, skipping column extraction");
+        return columns;
+    }
+
+    columns
+        .into_iter()
+        .filter(|column| matches!(column, RelationColumn::Single(_)))
+        .chain(
+            sql_columns
+                .into_iter()
+                .map(|col| RelationColumn::Single(Some(col))),
+        )
+        .collect()
 }
 
 fn str_lit(string: String) -> rq::Expr {

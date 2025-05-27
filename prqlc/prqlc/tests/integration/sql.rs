@@ -969,6 +969,42 @@ fn test_sort_in_nested_append() {
 }
 
 #[test]
+fn test_column_name_extraction_in_s_strings() {
+    assert_snapshot!(compile(r#"
+from s"SELECT album_id, artist_id `title` FROM `albums`"
+join side:left (
+    s"SELECT id, name FROM `artists`"
+) (this.artist_id == that.id)
+"#).unwrap(),
+        @r"
+    WITH table_0 AS (
+      SELECT
+        album_id,
+        artist_id `title`
+      FROM
+        `albums`
+    ),
+    table_1 AS (
+      SELECT
+        id,
+        name
+      FROM
+        `artists`
+    )
+    SELECT
+      table_0.artist_id,
+      table_0.album_id,
+      table_0.title,
+      table_1.id,
+      table_1.name
+    FROM
+      table_0
+      LEFT OUTER JOIN table_1 ON table_0.artist_id = table_1.id
+        "
+    )
+}
+
+#[test]
 fn test_rn_ids_are_unique() {
     // this is wrong, output will have duplicate y_id and x_id
     assert_snapshot!((compile(r###"
@@ -2791,7 +2827,7 @@ fn test_bare_s_string_01() {
         rude
     )
     SELECT
-      *
+      insensitive
     FROM
       table_0
     "
@@ -2813,7 +2849,7 @@ fn test_bare_s_string_02() {
         rude
     )
     SELECT
-      *
+      insensitive
     FROM
       table_0
     "
@@ -2839,7 +2875,7 @@ fn test_bare_s_string_03() {
         bar
     )
     SELECT
-      *
+      foo
     FROM
       table_0
     ");
