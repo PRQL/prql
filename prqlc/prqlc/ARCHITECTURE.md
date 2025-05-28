@@ -8,7 +8,7 @@ The PRQL compiler operates in the following stages:
 | parse    | parser       | LR -> _PR — Parser Representation_    |
 | semantic | ast_expand   | PR -> _PL — Pipelined Language_       |
 | semantic | resolver     | PL                                    |
-| semantic | flatten       | PL                                    |
+| semantic | flatten      | PL                                    |
 | semantic | lowering     | PL -> _RQ — Resolved Query_           |
 | sql      | preprocess   | RQ                                    |
 | sql      | pq-compiler  | RQ -> _PQ — Partitioned Query_        |
