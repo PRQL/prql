@@ -65,6 +65,7 @@ pub enum ExprKind {
 
     Tuple(Vec<Expr>),
     Array(Vec<Expr>),
+    SqlArray(Vec<Expr>),
     FuncCall(FuncCall),
     Func(Box<Func>),
     TransformCall(TransformCall),

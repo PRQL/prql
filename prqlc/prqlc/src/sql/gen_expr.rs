@@ -124,6 +124,21 @@ pub(super) fn translate_expr(expr: rq::Expr, ctx: &mut Context) -> Result<ExprOr
             })
             .with_span(expr.span));
         }
+        rq::ExprKind::SqlArray(exprs) => {
+            let elements = exprs
+                .iter()
+                .map(|e| translate_expr(e.clone(), ctx).map(|x| x.into_ast()))
+                .try_collect()?;
+            
+            let sql_array = ctx.dialect.translate_sql_array(elements)?;
+            
+            // Return as SourceExpr so it can be interpolated in s-strings
+            ExprOrSource::Source(SourceExpr {
+                text: sql_array.to_string(),
+                binding_strength: 100,
+                window_frame: false,
+            })
+        }
     })
 }
 

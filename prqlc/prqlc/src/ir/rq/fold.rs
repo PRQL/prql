@@ -226,6 +226,9 @@ pub fn fold_expr_kind<F: ?Sized + RqFold>(fold: &mut F, kind: ExprKind) -> Resul
         ExprKind::Array(exprs) => {
             ExprKind::Array(exprs.into_iter().map(|e| fold.fold_expr(e)).try_collect()?)
         }
+        ExprKind::SqlArray(exprs) => {
+            ExprKind::SqlArray(exprs.into_iter().map(|e| fold.fold_expr(e)).try_collect()?)
+        }
     })
 }
 
