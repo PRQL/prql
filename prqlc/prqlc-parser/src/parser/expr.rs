@@ -130,9 +130,8 @@ fn sql_array<'a>(
 ) -> impl Parser<TokenKind, ExprKind, Error = PError> + Clone + 'a {
     sequence(expr)
         .delimited_by(
-            select! { TokenKind::Ident(name) if name == "s" => () }
-                .then(ctrl('[')),
-            ctrl(']')
+            select! { TokenKind::Ident(name) if name == "s" => () }.then(ctrl('[')),
+            ctrl(']'),
         )
         .recover_with(nested_delimiters(
             TokenKind::Control('['),

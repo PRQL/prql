@@ -201,7 +201,10 @@ pub(super) trait DialectHandler: Any + Debug {
         false
     }
 
-    fn translate_sql_array(&self, elements: Vec<sqlparser::ast::Expr>) -> crate::Result<sqlparser::ast::Expr> {
+    fn translate_sql_array(
+        &self,
+        elements: Vec<sqlparser::ast::Expr>,
+    ) -> crate::Result<sqlparser::ast::Expr> {
         use sqlparser::ast::Expr;
 
         // Default SQL syntax: [elem1, elem2, ...]
