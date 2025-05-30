@@ -27,8 +27,11 @@ pub enum TyKind {
     /// Type of tuples (product)
     Tuple(Vec<TyTupleField>),
 
-    /// Type of arrays
+    /// Type of arrays (compiles to SQL tuples, e.g. (1,2,3))
     Array(Option<Box<Ty>>),
+
+    /// Type of SQL arrays (compiles to SQL array literals, e.g. [1,2,3])
+    SqlArray(Option<Box<Ty>>),
 
     /// Type of functions with defined params and return types.
     Function(Option<TyFunc>),

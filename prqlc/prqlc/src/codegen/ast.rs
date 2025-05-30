@@ -226,6 +226,15 @@ impl WriteSource for pr::ExprKind {
                 .write_between("[", "]", opt)?;
                 Some(r)
             }
+            SqlArray(elements) => {
+                let r = SeparatedExprs {
+                    exprs: elements,
+                    inline: ", ",
+                    line_end: ",",
+                }
+                .write_between("s[", "]", opt)?;
+                Some(r)
+            }
             Param(id) => Some(format!("${id}")),
             Internal(operator_name) => Some(format!("internal {operator_name}")),
         }

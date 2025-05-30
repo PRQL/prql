@@ -46,6 +46,8 @@ impl WriteSource for pr::TyKind {
             .write_between("{", "}", opt),
             Array(Some(elem)) => Some(format!("[{}]", elem.write(opt)?)),
             Array(None) => Some("[]".into()),
+            SqlArray(Some(elem)) => Some(format!("s[{}]", elem.write(opt)?)),
+            SqlArray(None) => Some("s[]".into()),
             Function(None) => Some("func".to_string()),
             Function(Some(func)) => {
                 let mut r = "func ".to_string();
