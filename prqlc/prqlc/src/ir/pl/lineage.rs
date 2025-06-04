@@ -19,6 +19,10 @@ pub struct Lineage {
     // A hack that allows name retention when applying `ExprKind::All { except }`
     #[serde(skip)]
     pub prev_columns: Vec<LineageColumn>,
+
+    // To handle the few operations working with positions instead of names (e.g. append)
+    #[serde(skip)]
+    pub columns_positionnal_mapping: Option<Vec<(LineageColumn, LineageColumn)>>,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, JsonSchema)]

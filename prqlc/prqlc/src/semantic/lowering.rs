@@ -4,6 +4,7 @@ use std::iter::zip;
 
 use enum_as_inner::EnumAsInner;
 use itertools::Itertools;
+use log::{trace, warn};
 use prqlc_parser::generic::{InterpolateItem, Range, SwitchCase};
 use prqlc_parser::lexer::lr::Literal;
 use semver::{Prerelease, Version};
@@ -167,6 +168,8 @@ struct Lowerer {
 
     /// A buffer to be added into query tables
     table_buffer: Vec<TableDecl>,
+
+    lineage_stack: Vec<Option<Lineage>>,
 }
 
 #[derive(Clone, EnumAsInner, Debug)]
@@ -194,6 +197,8 @@ impl Lowerer {
             window: None,
             pipeline: Vec::new(),
             table_buffer: Vec::new(),
+
+            lineage_stack: Default::default(),
         }
     }
 
@@ -476,10 +481,9 @@ impl Lowerer {
 
     fn lower_relation(&mut self, expr: pl::Expr) -> Result<rq::Relation> {
         let span = expr.span;
-        let lineage = expr.lineage.clone();
         let prev_pipeline = self.pipeline.drain(..).collect_vec();
 
-        self.lower_pipeline(expr, None)?;
+        let lineage = self.apply_column_order_and_lower_relation(expr)?;
 
         let mut transforms = self.pipeline.drain(..).collect_vec();
         let columns = self.push_select(lineage, &mut transforms).with_span(span)?;
@@ -491,6 +495,89 @@ impl Lowerer {
             columns,
         };
         Ok(relation)
+    }
+
+    // To handle the few position operation like append, we keep track of earlier lineages
+    // and we match their column order and count.
+    fn apply_column_order_and_lower_relation(&mut self, expr: pl::Expr) -> Result<Option<Lineage>> {
+        let mut lineage = expr.lineage.clone();
+
+        if let Some(lineage) = &mut lineage {
+            for earlier_lineage in self.lineage_stack.iter().flatten().rev() {
+                if self.try_to_apply_column_order(earlier_lineage, &mut lineage.columns) {
+                    break;
+                }
+            }
+        }
+
+        self.lineage_stack.push(lineage.clone());
+        let res = self.lower_pipeline(expr, None);
+        self.lineage_stack.pop();
+        res?;
+
+        Ok(lineage)
+    }
+
+    pub(crate) fn try_to_apply_column_order(
+        &self,
+        projection: &Lineage,
+        columns_to_reorder: &mut Vec<LineageColumn>,
+    ) -> bool {
+        let projection = &projection.columns;
+        if projection.is_empty() {
+            return false;
+        }
+
+        let mut new_projection = Vec::with_capacity(projection.len());
+
+        trace!("trying to apply projection from {projection:#?} into {columns_to_reorder:#?}");
+
+        for projected_column in projection {
+            // A search by name is required to circumvent the loss of lineage caused by `apply_assign`
+            let LineageColumn::Single {
+                name: projected_column_name,
+                ..
+            } = projected_column
+            else {
+                // We do not need to support wildcards since we need a precise column count anyway.
+                trace!("projection on wildcards are not supported");
+                return false;
+            };
+
+            let mut candidates = self
+                .lineage_stack
+                .iter()
+                .flatten()
+                .flat_map(|l| &l.columns_positionnal_mapping)
+                .flatten()
+                .filter(|(t, b)| {
+                    // We do not need to support wildcards since we need a precise column count anyway.
+                    if let LineageColumn::Single { name, .. } = t {
+                        name == projected_column_name && columns_to_reorder.contains(b)
+                    } else {
+                        false
+                    }
+                });
+
+            if let Some((_, first_candidate)) = candidates.next() {
+                new_projection.push(first_candidate.clone());
+            } else {
+                trace!("no candidate found for {projected_column_name:?}");
+            }
+
+            for ignored_candidate in candidates {
+                // TODO: better disambiguation between candidates
+                warn!("rejected candidate {ignored_candidate:?}");
+            }
+        }
+
+        if !new_projection.is_empty() {
+            trace!("applying new projection {new_projection:#?}");
+            *columns_to_reorder = new_projection;
+            true
+        } else {
+            false
+        }
     }
 
     // Result is stored in self.pipeline

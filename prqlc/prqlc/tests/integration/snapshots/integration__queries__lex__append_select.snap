@@ -1,0 +1,46 @@
+---
+source: prqlc/prqlc/tests/integration/queries.rs
+expression: tokens
+input_file: prqlc/prqlc/tests/integration/queries/append_select.prql
+---
+Tokens(
+    [
+        0..0: Start,
+        0..4: Ident("from"),
+        5..13: Ident("invoices"),
+        13..14: NewLine,
+        14..20: Ident("select"),
+        21..22: Control('{'),
+        23..34: Ident("customer_id"),
+        34..35: Control(','),
+        36..46: Ident("invoice_id"),
+        46..47: Control(','),
+        48..60: Ident("invoice_date"),
+        61..62: Control('}'),
+        62..63: NewLine,
+        63..69: Ident("append"),
+        70..71: Control('('),
+        71..72: NewLine,
+        74..78: Ident("from"),
+        79..87: Ident("invoices"),
+        87..88: NewLine,
+        90..96: Ident("select"),
+        97..98: Control('{'),
+        99..110: Ident("customer_id"),
+        110..111: Control(','),
+        112..122: Ident("invoice_id"),
+        122..123: Control(','),
+        124..136: Ident("invoice_date"),
+        137..138: Control('}'),
+        138..139: NewLine,
+        139..140: Control(')'),
+        140..141: NewLine,
+        141..147: Ident("select"),
+        148..149: Control('{'),
+        150..162: Ident("invoice_date"),
+        162..163: Control(','),
+        164..174: Ident("invoice_id"),
+        175..176: Control('}'),
+        176..177: NewLine,
+    ],
+)

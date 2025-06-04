@@ -1,0 +1,7 @@
+from invoices
+select { invoice_date, invoice_id, customer_id }
+append (
+  from invoices
+  select { invoice_date, invoice_id, customer_id }
+)
+group { customer_id } (aggregate { count = count invoice_id, invoice_date })

@@ -1,0 +1,7 @@
+from invoices
+select { customer_id, invoice_id, invoice_date }
+append (
+  from invoices
+  select { customer_id, invoice_id, invoice_date }
+)
+select { invoice_date, invoice_id }

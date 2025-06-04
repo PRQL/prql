@@ -1,0 +1,16 @@
+---
+source: prqlc/prqlc/tests/integration/queries.rs
+expression: "from invoices\nselect { customer_id, invoice_id, invoice_date }\nappend (\n  from employees\n  select { employee_id, employee_id, birth_date }\n)\nappend (\n  from invoice_items\n  select { invoice_line_id, invoice_id, null }\n)\nselect { invoice_date, invoice_id }\n"
+input_file: prqlc/prqlc/tests/integration/queries/append_select_nested.prql
+---
+from invoices
+select {customer_id, invoice_id, invoice_date}
+append (
+  from employees
+  select {employee_id, employee_id, birth_date}
+)
+append (
+  from invoice_items
+  select {invoice_line_id, invoice_id, null}
+)
+select {invoice_date, invoice_id}

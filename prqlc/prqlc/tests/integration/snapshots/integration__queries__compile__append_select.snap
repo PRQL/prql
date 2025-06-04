@@ -1,0 +1,23 @@
+---
+source: prqlc/prqlc/tests/integration/queries.rs
+expression: "from invoices\nselect { customer_id, invoice_id, invoice_date }\nappend (\n  from invoices\n  select { customer_id, invoice_id, invoice_date }\n)\nselect { invoice_date, invoice_id }\n"
+input_file: prqlc/prqlc/tests/integration/queries/append_select.prql
+---
+WITH table_0 AS (
+  SELECT
+    invoice_date,
+    invoice_id
+  FROM
+    invoices
+)
+SELECT
+  invoice_date,
+  invoice_id
+FROM
+  invoices
+UNION
+ALL
+SELECT
+  *
+FROM
+  table_0
