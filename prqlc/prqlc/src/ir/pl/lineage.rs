@@ -22,7 +22,7 @@ pub struct Lineage {
 
     // To handle the few operations working with positions instead of names (e.g. append)
     #[serde(skip)]
-    pub columns_positionnal_mapping: Option<Vec<(LineageColumn, LineageColumn)>>,
+    pub columns_positional_mapping: Option<Vec<(LineageColumn, LineageColumn)>>,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, JsonSchema)]

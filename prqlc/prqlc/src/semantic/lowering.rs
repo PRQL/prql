@@ -548,7 +548,7 @@ impl Lowerer {
                 .lineage_stack
                 .iter()
                 .flatten()
-                .flat_map(|l| &l.columns_positionnal_mapping)
+                .flat_map(|l| &l.columns_positional_mapping)
                 .flatten()
                 .filter(|(t, b)| {
                     // We do not need to support wildcards since we need a precise column count anyway.

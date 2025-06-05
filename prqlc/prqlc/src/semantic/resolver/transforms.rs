@@ -741,7 +741,7 @@ fn append(mut top: Lineage, bottom: Lineage) -> Result<Lineage, Error> {
     for (t, b) in zip(top.columns, bottom.columns) {
         // Remember the column alignment in order to properly reorder columns later on.
         if let (t @ LineageColumn::Single { .. }, b @ LineageColumn::Single { .. }) = (&t, &b) {
-            let vec = top.columns_positionnal_mapping.get_or_insert_with(Vec::new);
+            let vec = top.columns_positional_mapping.get_or_insert_with(Vec::new);
             vec.push((t.clone(), b.clone()));
         }
 
