@@ -65,7 +65,6 @@ pub enum ExprKind {
 
     Tuple(Vec<Expr>),
     Array(Vec<Expr>),
-    SqlArray(Vec<Expr>),
     Range(Range),
     Binary(BinaryExpr),
     Unary(UnaryExpr),

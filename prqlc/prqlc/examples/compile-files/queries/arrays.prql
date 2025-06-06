@@ -1,0 +1,13 @@
+let x = p1 -> s"x({p1})"
+
+from t
+filter ( name | in ['q', 'w'])
+select {
+  empty_array = [],
+  single_element = [42],
+  null_element = [null],
+  complex_expressions = [age + salary, (age * 2) + 1],
+  nested_function_calls = [(min age), (max salary ?? 0)],
+  passing_as_arg = x [1,2,3],
+  nested = ['a', ['b']]
+}

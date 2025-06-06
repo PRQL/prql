@@ -928,13 +928,6 @@ impl Lowerer {
                     .try_collect()?,
             ),
 
-            pl::ExprKind::SqlArray(exprs) => rq::ExprKind::SqlArray(
-                exprs
-                    .into_iter()
-                    .map(|x| self.lower_expr(x))
-                    .try_collect()?,
-            ),
-
             pl::ExprKind::FuncCall(_) | pl::ExprKind::Func(_) | pl::ExprKind::TransformCall(_) => {
                 log::debug!("cannot lower {expr:?}");
                 return Err(Error::new(Reason::Unexpected {

@@ -43,7 +43,6 @@ pub enum ExprKind {
     Param(String),
 
     Array(Vec<Expr>),
-    SqlArray(Vec<Expr>),
 }
 
 #[derive(Debug, PartialEq, Eq, Clone, Serialize, Deserialize, JsonSchema)]

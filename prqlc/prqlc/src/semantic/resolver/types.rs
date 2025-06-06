@@ -72,17 +72,6 @@ impl Resolver<'_> {
                 let items_ty = item_tys.into_iter().next().map(Box::new);
                 TyKind::Array(items_ty)
             }
-            ExprKind::SqlArray(items) => {
-                let mut item_tys = Vec::with_capacity(items.len());
-                for item in items {
-                    let item_ty = Resolver::infer_type(item)?;
-                    if let Some(item_ty) = item_ty {
-                        item_tys.push(item_ty);
-                    }
-                }
-                let items_ty = item_tys.into_iter().next().map(Box::new);
-                TyKind::SqlArray(items_ty)
-            }
 
             _ => return Ok(None),
         };

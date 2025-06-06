@@ -21,7 +21,6 @@ pub fn expand_expr(expr: pr::Expr) -> Result<pl::Expr> {
         }
         pr::ExprKind::Tuple(v) => pl::ExprKind::Tuple(expand_exprs(v)?),
         pr::ExprKind::Array(v) => pl::ExprKind::Array(expand_exprs(v)?),
-        pr::ExprKind::SqlArray(v) => pl::ExprKind::SqlArray(expand_exprs(v)?),
 
         pr::ExprKind::Range(v) => expands_range(v)?,
 
@@ -301,7 +300,6 @@ fn restrict_expr_kind(value: pl::ExprKind) -> pr::ExprKind {
         pl::ExprKind::Literal(v) => pr::ExprKind::Literal(v),
         pl::ExprKind::Tuple(v) => pr::ExprKind::Tuple(restrict_exprs(v)),
         pl::ExprKind::Array(v) => pr::ExprKind::Array(restrict_exprs(v)),
-        pl::ExprKind::SqlArray(v) => pr::ExprKind::SqlArray(restrict_exprs(v)),
         pl::ExprKind::FuncCall(v) => pr::ExprKind::FuncCall(pr::FuncCall {
             name: restrict_expr_box(v.name),
             args: restrict_exprs(v.args),

@@ -42,7 +42,6 @@ pub(crate) fn expr() -> impl Parser<TokenKind, Expr, Error = PError> + Clone {
 
         let tuple = tuple(nested_expr.clone());
         let array = array(nested_expr.clone());
-        let sql_array = sql_array(nested_expr.clone());
         let pipeline_expr = pipeline(nested_expr.clone())
             .padded_by(new_line().repeated())
             .delimited_by(ctrl('('), ctrl(')'));
@@ -57,7 +56,6 @@ pub(crate) fn expr() -> impl Parser<TokenKind, Expr, Error = PError> + Clone {
                 internal,
                 tuple,
                 array,
-                sql_array,
                 interpolation,
                 ident_kind,
                 case,
@@ -123,28 +121,6 @@ fn array<'a>(
         ))
         .map(ExprKind::Array)
         .labelled("array")
-}
-
-fn sql_array<'a>(
-    expr: impl Parser<TokenKind, Expr, Error = PError> + Clone + 'a,
-) -> impl Parser<TokenKind, ExprKind, Error = PError> + Clone + 'a {
-    sequence(expr)
-        .delimited_by(
-            select! { TokenKind::Ident(name) if name == "s" => () }.then(ctrl('[')),
-            ctrl(']'),
-        )
-        .recover_with(nested_delimiters(
-            TokenKind::Control('['),
-            TokenKind::Control(']'),
-            [
-                (TokenKind::Control('{'), TokenKind::Control('}')),
-                (TokenKind::Control('('), TokenKind::Control(')')),
-                (TokenKind::Control('['), TokenKind::Control(']')),
-            ],
-            |_| vec![],
-        ))
-        .map(ExprKind::SqlArray)
-        .labelled("sql_array")
 }
 
 fn interpolation() -> impl Parser<TokenKind, ExprKind, Error = PError> + Clone {

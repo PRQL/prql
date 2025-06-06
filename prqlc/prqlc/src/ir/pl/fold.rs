@@ -79,7 +79,6 @@ pub fn fold_expr_kind<T: ?Sized + PlFold>(fold: &mut T, expr_kind: ExprKind) -> 
         },
         Tuple(items) => Tuple(fold.fold_exprs(items)?),
         Array(items) => Array(fold.fold_exprs(items)?),
-        SqlArray(items) => SqlArray(fold.fold_exprs(items)?),
         SString(items) => SString(
             items
                 .into_iter()
@@ -334,7 +333,6 @@ pub fn fold_type<T: ?Sized + PlFold>(fold: &mut T, ty: Ty) -> Result<Ty> {
                     .try_collect()?,
             ),
             TyKind::Array(ty) => TyKind::Array(fold_type_opt_box(fold, ty)?),
-            TyKind::SqlArray(ty) => TyKind::SqlArray(fold_type_opt_box(fold, ty)?),
             TyKind::Function(func) => TyKind::Function(
                 func.map(|f| -> Result<_> {
                     Ok(TyFunc {
