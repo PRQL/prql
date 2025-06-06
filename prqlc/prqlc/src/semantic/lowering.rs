@@ -75,6 +75,7 @@ pub fn lower_to_ir(
 
     let query = RelationalQuery {
         def,
+        columns_positional_mapping: l.columns_positional_mapping(),
         tables: l.table_buffer,
         relation: main_relation.unwrap(),
     };
@@ -159,6 +160,9 @@ struct Lowerer {
     /// mapping from [Ident] of [crate::pr::TableDef] into [TId]s
     table_mapping: HashMap<Ident, TId>,
 
+    /// describes columns pairs for operation that need the columns to match (e.g. append)
+    positional_mapping: Vec<(CId, CId)>,
+
     // current window for any new column defs
     window: Option<rq::Window>,
 
@@ -190,6 +194,7 @@ impl Lowerer {
 
             node_mapping: HashMap::new(),
             table_mapping: HashMap::new(),
+            positional_mapping: Vec::new(),
 
             window: None,
             pipeline: Vec::new(),
@@ -480,6 +485,8 @@ impl Lowerer {
         let prev_pipeline = self.pipeline.drain(..).collect_vec();
 
         self.lower_pipeline(expr, None)?;
+
+        self.lower_relation_positional_mapping(lineage.as_ref());
 
         let mut transforms = self.pipeline.drain(..).collect_vec();
         let columns = self.push_select(lineage, &mut transforms).with_span(span)?;
@@ -966,7 +973,7 @@ impl Lowerer {
             .try_collect()
     }
 
-    fn lookup_cid(&mut self, id: usize, name: Option<&String>) -> Result<CId> {
+    fn lookup_cid(&self, id: usize, name: Option<&String>) -> Result<CId> {
         let cid = match self.node_mapping.get(&id) {
             Some(LoweredTarget::Compute(cid)) => *cid,
             Some(LoweredTarget::Input(input_columns)) => {
@@ -992,6 +999,47 @@ impl Lowerer {
         };
 
         Ok(cid)
+    }
+
+    /// Transform positional mapping from `LineageColumn` to `CId` for next phases
+    fn lower_relation_positional_mapping(&mut self, lineage: Option<&Lineage>) {
+        let positional_mapping: Vec<_> = lineage
+            .iter()
+            .flat_map(|l| &l.columns_positional_mapping)
+            .flatten()
+            .flat_map(|(top, bottom)| {
+                let top_cid = match top {
+                    LineageColumn::Single {
+                        target_id,
+                        target_name,
+                        ..
+                    } => self.lookup_cid(*target_id, target_name.as_ref()).ok(),
+                    _ => None,
+                };
+                let bottom_cid = match bottom {
+                    LineageColumn::Single {
+                        target_id,
+                        target_name,
+                        ..
+                    } => self.lookup_cid(*target_id, target_name.as_ref()).ok(),
+                    _ => None,
+                };
+
+                match (top_cid, bottom_cid) {
+                    (Some(top_cid), Some(bottom_cid)) => Some((top_cid, bottom_cid)),
+                    _ => {
+                        log::debug!("unable to find cids for {top:?} and {bottom:?}");
+                        None
+                    }
+                }
+            })
+            .collect();
+
+        self.positional_mapping.extend(positional_mapping);
+    }
+
+    pub fn columns_positional_mapping(&mut self) -> Vec<(CId, CId)> {
+        self.positional_mapping.drain(..).collect()
     }
 }
 

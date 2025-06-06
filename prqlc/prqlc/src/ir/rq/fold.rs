@@ -144,6 +144,7 @@ pub fn fold_query<F: ?Sized + RqFold>(
             .into_iter()
             .map(|t| fold.fold_table(t))
             .try_collect()?,
+        columns_positional_mapping: query.columns_positional_mapping,
     })
 }
 

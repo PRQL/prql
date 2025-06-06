@@ -29,6 +29,8 @@ pub struct RelationalQuery {
 
     pub tables: Vec<TableDecl>,
     pub relation: Relation,
+
+    pub columns_positional_mapping: Vec<(CId, CId)>,
 }
 
 #[derive(Debug, PartialEq, Clone, Serialize, Deserialize, JsonSchema)]

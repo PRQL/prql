@@ -257,6 +257,7 @@ pub mod test {
                   - 0
           columns:
             - Wildcard
+        columns_positional_mapping: []
         " );
 
         assert!(parse_resolve_and_lower(

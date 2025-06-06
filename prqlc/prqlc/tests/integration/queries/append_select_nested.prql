@@ -1,0 +1,11 @@
+from invoices
+select { customer_id, invoice_id, invoice_date }
+append (
+  from employees
+  select { employee_id, employee_id, birth_date }
+)
+append (
+  from invoice_items
+  select { invoice_line_id, invoice_id, null }
+)
+select { invoice_date, invoice_id }
