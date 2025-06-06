@@ -1,7 +1,7 @@
 let x = p1 -> s"x({p1})"
 
 from t
-filter ( name | in ['q', 'w'])
+filter (name | in ['q', 'w'])
 select {
   empty_array = [],
   single_element = [42],

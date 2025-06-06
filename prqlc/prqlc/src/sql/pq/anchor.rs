@@ -571,7 +571,7 @@ pub fn infer_complexity_expr(expr: &Expr) -> Complexity {
             .iter()
             .map(infer_complexity_expr)
             .max()
-            .unwrap_or(Complexity::Plain)
+            .unwrap_or(Complexity::Plain),
     }
 }
 
