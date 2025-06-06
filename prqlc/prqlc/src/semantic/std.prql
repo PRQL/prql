@@ -156,9 +156,9 @@ let concat_array = column <array> -> <text> internal std.concat_array
 
 # Counts number of items in the column.
 # Note that the count will include null values.
-let count = column<array> -> <int> internal count
+let count = column <array> -> <int> internal count
 
-# Deprecated in favour of filterning input to the [std.count] function (not yet implemented).
+# Deprecated in favour of filtering input to the [std.count] function (not yet implemented).
 @{deprecated}
 let count_distinct = column <array> -> internal std.count_distinct
 
