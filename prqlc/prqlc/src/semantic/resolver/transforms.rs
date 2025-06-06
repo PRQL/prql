@@ -1156,6 +1156,7 @@ mod tests {
                   - 0
           columns:
             - Single: invoice_no
+        columns_positional_mapping: []
         ");
 
         // oops, two arguments #339
@@ -1262,6 +1263,7 @@ mod tests {
             - Single: amount
             - Single: num_of_articles
             - Wildcard
+        columns_positional_mapping: []
         ");
     }
 }

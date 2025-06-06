@@ -27,6 +27,8 @@ pub struct AnchorContext {
 
     pub relation_instances: HashMap<RIId, RelationInstance>,
 
+    pub positional_mapping: Vec<(CId, CId)>,
+
     pub col_name: NameGenerator,
     pub table_name: NameGenerator,
 
@@ -289,6 +291,8 @@ impl QueryLoader {
     fn load(context: AnchorContext, query: RelationalQuery) -> (AnchorContext, Relation) {
         let mut loader = QueryLoader { context };
 
+        loader.load_positional_mapping(query.columns_positional_mapping);
+
         for t in query.tables {
             loader.load_table(t).unwrap();
         }
@@ -321,6 +325,12 @@ impl QueryLoader {
 
         self.context.table_decls.insert(decl.id, sql_decl);
         Ok(())
+    }
+
+    fn load_positional_mapping(&mut self, columns_positional_mapping: Vec<(CId, CId)>) {
+        self.context
+            .positional_mapping
+            .extend(columns_positional_mapping.iter().cloned());
     }
 }
 

@@ -5,15 +5,17 @@ input_file: prqlc/prqlc/tests/integration/queries/append_select_nested.prql
 ---
 WITH table_0 AS (
   SELECT
-    birth_date,
-    employee_id
+    employee_id,
+    employee_id,
+    birth_date
   FROM
     employees
 ),
 table_1 AS (
   SELECT
-    NULL,
-    invoice_id
+    invoice_line_id,
+    invoice_id,
+    NULL
   FROM
     invoice_items
 )

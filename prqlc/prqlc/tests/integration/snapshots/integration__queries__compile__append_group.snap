@@ -5,15 +5,16 @@ input_file: prqlc/prqlc/tests/integration/queries/append_group.prql
 ---
 WITH table_0 AS (
   SELECT
-    customer_id,
-    invoice_date
+    invoice_date,
+    invoice_id,
+    customer_id
   FROM
     invoices
 ),
 table_1 AS (
   SELECT
-    customer_id,
-    invoice_date
+    invoice_date,
+    customer_id
   FROM
     invoices
   UNION

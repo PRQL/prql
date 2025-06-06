@@ -5,8 +5,9 @@ input_file: prqlc/prqlc/tests/integration/queries/append_select.prql
 ---
 WITH table_0 AS (
   SELECT
-    invoice_date,
-    invoice_id
+    customer_id,
+    invoice_id,
+    invoice_date
   FROM
     invoices
 )

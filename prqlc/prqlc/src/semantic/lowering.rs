@@ -4,7 +4,6 @@ use std::iter::zip;
 
 use enum_as_inner::EnumAsInner;
 use itertools::Itertools;
-use log::{trace, warn};
 use prqlc_parser::generic::{InterpolateItem, Range, SwitchCase};
 use prqlc_parser::lexer::lr::Literal;
 use semver::{Prerelease, Version};
@@ -76,6 +75,7 @@ pub fn lower_to_ir(
 
     let query = RelationalQuery {
         def,
+        columns_positional_mapping: l.columns_positional_mapping(),
         tables: l.table_buffer,
         relation: main_relation.unwrap(),
     };
@@ -160,6 +160,9 @@ struct Lowerer {
     /// mapping from [Ident] of [crate::pr::TableDef] into [TId]s
     table_mapping: HashMap<Ident, TId>,
 
+    /// describes columns pairs for operation that need the columns to match (e.g. append)
+    positional_mapping: Vec<(CId, CId)>,
+
     // current window for any new column defs
     window: Option<rq::Window>,
 
@@ -168,8 +171,6 @@ struct Lowerer {
 
     /// A buffer to be added into query tables
     table_buffer: Vec<TableDecl>,
-
-    lineage_stack: Vec<Option<Lineage>>,
 }
 
 #[derive(Clone, EnumAsInner, Debug)]
@@ -193,12 +194,11 @@ impl Lowerer {
 
             node_mapping: HashMap::new(),
             table_mapping: HashMap::new(),
+            positional_mapping: Vec::new(),
 
             window: None,
             pipeline: Vec::new(),
             table_buffer: Vec::new(),
-
-            lineage_stack: Default::default(),
         }
     }
 
@@ -481,9 +481,12 @@ impl Lowerer {
 
     fn lower_relation(&mut self, expr: pl::Expr) -> Result<rq::Relation> {
         let span = expr.span;
+        let lineage = expr.lineage.clone();
         let prev_pipeline = self.pipeline.drain(..).collect_vec();
 
-        let lineage = self.apply_column_order_and_lower_relation(expr)?;
+        self.lower_pipeline(expr, None)?;
+
+        self.lower_relation_positional_mapping(lineage.as_ref());
 
         let mut transforms = self.pipeline.drain(..).collect_vec();
         let columns = self.push_select(lineage, &mut transforms).with_span(span)?;
@@ -495,89 +498,6 @@ impl Lowerer {
             columns,
         };
         Ok(relation)
-    }
-
-    // To handle the few position operation like append, we keep track of earlier lineages
-    // and we match their column order and count.
-    fn apply_column_order_and_lower_relation(&mut self, expr: pl::Expr) -> Result<Option<Lineage>> {
-        let mut lineage = expr.lineage.clone();
-
-        if let Some(lineage) = &mut lineage {
-            for earlier_lineage in self.lineage_stack.iter().flatten().rev() {
-                if self.try_to_apply_column_order(earlier_lineage, &mut lineage.columns) {
-                    break;
-                }
-            }
-        }
-
-        self.lineage_stack.push(lineage.clone());
-        let res = self.lower_pipeline(expr, None);
-        self.lineage_stack.pop();
-        res?;
-
-        Ok(lineage)
-    }
-
-    pub(crate) fn try_to_apply_column_order(
-        &self,
-        projection: &Lineage,
-        columns_to_reorder: &mut Vec<LineageColumn>,
-    ) -> bool {
-        let projection = &projection.columns;
-        if projection.is_empty() {
-            return false;
-        }
-
-        let mut new_projection = Vec::with_capacity(projection.len());
-
-        trace!("trying to apply projection from {projection:#?} into {columns_to_reorder:#?}");
-
-        for projected_column in projection {
-            // A search by name is required to circumvent the loss of lineage caused by `apply_assign`
-            let LineageColumn::Single {
-                name: projected_column_name,
-                ..
-            } = projected_column
-            else {
-                // We do not need to support wildcards since we need a precise column count anyway.
-                trace!("projection on wildcards are not supported");
-                return false;
-            };
-
-            let mut candidates = self
-                .lineage_stack
-                .iter()
-                .flatten()
-                .flat_map(|l| &l.columns_positional_mapping)
-                .flatten()
-                .filter(|(t, b)| {
-                    // We do not need to support wildcards since we need a precise column count anyway.
-                    if let LineageColumn::Single { name, .. } = t {
-                        name == projected_column_name && columns_to_reorder.contains(b)
-                    } else {
-                        false
-                    }
-                });
-
-            if let Some((_, first_candidate)) = candidates.next() {
-                new_projection.push(first_candidate.clone());
-            } else {
-                trace!("no candidate found for {projected_column_name:?}");
-            }
-
-            for ignored_candidate in candidates {
-                // TODO: better disambiguation between candidates
-                warn!("rejected candidate {ignored_candidate:?}");
-            }
-        }
-
-        if !new_projection.is_empty() {
-            trace!("applying new projection {new_projection:#?}");
-            *columns_to_reorder = new_projection;
-            true
-        } else {
-            false
-        }
     }
 
     // Result is stored in self.pipeline
@@ -1053,7 +973,7 @@ impl Lowerer {
             .try_collect()
     }
 
-    fn lookup_cid(&mut self, id: usize, name: Option<&String>) -> Result<CId> {
+    fn lookup_cid(&self, id: usize, name: Option<&String>) -> Result<CId> {
         let cid = match self.node_mapping.get(&id) {
             Some(LoweredTarget::Compute(cid)) => *cid,
             Some(LoweredTarget::Input(input_columns)) => {
@@ -1079,6 +999,47 @@ impl Lowerer {
         };
 
         Ok(cid)
+    }
+
+    /// Transform positional mapping from `LineageColumn` to `CId` for next phases
+    fn lower_relation_positional_mapping(&mut self, lineage: Option<&Lineage>) {
+        let positional_mapping: Vec<_> = lineage
+            .iter()
+            .flat_map(|l| &l.columns_positional_mapping)
+            .flatten()
+            .flat_map(|(top, bottom)| {
+                let top_cid = match top {
+                    LineageColumn::Single {
+                        target_id,
+                        target_name,
+                        ..
+                    } => self.lookup_cid(*target_id, target_name.as_ref()).ok(),
+                    _ => None,
+                };
+                let bottom_cid = match bottom {
+                    LineageColumn::Single {
+                        target_id,
+                        target_name,
+                        ..
+                    } => self.lookup_cid(*target_id, target_name.as_ref()).ok(),
+                    _ => None,
+                };
+
+                match (top_cid, bottom_cid) {
+                    (Some(top_cid), Some(bottom_cid)) => Some((top_cid, bottom_cid)),
+                    _ => {
+                        log::debug!("unable to find cids for {top:?} and {bottom:?}");
+                        None
+                    }
+                }
+            })
+            .collect();
+
+        self.positional_mapping.extend(positional_mapping);
+    }
+
+    pub fn columns_positional_mapping(&mut self) -> Vec<(CId, CId)> {
+        self.positional_mapping.drain(..).collect()
     }
 }
 
