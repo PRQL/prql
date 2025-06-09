@@ -27,6 +27,7 @@ pub struct AnchorContext {
 
     pub relation_instances: HashMap<RIId, RelationInstance>,
 
+    /// describes columns pairs for operation that need the columns to match (e.g. append)
     pub positional_mapping: Vec<(CId, CId)>,
 
     pub col_name: NameGenerator,

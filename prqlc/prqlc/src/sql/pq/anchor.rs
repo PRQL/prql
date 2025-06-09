@@ -87,7 +87,7 @@ pub(super) fn split_off_back(
             log::debug!("split required after {}", transform.as_str());
             log::debug!(".. following={:?}", following_transforms);
 
-            reorder_requirements(&ctx, &transform, &mut inputs_required);
+            reorder_requirements(ctx, &transform, &mut inputs_required);
 
             pipeline.push(transform);
             break;
@@ -714,29 +714,25 @@ fn reorder_requirements(
     transform: &SqlTransform,
     inputs_required: &mut Vec<Requirement>,
 ) {
-    match transform {
-        SqlTransform::Union { bottom, .. } => {
-            if let Some(relation) = ctx.relation_instances.get(bottom) {
-                let mut new_input_required = Vec::with_capacity(inputs_required.len());
-                log::debug!(".. reordering required to match union order {inputs_required:?}",);
+    if let SqlTransform::Union { bottom, .. } = transform {
+        if let Some(relation) = ctx.relation_instances.get(bottom) {
+            let mut new_input_required = Vec::with_capacity(inputs_required.len());
+            log::debug!(".. reordering required to match union order {inputs_required:?}",);
 
-                for original_cid in &relation.original_cids {
-                    let cid = *ctx
-                        .positional_mapping
-                        .iter()
-                        .find(|(_, b)| original_cid == b)
-                        .map_or(original_cid, |(t, _)| t);
+            for original_cid in &relation.original_cids {
+                let cid = *ctx
+                    .positional_mapping
+                    .iter()
+                    .find(|(_, b)| original_cid == b)
+                    .map_or(original_cid, |(t, _)| t);
 
-                    new_input_required
-                        .extend(inputs_required.iter().filter(|r| r.col == cid).cloned());
-                    inputs_required.retain(|r| r.col != cid);
-                }
-
-                new_input_required.extend(inputs_required.drain(..));
-                *inputs_required = new_input_required;
-                log::debug!(".. new order is {inputs_required:?}",);
+                new_input_required.extend(inputs_required.iter().filter(|r| r.col == cid).cloned());
+                inputs_required.retain(|r| r.col != cid);
             }
+
+            new_input_required.append(inputs_required);
+            *inputs_required = new_input_required;
+            log::debug!(".. new order is {inputs_required:?}",);
         }
-        _ => (),
     }
 }
