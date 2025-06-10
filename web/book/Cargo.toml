@@ -30,7 +30,7 @@ strum = { workspace = true }
 strum_macros = { workspace = true }
 
 [target.'cfg(not(target_family="wasm"))'.dev-dependencies]
-anstream = { version = "0.6.18" }
+anstream = { version = "0.6.19" }
 globset = "0.4.16"
 insta = { workspace = true }
 log = { workspace = true }
