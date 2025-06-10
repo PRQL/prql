@@ -1,0 +1,14 @@
+from invoices
+select { customer_id, invoice_id, billing_country }
+take 5
+append (
+  from employees
+  select { employee_id, employee_id, country }
+  take 5
+)
+append (
+  from invoice_items
+  select { invoice_line_id, invoice_id, null }
+  take 5
+)
+select { billing_country, invoice_id }
