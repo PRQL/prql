@@ -31,20 +31,11 @@ impl PositionalMapper {
 
     pub fn compute_and_store_mapping(
         &mut self,
-        (before_riid, before): &(RIId, Vec<CId>),
-        (after_riid, after): &(RIId, Vec<CId>),
+        (_, before): &(RIId, Vec<CId>),
+        (riid, after): &(RIId, Vec<CId>),
     ) {
-        let riid = if after_riid != before_riid {
-            log::warn!(
-                ".. comparing positions for different relations {before_riid:?} vs {after_riid:?} "
-            );
-            return;
-        } else {
-            after_riid
-        };
-
         if after == before {
-            log::trace!(".. relation {after_riid:?} is already correctly mapped: {after:?}");
+            log::trace!(".. relation {riid:?} is already correctly mapped: {after:?}");
             return;
         }
 
@@ -59,16 +50,9 @@ impl PositionalMapper {
             })
             .collect();
 
-        match self.relation_positional_mapping.get(riid) {
-            Some(already_recorded) => {
-                if already_recorded != &mapping {
-                    log::warn!("relation {riid:?} appear twice with different mapping {already_recorded:?} vs {mapping:?}");
-                }
-            }
-            None => {
-                log::debug!(".. relation {riid:?} will be mapped: {mapping:?}");
-                self.relation_positional_mapping.insert(*riid, mapping);
-            }
+        if !self.relation_positional_mapping.contains_key(riid) {
+            log::debug!(".. relation {riid:?} will be mapped: {mapping:?}");
+            self.relation_positional_mapping.insert(*riid, mapping);
         }
     }
 }
@@ -99,27 +83,12 @@ pub fn compute_positional_mappings(
                     columns.extend_from_slice(partition.as_slice());
                     columns.extend_from_slice(compute.as_slice());
                 }
-                t @ Transform::Append(_) | t @ Transform::From(_) => {
-                    log::warn!("compute_positional_mapping_before: {t:?} is not implemented");
-                }
                 _ => (),
             },
-            SqlTransform::Select(cids) => {
-                columns.clear();
-                columns.extend_from_slice(cids.as_slice());
-            }
-            SqlTransform::Aggregate { partition, compute } => {
-                columns.clear();
-                columns.extend_from_slice(partition.as_slice());
-                columns.extend_from_slice(compute.as_slice());
-            }
             SqlTransform::Except { bottom, .. }
             | SqlTransform::Intersect { bottom, .. }
             | SqlTransform::Union { bottom, .. } => {
                 constraints.push((*bottom, columns.clone()));
-            }
-            t @ SqlTransform::DistinctOn(_) => {
-                log::warn!("compute_positional_mapping_before: {t:?} is not implemented");
             }
             _ => (),
         }
