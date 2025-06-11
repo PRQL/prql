@@ -12,6 +12,7 @@ mod anchor;
 pub mod ast;
 pub mod context;
 mod gen_query;
+mod positional_mapping;
 mod postprocess;
 pub mod preprocess;
 

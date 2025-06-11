@@ -10,6 +10,7 @@ use crate::ir::rq::{
     Transform,
 };
 use crate::sql::pq::context::RelationAdapter;
+use crate::sql::pq::positional_mapping::compute_positional_mappings;
 use crate::Result;
 
 /// Extract last part of pipeline that is able to "fit" into a single SELECT statement.
@@ -19,6 +20,7 @@ pub(super) fn extract_atomic(
     ctx: &mut AnchorContext,
 ) -> Vec<SqlTransform> {
     let output = ctx.determine_select_columns(&pipeline);
+    let output = ctx.positional_mapping.apply_active_mapping(output);
 
     let (preceding, atomic) = split_off_back(pipeline, output.clone(), ctx);
 
@@ -71,6 +73,8 @@ pub(super) fn split_off_back(
         return (None, Vec::new());
     }
 
+    let mapping_before = compute_positional_mappings(&pipeline);
+
     log::debug!("traversing pipeline to obtain columns: {output:?}");
 
     let mut following_transforms: HashSet<String> = HashSet::new();
@@ -92,7 +96,7 @@ pub(super) fn split_off_back(
 
         // anchor and record all requirements
         let required = get_requirements(&transform, &following_transforms);
-        log::debug!("transform {} requires {:?}", transform.as_str(), required);
+        log::debug!(".. transform {} requires {required:?}", transform.as_str(),);
         inputs_required.extend(required.clone());
 
         match &transform {
@@ -184,6 +188,14 @@ pub(super) fn split_off_back(
     };
 
     curr_pipeline_rev.reverse();
+
+    // This will compare columns for order sensitive transform and correct it in subsequent relation.
+    let mapping_after = compute_positional_mappings(&curr_pipeline_rev);
+    for (before, after) in mapping_before.iter().zip(mapping_after.iter()) {
+        ctx.positional_mapping
+            .compute_and_store_mapping(before, after);
+    }
+
     (remaining_pipeline, curr_pipeline_rev)
 }
 
