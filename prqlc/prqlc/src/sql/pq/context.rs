@@ -13,6 +13,7 @@ use crate::ir::rq::{
     fold_table, CId, Compute, Relation, RelationColumn, RelationKind, RelationalQuery, RqFold, TId,
     TableDecl, TableRef, Transform,
 };
+use crate::sql::pq::positional_mapping::PositionalMapper;
 use crate::utils::{IdGenerator, NameGenerator};
 use crate::{ir::pl::TableExternRef::LocalTable, Result};
 
@@ -26,6 +27,8 @@ pub struct AnchorContext {
     pub table_decls: HashMap<TId, SqlTableDecl>,
 
     pub relation_instances: HashMap<RIId, RelationInstance>,
+
+    pub positional_mapping: PositionalMapper,
 
     pub col_name: NameGenerator,
     pub table_name: NameGenerator,
