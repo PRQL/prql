@@ -4993,25 +4993,56 @@ fn test_array_01() {
 
 #[test]
 fn test_array_02() {
-    assert_snapshot!(compile(r#"
-    from [
-      {x = null},
-      {x = '1'},
-    ]
-    "#)
-    .unwrap(), @r"
+    assert_snapshot!(compile(r###"
+    let x = p1 -> s"x({p1})"
+
+    from [{a=null}, {a=2}]
+    filter (a | in [2, 4])
+    select {
+      empty_array = [],
+      single_element = [42],
+      null_element = [null],
+      complex_expressions = [a + a, (a * 2) + 1],
+      nested_function_calls = [(min a), (max a ?? 0)],
+      passing_as_arg = x [1,2,3],
+      nested = ['a', ['b']]
+    }
+    "###).unwrap(), @r"
     WITH table_0 AS (
       SELECT
-        NULL AS x
+        NULL AS a
       UNION
       ALL
       SELECT
-        '1' AS x
+        2 AS a
     )
     SELECT
-      x
+      [] AS empty_array,
+      [42] AS single_element,
+      [NULL] AS null_element,
+      [a + a, a * 2 + 1] AS complex_expressions,
+      [MIN(a) OVER (), MAX(COALESCE(a, 0)) OVER ()] AS nested_function_calls,
+      x([1, 2, 3]) AS passing_as_arg,
+      [ 'a',
+      [ 'b' ] ] AS nested
     FROM
       table_0
+    WHERE
+      a IN (2, 4)
+    ");
+}
+
+#[test]
+fn test_array_03() {
+    assert_snapshot!(compile(r###"
+    from employees
+    select {e = this}
+    select [e.first_name, e.last_name]
+    "###).unwrap(), @r"
+    SELECT
+      [first_name, last_name]
+    FROM
+      employees
     ");
 }
 
@@ -5513,22 +5544,22 @@ fn unstable_ordering() {
     assert_snapshot!(compile(r###"
   # All lines are mandatory
 from foo
-take 10000 
+take 10000
 # We need 8+ aliases to trigger the issue
 derive { a1 = 1, a2 = 1, a3 = 1, a4 = 1, a5 = 1, a6 = 1, a7 = 1, a8 = 1 }
 # The `select !` itself is required, but its content is not
-select !{ a1, a2, a3, a4, a5, a6, a7, a8 } 
+select !{ a1, a2, a3, a4, a5, a6, a7, a8 }
 
 # We may remove `u` from both these statements, but the `select !` must remain
 select { b, c, u }
-select !{ u } 
+select !{ u }
 
 # Aggregate verb seems to not matter
-group { b } ( aggregate { c = count c } ) 
-derive { d = c } 
-select !{ c } 
+group { b } ( aggregate { c = count c } )
+derive { d = c }
+select !{ c }
 
-group { d } ( aggregate { b = sum b } ) 
+group { d } ( aggregate { b = sum b } )
 sort { d }"###).unwrap(), @r"
     WITH table_1 AS (
       SELECT

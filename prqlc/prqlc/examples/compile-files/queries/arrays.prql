@@ -1,6 +1,6 @@
 let x = p1 -> s"x({p1})"
 
-from [{a=1}, {a=2}]
+from [{a=null}, {a=2}]
 filter (a | in [2, 4])
 select {
   empty_array = [],
