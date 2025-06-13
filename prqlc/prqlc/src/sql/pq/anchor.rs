@@ -579,7 +579,11 @@ pub fn infer_complexity_expr(expr: &Expr) -> Complexity {
         | rq::ExprKind::Literal(_)
         | rq::ExprKind::SString(_)
         | rq::ExprKind::Param(_) => Complexity::Plain,
-        rq::ExprKind::Array(_) => Complexity::highest(),
+        rq::ExprKind::Array(elements) => elements
+            .iter()
+            .map(infer_complexity_expr)
+            .max()
+            .unwrap_or(Complexity::Plain),
     }
 }
 
