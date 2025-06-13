@@ -178,6 +178,8 @@ impl PqMapper<RIId, pq::RelationExpr, rq::Transform, ()> for TransformCompiler<'
 }
 
 pub(super) fn compile_relation_instance(riid: RIId, ctx: &mut Context) -> Result<pq::RelationExpr> {
+    ctx.anchor.positional_mapping.activate_mapping(&riid);
+
     let table_ref = &ctx.anchor.relation_instances.get(&riid).unwrap().table_ref;
     let source = table_ref.source;
     let decl = ctx.anchor.table_decls.get_mut(&table_ref.source).unwrap();

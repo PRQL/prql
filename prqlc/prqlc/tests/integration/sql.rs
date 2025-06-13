@@ -919,6 +919,62 @@ fn test_sort_in_nested_join() {
 }
 
 #[test]
+fn test_sort_in_nested_join_with_extra_derive_and_select() {
+    // #5302
+    assert_snapshot!(compile(r#"
+    from albums
+    join side:left  (
+      from artists
+      derive {
+        my_new_col = f"artist: {name}"
+      }
+      group {my_new_col} (aggregate { first_name = first this.`name`})
+      sort {this.my_new_col, first_name}
+      derive {new_name = first_name, other_new_name = first_name}
+      select {this.my_new_col, this.new_name, this.other_new_name}
+    ) (this.id == that.my_new_col)
+    "#).unwrap(),
+        @r#"
+    WITH table_1 AS (
+      SELECT
+        CONCAT('artist: ', name) AS my_new_col,
+        FIRST_VALUE(name) AS _expr_0
+      FROM
+        artists
+      GROUP BY
+        CONCAT('artist: ', name)
+    ),
+    table_2 AS (
+      SELECT
+        my_new_col,
+        _expr_0 AS new_name,
+        _expr_0 AS other_new_name,
+        _expr_0
+      FROM
+        table_1
+    ),
+    table_0 AS (
+      SELECT
+        my_new_col,
+        new_name,
+        other_new_name,
+        FIRST_VALUE(name) AS _expr_0
+      FROM
+        table_2
+    )
+    SELECT
+      albums.*,
+      table_0.my_new_col,
+      table_0.new_name,
+      table_0.other_new_name
+    FROM
+      albums
+      LEFT OUTER JOIN table_0 ON albums.id = table_0.my_new_col
+    "#
+    );
+}
+
+#[test]
 fn test_sort_in_nested_append() {
     assert_snapshot!(compile(r#"
     from `albums`
@@ -3886,7 +3942,6 @@ fn test_name_shadowing() {
         @r"
     SELECT
       a AS _expr_0,
-      a AS _expr_0,
       a + 1 AS a
     FROM
       x
@@ -3903,7 +3958,6 @@ fn test_name_shadowing() {
     "###).unwrap(),
         @r"
     SELECT
-      a AS _expr_0,
       a AS _expr_0,
       a + 1,
       a + 1 + 2 AS a
@@ -5129,7 +5183,6 @@ fn test_lineage() {
         '    3' AS a
     )
     SELECT
-      a,
       a
     FROM
       table_0

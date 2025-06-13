@@ -55,7 +55,7 @@ test-dbs-external = [
 [dependencies]
 prqlc-parser = { path = "../prqlc-parser", version = "0.13.5" }
 
-anstream = { version = "0.6.18", features = ["auto"] }
+anstream = { version = "0.6.19", features = ["auto"] }
 ariadne = "0.5.1"
 chrono = "0.4.39"
 csv = "1.3.1"
