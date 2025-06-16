@@ -135,7 +135,7 @@ tokio-util = { version = "0.7.15", optional = true, features = ["compat"] }
 [dev-dependencies]
 # default-features=false required to allow wasm compilation (which we don't use
 # for benchmarks but simplifies the code)
-criterion = { version = "0.5.1", default-features = false }
+criterion = { version = "0.6.0", default-features = false }
 glob = { version = "0.3.2" }
 insta = { workspace = true }
 insta-cmd = { workspace = true }
