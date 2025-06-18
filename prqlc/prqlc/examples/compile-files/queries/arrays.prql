@@ -1,0 +1,13 @@
+let x = p1 -> s"x({p1})"
+
+from [{a=null}, {a=2}]
+filter (a | in [2, 4])
+select {
+  empty_array = [],
+  single_element = [42],
+  null_element = [null],
+  complex_expressions = [a + a, (a * 2) + 1],
+  nested_function_calls = [(min a), (max a ?? 0)],
+  passing_as_arg = x [1,2,3],
+  nested = ['a', ['b']]
+}
