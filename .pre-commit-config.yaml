@@ -16,7 +16,7 @@ repos:
         # https://github.com/crate-ci/typos/issues/347
         pass_filenames: false
   - repo: https://github.com/rbubley/mirrors-prettier
-    rev: v3.5.3
+    rev: v3.6.0
     hooks:
       - id: prettier
         additional_dependencies:
@@ -25,7 +25,7 @@ repos:
           # https://github.com/PRQL/prql/issues/3078
           - prettier-plugin-go-template
   - repo: https://github.com/astral-sh/ruff-pre-commit
-    rev: v0.11.13
+    rev: v0.12.0
     hooks:
       - id: ruff
         args: [--fix]
