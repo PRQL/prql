@@ -31,7 +31,6 @@ an index.
   [`grammars/GtkSourceView/`](https://github.com/PRQL/prql/tree/main/grammars/GtkSourceView/).
 
 - [Handlebars](https://handlebarsjs.com/) — currently duplicated:
-
   - The book:
     [`book/highlight-prql.js`](https://github.com/PRQL/prql/blob/main/web/book/highlight-prql.js)
   - The website (outside of the book & playground):
@@ -83,5 +82,4 @@ an index.
   [`grammars/vim/`](https://github.com/PRQL/prql/tree/main/grammars/vim/). The
   grammar is
   [upstream](https://github.com/vim/vim/blob/master/runtime/syntax/prql.vim).
-
   - [Neovim](https://neovim.io/) supported. Grammar is upstream.
