@@ -147,7 +147,6 @@ Selected changes:
   reducing the amount of context that's required to understand a single stage.
   There will likely be some further changes (more detail in the PR description).
   (@m-span, #4634)
-
   - This is a breaking change for any libraries that depend on `prqlc-parser`
     (which should be fairly rare).
 
@@ -657,7 +656,6 @@ A small selection of the changes:
   items (`select {foo, baz}`), and assignments (`select {foo=bar, baz=fuz}`).
 
 - Some significant changes regarding SQL dialects:
-
   - Operators and functions can be defined on per-dialect basis. (@aljazerzen,
     #2681)
   - _Breaking_: The `sql.duckdb` target supports DuckDB 0.8 (@eitsupi, #2810).
@@ -665,7 +663,6 @@ A small selection of the changes:
 
 - New arithmetic operators. These compile to different function or operator
   depending on the target.
-
   - _Breaking_: Operator `/` now always performs floating division (@aljazerzen,
     #2684). See the
     [Division docs](https://prql-lang.org/book/reference/syntax/operators.html#division-and-integer-division)

@@ -41,7 +41,6 @@ accepts a few formats:
 - `format:csv` parses CSV (default),
 
 - `format:json` parses either:
-
   - an array of objects each of which represents a row, or
 
   - an object with fields `columns` & `data`, where `columns` take an array of
