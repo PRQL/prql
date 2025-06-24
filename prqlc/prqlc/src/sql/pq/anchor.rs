@@ -674,7 +674,9 @@ impl<'a> CidRedirector<'a> {
                     let cid_redirects = &ctx.relation_instances[riid].cid_redirects;
                     for (source, target) in cid_redirects.iter() {
                         if target == cid {
-                            log::debug!("reverting {target:?} back to {source:?}");
+                            log::debug!(
+                                "reverting {target:?} back to {source:?} via {cid_redirects:?}"
+                            );
                             return ColumnSort {
                                 direction: sort.direction,
                                 column: *source,
