@@ -18,7 +18,7 @@ use crate::ir::pl::{self, Ident, Literal};
 use crate::ir::rq;
 use crate::sql::pq::context::ColumnDecl;
 use crate::utils::{valid_ident, OrMap};
-use crate::{Error, Reason, Result, Span, WithErrorInfo};
+use crate::{Error, Result, Span, WithErrorInfo};
 
 pub(super) fn translate_expr(expr: rq::Expr, ctx: &mut Context) -> Result<ExprOrSource> {
     Ok(match expr.kind {
@@ -118,11 +118,20 @@ pub(super) fn translate_expr(expr: rq::Expr, ctx: &mut Context) -> Result<ExprOr
             }
             super::operators::translate_operator_expr(expr, ctx)?
         }
-        rq::ExprKind::Array(_) => {
-            return Err(Error::new(Reason::Unexpected {
-                found: "array of values (not supported here)".to_string(),
+        rq::ExprKind::Array(exprs) => {
+            let elements = exprs
+                .iter()
+                .map(|e| translate_expr(e.clone(), ctx).map(|x| x.into_ast()))
+                .try_collect()?;
+
+            let sql_array = ctx.dialect.translate_sql_array(elements)?;
+
+            // Return as SourceExpr so it can be interpolated into s-strings
+            ExprOrSource::Source(SourceExpr {
+                text: sql_array.to_string(),
+                binding_strength: 100,
+                window_frame: false,
             })
-            .with_span(expr.span));
         }
     })
 }
