@@ -1,0 +1,11 @@
+---
+source: prqlc/prqlc/tests/integration/queries.rs
+expression: "s\"SELECT album_id,title,artist_id FROM albums\"\ngroup {artist_id} (aggregate { first_album_title = min this.`title`})\nsort {this.artist_id, this.first_album_title}\nderive {new_album_title = this.first_album_title}\nselect {this.artist_id, this.new_album_title}\njoin side:left ( s\"SELECT artist_id,name as artist_name FROM artists\" ) (this.artist_id == that.artist_id)\n"
+input_file: prqlc/prqlc/tests/integration/queries/group_sort_derive_select_join.prql
+---
+s"SELECT album_id,title,artist_id FROM albums"
+group {artist_id} (aggregate {first_album_title = min this.title})
+sort {this.artist_id, this.first_album_title}
+derive {new_album_title = this.first_album_title}
+select {this.artist_id, this.new_album_title}
+join side:left s"SELECT artist_id,name as artist_name FROM artists" this.artist_id == that.artist_id
