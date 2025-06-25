@@ -934,7 +934,7 @@ fn test_sort_in_nested_join_with_extra_derive_and_select() {
       select {this.my_new_col, this.new_name, this.other_new_name}
     ) (this.id == that.my_new_col)
     "#).unwrap(),
-        @r#"
+        @r"
     WITH table_1 AS (
       SELECT
         CONCAT('artist: ', name) AS my_new_col,
@@ -958,7 +958,7 @@ fn test_sort_in_nested_join_with_extra_derive_and_select() {
         my_new_col,
         new_name,
         other_new_name,
-        FIRST_VALUE(name) AS _expr_0
+        _expr_0
       FROM
         table_2
     )
@@ -970,7 +970,7 @@ fn test_sort_in_nested_join_with_extra_derive_and_select() {
     FROM
       albums
       LEFT OUTER JOIN table_0 ON albums.id = table_0.my_new_col
-    "#
+    "
     );
 }
 
@@ -1237,7 +1237,7 @@ fn test_sorts_01() {
     FROM
       table_0
     ORDER BY
-      _expr_0
+      renamed
     ");
 }
 
