@@ -660,32 +660,6 @@ impl<'a> CidRedirector<'a> {
 
         fold_column_sorts(&mut redirector, sorts).unwrap()
     }
-
-    // revert sort columns back to their original pre-split columns
-    pub fn revert_sorts(
-        sorts: Vec<ColumnSort<CId>>,
-        ctx: &'a mut AnchorContext,
-    ) -> Vec<ColumnSort<CId>> {
-        sorts
-            .into_iter()
-            .map(|sort| {
-                let decl = ctx.column_decls.get(&sort.column).unwrap();
-                if let ColumnDecl::RelationColumn(riid, cid, _) = decl {
-                    let cid_redirects = &ctx.relation_instances[riid].cid_redirects;
-                    for (source, target) in cid_redirects.iter() {
-                        if target == cid {
-                            log::debug!("reverting {target:?} back to {source:?}");
-                            return ColumnSort {
-                                direction: sort.direction,
-                                column: *source,
-                            };
-                        }
-                    }
-                }
-                sort
-            })
-            .collect()
-    }
 }
 
 impl RqFold for CidRedirector<'_> {

@@ -180,7 +180,9 @@ impl PqMapper<RIId, pq::RelationExpr, rq::Transform, ()> for TransformCompiler<'
 pub(super) fn compile_relation_instance(riid: RIId, ctx: &mut Context) -> Result<pq::RelationExpr> {
     ctx.anchor.positional_mapping.activate_mapping(&riid);
 
-    let table_ref = &ctx.anchor.relation_instances.get(&riid).unwrap().table_ref;
+    let rel_instance = &ctx.anchor.relation_instances[&riid];
+    let nb_redirects = rel_instance.cid_redirects.len();
+    let table_ref = &rel_instance.table_ref;
     let source = table_ref.source;
     let decl = ctx.anchor.table_decls.get_mut(&table_ref.source).unwrap();
 
@@ -200,6 +202,56 @@ pub(super) fn compile_relation_instance(riid: RIId, ctx: &mut Context) -> Result
         }
 
         let relation = compile_relation(sql_relation, ctx)?;
+
+        if let pq::SqlRelation::AtomicPipeline(pipeline) = &relation {
+            // Finding the last select statement of the pipeline
+            let last_select_columns = pipeline.iter().rev().find_map(|transform| match transform {
+                pq::SqlTransform::Select(cids) => Some(cids),
+                _ => None,
+            });
+
+            log::debug!("last select CIds for {riid:?}: {last_select_columns:?}");
+
+            // If the pipeline ends with a select, we must recompute its CId redirects
+            if let Some(cids) = last_select_columns {
+                // Only recompute the CId redirects if there are exactly as many columns in the
+                // SELECT as there are CId redirects. This probably means that it is a projecting
+                // select added by `anchor_split`
+                if nb_redirects == cids.len() {
+                    log::debug!(
+                        "recomputing cid_redirects for {riid:?}. current redirects: {:?}",
+                        ctx.anchor.relation_instances[&riid].cid_redirects
+                    );
+                    // Inefficient but only way to ensure that the new redirects match the original cids
+                    let new_redirects = cids
+                        .iter()
+                        .zip(&ctx.anchor.relation_instances[&riid].original_cids)
+                        .map(|(new_cid, original_cid)| {
+                            let key_for_value = ctx.anchor.relation_instances[&riid]
+                                .cid_redirects
+                                .iter()
+                                .find_map(|(k, v)| if v == original_cid { Some(k) } else { None })
+                                .unwrap();
+
+                            (
+                                *new_cid,
+                                ctx.anchor.relation_instances[&riid].cid_redirects[key_for_value],
+                            )
+                        })
+                        .collect();
+
+                    log::debug!(
+                        "recomputed cid_redirects for {riid:?}. new redirects: {new_redirects:?}",
+                    );
+
+                    ctx.anchor
+                        .relation_instances
+                        .get_mut(&riid)
+                        .unwrap()
+                        .cid_redirects = new_redirects;
+                }
+            }
+        }
         ctx.ctes.push(pq::Cte {
             tid: source,
             kind: pq::CteKind::Normal(relation),

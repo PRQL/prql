@@ -30,4 +30,4 @@ SELECT
 FROM
   table_1
 ORDER BY
-  _expr_0
+  d1
