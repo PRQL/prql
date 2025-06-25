@@ -1,6 +1,6 @@
 ---
 source: prqlc/prqlc/tests/integration/queries.rs
-expression: "s\"SELECT album_id,title,artist_id FROM albums\"\ngroup {artist_id} (aggregate { first_album_title = min this.`title`})\nsort {this.artist_id, this.first_album_title}\nfilter (this.first_album_title | text.length) > 10\nderive {new_album_title = this.first_album_title}\nselect {this.artist_id, this.new_album_title}\njoin side:left ( s\"SELECT artist_id,name as artist_name FROM artists\" ) (this.artist_id == that.artist_id)\n"
+expression: "s\"SELECT album_id,title,artist_id FROM albums\"\ngroup {artist_id} (aggregate { album_title_count = count this.`title`})\nsort {this.artist_id, this.album_title_count}\nfilter (this.album_title_count) > 10\nderive {new_album_count = this.album_title_count}\nselect {this.artist_id, this.new_album_count}\njoin side:left ( s\"SELECT artist_id,name as artist_name FROM artists\" ) (this.artist_id == that.artist_id)\n"
 input_file: prqlc/prqlc/tests/integration/queries/group_sort_filter_derive_select_join.prql
 ---
 WITH table_0 AS (
@@ -14,7 +14,7 @@ WITH table_0 AS (
 table_3 AS (
   SELECT
     artist_id,
-    MIN(title) AS _expr_0
+    COUNT(*) AS _expr_0
   FROM
     table_0
   GROUP BY
@@ -23,17 +23,17 @@ table_3 AS (
 table_4 AS (
   SELECT
     artist_id,
-    _expr_0 AS new_album_title,
+    _expr_0 AS new_album_count,
     _expr_0
   FROM
     table_3
   WHERE
-    CHAR_LENGTH(_expr_0) > 10
+    _expr_0 > 10
 ),
 table_2 AS (
   SELECT
     artist_id,
-    new_album_title,
+    new_album_count,
     _expr_0
   FROM
     table_4
@@ -47,7 +47,7 @@ table_1 AS (
 )
 SELECT
   table_2.artist_id,
-  table_2.new_album_title,
+  table_2.new_album_count,
   table_1.artist_id,
   table_1.artist_name
 FROM
@@ -55,4 +55,4 @@ FROM
   LEFT OUTER JOIN table_1 ON table_2.artist_id = table_1.artist_id
 ORDER BY
   table_2.artist_id,
-  table_2.new_album_title
+  table_2.new_album_count

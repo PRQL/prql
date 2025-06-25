@@ -1,6 +1,6 @@
 s"SELECT album_id,title,artist_id FROM albums"
-group {artist_id} (aggregate { first_album_title = min this.`title`})
-sort {this.artist_id, this.first_album_title}
-derive {new_album_title = this.first_album_title}
-select {this.artist_id, this.new_album_title}
+group {artist_id} (aggregate { album_title_count = count this.`title`})
+sort {this.artist_id, this.album_title_count}
+derive {new_album_count = this.album_title_count}
+select {this.artist_id, this.new_album_count}
 join side:left ( s"SELECT artist_id,name as artist_name FROM artists" ) (this.artist_id == that.artist_id)
