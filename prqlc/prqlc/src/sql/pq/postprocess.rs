@@ -27,7 +27,6 @@ pub(super) fn postprocess(query: SqlQuery, ctx: &mut Context) -> SqlQuery {
 fn infer_sorts(query: SqlQuery, ctx: &mut Context) -> SqlQuery {
     let mut s = SortingInference {
         last_sorting: Vec::new(),
-        last_cte_sorting: None,
         ctes_sorting: HashMap::new(),
         main_relation: false,
         ctx,
@@ -38,7 +37,6 @@ fn infer_sorts(query: SqlQuery, ctx: &mut Context) -> SqlQuery {
 
 struct SortingInference<'a> {
     last_sorting: Sorting,
-    last_cte_sorting: Option<CteSorting>,
     ctes_sorting: HashMap<TId, CteSorting>,
     main_relation: bool,
     ctx: &'a mut Context,
@@ -163,10 +161,10 @@ impl PqFold for SortingInference<'_> {
             let cte = self.fold_cte(cte)?;
 
             // store sorting to be used later in From references
-            if let Some(cte_sorting) = std::mem::replace(&mut self.last_cte_sorting, None) {
-                log::debug!("--- CTE sorting {cte_sorting:?}");
-                self.ctes_sorting.insert(cte.tid, cte_sorting);
-            }
+            let sorting = self.last_sorting.drain(..).collect();
+            log::debug!("--- sorting {sorting:?}");
+            let sorting = CteSorting { sorting };
+            self.ctes_sorting.insert(cte.tid, sorting);
 
             ctes.push(cte);
         }
@@ -180,7 +178,6 @@ impl PqFold for SortingInference<'_> {
 
         // push a sort at the back of the main pipeline
         if let SqlRelation::AtomicPipeline(pipeline) = &mut main_relation {
-            // pipeline.push(SqlTransform::Sort(last_sorting));
             let from_id = pipeline
                 .iter()
                 .find_map(|transform| match transform {
@@ -294,15 +291,6 @@ impl PqMapper<RelationExpr, RelationExpr, (), ()> for SortingInference<'_> {
                     select.push(cid);
                 }
             }
-
-            // now revert the sort columns so that the output
-            // sorting reflects the input column cids, needed to
-            // ensure proper column reference lookup in the final
-            // steps
-            self.last_cte_sorting = Some(CteSorting {
-                sorting: sorting.clone(),
-            });
-            sorting = CidRedirector::revert_sorts(sorting, &mut self.ctx.anchor);
         }
 
         // remember sorting for this pipeline
