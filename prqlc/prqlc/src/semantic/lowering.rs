@@ -471,6 +471,7 @@ impl Lowerer {
             source: tid,
             name,
             columns,
+            prefer_cte: true,
         }
     }
 
@@ -586,7 +587,8 @@ impl Lowerer {
                 self.pipeline.push(transform);
             }
             pl::TransformKind::Append(bottom) => {
-                let bottom = self.lower_table_ref(*bottom)?;
+                let mut bottom = self.lower_table_ref(*bottom)?;
+                bottom.prefer_cte = false;
 
                 self.pipeline.push(Transform::Append(bottom));
             }

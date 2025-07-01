@@ -1133,6 +1133,7 @@ mod tests {
                     - - Wildcard
                       - 1
                   name: c_invoice
+                  prefer_cte: true
               - Select:
                   - 0
               - Take:
@@ -1227,6 +1228,7 @@ mod tests {
                     - - Wildcard
                       - 3
                   name: invoices
+                  prefer_cte: true
               - Sort:
                   - direction: Asc
                     column: 0

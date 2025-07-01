@@ -1,0 +1,12 @@
+# duckdb:skip
+# postgres:skip
+
+from invoices
+select { customer_id, invoice_id, billing_country }
+take 10..15
+append (
+  from invoices
+  select { customer_id, invoice_id, billing_country }
+  take 40..45
+)
+select { billing_country, invoice_id }

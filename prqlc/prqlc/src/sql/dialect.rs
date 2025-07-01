@@ -213,6 +213,12 @@ pub(super) trait DialectHandler: Any + Debug {
             named: false,
         }))
     }
+
+    /// Whether source and subqueries should be put between simple parentheses
+    /// for `UNION` and similar verbs.
+    fn prefers_subquery_parentheses_shorthand(&self) -> bool {
+        false
+    }
 }
 
 impl dyn DialectHandler {
@@ -280,6 +286,10 @@ impl DialectHandler for PostgresDialect {
     }
 
     fn supports_zero_columns(&self) -> bool {
+        true
+    }
+
+    fn prefers_subquery_parentheses_shorthand(&self) -> bool {
         true
     }
 }
@@ -532,6 +542,10 @@ impl DialectHandler for DuckDbDialect {
                 ))
             }
         })
+    }
+
+    fn prefers_subquery_parentheses_shorthand(&self) -> bool {
+        true
     }
 }
 

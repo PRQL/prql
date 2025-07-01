@@ -1,0 +1,17 @@
+---
+source: prqlc/prqlc/tests/integration/queries.rs
+expression: "# clickhouse:skip\n# duckdb:skip\n# generic:skip\n# glaredb:skip\n# sqlite:skip\n\n# mysql:test\n# postgres:test\n\nfrom invoices\nselect { customer_id, invoice_id, billing_country }\ntake 10..15\nappend (\n  from invoices\n  select { customer_id, invoice_id, billing_country }\n  take 40..45\n)\nselect { billing_country, invoice_id }\n"
+input_file: prqlc/prqlc/tests/integration/queries/append_select.shortform.prql
+---
+Ireland,10
+United Kingdom,11
+Germany,12
+USA,13
+USA,14
+USA,15
+Germany,40
+Spain,41
+Sweden,42
+United Kingdom,43
+Australia,44
+India,45

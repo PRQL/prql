@@ -1,0 +1,290 @@
+---
+source: prqlc/prqlc/tests/integration/queries.rs
+expression: "# clickhouse:skip\n# glaredb:skip\n# sqlite:skip\n# mysql:skip\n\n# duckdb:test\n# postgres:test\n\n# default-dialect:duckdb\n\nfrom invoices\nselect {an_id = invoice_id, name = null}\ntake 2\nappend (\n  from employees\n  select {an_id = null, name = first_name}\n  take 2\n)\n"
+input_file: prqlc/prqlc/tests/integration/queries/append_select_nulls.shortform.prql
+---
+frames:
+- - 1:132-172
+  - columns:
+    - !Single
+      name:
+      - an_id
+      target_id: 140
+      target_name: null
+    - !Single
+      name:
+      - name
+      target_id: 141
+      target_name: null
+    inputs:
+    - id: 138
+      name: invoices
+      table:
+      - default_db
+      - invoices
+- - 1:173-179
+  - columns:
+    - !Single
+      name:
+      - an_id
+      target_id: 140
+      target_name: null
+    - !Single
+      name:
+      - name
+      target_id: 141
+      target_name: null
+    inputs:
+    - id: 138
+      name: invoices
+      table:
+      - default_db
+      - invoices
+- - 1:208-248
+  - columns:
+    - !Single
+      name:
+      - an_id
+      target_id: 123
+      target_name: null
+    - !Single
+      name:
+      - name
+      target_id: 124
+      target_name: null
+    inputs:
+    - id: 121
+      name: employees
+      table:
+      - default_db
+      - employees
+- - 1:251-257
+  - columns:
+    - !Single
+      name:
+      - an_id
+      target_id: 123
+      target_name: null
+    - !Single
+      name:
+      - name
+      target_id: 124
+      target_name: null
+    inputs:
+    - id: 121
+      name: employees
+      table:
+      - default_db
+      - employees
+- - 1:180-259
+  - columns:
+    - !Single
+      name:
+      - an_id
+      target_id: 140
+      target_name: null
+    - !Single
+      name:
+      - name
+      target_id: 141
+      target_name: null
+    inputs:
+    - id: 138
+      name: invoices
+      table:
+      - default_db
+      - invoices
+nodes:
+- id: 121
+  kind: Ident
+  span: 1:191-205
+  ident: !Ident
+  - default_db
+  - employees
+  parent: 126
+- id: 123
+  kind: Literal
+  span: 1:224-228
+  alias: an_id
+  parent: 125
+- id: 124
+  kind: Ident
+  span: 1:237-247
+  alias: name
+  ident: !Ident
+  - this
+  - employees
+  - first_name
+  targets:
+  - 121
+  parent: 125
+- id: 125
+  kind: Tuple
+  span: 1:215-248
+  children:
+  - 123
+  - 124
+  parent: 126
+- id: 126
+  kind: 'TransformCall: Select'
+  span: 1:208-248
+  children:
+  - 121
+  - 125
+  parent: 128
+- id: 128
+  kind: 'TransformCall: Take'
+  span: 1:251-257
+  children:
+  - 126
+  - 129
+  parent: 147
+- id: 129
+  kind: Literal
+  parent: 128
+- id: 138
+  kind: Ident
+  span: 1:118-131
+  ident: !Ident
+  - default_db
+  - invoices
+  parent: 143
+- id: 140
+  kind: Ident
+  span: 1:148-158
+  alias: an_id
+  ident: !Ident
+  - this
+  - invoices
+  - invoice_id
+  targets:
+  - 138
+  parent: 142
+- id: 141
+  kind: Literal
+  span: 1:167-171
+  alias: name
+  parent: 142
+- id: 142
+  kind: Tuple
+  span: 1:139-172
+  children:
+  - 140
+  - 141
+  parent: 143
+- id: 143
+  kind: 'TransformCall: Select'
+  span: 1:132-172
+  children:
+  - 138
+  - 142
+  parent: 145
+- id: 145
+  kind: 'TransformCall: Take'
+  span: 1:173-179
+  children:
+  - 143
+  - 146
+  parent: 147
+- id: 146
+  kind: Literal
+  parent: 145
+- id: 147
+  kind: 'TransformCall: Append'
+  span: 1:180-259
+  children:
+  - 145
+  - 128
+ast:
+  name: Project
+  stmts:
+  - VarDef:
+      kind: Main
+      name: main
+      value:
+        Pipeline:
+          exprs:
+          - FuncCall:
+              name:
+                Ident:
+                - from
+                span: 1:118-122
+              args:
+              - Ident:
+                - invoices
+                span: 1:123-131
+            span: 1:118-131
+          - FuncCall:
+              name:
+                Ident:
+                - select
+                span: 1:132-138
+              args:
+              - Tuple:
+                - Ident:
+                  - invoice_id
+                  span: 1:148-158
+                  alias: an_id
+                - Literal: 'Null'
+                  span: 1:167-171
+                  alias: name
+                span: 1:139-172
+            span: 1:132-172
+          - FuncCall:
+              name:
+                Ident:
+                - take
+                span: 1:173-177
+              args:
+              - Literal:
+                  Integer: 2
+                span: 1:178-179
+            span: 1:173-179
+          - FuncCall:
+              name:
+                Ident:
+                - append
+                span: 1:180-186
+              args:
+              - Pipeline:
+                  exprs:
+                  - FuncCall:
+                      name:
+                        Ident:
+                        - from
+                        span: 1:191-195
+                      args:
+                      - Ident:
+                        - employees
+                        span: 1:196-205
+                    span: 1:191-205
+                  - FuncCall:
+                      name:
+                        Ident:
+                        - select
+                        span: 1:208-214
+                      args:
+                      - Tuple:
+                        - Literal: 'Null'
+                          span: 1:224-228
+                          alias: an_id
+                        - Ident:
+                          - first_name
+                          span: 1:237-247
+                          alias: name
+                        span: 1:215-248
+                    span: 1:208-248
+                  - FuncCall:
+                      name:
+                        Ident:
+                        - take
+                        span: 1:251-255
+                      args:
+                      - Literal:
+                          Integer: 2
+                        span: 1:256-257
+                    span: 1:251-257
+                span: 1:191-257
+            span: 1:180-259
+        span: 1:118-259
+    span: 1:0-259

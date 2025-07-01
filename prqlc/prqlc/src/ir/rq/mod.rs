@@ -98,4 +98,7 @@ pub struct TableRef {
 
     /// Name hint for relation within this pipeline (table alias)
     pub name: Option<String>,
+
+    /// We prefer CTEs for most syntaxes but some like UNION works best with subqueries.
+    pub prefer_cte: bool,
 }

@@ -1,3 +1,13 @@
+# clickhouse:skip
+# glaredb:skip
+# sqlite:skip
+# mysql:skip
+
+# duckdb:test
+# postgres:test
+
+# default-dialect:duckdb
+
 from invoices
 select { customer_id, invoice_id, billing_country }
 take 10..15

@@ -1,0 +1,24 @@
+---
+source: prqlc/prqlc/tests/integration/queries.rs
+expression: "# clickhouse:skip\n# glaredb:skip\n# sqlite:skip\n# mysql:skip\n\n# duckdb:test\n# postgres:test\n\n# default-dialect:duckdb\n\nfrom invoices\nselect {an_id = invoice_id, name = null}\ntake 2\nappend (\n  from employees\n  select {an_id = null, name = first_name}\n  take 2\n)\n"
+input_file: prqlc/prqlc/tests/integration/queries/append_select_nulls.shortform.prql
+---
+(
+  SELECT
+    invoice_id AS an_id,
+    NULL AS name
+  FROM
+    invoices
+  LIMIT
+    2
+)
+UNION
+ALL (
+  SELECT
+    NULL AS an_id,
+    first_name AS name
+  FROM
+    employees
+  LIMIT
+    2
+)

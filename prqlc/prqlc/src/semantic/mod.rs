@@ -253,6 +253,7 @@ pub mod test {
                     - - Wildcard
                       - 0
                   name: employees
+                  prefer_cte: true
               - Select:
                   - 0
           columns:

@@ -1,3 +1,6 @@
+# duckdb:skip
+# postgres:skip
+
 from invoices
 select { customer_id, invoice_id, total }
 take 5

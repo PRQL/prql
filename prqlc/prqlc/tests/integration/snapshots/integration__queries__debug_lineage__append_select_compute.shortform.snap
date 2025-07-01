@@ -1,10 +1,10 @@
 ---
 source: prqlc/prqlc/tests/integration/queries.rs
-expression: "from invoices\nselect { customer_id, invoice_id, total }\ntake 5\nappend (\n  from invoice_items\n  select { invoice_line_id, invoice_id, unit_price }\n  take 5\n)\nselect { a = customer_id * 2, b = math.round 1 (invoice_id * total) }\n"
-input_file: prqlc/prqlc/tests/integration/queries/append_select_compute.prql
+expression: "# clickhouse:skip\n# glaredb:skip\n# sqlite:skip\n# mysql:skip\n\n# duckdb:test\n# postgres:test\n\n# default-dialect:duckdb\n\nfrom invoices\nselect { customer_id, invoice_id, total }\ntake 5\nappend (\n  from invoice_items\n  select { invoice_line_id, invoice_id, unit_price }\n  take 5\n)\nselect { a = customer_id * 2, b = math.round 1 (invoice_id * total) }\n"
+input_file: prqlc/prqlc/tests/integration/queries/append_select_compute.shortform.prql
 ---
 frames:
-- - 1:14-55
+- - 1:132-173
   - columns:
     - !Single
       name:
@@ -30,7 +30,7 @@ frames:
       table:
       - default_db
       - invoices
-- - 1:56-62
+- - 1:174-180
   - columns:
     - !Single
       name:
@@ -56,7 +56,7 @@ frames:
       table:
       - default_db
       - invoices
-- - 1:95-145
+- - 1:213-263
   - columns:
     - !Single
       name:
@@ -82,7 +82,7 @@ frames:
       table:
       - default_db
       - invoice_items
-- - 1:148-154
+- - 1:266-272
   - columns:
     - !Single
       name:
@@ -108,7 +108,7 @@ frames:
       table:
       - default_db
       - invoice_items
-- - 1:63-156
+- - 1:181-274
   - columns:
     - !Single
       name:
@@ -134,7 +134,7 @@ frames:
       table:
       - default_db
       - invoices
-- - 1:157-226
+- - 1:275-344
   - columns:
     - !Single
       name:
@@ -155,14 +155,14 @@ frames:
 nodes:
 - id: 124
   kind: Ident
-  span: 1:74-92
+  span: 1:192-210
   ident: !Ident
   - default_db
   - invoice_items
   parent: 130
 - id: 126
   kind: Ident
-  span: 1:104-119
+  span: 1:222-237
   ident: !Ident
   - this
   - invoice_items
@@ -172,7 +172,7 @@ nodes:
   parent: 129
 - id: 127
   kind: Ident
-  span: 1:121-131
+  span: 1:239-249
   ident: !Ident
   - this
   - invoice_items
@@ -182,7 +182,7 @@ nodes:
   parent: 129
 - id: 128
   kind: Ident
-  span: 1:133-143
+  span: 1:251-261
   ident: !Ident
   - this
   - invoice_items
@@ -192,7 +192,7 @@ nodes:
   parent: 129
 - id: 129
   kind: Tuple
-  span: 1:102-145
+  span: 1:220-263
   children:
   - 126
   - 127
@@ -200,14 +200,14 @@ nodes:
   parent: 130
 - id: 130
   kind: 'TransformCall: Select'
-  span: 1:95-145
+  span: 1:213-263
   children:
   - 124
   - 129
   parent: 132
 - id: 132
   kind: 'TransformCall: Take'
-  span: 1:148-154
+  span: 1:266-272
   children:
   - 130
   - 133
@@ -217,14 +217,14 @@ nodes:
   parent: 132
 - id: 142
   kind: Ident
-  span: 1:0-13
+  span: 1:118-131
   ident: !Ident
   - default_db
   - invoices
   parent: 148
 - id: 144
   kind: Ident
-  span: 1:23-34
+  span: 1:141-152
   ident: !Ident
   - this
   - invoices
@@ -234,7 +234,7 @@ nodes:
   parent: 147
 - id: 145
   kind: Ident
-  span: 1:36-46
+  span: 1:154-164
   ident: !Ident
   - this
   - invoices
@@ -244,7 +244,7 @@ nodes:
   parent: 147
 - id: 146
   kind: Ident
-  span: 1:48-53
+  span: 1:166-171
   ident: !Ident
   - this
   - invoices
@@ -254,7 +254,7 @@ nodes:
   parent: 147
 - id: 147
   kind: Tuple
-  span: 1:21-55
+  span: 1:139-173
   children:
   - 144
   - 145
@@ -262,14 +262,14 @@ nodes:
   parent: 148
 - id: 148
   kind: 'TransformCall: Select'
-  span: 1:14-55
+  span: 1:132-173
   children:
   - 142
   - 147
   parent: 150
 - id: 150
   kind: 'TransformCall: Take'
-  span: 1:56-62
+  span: 1:174-180
   children:
   - 148
   - 151
@@ -279,14 +279,14 @@ nodes:
   parent: 150
 - id: 152
   kind: 'TransformCall: Append'
-  span: 1:63-156
+  span: 1:181-274
   children:
   - 150
   - 132
   parent: 165
 - id: 153
   kind: RqOperator
-  span: 1:170-185
+  span: 1:288-303
   alias: a
   targets:
   - 155
@@ -294,7 +294,7 @@ nodes:
   parent: 164
 - id: 155
   kind: Ident
-  span: 1:170-181
+  span: 1:288-299
   ident: !Ident
   - this
   - invoices
@@ -303,10 +303,10 @@ nodes:
   - 144
 - id: 156
   kind: Literal
-  span: 1:184-185
+  span: 1:302-303
 - id: 157
   kind: RqOperator
-  span: 1:191-224
+  span: 1:309-342
   alias: b
   targets:
   - 159
@@ -314,16 +314,16 @@ nodes:
   parent: 164
 - id: 159
   kind: Literal
-  span: 1:202-203
+  span: 1:320-321
 - id: 160
   kind: RqOperator
-  span: 1:205-223
+  span: 1:323-341
   targets:
   - 162
   - 163
 - id: 162
   kind: Ident
-  span: 1:205-215
+  span: 1:323-333
   ident: !Ident
   - this
   - invoices
@@ -332,7 +332,7 @@ nodes:
   - 145
 - id: 163
   kind: Ident
-  span: 1:218-223
+  span: 1:336-341
   ident: !Ident
   - this
   - invoices
@@ -341,14 +341,14 @@ nodes:
   - 146
 - id: 164
   kind: Tuple
-  span: 1:164-226
+  span: 1:282-344
   children:
   - 153
   - 157
   parent: 165
 - id: 165
   kind: 'TransformCall: Select'
-  span: 1:157-226
+  span: 1:275-344
   children:
   - 152
   - 164
@@ -365,45 +365,45 @@ ast:
               name:
                 Ident:
                 - from
-                span: 1:0-4
+                span: 1:118-122
               args:
               - Ident:
                 - invoices
-                span: 1:5-13
-            span: 1:0-13
+                span: 1:123-131
+            span: 1:118-131
           - FuncCall:
               name:
                 Ident:
                 - select
-                span: 1:14-20
+                span: 1:132-138
               args:
               - Tuple:
                 - Ident:
                   - customer_id
-                  span: 1:23-34
+                  span: 1:141-152
                 - Ident:
                   - invoice_id
-                  span: 1:36-46
+                  span: 1:154-164
                 - Ident:
                   - total
-                  span: 1:48-53
-                span: 1:21-55
-            span: 1:14-55
+                  span: 1:166-171
+                span: 1:139-173
+            span: 1:132-173
           - FuncCall:
               name:
                 Ident:
                 - take
-                span: 1:56-60
+                span: 1:174-178
               args:
               - Literal:
                   Integer: 5
-                span: 1:61-62
-            span: 1:56-62
+                span: 1:179-180
+            span: 1:174-180
           - FuncCall:
               name:
                 Ident:
                 - append
-                span: 1:63-69
+                span: 1:181-187
               args:
               - Pipeline:
                   exprs:
@@ -411,85 +411,85 @@ ast:
                       name:
                         Ident:
                         - from
-                        span: 1:74-78
+                        span: 1:192-196
                       args:
                       - Ident:
                         - invoice_items
-                        span: 1:79-92
-                    span: 1:74-92
+                        span: 1:197-210
+                    span: 1:192-210
                   - FuncCall:
                       name:
                         Ident:
                         - select
-                        span: 1:95-101
+                        span: 1:213-219
                       args:
                       - Tuple:
                         - Ident:
                           - invoice_line_id
-                          span: 1:104-119
+                          span: 1:222-237
                         - Ident:
                           - invoice_id
-                          span: 1:121-131
+                          span: 1:239-249
                         - Ident:
                           - unit_price
-                          span: 1:133-143
-                        span: 1:102-145
-                    span: 1:95-145
+                          span: 1:251-261
+                        span: 1:220-263
+                    span: 1:213-263
                   - FuncCall:
                       name:
                         Ident:
                         - take
-                        span: 1:148-152
+                        span: 1:266-270
                       args:
                       - Literal:
                           Integer: 5
-                        span: 1:153-154
-                    span: 1:148-154
-                span: 1:74-154
-            span: 1:63-156
+                        span: 1:271-272
+                    span: 1:266-272
+                span: 1:192-272
+            span: 1:181-274
           - FuncCall:
               name:
                 Ident:
                 - select
-                span: 1:157-163
+                span: 1:275-281
               args:
               - Tuple:
                 - Binary:
                     left:
                       Ident:
                       - customer_id
-                      span: 1:170-181
+                      span: 1:288-299
                     op: Mul
                     right:
                       Literal:
                         Integer: 2
-                      span: 1:184-185
-                  span: 1:170-185
+                      span: 1:302-303
+                  span: 1:288-303
                   alias: a
                 - FuncCall:
                     name:
                       Ident:
                       - math
                       - round
-                      span: 1:191-201
+                      span: 1:309-319
                     args:
                     - Literal:
                         Integer: 1
-                      span: 1:202-203
+                      span: 1:320-321
                     - Binary:
                         left:
                           Ident:
                           - invoice_id
-                          span: 1:205-215
+                          span: 1:323-333
                         op: Mul
                         right:
                           Ident:
                           - total
-                          span: 1:218-223
-                      span: 1:205-223
-                  span: 1:191-224
+                          span: 1:336-341
+                      span: 1:323-341
+                  span: 1:309-342
                   alias: b
-                span: 1:164-226
-            span: 1:157-226
-        span: 1:0-226
-    span: 1:0-226
+                span: 1:282-344
+            span: 1:275-344
+        span: 1:118-344
+    span: 1:0-344
