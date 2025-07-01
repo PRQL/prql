@@ -1,0 +1,139 @@
+---
+source: prqlc/prqlc/tests/integration/queries.rs
+expression: "from [{track_id=0, album_id=1, genre_id=2}]\nselect { AA=track_id, album_id, genre_id }\nsort AA\njoin side:left [{album_id=1, album_title=\"Songs\"}] (==album_id)\nselect { AA, AT = album_title ?? \"unknown\", genre_id }\nfilter AA < 25\njoin side:left [{genre_id=1, genre_title=\"Rock\"}] (==genre_id)\nselect { AA, AT, GT = genre_title ?? \"unknown\" }\n"
+input_file: prqlc/prqlc/tests/integration/queries/sort_3.prql
+---
+--- generic
++++ clickhouse
+@@ -1,52 +1,52 @@
+ WITH table_0 AS (
+   SELECT
+     0 AS track_id,
+     1 AS album_id,
+     2 AS genre_id
+ ),
+ table_5 AS (
+   SELECT
+-    track_id AS "AA",
++    track_id AS `AA`,
+     genre_id,
+     album_id
+   FROM
+     table_0
+ ),
+ table_1 AS (
+   SELECT
+     1 AS album_id,
+     'Songs' AS album_title
+ ),
+ table_4 AS (
+   SELECT
+-    table_5."AA",
+-    COALESCE(table_1.album_title, 'unknown') AS "AT",
++    table_5.`AA`,
++    COALESCE(table_1.album_title, 'unknown') AS `AT`,
+     table_5.genre_id
+   FROM
+     table_5
+     LEFT OUTER JOIN table_1 ON table_5.album_id = table_1.album_id
+ ),
+ table_3 AS (
+   SELECT
+-    "AA",
+-    "AT",
++    `AA`,
++    `AT`,
+     genre_id
+   FROM
+     table_4
+   WHERE
+-    "AA" < 25
++    `AA` < 25
+ ),
+ table_2 AS (
+   SELECT
+     1 AS genre_id,
+     'Rock' AS genre_title
+ )
+ SELECT
+-  table_3."AA",
+-  table_3."AT",
+-  COALESCE(table_2.genre_title, 'unknown') AS "GT"
++  table_3.`AA`,
++  table_3.`AT`,
++  COALESCE(table_2.genre_title, 'unknown') AS `GT`
+ FROM
+   table_3
+   LEFT OUTER JOIN table_2 ON table_3.genre_id = table_2.genre_id
+ ORDER BY
+-  table_3."AA"
++  table_3.`AA`
+
+
+
+
+--- generic
++++ mysql
+@@ -1,52 +1,52 @@
+ WITH table_0 AS (
+   SELECT
+     0 AS track_id,
+     1 AS album_id,
+     2 AS genre_id
+ ),
+ table_5 AS (
+   SELECT
+-    track_id AS "AA",
++    track_id AS `AA`,
+     genre_id,
+     album_id
+   FROM
+     table_0
+ ),
+ table_1 AS (
+   SELECT
+     1 AS album_id,
+     'Songs' AS album_title
+ ),
+ table_4 AS (
+   SELECT
+-    table_5."AA",
+-    COALESCE(table_1.album_title, 'unknown') AS "AT",
++    table_5.`AA`,
++    COALESCE(table_1.album_title, 'unknown') AS `AT`,
+     table_5.genre_id
+   FROM
+     table_5
+     LEFT OUTER JOIN table_1 ON table_5.album_id = table_1.album_id
+ ),
+ table_3 AS (
+   SELECT
+-    "AA",
+-    "AT",
++    `AA`,
++    `AT`,
+     genre_id
+   FROM
+     table_4
+   WHERE
+-    "AA" < 25
++    `AA` < 25
+ ),
+ table_2 AS (
+   SELECT
+     1 AS genre_id,
+     'Rock' AS genre_title
+ )
+ SELECT
+-  table_3."AA",
+-  table_3."AT",
+-  COALESCE(table_2.genre_title, 'unknown') AS "GT"
++  table_3.`AA`,
++  table_3.`AT`,
++  COALESCE(table_2.genre_title, 'unknown') AS `GT`
+ FROM
+   table_3
+   LEFT OUTER JOIN table_2 ON table_3.genre_id = table_2.genre_id
+ ORDER BY
+-  table_3."AA"
++  table_3.`AA`

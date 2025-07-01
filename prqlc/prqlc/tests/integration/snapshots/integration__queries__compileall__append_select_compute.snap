@@ -1,0 +1,41 @@
+---
+source: prqlc/prqlc/tests/integration/queries.rs
+expression: "from invoices\nselect { customer_id, invoice_id, total }\ntake 5\nappend (\n  from invoice_items\n  select { invoice_line_id, invoice_id, unit_price }\n  take 5\n)\nselect { a = customer_id * 2, b = math.round 1 (invoice_id * total) }\n"
+input_file: prqlc/prqlc/tests/integration/queries/append_select_compute.prql
+---
+--- generic
++++ glaredb
+@@ -23,13 +23,13 @@
+     ) AS table_2
+   UNION
+   ALL
+   SELECT
+     *
+   FROM
+     table_0
+ )
+ SELECT
+   customer_id * 2 AS a,
+-  ROUND(invoice_id * total, 1) AS b
++  ROUND((invoice_id * total)::numeric, 1) AS b
+ FROM
+   table_1
+
+
+--- generic
++++ postgres
+@@ -23,13 +23,13 @@
+     ) AS table_2
+   UNION
+   ALL
+   SELECT
+     *
+   FROM
+     table_0
+ )
+ SELECT
+   customer_id * 2 AS a,
+-  ROUND(invoice_id * total, 1) AS b
++  ROUND((invoice_id * total)::numeric, 1) AS b
+ FROM
+   table_1

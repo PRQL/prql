@@ -1,0 +1,113 @@
+---
+source: prqlc/prqlc/tests/integration/queries.rs
+expression: "# mssql:test\nfrom tracks\nselect {genre_id, media_type_id, album_id}\ngroup {genre_id, media_type_id} (sort {-album_id} | take 1)\nsort {-genre_id, media_type_id}\n"
+input_file: prqlc/prqlc/tests/integration/queries/distinct_on.prql
+---
+--- generic
++++ clickhouse
+@@ -1,25 +1,21 @@
+ WITH table_0 AS (
+   SELECT
+-    genre_id,
++    DISTINCT ON (genre_id, media_type_id) genre_id,
+     media_type_id,
+-    album_id,
+-    ROW_NUMBER() OVER (
+-      PARTITION BY genre_id,
+-      media_type_id
+-      ORDER BY
+-        album_id DESC
+-    ) AS _expr_0
++    album_id
+   FROM
+     tracks
++  ORDER BY
++    genre_id,
++    media_type_id,
++    album_id DESC
+ )
+ SELECT
+   genre_id,
+   media_type_id,
+   album_id
+ FROM
+   table_0
+-WHERE
+-  _expr_0 <= 1
+ ORDER BY
+   genre_id DESC,
+   media_type_id
+
+--- generic
++++ duckdb
+@@ -1,25 +1,21 @@
+ WITH table_0 AS (
+   SELECT
+-    genre_id,
++    DISTINCT ON (genre_id, media_type_id) genre_id,
+     media_type_id,
+-    album_id,
+-    ROW_NUMBER() OVER (
+-      PARTITION BY genre_id,
+-      media_type_id
+-      ORDER BY
+-        album_id DESC
+-    ) AS _expr_0
++    album_id
+   FROM
+     tracks
++  ORDER BY
++    genre_id,
++    media_type_id,
++    album_id DESC
+ )
+ SELECT
+   genre_id,
+   media_type_id,
+   album_id
+ FROM
+   table_0
+-WHERE
+-  _expr_0 <= 1
+ ORDER BY
+   genre_id DESC,
+   media_type_id
+
+
+
+
+
+--- generic
++++ postgres
+@@ -1,25 +1,21 @@
+ WITH table_0 AS (
+   SELECT
+-    genre_id,
++    DISTINCT ON (genre_id, media_type_id) genre_id,
+     media_type_id,
+-    album_id,
+-    ROW_NUMBER() OVER (
+-      PARTITION BY genre_id,
+-      media_type_id
+-      ORDER BY
+-        album_id DESC
+-    ) AS _expr_0
++    album_id
+   FROM
+     tracks
++  ORDER BY
++    genre_id,
++    media_type_id,
++    album_id DESC
+ )
+ SELECT
+   genre_id,
+   media_type_id,
+   album_id
+ FROM
+   table_0
+-WHERE
+-  _expr_0 <= 1
+ ORDER BY
+   genre_id DESC,
+   media_type_id
