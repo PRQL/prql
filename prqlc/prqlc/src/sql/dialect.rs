@@ -543,10 +543,6 @@ impl DialectHandler for DuckDbDialect {
             }
         })
     }
-
-    fn prefers_subquery_parentheses_shorthand(&self) -> bool {
-        true
-    }
 }
 
 #[cfg(test)]

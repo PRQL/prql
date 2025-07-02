@@ -27,10 +27,6 @@ mod lex {
 }
 
 mod compile {
-    use std::str::FromStr;
-
-    use strum::VariantNames;
-
     use super::*;
 
     // If this is giving compilation errors saying `expected identifier, found keyword`,
@@ -44,13 +40,7 @@ mod compile {
             return;
         }
 
-        let target = Dialect::VARIANTS
-            .iter()
-            .find(|d| prql.contains(&format!("default-dialect:{}", d)))
-            .and_then(|d| Dialect::from_str(d).ok())
-            .unwrap_or(Dialect::Generic);
-
-        let target = Target::Sql(Some(target));
+        let target = Target::Sql(Some(Dialect::Generic));
         let options = Options::default().no_signature().with_target(target);
 
         let sql = prqlc::compile(&prql, &options).unwrap();

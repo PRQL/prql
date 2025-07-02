@@ -1,0 +1,17 @@
+---
+source: prqlc/prqlc/tests/integration/queries.rs
+expression: "from invoices\nselect { customer_id, invoice_id, total }\ntake 5\nappend (\n  from invoice_items\n  select { invoice_line_id, invoice_id, unit_price }\n  take 5\n)\nselect { a = customer_id * 2, b = math.round 1 (invoice_id * total) }\n"
+input_file: prqlc/prqlc/tests/integration/queries/append_select_compute.prql
+---
+from invoices
+select {customer_id, invoice_id, total}
+take 5
+append (
+  from invoice_items
+  select {invoice_line_id, invoice_id, unit_price}
+  take 5
+)
+select {
+  a = customer_id * 2,
+  b = math.round 1 invoice_id * total,
+}

@@ -1,0 +1,495 @@
+---
+source: prqlc/prqlc/tests/integration/queries.rs
+expression: "from invoices\nselect { customer_id, invoice_id, total }\ntake 5\nappend (\n  from invoice_items\n  select { invoice_line_id, invoice_id, unit_price }\n  take 5\n)\nselect { a = customer_id * 2, b = math.round 1 (invoice_id * total) }\n"
+input_file: prqlc/prqlc/tests/integration/queries/append_select_compute.prql
+---
+frames:
+- - 1:14-55
+  - columns:
+    - !Single
+      name:
+      - invoices
+      - customer_id
+      target_id: 144
+      target_name: null
+    - !Single
+      name:
+      - invoices
+      - invoice_id
+      target_id: 145
+      target_name: null
+    - !Single
+      name:
+      - invoices
+      - total
+      target_id: 146
+      target_name: null
+    inputs:
+    - id: 142
+      name: invoices
+      table:
+      - default_db
+      - invoices
+- - 1:56-62
+  - columns:
+    - !Single
+      name:
+      - invoices
+      - customer_id
+      target_id: 144
+      target_name: null
+    - !Single
+      name:
+      - invoices
+      - invoice_id
+      target_id: 145
+      target_name: null
+    - !Single
+      name:
+      - invoices
+      - total
+      target_id: 146
+      target_name: null
+    inputs:
+    - id: 142
+      name: invoices
+      table:
+      - default_db
+      - invoices
+- - 1:95-145
+  - columns:
+    - !Single
+      name:
+      - invoice_items
+      - invoice_line_id
+      target_id: 126
+      target_name: null
+    - !Single
+      name:
+      - invoice_items
+      - invoice_id
+      target_id: 127
+      target_name: null
+    - !Single
+      name:
+      - invoice_items
+      - unit_price
+      target_id: 128
+      target_name: null
+    inputs:
+    - id: 124
+      name: invoice_items
+      table:
+      - default_db
+      - invoice_items
+- - 1:148-154
+  - columns:
+    - !Single
+      name:
+      - invoice_items
+      - invoice_line_id
+      target_id: 126
+      target_name: null
+    - !Single
+      name:
+      - invoice_items
+      - invoice_id
+      target_id: 127
+      target_name: null
+    - !Single
+      name:
+      - invoice_items
+      - unit_price
+      target_id: 128
+      target_name: null
+    inputs:
+    - id: 124
+      name: invoice_items
+      table:
+      - default_db
+      - invoice_items
+- - 1:63-156
+  - columns:
+    - !Single
+      name:
+      - invoices
+      - customer_id
+      target_id: 144
+      target_name: null
+    - !Single
+      name:
+      - invoices
+      - invoice_id
+      target_id: 145
+      target_name: null
+    - !Single
+      name:
+      - invoices
+      - total
+      target_id: 146
+      target_name: null
+    inputs:
+    - id: 142
+      name: invoices
+      table:
+      - default_db
+      - invoices
+- - 1:157-226
+  - columns:
+    - !Single
+      name:
+      - a
+      target_id: 153
+      target_name: null
+    - !Single
+      name:
+      - b
+      target_id: 157
+      target_name: null
+    inputs:
+    - id: 142
+      name: invoices
+      table:
+      - default_db
+      - invoices
+nodes:
+- id: 124
+  kind: Ident
+  span: 1:74-92
+  ident: !Ident
+  - default_db
+  - invoice_items
+  parent: 130
+- id: 126
+  kind: Ident
+  span: 1:104-119
+  ident: !Ident
+  - this
+  - invoice_items
+  - invoice_line_id
+  targets:
+  - 124
+  parent: 129
+- id: 127
+  kind: Ident
+  span: 1:121-131
+  ident: !Ident
+  - this
+  - invoice_items
+  - invoice_id
+  targets:
+  - 124
+  parent: 129
+- id: 128
+  kind: Ident
+  span: 1:133-143
+  ident: !Ident
+  - this
+  - invoice_items
+  - unit_price
+  targets:
+  - 124
+  parent: 129
+- id: 129
+  kind: Tuple
+  span: 1:102-145
+  children:
+  - 126
+  - 127
+  - 128
+  parent: 130
+- id: 130
+  kind: 'TransformCall: Select'
+  span: 1:95-145
+  children:
+  - 124
+  - 129
+  parent: 132
+- id: 132
+  kind: 'TransformCall: Take'
+  span: 1:148-154
+  children:
+  - 130
+  - 133
+  parent: 152
+- id: 133
+  kind: Literal
+  parent: 132
+- id: 142
+  kind: Ident
+  span: 1:0-13
+  ident: !Ident
+  - default_db
+  - invoices
+  parent: 148
+- id: 144
+  kind: Ident
+  span: 1:23-34
+  ident: !Ident
+  - this
+  - invoices
+  - customer_id
+  targets:
+  - 142
+  parent: 147
+- id: 145
+  kind: Ident
+  span: 1:36-46
+  ident: !Ident
+  - this
+  - invoices
+  - invoice_id
+  targets:
+  - 142
+  parent: 147
+- id: 146
+  kind: Ident
+  span: 1:48-53
+  ident: !Ident
+  - this
+  - invoices
+  - total
+  targets:
+  - 142
+  parent: 147
+- id: 147
+  kind: Tuple
+  span: 1:21-55
+  children:
+  - 144
+  - 145
+  - 146
+  parent: 148
+- id: 148
+  kind: 'TransformCall: Select'
+  span: 1:14-55
+  children:
+  - 142
+  - 147
+  parent: 150
+- id: 150
+  kind: 'TransformCall: Take'
+  span: 1:56-62
+  children:
+  - 148
+  - 151
+  parent: 152
+- id: 151
+  kind: Literal
+  parent: 150
+- id: 152
+  kind: 'TransformCall: Append'
+  span: 1:63-156
+  children:
+  - 150
+  - 132
+  parent: 165
+- id: 153
+  kind: RqOperator
+  span: 1:170-185
+  alias: a
+  targets:
+  - 155
+  - 156
+  parent: 164
+- id: 155
+  kind: Ident
+  span: 1:170-181
+  ident: !Ident
+  - this
+  - invoices
+  - customer_id
+  targets:
+  - 144
+- id: 156
+  kind: Literal
+  span: 1:184-185
+- id: 157
+  kind: RqOperator
+  span: 1:191-224
+  alias: b
+  targets:
+  - 159
+  - 160
+  parent: 164
+- id: 159
+  kind: Literal
+  span: 1:202-203
+- id: 160
+  kind: RqOperator
+  span: 1:205-223
+  targets:
+  - 162
+  - 163
+- id: 162
+  kind: Ident
+  span: 1:205-215
+  ident: !Ident
+  - this
+  - invoices
+  - invoice_id
+  targets:
+  - 145
+- id: 163
+  kind: Ident
+  span: 1:218-223
+  ident: !Ident
+  - this
+  - invoices
+  - total
+  targets:
+  - 146
+- id: 164
+  kind: Tuple
+  span: 1:164-226
+  children:
+  - 153
+  - 157
+  parent: 165
+- id: 165
+  kind: 'TransformCall: Select'
+  span: 1:157-226
+  children:
+  - 152
+  - 164
+ast:
+  name: Project
+  stmts:
+  - VarDef:
+      kind: Main
+      name: main
+      value:
+        Pipeline:
+          exprs:
+          - FuncCall:
+              name:
+                Ident:
+                - from
+                span: 1:0-4
+              args:
+              - Ident:
+                - invoices
+                span: 1:5-13
+            span: 1:0-13
+          - FuncCall:
+              name:
+                Ident:
+                - select
+                span: 1:14-20
+              args:
+              - Tuple:
+                - Ident:
+                  - customer_id
+                  span: 1:23-34
+                - Ident:
+                  - invoice_id
+                  span: 1:36-46
+                - Ident:
+                  - total
+                  span: 1:48-53
+                span: 1:21-55
+            span: 1:14-55
+          - FuncCall:
+              name:
+                Ident:
+                - take
+                span: 1:56-60
+              args:
+              - Literal:
+                  Integer: 5
+                span: 1:61-62
+            span: 1:56-62
+          - FuncCall:
+              name:
+                Ident:
+                - append
+                span: 1:63-69
+              args:
+              - Pipeline:
+                  exprs:
+                  - FuncCall:
+                      name:
+                        Ident:
+                        - from
+                        span: 1:74-78
+                      args:
+                      - Ident:
+                        - invoice_items
+                        span: 1:79-92
+                    span: 1:74-92
+                  - FuncCall:
+                      name:
+                        Ident:
+                        - select
+                        span: 1:95-101
+                      args:
+                      - Tuple:
+                        - Ident:
+                          - invoice_line_id
+                          span: 1:104-119
+                        - Ident:
+                          - invoice_id
+                          span: 1:121-131
+                        - Ident:
+                          - unit_price
+                          span: 1:133-143
+                        span: 1:102-145
+                    span: 1:95-145
+                  - FuncCall:
+                      name:
+                        Ident:
+                        - take
+                        span: 1:148-152
+                      args:
+                      - Literal:
+                          Integer: 5
+                        span: 1:153-154
+                    span: 1:148-154
+                span: 1:74-154
+            span: 1:63-156
+          - FuncCall:
+              name:
+                Ident:
+                - select
+                span: 1:157-163
+              args:
+              - Tuple:
+                - Binary:
+                    left:
+                      Ident:
+                      - customer_id
+                      span: 1:170-181
+                    op: Mul
+                    right:
+                      Literal:
+                        Integer: 2
+                      span: 1:184-185
+                  span: 1:170-185
+                  alias: a
+                - FuncCall:
+                    name:
+                      Ident:
+                      - math
+                      - round
+                      span: 1:191-201
+                    args:
+                    - Literal:
+                        Integer: 1
+                      span: 1:202-203
+                    - Binary:
+                        left:
+                          Ident:
+                          - invoice_id
+                          span: 1:205-215
+                        op: Mul
+                        right:
+                          Ident:
+                          - total
+                          span: 1:218-223
+                      span: 1:205-223
+                  span: 1:191-224
+                  alias: b
+                span: 1:164-226
+            span: 1:157-226
+        span: 1:0-226
+    span: 1:0-226
