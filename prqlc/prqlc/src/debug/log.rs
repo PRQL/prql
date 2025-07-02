@@ -91,7 +91,7 @@ pub enum DebugEntryKind {
     ReprRq(rq::RelationalQuery),
     ReprPqEarly(Vec<pq_ast::SqlTransform>),
     ReprPq(pq_ast::SqlQuery),
-    ReprSqlParser(sqlparser::ast::Query),
+    ReprSqlParser(Box<sqlparser::ast::Query>),
     ReprSql(String),
 
     Message(Message),
