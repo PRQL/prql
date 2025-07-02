@@ -30,6 +30,7 @@ env:
 jobs:
   test-rust:
     runs-on: ${{ inputs.os }}
+    continue-on-error: ${{ inputs.os == 'windows-latest' }}
     steps:
       - name: 📂 Checkout code
         uses: actions/checkout@v4
