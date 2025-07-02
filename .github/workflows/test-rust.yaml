@@ -113,6 +113,12 @@ jobs:
         if: ${{ contains(inputs.features, 'test-dbs-external') }}
       - name: 📋 Test
         uses: clechasseur/rs-cargo@v3
+        env:
+          # https://github.com/rust-lang/rust/issues/141626#issuecomment-2919419236
+          # note: this may be temporary
+          RUSTFLAGS: >-
+            -Cdebuginfo=0 ${{ inputs.target == 'x86_64-pc-windows-msvc' &&
+            '-Clink-arg=/DEBUG:NONE' || '' }}
         with:
           command: insta
           # Here, we also add:
