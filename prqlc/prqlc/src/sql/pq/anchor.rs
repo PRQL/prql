@@ -499,7 +499,9 @@ pub(super) fn get_requirements(
         Super(Filter(expr)) | SqlTransform::Join { filter: expr, .. } => {
             CidCollector::collect(expr.clone())
         }
-        Super(Sort(sorts)) => sorts.iter().map(|s| s.column).collect(),
+        Super(Sort(sorts)) if !following.contains("Aggregate") => {
+            sorts.iter().map(|s| s.column).collect()
+        }
         Super(Take(rq::Take { range, .. })) => {
             let mut cids = Vec::new();
             if let Some(e) = &range.start {

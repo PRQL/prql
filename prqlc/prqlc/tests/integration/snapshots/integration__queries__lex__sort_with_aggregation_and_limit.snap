@@ -1,0 +1,27 @@
+---
+source: prqlc/prqlc/tests/integration/queries.rs
+expression: tokens
+input_file: prqlc/prqlc/tests/integration/queries/sort_with_aggregation_and_limit.prql
+---
+Tokens(
+    [
+        0..0: Start,
+        0..4: Ident("from"),
+        5..11: Ident("albums"),
+        11..12: NewLine,
+        12..16: Ident("sort"),
+        17..26: Ident("artist_id"),
+        26..27: NewLine,
+        27..31: Ident("take"),
+        32..34: Literal(Integer(10)),
+        34..35: NewLine,
+        35..44: Ident("aggregate"),
+        45..46: Control('{'),
+        47..60: Ident("artist_number"),
+        61..62: Control('='),
+        63..68: Ident("count"),
+        69..78: Ident("artist_id"),
+        79..80: Control('}'),
+        80..81: NewLine,
+    ],
+)
