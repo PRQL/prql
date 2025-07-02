@@ -4,6 +4,11 @@ failure-output = "final"
 slow-timeout = {period = "500ms", terminate-after = 4}
 
 [[profile.default.overrides]]
+# compileall does many passes over the same query, so it takes a bit longer
+filter = 'package(prqlc) & test(queries::compileall::)'
+slow-timeout = {period = "10s", terminate-after = 2}
+
+[[profile.default.overrides]]
 filter = 'package(prqlc) & test(queries::results::)'
 slow-timeout = {period = "10s", terminate-after = 4}
 test-group = 'test-dbs'

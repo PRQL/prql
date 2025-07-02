@@ -1,0 +1,109 @@
+---
+source: prqlc/prqlc/tests/integration/queries.rs
+expression: "# mssql:test\n# sqlite:skip (see https://github.com/rusqlite/rusqlite/issues/1211)\nfrom invoices\ntake 5\nselect {\n    total_original = (total | math.round 2),\n    total_x = (math.pi - total | math.round 2 | math.abs),\n    total_floor = (math.floor total),\n    total_ceil = (math.ceil total),\n    total_log10 = (math.log10 total | math.round 3),\n    total_log2 = (math.log 2 total | math.round 3),\n    total_sqrt = (math.sqrt total | math.round 3),\n    total_ln = (math.ln total | math.exp | math.round 2),\n    total_cos = (math.cos total | math.acos | math.round 2),\n    total_sin = (math.sin total | math.asin | math.round 2),\n    total_tan = (math.tan total | math.atan | math.round 2),\n    total_deg = (total | math.degrees | math.radians | math.round 2),\n    total_square = (total | math.pow 2 | math.round 2),\n    total_square_op = ((total ** 2) | math.round 2),\n}\n"
+input_file: prqlc/prqlc/tests/integration/queries/math_module.prql
+---
+--- generic
++++ glaredb
+@@ -1,19 +1,19 @@
+ SELECT
+-  ROUND(total, 2) AS total_original,
+-  ABS(ROUND(PI() - total, 2)) AS total_x,
++  ROUND((total)::numeric, 2) AS total_original,
++  ABS(ROUND((PI() - total)::numeric, 2)) AS total_x,
+   FLOOR(total) AS total_floor,
+   CEIL(total) AS total_ceil,
+-  ROUND(LOG10(total), 3) AS total_log10,
+-  ROUND(LOG10(total) / LOG10(2), 3) AS total_log2,
+-  ROUND(SQRT(total), 3) AS total_sqrt,
+-  ROUND(EXP(LN(total)), 2) AS total_ln,
+-  ROUND(ACOS(COS(total)), 2) AS total_cos,
+-  ROUND(ASIN(SIN(total)), 2) AS total_sin,
+-  ROUND(ATAN(TAN(total)), 2) AS total_tan,
+-  ROUND(RADIANS(DEGREES(total)), 2) AS total_deg,
+-  ROUND(POW(total, 2), 2) AS total_square,
+-  ROUND(POW(total, 2), 2) AS total_square_op
++  ROUND((LOG10(total))::numeric, 3) AS total_log10,
++  ROUND((LOG10(total) / LOG10(2))::numeric, 3) AS total_log2,
++  ROUND((SQRT(total))::numeric, 3) AS total_sqrt,
++  ROUND((EXP(LN(total)))::numeric, 2) AS total_ln,
++  ROUND((ACOS(COS(total)))::numeric, 2) AS total_cos,
++  ROUND((ASIN(SIN(total)))::numeric, 2) AS total_sin,
++  ROUND((ATAN(TAN(total)))::numeric, 2) AS total_tan,
++  ROUND((RADIANS(DEGREES(total)))::numeric, 2) AS total_deg,
++  ROUND((POW(total, 2))::numeric, 2) AS total_square,
++  ROUND((POW(total, 2))::numeric, 2) AS total_square_op
+ FROM
+   invoices
+ LIMIT
+   5
+
+--- generic
++++ mssql
+@@ -1,19 +1,24 @@
+ SELECT
+   ROUND(total, 2) AS total_original,
+   ABS(ROUND(PI() - total, 2)) AS total_x,
+   FLOOR(total) AS total_floor,
+-  CEIL(total) AS total_ceil,
++  CEILING(total) AS total_ceil,
+   ROUND(LOG10(total), 3) AS total_log10,
+   ROUND(LOG10(total) / LOG10(2), 3) AS total_log2,
+   ROUND(SQRT(total), 3) AS total_sqrt,
+-  ROUND(EXP(LN(total)), 2) AS total_ln,
++  ROUND(EXP(LOG(total)), 2) AS total_ln,
+   ROUND(ACOS(COS(total)), 2) AS total_cos,
+   ROUND(ASIN(SIN(total)), 2) AS total_sin,
+   ROUND(ATAN(TAN(total)), 2) AS total_tan,
+   ROUND(RADIANS(DEGREES(total)), 2) AS total_deg,
+-  ROUND(POW(total, 2), 2) AS total_square,
+-  ROUND(POW(total, 2), 2) AS total_square_op
++  ROUND(POWER(total, 2), 2) AS total_square,
++  ROUND(POWER(total, 2), 2) AS total_square_op
+ FROM
+   invoices
+-LIMIT
+-  5
++ORDER BY
++  (
++    SELECT
++      NULL
++  ) OFFSET 0 ROWS
++FETCH FIRST
++  5 ROWS ONLY
+
+
+--- generic
++++ postgres
+@@ -1,19 +1,19 @@
+ SELECT
+-  ROUND(total, 2) AS total_original,
+-  ABS(ROUND(PI() - total, 2)) AS total_x,
++  ROUND((total)::numeric, 2) AS total_original,
++  ABS(ROUND((PI() - total)::numeric, 2)) AS total_x,
+   FLOOR(total) AS total_floor,
+   CEIL(total) AS total_ceil,
+-  ROUND(LOG10(total), 3) AS total_log10,
+-  ROUND(LOG10(total) / LOG10(2), 3) AS total_log2,
+-  ROUND(SQRT(total), 3) AS total_sqrt,
+-  ROUND(EXP(LN(total)), 2) AS total_ln,
+-  ROUND(ACOS(COS(total)), 2) AS total_cos,
+-  ROUND(ASIN(SIN(total)), 2) AS total_sin,
+-  ROUND(ATAN(TAN(total)), 2) AS total_tan,
+-  ROUND(RADIANS(DEGREES(total)), 2) AS total_deg,
+-  ROUND(POW(total, 2), 2) AS total_square,
+-  ROUND(POW(total, 2), 2) AS total_square_op
++  ROUND((LOG10(total))::numeric, 3) AS total_log10,
++  ROUND((LOG10(total) / LOG10(2))::numeric, 3) AS total_log2,
++  ROUND((SQRT(total))::numeric, 3) AS total_sqrt,
++  ROUND((EXP(LN(total)))::numeric, 2) AS total_ln,
++  ROUND((ACOS(COS(total)))::numeric, 2) AS total_cos,
++  ROUND((ASIN(SIN(total)))::numeric, 2) AS total_sin,
++  ROUND((ATAN(TAN(total)))::numeric, 2) AS total_tan,
++  ROUND((RADIANS(DEGREES(total)))::numeric, 2) AS total_deg,
++  ROUND((POW(total, 2))::numeric, 2) AS total_square,
++  ROUND((POW(total, 2))::numeric, 2) AS total_square_op
+ FROM
+   invoices
+ LIMIT
+   5
