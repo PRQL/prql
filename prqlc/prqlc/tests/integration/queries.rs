@@ -5,6 +5,7 @@ use std::{env, fs};
 use insta::assert_debug_snapshot;
 use insta::{assert_snapshot, with_settings};
 use prqlc::sql::Dialect;
+use prqlc::sql::SupportLevel;
 use prqlc::{Options, Target};
 use test_each_file::test_each_path;
 
@@ -60,6 +61,64 @@ mod compile {
     }
 }
 
+fn should_run_query(dialect: Dialect, prql: &str) -> bool {
+    let dialect_str = dialect.to_string().to_lowercase();
+
+    match dialect.support_level() {
+        SupportLevel::Supported => !prql.contains(&format!("{dialect_str}:skip")),
+        SupportLevel::Unsupported => prql.contains(&format!("{dialect_str}:test")),
+        SupportLevel::Nascent => false,
+    }
+}
+
+mod compileall {
+    use super::*;
+    use similar::TextDiff;
+    use strum::IntoEnumIterator;
+
+    test_each_path! { in "./prqlc/prqlc/tests/integration/queries" => run }
+
+    fn run(prql_path: &Path) {
+        let test_name = prql_path.file_stem().unwrap().to_str().unwrap();
+        let prql = fs::read_to_string(prql_path).unwrap();
+        if prql.contains("generic:skip") {
+            return;
+        }
+
+        // first compile with the generic dialect
+        let target = Target::Sql(Some(Dialect::Generic));
+        let options = Options::default().no_signature().with_target(target);
+
+        let generic_sql = prqlc::compile(&prql, &options).unwrap();
+
+        // next compile with each dialect
+        let mut diffsnap = "".to_owned();
+        for dialect in Dialect::iter() {
+            if !should_run_query(dialect, &prql) {
+                continue;
+            }
+
+            let dialect_target = Target::Sql(Some(dialect));
+            let dialect_options = Options::default()
+                .no_signature()
+                .with_target(dialect_target);
+
+            let dialect_sql = prqlc::compile(&prql, &dialect_options).unwrap();
+
+            let diff = TextDiff::from_lines(&generic_sql, &dialect_sql);
+            diffsnap = format!(
+                "{diffsnap}\n{}",
+                diff.unified_diff()
+                    .context_radius(10)
+                    .header("generic", &dialect.to_string())
+            );
+        }
+        with_settings!({ input_file => prql_path }, {
+            assert_snapshot!(test_name, diffsnap, &prql)
+        });
+    }
+}
+
 mod fmt {
     use super::*;
 
@@ -106,22 +165,11 @@ mod debug_lineage {
 mod results {
 
     use itertools::Itertools;
-    use prqlc::sql::SupportLevel;
 
     use super::*;
     use crate::dbs::{batch_to_csv, runners};
 
     test_each_path! { in "./prqlc/prqlc/tests/integration/queries" => run }
-
-    fn should_run_query(dialect: Dialect, prql: &str) -> bool {
-        let dialect_str = dialect.to_string().to_lowercase();
-
-        match dialect.support_level() {
-            SupportLevel::Supported => !prql.contains(&format!("{dialect_str}:skip")),
-            SupportLevel::Unsupported => prql.contains(&format!("{dialect_str}:test")),
-            SupportLevel::Nascent => false,
-        }
-    }
 
     fn run(prql_path: &Path) {
         let test_name = prql_path.file_stem().unwrap().to_str().unwrap();

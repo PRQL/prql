@@ -46,7 +46,7 @@ pub fn translate_query(query: RelationalQuery, dialect: Option<Dialect>) -> Resu
         });
     }
 
-    debug::log_entry(|| debug::DebugEntryKind::ReprSqlParser(query.clone()));
+    debug::log_entry(|| debug::DebugEntryKind::ReprSqlParser(Box::new(query.clone())));
     Ok(query)
 }
 

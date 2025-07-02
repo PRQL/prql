@@ -1,0 +1,32 @@
+---
+source: prqlc/prqlc/tests/integration/queries.rs
+expression: "# mssql:test\nfrom tracks\nderive d = album_id + 1\ngroup d (\n    aggregate {\n        n1 = (track_id | sum),\n    }\n)\nsort d\ntake 10\nselect { d1 = d, n1 }\n"
+input_file: prqlc/prqlc/tests/integration/queries/group_sort.prql
+---
+--- generic
++++ mssql
+@@ -8,21 +8,21 @@
+     album_id + 1
+ ),
+ table_1 AS (
+   SELECT
+     _expr_0 AS d1,
+     n1,
+     _expr_0
+   FROM
+     table_0
+   ORDER BY
+-    _expr_0
+-  LIMIT
+-    10
++    _expr_0 OFFSET 0 ROWS
++  FETCH FIRST
++    10 ROWS ONLY
+ )
+ SELECT
+   d1,
+   n1
+ FROM
+   table_1
+ ORDER BY
+   d1

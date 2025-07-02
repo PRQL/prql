@@ -996,7 +996,7 @@ impl SQLExpression for UnaryOperator {
 /// A wrapper around sql_ast::Expr, that may have already been converted to source.
 #[derive(Debug, Clone)]
 pub enum ExprOrSource {
-    Expr(sql_ast::Expr),
+    Expr(Box<sql_ast::Expr>),
     Source(SourceExpr),
 }
 
@@ -1012,7 +1012,7 @@ pub struct SourceExpr {
 impl ExprOrSource {
     pub fn into_ast(self) -> sql_ast::Expr {
         match self {
-            ExprOrSource::Expr(ast) => ast,
+            ExprOrSource::Expr(ast) => *ast,
             ExprOrSource::Source(SourceExpr { text: source, .. }) => {
                 // The s-string hack
                 sql_ast::Expr::Identifier(sql_ast::Ident::new(source))
@@ -1029,7 +1029,7 @@ impl ExprOrSource {
 
     fn wrap_in_parenthesis(self) -> Self {
         match self {
-            ExprOrSource::Expr(expr) => ExprOrSource::Expr(sql_ast::Expr::Nested(Box::new(expr))),
+            ExprOrSource::Expr(expr) => ExprOrSource::Expr(Box::new(sql_ast::Expr::Nested(expr))),
             ExprOrSource::Source(SourceExpr {
                 text, window_frame, ..
             }) => {
@@ -1057,7 +1057,7 @@ impl SQLExpression for ExprOrSource {
 
 impl From<sql_ast::Expr> for ExprOrSource {
     fn from(value: sql_ast::Expr) -> Self {
-        ExprOrSource::Expr(value)
+        ExprOrSource::Expr(Box::new(value))
     }
 }
 
