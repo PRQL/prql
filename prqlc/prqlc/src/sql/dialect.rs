@@ -484,6 +484,10 @@ impl DialectHandler for BigQueryDialect {
         // https://cloud.google.com/bigquery/docs/reference/standard-sql/query-syntax#set_operators
         true
     }
+
+    fn prefers_subquery_parentheses_shorthand(&self) -> bool {
+        true
+    }
 }
 
 impl DialectHandler for SnowflakeDialect {
