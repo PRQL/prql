@@ -1,0 +1,24 @@
+---
+source: prqlc/prqlc/tests/integration/queries.rs
+expression: "from albums\nsort artist_id\ntake 10\naggregate { artist_number = count artist_id }\n"
+input_file: prqlc/prqlc/tests/integration/queries/sort_with_aggregation_and_limit.prql
+---
+WITH table_1 AS (
+  SELECT
+    artist_id
+  FROM
+    albums
+  ORDER BY
+    artist_id
+  LIMIT
+    10
+), table_0 AS (
+  SELECT
+    artist_id
+  FROM
+    table_1
+)
+SELECT
+  COUNT(*) AS artist_number
+FROM
+  table_0

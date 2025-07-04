@@ -1,0 +1,4 @@
+from albums
+sort artist_id
+take 10
+aggregate { artist_number = count artist_id }
