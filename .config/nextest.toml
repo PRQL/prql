@@ -1,16 +1,21 @@
 [profile.default]
 fail-fast = false
 failure-output = "final"
-slow-timeout = {period = "500ms", terminate-after = 4}
+slow-timeout = { period = "500ms" }
+
+[[profile.default.overrides]]
+# compileall does many passes over the same query, so it takes a bit longer
+filter = 'package(prqlc) & test(queries::)'
+slow-timeout = { period = "2s" }
 
 [[profile.default.overrides]]
 # compileall does many passes over the same query, so it takes a bit longer
 filter = 'package(prqlc) & test(queries::compileall::)'
-slow-timeout = {period = "10s", terminate-after = 2}
+slow-timeout = { period = "10s" }
 
 [[profile.default.overrides]]
 filter = 'package(prqlc) & test(queries::results::)'
-slow-timeout = {period = "10s", terminate-after = 4}
+slow-timeout = { period = "10s" }
 test-group = 'test-dbs'
 
 [test-groups.test-dbs]
@@ -24,12 +29,12 @@ max-threads = 1
 [[profile.default.overrides]]
 # cli tests take a bit longer
 filter = 'test(cli)'
-slow-timeout = {period = "1s"}
+slow-timeout = { period = "1s" }
 
 [[profile.default.overrides]]
 filter = 'package(mdbook-prql)'
 # These are testing dozens of queries, so we give them more time.
-slow-timeout = {period = "20s", terminate-after = 2}
+slow-timeout = { period = "20s" }
 test-group = 'docs-mdbook'
 
 [test-groups.docs-mdbook]
