@@ -1,0 +1,314 @@
+---
+source: prqlc/prqlc/tests/integration/queries.rs
+expression: "from invoices\nselect { invoice_id, billing_country }\nappend (\n  from invoices\n  select { invoice_id = `invoice_id` + 100, billing_country }\n)\nfilter (billing_country | text.starts_with(\"I\"))\n"
+input_file: prqlc/prqlc/tests/integration/queries/append_select_simple.prql
+---
+frames:
+- - 1:14-52
+  - columns:
+    - !Single
+      name:
+      - invoices
+      - invoice_id
+      target_id: 137
+      target_name: null
+    - !Single
+      name:
+      - invoices
+      - billing_country
+      target_id: 138
+      target_name: null
+    inputs:
+    - id: 135
+      name: invoices
+      table:
+      - default_db
+      - invoices
+- - 1:80-139
+  - columns:
+    - !Single
+      name:
+      - invoice_id
+      target_id: 123
+      target_name: null
+    - !Single
+      name:
+      - invoices
+      - billing_country
+      target_id: 127
+      target_name: null
+    inputs:
+    - id: 121
+      name: invoices
+      table:
+      - default_db
+      - invoices
+- - 1:53-141
+  - columns:
+    - !Single
+      name:
+      - invoices
+      - invoice_id
+      target_id: 137
+      target_name: null
+    - !Single
+      name:
+      - invoices
+      - billing_country
+      target_id: 138
+      target_name: null
+    inputs:
+    - id: 135
+      name: invoices
+      table:
+      - default_db
+      - invoices
+- - 1:142-190
+  - columns:
+    - !Single
+      name:
+      - invoices
+      - invoice_id
+      target_id: 137
+      target_name: null
+    - !Single
+      name:
+      - invoices
+      - billing_country
+      target_id: 138
+      target_name: null
+    inputs:
+    - id: 135
+      name: invoices
+      table:
+      - default_db
+      - invoices
+nodes:
+- id: 121
+  kind: Ident
+  span: 1:64-77
+  ident: !Ident
+  - default_db
+  - invoices
+  parent: 129
+- id: 123
+  kind: RqOperator
+  span: 1:102-120
+  alias: invoice_id
+  targets:
+  - 125
+  - 126
+  parent: 128
+- id: 125
+  kind: Ident
+  span: 1:102-114
+  ident: !Ident
+  - this
+  - invoices
+  - invoice_id
+  targets:
+  - 121
+- id: 126
+  kind: Literal
+  span: 1:117-120
+- id: 127
+  kind: Ident
+  span: 1:122-137
+  ident: !Ident
+  - this
+  - invoices
+  - billing_country
+  targets:
+  - 121
+  parent: 128
+- id: 128
+  kind: Tuple
+  span: 1:87-139
+  children:
+  - 123
+  - 127
+  parent: 129
+- id: 129
+  kind: 'TransformCall: Select'
+  span: 1:80-139
+  children:
+  - 121
+  - 128
+  parent: 141
+- id: 135
+  kind: Ident
+  span: 1:0-13
+  ident: !Ident
+  - default_db
+  - invoices
+  parent: 140
+- id: 137
+  kind: Ident
+  span: 1:23-33
+  ident: !Ident
+  - this
+  - invoices
+  - invoice_id
+  targets:
+  - 135
+  parent: 139
+- id: 138
+  kind: Ident
+  span: 1:35-50
+  ident: !Ident
+  - this
+  - invoices
+  - billing_country
+  targets:
+  - 135
+  parent: 139
+- id: 139
+  kind: Tuple
+  span: 1:21-52
+  children:
+  - 137
+  - 138
+  parent: 140
+- id: 140
+  kind: 'TransformCall: Select'
+  span: 1:14-52
+  children:
+  - 135
+  - 139
+  parent: 141
+- id: 141
+  kind: 'TransformCall: Append'
+  span: 1:53-141
+  children:
+  - 140
+  - 129
+  parent: 147
+- id: 142
+  kind: RqOperator
+  span: 1:168-189
+  targets:
+  - 145
+  - 146
+  parent: 147
+- id: 145
+  kind: Literal
+  span: 1:185-188
+- id: 146
+  kind: Ident
+  span: 1:150-165
+  ident: !Ident
+  - this
+  - invoices
+  - billing_country
+  targets:
+  - 138
+- id: 147
+  kind: 'TransformCall: Filter'
+  span: 1:142-190
+  children:
+  - 141
+  - 142
+ast:
+  name: Project
+  stmts:
+  - VarDef:
+      kind: Main
+      name: main
+      value:
+        Pipeline:
+          exprs:
+          - FuncCall:
+              name:
+                Ident:
+                - from
+                span: 1:0-4
+              args:
+              - Ident:
+                - invoices
+                span: 1:5-13
+            span: 1:0-13
+          - FuncCall:
+              name:
+                Ident:
+                - select
+                span: 1:14-20
+              args:
+              - Tuple:
+                - Ident:
+                  - invoice_id
+                  span: 1:23-33
+                - Ident:
+                  - billing_country
+                  span: 1:35-50
+                span: 1:21-52
+            span: 1:14-52
+          - FuncCall:
+              name:
+                Ident:
+                - append
+                span: 1:53-59
+              args:
+              - Pipeline:
+                  exprs:
+                  - FuncCall:
+                      name:
+                        Ident:
+                        - from
+                        span: 1:64-68
+                      args:
+                      - Ident:
+                        - invoices
+                        span: 1:69-77
+                    span: 1:64-77
+                  - FuncCall:
+                      name:
+                        Ident:
+                        - select
+                        span: 1:80-86
+                      args:
+                      - Tuple:
+                        - Binary:
+                            left:
+                              Ident:
+                              - invoice_id
+                              span: 1:102-114
+                            op: Add
+                            right:
+                              Literal:
+                                Integer: 100
+                              span: 1:117-120
+                          span: 1:102-120
+                          alias: invoice_id
+                        - Ident:
+                          - billing_country
+                          span: 1:122-137
+                        span: 1:87-139
+                    span: 1:80-139
+                span: 1:64-139
+            span: 1:53-141
+          - FuncCall:
+              name:
+                Ident:
+                - filter
+                span: 1:142-148
+              args:
+              - Pipeline:
+                  exprs:
+                  - Ident:
+                    - billing_country
+                    span: 1:150-165
+                  - FuncCall:
+                      name:
+                        Ident:
+                        - text
+                        - starts_with
+                        span: 1:168-184
+                      args:
+                      - Literal:
+                          String: I
+                        span: 1:185-188
+                    span: 1:168-189
+                span: 1:150-189
+            span: 1:142-190
+        span: 1:0-190
+    span: 1:0-190

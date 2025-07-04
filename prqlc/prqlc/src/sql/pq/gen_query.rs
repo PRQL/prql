@@ -189,7 +189,7 @@ pub(super) fn compile_relation_instance(riid: RIId, ctx: &mut Context) -> Result
     // ensure that the table is declared
     if let RelationStatus::NotYetDefined(sql_relation) = decl.relation.take_to_define() {
         // if we cannot use CTEs (probably because we are within RECURSIVE)
-        if !ctx.query.allow_ctes {
+        if !(ctx.query.allow_ctes && table_ref.prefer_cte) {
             // restore relation for other references
             decl.relation = RelationStatus::NotYetDefined(sql_relation.clone());
 

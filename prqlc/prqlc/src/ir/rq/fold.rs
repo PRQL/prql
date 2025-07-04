@@ -129,6 +129,7 @@ pub fn fold_table_ref<F: ?Sized + RqFold>(fold: &mut F, table_ref: TableRef) -> 
                 Ok((fold.fold_relation_column(col)?, fold.fold_cid(cid)?))
             })
             .try_collect()?,
+        prefer_cte: table_ref.prefer_cte,
     })
 }
 
