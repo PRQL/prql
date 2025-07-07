@@ -8,8 +8,8 @@
 
 **Fixes**:
 
-- `sort` step before an `aggregate` step no longer requires its columns in order to
-  avoid a group by clause error. (@julien-pinchelimouroux, #5347)
+- `sort` step before an `aggregate` step no longer requires its columns in order
+  to avoid a group by clause error. (@julien-pinchelimouroux, #5347)
 
 **Documentation**:
 
