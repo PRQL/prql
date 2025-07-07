@@ -462,15 +462,6 @@ fn test_append() {
         take 10
     )
     "###).unwrap(), @r"
-    WITH table_0 AS (
-      SELECT
-        name,
-        salary + bonuses AS cost
-      FROM
-        employees
-      LIMIT
-        10
-    )
     SELECT
       *
     FROM
@@ -482,13 +473,21 @@ fn test_append() {
           employees
         LIMIT
           3
-      ) AS table_1
+      ) AS table_2
     UNION
     ALL
     SELECT
       *
     FROM
-      table_0
+      (
+        SELECT
+          name,
+          salary + bonuses AS cost
+        FROM
+          employees
+        LIMIT
+          10
+      ) AS table_3
     ");
 
     assert_snapshot!(compile(r###"
@@ -989,17 +988,6 @@ fn test_sort_in_nested_append() {
     )
     "#).unwrap(),
         @r"
-    WITH table_0 AS (
-      SELECT
-        album_id,
-        title
-      FROM
-        albums
-      ORDER BY
-        album_id DESC
-      LIMIT
-        2
-    )
     SELECT
       *
     FROM
@@ -1013,13 +1001,23 @@ fn test_sort_in_nested_append() {
           album_id
         LIMIT
           2
-      ) AS table_1
+      ) AS table_2
     UNION
     ALL
     SELECT
       *
     FROM
-      table_0
+      (
+        SELECT
+          album_id,
+          title
+        FROM
+          albums
+        ORDER BY
+          album_id DESC
+        LIMIT
+          2
+      ) AS table_3
     "
     );
 }

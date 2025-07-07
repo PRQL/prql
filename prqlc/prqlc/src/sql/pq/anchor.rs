@@ -291,6 +291,7 @@ pub(super) fn anchor_split(
             source: new_tid,
             name: None,
             columns: new_columns,
+            prefer_cte: true,
         },
         cid_redirects,
     );
