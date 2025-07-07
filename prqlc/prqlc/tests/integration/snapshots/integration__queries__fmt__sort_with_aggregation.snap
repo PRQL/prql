@@ -1,8 +1,0 @@
----
-source: prqlc/prqlc/tests/integration/queries.rs
-expression: "from albums\nsort artist_id\naggregate { artist_number = count artist_id }\n"
-input_file: prqlc/prqlc/tests/integration/queries/sort_with_aggregation.prql
----
-from albums
-sort artist_id
-aggregate {artist_number = count artist_id}

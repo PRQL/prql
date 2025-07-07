@@ -1311,6 +1311,21 @@ fn test_sorts_03() {
 }
 
 #[test]
+fn test_sort_before_aggregate() {
+    assert_snapshot!((compile(r#"
+    from a
+    sort a.col
+    aggregate { result = sum a.col_to_agg }
+    "#
+    ).unwrap()), @r"
+    SELECT
+      COALESCE(SUM(col_to_agg), 0) AS result
+    FROM
+      a
+    ");
+}
+
+#[test]
 fn test_numbers() {
     let query = r###"
     from numbers
