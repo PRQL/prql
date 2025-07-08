@@ -47,8 +47,8 @@ an index.
   [`grammars/KSyntaxHighlighting/`](https://github.com/PRQL/prql/tree/main/grammars/KSyntaxHighlighting/).
 
 - [micro](https://micro-editor.github.io/) — used by terminal-based text editor
-  Micro. File is at
-  [`grammars/micro/`](https://github.com/PRQL/prql/tree/main/grammars/micro/).
+  Micro. The grammar is
+  [upstream](https://github.com/zyedidia/micro/blob/master/runtime/syntax/prql.yaml).
 
 - [nano](https://nano-editor.org/) — used by terminal-based text editor GNU
   nano. File is at
