@@ -552,7 +552,12 @@ pub(super) fn get_requirements(
                 .should_select(true)
         }
 
-        // LIMIT and OFFSET can use constant expressions which don't need to be SELECTed
+        SqlTransform::DistinctOn(partition) => Requirements::from_cids(partition.iter())
+            // Partition columns must be selected in order to push compute columns down CTE.
+            .should_select(true)
+            // Since there is aggregation anyway, columns can have any complexity
+            .allow_up_to(Complexity::highest()),
+
         Super(Transform::Take(rq::Take { range, .. })) => [&range.start, &range.end]
             .into_iter()
             .flatten()
