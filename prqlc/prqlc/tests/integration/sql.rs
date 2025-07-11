@@ -5669,3 +5669,48 @@ fn test_type_error_placement() {
       t
     ");
 }
+
+#[test]
+fn test_missing_columns_group_complex_compute() {
+    // https://github.com/PRQL/prql/issues/5354
+    // The focus for this tests is on whether the `hire_date` column is available where it's needed.
+    // Additional `city` derive are there only to trigger the issue.
+    assert_snapshot!(compile(
+        r#"prql target:sql.postgres
+        from employees
+        derive `year` = s'EXTRACT(year from {`hire_date`})'
+        derive { `year_label` = f"Year {`year`}" }
+        derive { `city` = case [ this.`city` == "Calgary" => "A city", true => this.`city` ] }
+        derive { `city` = case [ this.`city` == "Edmonton" => "Another city", true => this.`city` ] }
+        group {`year`, `year_label`} (take 1)
+        select {this.`year_label`}
+    "#,
+    )
+    .unwrap(), @r"
+    SELECT
+      DISTINCT ON (
+        EXTRACT(
+          year
+          from
+            hire_date
+        ),
+        CONCAT(
+          'Year ',
+          EXTRACT(
+            year
+            from
+              hire_date
+          )
+        )
+      ) CONCAT(
+        'Year ',
+        EXTRACT(
+          year
+          from
+            hire_date
+        )
+      ) AS year_label
+    FROM
+      employees
+    ");
+}
