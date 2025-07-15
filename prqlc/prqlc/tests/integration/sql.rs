@@ -2518,11 +2518,17 @@ fn test_distinct_on_03() {
     derive foo = 1
     select foo
     "###).unwrap()), @r"
-    WITH table_0 AS (
+    WITH table_1 AS (
       SELECT
-        DISTINCT ON (col1) NULL
+        DISTINCT ON (col1) col1
       FROM
         tab1
+    ),
+    table_0 AS (
+      SELECT
+        NULL
+      FROM
+        table_1
     )
     SELECT
       1 AS foo
@@ -5667,5 +5673,59 @@ fn test_type_error_placement() {
       AND CAST(y AS integer)
     FROM
       t
+    ");
+}
+
+#[test]
+fn test_missing_columns_group_complex_compute() {
+    // https://github.com/PRQL/prql/issues/5354
+    // The focus for this tests is on whether the `hire_date` column is available where it's needed.
+    // Additional `city` derive are there only to trigger the issue.
+    assert_snapshot!(compile(
+        r#"prql target:sql.postgres
+        from employees
+        derive `year` = s'EXTRACT(year from {`hire_date`})'
+        derive { `year_label` = f"Year {`year`}" }
+        derive { `city` = case [ this.`city` == "Calgary" => "A city", true => this.`city` ] }
+        derive { `city` = case [ this.`city` == "Edmonton" => "Another city", true => this.`city` ] }
+        group {`year`, `year_label`} (take 1)
+        select {this.`year_label`}
+    "#,
+    )
+    .unwrap(), @r"
+    WITH table_0 AS (
+      SELECT
+        CONCAT(
+          'Year ',
+          EXTRACT(
+            year
+            from
+              hire_date
+          )
+        ) AS year_label,
+        EXTRACT(
+          year
+          from
+            hire_date
+        ) AS _expr_0,
+        CASE
+          WHEN city = 'Calgary' THEN 'A city'
+          ELSE city
+        END AS _expr_1,
+        city
+      FROM
+        employees
+    ),
+    table_1 AS (
+      SELECT
+        DISTINCT ON (_expr_0, year_label) year_label,
+        _expr_0
+      FROM
+        table_0
+    )
+    SELECT
+      year_label
+    FROM
+      table_1
     ");
 }
