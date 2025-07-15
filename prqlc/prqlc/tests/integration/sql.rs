@@ -2518,11 +2518,17 @@ fn test_distinct_on_03() {
     derive foo = 1
     select foo
     "###).unwrap()), @r"
-    WITH table_0 AS (
+    WITH table_1 AS (
       SELECT
-        DISTINCT ON (col1) NULL
+        DISTINCT ON (col1) col1
       FROM
         tab1
+    ),
+    table_0 AS (
+      SELECT
+        NULL
+      FROM
+        table_1
     )
     SELECT
       1 AS foo
@@ -5687,13 +5693,8 @@ fn test_missing_columns_group_complex_compute() {
     "#,
     )
     .unwrap(), @r"
-    SELECT
-      DISTINCT ON (
-        EXTRACT(
-          year
-          from
-            hire_date
-        ),
+    WITH table_0 AS (
+      SELECT
         CONCAT(
           'Year ',
           EXTRACT(
@@ -5701,16 +5702,30 @@ fn test_missing_columns_group_complex_compute() {
             from
               hire_date
           )
-        )
-      ) CONCAT(
-        'Year ',
+        ) AS year_label,
         EXTRACT(
           year
           from
             hire_date
-        )
-      ) AS year_label
+        ) AS _expr_0,
+        CASE
+          WHEN city = 'Calgary' THEN 'A city'
+          ELSE city
+        END AS _expr_1,
+        city
+      FROM
+        employees
+    ),
+    table_1 AS (
+      SELECT
+        DISTINCT ON (_expr_0, year_label) year_label,
+        _expr_0
+      FROM
+        table_0
+    )
+    SELECT
+      year_label
     FROM
-      employees
+      table_1
     ");
 }
