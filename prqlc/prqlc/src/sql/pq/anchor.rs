@@ -553,8 +553,6 @@ pub(super) fn get_requirements(
         }
 
         SqlTransform::DistinctOn(partition) => Requirements::from_cids(partition.iter())
-            // Partition columns must be selected in order to push compute columns down CTE.
-            .should_select(true)
             // Since there is aggregation anyway, columns can have any complexity
             .allow_up_to(Complexity::highest()),
 

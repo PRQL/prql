@@ -1,0 +1,490 @@
+---
+source: prqlc/prqlc/tests/integration/queries.rs
+expression: "from invoices\nderive code = case [customer_id < 10 => billing_postal_code, true => null]\ngroup {customer_id, billing_city, billing_country} (\n  sort {-this.code}\n  take 1\n)\nfilter (customer_id | in [4])\ngroup {billing_country} (aggregate {total = math.round 2 (sum total)})\n"
+input_file: prqlc/prqlc/tests/integration/queries/distinct_on_sort_on_compute.prql
+---
+frames:
+- - 1:14-88
+  - columns:
+    - !All
+      input_id: 124
+      except: []
+    - !Single
+      name:
+      - code
+      target_id: 126
+      target_name: null
+    inputs:
+    - id: 124
+      name: invoices
+      table:
+      - default_db
+      - invoices
+- - 1:164-170
+  - columns:
+    - !Single
+      name:
+      - invoices
+      - customer_id
+      target_id: 136
+      target_name: null
+    - !Single
+      name:
+      - invoices
+      - billing_city
+      target_id: 137
+      target_name: null
+    - !Single
+      name:
+      - invoices
+      - billing_country
+      target_id: 138
+      target_name: null
+    - !All
+      input_id: 124
+      except:
+      - billing_city
+      - billing_country
+      - customer_id
+    - !Single
+      name:
+      - code
+      target_id: 126
+      target_name: null
+    inputs:
+    - id: 124
+      name: invoices
+      table:
+      - default_db
+      - invoices
+- - 1:173-202
+  - columns:
+    - !Single
+      name:
+      - invoices
+      - customer_id
+      target_id: 136
+      target_name: null
+    - !Single
+      name:
+      - invoices
+      - billing_city
+      target_id: 137
+      target_name: null
+    - !Single
+      name:
+      - invoices
+      - billing_country
+      target_id: 138
+      target_name: null
+    - !All
+      input_id: 124
+      except:
+      - billing_city
+      - billing_country
+      - customer_id
+    - !Single
+      name:
+      - code
+      target_id: 126
+      target_name: null
+    inputs:
+    - id: 124
+      name: invoices
+      table:
+      - default_db
+      - invoices
+- - 1:228-272
+  - columns:
+    - !Single
+      name:
+      - invoices
+      - billing_country
+      target_id: 179
+      target_name: null
+    - !Single
+      name:
+      - total
+      target_id: 196
+      target_name: null
+    inputs:
+    - id: 124
+      name: invoices
+      table:
+      - default_db
+      - invoices
+nodes:
+- id: 124
+  kind: Ident
+  span: 1:0-13
+  ident: !Ident
+  - default_db
+  - invoices
+  parent: 135
+- id: 126
+  kind: Case
+  span: 1:28-88
+  alias: code
+  targets:
+  - 127
+  - 131
+  - 132
+  - 133
+  parent: 134
+- id: 127
+  kind: RqOperator
+  span: 1:34-50
+  targets:
+  - 129
+  - 130
+- id: 129
+  kind: Ident
+  span: 1:34-45
+  ident: !Ident
+  - this
+  - invoices
+  - customer_id
+  targets:
+  - 124
+- id: 130
+  kind: Literal
+  span: 1:48-50
+- id: 131
+  kind: Ident
+  span: 1:54-73
+  ident: !Ident
+  - this
+  - invoices
+  - billing_postal_code
+  targets:
+  - 124
+- id: 132
+  kind: Literal
+  span: 1:75-79
+- id: 133
+  kind: Literal
+  span: 1:83-87
+- id: 134
+  kind: Tuple
+  span: 1:28-88
+  children:
+  - 126
+  parent: 135
+- id: 135
+  kind: 'TransformCall: Derive'
+  span: 1:14-88
+  children:
+  - 124
+  - 134
+  parent: 167
+- id: 136
+  kind: Ident
+  span: 1:96-107
+  ident: !Ident
+  - this
+  - invoices
+  - customer_id
+  targets:
+  - 124
+  parent: 139
+- id: 137
+  kind: Ident
+  span: 1:109-121
+  ident: !Ident
+  - this
+  - invoices
+  - billing_city
+  targets:
+  - 124
+  parent: 139
+- id: 138
+  kind: Ident
+  span: 1:123-138
+  ident: !Ident
+  - this
+  - invoices
+  - billing_country
+  targets:
+  - 124
+  parent: 139
+- id: 139
+  kind: Tuple
+  span: 1:95-139
+  children:
+  - 136
+  - 137
+  - 138
+- id: 163
+  kind: Ident
+  span: 1:151-160
+  ident: !Ident
+  - this
+  - code
+  targets:
+  - 126
+- id: 167
+  kind: 'TransformCall: Take'
+  span: 1:164-170
+  children:
+  - 135
+  - 168
+  parent: 178
+- id: 168
+  kind: Literal
+  parent: 167
+- id: 174
+  kind: Array
+  span: 1:198-201
+  children:
+  - 175
+- id: 175
+  kind: Literal
+  span: 1:199-200
+  parent: 174
+- id: 176
+  kind: Ident
+  span: 1:181-192
+  ident: !Ident
+  - this
+  - invoices
+  - customer_id
+  targets:
+  - 136
+- id: 177
+  kind: RqOperator
+  span: 1:195-201
+  targets:
+  - 176
+  - 174
+  parent: 178
+- id: 178
+  kind: 'TransformCall: Filter'
+  span: 1:173-202
+  children:
+  - 167
+  - 177
+  parent: 203
+- id: 179
+  kind: Ident
+  span: 1:210-225
+  ident: !Ident
+  - this
+  - invoices
+  - billing_country
+  targets:
+  - 138
+  parent: 180
+- id: 180
+  kind: Tuple
+  span: 1:209-226
+  children:
+  - 179
+  parent: 203
+- id: 196
+  kind: RqOperator
+  span: 1:247-271
+  alias: total
+  targets:
+  - 198
+  - 199
+  parent: 202
+- id: 198
+  kind: Literal
+  span: 1:258-259
+- id: 199
+  kind: RqOperator
+  span: 1:261-270
+  targets:
+  - 201
+- id: 201
+  kind: Ident
+  span: 1:265-270
+  ident: !Ident
+  - this
+  - invoices
+  - total
+  targets:
+  - 124
+- id: 202
+  kind: Tuple
+  span: 1:238-272
+  children:
+  - 196
+  parent: 203
+- id: 203
+  kind: 'TransformCall: Aggregate'
+  span: 1:228-272
+  children:
+  - 178
+  - 202
+  - 180
+ast:
+  name: Project
+  stmts:
+  - VarDef:
+      kind: Main
+      name: main
+      value:
+        Pipeline:
+          exprs:
+          - FuncCall:
+              name:
+                Ident:
+                - from
+                span: 1:0-4
+              args:
+              - Ident:
+                - invoices
+                span: 1:5-13
+            span: 1:0-13
+          - FuncCall:
+              name:
+                Ident:
+                - derive
+                span: 1:14-20
+              args:
+              - Case:
+                - condition:
+                    Binary:
+                      left:
+                        Ident:
+                        - customer_id
+                        span: 1:34-45
+                      op: Lt
+                      right:
+                        Literal:
+                          Integer: 10
+                        span: 1:48-50
+                    span: 1:34-50
+                  value:
+                    Ident:
+                    - billing_postal_code
+                    span: 1:54-73
+                - condition:
+                    Literal:
+                      Boolean: true
+                    span: 1:75-79
+                  value:
+                    Literal: 'Null'
+                    span: 1:83-87
+                span: 1:28-88
+                alias: code
+            span: 1:14-88
+          - FuncCall:
+              name:
+                Ident:
+                - group
+                span: 1:89-94
+              args:
+              - Tuple:
+                - Ident:
+                  - customer_id
+                  span: 1:96-107
+                - Ident:
+                  - billing_city
+                  span: 1:109-121
+                - Ident:
+                  - billing_country
+                  span: 1:123-138
+                span: 1:95-139
+              - Pipeline:
+                  exprs:
+                  - FuncCall:
+                      name:
+                        Ident:
+                        - sort
+                        span: 1:144-148
+                      args:
+                      - Tuple:
+                        - Unary:
+                            op: Neg
+                            expr:
+                              Ident:
+                              - this
+                              - code
+                              span: 1:151-160
+                          span: 1:150-160
+                        span: 1:149-161
+                    span: 1:144-161
+                  - FuncCall:
+                      name:
+                        Ident:
+                        - take
+                        span: 1:164-168
+                      args:
+                      - Literal:
+                          Integer: 1
+                        span: 1:169-170
+                    span: 1:164-170
+                span: 1:144-170
+            span: 1:89-172
+          - FuncCall:
+              name:
+                Ident:
+                - filter
+                span: 1:173-179
+              args:
+              - Pipeline:
+                  exprs:
+                  - Ident:
+                    - customer_id
+                    span: 1:181-192
+                  - FuncCall:
+                      name:
+                        Ident:
+                        - in
+                        span: 1:195-197
+                      args:
+                      - Array:
+                        - Literal:
+                            Integer: 4
+                          span: 1:199-200
+                        span: 1:198-201
+                    span: 1:195-201
+                span: 1:181-201
+            span: 1:173-202
+          - FuncCall:
+              name:
+                Ident:
+                - group
+                span: 1:203-208
+              args:
+              - Tuple:
+                - Ident:
+                  - billing_country
+                  span: 1:210-225
+                span: 1:209-226
+              - FuncCall:
+                  name:
+                    Ident:
+                    - aggregate
+                    span: 1:228-237
+                  args:
+                  - Tuple:
+                    - FuncCall:
+                        name:
+                          Ident:
+                          - math
+                          - round
+                          span: 1:247-257
+                        args:
+                        - Literal:
+                            Integer: 2
+                          span: 1:258-259
+                        - FuncCall:
+                            name:
+                              Ident:
+                              - sum
+                              span: 1:261-264
+                            args:
+                            - Ident:
+                              - total
+                              span: 1:265-270
+                          span: 1:261-270
+                      span: 1:247-271
+                      alias: total
+                    span: 1:238-272
+                span: 1:228-272
+            span: 1:203-273
+        span: 1:0-273
+    span: 1:0-273
