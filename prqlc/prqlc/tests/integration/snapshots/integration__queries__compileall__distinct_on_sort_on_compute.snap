@@ -5,12 +5,10 @@ input_file: prqlc/prqlc/tests/integration/queries/distinct_on_sort_on_compute.pr
 ---
 --- generic
 +++ clickhouse
-@@ -1,39 +1,27 @@
--WITH table_1 AS (
-+WITH table_0 AS (
+@@ -1,39 +1,38 @@
+ WITH table_1 AS (
    SELECT
--    billing_country,
-+    DISTINCT ON (customer_id, billing_city, billing_country) billing_country,
+     billing_country,
      total,
      customer_id,
      billing_city,
@@ -18,19 +16,17 @@ input_file: prqlc/prqlc/tests/integration/queries/distinct_on_sort_on_compute.pr
        WHEN customer_id < 10 THEN billing_postal_code
        ELSE NULL
 -    END AS _expr_1,
--    billing_postal_code
-+    END AS _expr_0
++    END AS _expr_0,
+     billing_postal_code
    FROM
      invoices
--),
--table_0 AS (
--  SELECT
-+  ORDER BY
-+    customer_id,
-+    billing_city,
-     billing_country,
--    total,
--    customer_id,
+ ),
+ table_0 AS (
+   SELECT
+-    billing_country,
++    DISTINCT ON (customer_id, billing_city, billing_country) billing_country,
+     total,
+     customer_id,
 -    ROW_NUMBER() OVER (
 -      PARTITION BY customer_id,
 -      billing_city,
@@ -38,8 +34,14 @@ input_file: prqlc/prqlc/tests/integration/queries/distinct_on_sort_on_compute.pr
 -      ORDER BY
 -        _expr_1 DESC
 -    ) AS _expr_0
--  FROM
--    table_1
++    billing_city,
++    _expr_0
+   FROM
+     table_1
++  ORDER BY
++    customer_id,
++    billing_city,
++    billing_country,
 +    _expr_0 DESC
  )
  SELECT
@@ -56,12 +58,10 @@ input_file: prqlc/prqlc/tests/integration/queries/distinct_on_sort_on_compute.pr
 
 --- generic
 +++ duckdb
-@@ -1,39 +1,27 @@
--WITH table_1 AS (
-+WITH table_0 AS (
+@@ -1,39 +1,38 @@
+ WITH table_1 AS (
    SELECT
--    billing_country,
-+    DISTINCT ON (customer_id, billing_city, billing_country) billing_country,
+     billing_country,
      total,
      customer_id,
      billing_city,
@@ -69,19 +69,17 @@ input_file: prqlc/prqlc/tests/integration/queries/distinct_on_sort_on_compute.pr
        WHEN customer_id < 10 THEN billing_postal_code
        ELSE NULL
 -    END AS _expr_1,
--    billing_postal_code
-+    END AS _expr_0
++    END AS _expr_0,
+     billing_postal_code
    FROM
      invoices
--),
--table_0 AS (
--  SELECT
-+  ORDER BY
-+    customer_id,
-+    billing_city,
-     billing_country,
--    total,
--    customer_id,
+ ),
+ table_0 AS (
+   SELECT
+-    billing_country,
++    DISTINCT ON (customer_id, billing_city, billing_country) billing_country,
+     total,
+     customer_id,
 -    ROW_NUMBER() OVER (
 -      PARTITION BY customer_id,
 -      billing_city,
@@ -89,8 +87,14 @@ input_file: prqlc/prqlc/tests/integration/queries/distinct_on_sort_on_compute.pr
 -      ORDER BY
 -        _expr_1 DESC
 -    ) AS _expr_0
--  FROM
--    table_1
++    billing_city,
++    _expr_0
+   FROM
+     table_1
++  ORDER BY
++    customer_id,
++    billing_city,
++    billing_country,
 +    _expr_0 DESC
  )
  SELECT
@@ -132,12 +136,10 @@ input_file: prqlc/prqlc/tests/integration/queries/distinct_on_sort_on_compute.pr
 
 --- generic
 +++ postgres
-@@ -1,39 +1,27 @@
--WITH table_1 AS (
-+WITH table_0 AS (
+@@ -1,39 +1,38 @@
+ WITH table_1 AS (
    SELECT
--    billing_country,
-+    DISTINCT ON (customer_id, billing_city, billing_country) billing_country,
+     billing_country,
      total,
      customer_id,
      billing_city,
@@ -145,19 +147,17 @@ input_file: prqlc/prqlc/tests/integration/queries/distinct_on_sort_on_compute.pr
        WHEN customer_id < 10 THEN billing_postal_code
        ELSE NULL
 -    END AS _expr_1,
--    billing_postal_code
-+    END AS _expr_0
++    END AS _expr_0,
+     billing_postal_code
    FROM
      invoices
--),
--table_0 AS (
--  SELECT
-+  ORDER BY
-+    customer_id,
-+    billing_city,
-     billing_country,
--    total,
--    customer_id,
+ ),
+ table_0 AS (
+   SELECT
+-    billing_country,
++    DISTINCT ON (customer_id, billing_city, billing_country) billing_country,
+     total,
+     customer_id,
 -    ROW_NUMBER() OVER (
 -      PARTITION BY customer_id,
 -      billing_city,
@@ -165,8 +165,14 @@ input_file: prqlc/prqlc/tests/integration/queries/distinct_on_sort_on_compute.pr
 -      ORDER BY
 -        _expr_1 DESC
 -    ) AS _expr_0
--  FROM
--    table_1
++    billing_city,
++    _expr_0
+   FROM
+     table_1
++  ORDER BY
++    customer_id,
++    billing_city,
++    billing_country,
 +    _expr_0 DESC
  )
  SELECT

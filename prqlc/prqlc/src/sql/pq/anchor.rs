@@ -552,6 +552,10 @@ pub(super) fn get_requirements(
                 .should_select(true)
         }
 
+        SqlTransform::Sort(sorts) if !following.contains("Aggregate") => {
+            Requirements::from_cids(sorts.iter().map(|s| &s.column))
+        }
+
         SqlTransform::DistinctOn(partition) => Requirements::from_cids(partition.iter())
             // Since there is aggregation anyway, columns can have any complexity
             .allow_up_to(Complexity::highest()),
