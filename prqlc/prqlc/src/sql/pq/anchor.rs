@@ -100,7 +100,7 @@ pub(super) fn split_off_back(
         }
 
         // anchor and record all requirements
-        let required = get_requirements(&transform, &following_transforms);
+        let required = get_requirements(&transform, &following_transforms, &inputs_required);
         log::debug!(".. transform {} requires {required:?}", transform.as_str(),);
         inputs_required = inputs_required.append(required.clone());
 
@@ -504,19 +504,14 @@ impl std::fmt::Debug for Requirement {
 pub(super) fn get_requirements(
     transform: &SqlTransform,
     following: &HashSet<String>,
+    previous_requirements: &Requirements,
 ) -> Requirements {
     use SqlTransform::Super;
 
     match transform {
-        Super(Transform::Aggregate { partition, compute }) => {
-            let partition_requirements = Requirements::from_cids(partition.iter());
-            let compute_requirements =
-                Requirements::from_cids(compute.iter()).allow_up_to(Complexity::Aggregation);
+        Super(Transform::Aggregate { partition, .. }) => Requirements::from_cids(partition.iter()),
 
-            partition_requirements.append(compute_requirements)
-        }
-
-        Super(Transform::Compute(compute)) => {
+        Super(Transform::Compute(compute)) if previous_requirements.is_required(&compute.id) => {
             let requirements = Requirements::from_expr(&compute.expr).allow_up_to(
                 match infer_complexity(compute) {
                     // plain expressions can be included in anything less complex than Aggregation
