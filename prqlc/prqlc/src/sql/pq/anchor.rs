@@ -483,6 +483,14 @@ impl Requirements {
         }
         self
     }
+
+    pub fn is_selected(&self, id: &CId) -> bool {
+        self.0.iter().any(|r| r.selected && &r.col == id)
+    }
+
+    pub fn is_required(&self, id: &CId) -> bool {
+        self.0.iter().any(|r| &r.col == id)
+    }
 }
 
 impl std::fmt::Debug for Requirement {
