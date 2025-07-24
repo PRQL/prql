@@ -5687,8 +5687,13 @@ fn test_missing_columns_group_complex_compute() {
     "#,
     )
     .unwrap(), @r"
-    WITH table_0 AS (
-      SELECT
+    SELECT
+      DISTINCT ON (
+        EXTRACT(
+          year
+          from
+            hire_date
+        ),
         CONCAT(
           'Year ',
           EXTRACT(
@@ -5696,23 +5701,16 @@ fn test_missing_columns_group_complex_compute() {
             from
               hire_date
           )
-        ) AS year_label,
+        )
+      ) CONCAT(
+        'Year ',
         EXTRACT(
           year
           from
             hire_date
-        ) AS _expr_0,
-        CASE
-          WHEN city = 'Calgary' THEN 'A city'
-          ELSE city
-        END AS _expr_1,
-        city
-      FROM
-        employees
-    )
-    SELECT
-      DISTINCT ON (_expr_0, year_label) year_label
+        )
+      ) AS year_label
     FROM
-      table_0
+      employees
     ");
 }

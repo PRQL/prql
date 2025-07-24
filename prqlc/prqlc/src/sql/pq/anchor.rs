@@ -75,7 +75,7 @@ pub(super) fn split_off_back(
         return (None, Vec::new());
     }
 
-    let mapping_before = compute_positional_mappings(&pipeline);
+    let mapping_before = compute_positional_mappings(&pipeline, None);
 
     log::debug!("traversing pipeline to obtain columns: {output:?}");
 
@@ -188,10 +188,12 @@ pub(super) fn split_off_back(
     curr_pipeline_rev.reverse();
 
     // This will compare columns for order sensitive transform and correct it in subsequent relation.
-    let mapping_after = compute_positional_mappings(&curr_pipeline_rev);
-    for (before, after) in mapping_before.iter().zip(mapping_after.iter()) {
-        ctx.positional_mapping
-            .compute_and_store_mapping(before, after);
+    let mapping_after = compute_positional_mappings(&curr_pipeline_rev, Some(&inputs_required));
+    for (riid, after) in mapping_after {
+        if let Some((_, before)) = mapping_before.iter().find(|(r, _)| &riid == r) {
+            ctx.positional_mapping
+                .compute_and_store_mapping(before, &after, &riid);
+        }
     }
 
     (remaining_pipeline, curr_pipeline_rev)

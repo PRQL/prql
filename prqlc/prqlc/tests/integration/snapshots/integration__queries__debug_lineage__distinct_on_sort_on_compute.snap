@@ -44,7 +44,6 @@ frames:
       input_id: 124
       except:
       - billing_city
-      - customer_id
       - billing_country
       - customer_id
     - !Single
@@ -82,7 +81,6 @@ frames:
       input_id: 124
       except:
       - billing_city
-      - customer_id
       - billing_country
       - customer_id
     - !Single
