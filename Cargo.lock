@@ -2051,9 +2051,9 @@ dependencies = [
 
 [[package]]
 name = "mdbook"
-version = "0.4.51"
+version = "0.4.52"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "a87e65420ab45ca9c1b8cdf698f95b710cc826d373fa550f0f7fad82beac9328"
+checksum = "93c284d2855916af7c5919cf9ad897cfc77d3c2db6f55429c7cfb769182030ec"
 dependencies = [
  "anyhow",
  "chrono",
@@ -2109,8 +2109,8 @@ dependencies = [
  "serde_json",
  "serde_yaml",
  "similar-asserts",
- "strum 0.27.1",
- "strum_macros 0.27.1",
+ "strum 0.27.2",
+ "strum_macros 0.27.2",
  "walkdir",
 ]
 
@@ -2757,8 +2757,8 @@ dependencies = [
  "similar-asserts",
  "sqlformat",
  "sqlparser",
- "strum 0.27.1",
- "strum_macros 0.27.1",
+ "strum 0.27.2",
+ "strum_macros 0.27.2",
  "tempfile",
  "test_each_file",
  "tiberius",
@@ -2810,7 +2810,7 @@ dependencies = [
  "serde_json",
  "serde_yaml",
  "stacker",
- "strum 0.27.1",
+ "strum 0.27.2",
 ]
 
 [[package]]
@@ -3474,9 +3474,9 @@ dependencies = [
 
 [[package]]
 name = "serde_json"
-version = "1.0.140"
+version = "1.0.141"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "20068b6e96dc6c9bd23e01df8827e6c7e1f2fddd43c21810382803c136b99373"
+checksum = "30b9eff21ebe718216c6ec64e1d9ac57087aad11efc64e32002bce4a0d4c03d3"
 dependencies = [
  "itoa",
  "memchr",
@@ -3690,11 +3690,11 @@ checksum = "8fec0f0aef304996cf250b31b5a10dee7980c85da9d759361292b8bca5a18f06"
 
 [[package]]
 name = "strum"
-version = "0.27.1"
+version = "0.27.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "f64def088c51c9510a8579e3c5d67c65349dcf755e5479ad3d010aa6454e2c32"
+checksum = "af23d6f6c1a224baef9d3f61e287d2761385a5b88fdab4eb4c6f11aeb54c4bcf"
 dependencies = [
- "strum_macros 0.27.1",
+ "strum_macros 0.27.2",
 ]
 
 [[package]]
@@ -3725,14 +3725,13 @@ dependencies = [
 
 [[package]]
 name = "strum_macros"
-version = "0.27.1"
+version = "0.27.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "c77a8c5abcaf0f9ce05d62342b7d298c346515365c36b673df4ebe3ced01fde8"
+checksum = "7695ce3845ea4b33927c055a39dc438a45b059f7c1b3d91d38d10355fb8cbca7"
 dependencies = [
  "heck 0.5.0",
  "proc-macro2",
  "quote",
- "rustversion",
  "syn 2.0.104",
 ]
 
