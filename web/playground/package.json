@@ -26,7 +26,7 @@
     "yaml": "^2.8.0"
   },
   "devDependencies": {
-    "@vitejs/plugin-react": "^4.7.0",
+    "@vitejs/plugin-react": "^5.0.0",
     "vite": "^7.0.3",
     "vite-plugin-wasm": "^3.5.0"
   },
