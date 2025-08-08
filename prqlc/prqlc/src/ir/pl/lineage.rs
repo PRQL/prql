@@ -4,7 +4,7 @@ use std::fmt::{Debug, Display, Formatter};
 use enum_as_inner::EnumAsInner;
 use itertools::{Itertools, Position};
 use schemars::JsonSchema;
-use serde::{Deserialize, Serialize};
+use serde::{Deserialize, Serialize, Serializer};
 
 use super::Ident;
 
@@ -48,8 +48,21 @@ pub enum LineageColumn {
     /// All columns (including unknown ones) from an input (i.e. `foo_table.*`)
     All {
         input_id: usize,
+
+        #[serde(serialize_with = "sorted_set")]
         except: HashSet<String>,
     },
+}
+
+pub fn sorted_set<S: Serializer, V: Serialize + Ord>(
+    value: &HashSet<V>,
+    serializer: S,
+) -> Result<S::Ok, S::Error> {
+    value
+        .iter()
+        .sorted()
+        .collect::<Vec<_>>()
+        .serialize(serializer)
 }
 
 impl Display for Lineage {

@@ -1,8 +1,10 @@
 from invoices
+derive total = case [total < 10 => total * 2, true => total]
 select { customer_id, invoice_id, total }
 take 5
 append (
   from invoice_items
+  derive unit_price = case [unit_price < 1 => unit_price * 2, true => unit_price]
   select { invoice_line_id, invoice_id, unit_price }
   take 5
 )

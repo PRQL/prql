@@ -1,0 +1,44 @@
+---
+source: prqlc/prqlc/tests/integration/queries.rs
+expression: "from invoices\nderive code = case [customer_id < 10 => billing_postal_code, true => null]\ngroup {customer_id, billing_city, billing_country} (\n  sort {-this.code}\n  take 1\n)\nfilter (customer_id | in [4])\ngroup {billing_country} (aggregate {total = math.round 2 (sum total)})\n"
+input_file: prqlc/prqlc/tests/integration/queries/distinct_on_sort_on_compute.prql
+---
+WITH table_1 AS (
+  SELECT
+    billing_country,
+    total,
+    customer_id,
+    billing_city,
+    CASE
+      WHEN customer_id < 10 THEN billing_postal_code
+      ELSE NULL
+    END AS _expr_1,
+    billing_postal_code
+  FROM
+    invoices
+),
+table_0 AS (
+  SELECT
+    billing_country,
+    total,
+    customer_id,
+    ROW_NUMBER() OVER (
+      PARTITION BY customer_id,
+      billing_city,
+      billing_country
+      ORDER BY
+        _expr_1 DESC
+    ) AS _expr_0
+  FROM
+    table_1
+)
+SELECT
+  billing_country,
+  ROUND(COALESCE(SUM(total), 0), 2) AS total
+FROM
+  table_0
+WHERE
+  _expr_0 <= 1
+  AND customer_id IN (4)
+GROUP BY
+  billing_country

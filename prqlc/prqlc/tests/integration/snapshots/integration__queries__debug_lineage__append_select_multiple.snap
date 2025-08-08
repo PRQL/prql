@@ -1,0 +1,1053 @@
+---
+source: prqlc/prqlc/tests/integration/queries.rs
+expression: "from invoices\nselect { customer_id, invoice_id, total, useless1, useless2 }\ntake 5\nappend (\n  from employees\n  select { employee_id, employee_id + 1, reports_to, useless3, useless4 }\n  take 5\n)\ngroup { customer_id } (aggregate { invoice_id = math.round 1 (sum invoice_id), total = math.round 1 (sum total), useless1 = sum useless1 })\nappend (\n  from invoice_items\n  select { invoice_id, invoice_line_id, 0, useless5 }\n  take 5\n)\nsort { +invoice_id, +total }\nselect { total, invoice_id }\n\n# sqlite:skip\n"
+input_file: prqlc/prqlc/tests/integration/queries/append_select_multiple.prql
+---
+frames:
+- - 1:14-75
+  - columns:
+    - !Single
+      name:
+      - invoices
+      - customer_id
+      target_id: 177
+      target_name: null
+    - !Single
+      name:
+      - invoices
+      - invoice_id
+      target_id: 178
+      target_name: null
+    - !Single
+      name:
+      - invoices
+      - total
+      target_id: 179
+      target_name: null
+    - !Single
+      name:
+      - invoices
+      - useless1
+      target_id: 180
+      target_name: null
+    - !Single
+      name:
+      - invoices
+      - useless2
+      target_id: 181
+      target_name: null
+    inputs:
+    - id: 175
+      name: invoices
+      table:
+      - default_db
+      - invoices
+- - 1:76-82
+  - columns:
+    - !Single
+      name:
+      - invoices
+      - customer_id
+      target_id: 177
+      target_name: null
+    - !Single
+      name:
+      - invoices
+      - invoice_id
+      target_id: 178
+      target_name: null
+    - !Single
+      name:
+      - invoices
+      - total
+      target_id: 179
+      target_name: null
+    - !Single
+      name:
+      - invoices
+      - useless1
+      target_id: 180
+      target_name: null
+    - !Single
+      name:
+      - invoices
+      - useless2
+      target_id: 181
+      target_name: null
+    inputs:
+    - id: 175
+      name: invoices
+      table:
+      - default_db
+      - invoices
+- - 1:111-182
+  - columns:
+    - !Single
+      name:
+      - employees
+      - employee_id
+      target_id: 154
+      target_name: null
+    - !Single
+      name: null
+      target_id: 155
+      target_name: null
+    - !Single
+      name:
+      - employees
+      - reports_to
+      target_id: 159
+      target_name: null
+    - !Single
+      name:
+      - employees
+      - useless3
+      target_id: 160
+      target_name: null
+    - !Single
+      name:
+      - employees
+      - useless4
+      target_id: 161
+      target_name: null
+    inputs:
+    - id: 152
+      name: employees
+      table:
+      - default_db
+      - employees
+- - 1:185-191
+  - columns:
+    - !Single
+      name:
+      - employees
+      - employee_id
+      target_id: 154
+      target_name: null
+    - !Single
+      name: null
+      target_id: 155
+      target_name: null
+    - !Single
+      name:
+      - employees
+      - reports_to
+      target_id: 159
+      target_name: null
+    - !Single
+      name:
+      - employees
+      - useless3
+      target_id: 160
+      target_name: null
+    - !Single
+      name:
+      - employees
+      - useless4
+      target_id: 161
+      target_name: null
+    inputs:
+    - id: 152
+      name: employees
+      table:
+      - default_db
+      - employees
+- - 1:83-193
+  - columns:
+    - !Single
+      name:
+      - invoices
+      - customer_id
+      target_id: 177
+      target_name: null
+    - !Single
+      name:
+      - invoices
+      - invoice_id
+      target_id: 178
+      target_name: null
+    - !Single
+      name:
+      - invoices
+      - total
+      target_id: 179
+      target_name: null
+    - !Single
+      name:
+      - invoices
+      - useless1
+      target_id: 180
+      target_name: null
+    - !Single
+      name:
+      - invoices
+      - useless2
+      target_id: 181
+      target_name: null
+    inputs:
+    - id: 175
+      name: invoices
+      table:
+      - default_db
+      - invoices
+- - 1:217-332
+  - columns:
+    - !Single
+      name:
+      - invoices
+      - customer_id
+      target_id: 188
+      target_name: null
+    - !Single
+      name:
+      - invoice_id
+      target_id: 208
+      target_name: null
+    - !Single
+      name:
+      - total
+      target_id: 214
+      target_name: null
+    - !Single
+      name:
+      - useless1
+      target_id: 220
+      target_name: null
+    inputs:
+    - id: 175
+      name: invoices
+      table:
+      - default_db
+      - invoices
+- - 1:366-417
+  - columns:
+    - !Single
+      name:
+      - invoice_items
+      - invoice_id
+      target_id: 129
+      target_name: null
+    - !Single
+      name:
+      - invoice_items
+      - invoice_line_id
+      target_id: 130
+      target_name: null
+    - !Single
+      name: null
+      target_id: 131
+      target_name: null
+    - !Single
+      name:
+      - invoice_items
+      - useless5
+      target_id: 132
+      target_name: null
+    inputs:
+    - id: 127
+      name: invoice_items
+      table:
+      - default_db
+      - invoice_items
+- - 1:420-426
+  - columns:
+    - !Single
+      name:
+      - invoice_items
+      - invoice_id
+      target_id: 129
+      target_name: null
+    - !Single
+      name:
+      - invoice_items
+      - invoice_line_id
+      target_id: 130
+      target_name: null
+    - !Single
+      name: null
+      target_id: 131
+      target_name: null
+    - !Single
+      name:
+      - invoice_items
+      - useless5
+      target_id: 132
+      target_name: null
+    inputs:
+    - id: 127
+      name: invoice_items
+      table:
+      - default_db
+      - invoice_items
+- - 1:334-428
+  - columns:
+    - !Single
+      name:
+      - invoices
+      - customer_id
+      target_id: 188
+      target_name: null
+    - !Single
+      name:
+      - invoice_id
+      target_id: 208
+      target_name: null
+    - !Single
+      name:
+      - total
+      target_id: 214
+      target_name: null
+    - !Single
+      name:
+      - useless1
+      target_id: 220
+      target_name: null
+    inputs:
+    - id: 175
+      name: invoices
+      table:
+      - default_db
+      - invoices
+- - 1:429-457
+  - columns:
+    - !Single
+      name:
+      - invoices
+      - customer_id
+      target_id: 188
+      target_name: null
+    - !Single
+      name:
+      - invoice_id
+      target_id: 208
+      target_name: null
+    - !Single
+      name:
+      - total
+      target_id: 214
+      target_name: null
+    - !Single
+      name:
+      - useless1
+      target_id: 220
+      target_name: null
+    inputs:
+    - id: 175
+      name: invoices
+      table:
+      - default_db
+      - invoices
+- - 1:458-486
+  - columns:
+    - !Single
+      name:
+      - total
+      target_id: 232
+      target_name: null
+    - !Single
+      name:
+      - invoice_id
+      target_id: 233
+      target_name: null
+    inputs:
+    - id: 175
+      name: invoices
+      table:
+      - default_db
+      - invoices
+nodes:
+- id: 127
+  kind: Ident
+  span: 1:345-363
+  ident: !Ident
+  - default_db
+  - invoice_items
+  parent: 134
+- id: 129
+  kind: Ident
+  span: 1:375-385
+  ident: !Ident
+  - this
+  - invoice_items
+  - invoice_id
+  targets:
+  - 127
+  parent: 133
+- id: 130
+  kind: Ident
+  span: 1:387-402
+  ident: !Ident
+  - this
+  - invoice_items
+  - invoice_line_id
+  targets:
+  - 127
+  parent: 133
+- id: 131
+  kind: Literal
+  span: 1:404-405
+  parent: 133
+- id: 132
+  kind: Ident
+  span: 1:407-415
+  ident: !Ident
+  - this
+  - invoice_items
+  - useless5
+  targets:
+  - 127
+  parent: 133
+- id: 133
+  kind: Tuple
+  span: 1:373-417
+  children:
+  - 129
+  - 130
+  - 131
+  - 132
+  parent: 134
+- id: 134
+  kind: 'TransformCall: Select'
+  span: 1:366-417
+  children:
+  - 127
+  - 133
+  parent: 136
+- id: 136
+  kind: 'TransformCall: Take'
+  span: 1:420-426
+  children:
+  - 134
+  - 137
+  parent: 227
+- id: 137
+  kind: Literal
+  parent: 136
+- id: 152
+  kind: Ident
+  span: 1:94-108
+  ident: !Ident
+  - default_db
+  - employees
+  parent: 163
+- id: 154
+  kind: Ident
+  span: 1:120-131
+  ident: !Ident
+  - this
+  - employees
+  - employee_id
+  targets:
+  - 152
+  parent: 162
+- id: 155
+  kind: RqOperator
+  span: 1:133-148
+  targets:
+  - 157
+  - 158
+  parent: 162
+- id: 157
+  kind: Ident
+  span: 1:133-144
+  ident: !Ident
+  - this
+  - employees
+  - employee_id
+  targets:
+  - 152
+- id: 158
+  kind: Literal
+  span: 1:147-148
+- id: 159
+  kind: Ident
+  span: 1:150-160
+  ident: !Ident
+  - this
+  - employees
+  - reports_to
+  targets:
+  - 152
+  parent: 162
+- id: 160
+  kind: Ident
+  span: 1:162-170
+  ident: !Ident
+  - this
+  - employees
+  - useless3
+  targets:
+  - 152
+  parent: 162
+- id: 161
+  kind: Ident
+  span: 1:172-180
+  ident: !Ident
+  - this
+  - employees
+  - useless4
+  targets:
+  - 152
+  parent: 162
+- id: 162
+  kind: Tuple
+  span: 1:118-182
+  children:
+  - 154
+  - 155
+  - 159
+  - 160
+  - 161
+  parent: 163
+- id: 163
+  kind: 'TransformCall: Select'
+  span: 1:111-182
+  children:
+  - 152
+  - 162
+  parent: 165
+- id: 165
+  kind: 'TransformCall: Take'
+  span: 1:185-191
+  children:
+  - 163
+  - 166
+  parent: 187
+- id: 166
+  kind: Literal
+  parent: 165
+- id: 175
+  kind: Ident
+  span: 1:0-13
+  ident: !Ident
+  - default_db
+  - invoices
+  parent: 183
+- id: 177
+  kind: Ident
+  span: 1:23-34
+  ident: !Ident
+  - this
+  - invoices
+  - customer_id
+  targets:
+  - 175
+  parent: 182
+- id: 178
+  kind: Ident
+  span: 1:36-46
+  ident: !Ident
+  - this
+  - invoices
+  - invoice_id
+  targets:
+  - 175
+  parent: 182
+- id: 179
+  kind: Ident
+  span: 1:48-53
+  ident: !Ident
+  - this
+  - invoices
+  - total
+  targets:
+  - 175
+  parent: 182
+- id: 180
+  kind: Ident
+  span: 1:55-63
+  ident: !Ident
+  - this
+  - invoices
+  - useless1
+  targets:
+  - 175
+  parent: 182
+- id: 181
+  kind: Ident
+  span: 1:65-73
+  ident: !Ident
+  - this
+  - invoices
+  - useless2
+  targets:
+  - 175
+  parent: 182
+- id: 182
+  kind: Tuple
+  span: 1:21-75
+  children:
+  - 177
+  - 178
+  - 179
+  - 180
+  - 181
+  parent: 183
+- id: 183
+  kind: 'TransformCall: Select'
+  span: 1:14-75
+  children:
+  - 175
+  - 182
+  parent: 185
+- id: 185
+  kind: 'TransformCall: Take'
+  span: 1:76-82
+  children:
+  - 183
+  - 186
+  parent: 187
+- id: 186
+  kind: Literal
+  parent: 185
+- id: 187
+  kind: 'TransformCall: Append'
+  span: 1:83-193
+  children:
+  - 185
+  - 165
+  parent: 224
+- id: 188
+  kind: Ident
+  span: 1:202-213
+  ident: !Ident
+  - this
+  - invoices
+  - customer_id
+  targets:
+  - 177
+  parent: 189
+- id: 189
+  kind: Tuple
+  span: 1:200-215
+  children:
+  - 188
+  parent: 224
+- id: 208
+  kind: RqOperator
+  span: 1:242-271
+  alias: invoice_id
+  targets:
+  - 210
+  - 211
+  parent: 223
+- id: 210
+  kind: Literal
+  span: 1:253-254
+- id: 211
+  kind: RqOperator
+  span: 1:256-270
+  targets:
+  - 213
+- id: 213
+  kind: Ident
+  span: 1:260-270
+  ident: !Ident
+  - this
+  - invoices
+  - invoice_id
+  targets:
+  - 178
+- id: 214
+  kind: RqOperator
+  span: 1:281-305
+  alias: total
+  targets:
+  - 216
+  - 217
+  parent: 223
+- id: 216
+  kind: Literal
+  span: 1:292-293
+- id: 217
+  kind: RqOperator
+  span: 1:295-304
+  targets:
+  - 219
+- id: 219
+  kind: Ident
+  span: 1:299-304
+  ident: !Ident
+  - this
+  - invoices
+  - total
+  targets:
+  - 179
+- id: 220
+  kind: RqOperator
+  span: 1:318-330
+  alias: useless1
+  targets:
+  - 222
+  parent: 223
+- id: 222
+  kind: Ident
+  span: 1:322-330
+  ident: !Ident
+  - this
+  - invoices
+  - useless1
+  targets:
+  - 180
+- id: 223
+  kind: Tuple
+  span: 1:227-332
+  children:
+  - 208
+  - 214
+  - 220
+  parent: 224
+- id: 224
+  kind: 'TransformCall: Aggregate'
+  span: 1:217-332
+  children:
+  - 187
+  - 223
+  - 189
+  parent: 227
+- id: 227
+  kind: 'TransformCall: Append'
+  span: 1:334-428
+  children:
+  - 224
+  - 136
+  parent: 231
+- id: 228
+  kind: Ident
+  span: 1:436-447
+  ident: !Ident
+  - this
+  - invoice_id
+  targets:
+  - 208
+  parent: 231
+- id: 229
+  kind: Ident
+  span: 1:449-455
+  ident: !Ident
+  - this
+  - total
+  targets:
+  - 214
+  parent: 231
+- id: 231
+  kind: 'TransformCall: Sort'
+  span: 1:429-457
+  children:
+  - 227
+  - 228
+  - 229
+  parent: 235
+- id: 232
+  kind: Ident
+  span: 1:467-472
+  ident: !Ident
+  - this
+  - total
+  targets:
+  - 214
+  parent: 234
+- id: 233
+  kind: Ident
+  span: 1:474-484
+  ident: !Ident
+  - this
+  - invoice_id
+  targets:
+  - 208
+  parent: 234
+- id: 234
+  kind: Tuple
+  span: 1:465-486
+  children:
+  - 232
+  - 233
+  parent: 235
+- id: 235
+  kind: 'TransformCall: Select'
+  span: 1:458-486
+  children:
+  - 231
+  - 234
+ast:
+  name: Project
+  stmts:
+  - VarDef:
+      kind: Main
+      name: main
+      value:
+        Pipeline:
+          exprs:
+          - FuncCall:
+              name:
+                Ident:
+                - from
+                span: 1:0-4
+              args:
+              - Ident:
+                - invoices
+                span: 1:5-13
+            span: 1:0-13
+          - FuncCall:
+              name:
+                Ident:
+                - select
+                span: 1:14-20
+              args:
+              - Tuple:
+                - Ident:
+                  - customer_id
+                  span: 1:23-34
+                - Ident:
+                  - invoice_id
+                  span: 1:36-46
+                - Ident:
+                  - total
+                  span: 1:48-53
+                - Ident:
+                  - useless1
+                  span: 1:55-63
+                - Ident:
+                  - useless2
+                  span: 1:65-73
+                span: 1:21-75
+            span: 1:14-75
+          - FuncCall:
+              name:
+                Ident:
+                - take
+                span: 1:76-80
+              args:
+              - Literal:
+                  Integer: 5
+                span: 1:81-82
+            span: 1:76-82
+          - FuncCall:
+              name:
+                Ident:
+                - append
+                span: 1:83-89
+              args:
+              - Pipeline:
+                  exprs:
+                  - FuncCall:
+                      name:
+                        Ident:
+                        - from
+                        span: 1:94-98
+                      args:
+                      - Ident:
+                        - employees
+                        span: 1:99-108
+                    span: 1:94-108
+                  - FuncCall:
+                      name:
+                        Ident:
+                        - select
+                        span: 1:111-117
+                      args:
+                      - Tuple:
+                        - Ident:
+                          - employee_id
+                          span: 1:120-131
+                        - Binary:
+                            left:
+                              Ident:
+                              - employee_id
+                              span: 1:133-144
+                            op: Add
+                            right:
+                              Literal:
+                                Integer: 1
+                              span: 1:147-148
+                          span: 1:133-148
+                        - Ident:
+                          - reports_to
+                          span: 1:150-160
+                        - Ident:
+                          - useless3
+                          span: 1:162-170
+                        - Ident:
+                          - useless4
+                          span: 1:172-180
+                        span: 1:118-182
+                    span: 1:111-182
+                  - FuncCall:
+                      name:
+                        Ident:
+                        - take
+                        span: 1:185-189
+                      args:
+                      - Literal:
+                          Integer: 5
+                        span: 1:190-191
+                    span: 1:185-191
+                span: 1:94-191
+            span: 1:83-193
+          - FuncCall:
+              name:
+                Ident:
+                - group
+                span: 1:194-199
+              args:
+              - Tuple:
+                - Ident:
+                  - customer_id
+                  span: 1:202-213
+                span: 1:200-215
+              - FuncCall:
+                  name:
+                    Ident:
+                    - aggregate
+                    span: 1:217-226
+                  args:
+                  - Tuple:
+                    - FuncCall:
+                        name:
+                          Ident:
+                          - math
+                          - round
+                          span: 1:242-252
+                        args:
+                        - Literal:
+                            Integer: 1
+                          span: 1:253-254
+                        - FuncCall:
+                            name:
+                              Ident:
+                              - sum
+                              span: 1:256-259
+                            args:
+                            - Ident:
+                              - invoice_id
+                              span: 1:260-270
+                          span: 1:256-270
+                      span: 1:242-271
+                      alias: invoice_id
+                    - FuncCall:
+                        name:
+                          Ident:
+                          - math
+                          - round
+                          span: 1:281-291
+                        args:
+                        - Literal:
+                            Integer: 1
+                          span: 1:292-293
+                        - FuncCall:
+                            name:
+                              Ident:
+                              - sum
+                              span: 1:295-298
+                            args:
+                            - Ident:
+                              - total
+                              span: 1:299-304
+                          span: 1:295-304
+                      span: 1:281-305
+                      alias: total
+                    - FuncCall:
+                        name:
+                          Ident:
+                          - sum
+                          span: 1:318-321
+                        args:
+                        - Ident:
+                          - useless1
+                          span: 1:322-330
+                      span: 1:318-330
+                      alias: useless1
+                    span: 1:227-332
+                span: 1:217-332
+            span: 1:194-333
+          - FuncCall:
+              name:
+                Ident:
+                - append
+                span: 1:334-340
+              args:
+              - Pipeline:
+                  exprs:
+                  - FuncCall:
+                      name:
+                        Ident:
+                        - from
+                        span: 1:345-349
+                      args:
+                      - Ident:
+                        - invoice_items
+                        span: 1:350-363
+                    span: 1:345-363
+                  - FuncCall:
+                      name:
+                        Ident:
+                        - select
+                        span: 1:366-372
+                      args:
+                      - Tuple:
+                        - Ident:
+                          - invoice_id
+                          span: 1:375-385
+                        - Ident:
+                          - invoice_line_id
+                          span: 1:387-402
+                        - Literal:
+                            Integer: 0
+                          span: 1:404-405
+                        - Ident:
+                          - useless5
+                          span: 1:407-415
+                        span: 1:373-417
+                    span: 1:366-417
+                  - FuncCall:
+                      name:
+                        Ident:
+                        - take
+                        span: 1:420-424
+                      args:
+                      - Literal:
+                          Integer: 5
+                        span: 1:425-426
+                    span: 1:420-426
+                span: 1:345-426
+            span: 1:334-428
+          - FuncCall:
+              name:
+                Ident:
+                - sort
+                span: 1:429-433
+              args:
+              - Tuple:
+                - Unary:
+                    op: Add
+                    expr:
+                      Ident:
+                      - invoice_id
+                      span: 1:437-447
+                  span: 1:436-447
+                - Unary:
+                    op: Add
+                    expr:
+                      Ident:
+                      - total
+                      span: 1:450-455
+                  span: 1:449-455
+                span: 1:434-457
+            span: 1:429-457
+          - FuncCall:
+              name:
+                Ident:
+                - select
+                span: 1:458-464
+              args:
+              - Tuple:
+                - Ident:
+                  - total
+                  span: 1:467-472
+                - Ident:
+                  - invoice_id
+                  span: 1:474-484
+                span: 1:465-486
+            span: 1:458-486
+        span: 1:0-486
+    span: 1:0-486

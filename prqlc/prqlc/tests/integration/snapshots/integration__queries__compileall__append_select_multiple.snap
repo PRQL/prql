@@ -1,0 +1,130 @@
+---
+source: prqlc/prqlc/tests/integration/queries.rs
+expression: "from invoices\nselect { customer_id, invoice_id, total, useless1, useless2 }\ntake 5\nappend (\n  from employees\n  select { employee_id, employee_id + 1, reports_to, useless3, useless4 }\n  take 5\n)\ngroup { customer_id } (aggregate { invoice_id = math.round 1 (sum invoice_id), total = math.round 1 (sum total), useless1 = sum useless1 })\nappend (\n  from invoice_items\n  select { invoice_id, invoice_line_id, 0, useless5 }\n  take 5\n)\nsort { +invoice_id, +total }\nselect { total, invoice_id }\n\n# sqlite:skip\n"
+input_file: prqlc/prqlc/tests/integration/queries/append_select_multiple.prql
+---
+--- generic
++++ glaredb
+@@ -23,22 +23,22 @@
+         reports_to,
+         employee_id + 1
+       FROM
+         employees
+       LIMIT
+         5
+     ) AS table_7
+ ),
+ table_2 AS (
+   SELECT
+-    ROUND(COALESCE(SUM(total), 0), 1) AS total,
+-    ROUND(COALESCE(SUM(invoice_id), 0), 1) AS invoice_id
++    ROUND((COALESCE(SUM(total), 0))::numeric, 1) AS total,
++    ROUND((COALESCE(SUM(invoice_id), 0))::numeric, 1) AS invoice_id
+   FROM
+     table_3
+   GROUP BY
+     customer_id
+   UNION
+   ALL
+   SELECT
+     *
+   FROM
+     (
+
+
+--- generic
++++ postgres
+@@ -1,61 +1,49 @@
+ WITH table_3 AS (
+-  SELECT
+-    *
+-  FROM
+-    (
+-      SELECT
+-        customer_id,
+-        total,
+-        invoice_id
+-      FROM
+-        invoices
+-      LIMIT
+-        5
+-    ) AS table_6
++  (
++    SELECT
++      customer_id,
++      total,
++      invoice_id
++    FROM
++      invoices
++    LIMIT
++      5
++  )
+   UNION
+-  ALL
++  ALL (
++    SELECT
++      employee_id,
++      reports_to,
++      employee_id + 1
++    FROM
++      employees
++    LIMIT
++      5
++  )
++), table_2 AS (
+   SELECT
+-    *
++    ROUND((COALESCE(SUM(total), 0))::numeric, 1) AS total,
++    ROUND((COALESCE(SUM(invoice_id), 0))::numeric, 1) AS invoice_id
+   FROM
+-    (
+-      SELECT
+-        employee_id,
+-        reports_to,
+-        employee_id + 1
+-      FROM
+-        employees
+-      LIMIT
+-        5
+-    ) AS table_7
+-),
+-table_2 AS (
+-  SELECT
+-    ROUND(COALESCE(SUM(total), 0), 1) AS total,
+-    ROUND(COALESCE(SUM(invoice_id), 0), 1) AS invoice_id
+-  FROM
+     table_3
+   GROUP BY
+     customer_id
+   UNION
+-  ALL
+-  SELECT
+-    *
+-  FROM
+-    (
+-      SELECT
+-        invoice_id,
+-        invoice_line_id
+-      FROM
+-        invoice_items
+-      LIMIT
+-        5
+-    ) AS table_8
++  ALL (
++    SELECT
++      invoice_id,
++      invoice_line_id
++    FROM
++      invoice_items
++    LIMIT
++      5
++  )
+ )
+ SELECT
+   total,
+   invoice_id
+ FROM
+   table_2
+ ORDER BY
+   invoice_id,
+   total

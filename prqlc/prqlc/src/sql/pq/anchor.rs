@@ -75,7 +75,7 @@ pub(super) fn split_off_back(
         return (None, Vec::new());
     }
 
-    let mapping_before = compute_positional_mappings(&pipeline);
+    let mapping_before = compute_positional_mappings(&pipeline, None);
 
     log::debug!("traversing pipeline to obtain columns: {output:?}");
 
@@ -100,7 +100,7 @@ pub(super) fn split_off_back(
         }
 
         // anchor and record all requirements
-        let required = get_requirements(&transform, &following_transforms);
+        let required = get_requirements(&transform, &following_transforms, &inputs_required);
         log::debug!(".. transform {} requires {required:?}", transform.as_str(),);
         inputs_required = inputs_required.append(required.clone());
 
@@ -188,10 +188,12 @@ pub(super) fn split_off_back(
     curr_pipeline_rev.reverse();
 
     // This will compare columns for order sensitive transform and correct it in subsequent relation.
-    let mapping_after = compute_positional_mappings(&curr_pipeline_rev);
-    for (before, after) in mapping_before.iter().zip(mapping_after.iter()) {
-        ctx.positional_mapping
-            .compute_and_store_mapping(before, after);
+    let mapping_after = compute_positional_mappings(&curr_pipeline_rev, Some(&inputs_required));
+    for (riid, after) in mapping_after {
+        if let Some((_, before)) = mapping_before.iter().find(|(r, _)| &riid == r) {
+            ctx.positional_mapping
+                .compute_and_store_mapping(before, &after, &riid);
+        }
     }
 
     (remaining_pipeline, curr_pipeline_rev)
@@ -483,6 +485,14 @@ impl Requirements {
         }
         self
     }
+
+    pub fn is_selected(&self, id: &CId) -> bool {
+        self.0.iter().any(|r| r.selected && &r.col == id)
+    }
+
+    pub fn is_required(&self, id: &CId) -> bool {
+        self.0.iter().any(|r| &r.col == id)
+    }
 }
 
 impl std::fmt::Debug for Requirement {
@@ -496,19 +506,14 @@ impl std::fmt::Debug for Requirement {
 pub(super) fn get_requirements(
     transform: &SqlTransform,
     following: &HashSet<String>,
+    previous_requirements: &Requirements,
 ) -> Requirements {
     use SqlTransform::Super;
 
     match transform {
-        Super(Transform::Aggregate { partition, compute }) => {
-            let partition_requirements = Requirements::from_cids(partition.iter());
-            let compute_requirements =
-                Requirements::from_cids(compute.iter()).allow_up_to(Complexity::Aggregation);
+        Super(Transform::Aggregate { partition, .. }) => Requirements::from_cids(partition.iter()),
 
-            partition_requirements.append(compute_requirements)
-        }
-
-        Super(Transform::Compute(compute)) => {
+        Super(Transform::Compute(compute)) if previous_requirements.is_required(&compute.id) => {
             let requirements = Requirements::from_expr(&compute.expr).allow_up_to(
                 match infer_complexity(compute) {
                     // plain expressions can be included in anything less complex than Aggregation
@@ -552,9 +557,11 @@ pub(super) fn get_requirements(
                 .should_select(true)
         }
 
+        SqlTransform::Sort(sorts) if !following.contains("Aggregate") => {
+            Requirements::from_cids(sorts.iter().map(|s| &s.column))
+        }
+
         SqlTransform::DistinctOn(partition) => Requirements::from_cids(partition.iter())
-            // Partition columns must be selected in order to push compute columns down CTE.
-            .should_select(true)
             // Since there is aggregation anyway, columns can have any complexity
             .allow_up_to(Complexity::highest()),
 
