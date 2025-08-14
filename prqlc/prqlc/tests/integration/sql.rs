@@ -5714,3 +5714,203 @@ fn test_missing_columns_group_complex_compute() {
       employees
     ");
 }
+
+#[test]
+fn test_append_select_compute() {
+    // Test for handling complex append with select and compute operations
+    assert_snapshot!(compile(r###"
+    from invoices
+    derive total = case [total < 10 => total * 2, true => total]
+    select { customer_id, invoice_id, total }
+    take 5
+    append (
+      from invoice_items
+      derive unit_price = case [unit_price < 1 => unit_price * 2, true => unit_price]
+      select { invoice_line_id, invoice_id, unit_price }
+      take 5
+    )
+    select { a = customer_id * 2, b = math.round 1 (invoice_id * total) }
+    "###).unwrap(), @r"
+    WITH table_1 AS (
+      SELECT
+        *
+      FROM
+        (
+          SELECT
+            invoice_id,
+            CASE
+              WHEN total < 10 THEN total * 2
+              ELSE total
+            END AS _expr_0,
+            customer_id
+          FROM
+            invoices
+          LIMIT
+            5
+        ) AS table_3
+      UNION
+      ALL
+      SELECT
+        *
+      FROM
+        (
+          SELECT
+            invoice_id,
+            CASE
+              WHEN unit_price < 1 THEN unit_price * 2
+              ELSE unit_price
+            END AS unit_price,
+            invoice_line_id
+          FROM
+            invoice_items
+          LIMIT
+            5
+        ) AS table_4
+    )
+    SELECT
+      customer_id * 2 AS a,
+      ROUND(invoice_id * _expr_0, 1) AS b
+    FROM
+      table_1
+    ");
+}
+
+#[test]
+fn test_append_select_multiple() {
+    // Test for handling multiple append operations with grouping and aggregation
+    assert_snapshot!(compile(r###"
+    from invoices
+    select { customer_id, invoice_id, total, useless1, useless2 }
+    take 5
+    append (
+      from employees
+      select { employee_id, employee_id + 1, reports_to, useless3, useless4 }
+      take 5
+    )
+    group { customer_id } (aggregate { invoice_id = math.round 1 (sum invoice_id), total = math.round 1 (sum total), useless1 = sum useless1 })
+    append (
+      from invoice_items
+      select { invoice_id, invoice_line_id, 0, useless5 }
+      take 5
+    )
+    sort { +invoice_id, +total }
+    select { total, invoice_id }
+    "###).unwrap(), @r"
+    WITH table_3 AS (
+      SELECT
+        *
+      FROM
+        (
+          SELECT
+            customer_id,
+            total,
+            invoice_id
+          FROM
+            invoices
+          LIMIT
+            5
+        ) AS table_6
+      UNION
+      ALL
+      SELECT
+        *
+      FROM
+        (
+          SELECT
+            employee_id,
+            reports_to,
+            employee_id + 1
+          FROM
+            employees
+          LIMIT
+            5
+        ) AS table_7
+    ),
+    table_2 AS (
+      SELECT
+        ROUND(COALESCE(SUM(total), 0), 1) AS total,
+        ROUND(COALESCE(SUM(invoice_id), 0), 1) AS invoice_id
+      FROM
+        table_3
+      GROUP BY
+        customer_id
+      UNION
+      ALL
+      SELECT
+        *
+      FROM
+        (
+          SELECT
+            invoice_id,
+            invoice_line_id
+          FROM
+            invoice_items
+          LIMIT
+            5
+        ) AS table_8
+    )
+    SELECT
+      total,
+      invoice_id
+    FROM
+      table_2
+    ORDER BY
+      invoice_id,
+      total
+    ");
+}
+
+#[test]
+fn test_distinct_on_sort_on_compute() {
+    // Test for handling distinct on with sorting on computed columns
+    assert_snapshot!(compile(r###"
+    from invoices
+    derive code = case [customer_id < 10 => billing_postal_code, true => null]
+    group {customer_id, billing_city, billing_country} (
+      sort {-this.code}
+      take 1
+    )
+    filter (customer_id | in [4])
+    group {billing_country} (aggregate {total = math.round 2 (sum total)})
+    "###).unwrap(), @r"
+    WITH table_1 AS (
+      SELECT
+        billing_country,
+        total,
+        customer_id,
+        billing_city,
+        CASE
+          WHEN customer_id < 10 THEN billing_postal_code
+          ELSE NULL
+        END AS _expr_1,
+        billing_postal_code
+      FROM
+        invoices
+    ),
+    table_0 AS (
+      SELECT
+        billing_country,
+        total,
+        customer_id,
+        ROW_NUMBER() OVER (
+          PARTITION BY customer_id,
+          billing_city,
+          billing_country
+          ORDER BY
+            _expr_1 DESC
+        ) AS _expr_0
+      FROM
+        table_1
+    )
+    SELECT
+      billing_country,
+      ROUND(COALESCE(SUM(total), 0), 2) AS total
+    FROM
+      table_0
+    WHERE
+      _expr_0 <= 1
+      AND customer_id IN (4)
+    GROUP BY
+      billing_country
+    ");
+}

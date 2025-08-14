@@ -1,8 +1,0 @@
-from invoices
-derive code = case [customer_id < 10 => billing_postal_code, true => null]
-group {customer_id, billing_city, billing_country} (
-  sort {-this.code}
-  take 1
-)
-filter (customer_id | in [4])
-group {billing_country} (aggregate {total = math.round 2 (sum total)})
