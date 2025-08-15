@@ -122,7 +122,7 @@ fn query_def() -> impl Parser<TokenKind, Stmt, Error = PError> + Clone {
                     span,
                     format!(
                         "unknown query definition arguments {}",
-                        args.keys().map(|x| format!("`{}`", x)).join(", ")
+                        args.keys().map(|x| format!("`{x}`")).join(", ")
                     ),
                 ));
             }
