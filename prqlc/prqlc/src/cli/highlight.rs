@@ -55,9 +55,7 @@ fn highlight_token_kind(token: &TokenKind) -> String {
         | TokenKind::Gte
         | TokenKind::Lte
         | TokenKind::RegexSearch => output.push_str(&format!("{token}")),
-        TokenKind::And | TokenKind::Or => {
-            output.push_str(&format!("{token}").purple().to_string())
-        }
+        TokenKind::And | TokenKind::Or => output.push_str(&format!("{token}").purple().to_string()),
         TokenKind::Coalesce | TokenKind::DivInt | TokenKind::Pow | TokenKind::Annotate => {
             output.push_str(&format!("{token}"))
         }

@@ -137,9 +137,7 @@ pub type Result<T, E = Error> = core::result::Result<T, E>;
 pub fn compiler_version() -> Version {
     if let Ok(prql_version_override) = std::env::var("PRQL_VERSION_OVERRIDE") {
         return Version::parse(&prql_version_override).unwrap_or_else(|e| {
-            panic!(
-                "Could not parse PRQL version {prql_version_override}\n{e}"
-            )
+            panic!("Could not parse PRQL version {prql_version_override}\n{e}")
         });
     };
 
@@ -148,9 +146,7 @@ pub fn compiler_version() -> Version {
         .get_or_init(|| {
             if let Ok(prql_version_override) = std::env::var("PRQL_VERSION_OVERRIDE") {
                 return Version::parse(&prql_version_override).unwrap_or_else(|e| {
-                    panic!(
-                        "Could not parse PRQL version {prql_version_override}\n{e}"
-                    )
+                    panic!("Could not parse PRQL version {prql_version_override}\n{e}")
                 });
             }
             let git_version = env!("VERGEN_GIT_DESCRIBE");
@@ -161,9 +157,7 @@ pub fn compiler_version() -> Version {
                     Version::parse(cargo_version)
                 })
                 .unwrap_or_else(|e| {
-                    panic!(
-                        "Could not parse prqlc version number {cargo_version}\n{e}"
-                    )
+                    panic!("Could not parse prqlc version number {cargo_version}\n{e}")
                 })
         })
         .clone()
