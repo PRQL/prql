@@ -30,7 +30,6 @@ env:
 jobs:
   test-rust:
     runs-on: ${{ inputs.os }}
-    continue-on-error: ${{ inputs.os == 'windows-latest' }}
     steps:
       - name: 📂 Checkout code
         uses: actions/checkout@v4
@@ -79,6 +78,8 @@ jobs:
           save-if:
             ${{ github.ref == 'refs/heads/main' && inputs.features != '' }}
       - uses: actions/setup-python@v5
+        # python isn't natively installed on macos-14, so we need to install it
+        if: ${{ inputs.os == 'macos-14' }}
         with:
           python-version: "3.11"
       - name: Free up disk space
@@ -124,8 +125,8 @@ jobs:
             'test-dbs') && inputs.target == 'x86_64-unknown-linux-gnu' &&
             '--unreferenced=auto' || '' }} ${{ inputs.target !=
             'wasm32-unknown-unknown' && '--test-runner=nextest' || '' }} ${{
-            inputs.os == 'windows-latest' && '--lib --bins --tests --benches
-            --examples' || '' }}
+            inputs.os == 'windows-latest' && '--lib --bins --tests --examples'
+            || '' }}
       - name: 📎 Clippy
         uses: clechasseur/rs-cargo@v3
         with:
