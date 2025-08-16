@@ -1,0 +1,7 @@
+from invoices
+select { invoice_id, billing_country }
+append (
+  from invoices
+  select { invoice_id = `invoice_id` + 100, billing_country }
+)
+filter (billing_country | text.starts_with("I"))

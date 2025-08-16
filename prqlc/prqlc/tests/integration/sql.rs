@@ -462,15 +462,6 @@ fn test_append() {
         take 10
     )
     "###).unwrap(), @r"
-    WITH table_0 AS (
-      SELECT
-        name,
-        salary + bonuses AS cost
-      FROM
-        employees
-      LIMIT
-        10
-    )
     SELECT
       *
     FROM
@@ -482,13 +473,21 @@ fn test_append() {
           employees
         LIMIT
           3
-      ) AS table_1
+      ) AS table_2
     UNION
     ALL
     SELECT
       *
     FROM
-      table_0
+      (
+        SELECT
+          name,
+          salary + bonuses AS cost
+        FROM
+          employees
+        LIMIT
+          10
+      ) AS table_3
     ");
 
     assert_snapshot!(compile(r###"
@@ -919,6 +918,62 @@ fn test_sort_in_nested_join() {
 }
 
 #[test]
+fn test_sort_in_nested_join_with_extra_derive_and_select() {
+    // #5302
+    assert_snapshot!(compile(r#"
+    from albums
+    join side:left  (
+      from artists
+      derive {
+        my_new_col = f"artist: {name}"
+      }
+      group {my_new_col} (aggregate { first_name = first this.`name`})
+      sort {this.my_new_col, first_name}
+      derive {new_name = first_name, other_new_name = first_name}
+      select {this.my_new_col, this.new_name, this.other_new_name}
+    ) (this.id == that.my_new_col)
+    "#).unwrap(),
+        @r"
+    WITH table_1 AS (
+      SELECT
+        CONCAT('artist: ', name) AS my_new_col,
+        FIRST_VALUE(name) AS _expr_0
+      FROM
+        artists
+      GROUP BY
+        CONCAT('artist: ', name)
+    ),
+    table_2 AS (
+      SELECT
+        my_new_col,
+        _expr_0 AS new_name,
+        _expr_0 AS other_new_name,
+        _expr_0
+      FROM
+        table_1
+    ),
+    table_0 AS (
+      SELECT
+        my_new_col,
+        new_name,
+        other_new_name,
+        _expr_0
+      FROM
+        table_2
+    )
+    SELECT
+      albums.*,
+      table_0.my_new_col,
+      table_0.new_name,
+      table_0.other_new_name
+    FROM
+      albums
+      LEFT OUTER JOIN table_0 ON albums.id = table_0.my_new_col
+    "
+    );
+}
+
+#[test]
 fn test_sort_in_nested_append() {
     assert_snapshot!(compile(r#"
     from `albums`
@@ -933,17 +988,6 @@ fn test_sort_in_nested_append() {
     )
     "#).unwrap(),
         @r"
-    WITH table_0 AS (
-      SELECT
-        album_id,
-        title
-      FROM
-        albums
-      ORDER BY
-        album_id DESC
-      LIMIT
-        2
-    )
     SELECT
       *
     FROM
@@ -957,15 +1001,61 @@ fn test_sort_in_nested_append() {
           album_id
         LIMIT
           2
-      ) AS table_1
+      ) AS table_2
     UNION
     ALL
     SELECT
       *
     FROM
-      table_0
+      (
+        SELECT
+          album_id,
+          title
+        FROM
+          albums
+        ORDER BY
+          album_id DESC
+        LIMIT
+          2
+      ) AS table_3
     "
     );
+}
+
+#[test]
+fn test_column_name_extraction_in_s_strings() {
+    assert_snapshot!(compile(r#"
+from s"SELECT album_id, artist_id `title` FROM `albums`"
+join side:left (
+    s"SELECT id, name FROM `artists`"
+) (this.artist_id == that.id)
+"#).unwrap(),
+        @r"
+    WITH table_0 AS (
+      SELECT
+        album_id,
+        artist_id `title`
+      FROM
+        `albums`
+    ),
+    table_1 AS (
+      SELECT
+        id,
+        name
+      FROM
+        `artists`
+    )
+    SELECT
+      table_0.artist_id,
+      table_0.album_id,
+      table_0.title,
+      table_1.id,
+      table_1.name
+    FROM
+      table_0
+      LEFT OUTER JOIN table_1 ON table_0.artist_id = table_1.id
+        "
+    )
 }
 
 #[test]
@@ -1145,7 +1235,7 @@ fn test_sorts_01() {
     FROM
       table_0
     ORDER BY
-      _expr_0
+      renamed
     ");
 }
 
@@ -1215,6 +1305,21 @@ fn test_sorts_03() {
       table_0
     ORDER BY
       _expr_0
+    ");
+}
+
+#[test]
+fn test_sort_before_aggregate() {
+    assert_snapshot!((compile(r#"
+    from a
+    sort a.col
+    aggregate { result = sum a.col_to_agg }
+    "#
+    ).unwrap()), @r"
+    SELECT
+      COALESCE(SUM(col_to_agg), 0) AS result
+    FROM
+      a
     ");
 }
 
@@ -2413,11 +2518,17 @@ fn test_distinct_on_03() {
     derive foo = 1
     select foo
     "###).unwrap()), @r"
-    WITH table_0 AS (
+    WITH table_1 AS (
       SELECT
-        DISTINCT ON (col1) NULL
+        DISTINCT ON (col1) col1
       FROM
         tab1
+    ),
+    table_0 AS (
+      SELECT
+        NULL
+      FROM
+        table_1
     )
     SELECT
       1 AS foo
@@ -2791,7 +2902,7 @@ fn test_bare_s_string_01() {
         rude
     )
     SELECT
-      *
+      insensitive
     FROM
       table_0
     "
@@ -2813,7 +2924,7 @@ fn test_bare_s_string_02() {
         rude
     )
     SELECT
-      *
+      insensitive
     FROM
       table_0
     "
@@ -2839,7 +2950,7 @@ fn test_bare_s_string_03() {
         bar
     )
     SELECT
-      *
+      foo
     FROM
       table_0
     ");
@@ -3850,7 +3961,6 @@ fn test_name_shadowing() {
         @r"
     SELECT
       a AS _expr_0,
-      a AS _expr_0,
       a + 1 AS a
     FROM
       x
@@ -3867,7 +3977,6 @@ fn test_name_shadowing() {
     "###).unwrap(),
         @r"
     SELECT
-      a AS _expr_0,
       a AS _expr_0,
       a + 1,
       a + 1 + 2 AS a
@@ -4957,25 +5066,56 @@ fn test_array_01() {
 
 #[test]
 fn test_array_02() {
-    assert_snapshot!(compile(r#"
-    from [
-      {x = null},
-      {x = '1'},
-    ]
-    "#)
-    .unwrap(), @r"
+    assert_snapshot!(compile(r###"
+    let x = p1 -> s"x({p1})"
+
+    from [{a=null}, {a=2}]
+    filter (a | in [2, 4])
+    select {
+      empty_array = [],
+      single_element = [42],
+      null_element = [null],
+      complex_expressions = [a + a, (a * 2) + 1],
+      nested_function_calls = [(min a), (max a ?? 0)],
+      passing_as_arg = x [1,2,3],
+      nested = ['a', ['b']]
+    }
+    "###).unwrap(), @r"
     WITH table_0 AS (
       SELECT
-        NULL AS x
+        NULL AS a
       UNION
       ALL
       SELECT
-        '1' AS x
+        2 AS a
     )
     SELECT
-      x
+      [] AS empty_array,
+      [42] AS single_element,
+      [NULL] AS null_element,
+      [a + a, a * 2 + 1] AS complex_expressions,
+      [MIN(a) OVER (), MAX(COALESCE(a, 0)) OVER ()] AS nested_function_calls,
+      x([1, 2, 3]) AS passing_as_arg,
+      [ 'a',
+      [ 'b' ] ] AS nested
     FROM
       table_0
+    WHERE
+      a IN (2, 4)
+    ");
+}
+
+#[test]
+fn test_array_03() {
+    assert_snapshot!(compile(r###"
+    from employees
+    select {e = this}
+    select [e.first_name, e.last_name]
+    "###).unwrap(), @r"
+    SELECT
+      [first_name, last_name]
+    FROM
+      employees
     ");
 }
 
@@ -5062,7 +5202,6 @@ fn test_lineage() {
         '    3' AS a
     )
     SELECT
-      a,
       a
     FROM
       table_0
@@ -5477,22 +5616,22 @@ fn unstable_ordering() {
     assert_snapshot!(compile(r###"
   # All lines are mandatory
 from foo
-take 10000 
+take 10000
 # We need 8+ aliases to trigger the issue
 derive { a1 = 1, a2 = 1, a3 = 1, a4 = 1, a5 = 1, a6 = 1, a7 = 1, a8 = 1 }
 # The `select !` itself is required, but its content is not
-select !{ a1, a2, a3, a4, a5, a6, a7, a8 } 
+select !{ a1, a2, a3, a4, a5, a6, a7, a8 }
 
 # We may remove `u` from both these statements, but the `select !` must remain
 select { b, c, u }
-select !{ u } 
+select !{ u }
 
 # Aggregate verb seems to not matter
-group { b } ( aggregate { c = count c } ) 
-derive { d = c } 
-select !{ c } 
+group { b } ( aggregate { c = count c } )
+derive { d = c }
+select !{ c }
 
-group { d } ( aggregate { b = sum b } ) 
+group { d } ( aggregate { b = sum b } )
 sort { d }"###).unwrap(), @r"
     WITH table_1 AS (
       SELECT
@@ -5534,5 +5673,59 @@ fn test_type_error_placement() {
       AND CAST(y AS integer)
     FROM
       t
+    ");
+}
+
+#[test]
+fn test_missing_columns_group_complex_compute() {
+    // https://github.com/PRQL/prql/issues/5354
+    // The focus for this tests is on whether the `hire_date` column is available where it's needed.
+    // Additional `city` derive are there only to trigger the issue.
+    assert_snapshot!(compile(
+        r#"prql target:sql.postgres
+        from employees
+        derive `year` = s'EXTRACT(year from {`hire_date`})'
+        derive { `year_label` = f"Year {`year`}" }
+        derive { `city` = case [ this.`city` == "Calgary" => "A city", true => this.`city` ] }
+        derive { `city` = case [ this.`city` == "Edmonton" => "Another city", true => this.`city` ] }
+        group {`year`, `year_label`} (take 1)
+        select {this.`year_label`}
+    "#,
+    )
+    .unwrap(), @r"
+    WITH table_0 AS (
+      SELECT
+        CONCAT(
+          'Year ',
+          EXTRACT(
+            year
+            from
+              hire_date
+          )
+        ) AS year_label,
+        EXTRACT(
+          year
+          from
+            hire_date
+        ) AS _expr_0,
+        CASE
+          WHEN city = 'Calgary' THEN 'A city'
+          ELSE city
+        END AS _expr_1,
+        city
+      FROM
+        employees
+    ),
+    table_1 AS (
+      SELECT
+        DISTINCT ON (_expr_0, year_label) year_label,
+        _expr_0
+      FROM
+        table_0
+    )
+    SELECT
+      year_label
+    FROM
+      table_1
     ");
 }

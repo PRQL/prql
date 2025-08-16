@@ -18,7 +18,7 @@ use crate::ir::pl::{self, Ident, Literal};
 use crate::ir::rq;
 use crate::sql::pq::context::ColumnDecl;
 use crate::utils::{valid_ident, OrMap};
-use crate::{Error, Reason, Result, Span, WithErrorInfo};
+use crate::{Error, Result, Span, WithErrorInfo};
 
 pub(super) fn translate_expr(expr: rq::Expr, ctx: &mut Context) -> Result<ExprOrSource> {
     Ok(match expr.kind {
@@ -118,11 +118,20 @@ pub(super) fn translate_expr(expr: rq::Expr, ctx: &mut Context) -> Result<ExprOr
             }
             super::operators::translate_operator_expr(expr, ctx)?
         }
-        rq::ExprKind::Array(_) => {
-            return Err(Error::new(Reason::Unexpected {
-                found: "array of values (not supported here)".to_string(),
+        rq::ExprKind::Array(exprs) => {
+            let elements = exprs
+                .iter()
+                .map(|e| translate_expr(e.clone(), ctx).map(|x| x.into_ast()))
+                .try_collect()?;
+
+            let sql_array = ctx.dialect.translate_sql_array(elements)?;
+
+            // Return as SourceExpr so it can be interpolated into s-strings
+            ExprOrSource::Source(SourceExpr {
+                text: sql_array.to_string(),
+                binding_strength: 100,
+                window_frame: false,
             })
-            .with_span(expr.span));
         }
     })
 }
@@ -987,7 +996,7 @@ impl SQLExpression for UnaryOperator {
 /// A wrapper around sql_ast::Expr, that may have already been converted to source.
 #[derive(Debug, Clone)]
 pub enum ExprOrSource {
-    Expr(sql_ast::Expr),
+    Expr(Box<sql_ast::Expr>),
     Source(SourceExpr),
 }
 
@@ -1003,7 +1012,7 @@ pub struct SourceExpr {
 impl ExprOrSource {
     pub fn into_ast(self) -> sql_ast::Expr {
         match self {
-            ExprOrSource::Expr(ast) => ast,
+            ExprOrSource::Expr(ast) => *ast,
             ExprOrSource::Source(SourceExpr { text: source, .. }) => {
                 // The s-string hack
                 sql_ast::Expr::Identifier(sql_ast::Ident::new(source))
@@ -1020,7 +1029,7 @@ impl ExprOrSource {
 
     fn wrap_in_parenthesis(self) -> Self {
         match self {
-            ExprOrSource::Expr(expr) => ExprOrSource::Expr(sql_ast::Expr::Nested(Box::new(expr))),
+            ExprOrSource::Expr(expr) => ExprOrSource::Expr(Box::new(sql_ast::Expr::Nested(expr))),
             ExprOrSource::Source(SourceExpr {
                 text, window_frame, ..
             }) => {
@@ -1048,7 +1057,7 @@ impl SQLExpression for ExprOrSource {
 
 impl From<sql_ast::Expr> for ExprOrSource {
     fn from(value: sql_ast::Expr) -> Self {
-        ExprOrSource::Expr(value)
+        ExprOrSource::Expr(Box::new(value))
     }
 }
 

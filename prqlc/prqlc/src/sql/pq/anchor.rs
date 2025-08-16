@@ -1,4 +1,6 @@
 use std::collections::{HashMap, HashSet};
+use std::fmt;
+use std::ops::Deref;
 
 use itertools::Itertools;
 
@@ -10,6 +12,7 @@ use crate::ir::rq::{
     Transform,
 };
 use crate::sql::pq::context::RelationAdapter;
+use crate::sql::pq::positional_mapping::compute_positional_mappings;
 use crate::Result;
 
 /// Extract last part of pipeline that is able to "fit" into a single SELECT statement.
@@ -19,6 +22,7 @@ pub(super) fn extract_atomic(
     ctx: &mut AnchorContext,
 ) -> Vec<SqlTransform> {
     let output = ctx.determine_select_columns(&pipeline);
+    let output = ctx.positional_mapping.apply_active_mapping(output);
 
     let (preceding, atomic) = split_off_back(pipeline, output.clone(), ctx);
 
@@ -71,11 +75,16 @@ pub(super) fn split_off_back(
         return (None, Vec::new());
     }
 
+    let mapping_before = compute_positional_mappings(&pipeline);
+
     log::debug!("traversing pipeline to obtain columns: {output:?}");
 
     let mut following_transforms: HashSet<String> = HashSet::new();
 
-    let mut inputs_required = into_requirements(output.clone(), Complexity::highest(), true);
+    let mut inputs_required = Requirements::from_cids(output.iter())
+        .allow_up_to(Complexity::highest())
+        .should_select(true);
+
     let mut inputs_avail = HashSet::new();
 
     // iterate backwards
@@ -92,8 +101,8 @@ pub(super) fn split_off_back(
 
         // anchor and record all requirements
         let required = get_requirements(&transform, &following_transforms);
-        log::debug!("transform {} requires {:?}", transform.as_str(), required);
-        inputs_required.extend(required.clone());
+        log::debug!(".. transform {} requires {required:?}", transform.as_str(),);
+        inputs_required = inputs_required.append(required.clone());
 
         match &transform {
             SqlTransform::Super(Transform::Compute(compute)) => {
@@ -103,11 +112,8 @@ pub(super) fn split_off_back(
                     inputs_avail.insert(compute.id);
 
                     // add transitive dependencies
-                    inputs_required.extend(required.into_iter().map(|x| Requirement {
-                        col: x.col,
-                        max_complexity,
-                        selected: false,
-                    }));
+                    inputs_required = inputs_required
+                        .append(required.allow_up_to(max_complexity).should_select(false));
                 } else {
                     pipeline.push(transform);
                     break;
@@ -148,11 +154,7 @@ pub(super) fn split_off_back(
     log::debug!("finished table:");
     log::debug!(".. avail={inputs_avail:?}");
 
-    let required = inputs_required
-        .into_iter()
-        .map(|r| r.col)
-        .unique()
-        .collect_vec();
+    let required = inputs_required.iter().map(|r| r.col).unique().collect_vec();
     log::debug!(".. required={required:?}");
 
     let missing = required
@@ -184,6 +186,14 @@ pub(super) fn split_off_back(
     };
 
     curr_pipeline_rev.reverse();
+
+    // This will compare columns for order sensitive transform and correct it in subsequent relation.
+    let mapping_after = compute_positional_mappings(&curr_pipeline_rev);
+    for (before, after) in mapping_before.iter().zip(mapping_after.iter()) {
+        ctx.positional_mapping
+            .compute_and_store_mapping(before, after);
+    }
+
     (remaining_pipeline, curr_pipeline_rev)
 }
 
@@ -279,6 +289,7 @@ pub(super) fn anchor_split(
             source: new_tid,
             name: None,
             columns: new_columns,
+            prefer_cte: true,
         },
         cid_redirects,
     );
@@ -406,18 +417,72 @@ pub struct Requirement {
     pub selected: bool,
 }
 
-fn into_requirements(
-    cids: Vec<CId>,
-    max_complexity: Complexity,
-    selected: bool,
-) -> Vec<Requirement> {
-    cids.into_iter()
-        .map(|col| Requirement {
-            col,
-            max_complexity,
-            selected,
-        })
-        .collect()
+#[derive(Clone, Default)]
+pub struct Requirements(Vec<Requirement>);
+
+/// To iter on `Requirements` as if it's a simple `Vec`.
+impl Deref for Requirements {
+    type Target = [Requirement];
+
+    fn deref(&self) -> &[Requirement] {
+        self.0.as_slice()
+    }
+}
+
+/// To debug `Requirements` as if it's a simple `Vec`.
+impl fmt::Debug for Requirements {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "{:?}", self.0)
+    }
+}
+
+impl Requirements {
+    /// Turns a list of `CId` into requirements with the least allowed complexity
+    /// and unselected by default.
+    pub fn from_cids<'a, I>(cids: I) -> Requirements
+    where
+        I: Iterator<Item = &'a CId>,
+    {
+        Requirements(
+            cids.cloned()
+                .map(|col| Requirement {
+                    col,
+                    max_complexity: Complexity::lowest(),
+                    selected: false,
+                })
+                .collect(),
+        )
+    }
+
+    /// Collect columns from the given `Expr` into requirements with
+    /// the least allowed complexity and unselected by default.
+    pub fn from_expr(expr: &Expr) -> Requirements {
+        let cids = CidCollector::collect(expr.clone());
+        Requirements::from_cids(cids.iter())
+    }
+
+    /// Moves all the elements of `other` into `self`, leaving `other` empty,
+    /// then return `self` for chainability.
+    pub fn append(mut self, mut other: Requirements) -> Requirements {
+        self.0.append(&mut other.0);
+        self
+    }
+
+    /// Set a maximum complexity to all stored requirements.
+    pub fn allow_up_to(mut self, max_complexity: Complexity) -> Self {
+        for r in &mut self.0 {
+            r.max_complexity = max_complexity;
+        }
+        self
+    }
+
+    /// Set a SELECT status to all stored requirements.
+    pub fn should_select(mut self, selected: bool) -> Self {
+        for r in &mut self.0 {
+            r.selected = selected;
+        }
+        self
+    }
 }
 
 impl std::fmt::Debug for Requirement {
@@ -431,97 +496,78 @@ impl std::fmt::Debug for Requirement {
 pub(super) fn get_requirements(
     transform: &SqlTransform,
     following: &HashSet<String>,
-) -> Vec<Requirement> {
+) -> Requirements {
     use SqlTransform::Super;
-    use Transform::*;
 
-    // special case for Aggregate, which contain two difference Complexity-ies
-    if let Super(Aggregate { partition, compute }) = transform {
-        let mut r = Vec::new();
-        r.extend(into_requirements(
-            partition.clone(),
-            Complexity::Plain,
-            false,
-        ));
-        r.extend(into_requirements(
-            compute.clone(),
-            Complexity::Aggregation,
-            false,
-        ));
-        return r;
-    }
+    match transform {
+        Super(Transform::Aggregate { partition, compute }) => {
+            let partition_requirements = Requirements::from_cids(partition.iter());
+            let compute_requirements =
+                Requirements::from_cids(compute.iter()).allow_up_to(Complexity::Aggregation);
 
-    // special case for Compute, which contain two difference Complexity-ies
-    if let Super(Compute(compute)) = transform {
-        // expr itself
-        let expr_cids = CidCollector::collect(compute.expr.clone());
-
-        let expr_max_complexity = match infer_complexity(compute) {
-            // plain expressions can be included in anything less complex than Aggregation
-            Complexity::Plain => Complexity::Aggregation,
-
-            // anything more complex can only use included in other plain expressions.
-            // in other words: complex expressions (aggregation, window functions) cannot
-            // be defined within other expressions.
-            _ => Complexity::Plain,
-        };
-        let mut requirements = into_requirements(expr_cids, expr_max_complexity, false);
-
-        // window
-        if let Some(window) = &compute.window {
-            // TODO: what kind of exprs can be in window frame?
-            // window.frame
-
-            let mut window_cids = window.partition.clone();
-            window_cids.extend(window.sort.iter().map(|s| s.column));
-
-            requirements.extend(into_requirements(window_cids, Complexity::Plain, false));
+            partition_requirements.append(compute_requirements)
         }
 
-        return requirements;
-    }
+        Super(Transform::Compute(compute)) => {
+            let requirements = Requirements::from_expr(&compute.expr).allow_up_to(
+                match infer_complexity(compute) {
+                    // plain expressions can be included in anything less complex than Aggregation
+                    Complexity::Plain => Complexity::Aggregation,
 
-    // general case: extract cids
-    let cids = match transform {
-        Super(Compute(compute)) => CidCollector::collect(compute.expr.clone()),
-        Super(Filter(expr)) | SqlTransform::Join { filter: expr, .. } => {
-            CidCollector::collect(expr.clone())
-        }
-        Super(Sort(sorts)) => sorts.iter().map(|s| s.column).collect(),
-        Super(Take(rq::Take { range, .. })) => {
-            let mut cids = Vec::new();
-            if let Some(e) = &range.start {
-                cids.extend(CidCollector::collect(e.clone()));
+                    // anything more complex can only use included in other plain expressions.
+                    // in other words: complex expressions (aggregation, window functions) cannot
+                    // be defined within other expressions.
+                    _ => Complexity::Plain,
+                },
+            );
+
+            if let Some(window) = &compute.window {
+                // TODO: what kind of exprs can be in window frame?
+                // window.frame
+
+                let window_cids = window
+                    .partition
+                    .iter()
+                    .chain(window.sort.iter().map(|s| &s.column));
+
+                requirements.append(Requirements::from_cids(window_cids))
+            } else {
+                requirements
             }
-            if let Some(e) = &range.end {
-                cids.extend(CidCollector::collect(e.clone()));
-            }
-            cids
         }
 
-        _ => return Vec::new(),
-    };
-
-    // general case: determine complexity
-    let (max_complexity, selected) = match transform {
-        Super(Filter(_)) => (
-            if !following.contains("Aggregate") {
+        Super(Transform::Filter(expr)) => {
+            Requirements::from_expr(expr).allow_up_to(if !following.contains("Aggregate") {
                 Complexity::Aggregation
             } else {
                 Complexity::Plain
-            },
-            false,
-        ),
-        // we only use SELECTed columns in ORDER BY, so the columns can have high complexity
-        Super(Sort(_)) => (Complexity::Aggregation, true),
+            })
+        }
 
-        // LIMIT and OFFSET can use constant expressions which don't need to be SELECTed
-        Super(Take(_)) => (Complexity::Plain, false),
-        SqlTransform::Join { .. } => (Complexity::Plain, false),
-        _ => unreachable!(),
-    };
+        // Aggregations require that all selected columns be wrapped in aggregate functions (e.g., SUM, COUNT).
+        Super(Transform::Sort(sorts)) if !following.contains("Aggregate") => {
+            Requirements::from_cids(sorts.iter().map(|s| &s.column))
+                // we only use SELECTed columns in ORDER BY, so the columns can have high complexity
+                .allow_up_to(Complexity::Aggregation)
+                .should_select(true)
+        }
 
-    into_requirements(cids, max_complexity, selected)
+        SqlTransform::DistinctOn(partition) => Requirements::from_cids(partition.iter())
+            // Partition columns must be selected in order to push compute columns down CTE.
+            .should_select(true)
+            // Since there is aggregation anyway, columns can have any complexity
+            .allow_up_to(Complexity::highest()),
+
+        Super(Transform::Take(rq::Take { range, .. })) => [&range.start, &range.end]
+            .into_iter()
+            .flatten()
+            .map(Requirements::from_expr)
+            .fold(Requirements::default(), Requirements::append),
+
+        SqlTransform::Join { filter, .. } => Requirements::from_expr(filter),
+
+        _ => Requirements::default(),
+    }
 }
 
 /// Complexity of a column expressions.
@@ -538,6 +584,10 @@ pub enum Complexity {
 }
 
 impl Complexity {
+    const fn lowest() -> Self {
+        Self::Plain
+    }
+
     const fn highest() -> Self {
         Self::Aggregation
     }
@@ -567,7 +617,11 @@ pub fn infer_complexity_expr(expr: &Expr) -> Complexity {
         | rq::ExprKind::Literal(_)
         | rq::ExprKind::SString(_)
         | rq::ExprKind::Param(_) => Complexity::Plain,
-        rq::ExprKind::Array(_) => Complexity::highest(),
+        rq::ExprKind::Array(elements) => elements
+            .iter()
+            .map(infer_complexity_expr)
+            .max()
+            .unwrap_or(Complexity::Plain),
     }
 }
 
@@ -647,32 +701,6 @@ impl<'a> CidRedirector<'a> {
         let mut redirector = CidRedirector { ctx, cid_redirects };
 
         fold_column_sorts(&mut redirector, sorts).unwrap()
-    }
-
-    // revert sort columns back to their original pre-split columns
-    pub fn revert_sorts(
-        sorts: Vec<ColumnSort<CId>>,
-        ctx: &'a mut AnchorContext,
-    ) -> Vec<ColumnSort<CId>> {
-        sorts
-            .into_iter()
-            .map(|sort| {
-                let decl = ctx.column_decls.get(&sort.column).unwrap();
-                if let ColumnDecl::RelationColumn(riid, cid, _) = decl {
-                    let cid_redirects = &ctx.relation_instances[riid].cid_redirects;
-                    for (source, target) in cid_redirects.iter() {
-                        if target == cid {
-                            log::debug!("reverting {target:?} back to {source:?}");
-                            return ColumnSort {
-                                direction: sort.direction,
-                                column: *source,
-                            };
-                        }
-                    }
-                }
-                sort
-            })
-            .collect()
     }
 }
 

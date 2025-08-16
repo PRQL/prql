@@ -24,7 +24,6 @@ In-depth information about the PRQL language. Includes justifications for
 language design decisions and formal specifications for parts of the language.
 
 - [Syntax](./reference/syntax/README.md)
-
   - [Literals](./reference/syntax/literals.md)
   - [Strings](./reference/syntax/strings.md)
     - [F-strings](./reference/syntax/f-strings.md)
@@ -42,21 +41,17 @@ language design decisions and formal specifications for parts of the language.
   - [Parameters](./reference/syntax/parameters.md)
 
 - [Importing data](./reference/data/README.md)
-
   - [From](./reference/data/from.md)
   - [Reading files](./reference/data/read-files.md)
   - [Ad-hoc data](./reference/data/relation-literals.md)
 
 - [Declarations]()
   <!-- I don't know what to call this section. -->
-
   - [Variables — `let` & `into`](./reference/declarations/variables.md)
   - [Functions](./reference/declarations/functions.md)
 
 - [Standard library](./reference/stdlib/README.md)
-
   - [Transforms](./reference/stdlib/transforms/README.md)
-
     - [Aggregate](./reference/stdlib/transforms/aggregate.md)
     - [Append](./reference/stdlib/transforms/append.md)
     - [Derive](./reference/stdlib/transforms/derive.md)
@@ -76,7 +71,6 @@ language design decisions and formal specifications for parts of the language.
   - [Removing duplicates](./reference/stdlib/distinct.md)
 
 - [Specification](./reference/spec/README.md)
-
   - [Null handling](./reference/spec/null.md)
   - [Name resolution](./reference/spec/name-resolution.md)
   - [Modules](./reference/spec/modules.md)
@@ -91,7 +85,6 @@ General information about the project, tooling and development.
 - [Target & version](./project/target.md)
 
 - [Bindings](./project/bindings/README.md)
-
   - [.NET](./project/bindings/dotnet.md)
   - [Elixir](./project/bindings/elixir.md)
   - [Java](./project/bindings/java.md)
@@ -102,7 +95,6 @@ General information about the project, tooling and development.
   - [Rust](./project/bindings/rust.md)
 
 - [Integrations](./project/integrations/README.md)
-
   - [`prqlc CLI`](./project/integrations/prqlc-cli.md)
   - [ClickHouse](./project/integrations/clickhouse.md)
   - [Jupyter](./project/integrations/jupyter.md)
@@ -116,6 +108,5 @@ General information about the project, tooling and development.
   - [Syntax highlighting](./project/integrations/syntax-highlighting.md)
 
 - [Contributing to PRQL](./project/contributing/README.md)
-
   - [Development](./project/contributing/development.md)
   - [Language design](./project/contributing/language-design.md)

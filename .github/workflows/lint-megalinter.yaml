@@ -55,7 +55,7 @@ jobs:
 
         # You can override MegaLinter flavor used to have faster performances
         # More info at https://megalinter.io/flavors/
-        uses: oxsecurity/megalinter@v8.7.0
+        uses: oxsecurity/megalinter@v8.8.0
 
         id: ml
 
@@ -134,7 +134,7 @@ jobs:
         run: sudo chown -Rc $UID .git/
 
       - name: Commit and push applied linter fixes
-        uses: stefanzweifel/git-auto-commit-action@v5
+        uses: stefanzweifel/git-auto-commit-action@v6
         if: env.APPLY_FIXES_IF_COMMIT == 'true'
         with:
           branch: >-

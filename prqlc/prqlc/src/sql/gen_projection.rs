@@ -120,6 +120,19 @@ pub(super) fn translate_wildcards(ctx: &AnchorContext, cols: Vec<CId>) -> (Vec<C
     (output, excluded)
 }
 
+fn deduplicate_select_items(items: &mut Vec<SelectItem>) {
+    // Dropping all duplicated identifiers
+    let mut seen = HashSet::new();
+    items.retain(|select_item| match select_item {
+        SelectItem::UnnamedExpr(sql_ast::Expr::CompoundIdentifier(idents)) => {
+            // If any of the identifiers hadn't been seen yet, retain the expr
+            idents.iter().any(|ident| seen.insert(ident.clone()))
+        }
+        SelectItem::ExprWithAlias { alias, .. } => seen.insert(alias.clone()),
+        _ => true,
+    });
+}
+
 pub(super) fn translate_select_items(
     cols: Vec<CId>,
     mut excluded: Excluded,
@@ -163,6 +176,8 @@ pub(super) fn translate_select_items(
             })
         })
         .try_collect()?;
+
+    deduplicate_select_items(&mut res);
 
     if res.is_empty() && !ctx.dialect.supports_zero_columns() {
         // In some cases, no columns will appear in the projection

@@ -104,23 +104,6 @@ fn test_errors() {
 }
 
 #[test]
-fn array_instead_of_tuple() {
-    assert_snapshot!(compile(r###"
-    from employees
-    select {e = this}
-    select [e.first_name, e.last_name]
-    "###).unwrap_err(), @r"
-    Error:
-       ╭─[ :4:12 ]
-       │
-     4 │     select [e.first_name, e.last_name]
-       │            ─────────────┬─────────────
-       │                         ╰─────────────── unexpected array of values (not supported here)
-    ───╯
-    ");
-}
-
-#[test]
 fn test_union_all_sqlite() {
     // TODO: `SQLiteDialect` would be better as `sql.sqlite` or `sqlite`.
     assert_snapshot!(compile(r###"

@@ -2,7 +2,7 @@
 //!
 //! Currently only moves [SqlTransform::Sort]s.
 
-use std::collections::{HashMap, HashSet};
+use std::collections::{HashMap, HashSet, VecDeque};
 
 use itertools::Itertools;
 
@@ -10,7 +10,8 @@ use super::anchor::CidRedirector;
 use super::ast::*;
 use crate::ir::generic::ColumnSort;
 use crate::ir::pl::Ident;
-use crate::ir::rq::{CId, RqFold, TId};
+use crate::ir::rq::{CId, ExprKind, RqFold, TId};
+use crate::sql::pq::context::{ColumnDecl, RIId};
 use crate::sql::Context;
 use crate::Result;
 
@@ -41,6 +42,110 @@ struct SortingInference<'a> {
     ctx: &'a mut Context,
 }
 
+impl SortingInference<'_> {
+    /// Prepares the last sorting that will be appended to the pipeline of the `SqlQuery` by
+    /// `fold_sql_query`. It does so by reverting all columns in the sorting to their very first
+    /// form, and then transforming their value in the final select, while applying
+    /// renaming/aliasing when possible. This cannot be done directly in `fold_sql_transforms`
+    /// because renames are not considered to be SQL transforms.
+    fn alias_last_sorting(&mut self, mut last_sorting: Sorting, final_select: &[CId]) -> Sorting {
+        log::debug!("unaliasing last sorting: {last_sorting:?}");
+        let redirects = self
+            .ctx
+            .anchor
+            .relation_instances
+            .iter()
+            .map(|(riid, rel_inst)| (riid, &rel_inst.cid_redirects))
+            .collect::<HashMap<_, _>>();
+
+        // a map of column -> alias
+        let column_aliases = self
+            .ctx
+            .anchor
+            .column_decls
+            .values()
+            .filter_map(|col| {
+                if let ColumnDecl::Compute(compute) = col {
+                    if let ExprKind::ColumnRef(referenced_id) = compute.expr.kind {
+                        Some((referenced_id, compute.id))
+                    } else {
+                        None
+                    }
+                } else {
+                    None
+                }
+            })
+            .collect::<HashMap<_, _>>();
+        log::debug!(".. column aliases: {column_aliases:?}");
+
+        // column -> list of tables that did a revert
+        let mut reverts: HashMap<CId, VecDeque<RIId>> = HashMap::new();
+        log::debug!(".. reverting all columns to their original value");
+        last_sorting.iter_mut().for_each(|sort| {
+            let mut riids = VecDeque::new();
+            let mut changed = true;
+            while changed {
+                changed = false;
+                if let Some(ColumnDecl::RelationColumn(riid, cid, _)) =
+                    self.ctx.anchor.column_decls.get(&sort.column)
+                {
+                    let cid_redirects = redirects[riid];
+                    for (source, target) in cid_redirects.iter() {
+                        if target == cid {
+                            log::debug!(
+                                ".. reverting {target:?} back to {source:?} via redirects of {riid:?}"
+                            );
+                            sort.column = *source;
+                            changed = true;
+                            riids.push_front(*riid);
+                            break;
+                        }
+                    }
+                }
+            }
+            reverts.insert(sort.column, riids);
+        });
+        log::debug!(".. done reverting all columns to their original value: {last_sorting:?}");
+
+        log::debug!(".. reverting columns forward and aliasing them");
+        // reverting forward
+        last_sorting.iter_mut().for_each(|sort| {
+            let col_reverts = &reverts[&sort.column];
+            for riid in col_reverts {
+                if final_select.contains(&sort.column) {
+                    log::debug!(
+                        ".. sort column {:?} is in the final select columns, skip reverting",
+                        &sort.column
+                    );
+                    return;
+                }
+                // try renaming
+                if column_aliases.contains_key(&sort.column) {
+                    let alias = column_aliases[&sort.column];
+                    log::debug!("..aliasing {:?} as {alias:?}", &sort.column);
+                    sort.column = alias;
+                }
+                // try de-reverting with the target table
+                let cid_mappings = redirects[riid];
+                if cid_mappings.contains_key(&sort.column) {
+                    log::debug!(
+                        ".. reverting {:?} forward to {:?} via redirects of {riid:?} ({:?})",
+                        &sort.column,
+                        &cid_mappings[&sort.column],
+                        &cid_mappings
+                    );
+                    sort.column = cid_mappings[&sort.column];
+                }
+            }
+        });
+
+        log::debug!("aliased and reverted last sorting forward: {last_sorting:?}");
+
+        last_sorting
+    }
+}
+
+#[derive(Debug)]
 struct CteSorting {
     sorting: Sorting,
 }
@@ -50,6 +155,7 @@ impl RqFold for SortingInference<'_> {}
 impl PqFold for SortingInference<'_> {
     fn fold_sql_query(&mut self, query: SqlQuery) -> Result<SqlQuery> {
         let mut ctes = Vec::with_capacity(query.ctes.len());
+
         for cte in query.ctes {
             log::debug!("infer_sorts: {0:?}", cte.tid);
             let cte = self.fold_cte(cte)?;
@@ -68,10 +174,38 @@ impl PqFold for SortingInference<'_> {
         self.main_relation = true;
         let mut main_relation = self.fold_sql_relation(query.main_relation)?;
         log::debug!("--== last_sorting {0:?}", self.last_sorting);
+        let last_sorting = self.last_sorting.drain(..).collect::<Vec<_>>();
 
         // push a sort at the back of the main pipeline
         if let SqlRelation::AtomicPipeline(pipeline) = &mut main_relation {
-            pipeline.push(SqlTransform::Sort(self.last_sorting.drain(..).collect()));
+            let from_id = pipeline
+                .iter()
+                .find_map(|transform| match transform {
+                    SqlTransform::From(rel) => Some(rel.riid),
+                    _ => None,
+                })
+                .unwrap();
+
+            let final_select = pipeline
+                .iter()
+                .rev()
+                .find_map(|transform| match transform {
+                    SqlTransform::Select(select) => Some(select),
+                    _ => None,
+                })
+                .unwrap();
+            log::debug!("--== final select: {final_select:?}");
+
+            let unaliased_last_sorting = self.alias_last_sorting(last_sorting, final_select);
+            log::debug!("--== unaliased last sorting: {unaliased_last_sorting:?}");
+            let redirected_last_sorting = CidRedirector::redirect_sorts(
+                unaliased_last_sorting,
+                &from_id,
+                &mut self.ctx.anchor,
+            );
+            log::debug!("--== redirected last sorting: {redirected_last_sorting:?}");
+
+            pipeline.push(SqlTransform::Sort(redirected_last_sorting));
         }
 
         Ok(SqlQuery {
@@ -143,6 +277,7 @@ impl PqMapper<RelationExpr, RelationExpr, (), ()> for SortingInference<'_> {
             }
             result.push(transform)
         }
+        log::debug!("-- relation sorting {sorting:?}");
 
         if !self.main_relation {
             // if this is a CTE, make sure that its SELECT includes the
@@ -156,12 +291,6 @@ impl PqMapper<RelationExpr, RelationExpr, (), ()> for SortingInference<'_> {
                     select.push(cid);
                 }
             }
-
-            // now revert the sort columns so that the output
-            // sorting reflects the input column cids, needed to
-            // ensure proper column reference lookup in the final
-            // steps
-            sorting = CidRedirector::revert_sorts(sorting, &mut self.ctx.anchor);
         }
 
         // remember sorting for this pipeline

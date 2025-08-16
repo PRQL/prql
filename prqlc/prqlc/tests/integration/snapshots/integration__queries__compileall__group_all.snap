@@ -1,0 +1,88 @@
+---
+source: prqlc/prqlc/tests/integration/queries.rs
+expression: "# mssql:test\nfrom a=albums\ntake 10\njoin tracks (==album_id)\ngroup {a.album_id, a.title} (aggregate price = (sum tracks.unit_price | math.round 2))\nsort album_id\n"
+input_file: prqlc/prqlc/tests/integration/queries/group_all.prql
+---
+--- generic
++++ glaredb
+@@ -3,19 +3,22 @@
+     album_id,
+     title
+   FROM
+     albums AS a
+   LIMIT
+     10
+ )
+ SELECT
+   table_0.album_id,
+   table_0.title,
+-  ROUND(COALESCE(SUM(tracks.unit_price), 0), 2) AS price
++  ROUND(
++    (COALESCE(SUM(tracks.unit_price), 0))::numeric,
++    2
++  ) AS price
+ FROM
+   table_0
+   INNER JOIN tracks ON table_0.album_id = tracks.album_id
+ GROUP BY
+   table_0.album_id,
+   table_0.title
+ ORDER BY
+   table_0.album_id
+
+--- generic
++++ mssql
+@@ -1,18 +1,23 @@
+ WITH table_0 AS (
+   SELECT
+     album_id,
+     title
+   FROM
+     albums AS a
+-  LIMIT
+-    10
++  ORDER BY
++    (
++      SELECT
++        NULL
++    ) OFFSET 0 ROWS
++  FETCH FIRST
++    10 ROWS ONLY
+ )
+ SELECT
+   table_0.album_id,
+   table_0.title,
+   ROUND(COALESCE(SUM(tracks.unit_price), 0), 2) AS price
+ FROM
+   table_0
+   INNER JOIN tracks ON table_0.album_id = tracks.album_id
+ GROUP BY
+   table_0.album_id,
+
+
+--- generic
++++ postgres
+@@ -3,19 +3,22 @@
+     album_id,
+     title
+   FROM
+     albums AS a
+   LIMIT
+     10
+ )
+ SELECT
+   table_0.album_id,
+   table_0.title,
+-  ROUND(COALESCE(SUM(tracks.unit_price), 0), 2) AS price
++  ROUND(
++    (COALESCE(SUM(tracks.unit_price), 0))::numeric,
++    2
++  ) AS price
+ FROM
+   table_0
+   INNER JOIN tracks ON table_0.album_id = tracks.album_id
+ GROUP BY
+   table_0.album_id,
+   table_0.title
+ ORDER BY
+   table_0.album_id
