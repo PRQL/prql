@@ -56,7 +56,7 @@ impl Resolver<'_> {
                 .name_hint
                 .clone()
                 .unwrap_or_else(|| Ident::from_name("<unnamed>"));
-            log::debug!("resolving args of function {}", name);
+            log::debug!("resolving args of function {name}");
         }
         let res = self.resolve_function_args(closure)?;
 

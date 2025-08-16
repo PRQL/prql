@@ -344,7 +344,7 @@ fn write_repr_sql_parser<W: Write>(w: &mut W, ast: &sqlparser::ast::Query) -> Re
 
 fn write_repr_sql<W: Write>(w: &mut W, query: &str) -> Result {
     writeln!(w, r#"<div class="sql repr">"#)?;
-    writeln!(w, "<pre><code>{}</code></pre>", query)?;
+    writeln!(w, "<pre><code>{query}</code></pre>")?;
     writeln!(w, "</div>")
 }
 

@@ -456,7 +456,7 @@ impl Lowerer {
             .map(|col| (col, self.cid.gen()))
             .collect_vec();
 
-        log::debug!("... columns = {:?}", columns);
+        log::debug!("... columns = {columns:?}");
 
         let input_cids: HashMap<_, _> = columns
             .iter()
@@ -635,7 +635,7 @@ impl Lowerer {
     ) -> Result<Vec<RelationColumn>> {
         let lineage = lineage.unwrap_or_default();
 
-        log::debug!("push_select of a frame: {:?}", lineage);
+        log::debug!("push_select of a frame: {lineage:?}");
 
         let mut columns = Vec::new();
 
@@ -678,7 +678,7 @@ impl Lowerer {
 
         let (cols, cids) = columns.into_iter().unzip();
 
-        log::debug!("... cids={:?}", cids);
+        log::debug!("... cids={cids:?}");
         transforms.push(Transform::Select(cids));
 
         Ok(cols)
