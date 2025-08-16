@@ -117,12 +117,15 @@ jobs:
           # - Unreferenced snapshots - `--unreferenced=auto` when testing on
           #   linux & with `test-dbs` feature.
           # - Test runner - `--test-runner=nextest` when not targeting wasm32.
+          # - Skip doc tests on Windows due to LNK1318 PDB errors
           args: >
             test --target=${{ inputs.target }} --no-default-features
             --features=${{ inputs.features }} ${{ contains(inputs.features,
             'test-dbs') && inputs.target == 'x86_64-unknown-linux-gnu' &&
             '--unreferenced=auto' || '' }} ${{ inputs.target !=
-            'wasm32-unknown-unknown' && '--test-runner=nextest' || '' }}
+            'wasm32-unknown-unknown' && '--test-runner=nextest' || '' }} ${{
+            inputs.os == 'windows-latest' && '--lib --bins --tests --benches
+            --examples' || '' }}
       - name: 📎 Clippy
         uses: clechasseur/rs-cargo@v3
         with:

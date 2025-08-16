@@ -224,8 +224,15 @@ fn translate_select_pipeline(
                 interpolate: None,
             })
         },
-        limit,
-        offset,
+        limit_clause: if limit.is_some() || offset.is_some() {
+            Some(sql_ast::LimitClause::LimitOffset {
+                limit,
+                offset,
+                limit_by: Vec::new(),
+            })
+        } else {
+            None
+        },
         fetch,
         ..default_query(SetExpr::Select(Box::new(Select {
             distinct,
@@ -595,11 +602,9 @@ fn default_query(body: sql_ast::SetExpr) -> sql_ast::Query {
         with: None,
         body: Box::new(body),
         order_by: None,
-        limit: None,
-        offset: None,
+        limit_clause: None,
         fetch: None,
         locks: Vec::new(),
-        limit_by: Vec::new(),
         for_clause: None,
         settings: None,
         format_clause: None,
@@ -642,8 +647,7 @@ fn simple_table_alias(name: sql_ast::Ident) -> TableAlias {
 fn query_to_set_expr(query: sql_ast::Query, context: &mut Context) -> Box<SetExpr> {
     let is_simple = query.with.is_none()
         && query.order_by.is_none()
-        && query.limit.is_none()
-        && query.offset.is_none()
+        && query.limit_clause.is_none()
         && query.fetch.is_none()
         && query.locks.is_empty();
 
