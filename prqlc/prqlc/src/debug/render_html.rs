@@ -37,8 +37,8 @@ fn write_debug_log<W: Write>(w: &mut W, debug_log: &DebugLog) -> Result {
     writeln!(w, "<title>prqlc debug log {}</title>", debug_log.started_at)?;
     writeln!(w, r#"<meta name="generator" content="prqlc">"#)?;
     writeln!(w, r#"<meta name="robots" content="noindex">"#)?;
-    writeln!(w, "<style>{}</style>", CSS_STYLES)?;
-    writeln!(w, "<script>{}</script>", JS_SCRIPT)?;
+    writeln!(w, "<style>{CSS_STYLES}</style>")?;
+    writeln!(w, "<script>{JS_SCRIPT}</script>")?;
     writeln!(w, "</head>")?;
     writeln!(w, "<body>")?;
 
@@ -180,7 +180,7 @@ fn write_message<W: Write>(w: &mut W, message: &Message) -> Result {
     writeln!(w, r#"<div class="entry msg-{}">"#, message.level)?;
     write!(w, "[<b>{}</b>", message.level)?;
     if let Some(module_path) = &message.module_path {
-        write!(w, r#" {}"#, module_path)?;
+        write!(w, r#" {module_path}"#)?;
     }
     writeln!(w, "] {}", message.text)?;
     writeln!(w, "</div>")
