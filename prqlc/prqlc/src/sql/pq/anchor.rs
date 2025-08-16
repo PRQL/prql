@@ -94,7 +94,7 @@ pub(super) fn split_off_back(
         let split = is_split_required(&transform, &mut following_transforms);
         if split {
             log::debug!("split required after {}", transform.as_str());
-            log::debug!(".. following={:?}", following_transforms);
+            log::debug!(".. following={following_transforms:?}");
             pipeline.push(transform);
             break;
         }

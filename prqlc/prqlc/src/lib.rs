@@ -138,8 +138,7 @@ pub fn compiler_version() -> Version {
     if let Ok(prql_version_override) = std::env::var("PRQL_VERSION_OVERRIDE") {
         return Version::parse(&prql_version_override).unwrap_or_else(|e| {
             panic!(
-                "Could not parse PRQL version {}\n{}",
-                prql_version_override, e
+                "Could not parse PRQL version {prql_version_override}\n{e}"
             )
         });
     };
@@ -150,8 +149,7 @@ pub fn compiler_version() -> Version {
             if let Ok(prql_version_override) = std::env::var("PRQL_VERSION_OVERRIDE") {
                 return Version::parse(&prql_version_override).unwrap_or_else(|e| {
                     panic!(
-                        "Could not parse PRQL version {}\n{}",
-                        prql_version_override, e
+                        "Could not parse PRQL version {prql_version_override}\n{e}"
                     )
                 });
             }
@@ -159,13 +157,12 @@ pub fn compiler_version() -> Version {
             let cargo_version = env!("CARGO_PKG_VERSION");
             Version::parse(git_version)
                 .or_else(|e| {
-                    log::info!("Could not parse git version number {}\n{}", git_version, e);
+                    log::info!("Could not parse git version number {git_version}\n{e}");
                     Version::parse(cargo_version)
                 })
                 .unwrap_or_else(|e| {
                     panic!(
-                        "Could not parse prqlc version number {}\n{}",
-                        cargo_version, e
+                        "Could not parse prqlc version number {cargo_version}\n{e}"
                     )
                 })
         })

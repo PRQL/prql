@@ -271,7 +271,7 @@ impl DialectHandler for PostgresDialect {
                     // If the literal contains alphanumeric characters, we need to quote it
                     // to avoid it being interpreted as a pattern understood by Postgres.
                     // We hence need to put it in double quotes to force it to be interpreted as literal text
-                    format!("\"{}\"", literal)
+                    format!("\"{literal}\"")
                 } else {
                     literal.replace('\'', "''").replace('"', "\\\"")
                 }
@@ -359,7 +359,7 @@ impl DialectHandler for MsSqlDialect {
                     // If the literal contains alphanumeric characters, we need to quote it
                     // to avoid it being interpreted as a pattern understood by MSSQL.
                     // We hence need to put it in double quotes to force it to be interpreted as literal text
-                    format!("\"{}\"", literal)
+                    format!("\"{literal}\"")
                 } else {
                     // MSSQL uses single quotes around
                     literal
@@ -456,7 +456,7 @@ impl DialectHandler for ClickHouseDialect {
                     // If the literal contains alphanumeric characters, we need to quote it
                     // to avoid it being interpreted as a pattern understood by Clickhouse.
                     // Clickhouse uses backticks around
-                    format!("'{}'", literal)
+                    format!("'{literal}'")
                 } else {
                     literal.replace('\'', "\\'\\'")
                 }
