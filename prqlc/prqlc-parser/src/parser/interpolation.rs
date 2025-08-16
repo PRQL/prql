@@ -14,13 +14,13 @@ pub(crate) fn parse(string: String, span_base: Span) -> Result<Vec<InterpolateIt
 
     match res {
         Ok(items) => {
-            log::trace!("interpolated string ok: {:?}", items);
+            log::trace!("interpolated string ok: {items:?}");
             Ok(items)
         }
         Err(errors) => Err(errors
             .into_iter()
             .map(|err| {
-                log::debug!("interpolated string error (lex inside parse): {:?}", err);
+                log::debug!("interpolated string error (lex inside parse): {err:?}");
                 err.map(|c| TokenKind::Literal(Literal::String(c.to_string())))
             })
             .collect_vec()),

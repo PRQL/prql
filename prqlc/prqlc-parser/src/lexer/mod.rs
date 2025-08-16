@@ -21,7 +21,7 @@ pub fn lex_source_recovery(source: &str, source_id: u16) -> (Option<Vec<Token>>,
         .map(|e| convert_lexer_error(source, e, source_id))
         .collect();
 
-    log::debug!("lex errors: {:?}", errors);
+    log::debug!("lex errors: {errors:?}");
     (tokens, errors)
 }
 
