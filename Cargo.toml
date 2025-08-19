@@ -44,7 +44,7 @@ allow-branch = ["*"]
 consolidate-commits = true
 
 [workspace.dependencies]
-anyhow = "1.0.98"
+anyhow = "1.0.99"
 arrow = { version = "53", features = [
   "pyarrow",
   "prettyprint",
