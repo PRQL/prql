@@ -73,6 +73,8 @@ pub(super) fn translate_expr(expr: rq::Expr, ctx: &mut Context) -> Result<ExprOr
                 .try_collect()?;
 
             sql_ast::Expr::Case {
+                case_token: sqlparser::ast::helpers::attached_token::AttachedToken::empty(),
+                end_token: sqlparser::ast::helpers::attached_token::AttachedToken::empty(),
                 operand: None,
                 conditions,
                 else_result,
@@ -469,7 +471,7 @@ fn translate_datetime_literal_with_typed_string(
 ) -> sql_ast::Expr {
     sql_ast::Expr::TypedString {
         data_type,
-        value: sqlparser::ast::Value::SingleQuotedString(value),
+        value: sqlparser::ast::Value::SingleQuotedString(value).into(),
     }
 }
 
