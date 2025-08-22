@@ -2,7 +2,7 @@
   "browser": "dist/web/prqlc_js.js",
   "description": "JavaScript bindings for prqlc",
   "devDependencies": {
-    "chai": "^5.0.0",
+    "chai": "^6.0.1",
     "mocha": "^11.0.1",
     "cross-env": "^10.0.0"
   },
