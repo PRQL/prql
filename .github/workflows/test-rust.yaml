@@ -52,9 +52,11 @@ jobs:
       - uses: baptiste0928/cargo-install@v3
         with:
           crate: cargo-insta
+          cache-key: 20250701-1
       - uses: baptiste0928/cargo-install@v3
         with:
           crate: cargo-nextest
+          cache-key: 20250701-1
       - run: ./.github/workflows/scripts/set_version.sh
         shell: bash
       - name: 💰 Cache
@@ -112,6 +114,12 @@ jobs:
         if: ${{ contains(inputs.features, 'test-dbs-external') }}
       - name: 📋 Test
         uses: clechasseur/rs-cargo@v3
+        env:
+          # https://github.com/rust-lang/rust/issues/141626#issuecomment-2919419236
+          # note: this may be temporary
+          RUSTFLAGS: >-
+            -Cdebuginfo=0 ${{ inputs.target == 'x86_64-pc-windows-msvc' &&
+            '-Clink-arg=/DEBUG:NONE' || '' }}
         with:
           command: insta
           # Here, we also add:
