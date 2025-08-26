@@ -1023,6 +1023,43 @@ fn test_sort_in_nested_append() {
 }
 
 #[test]
+fn test_sort_select_redundant_cte() {
+    assert_snapshot!((compile(r#"
+    let a = (
+      from sometable
+      sort {foo}
+      select {
+        foo
+      }
+    )
+    let b = (
+      from a
+    )
+    from b
+    "#
+    ).unwrap()), @r"
+    WITH a AS (
+      SELECT
+        foo
+      FROM
+        sometable
+    ),
+    b AS (
+      SELECT
+        foo
+      FROM
+        a
+    )
+    SELECT
+      foo
+    FROM
+      b
+    ORDER BY
+      foo
+    ");
+}
+
+#[test]
 fn test_column_name_extraction_in_s_strings() {
     assert_snapshot!(compile(r#"
 from s"SELECT album_id, artist_id `title` FROM `albums`"
