@@ -5521,6 +5521,43 @@ fn test_select_this() {
 }
 
 #[test]
+fn test_select_repeated_and_derived() {
+    assert_snapshot!(compile(
+        r###"
+    from tb_0
+    take  100
+    select {cc0 = c1,cc1 = c2,cc2 = c1}
+    select {ccc0 = cc1,ccc1 = 1}
+    select {cccc0 = 1,cccc1 = ccc0,cccc3 = 1,cccc4 = 0,cccc5 = 0,cccc6 = 0,cccc7 = 0}
+    derive {cccc8 = 0,cccc9 = 0,cccc10 = 0}
+        "###,
+    )
+    .unwrap(), @r###"
+    WITH table_0 AS (
+      SELECT
+        c2 AS _expr_0
+      FROM
+        tb_0
+      LIMIT
+        100
+    )
+    SELECT
+      1 AS cccc0,
+      _expr_0 AS cccc1,
+      1 AS cccc3,
+      0 AS cccc4,
+      0 AS cccc5,
+      0 AS cccc6,
+      0 AS cccc7,
+      0 AS cccc8,
+      0 AS cccc9,
+      0 AS cccc10
+    FROM
+      table_0
+    "###);
+}
+
+#[test]
 fn test_group_exclude() {
     assert_snapshot!(compile(
         r###"
