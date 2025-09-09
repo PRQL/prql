@@ -1023,6 +1023,43 @@ fn test_sort_in_nested_append() {
 }
 
 #[test]
+fn test_sort_select_redundant_cte() {
+    assert_snapshot!((compile(r#"
+    let a = (
+      from sometable
+      sort {foo}
+      select {
+        foo
+      }
+    )
+    let b = (
+      from a
+    )
+    from b
+    "#
+    ).unwrap()), @r"
+    WITH a AS (
+      SELECT
+        foo
+      FROM
+        sometable
+    ),
+    b AS (
+      SELECT
+        foo
+      FROM
+        a
+    )
+    SELECT
+      foo
+    FROM
+      b
+    ORDER BY
+      foo
+    ");
+}
+
+#[test]
 fn test_column_name_extraction_in_s_strings() {
     assert_snapshot!(compile(r#"
 from s"SELECT album_id, artist_id `title` FROM `albums`"
@@ -5480,6 +5517,43 @@ fn test_select_this() {
       b
     FROM
       x
+    "###);
+}
+
+#[test]
+fn test_select_repeated_and_derived() {
+    assert_snapshot!(compile(
+        r###"
+    from tb_0
+    take  100
+    select {cc0 = c1,cc1 = c2,cc2 = c1}
+    select {ccc0 = cc1,ccc1 = 1}
+    select {cccc0 = 1,cccc1 = ccc0,cccc3 = 1,cccc4 = 0,cccc5 = 0,cccc6 = 0,cccc7 = 0}
+    derive {cccc8 = 0,cccc9 = 0,cccc10 = 0}
+        "###,
+    )
+    .unwrap(), @r###"
+    WITH table_0 AS (
+      SELECT
+        c2 AS _expr_0
+      FROM
+        tb_0
+      LIMIT
+        100
+    )
+    SELECT
+      1 AS cccc0,
+      _expr_0 AS cccc1,
+      1 AS cccc3,
+      0 AS cccc4,
+      0 AS cccc5,
+      0 AS cccc6,
+      0 AS cccc7,
+      0 AS cccc8,
+      0 AS cccc9,
+      0 AS cccc10
+    FROM
+      table_0
     "###);
 }
 

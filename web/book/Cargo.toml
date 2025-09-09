@@ -34,7 +34,7 @@ anstream = { version = "0.6.20" }
 globset = "0.4.16"
 insta = { workspace = true }
 log = { workspace = true }
-regex = "1.11.1"
+regex = "1.11.2"
 serde_json = { workspace = true }
 serde_yaml = { workspace = true }
 similar-asserts = { workspace = true }
