@@ -29,7 +29,7 @@ defmodule PRQL.MixProject do
   # Run "mix help deps" to learn about dependencies.
   defp deps do
     [
-      {:rustler, "~> 0.36.0"},
+      {:rustler, "~> 0.37.0"},
       {:ex_doc, "~> 0.21", only: :dev, runtime: false}
     ]
   end
