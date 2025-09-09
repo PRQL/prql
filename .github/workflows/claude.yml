@@ -23,11 +23,16 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
         with:
-          fetch-depth: 1
+          # Fix: Checkout PR branch for issue_comment events instead of default branch
+          ref:
+            ${{ github.event.issue.pull_request && format('refs/pull/{0}/head',
+            github.event.issue.number) || github.ref }}
+          fetch-depth: 0 # Get more history for better context
 
       - name: Run Claude Code
         id: claude
-        uses: anthropics/claude-code-action@v1
+        # Fix: Use specific version that has the PR context bug fixed
+        uses: anthropics/claude-code-action@v1.0.7
         with:
           claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
 
@@ -35,8 +40,14 @@ jobs:
           additional_permissions: |
             actions: read
 
-          # Custom prompt for PRQL project context
+          # Enhanced prompt with explicit CI diagnosis instructions
           prompt: |
             You are helping with the PRQL project in a GitHub Actions environment.
             Follow the project guidelines in CLAUDE.md.
             When making changes, ensure tests pass with `task test-all` and lints with `task test-lint`.
+
+            IMPORTANT for CI failure diagnosis:
+            - Use 'gh run list' and 'gh run view' to check CI status
+            - Look for specific error messages in failing jobs
+            - Check the test output for detailed failure information
+            - When fixing issues, verify changes with the appropriate test commands
