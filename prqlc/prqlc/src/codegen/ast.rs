@@ -351,7 +351,7 @@ pub fn write_ident_part(s: &str) -> Cow<str> {
     if valid_prql_ident().is_match(s) && !keywords().contains(s) {
         s.into()
     } else {
-        format!("`{}`", s).into()
+        format!("`{s}`").into()
     }
 }
 
@@ -388,7 +388,7 @@ impl WriteSource for pr::Stmt {
             pr::StmtKind::QueryDef(query) => {
                 r += "prql";
                 if let Some(version) = &query.version {
-                    r += &format!(r#" version:"{}""#, version);
+                    r += &format!(r#" version:"{version}""#);
                 }
                 for (key, value) in &query.other {
                     r += &format!(" {key}:{value}");

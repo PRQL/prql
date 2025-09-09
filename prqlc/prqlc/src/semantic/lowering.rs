@@ -137,8 +137,7 @@ fn validate_query_def(query_def: &QueryDef) -> Result<()> {
 
         if !requirement.matches(&clean_version) {
             return Err(Error::new_simple(format!(
-                "This query requires version {} of PRQL that is not supported by prqlc version {} (shortened from {}). Please upgrade the compiler.",
-                requirement, clean_version, current_version
+                "This query requires version {requirement} of PRQL that is not supported by prqlc version {clean_version} (shortened from {current_version}). Please upgrade the compiler."
             )));
         }
     }
@@ -457,7 +456,7 @@ impl Lowerer {
             .map(|col| (col, self.cid.gen()))
             .collect_vec();
 
-        log::debug!("... columns = {:?}", columns);
+        log::debug!("... columns = {columns:?}");
 
         let input_cids: HashMap<_, _> = columns
             .iter()
@@ -636,7 +635,7 @@ impl Lowerer {
     ) -> Result<Vec<RelationColumn>> {
         let lineage = lineage.unwrap_or_default();
 
-        log::debug!("push_select of a frame: {:?}", lineage);
+        log::debug!("push_select of a frame: {lineage:?}");
 
         let mut columns = Vec::new();
 
@@ -679,7 +678,7 @@ impl Lowerer {
 
         let (cols, cids) = columns.into_iter().unzip();
 
-        log::debug!("... cids={:?}", cids);
+        log::debug!("... cids={cids:?}");
         transforms.push(Transform::Select(cids));
 
         Ok(cols)

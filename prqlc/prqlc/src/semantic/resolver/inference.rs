@@ -121,7 +121,7 @@ impl Resolver<'_> {
         log::debug!("declare_table_for_literal: {input_id:?} {columns:?} {name_hint:?}");
 
         let id = input_id;
-        let global_name = format!("_literal_{}", id);
+        let global_name = format!("_literal_{id}");
 
         // declare a new table in the `default_db` module
         let default_db_ident = Ident::from_name(NS_DEFAULT_DB);

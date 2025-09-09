@@ -407,8 +407,7 @@ fn compare_directories(dir1: &Path, dir2: &Path) {
 
             assert!(
                 path2.exists(),
-                "File {:?} doesn't exist in the formatted directory",
-                relative_path
+                "File {relative_path:?} doesn't exist in the formatted directory"
             );
 
             similar_asserts::assert_eq!(

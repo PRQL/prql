@@ -14,15 +14,15 @@
   "dependencies": {
     "@duckdb/duckdb-wasm": "^1.29.0",
     "@monaco-editor/react": "^4.7.0",
-    "@testing-library/jest-dom": "^6.6.0",
+    "@testing-library/jest-dom": "^6.8.0",
     "@testing-library/react": "^16.3.0",
     "@testing-library/user-event": "^14.6.0",
-    "monaco-editor": "^0.52.0",
+    "monaco-editor": "^0.53.0",
     "prqlc": "file:../../prqlc/bindings/js",
     "react": "^19.1.0",
     "react-dom": "^19.1.0",
     "react-syntax-highlighter": "^15.6.1",
-    "web-vitals": "^5.0.1",
+    "web-vitals": "^5.1.0",
     "yaml": "^2.8.0"
   },
   "devDependencies": {
