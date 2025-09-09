@@ -142,7 +142,7 @@ insta-cmd = { workspace = true }
 rstest = "0.26.1"
 similar = { workspace = true }
 similar-asserts = { workspace = true }
-tempfile = { version = "3.20.0" }
+tempfile = { version = "3.21.0" }
 test_each_file = "0.3.5"
 
 # We use `benches/bench.rs` for the benchmark harness so disable searching for
