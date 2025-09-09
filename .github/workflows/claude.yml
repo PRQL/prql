@@ -51,3 +51,5 @@ jobs:
             - Look for specific error messages in failing jobs
             - Check the test output for detailed failure information
             - When fixing issues, verify changes with the appropriate test commands
+
+            User comment: ${{ github.event.comment.body }}
