@@ -4,9 +4,11 @@ on:
   workflow_dispatch:
     inputs:
       test_message:
-        description: 'Test message for Claude'
+        description: "Test message for Claude"
         required: true
-        default: 'Can you describe what changes are being made in PR #5411 and why they are important?'
+        default:
+          "Can you describe what changes are being made in PR #5411 and why they
+          are important?"
 
 jobs:
   test-claude:
@@ -31,8 +33,8 @@ jobs:
           prompt: |
             You are helping with the PRQL project in a GitHub Actions environment.
             Follow the project guidelines in CLAUDE.md.
-            
+
             User request: ${{ github.event.inputs.test_message }}
-            
+
             Context: You are running in a test workflow to verify Claude Code configuration.
             Please respond to the user's request above.
