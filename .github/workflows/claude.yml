@@ -14,9 +14,9 @@ jobs:
       (github.event_name == 'pull_request_review_comment' && contains(github.event.comment.body, '@claude'))
     runs-on: ubuntu-latest
     permissions:
-      contents: write  # Allow pushing commits
-      pull-requests: write  # Allow commenting and updating PRs
-      issues: write  # Allow commenting on issues
+      contents: write # Allow pushing commits
+      pull-requests: write # Allow commenting and updating PRs
+      issues: write # Allow commenting on issues
       id-token: write
       actions: read # Required for Claude to read CI results on PRs
     steps:
