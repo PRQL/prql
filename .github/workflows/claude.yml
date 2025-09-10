@@ -40,6 +40,17 @@ jobs:
           additional_permissions: |
             actions: read
 
+          # Grant Claude full permissions to execute commands
+          allowed_tools: |
+            Bash(*),
+            Edit,
+            Read,
+            Write,
+            Glob,
+            Grep,
+            WebSearch,
+            WebFetch
+
           # Enhanced prompt with explicit CI diagnosis instructions
           prompt: |
             You are helping with the PRQL project in a GitHub Actions environment.
