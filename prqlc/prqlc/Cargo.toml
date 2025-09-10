@@ -103,7 +103,7 @@ walkdir = { version = "2.5.0", optional = true }
 
 # We use minijinja just for the Jinja lexer, which is not part of the
 # public interface which is covered by semver guarantees.
-minijinja = { version = "2.11.0", features = [
+minijinja = { version = "2.12.0", features = [
   "unstable_machinery",
 ], optional = true }
 
@@ -142,7 +142,7 @@ insta-cmd = { workspace = true }
 rstest = "0.26.1"
 similar = { workspace = true }
 similar-asserts = { workspace = true }
-tempfile = { version = "3.20.0" }
+tempfile = { version = "3.21.0" }
 test_each_file = "0.3.5"
 
 # We use `benches/bench.rs` for the benchmark harness so disable searching for
