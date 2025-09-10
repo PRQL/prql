@@ -39,6 +39,17 @@ jobs:
           # This is an optional setting that allows Claude to read CI results on PRs
           additional_permissions: |
             actions: read
+          
+          # Grant Claude full permissions to execute commands
+          allowed_tools: |
+            Bash(*),
+            Edit,
+            Read,
+            Write,
+            Glob,
+            Grep,
+            WebSearch,
+            WebFetch
 
           # Enhanced prompt with explicit CI diagnosis instructions
           prompt: |
