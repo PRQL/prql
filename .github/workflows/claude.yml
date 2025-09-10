@@ -23,7 +23,16 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
         with:
-          fetch-depth: 1
+          # Fix: Checkout PR branch for issue_comment events instead of default branch
+          ref:
+            ${{ github.event.issue.pull_request && format('refs/pull/{0}/head',
+            github.event.issue.number) || github.ref }}
+          fetch-depth: 0 # Get more history for better context
+
+      - name: Configure git for Claude
+        run: |
+          git config --global user.name "Claude Code"
+          git config --global user.email "claude@anthropic.com"
 
       - name: Run Claude Code
         id: claude
@@ -35,8 +44,8 @@ jobs:
           additional_permissions: |
             actions: read
 
-          # Custom prompt for PRQL project context
-          prompt: |
-            You are helping with the PRQL project in a GitHub Actions environment.
-            Follow the project guidelines in CLAUDE.md.
-            When making changes, ensure tests pass with `task test-all` and lints with `task test-lint`.
+          # Grant Claude full permissions to execute commands
+          # Also include system prompt with project context via claude_args
+          claude_args: |
+            --allowedTools Bash,Edit,Read,Write,Glob,Grep,WebSearch,WebFetch
+            --system-prompt "You are helping with the PRQL project in a GitHub Actions environment. Follow the project guidelines in CLAUDE.md. When making changes, ensure tests pass with 'task test-all' and lints with 'task test-lint'. For CI failure diagnosis: Use 'gh run list' and 'gh run view' to check CI status, look for specific error messages in failing jobs, check test output for detailed failure information."

@@ -1,3 +1,4 @@
+# Testing Claude commit capability
 defmodule PRQL.MixProject do
   use Mix.Project
 
@@ -5,7 +6,7 @@ defmodule PRQL.MixProject do
     [
       app: :prql,
       version: "0.1.0",
-      elixir: "~> 1.14",
+      elixir: "~> 1.15",
       deps: deps(),
       name: "PRQL",
       source_url: "https://github.com/PRQL/prql",
