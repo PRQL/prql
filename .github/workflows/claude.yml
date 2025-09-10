@@ -29,6 +29,11 @@ jobs:
             github.event.issue.number) || github.ref }}
           fetch-depth: 0 # Get more history for better context
 
+      - name: Configure git for Claude
+        run: |
+          git config --global user.name "Claude Code"
+          git config --global user.email "claude@anthropic.com"
+
       - name: Run Claude Code
         id: claude
         uses: anthropics/claude-code-action@v1
