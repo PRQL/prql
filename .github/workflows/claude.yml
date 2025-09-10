@@ -35,14 +35,16 @@ jobs:
         uses: anthropics/claude-code-action@v1.0.6
         with:
           claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
+          
+          # Explicitly provide GitHub token for posting comments
+          github_token: ${{ secrets.GITHUB_TOKEN }}
 
           # This is an optional setting that allows Claude to read CI results on PRs
           additional_permissions: |
             actions: read
 
           # Grant Claude full permissions to execute commands
-          claude_args:
-            "--allowedTools Bash,Edit,Read,Write,Glob,Grep,WebSearch,WebFetch"
+          claude_args: "--allowedTools Bash,Edit,Read,Write,Glob,Grep,WebSearch,WebFetch"
 
           # Enhanced prompt with explicit CI diagnosis instructions
           prompt: |
@@ -55,5 +57,8 @@ jobs:
             - Look for specific error messages in failing jobs
             - Check the test output for detailed failure information
             - When fixing issues, verify changes with the appropriate test commands
+            
+            IMPORTANT: You are running in GitHub Actions and should provide a clear response
+            to the user's request. Your response will be automatically posted as a comment.
 
             User comment: ${{ github.event.comment.body }}
