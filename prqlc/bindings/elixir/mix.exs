@@ -1,3 +1,4 @@
+# Testing Claude commit capability
 defmodule PRQL.MixProject do
   use Mix.Project
 
@@ -5,7 +6,7 @@ defmodule PRQL.MixProject do
     [
       app: :prql,
       version: "0.1.0",
-      elixir: "~> 1.14",
+      elixir: "~> 1.15",
       deps: deps(),
       name: "PRQL",
       source_url: "https://github.com/PRQL/prql",
@@ -29,7 +30,7 @@ defmodule PRQL.MixProject do
   # Run "mix help deps" to learn about dependencies.
   defp deps do
     [
-      {:rustler, "~> 0.36.0"},
+      {:rustler, "~> 0.37.0"},
       {:ex_doc, "~> 0.21", only: :dev, runtime: false}
     ]
   end
