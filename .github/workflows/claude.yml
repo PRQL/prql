@@ -35,30 +35,13 @@ jobs:
         uses: anthropics/claude-code-action@v1.0.6
         with:
           claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
-          
-          # Explicitly provide GitHub token for posting comments
-          github_token: ${{ secrets.GITHUB_TOKEN }}
 
           # This is an optional setting that allows Claude to read CI results on PRs
           additional_permissions: |
             actions: read
 
           # Grant Claude full permissions to execute commands
-          claude_args: "--allowedTools Bash,Edit,Read,Write,Glob,Grep,WebSearch,WebFetch"
-
-          # Enhanced prompt with explicit CI diagnosis instructions
-          prompt: |
-            You are helping with the PRQL project in a GitHub Actions environment.
-            Follow the project guidelines in CLAUDE.md.
-            When making changes, ensure tests pass with `task test-all` and lints with `task test-lint`.
-
-            IMPORTANT for CI failure diagnosis:
-            - Use 'gh run list' and 'gh run view' to check CI status
-            - Look for specific error messages in failing jobs
-            - Check the test output for detailed failure information
-            - When fixing issues, verify changes with the appropriate test commands
-            
-            IMPORTANT: You are running in GitHub Actions and should provide a clear response
-            to the user's request. Your response will be automatically posted as a comment.
-
-            User comment: ${{ github.event.comment.body }}
+          # Also include system prompt with project context via claude_args
+          claude_args: |
+            --allowedTools Bash,Edit,Read,Write,Glob,Grep,WebSearch,WebFetch
+            --system-prompt "You are helping with the PRQL project in a GitHub Actions environment. Follow the project guidelines in CLAUDE.md. When making changes, ensure tests pass with 'task test-all' and lints with 'task test-lint'. For CI failure diagnosis: Use 'gh run list' and 'gh run view' to check CI status, look for specific error messages in failing jobs, check test output for detailed failure information."
