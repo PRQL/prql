@@ -41,15 +41,8 @@ jobs:
             actions: read
           
           # Grant Claude full permissions to execute commands
-          allowed_tools: |
-            Bash(*),
-            Edit,
-            Read,
-            Write,
-            Glob,
-            Grep,
-            WebSearch,
-            WebFetch
+          claude_args: |
+            --allowedTools "Bash(*),Edit,Read,Write,Glob,Grep,WebSearch,WebFetch"
 
           # Enhanced prompt with explicit CI diagnosis instructions
           prompt: |
