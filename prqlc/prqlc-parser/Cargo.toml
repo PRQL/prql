@@ -17,7 +17,7 @@ enum-as-inner = {workspace = true}
 itertools = {workspace = true}
 log = {workspace = true}
 schemars = {workspace = true}
-semver = {version = "1.0.26", features = ["serde"]}
+semver = {version = "1.0.27", features = ["serde"]}
 serde = {workspace = true}
 serde_yaml = {workspace = true, optional = true}
 strum = {workspace = true}
