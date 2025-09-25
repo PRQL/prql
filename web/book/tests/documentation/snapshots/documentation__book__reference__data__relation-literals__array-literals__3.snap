@@ -2,12 +2,12 @@
 source: web/book/tests/documentation/book.rs
 expression: "from_text format:json \"\"\"\n[\n    {\"a\": 1, \"m\": \"5\"},\n    {\"a\": 4, \"n\": \"6\"}\n]\n\"\"\"\n"
 ---
-WITH table_0 AS (
+WITH
+table_0 AS (
   SELECT
     1 AS a,
     '5' AS m
-  UNION
-  ALL
+  UNION ALL
   SELECT
     4 AS a,
     NULL AS m

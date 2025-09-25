@@ -183,7 +183,7 @@ fn test_stdlib_text_module() {
       TRIM(name) AS name_trim,
       CHAR_LENGTH(name) AS name_length,
       SUBSTRING(name, 3, 5) AS name_extract,
-      REPLACE(name, 'pika', 'chu') AS name_replace,
+      REPLACE (name, 'pika', 'chu') AS name_replace,
       name LIKE CONCAT('pika', '%') AS name_starts_with,
       name LIKE CONCAT('%', 'pika', '%') AS name_contains,
       name LIKE CONCAT('%', 'pika') AS name_ends_with
@@ -544,7 +544,8 @@ fn test_remove_01() {
       *
     FROM
       albums AS t
-    EXCEPT ALL
+    EXCEPT
+      ALL
     SELECT
       *
     FROM
@@ -574,7 +575,8 @@ fn test_remove_02() {
       artist_id
     FROM
       album
-    EXCEPT ALL
+    EXCEPT
+      ALL
     SELECT
       *
     FROM
@@ -1038,7 +1040,8 @@ fn test_sort_select_redundant_cte() {
     from b
     "#
     ).unwrap()), @r"
-    WITH a AS (
+    WITH
+    a AS (
       SELECT
         foo
       FROM
@@ -1112,14 +1115,18 @@ fn test_rn_ids_are_unique() {
     table_1 AS (
       SELECT
         *,
-        ROW_NUMBER() OVER (PARTITION BY y_id) AS _expr_1
+        ROW_NUMBER() OVER (
+          PARTITION BY
+            y_id) AS _expr_1
       FROM
         y_orig
     ),
     table_0 AS (
       SELECT
         *,
-        ROW_NUMBER() OVER (PARTITION BY x_id) AS _expr_0
+        ROW_NUMBER() OVER (
+          PARTITION BY
+            x_id) AS _expr_0
       FROM
         table_1
       WHERE
@@ -1146,7 +1153,8 @@ fn test_quoting_01() {
     join `some_schema.tablename` (==id)
     derive `from` = 5
     "###).unwrap()), @r#"
-    WITH "UPPER" AS (
+    WITH
+    "UPPER" AS (
       SELECT
         *
       FROM
@@ -1594,7 +1602,9 @@ fn test_window_functions_00() {
     "###).unwrap()), @r"
     SELECT
       *,
-      COUNT(*) OVER (PARTITION BY last_name)
+      COUNT(*) OVER (
+        PARTITION BY
+          last_name)
     FROM
       employees
     ");
@@ -1649,14 +1659,14 @@ fn test_window_functions_02() {
       num_books,
       total_price,
       SUM(num_books) OVER (
-        PARTITION BY order_month
+        PARTITION BY
+          order_month
         ORDER BY
           order_day ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW
       ) AS running_total_num_books,
       LAG(num_books, 7) OVER (
         ORDER BY
-          order_day
-      ) AS num_books_last_week
+          order_day) AS num_books_last_week
     FROM
       table_0
     ORDER BY
@@ -1684,7 +1694,9 @@ fn test_window_functions_03() {
       LAG(num_orders, 7) OVER () AS last_week,
       FIRST_VALUE(num_orders) OVER () AS first_count,
       LAST_VALUE(num_orders) OVER () AS last_count,
-      SUM(num_orders) OVER (PARTITION BY month) AS total_month
+      SUM(num_orders) OVER (
+        PARTITION BY
+          month) AS total_month
     FROM
       daily_orders
     ");
@@ -1703,7 +1715,9 @@ fn test_window_functions_04() {
     assert_snapshot!((compile(query).unwrap()), @r"
     SELECT
       *,
-      RANK() OVER (PARTITION BY month) AS total_month,
+      RANK() OVER (
+        PARTITION BY
+          month) AS total_month,
       LAG(num_orders, 7) OVER () AS last_week
     FROM
       daily_orders
@@ -1723,7 +1737,8 @@ fn test_window_functions_05() {
     SELECT
       *,
       RANK() OVER (
-        PARTITION BY month
+        PARTITION BY
+          month
         ORDER BY
           num_orders
       ),
@@ -1746,7 +1761,9 @@ fn test_window_functions_06() {
     SELECT
       *,
       SUM(b) OVER () AS a,
-      SUM(b) OVER (PARTITION BY c) AS d
+      SUM(b) OVER (
+        PARTITION BY
+          c) AS d
     FROM
       foo
     ");
@@ -1836,8 +1853,7 @@ fn test_window_functions_11() {
       *,
       ROW_NUMBER() OVER (
         ORDER BY
-          age
-      ) AS num
+          age) AS num
     FROM
       employees
     ORDER BY
@@ -1869,8 +1885,7 @@ fn test_window_functions_12() {
       *,
       LAG(a, 1) OVER (
         ORDER BY
-          b
-      ) AS c
+          b) AS c
     FROM
       table_0
     ORDER BY
@@ -1894,7 +1909,9 @@ fn test_window_functions_12() {
     )
     SELECT
       *,
-      LAG(a, 1) OVER (PARTITION BY b) AS c
+      LAG(a, 1) OVER (
+        PARTITION BY
+          b) AS c
     FROM
       table_0
     ");
@@ -1917,14 +1934,18 @@ fn test_window_functions_13() {
     table_0 AS (
       SELECT
         *,
-        ROW_NUMBER() OVER (PARTITION BY album_id) AS _expr_0
+        ROW_NUMBER() OVER (
+          PARTITION BY
+            album_id) AS _expr_0
       FROM
         tracks
     )
     SELECT
       milliseconds - _expr_0 AS grp,
       *,
-      ROW_NUMBER() OVER (PARTITION BY milliseconds - _expr_0) AS count
+      ROW_NUMBER() OVER (
+        PARTITION BY
+          milliseconds - _expr_0) AS count
     FROM
       table_0
     ");
@@ -2288,8 +2309,7 @@ fn test_take_mssql() {
     ORDER BY
       (
         SELECT
-          NULL
-      ) OFFSET 2 ROWS
+          NULL) OFFSET 2 ROWS
     FETCH FIRST
       3 ROWS ONLY
     ");
@@ -3040,7 +3060,8 @@ fn test_table_definition_with_expr_call() {
     let sql = compile(query).unwrap();
     assert_snapshot!(sql,
         @r"
-    WITH e AS (
+    WITH
+    e AS (
       SELECT
         *
       FROM
@@ -3184,7 +3205,8 @@ fn test_prql_to_sql_table() {
     let sql = compile(query).unwrap();
     assert_snapshot!(sql,
         @r"
-    WITH newest_employees AS (
+    WITH
+    newest_employees AS (
       SELECT
         *
       FROM
@@ -3193,7 +3215,8 @@ fn test_prql_to_sql_table() {
         tenure
       LIMIT
         50
-    ), average_salaries AS (
+    ),
+    average_salaries AS (
       SELECT
         country,
         AVG(salary) AS average_country_salary
@@ -3246,7 +3269,8 @@ fn test_nonatomic() {
         employees
       LIMIT
         20
-    ), table_0 AS (
+    ),
+    table_0 AS (
       SELECT
         title,
         country,
@@ -3325,7 +3349,8 @@ fn test_nonatomic_table() {
         employees
       LIMIT
         50
-    ), a AS (
+    ),
+    a AS (
       SELECT
         country,
         count(*)
@@ -3593,7 +3618,8 @@ join y (foo == only_in_x)
 
     assert_snapshot!(compile(query).unwrap(),
         @r"
-    WITH x AS (
+    WITH
+    x AS (
       SELECT
         foo AS only_in_x
       FROM
@@ -3719,7 +3745,8 @@ fn test_toposort() {
     from b
     "###).unwrap(),
         @r"
-    WITH b AS (
+    WITH
+    b AS (
       SELECT
         *
       FROM
@@ -5302,8 +5329,7 @@ fn test_lineage() {
     WITH
     table_0 AS (
       SELECT
-        1 AS a
-    )
+        1 AS a)
     SELECT
       a AS _expr_0,
       a + 1 AS a
@@ -5418,7 +5444,8 @@ fn test_returning_constants_only() {
         tb1
       LIMIT
         10
-    ), table_0 AS (
+    ),
+    table_0 AS (
       SELECT
         NULL
       FROM
@@ -5767,7 +5794,8 @@ sort { d }"###).unwrap(), @r"
         foo
       LIMIT
         10000
-    ), table_0 AS (
+    ),
+    table_0 AS (
       SELECT
         b,
         COUNT(*) AS _expr_0
@@ -5822,27 +5850,15 @@ fn test_missing_columns_group_complex_compute() {
     .unwrap(), @r"
     SELECT DISTINCT
       ON (
-        EXTRACT(
-          year
+        EXTRACT(year
           from
-            hire_date
-        ),
-        CONCAT(
-          'Year ',
-          EXTRACT(
-            year
+            hire_date),
+        CONCAT('Year ', EXTRACT(year
             from
-              hire_date
-          )
-        )
-      ) CONCAT(
-        'Year ',
-        EXTRACT(
-          year
+              hire_date))
+      ) CONCAT('Year ', EXTRACT(year
           from
-            hire_date
-        )
-      ) AS year_label
+            hire_date)) AS year_label
     FROM
       employees
     ");

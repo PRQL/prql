@@ -8,7 +8,8 @@ prql: |
     take 1
   )
 sql: |
-  WITH table_0 AS (
+  WITH
+  table_0 AS (
     SELECT
       *,
       ROW_NUMBER() OVER (

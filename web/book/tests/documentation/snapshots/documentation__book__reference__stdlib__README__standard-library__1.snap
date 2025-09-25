@@ -2,11 +2,10 @@
 source: web/book/tests/documentation/book.rs
 expression: "prql target:sql.sqlite\n\nfrom [{x = 13, y = 5}]\nselect {\n  quotient = x / y,\n  int_quotient = x // y,\n}\n"
 ---
-WITH table_0 AS (
+WITH
+table_0 AS (
   SELECT
-    13 AS x,
-    5 AS y
-)
+    13 AS x, 5 AS y)
 SELECT
   (x * 1.0 / y) AS quotient,
   ROUND(ABS(x / y) - 0.5) * SIGN(x) * SIGN(y) AS int_quotient

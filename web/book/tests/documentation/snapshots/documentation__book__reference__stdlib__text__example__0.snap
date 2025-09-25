@@ -4,6 +4,6 @@ expression: "from employees\nselect {\n  (last_name | text.lower | text.starts_w
 ---
 SELECT
   LOWER(last_name) LIKE CONCAT('a', '%'),
-  REPLACE(title, 'manager', 'chief')
+  REPLACE (title, 'manager', 'chief')
 FROM
   employees

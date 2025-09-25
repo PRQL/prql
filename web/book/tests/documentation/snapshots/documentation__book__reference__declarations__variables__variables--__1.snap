@@ -2,7 +2,8 @@
 source: web/book/tests/documentation/book.rs
 expression: "from employees\ntake 50\ninto first_50\n\nfrom first_50\n"
 ---
-WITH first_50 AS (
+WITH
+first_50 AS (
   SELECT
     *
   FROM
