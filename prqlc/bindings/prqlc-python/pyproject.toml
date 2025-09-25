@@ -27,7 +27,7 @@ features = ["pyo3/extension-module"]
 module-name = "prqlc"
 python-source = "python"
 
-[project.optional-dependencies]
+[dependency-groups]
 dev = [
   "pytest >= 7",
   "mypy == 1.18.1",
