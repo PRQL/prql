@@ -83,7 +83,7 @@ struct SourceFile<'a> {
     content: &'a str,
 }
 
-fn linearize_tree(tree: &SourceTree) -> Result<Vec<SourceFile>> {
+fn linearize_tree(tree: &SourceTree) -> Result<Vec<SourceFile<'_>>> {
     // find root
     let root_path;
 

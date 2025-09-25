@@ -40,7 +40,7 @@ jobs:
       # Step: Setup Elixir + Erlang image as the base.
       - name: Set up Elixir on Windows or Linux
         if: runner.os != 'macOS'
-        uses: erlef/setup-beam@v1
+        uses: erlef/setup-beam@v1.20.4
         with:
           otp-version: ${{matrix.otp}}
           elixir-version: ${{matrix.elixir}}

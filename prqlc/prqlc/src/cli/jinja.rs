@@ -40,7 +40,7 @@ pub struct JinjaContext<'a> {
 
 /// Parse source as Jinja template, extract all interpolations
 /// and replace them with anchors.
-pub fn pre_process(source: &str) -> Result<(String, JinjaContext)> {
+pub fn pre_process(source: &str) -> Result<(String, JinjaContext<'_>)> {
     let mut blocks = Vec::new();
     let mut current_block = Vec::new();
 

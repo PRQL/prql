@@ -347,7 +347,7 @@ fn valid_prql_ident() -> &'static Regex {
     })
 }
 
-pub fn write_ident_part(s: &str) -> Cow<str> {
+pub fn write_ident_part(s: &str) -> Cow<'_, str> {
     if valid_prql_ident().is_match(s) && !keywords().contains(s) {
         s.into()
     } else {
