@@ -139,11 +139,11 @@ impl std::fmt::Display for Literal {
 
 fn quote_string(s: &str) -> String {
     if !s.contains('"') {
-        return format!(r#""{}""#, s);
+        return format!(r#""{s}""#);
     }
 
     if !s.contains('\'') {
-        return format!("'{}'", s);
+        return format!("'{s}'");
     }
 
     // If the string starts or ends with a quote, use the other quote to delimit
@@ -175,7 +175,7 @@ fn quote_string(s: &str) -> String {
     let next_odd = max_consecutive.div_ceil(2) * 2 + 1;
     let delim = quote.to_string().repeat(next_odd);
 
-    format!("{}{}{}", delim, s, delim)
+    format!("{delim}{s}{delim}")
 }
 
 fn escape_all_except_quotes(s: &str) -> String {
@@ -216,7 +216,7 @@ impl std::fmt::Display for TokenKind {
                 }
             }
             TokenKind::Keyword(s) => write!(f, "keyword {s}"),
-            TokenKind::Literal(lit) => write!(f, "{}", lit),
+            TokenKind::Literal(lit) => write!(f, "{lit}"),
             TokenKind::Control(c) => write!(f, "{c}"),
 
             TokenKind::ArrowThin => f.write_str("->"),
@@ -245,18 +245,18 @@ impl std::fmt::Display for TokenKind {
                 if *bind_right { "" } else { " " }
             ),
             TokenKind::Interpolation(c, s) => {
-                write!(f, "{c}\"{}\"", s)
+                write!(f, "{c}\"{s}\"")
             }
             TokenKind::Comment(s) => {
-                writeln!(f, "#{}", s)
+                writeln!(f, "#{s}")
             }
             TokenKind::DocComment(s) => {
-                writeln!(f, "#!{}", s)
+                writeln!(f, "#!{s}")
             }
             TokenKind::LineWrap(comments) => {
                 write!(f, "\n\\ ")?;
                 for comment in comments {
-                    write!(f, "{}", comment)?;
+                    write!(f, "{comment}")?;
                 }
                 Ok(())
             }

@@ -155,7 +155,7 @@ fn convert_options(o: CompileOptions) -> Result<prqlc_lib::Options, prqlc_lib::E
         signature_comment: o.signature_comment,
         color: false,
         display: prqlc_lib::DisplayOptions::from_str(&o.display).map_err(|e| ErrorMessages {
-            inner: vec![Error::new_simple(format!("Invalid display option: {}", e)).into()],
+            inner: vec![Error::new_simple(format!("Invalid display option: {e}")).into()],
         })?,
     })
 }

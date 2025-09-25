@@ -73,7 +73,7 @@ fn java_string_with_exception(result: Result<String, ErrorMessages>, env: &mut J
     } else {
         let exception = env.find_class("java/lang/Exception").unwrap();
         if let Err(e) = env.throw_new(exception, result.err().unwrap().to_string()) {
-            println!("Error throwing exception: {:?}", e);
+            println!("Error throwing exception: {e:?}");
         }
         std::ptr::null_mut() as jstring
     }

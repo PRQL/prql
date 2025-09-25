@@ -1,6 +1,6 @@
 [build-system]
 build-backend = "maturin"
-requires = ["maturin>=1.0,<2.0"]
+requires = ["maturin[uv_build]>=1.7.0,<2.0"]
 
 [project]
 classifiers = [
@@ -9,8 +9,9 @@ classifiers = [
   "Programming Language :: Python :: Implementation :: PyPy",
 ]
 description = "Python bindings for prqlc, the PRQL compiler"
+dynamic = ["version"]
 name = "prqlc"
-requires-python = ">=3.8"
+requires-python = ">=3.9"
 
 [tool.maturin]
 # This is required because of https://github.com/PyO3/pyo3/pull/2135. Instead of
@@ -29,7 +30,7 @@ python-source = "python"
 [project.optional-dependencies]
 dev = [
   "pytest >= 7",
-  "mypy == 1.17.0",
+  "mypy == 1.18.1",
 ]
 
 [tool.ruff]

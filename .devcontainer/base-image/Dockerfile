@@ -1,6 +1,6 @@
 # syntax=docker/dockerfile:1.4
 
-FROM mcr.microsoft.com/devcontainers/rust:1-1-bookworm
+FROM mcr.microsoft.com/devcontainers/rust:2-1-bookworm
 
 # ========= Install cargo-tools for non-root user (vscode) =========
 USER vscode

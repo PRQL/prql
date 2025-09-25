@@ -30,10 +30,9 @@ env:
 jobs:
   test-rust:
     runs-on: ${{ inputs.os }}
-    continue-on-error: ${{ inputs.os == 'windows-latest' }}
     steps:
       - name: 📂 Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
         with:
           fetch-tags: true
       - name: Run docker compose
@@ -78,7 +77,9 @@ jobs:
           # the comma seemed over the top.
           save-if:
             ${{ github.ref == 'refs/heads/main' && inputs.features != '' }}
-      - uses: actions/setup-python@v5
+      - uses: actions/setup-python@v6
+        # python isn't natively installed on macos-14, so we need to install it
+        if: ${{ inputs.os == 'macos-14' }}
         with:
           python-version: "3.11"
       - name: Free up disk space
@@ -97,7 +98,7 @@ jobs:
       # We split up the test compilation as recommended in
       # https://matklad.github.io/2021/09/04/fast-rust-builds.html
       - name: 🏭 Compile
-        uses: clechasseur/rs-cargo@v3
+        uses: clechasseur/rs-cargo@v4
         with:
           command: test
           args: >
@@ -110,7 +111,7 @@ jobs:
           timeout: 60000
         if: ${{ contains(inputs.features, 'test-dbs-external') }}
       - name: 📋 Test
-        uses: clechasseur/rs-cargo@v3
+        uses: clechasseur/rs-cargo@v4
         with:
           command: insta
           # Here, we also add:
@@ -124,10 +125,10 @@ jobs:
             'test-dbs') && inputs.target == 'x86_64-unknown-linux-gnu' &&
             '--unreferenced=auto' || '' }} ${{ inputs.target !=
             'wasm32-unknown-unknown' && '--test-runner=nextest' || '' }} ${{
-            inputs.os == 'windows-latest' && '--lib --bins --tests --benches
-            --examples' || '' }}
+            inputs.os == 'windows-latest' && '--lib --bins --tests --examples'
+            || '' }}
       - name: 📎 Clippy
-        uses: clechasseur/rs-cargo@v3
+        uses: clechasseur/rs-cargo@v4
         with:
           command: clippy
           # Note that `--all-targets` doesn't refer to targets like
@@ -137,7 +138,7 @@ jobs:
             --all-targets --target=${{ inputs.target }} --no-default-features
             --features=${{ inputs.features }} -- -D warnings
       - name: ⌨️ Fmt
-        uses: clechasseur/rs-cargo@v3
+        uses: clechasseur/rs-cargo@v4
         with:
           command: fmt
           args: --all --check
@@ -146,7 +147,7 @@ jobs:
         # https://github.com/duckdb/duckdb-rs/issues/179#issuecomment-1710986020.
         if:
           inputs.nightly == 'true' && inputs.target != 'wasm32-unknown-unknown'
-        uses: clechasseur/rs-cargo@v3
+        uses: clechasseur/rs-cargo@v4
         with:
           command: doc
           # Only run with deps on nightly, since it's much slower, and so far™
@@ -161,7 +162,7 @@ jobs:
         if:
           ${{ github.ref == 'refs/heads/main' && steps.cache.outputs.cache-hit
           == 'false' }}
-        uses: clechasseur/rs-cargo@v3
+        uses: clechasseur/rs-cargo@v4
         with:
           command: build
           args:

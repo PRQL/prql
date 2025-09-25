@@ -608,6 +608,7 @@ fn default_query(body: sql_ast::SetExpr) -> sql_ast::Query {
         for_clause: None,
         settings: None,
         format_clause: None,
+        pipe_operators: Vec::new(),
     }
 }
 
@@ -632,6 +633,7 @@ fn default_select() -> Select {
         window_before_qualify: false,
         connect_by: None,
         prewhere: None,
+        exclude: None,
         select_token: sqlparser::ast::helpers::attached_token::AttachedToken::empty(),
         flavor: sqlparser::ast::SelectFlavor::Standard,
     }

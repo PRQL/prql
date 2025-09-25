@@ -57,7 +57,7 @@ impl Display for ErrorMessage {
             writeln!(f, "{}Error: {}", code, &self.reason)?;
             for hint in &self.hints {
                 // TODO: consider alternative formatting for hints.
-                writeln!(f, "↳ Hint: {}", hint)?;
+                writeln!(f, "↳ Hint: {hint}")?;
             }
         }
         Ok(())
@@ -72,7 +72,7 @@ impl Debug for ErrorMessage {
 
 impl From<Error> for ErrorMessage {
     fn from(e: Error) -> Self {
-        log::debug!("{:#?}", e);
+        log::debug!("{e:#?}");
         ErrorMessage {
             code: e.code.map(str::to_string),
             kind: e.kind,
