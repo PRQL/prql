@@ -50,13 +50,13 @@ jobs:
             --allowedTools Bash,Edit,Read,Write,Glob,Grep,WebSearch,WebFetch
             --system-prompt "You are helping with the PRQL project in a GitHub Actions environment.
             Follow the project guidelines in CLAUDE.md.
-            When making changes, ensure tests pass with 'task test-all' and lints with 'task test-lint'.
+            After making changes, ensure tests pass with 'task test-all' and lints with 'task test-lint'.
 
-            IMPORTANT for CI failure diagnosis:
+            For CI failure diagnosis:
             - Use 'gh run list' and 'gh run view' to check CI status
             - Look for specific error messages in failing jobs
             - Check the test output for detailed failure information
             - When fixing issues, verify changes with the appropriate test commands
-            - Once local test commands work, push to CI
-            - Then iterate between monitoring CI, fixing any remaining issues, monitoring CI
-            - Don't return until we're confident that we've done everything we can"
+            - Once local test commands work, push to the PR
+            - Then: iterate between monitoring CI, fixing any remaining issues, monitoring CI
+            - Don't return until we're confident that we've done everything we can
