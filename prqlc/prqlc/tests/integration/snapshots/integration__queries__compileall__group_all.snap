@@ -5,7 +5,7 @@ input_file: prqlc/prqlc/tests/integration/queries/group_all.prql
 ---
 --- generic
 +++ glaredb
-@@ -3,19 +3,22 @@
+@@ -4,19 +4,22 @@
      album_id,
      title
    FROM
@@ -32,8 +32,9 @@ input_file: prqlc/prqlc/tests/integration/queries/group_all.prql
 
 --- generic
 +++ mssql
-@@ -1,18 +1,23 @@
- WITH table_0 AS (
+@@ -1,19 +1,23 @@
+ WITH
+ table_0 AS (
    SELECT
      album_id,
      title
@@ -44,8 +45,7 @@ input_file: prqlc/prqlc/tests/integration/queries/group_all.prql
 +  ORDER BY
 +    (
 +      SELECT
-+        NULL
-+    ) OFFSET 0 ROWS
++        NULL) OFFSET 0 ROWS
 +  FETCH FIRST
 +    10 ROWS ONLY
  )
@@ -62,7 +62,7 @@ input_file: prqlc/prqlc/tests/integration/queries/group_all.prql
 
 --- generic
 +++ postgres
-@@ -3,19 +3,22 @@
+@@ -4,19 +4,22 @@
      album_id,
      title
    FROM

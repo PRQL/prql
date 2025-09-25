@@ -5,7 +5,7 @@ input_file: prqlc/prqlc/tests/integration/queries/append_select_multiple_with_nu
 ---
 --- generic
 +++ postgres
-@@ -1,40 +1,29 @@
+@@ -1,38 +1,29 @@
 -SELECT
 -  *
 -FROM
@@ -27,8 +27,7 @@ input_file: prqlc/prqlc/tests/integration/queries/append_select_multiple_with_nu
 +  LIMIT
 +    5
 +)
- UNION
--ALL
+ UNION ALL
 -SELECT
 -  *
 -FROM
@@ -41,7 +40,7 @@ input_file: prqlc/prqlc/tests/integration/queries/append_select_multiple_with_nu
 -    LIMIT
 -      5
 -  ) AS table_5
-+ALL (
++(
 +  SELECT
 +    country,
 +    employee_id
@@ -50,8 +49,7 @@ input_file: prqlc/prqlc/tests/integration/queries/append_select_multiple_with_nu
 +  LIMIT
 +    5
 +)
- UNION
--ALL
+ UNION ALL
 -SELECT
 -  *
 -FROM
@@ -64,7 +62,7 @@ input_file: prqlc/prqlc/tests/integration/queries/append_select_multiple_with_nu
 -    LIMIT
 -      5
 -  ) AS table_6
-+ALL (
++(
 +  SELECT
 +    NULL,
 +    invoice_id

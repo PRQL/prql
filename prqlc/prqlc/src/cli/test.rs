@@ -196,7 +196,8 @@ from long_query
     success: true
     exit_code: 0
     ----- stdout -----
-    WITH table_2 AS (
+    WITH
+table_2 AS (
       SELECT
         title,
         COUNT(*) AS ct
@@ -280,12 +281,12 @@ fn compile_project() {
     success: true
     exit_code: 0
     ----- stdout -----
-    WITH table_1 AS (
+    WITH
+table_1 AS (
       SELECT
         120 AS artist_id,
         DATE '2023-05-18' AS last_listen
-      UNION
-      ALL
+      UNION ALL
       SELECT
         7 AS artist_id,
         DATE '2023-05-16' AS last_listen
@@ -334,12 +335,12 @@ fn compile_project() {
     success: true
     exit_code: 0
     ----- stdout -----
-    WITH table_0 AS (
+    WITH
+table_0 AS (
       SELECT
         120 AS artist_id,
         DATE '2023-05-18' AS last_listen
-      UNION
-      ALL
+      UNION ALL
       SELECT
         7 AS artist_id,
         DATE '2023-05-16' AS last_listen

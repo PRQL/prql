@@ -5,8 +5,8 @@ input_file: prqlc/prqlc/tests/integration/queries/set_ops_remove.prql
 ---
 --- generic
 +++ mssql
-@@ -21,21 +21,20 @@
-   ALL
+@@ -18,21 +18,20 @@
+   UNION ALL
    SELECT
      2 AS a
  ),
@@ -32,8 +32,8 @@ input_file: prqlc/prqlc/tests/integration/queries/set_ops_remove.prql
 
 --- generic
 +++ sqlite
-@@ -21,21 +21,20 @@
-   ALL
+@@ -18,21 +18,20 @@
+   UNION ALL
    SELECT
      2 AS a
  ),

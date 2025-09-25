@@ -5,7 +5,7 @@ input_file: prqlc/prqlc/tests/integration/queries/append_select.prql
 ---
 --- generic
 +++ postgres
-@@ -1,26 +1,19 @@
+@@ -1,25 +1,19 @@
 -SELECT
 -  *
 -FROM
@@ -27,8 +27,7 @@ input_file: prqlc/prqlc/tests/integration/queries/append_select.prql
 +  LIMIT
 +    6 OFFSET 9
 +)
- UNION
--ALL
+ UNION ALL
 -SELECT
 -  *
 -FROM
@@ -41,7 +40,7 @@ input_file: prqlc/prqlc/tests/integration/queries/append_select.prql
 -    LIMIT
 -      6 OFFSET 39
 -  ) AS table_3
-+ALL (
++(
 +  SELECT
 +    billing_country,
 +    invoice_id

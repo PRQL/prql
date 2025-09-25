@@ -718,7 +718,8 @@ mod test {
         let sql_ast = crate::tests::compile(query).unwrap();
 
         assert_snapshot!(sql_ast, @r"
-        WITH table_0 AS (
+        WITH
+        table_0 AS (
           SELECT
             title,
             AVG(salary) AS _expr_0
@@ -759,7 +760,8 @@ mod test {
         let sql_ast = crate::tests::compile(query).unwrap();
 
         assert_snapshot!(sql_ast, @r"
-        WITH table_0 AS (
+        WITH
+        table_0 AS (
           SELECT
             *,
             RANK() OVER () AS global_rank
@@ -785,7 +787,8 @@ mod test {
         "#;
 
         assert_snapshot!(crate::tests::compile(query).unwrap(), @r"
-        WITH table_0 AS (
+        WITH
+        table_0 AS (
           SELECT
             *,
             AVG(bar) OVER () AS _expr_0
