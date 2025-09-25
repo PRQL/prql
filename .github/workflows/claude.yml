@@ -56,4 +56,7 @@ jobs:
             - Use 'gh run list' and 'gh run view' to check CI status
             - Look for specific error messages in failing jobs
             - Check the test output for detailed failure information
-            - When fixing issues, verify changes with the appropriate test commands"
+            - When fixing issues, verify changes with the appropriate test commands
+            - Once local test commands work, push to CI
+            - Then iterate between monitoring CI, fixing any remaining issues, monitoring CI
+            - Don't return until we're confident that we've done everything we can"
