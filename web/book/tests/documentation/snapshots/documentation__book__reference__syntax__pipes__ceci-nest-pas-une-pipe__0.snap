@@ -2,10 +2,10 @@
 source: web/book/tests/documentation/book.rs
 expression: "[\n  {a=2}      # No pipe from line break before & after this list item\n]\nderive {\n  c = 2 * a, # No pipe from line break before & after this tuple item\n}\n"
 ---
-WITH table_0 AS (
+WITH
+table_0 AS (
   SELECT
-    2 AS a
-)
+    2 AS a)
 SELECT
   a,
   2 * a AS c

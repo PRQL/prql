@@ -5,8 +5,9 @@ input_file: prqlc/prqlc/tests/integration/queries/sort_2.prql
 ---
 --- generic
 +++ clickhouse
-@@ -1,25 +1,25 @@
- WITH table_1 AS (
+@@ -1,26 +1,26 @@
+ WITH
+ table_1 AS (
    SELECT
 -    album_id AS "AA",
 +    album_id AS `AA`,
@@ -42,8 +43,9 @@ input_file: prqlc/prqlc/tests/integration/queries/sort_2.prql
 
 --- generic
 +++ mysql
-@@ -1,25 +1,25 @@
- WITH table_1 AS (
+@@ -1,26 +1,26 @@
+ WITH
+ table_1 AS (
    SELECT
 -    album_id AS "AA",
 +    album_id AS `AA`,
