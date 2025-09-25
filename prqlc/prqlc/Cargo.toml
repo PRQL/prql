@@ -9,7 +9,7 @@ rust-version.workspace = true
 version.workspace = true
 
 # Required for `cargo-msrv`, which doesn't yet support workspaces
-metadata.msrv = "1.84.0"
+metadata.msrv = "1.75.0"
 
 build = "build.rs"
 
@@ -70,7 +70,7 @@ semver = { workspace = true }
 serde = { workspace = true }
 serde_json = { workspace = true }
 serde_yaml = { workspace = true, optional = true }
-sqlformat = "0.4.0"
+sqlformat = "0.3.5"
 sqlparser = { version = "0.59.0", features = [
   "serde",
   # enabling "recursive-protection" causes wasm compilation to fail on MacOS
