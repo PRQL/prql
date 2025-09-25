@@ -1,0 +1,75 @@
+---
+source: prqlc/prqlc/tests/integration/queries.rs
+expression: "from invoices\nselect { customer_id, invoice_id, billing_country }\ntake 5\nappend (\n  from employees\n  select { employee_id, employee_id, country }\n  take 5\n)\nappend (\n  from invoice_items\n  select { invoice_line_id, invoice_id, null }\n  take 5\n)\nselect { billing_country, invoice_id }\n"
+input_file: prqlc/prqlc/tests/integration/queries/append_select_multiple_with_null.prql
+---
+--- generic
++++ postgres
+@@ -1,40 +1,29 @@
+-SELECT
+-  *
+-FROM
+-  (
+-    SELECT
+-      billing_country,
+-      invoice_id
+-    FROM
+-      invoices
+-    LIMIT
+-      5
+-  ) AS table_4
++(
++  SELECT
++    billing_country,
++    invoice_id
++  FROM
++    invoices
++  LIMIT
++    5
++)
+ UNION
+-ALL
+-SELECT
+-  *
+-FROM
+-  (
+-    SELECT
+-      country,
+-      employee_id
+-    FROM
+-      employees
+-    LIMIT
+-      5
+-  ) AS table_5
++ALL (
++  SELECT
++    country,
++    employee_id
++  FROM
++    employees
++  LIMIT
++    5
++)
+ UNION
+-ALL
+-SELECT
+-  *
+-FROM
+-  (
+-    SELECT
+-      NULL,
+-      invoice_id
+-    FROM
+-      invoice_items
+-    LIMIT
+-      5
+-  ) AS table_6
++ALL (
++  SELECT
++    NULL,
++    invoice_id
++  FROM
++    invoice_items
++  LIMIT
++    5
++)

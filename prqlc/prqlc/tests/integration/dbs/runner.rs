@@ -206,7 +206,7 @@ pub(crate) mod external {
     impl MySqlTestRunner {
         pub(crate) fn new(url: &str, data_file_root: String) -> Self {
             let conn = ::mysql::Conn::new(url)
-                .unwrap_or_else(|e| panic!("Failed to connect to {}:\n{}", url, e));
+                .unwrap_or_else(|e| panic!("Failed to connect to {url}:\n{e}"));
             Self {
                 protocol: connector_arrow::mysql::MySQLConnection::<::mysql::Conn>::new(conn),
                 data_file_root,
@@ -268,7 +268,7 @@ pub(crate) mod external {
             Self {
                 protocol: connector_arrow::mysql::MySQLConnection::<::mysql::Conn>::new(
                     ::mysql::Conn::new(url)
-                        .unwrap_or_else(|e| panic!("Failed to connect to {}:\n{}", url, e)),
+                        .unwrap_or_else(|e| panic!("Failed to connect to {url}:\n{e}")),
                 ),
                 data_file_root,
             }
@@ -373,12 +373,14 @@ pub(crate) mod external {
         }
     }
 
+    #[allow(dead_code)]
     pub(crate) struct GlareDbTestRunner {
         protocol: connector_arrow::postgres::PostgresConnection,
         data_file_root: String,
     }
 
     impl GlareDbTestRunner {
+        #[allow(dead_code)]
         pub(crate) fn new(url: &str, data_file_root: String) -> Self {
             use connector_arrow::postgres::PostgresConnection;
             let client = ::postgres::Client::connect(url, ::postgres::NoTls).unwrap();

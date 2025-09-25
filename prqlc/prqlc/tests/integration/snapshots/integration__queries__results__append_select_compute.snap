@@ -1,0 +1,15 @@
+---
+source: prqlc/prqlc/tests/integration/queries.rs
+expression: "from invoices\nderive total = case [total < 10 => total * 2, true => total]\nselect { customer_id, invoice_id, total }\ntake 5\nappend (\n  from invoice_items\n  derive unit_price = case [unit_price < 1 => unit_price * 2, true => unit_price]\n  select { invoice_line_id, invoice_id, unit_price }\n  take 5\n)\nselect { a = customer_id * 2, b = math.round 1 (invoice_id * total) }\n"
+input_file: prqlc/prqlc/tests/integration/queries/append_select_compute.prql
+---
+4,4
+8,15.8
+16,35.6
+28,71.3
+46,69.3
+2,2
+4,2
+6,4
+8,4
+10,4

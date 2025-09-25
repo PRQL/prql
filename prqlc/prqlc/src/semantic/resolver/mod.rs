@@ -29,7 +29,7 @@ pub struct Resolver<'a> {
 pub struct ResolverOptions {}
 
 impl Resolver<'_> {
-    pub fn new(root_mod: &mut RootModule) -> Resolver {
+    pub fn new(root_mod: &mut RootModule) -> Resolver<'_> {
         Resolver {
             root_mod,
             current_module_path: Vec::new(),

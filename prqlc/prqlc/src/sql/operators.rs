@@ -53,7 +53,7 @@ pub(super) fn translate_operator(
         .named_params
         .iter()
         .chain(func_def.params.iter())
-        .map(|x| x.name.split('.').last().unwrap_or(x.name.as_str()));
+        .map(|x| x.name.split('.').next_back().unwrap_or(x.name.as_str()));
 
     let args: HashMap<&str, _> = zip(params, args).collect();
 

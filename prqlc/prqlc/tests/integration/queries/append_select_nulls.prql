@@ -1,0 +1,8 @@
+from invoices
+select {an_id = invoice_id, name = null}
+take 2
+append (
+  from employees
+  select {an_id = null, name = first_name}
+  take 2
+)

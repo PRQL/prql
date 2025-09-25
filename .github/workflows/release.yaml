@@ -22,10 +22,10 @@ env:
 jobs:
   brew-dispatcher:
     name: Release on homebrew-prql
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-24.04
     if: github.event_name == 'release'
     steps:
-      - uses: actions/github-script@v7
+      - uses: actions/github-script@v8
         with:
           github-token: ${{ secrets.PRQL_BOT_GITHUB_TOKEN }}
           script: |
@@ -46,9 +46,9 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - os: ubuntu-22.04
+          - os: ubuntu-24.04
             target: x86_64-unknown-linux-musl
-          - os: ubuntu-22.04
+          - os: ubuntu-24.04
             target: aarch64-unknown-linux-musl
           - os: macos-14
             target: aarch64-apple-darwin
@@ -62,7 +62,7 @@ jobs:
       contents: write
     steps:
       - name: 📂 Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
       - uses: ./.github/actions/build-prqlc
         id: build-artifact
         with:
@@ -97,9 +97,9 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - os: ubuntu-22.04
+          - os: ubuntu-24.04
             target: x86_64-unknown-linux-musl
-          - os: ubuntu-22.04
+          - os: ubuntu-24.04
             target: aarch64-unknown-linux-musl
           - os: macos-14
             target: aarch64-apple-darwin
@@ -109,7 +109,7 @@ jobs:
       contents: write
     steps:
       - name: 📂 Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
       - uses: ./.github/actions/build-prqlc-c
         id: build-artifact
         with:
@@ -123,7 +123,7 @@ jobs:
           files: ${{ steps.build-artifact.outputs.artifact-name }}
 
   publish-winget:
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-24.04
     needs: build-prqlc
     if: github.event_name == 'release'
     steps:
@@ -137,7 +137,7 @@ jobs:
           fork-user: prql-bot
 
   build-deb-package:
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-24.04
     strategy:
       fail-fast: false
       matrix:
@@ -148,7 +148,7 @@ jobs:
     permissions:
       contents: write
     steps:
-      - uses: actions/download-artifact@v4
+      - uses: actions/download-artifact@v5
         with:
           name: prqlc-${{ matrix.target }}-release
       - name: Copy files into .deb package
@@ -168,7 +168,7 @@ jobs:
             exit 1
           fi
       - name: 📦 Build .deb package
-        uses: jiro4989/build-deb-action@v3
+        uses: jiro4989/build-deb-action@v4
         with:
           package: prqlc
           package_root: .debpkg
@@ -192,7 +192,7 @@ jobs:
           files: prqlc_*.deb
 
   build-rpm-package:
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-24.04
     strategy:
       fail-fast: false
       matrix:
@@ -203,7 +203,7 @@ jobs:
     permissions:
       contents: write
     steps:
-      - uses: actions/download-artifact@v4
+      - uses: actions/download-artifact@v5
         with:
           name: prqlc-${{ matrix.target }}-release
       - name: Copy files into .rpm package
@@ -252,11 +252,11 @@ jobs:
           files: prqlc-*.rpm
 
   build-and-publish-snap:
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-24.04
     if: ${{ github.event_name == 'release' }}
     steps:
       - name: 📂 Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
       - name: Move Snap to project root directory
         run: cp -r prqlc/packages/snap/ .
       - name: 📦 Build Snap
@@ -277,7 +277,7 @@ jobs:
     strategy:
       fail-fast: true
       matrix:
-        os: [ubuntu-22.04, windows-latest]
+        os: [ubuntu-24.04, windows-latest]
         package:
           - prqlc-python
         target: [x86_64]
@@ -287,15 +287,15 @@ jobs:
             package: prqlc-python
             target: universal2-apple-darwin
           # Also produce more targets for ubuntu:
-          - os: ubuntu-22.04
+          - os: ubuntu-24.04
             package: prqlc-python
             target: aarch64
-          - os: ubuntu-22.04
+          - os: ubuntu-24.04
             package: prqlc-python
             target: source
     steps:
       - name: 📂 Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
       - uses: ./.github/actions/build-python
         with:
           target: ${{ matrix.target }}
@@ -303,7 +303,7 @@ jobs:
           profile: release
 
   publish-python:
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-24.04
     needs: [build-python-wheels]
     if: github.event_name == 'release'
     permissions:
@@ -313,7 +313,7 @@ jobs:
         package:
           - prqlc-python
     steps:
-      - uses: actions/download-artifact@v4
+      - uses: actions/download-artifact@v5
         with:
           # `*` covers target & OS
           pattern: ${{ matrix.package }}-*-release
@@ -325,16 +325,16 @@ jobs:
           args: --skip-existing *
 
   publish-js:
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-24.04
     steps:
       - name: 📂 Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
       - uses: baptiste0928/cargo-install@v3
         with:
           crate: wasm-pack
 
       - name: Setup Node
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v5
         with:
           node-version: "20.x"
           registry-url: "https://registry.npmjs.org"
@@ -361,10 +361,10 @@ jobs:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
 
   publish-to-cargo:
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-24.04
     steps:
       - name: 📂 Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
       - uses: baptiste0928/cargo-install@v3
         with:
           crate: cargo-release
@@ -379,10 +379,10 @@ jobs:
 
   # Requires another pass: https://github.com/PRQL/prql/issues/850
   # publish-prql-java:
-  #   runs-on: ubuntu-22.04
+  #   runs-on: ubuntu-24.04
   #   steps:
   #     - name: Checkout code
-  #       uses: actions/checkout@v4
+  #       uses: actions/checkout@v5
   #     - name: Install Java and Maven
   #       uses: actions/setup-java@v3
   #       with:
@@ -397,11 +397,11 @@ jobs:
   #         directory: prql-java/java/
 
   push-web-branch:
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-24.04
     if: github.event_name == 'release'
     steps:
       - name: 📂 Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
       - run: git push origin HEAD:web --force
 
   push-devcontainer:

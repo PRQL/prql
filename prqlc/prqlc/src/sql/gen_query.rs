@@ -46,7 +46,7 @@ pub fn translate_query(query: RelationalQuery, dialect: Option<Dialect>) -> Resu
         });
     }
 
-    debug::log_entry(|| debug::DebugEntryKind::ReprSqlParser(query.clone()));
+    debug::log_entry(|| debug::DebugEntryKind::ReprSqlParser(Box::new(query.clone())));
     Ok(query)
 }
 
@@ -224,8 +224,15 @@ fn translate_select_pipeline(
                 interpolate: None,
             })
         },
-        limit,
-        offset,
+        limit_clause: if limit.is_some() || offset.is_some() {
+            Some(sql_ast::LimitClause::LimitOffset {
+                limit,
+                offset,
+                limit_by: Vec::new(),
+            })
+        } else {
+            None
+        },
         fetch,
         ..default_query(SetExpr::Select(Box::new(Select {
             distinct,
@@ -265,21 +272,37 @@ fn translate_set_ops_pipeline(
             _ => unreachable!(),
         };
 
-        // prepare top
+        // Some engines (like SQLite) do not support subqueries between simple parentheses, so we keep
+        // the general `SELECT * FROM (query)` or `SELECT * FROM cte` by default for complex cases.
+        //
+        // Some engines (like Postgres) need the subquery directly to properly match column type on
+        // both sides. For those:
+        // 1. we need the subquery as-is or in parentheses
+        // 2. we need to avoid CTEs
+
+        // Left hand side (aka top)
         let left = query_to_set_expr(top, context);
 
-        top = default_query(SetExpr::SetOperation {
-            left,
-            right: Box::new(SetExpr::Select(Box::new(sql_ast::Select {
+        // Right hand side (aka bottom)
+        let right_rel = translate_relation_expr(bottom, context)?;
+        let right = if let TableFactor::Derived { subquery, .. } = right_rel {
+            query_to_set_expr(*subquery, context)
+        } else {
+            Box::new(SetExpr::Select(Box::new(sql_ast::Select {
                 projection: vec![SelectItem::Wildcard(
                     sql_ast::WildcardAdditionalOptions::default(),
                 )],
                 from: vec![TableWithJoins {
-                    relation: translate_relation_expr(bottom, context)?,
+                    relation: right_rel,
                     joins: vec![],
                 }],
                 ..default_select()
-            }))),
+            })))
+        };
+
+        top = default_query(SetExpr::SetOperation {
+            left,
+            right,
             set_quantifier: if distinct {
                 if context.dialect.set_ops_distinct() {
                     sql_ast::SetQuantifier::Distinct
@@ -579,14 +602,13 @@ fn default_query(body: sql_ast::SetExpr) -> sql_ast::Query {
         with: None,
         body: Box::new(body),
         order_by: None,
-        limit: None,
-        offset: None,
+        limit_clause: None,
         fetch: None,
         locks: Vec::new(),
-        limit_by: Vec::new(),
         for_clause: None,
         settings: None,
         format_clause: None,
+        pipe_operators: Vec::new(),
     }
 }
 
@@ -611,6 +633,7 @@ fn default_select() -> Select {
         window_before_qualify: false,
         connect_by: None,
         prewhere: None,
+        exclude: None,
         select_token: sqlparser::ast::helpers::attached_token::AttachedToken::empty(),
         flavor: sqlparser::ast::SelectFlavor::Standard,
     }
@@ -626,8 +649,7 @@ fn simple_table_alias(name: sql_ast::Ident) -> TableAlias {
 fn query_to_set_expr(query: sql_ast::Query, context: &mut Context) -> Box<SetExpr> {
     let is_simple = query.with.is_none()
         && query.order_by.is_none()
-        && query.limit.is_none()
-        && query.offset.is_none()
+        && query.limit_clause.is_none()
         && query.fetch.is_none()
         && query.locks.is_empty();
 
@@ -635,24 +657,36 @@ fn query_to_set_expr(query: sql_ast::Query, context: &mut Context) -> Box<SetExp
         return query.body;
     }
 
-    // query is not simple, so we need to wrap it into
-    // `SELECT * FROM (query)`
-    Box::new(SetExpr::Select(Box::new(Select {
-        projection: vec![SelectItem::Wildcard(
-            sql_ast::WildcardAdditionalOptions::default(),
-        )],
-        from: vec![TableWithJoins {
-            relation: TableFactor::Derived {
-                lateral: false,
-                subquery: Box::new(query),
-                alias: Some(simple_table_alias(sql_ast::Ident::new(
-                    context.anchor.table_name.gen(),
-                ))),
-            },
-            joins: vec![],
-        }],
-        ..default_select()
-    })))
+    // Query is not simple, so we need to wrap it.
+    //
+    // Some engines (like SQLite) do not support subqueries between simple parentheses, so we keep
+    // the general `SELECT * FROM (query)` by default.
+    //
+    // Some engines (like Postgres) may need the subquery directly as-is or between parentheses
+    // to properly match columns for syntaxes like `UNION`, `EXCEPT`, and `INTERSECT`.
+    // Incidentally, the parenthesis syntax `(query)` allows for complex queries.
+    let set_expr = if context.dialect.prefers_subquery_parentheses_shorthand() {
+        SetExpr::Query(query.into())
+    } else {
+        SetExpr::Select(Box::new(Select {
+            projection: vec![SelectItem::Wildcard(
+                sql_ast::WildcardAdditionalOptions::default(),
+            )],
+            from: vec![TableWithJoins {
+                relation: TableFactor::Derived {
+                    lateral: false,
+                    subquery: Box::new(query),
+                    alias: Some(simple_table_alias(sql_ast::Ident::new(
+                        context.anchor.table_name.gen(),
+                    ))),
+                },
+                joins: vec![],
+            }],
+            ..default_select()
+        }))
+    };
+
+    Box::new(set_expr)
 }
 
 fn count_tables(transforms: &[Transform]) -> usize {

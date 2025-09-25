@@ -5,12 +5,12 @@ on:
     inputs:
       oss:
         type: string
-        default: '["ubuntu-22.04"]'
+        default: '["ubuntu-24.04"]'
   workflow_dispatch:
     inputs:
       oss:
         type: string
-        default: '["ubuntu-22.04"]'
+        default: '["ubuntu-24.04"]'
 
 defaults:
   run:
@@ -30,17 +30,17 @@ jobs:
       matrix:
         os: ${{ fromJSON(inputs.oss) }}
         otp: ["25.1.2"]
-        elixir: ["1.14.2"]
+        elixir: ["1.15.7"]
     runs-on: ${{matrix.os}}
     steps:
       # Step: Check out the code.
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
 
       # Step: Setup Elixir + Erlang image as the base.
       - name: Set up Elixir on Windows or Linux
         if: runner.os != 'macOS'
-        uses: erlef/setup-beam@v1
+        uses: erlef/setup-beam@v1.20.4
         with:
           otp-version: ${{matrix.otp}}
           elixir-version: ${{matrix.elixir}}

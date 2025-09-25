@@ -57,7 +57,7 @@ impl Display for ErrorMessage {
             writeln!(f, "{}Error: {}", code, &self.reason)?;
             for hint in &self.hints {
                 // TODO: consider alternative formatting for hints.
-                writeln!(f, "↳ Hint: {}", hint)?;
+                writeln!(f, "↳ Hint: {hint}")?;
             }
         }
         Ok(())
@@ -72,7 +72,7 @@ impl Debug for ErrorMessage {
 
 impl From<Error> for ErrorMessage {
     fn from(e: Error) -> Self {
-        log::debug!("{:#?}", e);
+        log::debug!("{e:#?}");
         ErrorMessage {
             code: e.code.map(str::to_string),
             kind: e.kind,
@@ -224,12 +224,10 @@ impl<'a> FileTreeCache<'a> {
 
 impl Cache<PathBuf> for FileTreeCache<'_> {
     type Storage = String;
-    // ariadne 0.5.1
-    // fn fetch(&mut self, id: &PathBuf) -> Result<&Source<Self::Storage>, impl fmt::Debug> {
-    fn fetch(&mut self, id: &PathBuf) -> Result<&Source, Box<dyn fmt::Debug + '_>> {
+    fn fetch(&mut self, id: &PathBuf) -> Result<&Source<Self::Storage>, impl fmt::Debug> {
         let file_contents = match self.file_tree.sources.get(id) {
             Some(v) => v,
-            None => return Err(Box::new(format!("Unknown file `{id:?}`"))),
+            None => return Err(format!("Unknown file `{id:?}`")),
         };
 
         Ok(self
@@ -238,14 +236,7 @@ impl Cache<PathBuf> for FileTreeCache<'_> {
             .or_insert_with(|| Source::from(file_contents.to_string())))
     }
 
-    fn display<'b>(&self, id: &'b PathBuf) -> Option<Box<dyn fmt::Display + 'b>> {
-        match id.as_os_str().to_str() {
-            Some(s) => Some(Box::new(s)),
-            None => None,
-        }
+    fn display<'b>(&self, id: &'b PathBuf) -> Option<impl fmt::Display + 'b> {
+        id.as_os_str().to_str().map(str::to_string)
     }
-    // ariadne 0.5.1
-    // fn display<'b>(&self, id: &'b PathBuf) -> Option<impl fmt::Display + 'b> {
-    //     id.as_os_str().to_str().map(Box::new)
-    // }
 }

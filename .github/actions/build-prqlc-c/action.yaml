@@ -57,7 +57,7 @@ runs:
         echo 'CC=aarch64-linux-gnu-gcc' >>"$GITHUB_ENV"
 
     - name: cargo build
-      uses: clechasseur/rs-cargo@v2
+      uses: clechasseur/rs-cargo@v4
       with:
         command: build
         args:

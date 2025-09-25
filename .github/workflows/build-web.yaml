@@ -13,11 +13,11 @@ env:
 
 jobs:
   build-web:
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-24.04
 
     steps:
       - name: 📂 Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
 
       # Website requires Hugo
       - name: Setup Hugo
@@ -37,7 +37,7 @@ jobs:
           crate: wasm-pack
 
       - name: Setup Node
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v5
         with:
           node-version: "20.x"
           cache: "npm"
@@ -60,16 +60,16 @@ jobs:
       - name: 🕷️ Build web
         run: task web:build
 
-      - uses: actions/upload-pages-artifact@v3.0.1
+      - uses: actions/upload-pages-artifact@v4.0.0
         with:
           path: web/website/public/
 
   build-codemirror-demo:
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-24.04
 
     steps:
       - name: 📂 Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
       - name: 🧅 Setup Bun
         uses: oven-sh/setup-bun@v2
         with:

@@ -56,7 +56,7 @@ since it relies on `brew`.
 - [Install Task](https://taskfile.dev/installation/).
 - Then run the `setup-dev` task. This runs commands from our
   [Taskfile.yaml](https://github.com/PRQL/prql/blob/main/Taskfile.yaml),
-  installing dependencies with `cargo`, `brew`, `npm` & `pip`, and suggests some
+  installing dependencies with `cargo`, `brew`, `npm` & `uv`, and suggests some
   VS Code extensions.
 
   ```sh
@@ -288,7 +288,6 @@ Our tests, from the bottom of the pyramid to the top:
   The tests fix most of the issues they find themselves. Most of them also run
   on GitHub on every commit; any changes they make are added onto the branch
   automatically in an additional commit.
-
   - Checking by [MegaLinter](https://megalinter.io/latest/), which includes more
     Linters, is also done automatically on GitHub. (experimental)
 

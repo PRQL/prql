@@ -200,6 +200,25 @@ pub(super) trait DialectHandler: Any + Debug {
     fn supports_zero_columns(&self) -> bool {
         false
     }
+
+    fn translate_sql_array(
+        &self,
+        elements: Vec<sqlparser::ast::Expr>,
+    ) -> crate::Result<sqlparser::ast::Expr> {
+        use sqlparser::ast::Expr;
+
+        // Default SQL syntax: [elem1, elem2, ...]
+        Ok(Expr::Array(sqlparser::ast::Array {
+            elem: elements,
+            named: false,
+        }))
+    }
+
+    /// Whether source and subqueries should be put between simple parentheses
+    /// for `UNION` and similar verbs.
+    fn prefers_subquery_parentheses_shorthand(&self) -> bool {
+        false
+    }
 }
 
 impl dyn DialectHandler {
@@ -252,7 +271,7 @@ impl DialectHandler for PostgresDialect {
                     // If the literal contains alphanumeric characters, we need to quote it
                     // to avoid it being interpreted as a pattern understood by Postgres.
                     // We hence need to put it in double quotes to force it to be interpreted as literal text
-                    format!("\"{}\"", literal)
+                    format!("\"{literal}\"")
                 } else {
                     literal.replace('\'', "''").replace('"', "\\\"")
                 }
@@ -267,6 +286,10 @@ impl DialectHandler for PostgresDialect {
     }
 
     fn supports_zero_columns(&self) -> bool {
+        true
+    }
+
+    fn prefers_subquery_parentheses_shorthand(&self) -> bool {
         true
     }
 }
@@ -336,7 +359,7 @@ impl DialectHandler for MsSqlDialect {
                     // If the literal contains alphanumeric characters, we need to quote it
                     // to avoid it being interpreted as a pattern understood by MSSQL.
                     // We hence need to put it in double quotes to force it to be interpreted as literal text
-                    format!("\"{}\"", literal)
+                    format!("\"{literal}\"")
                 } else {
                     // MSSQL uses single quotes around
                     literal
@@ -433,7 +456,7 @@ impl DialectHandler for ClickHouseDialect {
                     // If the literal contains alphanumeric characters, we need to quote it
                     // to avoid it being interpreted as a pattern understood by Clickhouse.
                     // Clickhouse uses backticks around
-                    format!("'{}'", literal)
+                    format!("'{literal}'")
                 } else {
                     literal.replace('\'', "\\'\\'")
                 }
@@ -459,6 +482,10 @@ impl DialectHandler for BigQueryDialect {
 
     fn set_ops_distinct(&self) -> bool {
         // https://cloud.google.com/bigquery/docs/reference/standard-sql/query-syntax#set_operators
+        true
+    }
+
+    fn prefers_subquery_parentheses_shorthand(&self) -> bool {
         true
     }
 }

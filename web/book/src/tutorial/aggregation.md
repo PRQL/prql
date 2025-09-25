@@ -39,7 +39,7 @@ Suppose we want to produce summaries of invoices _for each city_ in the table.
 We could create a query for each city, and aggregate its rows:
 
 ```prql no-eval
-from albums
+from invoices
 filter billing_city == "Oslo"
 aggregate { sum_of_orders = sum total }
 ```

@@ -5,12 +5,12 @@ on:
     inputs:
       oss:
         type: string
-        default: '["ubuntu-22.04"]'
+        default: '["ubuntu-24.04"]'
   workflow_dispatch:
     inputs:
       oss:
         type: string
-        default: '["ubuntu-22.04"]'
+        default: '["ubuntu-24.04"]'
 
 # We need consistent env vars across all workflows for the cache to work
 env:
@@ -22,15 +22,17 @@ env:
 jobs:
   test:
     runs-on: ${{ matrix.os }}
+    continue-on-error: ${{ matrix.os == 'windows-latest' }}
     strategy:
+      fail-fast: false
       matrix:
         os: ${{ fromJSON(inputs.oss) }}
     steps:
       - name: 📂 Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
 
       - name: Setup Node
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v5
         with:
           node-version: "21.x"
 

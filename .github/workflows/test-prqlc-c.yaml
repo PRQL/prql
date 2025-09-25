@@ -13,10 +13,10 @@ env:
 
 jobs:
   test-c:
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-24.04
     steps:
       - name: 📂 Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
       - run: ./.github/workflows/scripts/set_version.sh
       - name: 💰 Cache
         uses: Swatinem/rust-cache@v2
@@ -25,7 +25,7 @@ jobs:
           save-if: ${{ github.ref == 'refs/heads/main' }}
           shared-key: lib
       - name: Build
-        uses: clechasseur/rs-cargo@v2
+        uses: clechasseur/rs-cargo@v4
         with:
           command: build
           # Currently requires a release build; would be useful to allow a debug build.
@@ -41,6 +41,6 @@ jobs:
         with:
           repo-token: "${{ secrets.GITHUB_TOKEN }}"
       - name: 🔧 Setup Zig
-        uses: mlugg/setup-zig@v1
+        uses: mlugg/setup-zig@v2
       - name: Run example minimal-zig
         run: task zig

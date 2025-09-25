@@ -18,7 +18,7 @@ env:
 
 jobs:
   cargo-audit:
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-24.04
     # We can't read PRQL repo security events on forks, which causes this to
     # incorrectly fail (
     # https://github.com/PRQL/prql/actions/runs/5718693342/job/15495030808?pr=3195#step:3:28
@@ -43,16 +43,16 @@ jobs:
       checks: write
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
       - uses: rustsec/audit-check@v2.0.0
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
 
   cargo-bench:
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-24.04
     steps:
-      - uses: actions/checkout@v4
-      - uses: clechasseur/rs-cargo@v2
+      - uses: actions/checkout@v5
+      - uses: clechasseur/rs-cargo@v4
         with:
           command: bench
           # GH Actions is fairly noisy, so the precise details don't matter that
@@ -61,13 +61,16 @@ jobs:
           args: -- --warm-up-time=0.3 --measurement-time=1
 
   time-compilation:
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-24.04
     strategy:
       matrix:
         use_cache: [true, false]
     steps:
       - name: 📂 Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.11"
       - uses: ./.github/actions/time-compilation
         with:
           use_cache: ${{ matrix.use_cache }}
@@ -79,21 +82,21 @@ jobs:
       RUSTDOCFLAGS: "-Dwarnings"
 
   check-unused-dependencies:
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-24.04
     steps:
       - name: 📂 Checkout code
-        uses: actions/checkout@v4
-      - run: rustup override set nightly-2025-01-12
+        uses: actions/checkout@v5
+      - run: rustup override set nightly-2025-09-22
       - uses: baptiste0928/cargo-install@v3
         with:
           crate: cargo-udeps
       # Once with all targets, once without, to find anything that should be in
       # `dev` but is more general.
-      - uses: clechasseur/rs-cargo@v2
+      - uses: clechasseur/rs-cargo@v4
         with:
           command: udeps
           args: --all-targets
-      - uses: clechasseur/rs-cargo@v2
+      - uses: clechasseur/rs-cargo@v4
         with:
           command: udeps
 
@@ -102,10 +105,10 @@ jobs:
 
   # test-docker:
   #   # We only test the build in `test-all`; this also runs tests.
-  #   runs-on: ubuntu-22.04
+  #   runs-on: ubuntu-24.04
   #   steps:
   #     - name: 📂 Checkout code
-  #       uses: actions/checkout@v4
+  #       uses: actions/checkout@v5
 
   #     - uses: docker/setup-buildx-action@v2
 
@@ -128,7 +131,7 @@ jobs:
 
   code-ql:
     # Currently almost the default code-ql config
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-24.04
     permissions:
       actions: read
       contents: read
@@ -144,7 +147,7 @@ jobs:
 
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
 
       # Initializes the CodeQL tools for scanning.
       - name: Initialize CodeQL

@@ -462,15 +462,6 @@ fn test_append() {
         take 10
     )
     "###).unwrap(), @r"
-    WITH table_0 AS (
-      SELECT
-        name,
-        salary + bonuses AS cost
-      FROM
-        employees
-      LIMIT
-        10
-    )
     SELECT
       *
     FROM
@@ -482,13 +473,21 @@ fn test_append() {
           employees
         LIMIT
           3
-      ) AS table_1
+      ) AS table_2
     UNION
     ALL
     SELECT
       *
     FROM
-      table_0
+      (
+        SELECT
+          name,
+          salary + bonuses AS cost
+        FROM
+          employees
+        LIMIT
+          10
+      ) AS table_3
     ");
 
     assert_snapshot!(compile(r###"
@@ -919,6 +918,62 @@ fn test_sort_in_nested_join() {
 }
 
 #[test]
+fn test_sort_in_nested_join_with_extra_derive_and_select() {
+    // #5302
+    assert_snapshot!(compile(r#"
+    from albums
+    join side:left  (
+      from artists
+      derive {
+        my_new_col = f"artist: {name}"
+      }
+      group {my_new_col} (aggregate { first_name = first this.`name`})
+      sort {this.my_new_col, first_name}
+      derive {new_name = first_name, other_new_name = first_name}
+      select {this.my_new_col, this.new_name, this.other_new_name}
+    ) (this.id == that.my_new_col)
+    "#).unwrap(),
+        @r"
+    WITH table_1 AS (
+      SELECT
+        CONCAT('artist: ', name) AS my_new_col,
+        FIRST_VALUE(name) AS _expr_0
+      FROM
+        artists
+      GROUP BY
+        CONCAT('artist: ', name)
+    ),
+    table_2 AS (
+      SELECT
+        my_new_col,
+        _expr_0 AS new_name,
+        _expr_0 AS other_new_name,
+        _expr_0
+      FROM
+        table_1
+    ),
+    table_0 AS (
+      SELECT
+        my_new_col,
+        new_name,
+        other_new_name,
+        _expr_0
+      FROM
+        table_2
+    )
+    SELECT
+      albums.*,
+      table_0.my_new_col,
+      table_0.new_name,
+      table_0.other_new_name
+    FROM
+      albums
+      LEFT OUTER JOIN table_0 ON albums.id = table_0.my_new_col
+    "
+    );
+}
+
+#[test]
 fn test_sort_in_nested_append() {
     assert_snapshot!(compile(r#"
     from `albums`
@@ -933,17 +988,6 @@ fn test_sort_in_nested_append() {
     )
     "#).unwrap(),
         @r"
-    WITH table_0 AS (
-      SELECT
-        album_id,
-        title
-      FROM
-        albums
-      ORDER BY
-        album_id DESC
-      LIMIT
-        2
-    )
     SELECT
       *
     FROM
@@ -957,15 +1001,98 @@ fn test_sort_in_nested_append() {
           album_id
         LIMIT
           2
-      ) AS table_1
+      ) AS table_2
     UNION
     ALL
     SELECT
       *
     FROM
-      table_0
+      (
+        SELECT
+          album_id,
+          title
+        FROM
+          albums
+        ORDER BY
+          album_id DESC
+        LIMIT
+          2
+      ) AS table_3
     "
     );
+}
+
+#[test]
+fn test_sort_select_redundant_cte() {
+    assert_snapshot!((compile(r#"
+    let a = (
+      from sometable
+      sort {foo}
+      select {
+        foo
+      }
+    )
+    let b = (
+      from a
+    )
+    from b
+    "#
+    ).unwrap()), @r"
+    WITH a AS (
+      SELECT
+        foo
+      FROM
+        sometable
+    ),
+    b AS (
+      SELECT
+        foo
+      FROM
+        a
+    )
+    SELECT
+      foo
+    FROM
+      b
+    ORDER BY
+      foo
+    ");
+}
+
+#[test]
+fn test_column_name_extraction_in_s_strings() {
+    assert_snapshot!(compile(r#"
+from s"SELECT album_id, artist_id `title` FROM `albums`"
+join side:left (
+    s"SELECT id, name FROM `artists`"
+) (this.artist_id == that.id)
+"#).unwrap(),
+        @r"
+    WITH table_0 AS (
+      SELECT
+        album_id,
+        artist_id `title`
+      FROM
+        `albums`
+    ),
+    table_1 AS (
+      SELECT
+        id,
+        name
+      FROM
+        `artists`
+    )
+    SELECT
+      table_0.artist_id,
+      table_0.album_id,
+      table_0.title,
+      table_1.id,
+      table_1.name
+    FROM
+      table_0
+      LEFT OUTER JOIN table_1 ON table_0.artist_id = table_1.id
+        "
+    )
 }
 
 #[test]
@@ -1145,7 +1272,7 @@ fn test_sorts_01() {
     FROM
       table_0
     ORDER BY
-      _expr_0
+      renamed
     ");
 }
 
@@ -1215,6 +1342,21 @@ fn test_sorts_03() {
       table_0
     ORDER BY
       _expr_0
+    ");
+}
+
+#[test]
+fn test_sort_before_aggregate() {
+    assert_snapshot!((compile(r#"
+    from a
+    sort a.col
+    aggregate { result = sum a.col_to_agg }
+    "#
+    ).unwrap()), @r"
+    SELECT
+      COALESCE(SUM(col_to_agg), 0) AS result
+    FROM
+      a
     ");
 }
 
@@ -1363,7 +1505,7 @@ fn test_in_values_err_01() {
     derive { ng = ([1, 2] | in [3, 4]) }
     "###).unwrap_err()), @r"
     Error:
-       ╭─[:3:29]
+       ╭─[ :3:29 ]
        │
      3 │     derive { ng = ([1, 2] | in [3, 4]) }
        │                             ────┬────
@@ -2063,7 +2205,7 @@ fn test_take_07() {
     take 0..1
     "###).unwrap_err()), @r"
     Error:
-       ╭─[:3:5]
+       ╭─[ :3:5 ]
        │
      3 │     take 0..1
        │     ────┬────
@@ -2079,7 +2221,7 @@ fn test_take_08() {
     take (-1..)
     "###).unwrap_err()), @r"
     Error:
-       ╭─[:3:5]
+       ╭─[ :3:5 ]
        │
      3 │     take (-1..)
        │     ─────┬─────
@@ -2096,7 +2238,7 @@ fn test_take_09() {
     take 5..5.6
     "###).unwrap_err()), @r"
     Error:
-       ╭─[:4:5]
+       ╭─[ :4:5 ]
        │
      4 │     take 5..5.6
        │     ─────┬─────
@@ -2112,7 +2254,7 @@ fn test_take_10() {
     take (-1)
     "###).unwrap_err()), @r"
     Error:
-       ╭─[:3:5]
+       ╭─[ :3:5 ]
        │
      3 │     take (-1)
        │     ────┬────
@@ -2556,7 +2698,7 @@ fn test_join_side_literal_err() {
     join y (==id) side:my_side
     "###).unwrap_err()), @r"
     Error:
-       ╭─[:5:24]
+       ╭─[ :5:24 ]
        │
      5 │     join y (==id) side:my_side
        │                        ───┬───
@@ -2595,7 +2737,7 @@ fn test_join_side_literal_via_func_err() {
     my_join default_db.y this.id s:"four"
     "###).unwrap_err()), @r#"
     Error:
-       ╭─[:3:19]
+       ╭─[ :3:19 ]
        │
      3 │         join side:_param.s m (c == that.k) tbl
        │                   ────┬───
@@ -2791,7 +2933,7 @@ fn test_bare_s_string_01() {
         rude
     )
     SELECT
-      *
+      insensitive
     FROM
       table_0
     "
@@ -2813,7 +2955,7 @@ fn test_bare_s_string_02() {
         rude
     )
     SELECT
-      *
+      insensitive
     FROM
       table_0
     "
@@ -2839,7 +2981,7 @@ fn test_bare_s_string_03() {
         bar
     )
     SELECT
-      *
+      foo
     FROM
       table_0
     ");
@@ -3650,7 +3792,7 @@ fn test_unused_alias() {
     select n = {account.name}
     "###).unwrap_err(), @r"
     Error:
-       ╭─[:3:16]
+       ╭─[ :3:16 ]
        │
      3 │     select n = {account.name}
        │                ───────┬──────
@@ -3816,7 +3958,7 @@ fn test_direct_table_references() {
     )
     .unwrap_err(), @r#"
     Error:
-       ╭─[:3:15]
+       ╭─[ :3:15 ]
        │
      3 │     select s"{x}.field"
        │               ┬
@@ -3850,7 +3992,6 @@ fn test_name_shadowing() {
         @r"
     SELECT
       a AS _expr_0,
-      a AS _expr_0,
       a + 1 AS a
     FROM
       x
@@ -3867,7 +4008,6 @@ fn test_name_shadowing() {
     "###).unwrap(),
         @r"
     SELECT
-      a AS _expr_0,
       a AS _expr_0,
       a + 1,
       a + 1 + 2 AS a
@@ -4523,7 +4663,7 @@ fn test_header_target_error() {
     from a
     "#).unwrap_err(),@r"
     Error:
-       ╭─[:1:1]
+       ╭─[ :1:1 ]
        │
      1 │ ╭─▶
      2 │ ├─▶     prql dialect:foo.bar
@@ -4957,25 +5097,56 @@ fn test_array_01() {
 
 #[test]
 fn test_array_02() {
-    assert_snapshot!(compile(r#"
-    from [
-      {x = null},
-      {x = '1'},
-    ]
-    "#)
-    .unwrap(), @r"
+    assert_snapshot!(compile(r###"
+    let x = p1 -> s"x({p1})"
+
+    from [{a=null}, {a=2}]
+    filter (a | in [2, 4])
+    select {
+      empty_array = [],
+      single_element = [42],
+      null_element = [null],
+      complex_expressions = [a + a, (a * 2) + 1],
+      nested_function_calls = [(min a), (max a ?? 0)],
+      passing_as_arg = x [1,2,3],
+      nested = ['a', ['b']]
+    }
+    "###).unwrap(), @r"
     WITH table_0 AS (
       SELECT
-        NULL AS x
+        NULL AS a
       UNION
       ALL
       SELECT
-        '1' AS x
+        2 AS a
     )
     SELECT
-      x
+      [] AS empty_array,
+      [42] AS single_element,
+      [NULL] AS null_element,
+      [a + a, a * 2 + 1] AS complex_expressions,
+      [MIN(a) OVER (), MAX(COALESCE(a, 0)) OVER ()] AS nested_function_calls,
+      x([1, 2, 3]) AS passing_as_arg,
+      [ 'a',
+      [ 'b' ] ] AS nested
     FROM
       table_0
+    WHERE
+      a IN (2, 4)
+    ");
+}
+
+#[test]
+fn test_array_03() {
+    assert_snapshot!(compile(r###"
+    from employees
+    select {e = this}
+    select [e.first_name, e.last_name]
+    "###).unwrap(), @r"
+    SELECT
+      [first_name, last_name]
+    FROM
+      employees
     ");
 }
 
@@ -5062,7 +5233,6 @@ fn test_lineage() {
         '    3' AS a
     )
     SELECT
-      a,
       a
     FROM
       table_0
@@ -5351,6 +5521,43 @@ fn test_select_this() {
 }
 
 #[test]
+fn test_select_repeated_and_derived() {
+    assert_snapshot!(compile(
+        r###"
+    from tb_0
+    take  100
+    select {cc0 = c1,cc1 = c2,cc2 = c1}
+    select {ccc0 = cc1,ccc1 = 1}
+    select {cccc0 = 1,cccc1 = ccc0,cccc3 = 1,cccc4 = 0,cccc5 = 0,cccc6 = 0,cccc7 = 0}
+    derive {cccc8 = 0,cccc9 = 0,cccc10 = 0}
+        "###,
+    )
+    .unwrap(), @r###"
+    WITH table_0 AS (
+      SELECT
+        c2 AS _expr_0
+      FROM
+        tb_0
+      LIMIT
+        100
+    )
+    SELECT
+      1 AS cccc0,
+      _expr_0 AS cccc1,
+      1 AS cccc3,
+      0 AS cccc4,
+      0 AS cccc5,
+      0 AS cccc6,
+      0 AS cccc7,
+      0 AS cccc8,
+      0 AS cccc9,
+      0 AS cccc10
+    FROM
+      table_0
+    "###);
+}
+
+#[test]
 fn test_group_exclude() {
     assert_snapshot!(compile(
         r###"
@@ -5361,7 +5568,7 @@ fn test_group_exclude() {
     )
     .unwrap_err(), @r"
     Error:
-       ╭─[:4:27]
+       ╭─[ :4:27 ]
        │
      4 │     group {a} (derive c = a + 1)
        │                           ┬
@@ -5477,22 +5684,22 @@ fn unstable_ordering() {
     assert_snapshot!(compile(r###"
   # All lines are mandatory
 from foo
-take 10000 
+take 10000
 # We need 8+ aliases to trigger the issue
 derive { a1 = 1, a2 = 1, a3 = 1, a4 = 1, a5 = 1, a6 = 1, a7 = 1, a8 = 1 }
 # The `select !` itself is required, but its content is not
-select !{ a1, a2, a3, a4, a5, a6, a7, a8 } 
+select !{ a1, a2, a3, a4, a5, a6, a7, a8 }
 
 # We may remove `u` from both these statements, but the `select !` must remain
 select { b, c, u }
-select !{ u } 
+select !{ u }
 
 # Aggregate verb seems to not matter
-group { b } ( aggregate { c = count c } ) 
-derive { d = c } 
-select !{ c } 
+group { b } ( aggregate { c = count c } )
+derive { d = c }
+select !{ c }
 
-group { d } ( aggregate { b = sum b } ) 
+group { d } ( aggregate { b = sum b } )
 sort { d }"###).unwrap(), @r"
     WITH table_1 AS (
       SELECT
@@ -5534,5 +5741,250 @@ fn test_type_error_placement() {
       AND CAST(y AS integer)
     FROM
       t
+    ");
+}
+
+#[test]
+fn test_missing_columns_group_complex_compute() {
+    // https://github.com/PRQL/prql/issues/5354
+    // The focus for this tests is on whether the `hire_date` column is available where it's needed.
+    // Additional `city` derive are there only to trigger the issue.
+    assert_snapshot!(compile(
+        r#"prql target:sql.postgres
+        from employees
+        derive `year` = s'EXTRACT(year from {`hire_date`})'
+        derive { `year_label` = f"Year {`year`}" }
+        derive { `city` = case [ this.`city` == "Calgary" => "A city", true => this.`city` ] }
+        derive { `city` = case [ this.`city` == "Edmonton" => "Another city", true => this.`city` ] }
+        group {`year`, `year_label`} (take 1)
+        select {this.`year_label`}
+    "#,
+    )
+    .unwrap(), @r"
+    SELECT
+      DISTINCT ON (
+        EXTRACT(
+          year
+          from
+            hire_date
+        ),
+        CONCAT(
+          'Year ',
+          EXTRACT(
+            year
+            from
+              hire_date
+          )
+        )
+      ) CONCAT(
+        'Year ',
+        EXTRACT(
+          year
+          from
+            hire_date
+        )
+      ) AS year_label
+    FROM
+      employees
+    ");
+}
+
+#[test]
+fn test_append_select_compute() {
+    // Test for handling complex append with select and compute operations
+    assert_snapshot!(compile(r###"
+    from invoices
+    derive total = case [total < 10 => total * 2, true => total]
+    select { customer_id, invoice_id, total }
+    take 5
+    append (
+      from invoice_items
+      derive unit_price = case [unit_price < 1 => unit_price * 2, true => unit_price]
+      select { invoice_line_id, invoice_id, unit_price }
+      take 5
+    )
+    select { a = customer_id * 2, b = math.round 1 (invoice_id * total) }
+    "###).unwrap(), @r"
+    WITH table_1 AS (
+      SELECT
+        *
+      FROM
+        (
+          SELECT
+            invoice_id,
+            CASE
+              WHEN total < 10 THEN total * 2
+              ELSE total
+            END AS _expr_0,
+            customer_id
+          FROM
+            invoices
+          LIMIT
+            5
+        ) AS table_3
+      UNION
+      ALL
+      SELECT
+        *
+      FROM
+        (
+          SELECT
+            invoice_id,
+            CASE
+              WHEN unit_price < 1 THEN unit_price * 2
+              ELSE unit_price
+            END AS unit_price,
+            invoice_line_id
+          FROM
+            invoice_items
+          LIMIT
+            5
+        ) AS table_4
+    )
+    SELECT
+      customer_id * 2 AS a,
+      ROUND(invoice_id * _expr_0, 1) AS b
+    FROM
+      table_1
+    ");
+}
+
+#[test]
+fn test_append_select_multiple() {
+    // Test for handling multiple append operations with grouping and aggregation
+    assert_snapshot!(compile(r###"
+    from invoices
+    select { customer_id, invoice_id, total, useless1, useless2 }
+    take 5
+    append (
+      from employees
+      select { employee_id, employee_id + 1, reports_to, useless3, useless4 }
+      take 5
+    )
+    group { customer_id } (aggregate { invoice_id = math.round 1 (sum invoice_id), total = math.round 1 (sum total), useless1 = sum useless1 })
+    append (
+      from invoice_items
+      select { invoice_id, invoice_line_id, 0, useless5 }
+      take 5
+    )
+    sort { +invoice_id, +total }
+    select { total, invoice_id }
+    "###).unwrap(), @r"
+    WITH table_3 AS (
+      SELECT
+        *
+      FROM
+        (
+          SELECT
+            customer_id,
+            total,
+            invoice_id
+          FROM
+            invoices
+          LIMIT
+            5
+        ) AS table_6
+      UNION
+      ALL
+      SELECT
+        *
+      FROM
+        (
+          SELECT
+            employee_id,
+            reports_to,
+            employee_id + 1
+          FROM
+            employees
+          LIMIT
+            5
+        ) AS table_7
+    ),
+    table_2 AS (
+      SELECT
+        ROUND(COALESCE(SUM(total), 0), 1) AS total,
+        ROUND(COALESCE(SUM(invoice_id), 0), 1) AS invoice_id
+      FROM
+        table_3
+      GROUP BY
+        customer_id
+      UNION
+      ALL
+      SELECT
+        *
+      FROM
+        (
+          SELECT
+            invoice_id,
+            invoice_line_id
+          FROM
+            invoice_items
+          LIMIT
+            5
+        ) AS table_8
+    )
+    SELECT
+      total,
+      invoice_id
+    FROM
+      table_2
+    ORDER BY
+      invoice_id,
+      total
+    ");
+}
+
+#[test]
+fn test_distinct_on_sort_on_compute() {
+    // Test for handling distinct on with sorting on computed columns
+    assert_snapshot!(compile(r###"
+    from invoices
+    derive code = case [customer_id < 10 => billing_postal_code, true => null]
+    group {customer_id, billing_city, billing_country} (
+      sort {-this.code}
+      take 1
+    )
+    filter (customer_id | in [4])
+    group {billing_country} (aggregate {total = math.round 2 (sum total)})
+    "###).unwrap(), @r"
+    WITH table_1 AS (
+      SELECT
+        billing_country,
+        total,
+        customer_id,
+        billing_city,
+        CASE
+          WHEN customer_id < 10 THEN billing_postal_code
+          ELSE NULL
+        END AS _expr_1,
+        billing_postal_code
+      FROM
+        invoices
+    ),
+    table_0 AS (
+      SELECT
+        billing_country,
+        total,
+        customer_id,
+        ROW_NUMBER() OVER (
+          PARTITION BY customer_id,
+          billing_city,
+          billing_country
+          ORDER BY
+            _expr_1 DESC
+        ) AS _expr_0
+      FROM
+        table_1
+    )
+    SELECT
+      billing_country,
+      ROUND(COALESCE(SUM(total), 0), 2) AS total
+    FROM
+      table_0
+    WHERE
+      _expr_0 <= 1
+      AND customer_id IN (4)
+    GROUP BY
+      billing_country
     ");
 }

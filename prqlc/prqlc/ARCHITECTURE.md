@@ -27,7 +27,6 @@ The PRQL compiler operates in the following stages:
    declarations.
 
    The resolving process involves the following operations:
-
    - Assign an ID to each node (`Expr` and `Stmt`).
    - Extract function declarations and variable definitions into the appropriate
      `Module`, accessible from `Context::root_mod`.
@@ -61,7 +60,6 @@ The PRQL compiler operates in the following stages:
    specific location in the output query.
 
    During this process, `sql::context` keeps track of:
-
    - Table instances in the query (to prevent mixing up multiple instances of
      the same table)
    - Column definitions, whether computed or a reference to a table column

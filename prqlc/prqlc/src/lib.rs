@@ -137,10 +137,7 @@ pub type Result<T, E = Error> = core::result::Result<T, E>;
 pub fn compiler_version() -> Version {
     if let Ok(prql_version_override) = std::env::var("PRQL_VERSION_OVERRIDE") {
         return Version::parse(&prql_version_override).unwrap_or_else(|e| {
-            panic!(
-                "Could not parse PRQL version {}\n{}",
-                prql_version_override, e
-            )
+            panic!("Could not parse PRQL version {prql_version_override}\n{e}")
         });
     };
 
@@ -149,24 +146,18 @@ pub fn compiler_version() -> Version {
         .get_or_init(|| {
             if let Ok(prql_version_override) = std::env::var("PRQL_VERSION_OVERRIDE") {
                 return Version::parse(&prql_version_override).unwrap_or_else(|e| {
-                    panic!(
-                        "Could not parse PRQL version {}\n{}",
-                        prql_version_override, e
-                    )
+                    panic!("Could not parse PRQL version {prql_version_override}\n{e}")
                 });
             }
             let git_version = env!("VERGEN_GIT_DESCRIBE");
             let cargo_version = env!("CARGO_PKG_VERSION");
             Version::parse(git_version)
                 .or_else(|e| {
-                    log::info!("Could not parse git version number {}\n{}", git_version, e);
+                    log::info!("Could not parse git version number {git_version}\n{e}");
                     Version::parse(cargo_version)
                 })
                 .unwrap_or_else(|e| {
-                    panic!(
-                        "Could not parse prqlc version number {}\n{}",
-                        cargo_version, e
-                    )
+                    panic!("Could not parse prqlc version number {cargo_version}\n{e}")
                 })
         })
         .clone()
@@ -272,7 +263,7 @@ impl FromStr for Target {
 /// Compilation options for SQL backend of the compiler.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Options {
-    /// Pass generated SQL string trough a formatter that splits it
+    /// Pass generated SQL string through a formatter that splits it
     /// into multiple lines and prettifies indentation and spacing.
     ///
     /// Defaults to true.

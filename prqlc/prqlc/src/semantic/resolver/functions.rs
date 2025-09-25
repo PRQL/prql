@@ -56,7 +56,7 @@ impl Resolver<'_> {
                 .name_hint
                 .clone()
                 .unwrap_or_else(|| Ident::from_name("<unnamed>"));
-            log::debug!("resolving args of function {}", name);
+            log::debug!("resolving args of function {name}");
         }
         let res = self.resolve_function_args(closure)?;
 
@@ -174,7 +174,7 @@ impl Resolver<'_> {
 
         // named
         for mut param in closure.named_params.drain(..) {
-            let param_name = param.name.split('.').last().unwrap_or(&param.name);
+            let param_name = param.name.split('.').next_back().unwrap_or(&param.name);
             let default = param.default_value.take().unwrap();
 
             let arg = named_args.remove(param_name).unwrap_or(*default);
@@ -435,7 +435,7 @@ fn env_of_closure(closure: Func) -> (Module, Expr, Option<Box<Ty>>) {
             kind: DeclKind::Expr(Box::new(arg)),
             ..Default::default()
         };
-        let param_name = param.name.split('.').last().unwrap();
+        let param_name = param.name.split('.').next_back().unwrap();
         func_env.names.insert(param_name.to_string(), v);
     }
 

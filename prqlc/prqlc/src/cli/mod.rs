@@ -703,7 +703,7 @@ sort full
 
         assert_snapshot!(&result.unwrap_err().to_string(), @r"
         Error:
-           ╭─[:1:1]
+           ╭─[ :1:1 ]
            │
          1 │ asdf
            │ ──┬─

@@ -1,5 +1,3 @@
-// See Readme for more information on Mac compiling
-#![cfg(not(target_os = "macos"))]
 // These bindings aren't relevant on wasm
 #![cfg(not(target_family = "wasm"))]
 // TODO: unclear why we need this `allow`; it's required in `CompileOptions`,
@@ -88,7 +86,7 @@ impl From<CompileOptions> for prqlc::Options {
 #[derive(Clone, NifStruct, Debug)]
 #[module = "PRQL.Native.CompileOptions"]
 pub struct CompileOptions {
-    /// Pass generated SQL string trough a formatter that splits it
+    /// Pass generated SQL string through a formatter that splits it
     /// into multiple lines and prettifies indentation and spacing.
     ///
     /// Defaults to true.

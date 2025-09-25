@@ -353,7 +353,7 @@ fn restrict_expr_kind(value: pl::ExprKind) -> pr::ExprKind {
             tc.kind.as_ref().as_ref()
         ))),
         pl::ExprKind::RqOperator { name, .. } => {
-            pr::ExprKind::Ident(pr::Ident::from_name(format!("({} ...)", name)))
+            pr::ExprKind::Ident(pr::Ident::from_name(format!("({name} ...)")))
         }
     }
 }

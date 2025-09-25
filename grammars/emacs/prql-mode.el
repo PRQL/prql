@@ -1,4 +1,14 @@
-;; prql-mode.el -- Major mode for PRQL language
+;;; prql-mode.el --- Major mode for PRQL language -*- lexical-binding: t;
+
+;; URL: https://github.com/PRQL/prql
+;; Keywords: languages
+;; Version: 0.1
+
+;;; Commentary:
+
+;; Provides syntax highlighting for PRQL.
+
+;;; Code:
 
 (defvar prql-mode-syntax-table
   (let ((table (make-syntax-table)))
@@ -45,8 +55,7 @@
     ,(cons (regexp-opt prql-builtin-functions 'words) 'font-lock-builtin-face)
     ,(cons (regexp-opt prql-data-types 'words) 'font-lock-type-face)
     ,@(mapcar (lambda (kw) (cons kw 'font-lock-builtin-face)) prql-operators)
-    ,@(mapcar (lambda (kw) (cons kw 'font-lock-constant-face)) prql-numbers)
-    ))
+    ,@(mapcar (lambda (kw) (cons kw 'font-lock-constant-face)) prql-numbers)))
 
 (define-derived-mode prql-mode prog-mode "PRQL"
   "Major mode for editing PRQL code."
@@ -62,3 +71,5 @@
 (add-to-list 'auto-mode-alist '("\\.prql\\'" . prql-mode))
 
 (provide 'prql-mode)
+
+;;; prql-mode.el ends here
