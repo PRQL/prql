@@ -4727,7 +4727,8 @@ fn shortest_prql_version() {
     escape_version.add_filter(r"'.*'", "[VERSION]");
     escape_version.bind(|| {
         assert_snapshot!(compile(r#"[{version = prql.version}]"#).unwrap(),@r"
-        WITH table_0 AS (
+        WITH
+        table_0 AS (
           SELECT
             [VERSION] AS version)
         SELECT
@@ -5048,7 +5049,7 @@ fn test_regex_search() {
         @r"
     SELECT
       *,
-      REGEXP(artist_name, 'Bob\sMarley') AS is_bob_marley
+      REGEXP (artist_name, 'Bob\sMarley') AS is_bob_marley
     FROM
       tracks
     "
@@ -5080,7 +5081,8 @@ fn test_into() {
     select {x, y}
     "#).unwrap(),
         @r"
-    WITH table_a AS (
+    WITH
+    table_a AS (
       SELECT
         *
       FROM
