@@ -17,5 +17,5 @@ tasks:
   test:
     desc: A fast test used for feedback during compiler development
     cmds:
-      # uv run automatically creates and manages the virtual environment
+      # uv run automatically includes dev dependencies from dependency-groups
       - uv run pytest python/tests

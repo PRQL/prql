@@ -123,18 +123,19 @@ wheels = [
 name = "prqlc"
 source = { editable = "." }
 
-[package.optional-dependencies]
+[package.dev-dependencies]
 dev = [
     { name = "mypy" },
     { name = "pytest" },
 ]
 
 [package.metadata]
-requires-dist = [
-    { name = "mypy", marker = "extra == 'dev'", specifier = "==1.18.1" },
-    { name = "pytest", marker = "extra == 'dev'", specifier = ">=7" },
+
+[package.metadata.requires-dev]
+dev = [
+    { name = "mypy", specifier = "==1.18.1" },
+    { name = "pytest", specifier = ">=7" },
 ]
-provides-extras = ["dev"]
 
 [[package]]
 name = "pygments"
