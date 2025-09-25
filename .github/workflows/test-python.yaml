@@ -45,16 +45,22 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: "3.12"
+      - name: Install uv
+        uses: astral-sh/setup-uv@v4
       - name: Install nox
-        # run: pipx install nox
-        run: pip install nox
+        run: uv tool install nox
         shell: bash
-      - name: Cache Nox
+      - name: Cache uv and Nox
         uses: actions/cache@v4
         with:
-          path: .nox
+          path: |
+            .nox
+            ~/.cache/uv
           key:
-            nox-${{ hashFiles('prqlc/bindings/prqlc-python/pyproject.toml') }}
+            nox-uv-${{ hashFiles('prqlc/bindings/prqlc-python/pyproject.toml')
+            }}
       - name: Run tests and typing
         shell: bash
-        run: nox -s tests typing -f prqlc/bindings/prqlc-python/noxfile.py
+        run: |
+          export UV_SYSTEM_PYTHON=1
+          nox -s tests typing -f prqlc/bindings/prqlc-python/noxfile.py

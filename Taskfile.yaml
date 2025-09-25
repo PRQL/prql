@@ -47,7 +47,7 @@ vars:
     hugo
     jq
     npm
-    pipx
+    uv
     pre-commit
     python3
 
@@ -114,8 +114,8 @@ tasks:
     status:
       - which maturin
     cmds:
-      - pipx install maturin
-      - pipx upgrade maturin
+      - uv tool install maturin
+      - uv tool upgrade maturin
 
   install-cargo-tools-source:
     cmds:

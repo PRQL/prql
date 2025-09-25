@@ -51,7 +51,7 @@ updates:
       interval: daily
     labels: []
 
-  - package-ecosystem: pip
+  - package-ecosystem: uv
     directory: "prqlc/bindings/prqlc-python"
     schedule:
       interval: daily

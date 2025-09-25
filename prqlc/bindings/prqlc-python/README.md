@@ -121,6 +121,21 @@ def pl_to_lineage(pl_json: str) -> str:
     ...
 ```
 
+## Development
+
+For development, we use `uv` for fast dependency management:
+
+```sh
+# Install development dependencies and run tests
+uv run pytest
+
+# Run type checking
+uv run mypy
+
+# Or use the task runner
+task test
+```
+
 ## Notes
 
 These bindings are in a crate named `prqlc-python` and published to a Python
