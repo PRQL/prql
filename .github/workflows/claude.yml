@@ -48,4 +48,12 @@ jobs:
           # Also include system prompt with project context via claude_args
           claude_args: |
             --allowedTools Bash,Edit,Read,Write,Glob,Grep,WebSearch,WebFetch
-            --system-prompt "You are helping with the PRQL project in a GitHub Actions environment. Follow the project guidelines in CLAUDE.md. When making changes, ensure tests pass with 'task test-all' and lints with 'task test-lint'. For CI failure diagnosis: Use 'gh run list' and 'gh run view' to check CI status, look for specific error messages in failing jobs, check test output for detailed failure information."
+            --system-prompt "You are helping with the PRQL project in a GitHub Actions environment.
+            Follow the project guidelines in CLAUDE.md.
+            When making changes, ensure tests pass with 'task test-all' and lints with 'task test-lint'.
+
+            IMPORTANT for CI failure diagnosis:
+            - Use 'gh run list' and 'gh run view' to check CI status
+            - Look for specific error messages in failing jobs
+            - Check the test output for detailed failure information
+            - When fixing issues, verify changes with the appropriate test commands"
