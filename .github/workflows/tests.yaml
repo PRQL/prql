@@ -65,7 +65,7 @@ jobs:
 
     steps:
       - name: 📂 Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
         with:
           fetch-tags: true
       - uses: dorny/paths-filter@v3
@@ -277,9 +277,9 @@ jobs:
     runs-on: macos-14
     steps:
       - name: 📂 Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
       - run: ./.github/workflows/scripts/set_version.sh
-      - uses: actions/setup-python@v5
+      - uses: actions/setup-python@v6
         with:
           python-version: "3.11"
       - name: 💰 Cache
@@ -359,7 +359,7 @@ jobs:
     runs-on: ubuntu-24.04
     steps:
       - name: 📂 Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
       - uses: gaurav-nelson/github-action-markdown-link-check@v1
         with:
           # Run on:
@@ -386,7 +386,7 @@ jobs:
 
     steps:
       - name: 📂 Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
       - uses: baptiste0928/cargo-install@v3
         with:
           crate: mdbook
@@ -413,9 +413,9 @@ jobs:
     needs: rules
     steps:
       - name: 📂 Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
       - run: ./.github/workflows/scripts/set_version.sh
-      - uses: actions/setup-python@v5
+      - uses: actions/setup-python@v6
         with:
           python-version: "3.11"
       - uses: baptiste0928/cargo-install@v3
@@ -485,7 +485,7 @@ jobs:
       'true'
     steps:
       - name: 📂 Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
       - name: 🧅 Setup Bun
         uses: oven-sh/setup-bun@v2
         with:
@@ -520,7 +520,13 @@ jobs:
     if: needs.rules.outputs.nightly == 'true'
     steps:
       - name: 📂 Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
+      - name: Prepare for MSRV testing
+        # Resolver v3 requires Rust 1.84+ to parse the Cargo.toml, but our library MSRV is 1.75.
+        # We temporarily downgrade to resolver v2 for MSRV testing.
+        run: |
+          echo "Patching Cargo.toml for MSRV testing (resolver v3 requires Rust 1.84+)"
+          sed -i 's/resolver = "3"/resolver = "2"/g' Cargo.toml
       - uses: baptiste0928/cargo-install@v3
         with:
           crate: cargo-msrv
@@ -541,9 +547,9 @@ jobs:
     if: needs.rules.outputs.nightly == 'true'
     steps:
       - name: 📂 Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
       - run: rustup override set nightly-2025-01-12
-      - uses: actions/setup-python@v5
+      - uses: actions/setup-python@v6
         with:
           python-version: "3.11"
       - uses: baptiste0928/cargo-install@v3
@@ -662,7 +668,7 @@ jobs:
             features: default
     steps:
       - name: 📂 Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
       - uses: ./.github/actions/build-prqlc
         with:
           target: ${{ matrix.target }}
@@ -695,7 +701,7 @@ jobs:
             features: default
     steps:
       - name: 📂 Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
       - uses: ./.github/actions/build-prqlc-c
         with:
           target: ${{ matrix.target }}
@@ -721,7 +727,7 @@ jobs:
       issues: write
     steps:
       - name: 📂 Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
       - uses: JasonEtco/create-an-issue@v2
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -743,7 +749,7 @@ jobs:
     # such as debian & winget are updated.
     steps:
       - name: 📂 Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
       - uses: a-kenji/update-rust-toolchain@main
         with:
           # Discussion in #1561

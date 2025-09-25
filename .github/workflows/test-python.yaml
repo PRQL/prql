@@ -27,22 +27,22 @@ jobs:
         os: ${{ fromJSON(inputs.oss) }}
     steps:
       - name: 📂 Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
       - name: Build wheel
         uses: ./.github/actions/build-python
         with:
           target: ${{ matrix.os == 'ubuntu-24.04' && 'x86_64' || '' }}
           package: prqlc-python
           profile: dev
-      - uses: actions/download-artifact@v4
+      - uses: actions/download-artifact@v5
         with:
           # `*` covers all targets (we could make this explicit...)
           pattern: prqlc-python-${{ runner.os }}-*-dev
           path: target/python
-      - uses: actions/setup-python@v5
+      - uses: actions/setup-python@v6
         with:
           python-version: "3.10"
-      - uses: actions/setup-python@v5
+      - uses: actions/setup-python@v6
         with:
           python-version: "3.12"
       - name: Install uv

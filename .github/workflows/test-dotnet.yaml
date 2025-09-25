@@ -16,11 +16,11 @@ jobs:
     runs-on: ubuntu-24.04
     steps:
       - name: 📂 Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
       - name: 🏗 Build prqlc-c
         run: cargo build --package prqlc-c
       - name: 🔧 Setup dotnet
-        uses: actions/setup-dotnet@v4
+        uses: actions/setup-dotnet@v5
         with:
           dotnet-version: 7
       - name: 🧪 Build and test
