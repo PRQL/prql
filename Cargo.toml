@@ -11,7 +11,7 @@ members = [
   "prqlc/prqlc/examples/compile-files", # An example
   "web/book",
 ]
-resolver = "2"
+resolver = "3"
 
 [workspace.package]
 authors = ["PRQL Developers"]
