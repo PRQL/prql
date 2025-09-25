@@ -52,7 +52,7 @@ def test_compile_options() -> None:
     query_mssql = "prql target:sql.mssql\nfrom a | take 3"
 
     assert prqlc.compile(query_mssql).startswith(
-        "SELECT\n  *\nFROM\n  a\nORDER BY\n  (\n    SELECT\n      NULL\n  ) OFFSET 0 ROWS\nFETCH FIRST\n  3 ROWS ONLY"
+        "SELECT\n  *\nFROM\n  a\nORDER BY\n  (\n    SELECT\n      NULL) OFFSET 0 ROWS\nFETCH FIRST\n  3 ROWS ONLY"
     )
 
     options_with_known_target = prqlc.CompileOptions(
@@ -80,7 +80,7 @@ def test_compile_options() -> None:
     options_default = prqlc.CompileOptions()
     res = prqlc.compile(query_mssql, options_default)
     assert res.startswith(
-        "SELECT\n  *\nFROM\n  a\nORDER BY\n  (\n    SELECT\n      NULL\n  ) OFFSET 0 ROWS\nFETCH FIRST\n  3 ROWS ONLY"
+        "SELECT\n  *\nFROM\n  a\nORDER BY\n  (\n    SELECT\n      NULL) OFFSET 0 ROWS\nFETCH FIRST\n  3 ROWS ONLY"
     )
 
 
