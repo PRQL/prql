@@ -7,4 +7,4 @@ language.
 
 1. Go to _Preferences > Format_ and choose _Import…_ in the gear icon menu that
    is just below the installed style list.
-2. Choose the `PRQL.yml` file.
+2. Choose the `PRQL.yaml` file.
