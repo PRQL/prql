@@ -43,7 +43,7 @@ jobs:
       checks: write
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
       - uses: rustsec/audit-check@v2.0.0
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
@@ -51,7 +51,7 @@ jobs:
   cargo-bench:
     runs-on: ubuntu-24.04
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
       - uses: clechasseur/rs-cargo@v4
         with:
           command: bench
@@ -67,7 +67,7 @@ jobs:
         use_cache: [true, false]
     steps:
       - name: 📂 Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
       - uses: actions/setup-python@v6
         with:
           python-version: "3.11"
@@ -85,7 +85,7 @@ jobs:
     runs-on: ubuntu-24.04
     steps:
       - name: 📂 Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
       - run: rustup override set nightly-2025-09-22
       - uses: baptiste0928/cargo-install@v3
         with:
@@ -108,7 +108,7 @@ jobs:
   #   runs-on: ubuntu-24.04
   #   steps:
   #     - name: 📂 Checkout code
-  #       uses: actions/checkout@v4
+  #       uses: actions/checkout@v5
 
   #     - uses: docker/setup-buildx-action@v2
 
@@ -147,7 +147,7 @@ jobs:
 
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
 
       # Initializes the CodeQL tools for scanning.
       - name: Initialize CodeQL

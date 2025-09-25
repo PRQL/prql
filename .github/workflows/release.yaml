@@ -62,7 +62,7 @@ jobs:
       contents: write
     steps:
       - name: 📂 Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
       - uses: ./.github/actions/build-prqlc
         id: build-artifact
         with:
@@ -109,7 +109,7 @@ jobs:
       contents: write
     steps:
       - name: 📂 Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
       - uses: ./.github/actions/build-prqlc-c
         id: build-artifact
         with:
@@ -256,7 +256,7 @@ jobs:
     if: ${{ github.event_name == 'release' }}
     steps:
       - name: 📂 Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
       - name: Move Snap to project root directory
         run: cp -r prqlc/packages/snap/ .
       - name: 📦 Build Snap
@@ -295,7 +295,7 @@ jobs:
             target: source
     steps:
       - name: 📂 Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
       - uses: ./.github/actions/build-python
         with:
           target: ${{ matrix.target }}
@@ -328,7 +328,7 @@ jobs:
     runs-on: ubuntu-24.04
     steps:
       - name: 📂 Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
       - uses: baptiste0928/cargo-install@v3
         with:
           crate: wasm-pack
@@ -364,7 +364,7 @@ jobs:
     runs-on: ubuntu-24.04
     steps:
       - name: 📂 Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
       - uses: baptiste0928/cargo-install@v3
         with:
           crate: cargo-release
@@ -382,7 +382,7 @@ jobs:
   #   runs-on: ubuntu-24.04
   #   steps:
   #     - name: Checkout code
-  #       uses: actions/checkout@v4
+  #       uses: actions/checkout@v5
   #     - name: Install Java and Maven
   #       uses: actions/setup-java@v3
   #       with:
@@ -401,7 +401,7 @@ jobs:
     if: github.event_name == 'release'
     steps:
       - name: 📂 Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
       - run: git push origin HEAD:web --force
 
   push-devcontainer:
