@@ -56,7 +56,7 @@ since it relies on `brew`.
 - [Install Task](https://taskfile.dev/installation/).
 - Then run the `setup-dev` task. This runs commands from our
   [Taskfile.yaml](https://github.com/PRQL/prql/blob/main/Taskfile.yaml),
-  installing dependencies with `cargo`, `brew`, `npm` & `pip`, and suggests some
+  installing dependencies with `cargo`, `brew`, `npm` & `uv`, and suggests some
   VS Code extensions.
 
   ```sh

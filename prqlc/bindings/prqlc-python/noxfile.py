@@ -14,9 +14,11 @@ VERSIONS: List[str] = [
 
 nox.options.stop_on_first_error = False
 nox.options.reuse_existing_virtualenvs = False
+nox.options.default_venv_backend = "uv"
 
 
 def _install_prqlc(session: Session) -> None:
+    # Use uv for installation which is much faster
     session.install(
         "-v",
         # We'd like to prevent `prqlc` from being installed from PyPI, but we do
