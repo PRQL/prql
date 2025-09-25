@@ -2392,7 +2392,9 @@ fn test_distinct_04() {
     table_0 AS (
       SELECT
         *,
-        ROW_NUMBER() OVER (PARTITION BY first_name, last_name) AS _expr_0
+        ROW_NUMBER() OVER (
+          PARTITION BY
+            first_name, last_name) AS _expr_0
       FROM
         employees
     )
@@ -2424,7 +2426,9 @@ fn test_distinct_06() {
     table_0 AS (
       SELECT
         *,
-        ROW_NUMBER() OVER (PARTITION BY department) AS _expr_0
+        ROW_NUMBER() OVER (
+          PARTITION BY
+            department) AS _expr_0
       FROM
         employees
     )
@@ -2447,7 +2451,8 @@ fn test_distinct_07() {
       SELECT
         *,
         ROW_NUMBER() OVER (
-          PARTITION BY department
+          PARTITION BY
+            department
           ORDER BY
             salary
         ) AS _expr_0
@@ -2473,7 +2478,8 @@ fn test_distinct_08() {
       SELECT
         *,
         ROW_NUMBER() OVER (
-          PARTITION BY department
+          PARTITION BY
+            department
           ORDER BY
             salary
         ) AS _expr_0
@@ -2504,7 +2510,9 @@ fn test_distinct_09() {
       SELECT
         billing_city,
         billing_country,
-        ROW_NUMBER() OVER (PARTITION BY billing_city) AS _expr_0
+        ROW_NUMBER() OVER (
+          PARTITION BY
+            billing_city) AS _expr_0
       FROM
         invoices
     )
@@ -2625,7 +2633,8 @@ fn test_group_take_n_01() {
       SELECT
         *,
         ROW_NUMBER() OVER (
-          PARTITION BY department
+          PARTITION BY
+            department
           ORDER BY
             age
         ) AS _expr_0
@@ -2657,7 +2666,8 @@ fn test_group_take_n_02() {
       SELECT
         *,
         ROW_NUMBER() OVER (
-          PARTITION BY department
+          PARTITION BY
+            department
           ORDER BY
             age
         ) AS _expr_0
@@ -5113,7 +5123,8 @@ fn test_array_01() {
       UNION ALL
       SELECT
         4 AS a,
-        true AS b),
+        true AS b
+    ),
     my_relation AS (
       SELECT
         a,
@@ -6013,9 +6024,10 @@ fn test_distinct_on_sort_on_compute() {
         total,
         customer_id,
         ROW_NUMBER() OVER (
-          PARTITION BY customer_id,
-          billing_city,
-          billing_country
+          PARTITION BY
+            customer_id,
+            billing_city,
+            billing_country
           ORDER BY
             _expr_1 DESC
         ) AS _expr_0
