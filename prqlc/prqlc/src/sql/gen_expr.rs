@@ -469,10 +469,11 @@ fn translate_datetime_literal_with_typed_string(
     data_type: sql_ast::DataType,
     value: String,
 ) -> sql_ast::Expr {
-    sql_ast::Expr::TypedString {
+    sql_ast::Expr::TypedString(sqlparser::ast::TypedString {
         data_type,
         value: sqlparser::ast::Value::SingleQuotedString(value).into(),
-    }
+        uses_odbc_syntax: false,
+    })
 }
 
 fn translate_datetime_literal_with_sqlite_function(
