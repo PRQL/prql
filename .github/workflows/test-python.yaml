@@ -34,7 +34,7 @@ jobs:
           target: ${{ matrix.os == 'ubuntu-24.04' && 'x86_64' || '' }}
           package: prqlc-python
           profile: dev
-      - uses: actions/download-artifact@v4
+      - uses: actions/download-artifact@v5
         with:
           # `*` covers all targets (we could make this explicit...)
           pattern: prqlc-python-${{ runner.os }}-*-dev

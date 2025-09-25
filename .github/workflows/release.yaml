@@ -148,7 +148,7 @@ jobs:
     permissions:
       contents: write
     steps:
-      - uses: actions/download-artifact@v4
+      - uses: actions/download-artifact@v5
         with:
           name: prqlc-${{ matrix.target }}-release
       - name: Copy files into .deb package
@@ -203,7 +203,7 @@ jobs:
     permissions:
       contents: write
     steps:
-      - uses: actions/download-artifact@v4
+      - uses: actions/download-artifact@v5
         with:
           name: prqlc-${{ matrix.target }}-release
       - name: Copy files into .rpm package
@@ -313,7 +313,7 @@ jobs:
         package:
           - prqlc-python
     steps:
-      - uses: actions/download-artifact@v4
+      - uses: actions/download-artifact@v5
         with:
           # `*` covers target & OS
           pattern: ${{ matrix.package }}-*-release
