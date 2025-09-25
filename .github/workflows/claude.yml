@@ -21,7 +21,7 @@ jobs:
       actions: read # Required for Claude to read CI results on PRs
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
         with:
           # Fix: Checkout PR branch for issue_comment events instead of default branch
           ref:
@@ -29,10 +29,14 @@ jobs:
             github.event.issue.number) || github.ref }}
           fetch-depth: 0 # Get more history for better context
 
+      - name: Configure git for Claude
+        run: |
+          git config --global user.name "Claude Code"
+          git config --global user.email "claude@anthropic.com"
+
       - name: Run Claude Code
         id: claude
-        # Fix: Use specific version that has the PR context bug fixed
-        uses: anthropics/claude-code-action@v1.0.6
+        uses: anthropics/claude-code-action@v1
         with:
           claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
 
@@ -41,19 +45,7 @@ jobs:
             actions: read
 
           # Grant Claude full permissions to execute commands
+          # Also include system prompt with project context via claude_args
           claude_args: |
-            --allowedTools "Bash(*),Edit,Read,Write,Glob,Grep,WebSearch,WebFetch"
-
-          # Enhanced prompt with explicit CI diagnosis instructions
-          prompt: |
-            You are helping with the PRQL project in a GitHub Actions environment.
-            Follow the project guidelines in CLAUDE.md.
-            When making changes, ensure tests pass with `task test-all` and lints with `task test-lint`.
-
-            IMPORTANT for CI failure diagnosis:
-            - Use 'gh run list' and 'gh run view' to check CI status
-            - Look for specific error messages in failing jobs
-            - Check the test output for detailed failure information
-            - When fixing issues, verify changes with the appropriate test commands
-
-            User comment: ${{ github.event.comment.body }}
+            --allowedTools Bash,Edit,Read,Write,Glob,Grep,WebSearch,WebFetch
+            --system-prompt "You are helping with the PRQL project in a GitHub Actions environment. Follow the project guidelines in CLAUDE.md. When making changes, ensure tests pass with 'task test-all' and lints with 'task test-lint'. For CI failure diagnosis: Use 'gh run list' and 'gh run view' to check CI status, look for specific error messages in failing jobs, check test output for detailed failure information."
