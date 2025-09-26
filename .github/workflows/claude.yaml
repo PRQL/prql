@@ -44,9 +44,9 @@ jobs:
 
       # Install essential tools for the PRQL project
       - name: 🔧 Setup Task
-        uses: arduino/setup-task@v2
+        uses: go-task/setup-task@v1
         with:
-          repo-token: "${{ secrets.GITHUB_TOKEN }}"
+          repo-token: ${{ secrets.GITHUB_TOKEN }}
 
       # Rust is pre-installed on ubuntu-latest, but we ensure consistent toolchain
       - uses: baptiste0928/cargo-install@v3
