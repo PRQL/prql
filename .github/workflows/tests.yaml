@@ -292,7 +292,7 @@ jobs:
           shared-key: rust-aarch64-apple-darwin
           save-if: false
       - name: Install Task
-        uses: arduino/setup-task@v2
+        uses: go-task/setup-task@v1
         with:
           repo-token: ${{ secrets.GITHUB_TOKEN }}
       # Required because of https://github.com/cargo-bins/cargo-binstall/issues/1254
