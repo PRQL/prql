@@ -53,9 +53,9 @@ jobs:
             ${{ github.ref == 'refs/heads/web' || github.ref ==
             'refs/heads/main' }}
 
-      - uses: arduino/setup-task@v2
+      - uses: go-task/setup-task@v1
         with:
-          repo-token: "${{ secrets.GITHUB_TOKEN }}"
+          repo-token: ${{ secrets.GITHUB_TOKEN }}
 
       - name: 🕷️ Build web
         run: task web:build

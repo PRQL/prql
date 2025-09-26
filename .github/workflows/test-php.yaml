@@ -20,9 +20,9 @@ jobs:
     steps:
       - name: 📂 Checkout code
         uses: actions/checkout@v5
-      - uses: arduino/setup-task@v2
+      - uses: go-task/setup-task@v1
         with:
-          repo-token: "${{ secrets.GITHUB_TOKEN }}"
+          repo-token: ${{ secrets.GITHUB_TOKEN }}
       - run: ./.github/workflows/scripts/set_version.sh
       - name: 💰 Cache
         uses: Swatinem/rust-cache@v2
