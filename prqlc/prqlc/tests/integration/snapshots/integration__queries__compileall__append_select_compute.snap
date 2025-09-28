@@ -24,8 +24,9 @@ input_file: prqlc/prqlc/tests/integration/queries/append_select_compute.prql
 
 --- generic
 +++ postgres
-@@ -1,41 +1,34 @@
- WITH table_1 AS (
+@@ -1,41 +1,35 @@
+ WITH
+ table_1 AS (
 -  SELECT
 -    *
 -  FROM
@@ -55,8 +56,7 @@ input_file: prqlc/prqlc/tests/integration/queries/append_select_compute.prql
 +    LIMIT
 +      5
 +  )
-   UNION
--  ALL
+   UNION ALL
 -  SELECT
 -    *
 -  FROM
@@ -73,7 +73,7 @@ input_file: prqlc/prqlc/tests/integration/queries/append_select_compute.prql
 -      LIMIT
 -        5
 -    ) AS table_4
-+  ALL (
++  (
 +    SELECT
 +      invoice_id,
 +      CASE

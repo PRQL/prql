@@ -5,8 +5,8 @@ input_file: prqlc/prqlc/tests/integration/queries/arithmetic.prql
 ---
 --- generic
 +++ clickhouse
-@@ -25,42 +25,36 @@
-   ALL
+@@ -23,42 +23,36 @@
+   UNION ALL
    SELECT
      4 AS id,
      -13 AS x_int,
@@ -63,8 +63,8 @@ input_file: prqlc/prqlc/tests/integration/queries/arithmetic.prql
 
 --- generic
 +++ duckdb
-@@ -25,42 +25,39 @@
-   ALL
+@@ -23,42 +23,39 @@
+   UNION ALL
    SELECT
      4 AS id,
      -13 AS x_int,
@@ -122,8 +122,8 @@ input_file: prqlc/prqlc/tests/integration/queries/arithmetic.prql
 
 --- generic
 +++ glaredb
-@@ -25,42 +25,46 @@
-   ALL
+@@ -23,42 +23,46 @@
+   UNION ALL
    SELECT
      4 AS id,
      -13 AS x_int,
@@ -184,8 +184,8 @@ input_file: prqlc/prqlc/tests/integration/queries/arithmetic.prql
 
 --- generic
 +++ mssql
-@@ -25,24 +25,24 @@
-   ALL
+@@ -23,24 +23,24 @@
+   UNION ALL
    SELECT
      4 AS id,
      -13 AS x_int,
@@ -216,8 +216,8 @@ input_file: prqlc/prqlc/tests/integration/queries/arithmetic.prql
 
 --- generic
 +++ mysql
-@@ -25,42 +25,42 @@
-   ALL
+@@ -23,42 +23,42 @@
+   UNION ALL
    SELECT
      4 AS id,
      -13 AS x_int,
@@ -278,8 +278,8 @@ input_file: prqlc/prqlc/tests/integration/queries/arithmetic.prql
 
 --- generic
 +++ postgres
-@@ -25,42 +25,46 @@
-   ALL
+@@ -23,42 +23,46 @@
+   UNION ALL
    SELECT
      4 AS id,
      -13 AS x_int,
@@ -340,8 +340,8 @@ input_file: prqlc/prqlc/tests/integration/queries/arithmetic.prql
 
 --- generic
 +++ sqlite
-@@ -25,42 +25,42 @@
-   ALL
+@@ -23,42 +23,42 @@
+   UNION ALL
    SELECT
      4 AS id,
      -13 AS x_int,

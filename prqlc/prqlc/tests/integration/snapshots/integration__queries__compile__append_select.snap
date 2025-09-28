@@ -15,8 +15,7 @@ FROM
     LIMIT
       6 OFFSET 9
   ) AS table_2
-UNION
-ALL
+UNION ALL
 SELECT
   *
 FROM

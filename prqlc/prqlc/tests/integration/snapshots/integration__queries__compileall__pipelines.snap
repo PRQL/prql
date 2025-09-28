@@ -5,8 +5,9 @@ input_file: prqlc/prqlc/tests/integration/queries/pipelines.prql
 ---
 --- generic
 +++ clickhouse
-@@ -1,20 +1,20 @@
- WITH table_0 AS (
+@@ -1,21 +1,21 @@
+ WITH
+ table_0 AS (
    SELECT
      name,
      composer,
@@ -14,9 +15,9 @@ input_file: prqlc/prqlc/tests/integration/queries/pipelines.prql
    FROM
      tracks
    WHERE
--    REGEXP(name, 'Love')
+-    REGEXP (name, 'Love')
 -    AND milliseconds / 1000 / 60 BETWEEN 3 AND 4
-+    match(name, 'Love')
++    match (name, 'Love')
 +    AND ((milliseconds / 1000) / 60) BETWEEN 3 AND 4
    ORDER BY
      track_id
@@ -31,8 +32,9 @@ input_file: prqlc/prqlc/tests/integration/queries/pipelines.prql
 
 --- generic
 +++ duckdb
-@@ -1,20 +1,20 @@
- WITH table_0 AS (
+@@ -1,21 +1,21 @@
+ WITH
+ table_0 AS (
    SELECT
      name,
      composer,
@@ -40,7 +42,7 @@ input_file: prqlc/prqlc/tests/integration/queries/pipelines.prql
    FROM
      tracks
    WHERE
--    REGEXP(name, 'Love')
+-    REGEXP (name, 'Love')
 -    AND milliseconds / 1000 / 60 BETWEEN 3 AND 4
 +    REGEXP_MATCHES(name, 'Love')
 +    AND ((milliseconds / 1000) / 60) BETWEEN 3 AND 4
@@ -58,8 +60,9 @@ input_file: prqlc/prqlc/tests/integration/queries/pipelines.prql
 
 --- generic
 +++ glaredb
-@@ -1,20 +1,20 @@
- WITH table_0 AS (
+@@ -1,21 +1,21 @@
+ WITH
+ table_0 AS (
    SELECT
      name,
      composer,
@@ -67,7 +70,7 @@ input_file: prqlc/prqlc/tests/integration/queries/pipelines.prql
    FROM
      tracks
    WHERE
--    REGEXP(name, 'Love')
+-    REGEXP (name, 'Love')
 -    AND milliseconds / 1000 / 60 BETWEEN 3 AND 4
 +    name ~ 'Love'
 +    AND ((milliseconds * 1.0 / 1000) * 1.0 / 60) BETWEEN 3 AND 4
@@ -84,8 +87,9 @@ input_file: prqlc/prqlc/tests/integration/queries/pipelines.prql
 
 --- generic
 +++ mysql
-@@ -1,20 +1,20 @@
- WITH table_0 AS (
+@@ -1,21 +1,21 @@
+ WITH
+ table_0 AS (
    SELECT
      name,
      composer,
@@ -93,7 +97,7 @@ input_file: prqlc/prqlc/tests/integration/queries/pipelines.prql
    FROM
      tracks
    WHERE
--    REGEXP(name, 'Love')
+-    REGEXP (name, 'Love')
 -    AND milliseconds / 1000 / 60 BETWEEN 3 AND 4
 +    REGEXP_LIKE(name, 'Love', 'c')
 +    AND ((milliseconds / 1000) / 60) BETWEEN 3 AND 4
@@ -110,8 +114,9 @@ input_file: prqlc/prqlc/tests/integration/queries/pipelines.prql
 
 --- generic
 +++ postgres
-@@ -1,20 +1,20 @@
- WITH table_0 AS (
+@@ -1,21 +1,21 @@
+ WITH
+ table_0 AS (
    SELECT
      name,
      composer,
@@ -119,7 +124,7 @@ input_file: prqlc/prqlc/tests/integration/queries/pipelines.prql
    FROM
      tracks
    WHERE
--    REGEXP(name, 'Love')
+-    REGEXP (name, 'Love')
 -    AND milliseconds / 1000 / 60 BETWEEN 3 AND 4
 +    name ~ 'Love'
 +    AND ((milliseconds * 1.0 / 1000) * 1.0 / 60) BETWEEN 3 AND 4

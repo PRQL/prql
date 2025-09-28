@@ -2,15 +2,14 @@
 source: web/book/tests/documentation/book.rs
 expression: "let my_artists = [\n  {artist=\"Miles Davis\"},\n  {artist=\"Marvin Gaye\"},\n  {artist=\"James Brown\"},\n]\n\nfrom artists\njoin my_artists (==artist)\njoin albums (==artist_id)\nselect {artists.artist_id, albums.title}\n"
 ---
-WITH table_0 AS (
+WITH
+table_0 AS (
   SELECT
     'Miles Davis' AS artist
-  UNION
-  ALL
+  UNION ALL
   SELECT
     'Marvin Gaye' AS artist
-  UNION
-  ALL
+  UNION ALL
   SELECT
     'James Brown' AS artist
 ),
