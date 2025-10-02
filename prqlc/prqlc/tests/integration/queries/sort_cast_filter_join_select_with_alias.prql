@@ -1,6 +1,6 @@
 from albums
-select { this.`title`, this.`artist_id` }
-sort { this.`artist_id` }
+select { this.`title`, this.`artist_id`, this.`album_id` }
+sort { this.`artist_id`, this.`album_id` }
 derive { `double_artist_id` = as `double precision` this.`artist_id` }
 filter (this.`artist_id` != null)
 join side:left artists (this.`double_artist_id` == that.`artist_id`)

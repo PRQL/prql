@@ -1,13 +1,14 @@
 ---
 source: prqlc/prqlc/tests/integration/queries.rs
-expression: "from albums\nselect { this.`title`, this.`artist_id` }\nsort { this.`artist_id` }\nderive { `artist_id` = as `double precision` this.`artist_id` }\nfilter (this.`artist_id` != null)\njoin side:left artists (this.`artist_id` == that.`artist_id`)\nselect {this.`artist_id`, this.`title`, this.`name`}\n"
+expression: "from albums\nselect { this.`title`, this.`artist_id`, this.`album_id` }\nsort { this.`artist_id`, this.`album_id` }\nderive { `artist_id` = as `double precision` this.`artist_id` }\nfilter (this.`artist_id` != null)\njoin side:left artists (this.`artist_id` == that.`artist_id`)\nselect {this.`artist_id`, this.`title`, this.`name`}\n"
 input_file: prqlc/prqlc/tests/integration/queries/sort_cast_filter_join_select.prql
 ---
 WITH table_1 AS (
   SELECT
     CAST(artist_id AS double precision) AS artist_id,
     title,
-    artist_id AS _expr_0
+    artist_id AS _expr_0,
+    album_id
   FROM
     albums
 ),
@@ -15,7 +16,8 @@ table_2 AS (
   SELECT
     artist_id,
     title,
-    _expr_0
+    _expr_0,
+    album_id
   FROM
     table_1
   WHERE
@@ -25,7 +27,8 @@ table_0 AS (
   SELECT
     artist_id,
     title,
-    _expr_0
+    _expr_0,
+    album_id
   FROM
     table_2
 )
@@ -37,4 +40,5 @@ FROM
   table_0
   LEFT OUTER JOIN artists ON table_0.artist_id = artists.artist_id
 ORDER BY
-  table_0._expr_0
+  table_0._expr_0,
+  table_0.album_id
