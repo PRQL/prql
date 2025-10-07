@@ -46,6 +46,25 @@ fn test_error_unicode_string() {
     parse_source("👍 s’").unwrap_err();
 
     let source = "Mississippi has four S’s and four I’s.";
+
+    // LEXER output for comparison (what the lexer sees):
+    assert_debug_snapshot!(crate::lexer::lex_source(source).unwrap_err(), @r#"
+    [
+        Error {
+            kind: Error,
+            span: Some(
+                0:22-23,
+            ),
+            reason: Unexpected {
+                found: "'’'",
+            },
+            hints: [],
+            code: None,
+        },
+    ]
+    "#);
+
+    // PARSER output (what happens after lexing):
     assert_debug_snapshot!(parse_source(source).unwrap_err(), @r#"
     [
         Error {
@@ -54,18 +73,7 @@ fn test_error_unicode_string() {
                 0:22-23,
             ),
             reason: Unexpected {
-                found: "’",
-            },
-            hints: [],
-            code: None,
-        },
-        Error {
-            kind: Error,
-            span: Some(
-                0:35-36,
-            ),
-            reason: Unexpected {
-                found: "’",
+                found: "'’'",
             },
             hints: [],
             code: None,
@@ -1593,9 +1601,9 @@ fn test_unicode() {
             args:
               - Ident:
                   - tète
-                span: "0:5-9"
-          span: "0:0-9"
-      span: "0:0-9"
+                span: "0:5-10"
+          span: "0:0-10"
+      span: "0:0-10"
     "#);
 }
 

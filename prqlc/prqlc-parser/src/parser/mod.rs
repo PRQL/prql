@@ -1,3 +1,4 @@
+// The parser still uses Chumsky 0.9, while the lexer uses 0.10
 use chumsky::{prelude::*, Stream};
 
 use self::perror::PError;
