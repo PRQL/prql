@@ -96,10 +96,10 @@ fn interpolation_end() {
         Error {
             kind: Error,
             span: Some(
-                0:20-20,
+                0:17-18,
             ),
             reason: Unexpected {
-                found: "",
+                found: "'\"'",
             },
             hints: [],
             code: None,
@@ -110,11 +110,11 @@ fn interpolation_end() {
     // PARSER output (full compilation error):
     assert_snapshot!(compile(source).unwrap_err(), @r#"
     Error:
-       ╭─[ :1:21 ]
+       ╭─[ :1:18 ]
        │
      1 │ from x | select f"{}
-       │                     │
-       │                     ╰─ unexpected
+       │                  ┬
+       │                  ╰── unexpected '"'
     ───╯
     "#);
 }

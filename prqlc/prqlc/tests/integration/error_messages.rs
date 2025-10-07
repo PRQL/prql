@@ -79,18 +79,7 @@ fn test_errors() {
                 0:22-23,
             ),
             reason: Unexpected {
-                found: "’",
-            },
-            hints: [],
-            code: None,
-        },
-        Error {
-            kind: Error,
-            span: Some(
-                0:35-36,
-            ),
-            reason: Unexpected {
-                found: "’",
+                found: "'’'",
             },
             hints: [],
             code: None,
@@ -105,21 +94,7 @@ fn test_errors() {
        │
      1 │ Mississippi has four S’s and four I’s.
        │                       ┬
-       │                       ╰── unexpected ’
-    ───╯
-    Error:
-       ╭─[ :1:36 ]
-       │
-     1 │ Mississippi has four S’s and four I’s.
-       │                                    ┬
-       │                                    ╰── unexpected ’
-    ───╯
-    Error:
-       ╭─[ :1:39 ]
-       │
-     1 │ Mississippi has four S’s and four I’s.
-       │                                       │
-       │                                       ╰─ Expected * or an identifier, but didn't find anything before the end.
+       │                       ╰── unexpected '’'
     ───╯
     ");
 
