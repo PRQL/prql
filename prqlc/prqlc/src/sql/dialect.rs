@@ -131,6 +131,11 @@ pub(super) enum ColumnExclude {
     Except,
 }
 
+pub enum IdentQuotingStyle {
+    AlwaysQuoted,
+    ConditionallyQuoted,
+}
+
 pub(super) trait DialectHandler: Any + Debug {
     fn use_fetch(&self) -> bool {
         false
@@ -138,6 +143,10 @@ pub(super) trait DialectHandler: Any + Debug {
 
     fn ident_quote(&self) -> char {
         '"'
+    }
+
+    fn ident_quoting_style(&self) -> IdentQuotingStyle {
+        IdentQuotingStyle::ConditionallyQuoted
     }
 
     fn column_exclude(&self) -> Option<ColumnExclude> {
@@ -491,6 +500,12 @@ impl DialectHandler for BigQueryDialect {
 }
 
 impl DialectHandler for SnowflakeDialect {
+    fn ident_quoting_style(&self) -> IdentQuotingStyle {
+        // Due to snowflake's identifier casing rules, identifiers are always quoted
+        // https://docs.snowflake.com/en/sql-reference/identifiers-syntax#label-identifier-casing
+        IdentQuotingStyle::AlwaysQuoted
+    }
+
     fn column_exclude(&self) -> Option<ColumnExclude> {
         // https://docs.snowflake.com/en/sql-reference/sql/select.html
         Some(ColumnExclude::Exclude)

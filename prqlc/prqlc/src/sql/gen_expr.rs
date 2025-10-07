@@ -16,6 +16,7 @@ use super::{keywords, Context};
 use crate::ir::generic::{ColumnSort, SortDirection, WindowFrame, WindowKind};
 use crate::ir::pl::{self, Ident, Literal};
 use crate::ir::rq;
+use crate::sql::dialect::IdentQuotingStyle;
 use crate::sql::pq::context::ColumnDecl;
 use crate::utils::{valid_ident, OrMap};
 use crate::{Error, Result, Span, WithErrorInfo};
@@ -831,11 +832,17 @@ pub(super) fn translate_ident(
 
 pub(super) fn translate_ident_part(ident: String, ctx: &Context) -> sql_ast::Ident {
     let is_bare = valid_ident().is_match(&ident);
-
-    if is_bare && !keywords::is_keyword(&ident) {
-        sql_ast::Ident::new(ident)
-    } else {
-        sql_ast::Ident::with_quote(ctx.dialect.ident_quote(), ident)
+    match ctx.dialect.ident_quoting_style() {
+        IdentQuotingStyle::ConditionallyQuoted => {
+            if is_bare && !keywords::is_keyword(&ident) {
+                sql_ast::Ident::new(ident)
+            } else {
+                sql_ast::Ident::with_quote(ctx.dialect.ident_quote(), ident)
+            }
+        }
+        IdentQuotingStyle::AlwaysQuoted => {
+            sql_ast::Ident::with_quote(ctx.dialect.ident_quote(), ident)
+        }
     }
 }
 

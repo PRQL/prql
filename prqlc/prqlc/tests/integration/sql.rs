@@ -218,6 +218,41 @@ FROM
 }
 
 #[rstest]
+#[case::generic(
+    sql::Dialect::Generic,
+    r#"
+SELECT
+  a,
+  b,
+  "col space"
+FROM
+  employees
+"#
+)]
+#[case::snowflake(
+    sql::Dialect::Snowflake,
+    r#"
+SELECT
+  "a",
+  "b",
+  "col space"
+FROM
+  "employees"
+"#
+)]
+fn test_quoting_style(#[case] dialect: sql::Dialect, #[case] expected_sql: &'static str) {
+    let query = r#"
+  from employees
+  select { a, `b`, `col space` }
+  "#;
+
+    assert_eq!(
+        compile_with_sql_dialect(query, dialect).unwrap(),
+        expected_sql.trim_start()
+    )
+}
+
+#[rstest]
 #[case::clickhouse(
     sql::Dialect::ClickHouse,
     "formatDateTimeInJodaSyntax(invoice_date, 'dd/MM/yyyy')"
@@ -2747,6 +2782,42 @@ fn test_join_side_literal_via_func_err() {
 }
 
 #[test]
+fn test_join_with_param_name_collision() {
+    // Regression test for issue #5015
+    // When joining tables that both have a column named "source",
+    // the compiler should not report an ambiguous name error due to
+    // the "source" parameter from the std library's "from" function.
+    assert_snapshot!((compile(r###"
+    let a = (
+      from events_a
+      select {
+        event_id,
+        source,
+      }
+    )
+
+    from a
+    join a (==event_id)
+    select {
+      event_id = a.event_id,
+    }
+    "###).unwrap()), @r"
+    WITH a AS (
+      SELECT
+        event_id,
+        source
+      FROM
+        events_a
+    )
+    SELECT
+      table_0.event_id
+    FROM
+      a
+      INNER JOIN a AS table_0 ON a.event_id = table_0.event_id
+    ");
+}
+
+#[test]
 fn test_from_json() {
     // Test that the SQL generated from the JSON of the PRQL is the same as the raw PRQL
     let original_prql = r#"
@@ -4310,12 +4381,12 @@ fn test_exclude_columns_05() {
     from tracks
     select !{milliseconds,bytes}
     "#).unwrap(),
-        @r"
+        @r#"
     SELECT
-      * EXCLUDE (milliseconds, bytes)
+      * EXCLUDE ("milliseconds", "bytes")
     FROM
-      tracks
-    "
+      "tracks"
+    "#
     );
 }
 
