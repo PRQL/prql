@@ -8,12 +8,10 @@ use crate::lexer::lr::{Literal, TokenKind, Tokens};
 
 #[test]
 fn line_wrap() {
-    // Helper function to test line wrap tokens for both Chumsky versions
     fn test_line_wrap_tokens(input: &str) -> Tokens {
         Tokens(lexer().parse(input).output().unwrap().to_vec())
     }
 
-    // This format test is the same for both versions
     assert_eq!(
         format!(
             "{}",
@@ -25,9 +23,6 @@ fn line_wrap() {
     );
 
     // Basic line wrap test
-    // Note: When adding or modifying tests:
-    // 1. Create snapshots without chumsky-10 feature first
-    // 2. Then test with chumsky-10 to ensure compatibility
     assert_debug_snapshot!(test_line_wrap_tokens(r"5 +
     \ 3 "), @r"
     Tokens(
@@ -58,9 +53,6 @@ fn line_wrap() {
 
 #[test]
 fn numbers() {
-    // Unified test for number parsing across both Chumsky versions
-
-    // Function to test number parsing that works with both Chumsky versions
     fn test_number_parsing(input: &str, expected: Literal) {
         assert_eq!(literal().parse(input).output().unwrap(), &expected);
     }
@@ -79,14 +71,10 @@ fn numbers() {
 
 #[test]
 fn debug_display() {
-    // Unified function to test token output for both Chumsky versions
     fn test_tokens(input: &str) -> Tokens {
         Tokens(lexer().parse(input).output().unwrap().to_vec())
     }
 
-    // Note: When adding or modifying tests:
-    // 1. Create snapshots without chumsky-10 feature first
-    // 2. Then test with chumsky-10 to ensure compatibility
     assert_debug_snapshot!(test_tokens("5 + 3"), @r"
     Tokens(
         [
@@ -109,9 +97,6 @@ fn comment() {
         Tokens(lexer().parse(input).output().unwrap().to_vec())
     }
 
-    // Note: When adding or modifying tests:
-    // 1. Create snapshots without chumsky-10 feature first
-    // 2. Then test with chumsky-10 to ensure compatibility
     assert_debug_snapshot!(test_comment_tokens("# comment\n# second line"), @r#"
     Tokens(
         [
@@ -130,9 +115,6 @@ fn doc_comment() {
         Tokens(lexer().parse(input).output().unwrap().to_vec())
     }
 
-    // Note: When adding or modifying tests:
-    // 1. Create snapshots without chumsky-10 feature first
-    // 2. Then test with chumsky-10 to ensure compatibility
     assert_debug_snapshot!(test_doc_comment_tokens("#! docs"), @r#"
     Tokens(
         [
@@ -144,7 +126,6 @@ fn doc_comment() {
 
 #[test]
 fn quotes() {
-    // Unified testing function that works for both Chumsky versions
     fn test_basic_string(input: &str, escaped: bool, expected_str: &str) {
         let parse_result = quoted_string(escaped).parse(input);
         if let Some(result) = parse_result.output() {
@@ -154,11 +135,8 @@ fn quotes() {
         }
     }
 
-    // Basic string tests - should work on both versions
     test_basic_string(r#"'aoeu'"#, false, "aoeu");
     test_basic_string(r#"''"#, true, "");
-
-    // Basic tests that work across both versions
     test_basic_string(r#""hello""#, true, "hello");
     test_basic_string(r#""hello\nworld""#, true, "hello\nworld");
 
@@ -228,12 +206,10 @@ fn timestamp_tests() {
 
 #[test]
 fn range() {
-    // Helper function to test range parsing for both Chumsky versions
     fn test_range_tokens(input: &str) -> Tokens {
         Tokens(lexer().parse(input).output().unwrap().to_vec())
     }
 
-    // Standard range test - works in both versions
     assert_debug_snapshot!(test_range_tokens("1..2"), @r"
     Tokens(
         [
@@ -244,7 +220,6 @@ fn range() {
     )
     ");
 
-    // Open-ended range to the right - works in both versions
     assert_debug_snapshot!(test_range_tokens("..2"), @r"
     Tokens(
         [
@@ -254,7 +229,6 @@ fn range() {
     )
     ");
 
-    // Open-ended range to the left - works in both versions
     assert_debug_snapshot!(test_range_tokens("1.."), @r"
     Tokens(
         [
@@ -264,7 +238,6 @@ fn range() {
     )
     ");
 
-    // Range with identifier prefix - since span implementation differs between versions
     let result = test_range_tokens("in ..5");
 
     // Just verify we have 3 tokens, with the right types and values
@@ -283,9 +256,6 @@ fn range() {
 fn test_lex_source() {
     use insta::assert_debug_snapshot;
 
-    // Note: When adding or modifying tests:
-    // 1. Create snapshots without chumsky-10 feature first
-    // 2. Then test with chumsky-10 to ensure compatibility
     assert_debug_snapshot!(lex_source("5 + 3"), @r"
     Ok(
         Tokens(
@@ -299,8 +269,6 @@ fn test_lex_source() {
     )
     ");
 
-    // Test error handling - the format may differ slightly between versions,
-    // but we should make sure an error is returned
     let result = lex_source("^");
     assert!(result.is_err());
 }
@@ -450,13 +418,10 @@ fn test_mississippi_curly_quotes() {
         input.chars().nth(35).unwrap() as u32
     );
 
-    // Try both lex_source and lex_source_recovery to compare
     let result1 = lex_source(input);
-    eprintln!("\n--- Chumsky 0.10 lex_source ---");
     eprintln!("{:#?}", result1);
 
     let (tokens, errors) = super::lexer::lex_source_recovery(input, 1);
-    eprintln!("\n--- Chumsky 0.10 lex_source_recovery ---");
     eprintln!("Tokens: {:#?}", tokens);
     eprintln!("Errors: {:#?}", errors);
 

@@ -20,7 +20,6 @@ pub struct Error {
 
 #[derive(Clone, Debug, Default)]
 pub enum ErrorSource {
-    // For chumsky 0.10, we use a String for lexer errors (formatted as "Unexpected {found} at position {start}..{end}")
     Lexer(String),
     Parser(PError),
     #[default]

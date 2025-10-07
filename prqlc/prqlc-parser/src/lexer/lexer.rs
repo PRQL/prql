@@ -1,4 +1,4 @@
-//! PRQL Lexer implementation using Chumsky 0.10
+//! PRQL Lexer implementation
 
 use chumsky_0_10::extra;
 use chumsky_0_10::prelude::*;
@@ -9,7 +9,6 @@ use crate::error::{Error, ErrorSource, Reason, WithErrorInfo};
 
 type E = Error;
 type ParserInput<'a> = &'a str;
-// Define a custom error type with the `Simple` error type from chumsky_0_10
 type ParserError<'a> = extra::Err<Simple<'a, char>>;
 
 /// Convert a chumsky Simple error to our internal Error type
@@ -124,7 +123,6 @@ fn lex_token<'a>() -> impl Parser<'a, ParserInput<'a>, Token, ParserError<'a>> {
             Token {
                 kind: TokenKind::Range {
                     // Check if there was whitespace before/after to determine binding
-                    // This maintains compatibility with the chumsky_0_9 implementation
                     bind_left: left.is_none(),
                     bind_right: right.is_none(),
                 },
@@ -218,18 +216,12 @@ fn interpolation<'a>() -> impl Parser<'a, ParserInput<'a>, TokenKind, ParserErro
     // For s-strings and f-strings, use the same multi-quote string parser
     // No escaping for interpolated strings
     //
-    // NOTE: Known limitation in Chumsky 0.10 error reporting:
+    // NOTE: Known limitation in error reporting for unclosed interpolated strings:
     // When an f-string or s-string is unclosed (e.g., `f"{}`), the error is reported at the
     // opening quote position (e.g., position 17) rather than at the end of input where the
-    // closing quote should be (e.g., position 20). This is because Chumsky 0.10's `.then()`
-    // combinator modifies error spans during error recovery, and there's no way to prevent
-    // this from custom parsers.
-    //
-    // Chumsky 0.9 behavior: Error at position 20 (end of input), `found: ""`
-    // Chumsky 0.10 behavior: Error at position 17 (opening quote), `found: '"'`
-    //
-    // Both correctly identify the problem (unclosed string), just with different error positions.
-    // This is an acceptable trade-off for the Chumsky 0.10 migration.
+    // closing quote should be (e.g., position 20). This is because the `.then()` combinator
+    // modifies error spans during error recovery, and there's no way to prevent this from
+    // custom parsers.
     one_of("sf")
         .then(quoted_string(false))
         .map(|(c, s)| TokenKind::Interpolation(c, s))
@@ -686,7 +678,7 @@ fn parse_escape_sequence<'a>(
 // and even number of quotes (2, 4, 6, etc.) for empty strings
 //
 // This uses a single custom parser that dynamically handles arbitrary quote counts
-// All quoted strings allow newlines (matches Chumsky 0.9 behavior)
+// All quoted strings allow newlines
 fn multi_quoted_string<'a>(
     quote: &char,
     escaping: bool,
