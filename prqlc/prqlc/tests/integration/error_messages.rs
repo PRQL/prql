@@ -68,7 +68,38 @@ fn test_errors() {
     ───╯
     ");
 
-    assert_snapshot!(compile("Mississippi has four S’s and four I’s.").unwrap_err(), @r"
+    // LEXER output for Mississippi test (curly quotes are U+2019):
+    use insta::assert_debug_snapshot;
+    let mississippi = "Mississippi has four S’s and four I’s.";
+    assert_debug_snapshot!(prqlc_parser::lexer::lex_source(mississippi).unwrap_err(), @r#"
+    [
+        Error {
+            kind: Error,
+            span: Some(
+                0:22-23,
+            ),
+            reason: Unexpected {
+                found: "’",
+            },
+            hints: [],
+            code: None,
+        },
+        Error {
+            kind: Error,
+            span: Some(
+                0:35-36,
+            ),
+            reason: Unexpected {
+                found: "’",
+            },
+            hints: [],
+            code: None,
+        },
+    ]
+    "#);
+
+    // PARSER output (full compilation error):
+    assert_snapshot!(compile(mississippi).unwrap_err(), @r"
     Error:
        ╭─[ :1:23 ]
        │

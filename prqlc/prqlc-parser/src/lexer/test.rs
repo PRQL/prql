@@ -487,3 +487,185 @@ fn test_annotation_tokens() {
         )
         "#);
 }
+
+#[test]
+fn test_issue_triple_quoted_with_double_quote() {
+    use insta::assert_debug_snapshot;
+
+    // The specific test case from ISSUE.md that was failing
+    let input = r#""""
+''
+Canada
+"
+
+""""#;
+    let result = super::debug::lex_debug(input);
+    eprintln!("Result: {:#?}", result);
+    assert_debug_snapshot!(result, @r#"
+    Ok(
+        Tokens(
+            [
+                0..0: Start,
+                0..20: Literal(String("\n''\nCanada\n\"\n\n")),
+            ],
+        ),
+    )
+    "#);
+}
+
+#[test]
+fn test_single_curly_quote() {
+    use insta::assert_debug_snapshot;
+
+    // Test what error we get for a single curly quote character
+    let input = "’"; // U+2019 RIGHT SINGLE QUOTATION MARK
+
+    eprintln!("\n=== Single Curly Quote Test ===");
+    eprintln!("Input: {:?}", input);
+    eprintln!("Input bytes: {:?}", input.as_bytes());
+    eprintln!(
+        "Char 0: {:?} (U+{:04X})",
+        input.chars().next().unwrap(),
+        input.chars().next().unwrap() as u32
+    );
+
+    let result = lex_source(input);
+    eprintln!("Result: {:#?}", result);
+
+    assert_debug_snapshot!(result, @r#"
+    Err(
+        [
+            Error {
+                kind: Error,
+                span: Some(
+                    0:0-1,
+                ),
+                reason: Unexpected {
+                    found: "’",
+                },
+                hints: [],
+                code: None,
+            },
+        ],
+    )
+    "#);
+}
+
+#[test]
+fn test_mississippi_curly_quotes() {
+    use insta::assert_debug_snapshot;
+
+    // Test error reporting for curly quotes (U+2019)
+    // This is the Mississippi test case from integration tests
+    // NOTE: The quotes in this string are U+2019 RIGHT SINGLE QUOTATION MARK (curly quotes),
+    // not U+0027 APOSTROPHE. Make sure your editor preserves them!
+    let input = "Mississippi has four S’s and four I’s.";
+
+    eprintln!("\n=== Mississippi Curly Quotes Test ===");
+    eprintln!("Input: {:?}", input);
+    eprintln!("Input bytes: {:?}", input.as_bytes());
+    eprintln!(
+        "Char 22: {:?} (U+{:04X})",
+        input.chars().nth(22).unwrap(),
+        input.chars().nth(22).unwrap() as u32
+    );
+    eprintln!(
+        "Char 35: {:?} (U+{:04X})",
+        input.chars().nth(35).unwrap(),
+        input.chars().nth(35).unwrap() as u32
+    );
+
+    // Try both lex_source and lex_source_recovery to compare
+    let result1 = lex_source(input);
+    eprintln!("\n--- Chumsky 0.10 lex_source ---");
+    eprintln!("{:#?}", result1);
+
+    #[cfg(feature = "chumsky-10")]
+    {
+        let (tokens, errors) = super::chumsky_0_10::lex_source_recovery(input, 1);
+        eprintln!("\n--- Chumsky 0.10 lex_source_recovery ---");
+        eprintln!("Tokens: {:#?}", tokens);
+        eprintln!("Errors: {:#?}", errors);
+    }
+
+    #[cfg(not(feature = "chumsky-10"))]
+    {
+        eprintln!("\n--- Chumsky 0.9 (for comparison) ---");
+        let result_0_9 = super::chumsky_0_9::lex_source(input);
+        eprintln!("{:#?}", result_0_9);
+    }
+
+    assert_debug_snapshot!(result1, @r#"
+    Err(
+        [
+            Error {
+                kind: Error,
+                span: Some(
+                    0:22-23,
+                ),
+                reason: Unexpected {
+                    found: "’",
+                },
+                hints: [],
+                code: None,
+            },
+            Error {
+                kind: Error,
+                span: Some(
+                    0:35-36,
+                ),
+                reason: Unexpected {
+                    found: "’",
+                },
+                hints: [],
+                code: None,
+            },
+        ],
+    )
+    "#);
+}
+
+#[test]
+fn test_interpolation_empty() {
+    use insta::assert_debug_snapshot;
+
+    // Test the f"{}" case that's showing a changed error position
+    let input = r#"from x | select f"{}"#;
+
+    eprintln!("\n=== Interpolation Empty Test ===");
+    eprintln!("Input: {:?}", input);
+    eprintln!("Input bytes: {:?}", input.as_bytes());
+    eprintln!(
+        "Input length: {} bytes, {} chars",
+        input.len(),
+        input.chars().count()
+    );
+
+    let result = lex_source(input);
+    eprintln!("lex_source result: {:#?}", result);
+
+    #[cfg(feature = "chumsky-10")]
+    {
+        let (tokens, errors) = super::chumsky_0_10::lex_source_recovery(input, 1);
+        eprintln!("lex_source_recovery tokens: {:#?}", tokens);
+        eprintln!("lex_source_recovery errors: {:#?}", errors);
+    }
+
+    assert_debug_snapshot!(result, @r#"
+    Err(
+        [
+            Error {
+                kind: Error,
+                span: Some(
+                    0:20-20,
+                ),
+                reason: Unexpected {
+                    found: "",
+                },
+                hints: [],
+                code: None,
+            },
+        ],
+    )
+    "#);
+}

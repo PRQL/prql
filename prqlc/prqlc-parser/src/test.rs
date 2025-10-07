@@ -34,8 +34,6 @@ pub(crate) fn parse_source(source: &str) -> Result<Vec<Stmt>, Vec<Error>> {
     parse_with_parser(source, stmt::source())
 }
 
-// TODO: fix
-#[cfg(not(feature = "chumsky-10"))]
 #[test]
 fn test_error_unicode_string() {
     // Test various unicode strings successfully parse errors. We were
@@ -49,6 +47,35 @@ fn test_error_unicode_string() {
 
     let source = "Mississippi has four S’s and four I’s.";
 
+    // LEXER output for comparison (what the lexer sees):
+    assert_debug_snapshot!(crate::lexer::lex_source(source).unwrap_err(), @r#"
+    [
+        Error {
+            kind: Error,
+            span: Some(
+                0:22-23,
+            ),
+            reason: Unexpected {
+                found: "’",
+            },
+            hints: [],
+            code: None,
+        },
+        Error {
+            kind: Error,
+            span: Some(
+                0:35-36,
+            ),
+            reason: Unexpected {
+                found: "’",
+            },
+            hints: [],
+            code: None,
+        },
+    ]
+    "#);
+
+    // PARSER output (what happens after lexing):
     assert_debug_snapshot!(parse_source(source).unwrap_err(), @r#"
     [
         Error {

@@ -80,7 +80,35 @@ fn test_bad_error_messages() {
 
 #[test]
 fn interpolation_end() {
-    assert_snapshot!(compile(r#"from x | select f"{}"#).unwrap_err(), @r#"
+    use insta::assert_debug_snapshot;
+
+    // This test demonstrates error reporting for an unclosed f-string: `f"{}` (no closing quote).
+    // The input ends at position 20 after the `}`, so the closing quote is missing at position 20.
+    //
+    // The lexer correctly reports the error at position 20 (end of input) with `found: ""`.
+    // The parser reports the error at position 21 (character position in line 1) with "unexpected".
+
+    let source = r#"from x | select f"{}"#;
+
+    // LEXER output (for comparison with parser output below):
+    assert_debug_snapshot!(prqlc_parser::lexer::lex_source(source).unwrap_err(), @r#"
+    [
+        Error {
+            kind: Error,
+            span: Some(
+                0:20-20,
+            ),
+            reason: Unexpected {
+                found: "",
+            },
+            hints: [],
+            code: None,
+        },
+    ]
+    "#);
+
+    // PARSER output (full compilation error):
+    assert_snapshot!(compile(source).unwrap_err(), @r#"
     Error:
        ╭─[ :1:21 ]
        │

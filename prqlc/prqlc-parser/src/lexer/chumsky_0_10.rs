@@ -41,30 +41,47 @@ type ParserInput<'a> = &'a str;
 type ParserError<'a> = extra::Err<Simple<'a, char>>;
 
 /// Convert a chumsky Simple error to our internal Error type
-fn convert_lexer_error(error: &Simple<'_, char>, source_id: u16) -> E {
+fn convert_lexer_error(source: &str, error: &Simple<'_, char>, source_id: u16) -> E {
     // Get span information from the Simple error
-    let span = error.span();
-    let error_start = span.start();
-    let error_end = span.end();
+    // NOTE: When parsing &str, Chumsky 0.10's SimpleSpan uses BYTE offsets, not character offsets!
+    // We need to convert byte offsets to character offsets for compatibility with our error reporting.
+    let byte_span = error.span();
+    let byte_start = byte_span.start();
+    let byte_end = byte_span.end();
 
-    // Get the found token from the Simple error
-    let found = error
-        .found()
-        .map_or_else(|| "end of input".to_string(), |c| format!("'{}'", c));
+    // Convert byte offsets to character offsets
+    let char_start = source[..byte_start].chars().count();
+    let char_end = source[..byte_end].chars().count();
+
+    // Extract the "found" text using character-based slicing
+    let found: String = source
+        .chars()
+        .skip(char_start)
+        .take(char_end - char_start)
+        .collect();
+
+    // If found is empty, report as "end of input", otherwise wrap in quotes
+    let found_display = if found.is_empty() {
+        "end of input".to_string()
+    } else {
+        format!("'{}'", found)
+    };
 
     // Create a new Error with the extracted information
+    let error_source = format!(
+        "Unexpected {} at position {}..{}",
+        found_display, char_start, char_end
+    );
+
     Error::new(Reason::Unexpected {
-        found: found.clone(),
+        found: found_display,
     })
     .with_span(Some(crate::span::Span {
-        start: error_start,
-        end: error_end,
+        start: char_start,
+        end: char_end,
         source_id,
     }))
-    .with_source(ErrorSource::Lexer(format!(
-        "Unexpected {} at position {}..{}",
-        found, error_start, error_end
-    )))
+    .with_source(ErrorSource::Lexer(error_source))
 }
 
 /// Lex PRQL into LR, returning both the LR and any errors encountered
@@ -77,7 +94,7 @@ pub fn lex_source_recovery(source: &str, source_id: u16) -> (Option<Vec<Token>>,
             // Convert chumsky Simple errors to our Error type
             let errors = errors
                 .into_iter()
-                .map(|error| convert_lexer_error(&error, source_id))
+                .map(|error| convert_lexer_error(source, &error, source_id))
                 .collect();
 
             (None, errors)
@@ -95,7 +112,7 @@ pub fn lex_source(source: &str) -> Result<Tokens, Vec<E>> {
             // Convert chumsky Simple errors to our Error type
             let errors = errors
                 .into_iter()
-                .map(|error| convert_lexer_error(&error, 0))
+                .map(|error| convert_lexer_error(source, &error, 0))
                 .collect();
 
             Err(errors)
@@ -226,19 +243,23 @@ fn param<'a>() -> impl Parser<'a, ParserInput<'a>, TokenKind, ParserError<'a>> {
 }
 
 fn interpolation<'a>() -> impl Parser<'a, ParserInput<'a>, TokenKind, ParserError<'a>> {
-    // For s-strings and f-strings, we need to handle both regular and triple-quoted variants
+    // For s-strings and f-strings, use the same multi-quote string parser
+    // No escaping for interpolated strings
+    //
+    // NOTE: Known limitation in Chumsky 0.10 error reporting:
+    // When an f-string or s-string is unclosed (e.g., `f"{}`), the error is reported at the
+    // opening quote position (e.g., position 17) rather than at the end of input where the
+    // closing quote should be (e.g., position 20). This is because Chumsky 0.10's `.then()`
+    // combinator modifies error spans during error recovery, and there's no way to prevent
+    // this from custom parsers.
+    //
+    // Chumsky 0.9 behavior: Error at position 20 (end of input), `found: ""`
+    // Chumsky 0.10 behavior: Error at position 17 (opening quote), `found: '"'`
+    //
+    // Both correctly identify the problem (unclosed string), just with different error positions.
+    // This is an acceptable trade-off for the Chumsky 0.10 migration.
     one_of("sf")
-        .then(
-            // Use a custom quoted_string implementation that better handles triple quotes
-            choice((
-                // Triple quote strings for s-strings
-                just(['"'; 3])
-                    .ignore_then(any().filter(|&c| c != '"').repeated().collect::<String>())
-                    .then_ignore(just('"').then(just('"')).then(just('"'))),
-                // Regular quoted string
-                quoted_string(true),
-            )),
-        )
+        .then(quoted_string(false))
         .map(|(c, s)| TokenKind::Interpolation(c, s))
 }
 
@@ -620,131 +641,157 @@ pub fn quoted_string<'a>(
     escaped: bool,
 ) -> impl Parser<'a, ParserInput<'a>, String, ParserError<'a>> {
     choice((
-        multi_quoted_string(&'"', escaped, false),
-        multi_quoted_string(&'\'', escaped, false),
+        multi_quoted_string(&'"', escaped),
+        multi_quoted_string(&'\'', escaped),
     ))
     .map(|chars| chars.into_iter().collect())
 }
 
-// Implementation of multi-level quoted strings using context-sensitive parsers
-// Based on @zesterer's suggestion for handling odd number of quotes (1, 3, 5, etc.)
+// Helper function to parse escape sequences
+// Takes the input and the quote character, returns the escaped character
+fn parse_escape_sequence<'a>(
+    input: &mut chumsky_0_10::input::InputRef<'a, '_, ParserInput<'a>, ParserError<'a>>,
+    quote_char: char,
+) -> char {
+    match input.peek() {
+        Some(next_ch) => {
+            input.next();
+            match next_ch {
+                '\\' => '\\',
+                '/' => '/',
+                'b' => '\x08',
+                'f' => '\x0C',
+                'n' => '\n',
+                'r' => '\r',
+                't' => '\t',
+                'u' if input.peek() == Some('{') => {
+                    input.next(); // consume '{'
+                    let mut hex = String::new();
+                    while let Some(ch) = input.peek() {
+                        if ch == '}' {
+                            input.next();
+                            break;
+                        }
+                        if ch.is_ascii_hexdigit() && hex.len() < 6 {
+                            hex.push(ch);
+                            input.next();
+                        } else {
+                            break;
+                        }
+                    }
+                    char::from_u32(u32::from_str_radix(&hex, 16).unwrap_or(0)).unwrap_or('\u{FFFD}')
+                }
+                'x' => {
+                    let mut hex = String::new();
+                    for _ in 0..2 {
+                        if let Some(ch) = input.peek() {
+                            if ch.is_ascii_hexdigit() {
+                                hex.push(ch);
+                                input.next();
+                            }
+                        }
+                    }
+                    if hex.len() == 2 {
+                        char::from_u32(u32::from_str_radix(&hex, 16).unwrap_or(0))
+                            .unwrap_or('\u{FFFD}')
+                    } else {
+                        next_ch // Just use the character after backslash
+                    }
+                }
+                c if c == quote_char => quote_char, // Escaped quote
+                other => other,                     // Unknown escape, keep the character
+            }
+        }
+        None => {
+            // Backslash at end of input
+            '\\'
+        }
+    }
+}
+
+// Implementation of multi-level quoted strings using custom parser
+// Handles odd number of quotes (1, 3, 5, etc.) for strings with content
+// and even number of quotes (2, 4, 6, etc.) for empty strings
+//
+// This uses a single custom parser that dynamically handles arbitrary quote counts
+// All quoted strings allow newlines (matches Chumsky 0.9 behavior)
 fn multi_quoted_string<'a>(
     quote: &char,
     escaping: bool,
-    allow_multiline: bool,
 ) -> impl Parser<'a, ParserInput<'a>, Vec<char>, ParserError<'a>> {
-    // Parse opening quotes - first a single quote, then count any pairs of quotes
-    // For example, """ would be 1 single quote + 1 pair = 2 total quotes
-    let open = just::<'a, _, ParserInput, ParserError>(*quote)
-        .ignore_then(just([*quote; 2]).repeated().count());
+    let quote_char = *quote;
 
-    // Parse closing quotes - matches the exact same number of quote pairs as in opening
-    let close = just(*quote).ignore_then(
-        just([*quote; 2])
-            .repeated()
-            .configure(|cfg, ctx| cfg.exactly(*ctx)),
-    );
+    custom(move |input| {
+        let start_cursor = input.save();
 
-    // Define what characters are allowed in the string based on configuration
-    let regular_char = if allow_multiline {
-        none_of(format!("{}\\", quote))
-    } else {
-        none_of(format!("{}\n\r\\", quote))
-    };
+        // Count opening quotes
+        let mut open_count = 0;
+        while let Some(ch) = input.peek() {
+            if ch == quote_char {
+                input.next();
+                open_count += 1;
+            } else {
+                break;
+            }
+        }
 
-    // Parser for string content between quotes, accounting for close parser
+        if open_count == 0 {
+            let span = input.span_since(start_cursor.cursor());
+            return Err(Simple::new(input.peek_maybe(), span));
+        }
 
-    // Empty string case - even number of quotes produces empty string
-    let empty_string = just::<[char; 2], ParserInput, ParserError>([*quote; 2])
-        // .ignored()
-        .repeated()
-        .at_least(1)
-        .collect::<Vec<_>>()
-        .map::<Vec<char>, _>(|_| vec![]);
+        // Even number of quotes -> empty string
+        if open_count % 2 == 0 {
+            return Ok(vec![]);
+        }
 
-    // THIS SECTION
-    let content_parser = if escaping {
-        choice((escaped_character(), regular_char)).boxed()
-    } else {
-        regular_char.boxed()
-    };
+        // Odd number of quotes -> parse content until we find the closing delimiter
+        let mut result = Vec::new();
 
-    // (even without swapping these lines)
-    // let inner = content_parser.repeated().collect::<Vec<char>>();
-    let inner = regular_char.repeated().collect::<Vec<char>>();
+        loop {
+            // Save position to potentially rewind
+            let checkpoint = input.save();
 
-    // Either parse an empty string (even quotes) or a string with content (odd quotes)
-    choice((
-        empty_string,
-        // Parse opening quotes, content, closing quotes using context
-        // sensitivity
-        // inner,
-        open.ignore_with_ctx(inner.then_ignore(close)),
-    ))
+            // Try to match the closing delimiter (open_count quotes)
+            let mut close_count = 0;
+            while close_count < open_count {
+                match input.peek() {
+                    Some(ch) if ch == quote_char => {
+                        input.next();
+                        close_count += 1;
+                    }
+                    _ => break,
+                }
+            }
 
-    // Choose the appropriate content parser
-}
+            // If we matched the full delimiter, we're done
+            if close_count == open_count {
+                return Ok(result);
+            }
 
-// Legacy quoted string implementation - kept for fallback and compatibility
-fn quoted_string_of_quote(
-    quote: &char,
-    escaping: bool,
-    allow_multiline: bool,
-) -> impl Parser<'_, ParserInput<'_>, Vec<char>, ParserError<'_>> {
-    let q = *quote;
+            // Not the delimiter - rewind and consume one content character
+            input.rewind(checkpoint);
 
-    // Parser for non-quote characters
-    let regular_char = if allow_multiline {
-        none_of(format!("{}\\", q))
-    } else {
-        none_of(format!("{}\n\r\\", q))
-    };
-
-    // Choose the right character parser based on whether escaping is enabled
-    let char_parser = if escaping {
-        choice((escaped_character(), regular_char)).boxed()
-    } else {
-        regular_char.boxed()
-    };
-
-    // Complete string parser
-    just(q)
-        .ignore_then(char_parser.repeated().collect())
-        .then_ignore(just(q))
-}
-
-fn escaped_character<'a>() -> impl Parser<'a, ParserInput<'a>, char, ParserError<'a>> {
-    just('\\').ignore_then(choice((
-        just('\\'),
-        just('/'),
-        just('b').to('\x08'),
-        just('f').to('\x0C'),
-        just('n').to('\n'),
-        just('r').to('\r'),
-        just('t').to('\t'),
-        just("u{").ignore_then(
-            any()
-                .filter(|c: &char| c.is_ascii_hexdigit())
-                .repeated()
-                .at_least(1)
-                .at_most(6)
-                .collect::<String>()
-                .map(|digits| {
-                    char::from_u32(u32::from_str_radix(&digits, 16).unwrap_or(0)).unwrap_or('?')
-                })
-                .then_ignore(just('}')),
-        ),
-        just('x').ignore_then(
-            any()
-                .filter(|c: &char| c.is_ascii_hexdigit())
-                .repeated()
-                .exactly(2)
-                .collect::<String>()
-                .map(|digits| {
-                    char::from_u32(u32::from_str_radix(&digits, 16).unwrap_or(0)).unwrap_or('?')
-                }),
-        ),
-    )))
+            match input.next() {
+                Some(ch) => {
+                    // Handle escape sequences if escaping is enabled
+                    if escaping && ch == '\\' {
+                        let escaped = parse_escape_sequence(input, quote_char);
+                        result.push(escaped);
+                    } else {
+                        result.push(ch);
+                    }
+                }
+                None => {
+                    // Can't find closing delimiter - return error about unclosed string
+                    // Create a zero-width span at the current position (end of input)
+                    let current_cursor = input.save();
+                    let span = input.span_since(current_cursor.cursor());
+                    return Err(Simple::new(None, span));
+                }
+            }
+        }
+    })
 }
 
 fn end_expr<'a>() -> impl Parser<'a, ParserInput<'a>, (), ParserError<'a>> {
