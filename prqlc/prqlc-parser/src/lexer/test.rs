@@ -1,4 +1,6 @@
-use chumsky_0_10::Parser;
+use chumsky_0_10 as chumsky;
+
+use chumsky::Parser;
 use insta::assert_debug_snapshot;
 use insta::assert_snapshot;
 

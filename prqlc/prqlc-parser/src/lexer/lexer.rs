@@ -1,8 +1,10 @@
 //! PRQL Lexer implementation
 
-use chumsky_0_10::extra;
-use chumsky_0_10::prelude::*;
-use chumsky_0_10::Parser;
+use chumsky_0_10 as chumsky;
+
+use chumsky::extra;
+use chumsky::prelude::*;
+use chumsky::Parser;
 
 use super::lr::{Literal, Token, TokenKind, Tokens, ValueAndUnit};
 use crate::error::{Error, ErrorSource, Reason, WithErrorInfo};
@@ -119,7 +121,7 @@ fn lex_token<'a>() -> impl Parser<'a, ParserInput<'a>, Token, ParserError<'a>> {
         .then(just(".."))
         .then(whitespace().or_not())
         .map_with(|((left, _), right), extra| {
-            let span: chumsky_0_10::span::SimpleSpan = extra.span();
+            let span: chumsky::span::SimpleSpan = extra.span();
             Token {
                 kind: TokenKind::Range {
                     // Check if there was whitespace before/after to determine binding
@@ -134,7 +136,7 @@ fn lex_token<'a>() -> impl Parser<'a, ParserInput<'a>, Token, ParserError<'a>> {
     let other_tokens = whitespace()
         .or_not()
         .ignore_then(token().map_with(|kind, extra| {
-            let span: chumsky_0_10::span::SimpleSpan = extra.span();
+            let span: chumsky::span::SimpleSpan = extra.span();
             Token {
                 kind,
                 span: span.start()..span.end(),
@@ -296,7 +298,7 @@ pub fn ident_part<'a>() -> impl Parser<'a, ParserInput<'a>, String, ParserError<
 
 // Date/time components
 fn digits<'a>(count: usize) -> impl Parser<'a, ParserInput<'a>, Vec<char>, ParserError<'a>> {
-    chumsky_0_10::text::digits(10)
+    chumsky::text::digits(10)
         .exactly(count)
         .collect::<Vec<char>>()
 }
@@ -614,7 +616,7 @@ pub fn quoted_string<'a>(
 // Helper function to parse escape sequences
 // Takes the input and the quote character, returns the escaped character
 fn parse_escape_sequence<'a>(
-    input: &mut chumsky_0_10::input::InputRef<'a, '_, ParserInput<'a>, ParserError<'a>>,
+    input: &mut chumsky::input::InputRef<'a, '_, ParserInput<'a>, ParserError<'a>>,
     quote_char: char,
 ) -> char {
     match input.peek() {
