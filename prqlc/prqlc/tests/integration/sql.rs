@@ -218,6 +218,41 @@ FROM
 }
 
 #[rstest]
+#[case::generic(
+    sql::Dialect::Generic,
+    r#"
+SELECT
+  a,
+  b,
+  "col space"
+FROM
+  employees
+"#
+)]
+#[case::snowflake(
+    sql::Dialect::Snowflake,
+    r#"
+SELECT
+  "a",
+  "b",
+  "col space"
+FROM
+  "employees"
+"#
+)]
+fn test_quoting_style(#[case] dialect: sql::Dialect, #[case] expected_sql: &'static str) {
+    let query = r#"
+  from employees
+  select { a, `b`, `col space` }
+  "#;
+
+    assert_eq!(
+        compile_with_sql_dialect(query, dialect).unwrap(),
+        expected_sql.trim_start()
+    )
+}
+
+#[rstest]
 #[case::clickhouse(
     sql::Dialect::ClickHouse,
     "formatDateTimeInJodaSyntax(invoice_date, 'dd/MM/yyyy')"
@@ -4310,12 +4345,12 @@ fn test_exclude_columns_05() {
     from tracks
     select !{milliseconds,bytes}
     "#).unwrap(),
-        @r"
+        @r#"
     SELECT
-      * EXCLUDE (milliseconds, bytes)
+      * EXCLUDE ("milliseconds", "bytes")
     FROM
-      tracks
-    "
+      "tracks"
+    "#
     );
 }
 
