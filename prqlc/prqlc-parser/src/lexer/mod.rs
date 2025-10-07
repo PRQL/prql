@@ -774,11 +774,3 @@ fn end_expr<'a>() -> impl Parser<'a, ParserInput<'a>, (), ParserError<'a>> {
     .rewind()
 }
 
-#[cfg(test)]
-pub mod debug {
-    use super::*;
-
-    pub fn lex_debug(source: &str) -> Result<lr::Tokens, Vec<crate::error::Error>> {
-        lex_source(source)
-    }
-}

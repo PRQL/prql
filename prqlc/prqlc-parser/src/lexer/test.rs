@@ -280,7 +280,7 @@ fn test_annotation_tokens() {
     use insta::assert_debug_snapshot;
 
     // Test basic annotation token
-    let result = super::debug::lex_debug("@{binding_strength=1}");
+    let result = super::lex_source("@{binding_strength=1}");
     assert_debug_snapshot!(result, @r#"
         Ok(
             Tokens(
@@ -298,7 +298,7 @@ fn test_annotation_tokens() {
         "#);
 
     // Test multi-line annotation
-    let result = super::debug::lex_debug(
+    let result = super::lex_source(
         r#"
         @{binding_strength=1}
         let add = a b -> a + b
@@ -344,7 +344,7 @@ Canada
 "
 
 """"#;
-    let result = super::debug::lex_debug(input);
+    let result = super::lex_source(input);
     eprintln!("Result: {:#?}", result);
     assert_debug_snapshot!(result, @r#"
     Ok(
