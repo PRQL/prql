@@ -16,7 +16,7 @@ type ParserError<'a> = extra::Err<Simple<'a, char>>;
 /// Convert a chumsky Simple error to our internal Error type
 fn convert_lexer_error(source: &str, error: &Simple<'_, char>, source_id: u16) -> E {
     // Get span information from the Simple error
-    // NOTE: When parsing &str, Chumsky 0.10's SimpleSpan uses BYTE offsets, not character offsets!
+    // NOTE: When parsing &str, SimpleSpan uses BYTE offsets, not character offsets!
     // We need to convert byte offsets to character offsets for compatibility with our error reporting.
     let byte_span = error.span();
     let byte_start = byte_span.start();
