@@ -230,14 +230,15 @@ tasks:
 
       Running this isn't required when developing; it's for caching or as a reference.
     cmds:
-      - cargo build --all-targets --all-features
+      - cargo build --all-targets --all-features --quiet
       - cargo build --all-targets --all-features --target=wasm32-unknown-unknown
+        --quiet
       # Build without features, as the dependencies have slightly different
       # features themselves and so require recompiling. This is only useful for
       # caching.
-      - cargo build --all-targets
-      - cargo build --all-targets --features=default,test-dbs
-      - cargo doc
+      - cargo build --all-targets --quiet
+      - cargo build --all-targets --features=default,test-dbs --quiet
+      - cargo doc --quiet
       - task: build-each-crate
       - task: web:build
       - task: python:build
@@ -258,7 +259,7 @@ tasks:
     cmds:
       - |
         {{ range ( .PACKAGES | splitLines ) -}}
-        cargo build --all-targets -p {{ . }}
+        cargo build --all-targets -p {{ . }} --quiet
         {{ end -}}
 
   test-rust-api:
@@ -305,6 +306,10 @@ tasks:
     #   - "**/*.toml"
     #   - "**/*.lock"
     #   - "**/*.snap"
+    env:
+      NEXTEST_STATUS_LEVEL: fail
+      NEXTEST_FINAL_STATUS_LEVEL: slow
+      NEXTEST_HIDE_PROGRESS_BAR: "true"
     cmds:
       - cargo insta test --accept --features=default,test-dbs
         --test-runner=nextest --unreferenced=auto
