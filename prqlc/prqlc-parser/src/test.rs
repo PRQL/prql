@@ -56,18 +56,7 @@ fn test_error_unicode_string() {
                 0:22-23,
             ),
             reason: Unexpected {
-                found: "’",
-            },
-            hints: [],
-            code: None,
-        },
-        Error {
-            kind: Error,
-            span: Some(
-                0:35-36,
-            ),
-            reason: Unexpected {
-                found: "’",
+                found: "'’'",
             },
             hints: [],
             code: None,
@@ -84,18 +73,7 @@ fn test_error_unicode_string() {
                 0:22-23,
             ),
             reason: Unexpected {
-                found: "’",
-            },
-            hints: [],
-            code: None,
-        },
-        Error {
-            kind: Error,
-            span: Some(
-                0:35-36,
-            ),
-            reason: Unexpected {
-                found: "’",
+                found: "'’'",
             },
             hints: [],
             code: None,
@@ -1623,9 +1601,9 @@ fn test_unicode() {
             args:
               - Ident:
                   - tète
-                span: "0:5-9"
-          span: "0:0-9"
-      span: "0:0-9"
+                span: "0:5-10"
+          span: "0:0-10"
+      span: "0:0-10"
     "#);
 }
 

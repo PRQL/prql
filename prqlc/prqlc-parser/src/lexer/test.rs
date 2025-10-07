@@ -1,12 +1,3 @@
-// TESTING APPROACH FOR CHUMSKY MIGRATION:
-// 1. Create the snapshots without chumsky-10 feature flag first (use `--accept`)
-// 2. Then test the snapshots with chumsky-10 feature to ensure compatibility
-// 3. For tests that can't be unified yet, use cfg attributes to conditionally run them
-
-#[cfg(not(feature = "chumsky-10"))]
-use chumsky::Parser;
-
-#[cfg(feature = "chumsky-10")]
 use chumsky_0_10::Parser;
 use insta::assert_debug_snapshot;
 use insta::assert_snapshot;
@@ -14,63 +5,14 @@ use insta::assert_snapshot;
 use crate::lexer::lex_source;
 use crate::lexer::lr::{Literal, TokenKind, Tokens};
 
-// Import the appropriate lexer functions based on feature flag
-#[cfg(not(feature = "chumsky-10"))]
-use crate::lexer::chumsky_0_9::{lexer, literal, quoted_string};
-
-#[cfg(feature = "chumsky-10")]
+// Import the Chumsky 0.10 lexer functions
 use crate::lexer::chumsky_0_10::{lexer, literal, quoted_string};
-
-// We no longer need Stream since we're using &str directly
-
-// NOTE: These helper functions aren't used in the current implementation
-// but are kept for reference as we transition between Chumsky versions.
-// We use direct Stream::from_iter in the test functions for chumsky-10.
-
-// // Helper function to prepare input for parsing - abstracts the differences between versions
-// #[cfg(not(feature = "chumsky-10"))]
-// #[allow(dead_code)]
-// fn prepare_input(input: &str) -> &str {
-//     input
-// }
-//
-// #[cfg(feature = "chumsky-10")]
-// #[allow(dead_code)]
-// fn prepare_input(input: &str) -> Stream<std::str::Chars> {
-//     Stream::from_iter(input.chars())
-// }
-//
-// // Helper function to extract output from parser result
-// #[cfg(not(feature = "chumsky-10"))]
-// #[allow(dead_code)]
-// fn extract_output<T>(result: Result<T, chumsky::error::Simple<char>>) -> T {
-//     result.unwrap()
-// }
-//
-// #[cfg(feature = "chumsky-10")]
-// #[allow(dead_code)]
-// fn extract_output<T: Clone>(
-//     result: chumsky_0_10::prelude::ParseResult<
-//         T,
-//         chumsky_0_10::error::Simple<chumsky_0_10::span::SimpleSpan<usize>>,
-//     >,
-// ) -> T {
-//     result.output().unwrap().clone()
-// }
 
 #[test]
 fn line_wrap() {
     // Helper function to test line wrap tokens for both Chumsky versions
     fn test_line_wrap_tokens(input: &str) -> Tokens {
-        #[cfg(not(feature = "chumsky-10"))]
-        {
-            Tokens(lexer().parse(input).unwrap())
-        }
-
-        #[cfg(feature = "chumsky-10")]
-        {
-            Tokens(lexer().parse(input).output().unwrap().to_vec())
-        }
+        Tokens(lexer().parse(input).output().unwrap().to_vec())
     }
 
     // This format test is the same for both versions
@@ -122,15 +64,7 @@ fn numbers() {
 
     // Function to test number parsing that works with both Chumsky versions
     fn test_number_parsing(input: &str, expected: Literal) {
-        #[cfg(not(feature = "chumsky-10"))]
-        {
-            assert_eq!(literal().parse(input).unwrap(), expected);
-        }
-
-        #[cfg(feature = "chumsky-10")]
-        {
-            assert_eq!(literal().parse(input).output().unwrap(), &expected);
-        }
+        assert_eq!(literal().parse(input).output().unwrap(), &expected);
     }
 
     // Binary notation
@@ -149,15 +83,7 @@ fn numbers() {
 fn debug_display() {
     // Unified function to test token output for both Chumsky versions
     fn test_tokens(input: &str) -> Tokens {
-        #[cfg(not(feature = "chumsky-10"))]
-        {
-            Tokens(lexer().parse(input).unwrap())
-        }
-
-        #[cfg(feature = "chumsky-10")]
-        {
-            Tokens(lexer().parse(input).output().unwrap().to_vec())
-        }
+        Tokens(lexer().parse(input).output().unwrap().to_vec())
     }
 
     // Note: When adding or modifying tests:
@@ -182,15 +108,7 @@ fn comment() {
 
     // For the parser test, we use a unified function
     fn test_comment_tokens(input: &str) -> Tokens {
-        #[cfg(not(feature = "chumsky-10"))]
-        {
-            Tokens(lexer().parse(input).unwrap())
-        }
-
-        #[cfg(feature = "chumsky-10")]
-        {
-            Tokens(lexer().parse(input).output().unwrap().to_vec())
-        }
+        Tokens(lexer().parse(input).output().unwrap().to_vec())
     }
 
     // Note: When adding or modifying tests:
@@ -211,15 +129,7 @@ fn comment() {
 fn doc_comment() {
     // Unified function to test doccomment tokens
     fn test_doc_comment_tokens(input: &str) -> Tokens {
-        #[cfg(not(feature = "chumsky-10"))]
-        {
-            Tokens(lexer().parse(input).unwrap())
-        }
-
-        #[cfg(feature = "chumsky-10")]
-        {
-            Tokens(lexer().parse(input).output().unwrap().to_vec())
-        }
+        Tokens(lexer().parse(input).output().unwrap().to_vec())
     }
 
     // Note: When adding or modifying tests:
@@ -238,20 +148,11 @@ fn doc_comment() {
 fn quotes() {
     // Unified testing function that works for both Chumsky versions
     fn test_basic_string(input: &str, escaped: bool, expected_str: &str) {
-        #[cfg(not(feature = "chumsky-10"))]
-        {
-            let result = quoted_string(escaped).parse(input).unwrap();
+        let parse_result = quoted_string(escaped).parse(input);
+        if let Some(result) = parse_result.output() {
             assert_eq!(result, expected_str);
-        }
-
-        #[cfg(feature = "chumsky-10")]
-        {
-            let parse_result = quoted_string(escaped).parse(input);
-            if let Some(result) = parse_result.output() {
-                assert_eq!(result, expected_str);
-            } else {
-                panic!("Failed to parse string: {:?}", input);
-            }
+        } else {
+            panic!("Failed to parse string: {:?}", input);
         }
     }
 
@@ -279,15 +180,7 @@ fn quotes() {
 fn interpolated_strings() {
     // Helper function to test interpolated string tokens
     fn test_interpolation_tokens(input: &str) -> Tokens {
-        #[cfg(not(feature = "chumsky-10"))]
-        {
-            Tokens(lexer().parse(input).unwrap())
-        }
-
-        #[cfg(feature = "chumsky-10")]
-        {
-            Tokens(lexer().parse(input).output().unwrap().to_vec())
-        }
+        Tokens(lexer().parse(input).output().unwrap().to_vec())
     }
 
     // Test s-string and f-string with regular quotes
@@ -313,15 +206,7 @@ fn interpolated_strings() {
 fn timestamp_tests() {
     // Helper function to test tokens with timestamps
     fn test_timestamp_tokens(input: &str) -> Tokens {
-        #[cfg(not(feature = "chumsky-10"))]
-        {
-            Tokens(lexer().parse(input).unwrap())
-        }
-
-        #[cfg(feature = "chumsky-10")]
-        {
-            Tokens(lexer().parse(input).output().unwrap().to_vec())
-        }
+        Tokens(lexer().parse(input).output().unwrap().to_vec())
     }
 
     // Test timestamp with timezone format -08:00 (with colon)
@@ -347,15 +232,7 @@ fn timestamp_tests() {
 fn range() {
     // Helper function to test range parsing for both Chumsky versions
     fn test_range_tokens(input: &str) -> Tokens {
-        #[cfg(not(feature = "chumsky-10"))]
-        {
-            Tokens(lexer().parse(input).unwrap())
-        }
-
-        #[cfg(feature = "chumsky-10")]
-        {
-            Tokens(lexer().parse(input).output().unwrap().to_vec())
-        }
+        Tokens(lexer().parse(input).output().unwrap().to_vec())
     }
 
     // Standard range test - works in both versions
@@ -541,7 +418,7 @@ fn test_single_curly_quote() {
                     0:0-1,
                 ),
                 reason: Unexpected {
-                    found: "’",
+                    found: "'’'",
                 },
                 hints: [],
                 code: None,
@@ -580,20 +457,10 @@ fn test_mississippi_curly_quotes() {
     eprintln!("\n--- Chumsky 0.10 lex_source ---");
     eprintln!("{:#?}", result1);
 
-    #[cfg(feature = "chumsky-10")]
-    {
-        let (tokens, errors) = super::chumsky_0_10::lex_source_recovery(input, 1);
-        eprintln!("\n--- Chumsky 0.10 lex_source_recovery ---");
-        eprintln!("Tokens: {:#?}", tokens);
-        eprintln!("Errors: {:#?}", errors);
-    }
-
-    #[cfg(not(feature = "chumsky-10"))]
-    {
-        eprintln!("\n--- Chumsky 0.9 (for comparison) ---");
-        let result_0_9 = super::chumsky_0_9::lex_source(input);
-        eprintln!("{:#?}", result_0_9);
-    }
+    let (tokens, errors) = super::chumsky_0_10::lex_source_recovery(input, 1);
+    eprintln!("\n--- Chumsky 0.10 lex_source_recovery ---");
+    eprintln!("Tokens: {:#?}", tokens);
+    eprintln!("Errors: {:#?}", errors);
 
     assert_debug_snapshot!(result1, @r#"
     Err(
@@ -604,18 +471,7 @@ fn test_mississippi_curly_quotes() {
                     0:22-23,
                 ),
                 reason: Unexpected {
-                    found: "’",
-                },
-                hints: [],
-                code: None,
-            },
-            Error {
-                kind: Error,
-                span: Some(
-                    0:35-36,
-                ),
-                reason: Unexpected {
-                    found: "’",
+                    found: "'’'",
                 },
                 hints: [],
                 code: None,
@@ -644,12 +500,9 @@ fn test_interpolation_empty() {
     let result = lex_source(input);
     eprintln!("lex_source result: {:#?}", result);
 
-    #[cfg(feature = "chumsky-10")]
-    {
-        let (tokens, errors) = super::chumsky_0_10::lex_source_recovery(input, 1);
-        eprintln!("lex_source_recovery tokens: {:#?}", tokens);
-        eprintln!("lex_source_recovery errors: {:#?}", errors);
-    }
+    let (tokens, errors) = super::chumsky_0_10::lex_source_recovery(input, 1);
+    eprintln!("lex_source_recovery tokens: {:#?}", tokens);
+    eprintln!("lex_source_recovery errors: {:#?}", errors);
 
     assert_debug_snapshot!(result, @r#"
     Err(
@@ -657,10 +510,10 @@ fn test_interpolation_empty() {
             Error {
                 kind: Error,
                 span: Some(
-                    0:20-20,
+                    0:17-18,
                 ),
                 reason: Unexpected {
-                    found: "",
+                    found: "'\"'",
                 },
                 hints: [],
                 code: None,

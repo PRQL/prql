@@ -30,8 +30,6 @@ cli = [
 default = ["cli"]
 lsp = ["lsp-server", "lsp-types"] # Just a stub without any real functionality
 serde_yaml = ["prqlc-parser/serde_yaml", "dep:serde_yaml"]
-# Enable chumsky 0.10 for the lexer
-chumsky-10 = ["prqlc-parser/chumsky-10"]
 test-dbs = [
   "rusqlite",
   "duckdb",
