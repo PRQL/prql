@@ -29,7 +29,7 @@ max-threads = 1
 [[profile.default.overrides]]
 # cli tests take a bit longer
 filter = 'test(cli)'
-slow-timeout = { period = "1s" }
+slow-timeout = { period = "2s" }
 
 [[profile.default.overrides]]
 filter = 'package(mdbook-prql)'
