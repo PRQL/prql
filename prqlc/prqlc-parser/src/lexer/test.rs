@@ -3,10 +3,8 @@ use insta::assert_debug_snapshot;
 use insta::assert_snapshot;
 
 use crate::lexer::lex_source;
+use crate::lexer::lexer::{lexer, literal, quoted_string};
 use crate::lexer::lr::{Literal, TokenKind, Tokens};
-
-// Import the Chumsky 0.10 lexer functions
-use crate::lexer::chumsky_0_10::{lexer, literal, quoted_string};
 
 #[test]
 fn line_wrap() {
@@ -457,7 +455,7 @@ fn test_mississippi_curly_quotes() {
     eprintln!("\n--- Chumsky 0.10 lex_source ---");
     eprintln!("{:#?}", result1);
 
-    let (tokens, errors) = super::chumsky_0_10::lex_source_recovery(input, 1);
+    let (tokens, errors) = super::lexer::lex_source_recovery(input, 1);
     eprintln!("\n--- Chumsky 0.10 lex_source_recovery ---");
     eprintln!("Tokens: {:#?}", tokens);
     eprintln!("Errors: {:#?}", errors);
@@ -500,7 +498,7 @@ fn test_interpolation_empty() {
     let result = lex_source(input);
     eprintln!("lex_source result: {:#?}", result);
 
-    let (tokens, errors) = super::chumsky_0_10::lex_source_recovery(input, 1);
+    let (tokens, errors) = super::lexer::lex_source_recovery(input, 1);
     eprintln!("lex_source_recovery tokens: {:#?}", tokens);
     eprintln!("lex_source_recovery errors: {:#?}", errors);
 

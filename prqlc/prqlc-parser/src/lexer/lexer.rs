@@ -1,32 +1,4 @@
-/*
-## Resources
-
-Check out these issues for more details:
-- https://github.com/zesterer/chumsky/issues/747
-- https://github.com/zesterer/chumsky/issues/745
-- https://github.com/zesterer/chumsky/releases/tag/0.10
-
-## Tests
-
-- The goal is for all existing tests to pass when running the `chumsky-10` feature (and only using `chumsky-10` for the lexer)
-- Do not disable tests that are failing due to the new lexer.
-
-- After each group of changes, run:
-   ```
-   # cargo check for this package
-   cargo check -p prqlc-parser --features chumsky-10
-
-   # tests for this module
-   cargo insta test --check -p prqlc-parser --features chumsky-10 -- lexer::
-
-   # confirm the existing tests still pass without the `chumsky-10` feature
-   cargo insta test --check -p prqlc-parser
-   ```
-
-- and the linting instructions in `CLAUDE.md`
-
-# Chumsky 0.10.0 Lexer Implementation
-*/
+//! PRQL Lexer implementation using Chumsky 0.10
 
 use chumsky_0_10::extra;
 use chumsky_0_10::prelude::*;
