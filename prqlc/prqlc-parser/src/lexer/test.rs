@@ -6,7 +6,7 @@ use insta::assert_snapshot;
 
 use crate::lexer::lex_source;
 use crate::lexer::lr::{Literal, TokenKind, Tokens};
-use crate::lexer::lr_lexer::{lexer, literal, quoted_string};
+use crate::lexer::{lexer, literal, quoted_string};
 
 #[test]
 fn line_wrap() {
@@ -423,7 +423,7 @@ fn test_mississippi_curly_quotes() {
     let result1 = lex_source(input);
     eprintln!("{:#?}", result1);
 
-    let (tokens, errors) = super::lr_lexer::lex_source_recovery(input, 1);
+    let (tokens, errors) = super::lex_source_recovery(input, 1);
     eprintln!("Tokens: {:#?}", tokens);
     eprintln!("Errors: {:#?}", errors);
 
@@ -465,7 +465,7 @@ fn test_interpolation_empty() {
     let result = lex_source(input);
     eprintln!("lex_source result: {:#?}", result);
 
-    let (tokens, errors) = super::lr_lexer::lex_source_recovery(input, 1);
+    let (tokens, errors) = super::lex_source_recovery(input, 1);
     eprintln!("lex_source_recovery tokens: {:#?}", tokens);
     eprintln!("lex_source_recovery errors: {:#?}", errors);
 
