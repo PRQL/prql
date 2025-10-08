@@ -19,7 +19,7 @@ use super::ParserError;
 /// The top-level parser for a PRQL file
 pub fn source<'a, I>() -> impl Parser<'a, I, Vec<Stmt>, ParserError<'a>> + Clone
 where
-    I: Input<'a, Token = lr::Token, Span = Span> + BorrowInput<'a>,
+    I: Input<'a, Token = lr::Token, Span = Span> + BorrowInput<'a> + chumsky::input::ValueInput<'a>,
 {
     with_doc_comment(query_def())
         .or_not()
@@ -37,7 +37,7 @@ where
 
 fn module_contents<'a, I>() -> impl Parser<'a, I, Vec<Stmt>, ParserError<'a>> + Clone
 where
-    I: Input<'a, Token = lr::Token, Span = Span> + BorrowInput<'a>,
+    I: Input<'a, Token = lr::Token, Span = Span> + BorrowInput<'a> + chumsky::input::ValueInput<'a>,
 {
     recursive(|module_contents| {
         let module_def = keyword("module")
@@ -93,7 +93,7 @@ where
 
 fn query_def<'a, I>() -> impl Parser<'a, I, Stmt, ParserError<'a>> + Clone
 where
-    I: Input<'a, Token = lr::Token, Span = Span> + BorrowInput<'a>,
+    I: Input<'a, Token = lr::Token, Span = Span> + BorrowInput<'a> + chumsky::input::ValueInput<'a>,
 {
     new_line()
         .repeated()
@@ -164,7 +164,7 @@ where
 /// - `from artists | into x` — captured as an "into"`
 fn var_def<'a, I>() -> impl Parser<'a, I, StmtKind, ParserError<'a>> + Clone
 where
-    I: Input<'a, Token = lr::Token, Span = Span> + BorrowInput<'a>,
+    I: Input<'a, Token = lr::Token, Span = Span> + BorrowInput<'a> + chumsky::input::ValueInput<'a>,
 {
     let let_ = new_line()
         .repeated()
@@ -214,7 +214,7 @@ where
 
 fn type_def<'a, I>() -> impl Parser<'a, I, StmtKind, ParserError<'a>> + Clone
 where
-    I: Input<'a, Token = lr::Token, Span = Span> + BorrowInput<'a>,
+    I: Input<'a, Token = lr::Token, Span = Span> + BorrowInput<'a> + chumsky::input::ValueInput<'a>,
 {
     keyword("type")
         .ignore_then(ident_part())
@@ -225,7 +225,7 @@ where
 
 fn import_def<'a, I>() -> impl Parser<'a, I, StmtKind, ParserError<'a>> + Clone
 where
-    I: Input<'a, Token = lr::Token, Span = Span> + BorrowInput<'a>,
+    I: Input<'a, Token = lr::Token, Span = Span> + BorrowInput<'a> + chumsky::input::ValueInput<'a>,
 {
     keyword("import")
         .ignore_then(ident_part().then_ignore(ctrl('=')).or_not())

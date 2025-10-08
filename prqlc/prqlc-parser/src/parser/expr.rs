@@ -3,6 +3,7 @@ use std::collections::{hash_map::Entry, HashMap};
 use chumsky;
 use chumsky::input::BorrowInput;
 use chumsky::prelude::*;
+use chumsky::pratt::*;
 use itertools::Itertools;
 
 use crate::lexer::lr;
@@ -16,13 +17,9 @@ use crate::span::Span;
 use super::pipe;
 use super::ParserError;
 
-// Type aliases to reduce verbosity in binary operator parsers
-type ExprWithSpan = (Expr, Span);
-type BinOpChain = Vec<(BinOp, ExprWithSpan)>;
-
 pub(crate) fn expr_call<'a, I>() -> impl Parser<'a, I, Expr, ParserError<'a>> + Clone
 where
-    I: Input<'a, Token = lr::Token, Span = Span> + BorrowInput<'a>,
+    I: Input<'a, Token = lr::Token, Span = Span> + BorrowInput<'a> + chumsky::input::ValueInput<'a>,
 {
     let expr = expr();
 
@@ -35,7 +32,7 @@ where
 
 pub(crate) fn expr<'a, I>() -> impl Parser<'a, I, Expr, ParserError<'a>> + Clone
 where
-    I: Input<'a, Token = lr::Token, Span = Span> + BorrowInput<'a>,
+    I: Input<'a, Token = lr::Token, Span = Span> + BorrowInput<'a> + chumsky::input::ValueInput<'a>,
 {
     recursive(|expr| {
         let literal = select_ref! { lr::Token { kind: TokenKind::Literal(lit), .. } => ExprKind::Literal(lit.clone()) };
@@ -87,16 +84,80 @@ where
         let term = unary(term);
         let term = range(term);
 
-        // Binary operators
-        let expr = term;
-        let expr = binary_op_parser_right(expr, operator_pow());
-        let expr = binary_op_parser(expr, operator_mul());
-        let expr = binary_op_parser(expr, operator_add());
-        let expr = binary_op_parser(expr, operator_compare());
-        let expr = binary_op_parser(expr, operator_coalesce());
-        let expr = binary_op_parser(expr, operator_and());
-
-        binary_op_parser(expr, operator_or())
+        // Binary operators using Pratt parsing
+        // Precedence levels (higher = tighter binding):
+        // 6: Pow (right associative)
+        // 5: Mul, Div, Mod (left associative)
+        // 4: Add, Sub (left associative)
+        // 3: Compare operators (left associative)
+        // 2: Coalesce (left associative)
+        // 1: And (left associative)
+        // 0: Or (left associative)
+        term.pratt((
+            infix(right(6), operator_pow(), |left, op, right, extra| {
+                let span = extra.span();
+                ExprKind::Binary(BinaryExpr {
+                    left: Box::new(left),
+                    op,
+                    right: Box::new(right),
+                })
+                .into_expr(span)
+            }),
+            infix(left(5), operator_mul(), |left, op, right, extra| {
+                let span = extra.span();
+                ExprKind::Binary(BinaryExpr {
+                    left: Box::new(left),
+                    op,
+                    right: Box::new(right),
+                })
+                .into_expr(span)
+            }),
+            infix(left(4), operator_add(), |left, op, right, extra| {
+                let span = extra.span();
+                ExprKind::Binary(BinaryExpr {
+                    left: Box::new(left),
+                    op,
+                    right: Box::new(right),
+                })
+                .into_expr(span)
+            }),
+            infix(left(3), operator_compare(), |left, op, right, extra| {
+                let span = extra.span();
+                ExprKind::Binary(BinaryExpr {
+                    left: Box::new(left),
+                    op,
+                    right: Box::new(right),
+                })
+                .into_expr(span)
+            }),
+            infix(left(2), operator_coalesce(), |left, op, right, extra| {
+                let span = extra.span();
+                ExprKind::Binary(BinaryExpr {
+                    left: Box::new(left),
+                    op,
+                    right: Box::new(right),
+                })
+                .into_expr(span)
+            }),
+            infix(left(1), operator_and(), |left, op, right, extra| {
+                let span = extra.span();
+                ExprKind::Binary(BinaryExpr {
+                    left: Box::new(left),
+                    op,
+                    right: Box::new(right),
+                })
+                .into_expr(span)
+            }),
+            infix(left(0), operator_or(), |left, op, right, extra| {
+                let span = extra.span();
+                ExprKind::Binary(BinaryExpr {
+                    left: Box::new(left),
+                    op,
+                    right: Box::new(right),
+                })
+                .into_expr(span)
+            }),
+        ))
     })
 }
 
@@ -104,7 +165,7 @@ fn tuple<'a, I>(
     nested_expr: impl Parser<'a, I, Expr, ParserError<'a>> + Clone + 'a,
 ) -> impl Parser<'a, I, ExprKind, ParserError<'a>> + Clone + 'a
 where
-    I: Input<'a, Token = lr::Token, Span = Span> + BorrowInput<'a>,
+    I: Input<'a, Token = lr::Token, Span = Span> + BorrowInput<'a> + chumsky::input::ValueInput<'a>,
 {
     sequence(maybe_aliased(nested_expr))
         .delimited_by(ctrl('{'), ctrl('}'))
@@ -116,7 +177,7 @@ fn array<'a, I>(
     expr: impl Parser<'a, I, Expr, ParserError<'a>> + Clone + 'a,
 ) -> impl Parser<'a, I, ExprKind, ParserError<'a>> + Clone + 'a
 where
-    I: Input<'a, Token = lr::Token, Span = Span> + BorrowInput<'a>,
+    I: Input<'a, Token = lr::Token, Span = Span> + BorrowInput<'a> + chumsky::input::ValueInput<'a>,
 {
     sequence(expr)
         .delimited_by(ctrl('['), ctrl(']'))
@@ -155,7 +216,7 @@ fn case<'a, I>(
     expr: impl Parser<'a, I, Expr, ParserError<'a>> + Clone + 'a,
 ) -> impl Parser<'a, I, ExprKind, ParserError<'a>> + Clone + 'a
 where
-    I: Input<'a, Token = lr::Token, Span = Span> + BorrowInput<'a>,
+    I: Input<'a, Token = lr::Token, Span = Span> + BorrowInput<'a> + chumsky::input::ValueInput<'a>,
 {
     // The `nickname != null => nickname,` part
     let mapping = func_call(expr.clone())
@@ -171,7 +232,7 @@ where
 
 fn unary<'a, I, E>(expr: E) -> impl Parser<'a, I, Expr, ParserError<'a>> + Clone + 'a
 where
-    I: Input<'a, Token = lr::Token, Span = Span> + BorrowInput<'a>,
+    I: Input<'a, Token = lr::Token, Span = Span> + BorrowInput<'a> + chumsky::input::ValueInput<'a>,
     E: Parser<'a, I, Expr, ParserError<'a>> + Clone + 'a,
 {
     expr.clone()
@@ -184,7 +245,7 @@ where
 
 fn range<'a, I, E>(expr: E) -> impl Parser<'a, I, Expr, ParserError<'a>> + Clone + 'a
 where
-    I: Input<'a, Token = lr::Token, Span = Span> + BorrowInput<'a>,
+    I: Input<'a, Token = lr::Token, Span = Span> + BorrowInput<'a> + chumsky::input::ValueInput<'a>,
     E: Parser<'a, I, Expr, ParserError<'a>> + Clone + 'a,
 {
     // Ranges have five cases we need to parse:
@@ -243,7 +304,7 @@ where
 /// A pipeline of `expr`, separated by pipes. Doesn't require parentheses.
 pub(crate) fn pipeline<'a, I, E>(expr: E) -> impl Parser<'a, I, Expr, ParserError<'a>> + Clone + 'a
 where
-    I: Input<'a, Token = lr::Token, Span = Span> + BorrowInput<'a>,
+    I: Input<'a, Token = lr::Token, Span = Span> + BorrowInput<'a> + chumsky::input::ValueInput<'a>,
     E: Parser<'a, I, Expr, ParserError<'a>> + Clone + 'a,
 {
     // expr has to be a param, because it can be either a normal expr() or a
@@ -271,100 +332,12 @@ where
         .labelled("pipeline")
 }
 
-fn binary_op_parser<'a, I, Term, Op>(
-    term: Term,
-    op: Op,
-) -> impl Parser<'a, I, Expr, ParserError<'a>> + 'a + Clone
-where
-    I: Input<'a, Token = lr::Token, Span = Span> + BorrowInput<'a>,
-    Term: Parser<'a, I, Expr, ParserError<'a>> + 'a + Clone,
-    Op: Parser<'a, I, BinOp, ParserError<'a>> + 'a + Clone,
-{
-    let term = term.map_with(|e, extra| (e, extra.span())).boxed();
-
-    term.clone()
-        .then(op.then(term).repeated().collect::<Vec<_>>())
-        .map(|(first, rest): (ExprWithSpan, BinOpChain)| {
-            rest.into_iter().fold(first, |left, (op, right)| {
-                let span = Span {
-                    start: left.1.start,
-                    end: right.1.end,
-                    source_id: left.1.source_id,
-                };
-                let kind = ExprKind::Binary(BinaryExpr {
-                    left: Box::new(left.0),
-                    op,
-                    right: Box::new(right.0),
-                });
-                (ExprKind::into_expr(kind, span), span)
-            })
-        })
-        .map(|(e, _)| e)
-        .boxed()
-}
-
-pub(crate) fn binary_op_parser_right<'a, I, Term, Op>(
-    term: Term,
-    op: Op,
-) -> impl Parser<'a, I, Expr, ParserError<'a>> + Clone + 'a
-where
-    I: Input<'a, Token = lr::Token, Span = Span> + BorrowInput<'a>,
-    Term: Parser<'a, I, Expr, ParserError<'a>> + Clone + 'a,
-    Op: Parser<'a, I, BinOp, ParserError<'a>> + Clone + 'a,
-{
-    let term = term.map_with(|e, extra| (e, extra.span())).boxed();
-
-    (term.clone())
-        .then(op.then(term).repeated().collect::<Vec<_>>())
-        .map(|(first, others): (ExprWithSpan, BinOpChain)| {
-            // A transformation from this:
-            // ```
-            // first: e1
-            // others: [(op1 e2) (op2 e3)]
-            // ```
-            // ... into:
-            // ```
-            // r: [(e1 op1) (e2 op2)]
-            // e3
-            // ```
-            // .. so we can use foldr for right associativity.
-            // We could use `(term.then(op)).repeated().then(term)` instead,
-            // and have the correct structure from the get-go, but that would
-            // perform miserably with simple expressions without operators, because
-            // it would re-parse the term twice for each level of precedence we have.
-
-            let mut free = first;
-            let mut r = Vec::new();
-            for (op, expr) in others {
-                r.push((free, op));
-                free = expr;
-            }
-
-            // Fold right manually
-            r.into_iter().rfold(free, |right, (left, op)| {
-                let span = Span {
-                    start: left.1.start,
-                    end: right.1.end,
-                    source_id: left.1.source_id,
-                };
-                let kind = ExprKind::Binary(BinaryExpr {
-                    left: Box::new(left.0),
-                    op,
-                    right: Box::new(right.0),
-                });
-                (kind.into_expr(span), span)
-            })
-        })
-        .map(|(e, _)| e)
-        .boxed()
-}
-
 // Can remove if we don't end up using this
 #[allow(dead_code)]
 #[cfg(not(coverage))]
 fn aliased<'a, I, E>(expr: E) -> impl Parser<'a, I, Expr, ParserError<'a>> + Clone + 'a
 where
-    I: Input<'a, Token = lr::Token, Span = Span> + BorrowInput<'a>,
+    I: Input<'a, Token = lr::Token, Span = Span> + BorrowInput<'a> + chumsky::input::ValueInput<'a>,
     E: Parser<'a, I, Expr, ParserError<'a>> + Clone + 'a,
 {
     let aliased = ident_part()
@@ -383,7 +356,7 @@ where
 
 fn maybe_aliased<'a, I, E>(expr: E) -> impl Parser<'a, I, Expr, ParserError<'a>> + Clone + 'a
 where
-    I: Input<'a, Token = lr::Token, Span = Span> + BorrowInput<'a>,
+    I: Input<'a, Token = lr::Token, Span = Span> + BorrowInput<'a> + chumsky::input::ValueInput<'a>,
     E: Parser<'a, I, Expr, ParserError<'a>> + Clone + 'a,
 {
     let aliased = ident_part()
@@ -405,7 +378,7 @@ where
 
 fn func_call<'a, I, E>(expr: E) -> impl Parser<'a, I, Expr, ParserError<'a>> + Clone + 'a
 where
-    I: Input<'a, Token = lr::Token, Span = Span> + BorrowInput<'a>,
+    I: Input<'a, Token = lr::Token, Span = Span> + BorrowInput<'a> + chumsky::input::ValueInput<'a>,
     E: Parser<'a, I, Expr, ParserError<'a>> + Clone + 'a,
 {
     let func_name = expr.clone();
@@ -475,7 +448,7 @@ where
 
 fn lambda_func<'a, I, E>(expr: E) -> impl Parser<'a, I, Expr, ParserError<'a>> + Clone + 'a
 where
-    I: Input<'a, Token = lr::Token, Span = Span> + BorrowInput<'a>,
+    I: Input<'a, Token = lr::Token, Span = Span> + BorrowInput<'a> + chumsky::input::ValueInput<'a>,
     E: Parser<'a, I, Expr, ParserError<'a>> + Clone + 'a,
 {
     let param = ident_part()
