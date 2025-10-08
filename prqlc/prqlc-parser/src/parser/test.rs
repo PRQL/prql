@@ -451,7 +451,7 @@ fn test_s_string() {
           expr:
             Ident:
               - col
-            span: "0:5-8"
+            span: "0:7-10"
           format: ~
       - String: )
     span: "0:0-13"
@@ -464,7 +464,7 @@ fn test_s_string() {
             Ident:
               - rel
               - Col name
-            span: "0:5-19"
+            span: "0:7-21"
           format: ~
       - String: )
     span: "0:0-24"

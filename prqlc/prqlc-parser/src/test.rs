@@ -576,7 +576,7 @@ fn test_function() {
                     expr:
                       Ident:
                         - X
-                      span: "0:5-6"
+                      span: "0:24-25"
                     format: ~
                 - String: )
               span: "0:17-28"
