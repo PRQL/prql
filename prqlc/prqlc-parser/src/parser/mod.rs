@@ -78,7 +78,9 @@ where
     }
 }
 
-fn keyword<'a, I>(kw: &'static str) -> impl Parser<'a, I, (), ParserError<'a>> + Clone
+fn keyword<'a, I>(
+    kw: &'static str,
+) -> impl Parser<'a, I, (), ParserError<'a>> + Clone
 where
     I: Input<'a, Token = lr::Token, Span = Span> + BorrowInput<'a>,
 {
@@ -91,7 +93,8 @@ where
 /// but not newlines after itself. This allows us to enforce new lines between
 /// some items. The only place we handle new lines after an item is in the root
 /// parser.
-pub(crate) fn new_line<'a, I>() -> impl Parser<'a, I, (), ParserError<'a>> + Clone
+pub(crate) fn new_line<'a, I>(
+) -> impl Parser<'a, I, (), ParserError<'a>> + Clone
 where
     I: Input<'a, Token = lr::Token, Span = Span> + BorrowInput<'a>,
 {
@@ -139,7 +142,9 @@ where
     .labelled("doc comment")
 }
 
-fn with_doc_comment<'a, I, P, O>(parser: P) -> impl Parser<'a, I, O, ParserError<'a>> + Clone + 'a
+fn with_doc_comment<'a, I, P, O>(
+    parser: P,
+) -> impl Parser<'a, I, O, ParserError<'a>> + Clone + 'a
 where
     I: Input<'a, Token = lr::Token, Span = Span> + BorrowInput<'a>,
     P: Parser<'a, I, O, ParserError<'a>> + Clone + 'a,
@@ -162,7 +167,9 @@ trait SupportsDocComment {
 
 /// Parse a sequence, allowing commas and new lines between items. Doesn't
 /// include the surrounding delimiters.
-fn sequence<'a, I, P, O>(parser: P) -> impl Parser<'a, I, Vec<O>, ParserError<'a>> + Clone + 'a
+fn sequence<'a, I, P, O>(
+    parser: P,
+) -> impl Parser<'a, I, Vec<O>, ParserError<'a>> + Clone + 'a
 where
     I: Input<'a, Token = lr::Token, Span = Span> + BorrowInput<'a>,
     P: Parser<'a, I, O, ParserError<'a>> + Clone + 'a,

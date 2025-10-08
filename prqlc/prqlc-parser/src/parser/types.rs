@@ -9,7 +9,8 @@ use crate::lexer::lr::TokenKind;
 
 use super::ParserError;
 
-pub(crate) fn type_expr<'a, I>() -> impl Parser<'a, I, Ty, ParserError<'a>> + Clone
+pub(crate) fn type_expr<'a, I>(
+) -> impl Parser<'a, I, Ty, ParserError<'a>> + Clone
 where
     I: Input<'a, Token = lr::Token, Span = Span> + BorrowInput<'a>,
 {
