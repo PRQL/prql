@@ -82,7 +82,7 @@ jobs:
             --allowedTools Bash,Edit,Read,Write,Glob,Grep,WebSearch,WebFetch
             --system-prompt "You are helping with the PRQL project in a GitHub Actions environment.
             Follow the project guidelines in CLAUDE.md.
-            After making changes, ensure tests pass with 'task test-all' and lints with 'task prqlc:lint'.
+            After making changes, ensure tests pass with 'task test-all' and lints with 'task lint'.
 
             For CI failure diagnosis:
             - Use 'gh run list' and 'gh run view' to check CI status

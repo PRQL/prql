@@ -280,7 +280,7 @@ Our tests, from the bottom of the pyramid to the top:
   using [pre-commit](https://pre-commit.com). They can be run locally with
 
   ```sh
-  task prqlc:lint
+  task lint
   # or
   pre-commit run -a
   ```

@@ -67,7 +67,7 @@ cargo run -p prqlc -- --help
 Run all lints with
 
 ```sh
-task prqlc:lint
+task lint
 ```
 
 ## Documentation

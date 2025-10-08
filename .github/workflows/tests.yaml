@@ -302,7 +302,7 @@ jobs:
       # This also encompasses `build-all`
       - run: task test-all
       - run: task prqlc:test
-      - run: task prqlc:lint
+      - run: task lint
 
   test-rust-main:
     needs: rules

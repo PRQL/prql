@@ -59,15 +59,10 @@ tasks:
         --features=default,test-dbs nextest {{.packages_core}}
         {{.packages_addon}} {{.packages_bindings}}
 
-  lint:
-    desc: Run all lints (run before committing).
-    cmds:
-      - pre-commit run --all-files
-      - cargo clippy --all-targets --all-features
-
   pull-request:
     desc: Complete PR checks (combines fmt + test-full + lint).
     cmds:
       - task: fmt
       - task: test-full
-      - task: lint
+      # Lint is repo-wide, so call it from root
+      - task: :lint

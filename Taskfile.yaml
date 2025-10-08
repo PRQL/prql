@@ -308,6 +308,12 @@ tasks:
       - cargo llvm-cov --lcov --output-path lcov.info
         --features=default,test-dbs
 
+  lint:
+    desc: Run all lints (pre-commit & cargo clippy).
+    cmds:
+      - pre-commit run --all-files
+      - cargo clippy --all-targets --all-features
+
   test-rust-external-dbs:
     desc: Run tests which require external databases, with docker
     cmds:
