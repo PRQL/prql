@@ -11,30 +11,6 @@ vars:
   packages_bindings: -p prql -p prql-java -p prqlc-js -p prqlc-c -p prqlc-python
 
 tasks:
-  fmt:
-    desc: Format prqlc code (run before committing).
-    cmds:
-      - cmd: |
-          # remove trailing whitespace
-          rg '\s+$' --files-with-matches --glob '!*.{rs,snap}' . \
-          | xargs -I _ sh -c "echo Removing trailing whitespace from _ && sd '[\t ]+$' '' _"
-
-      - cmd: |
-          # rustfmt
-          cargo fmt {{.packages_core}} {{.packages_addon}} {{.packages_bindings}}
-
-      - cmd: |
-          # no dbg
-          rg 'dbg!' --glob '*.rs' . --no-heading
-        ignore_error: true
-
-      - cmd: |
-          prettier --write . \
-          --config=../.prettierrc.yaml \
-          --ignore-path=../.prettierignore \
-          --ignore-unknown \
-          --log-level=warn
-
   test:
     desc: Fast inner-loop test, accepting snapshots (run during development).
     env:
@@ -60,9 +36,8 @@ tasks:
         {{.packages_addon}} {{.packages_bindings}}
 
   pull-request:
-    desc: Complete PR checks (combines fmt + test-all + lint).
+    desc: Complete PR checks (combines test-all + lint).
     cmds:
-      - task: fmt
       - task: test-all
       # Lint is repo-wide, so call it from root
       - task: :lint
