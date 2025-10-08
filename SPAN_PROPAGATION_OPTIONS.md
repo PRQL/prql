@@ -2,9 +2,11 @@
 
 ## Problem Summary
 
-After the Chumsky 0.10 migration, the "Unknown name" error lost its span information:
+After the Chumsky 0.10 migration, the "Unknown name" error lost its span
+information:
 
 **Before migration:**
+
 ```
 Error:
    ╭─[ :3:21 ]
@@ -16,6 +18,7 @@ Error:
 ```
 
 **After migration:**
+
 ```
 Error: Unknown name `x`
 ```
@@ -28,7 +31,8 @@ The issue is in `prqlc/prqlc/src/semantic/resolver/expr.rs:78`:
 let fq_ident = self.resolve_ident(&ident).with_span(node.span)?;
 ```
 
-When `resolve_ident()` fails, it returns an error **without** a span. The `.with_span(node.span)` is only applied to the success case, not the error case.
+When `resolve_ident()` fails, it returns an error **without** a span. The
+`.with_span(node.span)` is only applied to the success case, not the error case.
 
 The error is generated in `prqlc/prqlc/src/semantic/resolver/names.rs:138-140`:
 
@@ -58,7 +62,8 @@ Err(Error::new_simple(
 - `prqlc/prqlc-parser/src/parser/pr/ident.rs` - `Ident` struct (no span field)
 - `prqlc/prqlc-parser/src/parser/pr/expr.rs` - `Expr` struct (has span field)
 - `prqlc/prqlc/src/semantic/resolver/expr.rs:76-94` - Ident resolution call site
-- `prqlc/prqlc/src/semantic/resolver/names.rs:15-143` - `resolve_ident()` function
+- `prqlc/prqlc/src/semantic/resolver/names.rs:15-143` - `resolve_ident()`
+  function
 - `prqlc/prqlc/src/semantic/resolver/names.rs:138-140` - Error creation site
 
 ## Options for Fix
@@ -68,6 +73,7 @@ Err(Error::new_simple(
 **Approach:** Use `.map_err()` to attach span after `resolve_ident()` fails.
 
 **Implementation:**
+
 ```rust
 // In prqlc/prqlc/src/semantic/resolver/expr.rs:78
 let fq_ident = self.resolve_ident(&ident)
@@ -75,6 +81,7 @@ let fq_ident = self.resolve_ident(&ident)
 ```
 
 **Pros:**
+
 - ✅ Minimal change (1 line)
 - ✅ No API changes
 - ✅ No cascading modifications
@@ -83,20 +90,24 @@ let fq_ident = self.resolve_ident(&ident)
 - ✅ Low risk
 
 **Cons:**
+
 - ⚠️ Same pattern may exist elsewhere (need to audit other call sites)
 - ⚠️ Doesn't prevent future occurrences
 
 **Impact:** Very low - single line change at call site
 
-**Recommendation:** **START HERE**. This is the quickest fix that solves the regression.
+**Recommendation:** **START HERE**. This is the quickest fix that solves the
+regression.
 
 ---
 
 ### Option 2: Thread Span Through resolve_ident
 
-**Approach:** Add `span` parameter to `resolve_ident()` and attach it at error creation.
+**Approach:** Add `span` parameter to `resolve_ident()` and attach it at error
+creation.
 
 **Implementation:**
+
 ```rust
 // In names.rs
 pub(super) fn resolve_ident(
@@ -116,11 +127,13 @@ let fq_ident = self.resolve_ident(&ident, node.span)?;
 ```
 
 **Pros:**
+
 - ✅ Centralized error creation with span
 - ✅ More explicit API - caller must provide span
 - ✅ Consistent span handling for all error paths
 
 **Cons:**
+
 - ⚠️ Requires updating ALL call sites (found 3 in grep results)
 - ⚠️ API breaking change for internal function
 - ⚠️ More test updates needed
@@ -136,6 +149,7 @@ let fq_ident = self.resolve_ident(&ident, node.span)?;
 **Approach:** Add `span: Option<Span>` field to the `Ident` struct itself.
 
 **Implementation:**
+
 ```rust
 // In prqlc/prqlc-parser/src/parser/pr/ident.rs
 pub struct Ident {
@@ -146,11 +160,13 @@ pub struct Ident {
 ```
 
 **Pros:**
+
 - ✅ Span always available with Ident
 - ✅ Most semantically correct solution
 - ✅ Prevents all similar issues
 
 **Cons:**
+
 - ❌ **MAJOR** architectural change
 - ❌ Touches parser AND semantic analyzer
 - ❌ Requires updating:
@@ -173,6 +189,7 @@ pub struct Ident {
 **Approach:** Maintain a stack of spans in the resolver context.
 
 **Implementation:**
+
 ```rust
 impl Resolver {
     fn with_span<T>(&mut self, span: Option<Span>, f: impl FnOnce(&mut Self) -> Result<T, Error>) -> Result<T, Error> {
@@ -188,11 +205,13 @@ self.with_span(node.span, |r| r.resolve_ident(&ident))?
 ```
 
 **Pros:**
+
 - ✅ Automatic span attachment for any errors
 - ✅ No API changes to resolve_ident
 - ✅ Works for deeply nested errors
 
 **Cons:**
+
 - ⚠️ More complex control flow
 - ⚠️ Overhead of maintaining span stack
 - ⚠️ May attach wrong span if nesting is incorrect
@@ -200,7 +219,8 @@ self.with_span(node.span, |r| r.resolve_ident(&ident))?
 
 **Impact:** Medium - adds complexity to resolver
 
-**Recommendation:** Overengineered for this problem. Consider for future refactoring.
+**Recommendation:** Overengineered for this problem. Consider for future
+refactoring.
 
 ---
 
@@ -209,6 +229,7 @@ self.with_span(node.span, |r| r.resolve_ident(&ident))?
 **Approach:** Add a trait extension for attaching spans to Results.
 
 **Implementation:**
+
 ```rust
 trait ResultExt<T, E> {
     fn with_span_on_err(self, span: Option<Span>) -> Result<T, Error>;
@@ -225,18 +246,21 @@ let fq_ident = self.resolve_ident(&ident).with_span_on_err(node.span)?;
 ```
 
 **Pros:**
+
 - ✅ Ergonomic API
 - ✅ Reusable pattern
 - ✅ Self-documenting code
 - ✅ Easy to apply consistently
 
 **Cons:**
+
 - ⚠️ Still requires updating call sites
 - ⚠️ Adds new pattern to learn
 
 **Impact:** Low-Medium - cleaner version of Option 1
 
-**Recommendation:** Nice refinement if doing multiple fixes. Overkill for single site.
+**Recommendation:** Nice refinement if doing multiple fixes. Overkill for single
+site.
 
 ---
 
@@ -245,22 +269,28 @@ let fq_ident = self.resolve_ident(&ident).with_span_on_err(node.span)?;
 Found 3 call sites of `resolve_ident`:
 
 1. **names.rs:37** - Resolving imports
+
    ```rust
    return self.resolve_ident(&target);
    ```
+
    - Already within error handling context
    - **Needs investigation**: Does this need span too?
 
 2. **expr.rs:24** - Type checking context
+
    ```rust
    let fq_ident = self.resolve_ident(&ident)?;
    ```
+
    - **Needs investigation**: Check if this has span available
 
 3. **expr.rs:78** - Main expression resolution (THE BUG)
+
    ```rust
    let fq_ident = self.resolve_ident(&ident).with_span(node.span)?;
    ```
+
    - **This is the reported bug**
 
 **Action:** Need to check if lines 24 and 37 also lose span information.
@@ -270,6 +300,7 @@ Found 3 call sites of `resolve_ident`:
 ## Recommendation: Phased Approach
 
 ### Phase 1: Quick Fix (Option 1)
+
 **Time:** 15 minutes
 
 1. Apply `.map_err(|e| e.with_span(node.span))` at expr.rs:78
@@ -286,6 +317,7 @@ Found 3 call sites of `resolve_ident`:
 ### Phase 3: Consider Cleanup (Optional, 1-2 hours)
 
 If multiple sites need fixing:
+
 1. Implement Option 5 (trait extension)
 2. Apply consistently across all sites
 3. Document pattern in code comments
@@ -293,6 +325,7 @@ If multiple sites need fixing:
 ### Phase 4: Future Work (Track but don't implement now)
 
 For next major refactor:
+
 - Consider Option 2 (thread span through function)
 - Better yet: Consider redesigning error handling to use a span context
 - Document pattern in ARCHITECTURE.md
@@ -302,6 +335,7 @@ For next major refactor:
 ## Test Plan
 
 ### Minimal Test (Option 1)
+
 ```rust
 #[test]
 fn test_unknown_name_with_span() {
@@ -318,13 +352,16 @@ fn test_unknown_name_with_span() {
 ```
 
 ### Integration Test
-Use the existing `bad_error_messages.rs::select_with_extra_fstr` test - it should show proper span after fix.
+
+Use the existing `bad_error_messages.rs::select_with_extra_fstr` test - it
+should show proper span after fix.
 
 ---
 
 ## Implementation Steps (Option 1 - Recommended)
 
 1. **Apply fix:**
+
    ```bash
    # Edit prqlc/prqlc/src/semantic/resolver/expr.rs:78
    # Change:
@@ -335,6 +372,7 @@ Use the existing `bad_error_messages.rs::select_with_extra_fstr` test - it shoul
    ```
 
 2. **Test:**
+
    ```bash
    cargo insta test --accept -p prqlc --test bad_error_messages
    ```
@@ -344,6 +382,7 @@ Use the existing `bad_error_messages.rs::select_with_extra_fstr` test - it shoul
    - Move test from `bad_error_messages.rs` to `error_messages.rs`
 
 4. **Commit:**
+
    ```
    fix: Restore span information for "Unknown name" errors
 
@@ -362,6 +401,7 @@ Use the existing `bad_error_messages.rs::select_with_extra_fstr` test - it shoul
 ## Impact Assessment
 
 **Option 1 (Recommended):**
+
 - Files changed: 1
 - Lines changed: 2
 - Tests affected: 1 snapshot
@@ -369,6 +409,7 @@ Use the existing `bad_error_messages.rs::select_with_extra_fstr` test - it shoul
 - Time: 15 minutes
 
 **Option 2:**
+
 - Files changed: 2-3
 - Lines changed: 10-15
 - Tests affected: Multiple
@@ -376,6 +417,7 @@ Use the existing `bad_error_messages.rs::select_with_extra_fstr` test - it shoul
 - Time: 1-2 hours
 
 **Option 3:**
+
 - Files changed: 20+
 - Lines changed: 100+
 - Tests affected: Many
@@ -388,6 +430,10 @@ Use the existing `bad_error_messages.rs::select_with_extra_fstr` test - it shoul
 
 **Recommended approach:** Start with **Option 1** (map_err at call site).
 
-It's the simplest, lowest-risk fix that solves the immediate regression. If we find multiple sites with the same issue during audit, we can refactor to Option 5 (trait extension) for consistency.
+It's the simplest, lowest-risk fix that solves the immediate regression. If we
+find multiple sites with the same issue during audit, we can refactor to Option
+5 (trait extension) for consistency.
 
-Option 3 (adding span to Ident) is the "right" architectural solution, but it's too invasive for a bug fix. Consider it for a future major refactoring when redesigning the semantic analyzer.
+Option 3 (adding span to Ident) is the "right" architectural solution, but it's
+too invasive for a bug fix. Consider it for a future major refactoring when
+redesigning the semantic analyzer.
