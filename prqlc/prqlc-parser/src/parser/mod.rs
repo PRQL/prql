@@ -1,4 +1,3 @@
-// Migrating parser to Chumsky 0.10
 use chumsky;
 use chumsky::input::BorrowInput;
 use chumsky::prelude::*;
@@ -176,7 +175,7 @@ where
     parser
         .separated_by(ctrl(',').then_ignore(new_line().repeated()))
         .allow_trailing()
-        .collect() // Chumsky 0.10: collect to get Vec<O>
+        .collect()
         // Note because we pad rather than only take the ending new line, we
         // can't put items that require a new line in a tuple, like:
         //
@@ -267,9 +266,7 @@ mod tests {
         "#);
     }
 
-    // Removed: test_doc_comment_or_not and test_no_doc_comment_in_with_doc_comment
-    // Chumsky 0.10 doesn't support the same backtracking behavior as 0.9 for .or_not()
-    // Doc comment functionality is still tested in stmt.rs tests
+    // Doc comment functionality is tested in stmt.rs tests
 
     #[cfg(test)]
     impl SupportsDocComment for String {

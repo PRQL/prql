@@ -26,7 +26,6 @@ strum = { workspace = true }
 # see it when compiling on macOS), so we only include features when running
 # outside wasm.
 [target.'cfg(not(target_family="wasm"))'.dependencies]
-# Use chumsky 0.10.1 for both lexer and parser
 chumsky = { version = "0.10.1" }
 # Not direct dependencies, but pinning because of bugs in previous versions
 stacker = "0.1.22"
@@ -44,6 +43,4 @@ serde_json = { workspace = true }
 unexpected_cfgs = { level = "warn", check-cfg = [
     'cfg(coverage,coverage_nightly)',
 ] }
-# Changed from "forbid" to "deny" to allow #[allow(unsafe_code)] for Chumsky 0.10 Input trait
-# which requires unsafe methods for performance
-unsafe_code = "deny"
+unsafe_code = "forbid"

@@ -15,7 +15,7 @@ pub struct Span {
     pub source_id: u16,
 }
 
-// Implement Chumsky 0.10's Span trait for our custom Span
+// Implement Chumsky's Span trait for our custom Span
 impl chumsky::span::Span for Span {
     type Context = u16; // source_id
     type Offset = usize;
@@ -163,32 +163,6 @@ impl Sub<usize> for Span {
         }
     }
 }
-
-// This function used Chumsky 0.9's Stream and is no longer needed in 0.10
-// pub(crate) fn string_stream<'a>(
-//     s: String,
-//     span_base: Span,
-// ) -> Stream<'a, char, Span, Box<dyn Iterator<Item = (char, Span)>>> {
-//     let chars = s.chars().collect::<Vec<_>>();
-//
-//     Stream::from_iter(
-//         Span {
-//             start: span_base.start + chars.len(),
-//             end: span_base.start + chars.len(),
-//             source_id: span_base.source_id,
-//         },
-//         Box::new(chars.into_iter().enumerate().map(move |(i, c)| {
-//             (
-//                 c,
-//                 Span {
-//                     start: span_base.start + i,
-//                     end: span_base.start + i + 1,
-//                     source_id: span_base.source_id,
-//                 },
-//             )
-//         })),
-//     )
-// }
 
 #[cfg(test)]
 mod test {

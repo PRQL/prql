@@ -786,8 +786,7 @@ mod tests {
         "#);
     }
 
-    // Removed: aliased_in_expr test - Chumsky 0.10 doesn't support this kind of partial parsing
-    // The behavior (that expr() doesn't parse aliases) is still tested by test_tuple
+    // The behavior that expr() doesn't parse aliases is tested by test_tuple
 
     #[test]
     fn test_tuple() {
@@ -985,21 +984,6 @@ mod tests {
         "#);
     }
 
-    // TODO: Re-enable after migrating to proper test helper
-    // #[test]
-    // fn forced_new_lines() {
-    //     // Not sure whether this is possible to adjust, putting a test here
-    //     // as a note.
-    //     //
-    //     // Check the opening new lines aren't consumed
-    //     assert!(parse_tuple(r#"
-    //         {
-    //         #! doc comment
-    //         derive x = 5
-    //         }
-    //         "#).is_err());
-    // }
-
     #[test]
     fn args_in_parens() {
         // Ensure function arguments allow parentheses
@@ -1117,24 +1101,4 @@ mod tests {
         span: "0:5-46"
         "#);
     }
-
-    // TODO: Re-enable after migrating to proper test helper
-    // // TODO: I think this should pass...
-    // #[should_panic]
-    // #[test]
-    // fn pipeline_starting_with_parenthesized_alias() {
-    //     let with_parens = parse_pipeline(r#"
-    //     (
-    //       (t = tbl)
-    //       select t.date
-    //     )"#).unwrap();
-    //
-    //     let without_parens = parse_pipeline(r#"
-    //     (
-    //       t = tbl
-    //       select t.date
-    //     )"#).unwrap();
-    //
-    //     assert_eq!(with_parens, without_parens);
-    // }
 }

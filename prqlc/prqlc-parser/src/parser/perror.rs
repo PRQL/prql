@@ -202,7 +202,7 @@ impl From<PError> for Error {
     }
 }
 
-// Convert from Chumsky 0.10's Rich error type with lr::Token to our Error type
+// Convert from Chumsky's Rich error type (with lr::Token) to our Error type
 impl<'a> From<Rich<'a, crate::lexer::lr::Token, Span>> for Error {
     fn from(rich: Rich<'a, crate::lexer::lr::Token, Span>) -> Error {
         use chumsky::error::RichReason;
@@ -275,7 +275,7 @@ impl<'a> From<Rich<'a, crate::lexer::lr::Token, Span>> for Error {
     }
 }
 
-// Convert from Chumsky 0.10's Rich error type to our Error type
+// Convert from Chumsky's Rich error type (with TokenKind) to our Error type
 impl<'a> From<Rich<'a, TokenKind, Span>> for Error {
     fn from(rich: Rich<'a, TokenKind, Span>) -> Error {
         use chumsky::error::RichReason;
@@ -320,7 +320,7 @@ impl<'a> From<Rich<'a, TokenKind, Span>> for Error {
                 };
 
                 if expected_strs.is_empty() || expected_strs.len() > 10 {
-                    // TODO: In Chumsky 0.10, labels are in context, not on Rich directly
+                    // TODO: Extract labels from context
                     Error::new_simple(format!("unexpected {found_str}"))
                 } else {
                     let mut expected_sorted = expected_strs;
@@ -336,7 +336,7 @@ impl<'a> From<Rich<'a, TokenKind, Span>> for Error {
                     };
 
                     Error::new(Reason::Expected {
-                        who: None, // TODO: In Chumsky 0.10, labels are in context
+                        who: None, // TODO: Extract from context
                         expected: expected_str,
                         found: found_str,
                     })

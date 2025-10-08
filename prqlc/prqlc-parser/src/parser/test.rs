@@ -1284,8 +1284,6 @@ fn test_params() {
 
 #[test]
 fn test_lookup_01() {
-    // Changed input from `{a = {x = 2}}.a.x` to `{a = {x = 2}}` because
-    // Chumsky 0.10 doesn't support partial parsing the same way as 0.9
     assert_yaml_snapshot!(parse_expr(
     r#"{a = {x = 2}}"#,
     ).unwrap(), @r#"
