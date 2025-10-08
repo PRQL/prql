@@ -14,9 +14,11 @@ use crate::parser::pr::*;
 use crate::parser::types::type_expr;
 use crate::span::Span;
 
+use super::ParserError;
+
 /// The top-level parser for a PRQL file
 pub fn source<'a, I>(
-) -> impl Parser<'a, I, Vec<Stmt>, extra::Err<Rich<'a, lr::Token, Span>>> + Clone
+) -> impl Parser<'a, I, Vec<Stmt>, ParserError<'a>> + Clone
 where
     I: Input<'a, Token = lr::Token, Span = Span> + BorrowInput<'a>,
 {
@@ -35,7 +37,7 @@ where
 }
 
 fn module_contents<'a, I>(
-) -> impl Parser<'a, I, Vec<Stmt>, extra::Err<Rich<'a, lr::Token, Span>>> + Clone
+) -> impl Parser<'a, I, Vec<Stmt>, ParserError<'a>> + Clone
 where
     I: Input<'a, Token = lr::Token, Span = Span> + BorrowInput<'a>,
 {
@@ -91,7 +93,7 @@ where
     })
 }
 
-fn query_def<'a, I>() -> impl Parser<'a, I, Stmt, extra::Err<Rich<'a, lr::Token, Span>>> + Clone
+fn query_def<'a, I>() -> impl Parser<'a, I, Stmt, ParserError<'a>> + Clone
 where
     I: Input<'a, Token = lr::Token, Span = Span> + BorrowInput<'a>,
 {
@@ -162,7 +164,7 @@ where
 /// - `let foo = 5`
 /// - `from artists` — captured as a "main"
 /// - `from artists | into x` — captured as an "into"`
-fn var_def<'a, I>() -> impl Parser<'a, I, StmtKind, extra::Err<Rich<'a, lr::Token, Span>>> + Clone
+fn var_def<'a, I>() -> impl Parser<'a, I, StmtKind, ParserError<'a>> + Clone
 where
     I: Input<'a, Token = lr::Token, Span = Span> + BorrowInput<'a>,
 {
@@ -212,7 +214,7 @@ where
     let_.or(main_or_into)
 }
 
-fn type_def<'a, I>() -> impl Parser<'a, I, StmtKind, extra::Err<Rich<'a, lr::Token, Span>>> + Clone
+fn type_def<'a, I>() -> impl Parser<'a, I, StmtKind, ParserError<'a>> + Clone
 where
     I: Input<'a, Token = lr::Token, Span = Span> + BorrowInput<'a>,
 {
@@ -223,7 +225,7 @@ where
         .labelled("type definition")
 }
 
-fn import_def<'a, I>() -> impl Parser<'a, I, StmtKind, extra::Err<Rich<'a, lr::Token, Span>>> + Clone
+fn import_def<'a, I>() -> impl Parser<'a, I, StmtKind, ParserError<'a>> + Clone
 where
     I: Input<'a, Token = lr::Token, Span = Span> + BorrowInput<'a>,
 {

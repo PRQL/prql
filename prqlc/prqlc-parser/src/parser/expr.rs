@@ -14,13 +14,14 @@ use crate::parser::{ctrl, ident_part, keyword, new_line, sequence, with_doc_comm
 use crate::span::Span;
 
 use super::pipe;
+use super::ParserError;
 
 // Type aliases to reduce verbosity in binary operator parsers
 type ExprWithSpan = (Expr, Span);
 type BinOpChain = Vec<(BinOp, ExprWithSpan)>;
 
 pub(crate) fn expr_call<'a, I>(
-) -> impl Parser<'a, I, Expr, extra::Err<Rich<'a, lr::Token, Span>>> + Clone
+) -> impl Parser<'a, I, Expr, ParserError<'a>> + Clone
 where
     I: Input<'a, Token = lr::Token, Span = Span> + BorrowInput<'a>,
 {
@@ -34,7 +35,7 @@ where
 }
 
 pub(crate) fn expr<'a, I>(
-) -> impl Parser<'a, I, Expr, extra::Err<Rich<'a, lr::Token, Span>>> + Clone
+) -> impl Parser<'a, I, Expr, ParserError<'a>> + Clone
 where
     I: Input<'a, Token = lr::Token, Span = Span> + BorrowInput<'a>,
 {
@@ -57,7 +58,7 @@ where
         let tuple = tuple(nested_expr.clone());
         let array = array(nested_expr.clone());
         let pipeline_expr = {
-            // TODO: Add back error recovery with Chumsky 0.10 API once we have reference-based delimiters
+            // TODO: Add error recovery
             pipeline(nested_expr.clone())
                 .padded_by(new_line().repeated())
                 .delimited_by(ctrl('('), ctrl(')'))
@@ -103,12 +104,12 @@ where
 }
 
 fn tuple<'a, I>(
-    nested_expr: impl Parser<'a, I, Expr, extra::Err<Rich<'a, lr::Token, Span>>> + Clone + 'a,
-) -> impl Parser<'a, I, ExprKind, extra::Err<Rich<'a, lr::Token, Span>>> + Clone + 'a
+    nested_expr: impl Parser<'a, I, Expr, ParserError<'a>> + Clone + 'a,
+) -> impl Parser<'a, I, ExprKind, ParserError<'a>> + Clone + 'a
 where
     I: Input<'a, Token = lr::Token, Span = Span> + BorrowInput<'a>,
 {
-    // TODO: Add back error recovery with Chumsky 0.10 API once we have reference-based delimiters
+    // TODO: Add error recovery
     sequence(maybe_aliased(nested_expr))
         .delimited_by(ctrl('{'), ctrl('}'))
         .map(ExprKind::Tuple)
@@ -116,12 +117,12 @@ where
 }
 
 fn array<'a, I>(
-    expr: impl Parser<'a, I, Expr, extra::Err<Rich<'a, lr::Token, Span>>> + Clone + 'a,
-) -> impl Parser<'a, I, ExprKind, extra::Err<Rich<'a, lr::Token, Span>>> + Clone + 'a
+    expr: impl Parser<'a, I, Expr, ParserError<'a>> + Clone + 'a,
+) -> impl Parser<'a, I, ExprKind, ParserError<'a>> + Clone + 'a
 where
     I: Input<'a, Token = lr::Token, Span = Span> + BorrowInput<'a>,
 {
-    // TODO: Add back error recovery with Chumsky 0.10 API once we have reference-based delimiters
+    // TODO: Add error recovery
     sequence(expr)
         .delimited_by(ctrl('['), ctrl(']'))
         .map(ExprKind::Array)
@@ -129,7 +130,7 @@ where
 }
 
 fn interpolation<'a, I>(
-) -> impl Parser<'a, I, ExprKind, extra::Err<Rich<'a, lr::Token, Span>>> + Clone
+) -> impl Parser<'a, I, ExprKind, ParserError<'a>> + Clone
 where
     I: Input<'a, Token = lr::Token, Span = Span> + BorrowInput<'a>,
 {
@@ -157,8 +158,8 @@ where
 }
 
 fn case<'a, I>(
-    expr: impl Parser<'a, I, Expr, extra::Err<Rich<'a, lr::Token, Span>>> + Clone + 'a,
-) -> impl Parser<'a, I, ExprKind, extra::Err<Rich<'a, lr::Token, Span>>> + Clone + 'a
+    expr: impl Parser<'a, I, Expr, ParserError<'a>> + Clone + 'a,
+) -> impl Parser<'a, I, ExprKind, ParserError<'a>> + Clone + 'a
 where
     I: Input<'a, Token = lr::Token, Span = Span> + BorrowInput<'a>,
 {
@@ -176,10 +177,10 @@ where
 
 fn unary<'a, I, E>(
     expr: E,
-) -> impl Parser<'a, I, Expr, extra::Err<Rich<'a, lr::Token, Span>>> + Clone + 'a
+) -> impl Parser<'a, I, Expr, ParserError<'a>> + Clone + 'a
 where
     I: Input<'a, Token = lr::Token, Span = Span> + BorrowInput<'a>,
-    E: Parser<'a, I, Expr, extra::Err<Rich<'a, lr::Token, Span>>> + Clone + 'a,
+    E: Parser<'a, I, Expr, ParserError<'a>> + Clone + 'a,
 {
     expr.clone()
         .or(operator_unary()
@@ -191,10 +192,10 @@ where
 
 fn range<'a, I, E>(
     expr: E,
-) -> impl Parser<'a, I, Expr, extra::Err<Rich<'a, lr::Token, Span>>> + Clone + 'a
+) -> impl Parser<'a, I, Expr, ParserError<'a>> + Clone + 'a
 where
     I: Input<'a, Token = lr::Token, Span = Span> + BorrowInput<'a>,
-    E: Parser<'a, I, Expr, extra::Err<Rich<'a, lr::Token, Span>>> + Clone + 'a,
+    E: Parser<'a, I, Expr, ParserError<'a>> + Clone + 'a,
 {
     // Ranges have five cases we need to parse:
     // x..y (bounded)
@@ -252,10 +253,10 @@ where
 /// A pipeline of `expr`, separated by pipes. Doesn't require parentheses.
 pub(crate) fn pipeline<'a, I, E>(
     expr: E,
-) -> impl Parser<'a, I, Expr, extra::Err<Rich<'a, lr::Token, Span>>> + Clone + 'a
+) -> impl Parser<'a, I, Expr, ParserError<'a>> + Clone + 'a
 where
     I: Input<'a, Token = lr::Token, Span = Span> + BorrowInput<'a>,
-    E: Parser<'a, I, Expr, extra::Err<Rich<'a, lr::Token, Span>>> + Clone + 'a,
+    E: Parser<'a, I, Expr, ParserError<'a>> + Clone + 'a,
 {
     // expr has to be a param, because it can be either a normal expr() or a
     // recursive expr called from within expr(), which causes a stack overflow
@@ -279,7 +280,7 @@ where
                 .into_expr(span)
             })
         })
-        // TODO: Add back error recovery with Chumsky 0.10 API
+        // TODO: Add error recovery
         // .recover_with(...)
         .labelled("pipeline")
 }
@@ -287,11 +288,11 @@ where
 fn binary_op_parser<'a, I, Term, Op>(
     term: Term,
     op: Op,
-) -> impl Parser<'a, I, Expr, extra::Err<Rich<'a, lr::Token, Span>>> + 'a + Clone
+) -> impl Parser<'a, I, Expr, ParserError<'a>> + 'a + Clone
 where
     I: Input<'a, Token = lr::Token, Span = Span> + BorrowInput<'a>,
-    Term: Parser<'a, I, Expr, extra::Err<Rich<'a, lr::Token, Span>>> + 'a + Clone,
-    Op: Parser<'a, I, BinOp, extra::Err<Rich<'a, lr::Token, Span>>> + 'a + Clone,
+    Term: Parser<'a, I, Expr, ParserError<'a>> + 'a + Clone,
+    Op: Parser<'a, I, BinOp, ParserError<'a>> + 'a + Clone,
 {
     let term = term.map_with(|e, extra| (e, extra.span())).boxed();
 
@@ -319,11 +320,11 @@ where
 pub(crate) fn binary_op_parser_right<'a, I, Term, Op>(
     term: Term,
     op: Op,
-) -> impl Parser<'a, I, Expr, extra::Err<Rich<'a, lr::Token, Span>>> + Clone + 'a
+) -> impl Parser<'a, I, Expr, ParserError<'a>> + Clone + 'a
 where
     I: Input<'a, Token = lr::Token, Span = Span> + BorrowInput<'a>,
-    Term: Parser<'a, I, Expr, extra::Err<Rich<'a, lr::Token, Span>>> + Clone + 'a,
-    Op: Parser<'a, I, BinOp, extra::Err<Rich<'a, lr::Token, Span>>> + Clone + 'a,
+    Term: Parser<'a, I, Expr, ParserError<'a>> + Clone + 'a,
+    Op: Parser<'a, I, BinOp, ParserError<'a>> + Clone + 'a,
 {
     let term = term.map_with(|e, extra| (e, extra.span())).boxed();
 
@@ -377,10 +378,10 @@ where
 #[cfg(not(coverage))]
 fn aliased<'a, I, E>(
     expr: E,
-) -> impl Parser<'a, I, Expr, extra::Err<Rich<'a, lr::Token, Span>>> + Clone + 'a
+) -> impl Parser<'a, I, Expr, ParserError<'a>> + Clone + 'a
 where
     I: Input<'a, Token = lr::Token, Span = Span> + BorrowInput<'a>,
-    E: Parser<'a, I, Expr, extra::Err<Rich<'a, lr::Token, Span>>> + Clone + 'a,
+    E: Parser<'a, I, Expr, ParserError<'a>> + Clone + 'a,
 {
     let aliased = ident_part()
         .then_ignore(ctrl('='))
@@ -398,10 +399,10 @@ where
 
 fn maybe_aliased<'a, I, E>(
     expr: E,
-) -> impl Parser<'a, I, Expr, extra::Err<Rich<'a, lr::Token, Span>>> + Clone + 'a
+) -> impl Parser<'a, I, Expr, ParserError<'a>> + Clone + 'a
 where
     I: Input<'a, Token = lr::Token, Span = Span> + BorrowInput<'a>,
-    E: Parser<'a, I, Expr, extra::Err<Rich<'a, lr::Token, Span>>> + Clone + 'a,
+    E: Parser<'a, I, Expr, ParserError<'a>> + Clone + 'a,
 {
     let aliased = ident_part()
         .then_ignore(ctrl('='))
@@ -422,10 +423,10 @@ where
 
 fn func_call<'a, I, E>(
     expr: E,
-) -> impl Parser<'a, I, Expr, extra::Err<Rich<'a, lr::Token, Span>>> + Clone + 'a
+) -> impl Parser<'a, I, Expr, ParserError<'a>> + Clone + 'a
 where
     I: Input<'a, Token = lr::Token, Span = Span> + BorrowInput<'a>,
-    E: Parser<'a, I, Expr, extra::Err<Rich<'a, lr::Token, Span>>> + Clone + 'a,
+    E: Parser<'a, I, Expr, ParserError<'a>> + Clone + 'a,
 {
     let func_name = expr.clone();
 
@@ -494,10 +495,10 @@ where
 
 fn lambda_func<'a, I, E>(
     expr: E,
-) -> impl Parser<'a, I, Expr, extra::Err<Rich<'a, lr::Token, Span>>> + Clone + 'a
+) -> impl Parser<'a, I, Expr, ParserError<'a>> + Clone + 'a
 where
     I: Input<'a, Token = lr::Token, Span = Span> + BorrowInput<'a>,
-    E: Parser<'a, I, Expr, extra::Err<Rich<'a, lr::Token, Span>>> + Clone + 'a,
+    E: Parser<'a, I, Expr, ParserError<'a>> + Clone + 'a,
 {
     let param = ident_part()
         .then(type_expr().delimited_by(ctrl('<'), ctrl('>')).or_not())
@@ -545,7 +546,7 @@ where
 }
 
 pub(crate) fn ident<'a, I>(
-) -> impl Parser<'a, I, Ident, extra::Err<Rich<'a, lr::Token, Span>>> + Clone
+) -> impl Parser<'a, I, Ident, ParserError<'a>> + Clone
 where
     I: Input<'a, Token = lr::Token, Span = Span> + BorrowInput<'a>,
 {
@@ -560,7 +561,7 @@ where
         })
 }
 
-fn operator_unary<'a, I>() -> impl Parser<'a, I, UnOp, extra::Err<Rich<'a, lr::Token, Span>>> + Clone
+fn operator_unary<'a, I>() -> impl Parser<'a, I, UnOp, ParserError<'a>> + Clone
 where
     I: Input<'a, Token = lr::Token, Span = Span> + BorrowInput<'a>,
 {
@@ -569,13 +570,13 @@ where
         .or(ctrl('!').to(UnOp::Not))
         .or(select_ref! { lr::Token { kind: TokenKind::Eq, .. } => UnOp::EqSelf })
 }
-fn operator_pow<'a, I>() -> impl Parser<'a, I, BinOp, extra::Err<Rich<'a, lr::Token, Span>>> + Clone
+fn operator_pow<'a, I>() -> impl Parser<'a, I, BinOp, ParserError<'a>> + Clone
 where
     I: Input<'a, Token = lr::Token, Span = Span> + BorrowInput<'a>,
 {
     select_ref! { lr::Token { kind: TokenKind::Pow, .. } => BinOp::Pow }
 }
-fn operator_mul<'a, I>() -> impl Parser<'a, I, BinOp, extra::Err<Rich<'a, lr::Token, Span>>> + Clone
+fn operator_mul<'a, I>() -> impl Parser<'a, I, BinOp, ParserError<'a>> + Clone
 where
     I: Input<'a, Token = lr::Token, Span = Span> + BorrowInput<'a>,
 {
@@ -584,14 +585,14 @@ where
         .or(ctrl('/').to(BinOp::DivFloat))
         .or(ctrl('%').to(BinOp::Mod))
 }
-fn operator_add<'a, I>() -> impl Parser<'a, I, BinOp, extra::Err<Rich<'a, lr::Token, Span>>> + Clone
+fn operator_add<'a, I>() -> impl Parser<'a, I, BinOp, ParserError<'a>> + Clone
 where
     I: Input<'a, Token = lr::Token, Span = Span> + BorrowInput<'a>,
 {
     (ctrl('+').to(BinOp::Add)).or(ctrl('-').to(BinOp::Sub))
 }
 fn operator_compare<'a, I>(
-) -> impl Parser<'a, I, BinOp, extra::Err<Rich<'a, lr::Token, Span>>> + Clone
+) -> impl Parser<'a, I, BinOp, ParserError<'a>> + Clone
 where
     I: Input<'a, Token = lr::Token, Span = Span> + BorrowInput<'a>,
 {
@@ -605,20 +606,20 @@ where
         ctrl('>').to(BinOp::Gt),
     ))
 }
-fn operator_and<'a, I>() -> impl Parser<'a, I, BinOp, extra::Err<Rich<'a, lr::Token, Span>>> + Clone
+fn operator_and<'a, I>() -> impl Parser<'a, I, BinOp, ParserError<'a>> + Clone
 where
     I: Input<'a, Token = lr::Token, Span = Span> + BorrowInput<'a>,
 {
     select_ref! { lr::Token { kind: TokenKind::And, .. } => BinOp::And }
 }
-fn operator_or<'a, I>() -> impl Parser<'a, I, BinOp, extra::Err<Rich<'a, lr::Token, Span>>> + Clone
+fn operator_or<'a, I>() -> impl Parser<'a, I, BinOp, ParserError<'a>> + Clone
 where
     I: Input<'a, Token = lr::Token, Span = Span> + BorrowInput<'a>,
 {
     select_ref! { lr::Token { kind: TokenKind::Or, .. } => BinOp::Or }
 }
 fn operator_coalesce<'a, I>(
-) -> impl Parser<'a, I, BinOp, extra::Err<Rich<'a, lr::Token, Span>>> + Clone
+) -> impl Parser<'a, I, BinOp, ParserError<'a>> + Clone
 where
     I: Input<'a, Token = lr::Token, Span = Span> + BorrowInput<'a>,
 {

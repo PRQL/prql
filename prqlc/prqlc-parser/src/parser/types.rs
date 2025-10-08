@@ -7,8 +7,10 @@ use super::*;
 use crate::lexer::lr;
 use crate::lexer::lr::TokenKind;
 
+use super::ParserError;
+
 pub(crate) fn type_expr<'a, I>(
-) -> impl Parser<'a, I, Ty, extra::Err<Rich<'a, lr::Token, Span>>> + Clone
+) -> impl Parser<'a, I, Ty, ParserError<'a>> + Clone
 where
     I: Input<'a, Token = lr::Token, Span = Span> + BorrowInput<'a>,
 {
@@ -56,7 +58,7 @@ where
                 .map(|(name, ty)| TyTupleField::Single(name, ty)),
         )))
         .delimited_by(ctrl('{'), ctrl('}'))
-        // TODO: Add back error recovery with Chumsky 0.10 API
+        // TODO: Add error recovery
         // .recover_with(...)
         .try_map(|fields, span| {
             let without_last = &fields[0..fields.len().saturating_sub(1)];
@@ -79,7 +81,7 @@ where
             .or_not()
             .padded_by(new_line().repeated())
             .delimited_by(ctrl('['), ctrl(']'))
-            // TODO: Add back error recovery with Chumsky 0.10 API
+            // TODO: Add error recovery
             // .recover_with(...)
             .map(TyKind::Array)
             .labelled("array");

@@ -9,6 +9,9 @@ use crate::lexer::lr;
 use crate::lexer::lr::TokenKind;
 use crate::span::Span;
 
+// Type alias for parser error type to reduce verbosity
+pub(crate) type ParserError<'a> = extra::Err<Rich<'a, lr::Token, Span>>;
+
 mod expr;
 mod interpolation;
 pub(crate) mod perror;
@@ -66,7 +69,7 @@ pub fn parse_lr_to_pr(source_id: u16, lr: Vec<lr::Token>) -> (Option<Vec<pr::Stm
     (pr, errors)
 }
 
-fn ident_part<'a, I>() -> impl Parser<'a, I, String, extra::Err<Rich<'a, lr::Token, Span>>> + Clone
+fn ident_part<'a, I>() -> impl Parser<'a, I, String, ParserError<'a>> + Clone
 where
     I: Input<'a, Token = lr::Token, Span = Span> + BorrowInput<'a>,
 {
@@ -77,7 +80,7 @@ where
 
 fn keyword<'a, I>(
     kw: &'static str,
-) -> impl Parser<'a, I, (), extra::Err<Rich<'a, lr::Token, Span>>> + Clone
+) -> impl Parser<'a, I, (), ParserError<'a>> + Clone
 where
     I: Input<'a, Token = lr::Token, Span = Span> + BorrowInput<'a>,
 {
@@ -91,7 +94,7 @@ where
 /// some items. The only place we handle new lines after an item is in the root
 /// parser.
 pub(crate) fn new_line<'a, I>(
-) -> impl Parser<'a, I, (), extra::Err<Rich<'a, lr::Token, Span>>> + Clone
+) -> impl Parser<'a, I, (), ParserError<'a>> + Clone
 where
     I: Input<'a, Token = lr::Token, Span = Span> + BorrowInput<'a>,
 {
@@ -102,7 +105,7 @@ where
     .labelled("new line")
 }
 
-fn ctrl<'a, I>(char: char) -> impl Parser<'a, I, (), extra::Err<Rich<'a, lr::Token, Span>>> + Clone
+fn ctrl<'a, I>(char: char) -> impl Parser<'a, I, (), ParserError<'a>> + Clone
 where
     I: Input<'a, Token = lr::Token, Span = Span> + BorrowInput<'a>,
 {
@@ -120,7 +123,7 @@ fn into_stmt((annotations, kind): (Vec<Annotation>, StmtKind), span: Span) -> St
     }
 }
 
-fn doc_comment<'a, I>() -> impl Parser<'a, I, String, extra::Err<Rich<'a, lr::Token, Span>>> + Clone
+fn doc_comment<'a, I>() -> impl Parser<'a, I, String, ParserError<'a>> + Clone
 where
     I: Input<'a, Token = lr::Token, Span = Span> + BorrowInput<'a>,
 {
@@ -141,10 +144,10 @@ where
 
 fn with_doc_comment<'a, I, P, O>(
     parser: P,
-) -> impl Parser<'a, I, O, extra::Err<Rich<'a, lr::Token, Span>>> + Clone + 'a
+) -> impl Parser<'a, I, O, ParserError<'a>> + Clone + 'a
 where
     I: Input<'a, Token = lr::Token, Span = Span> + BorrowInput<'a>,
-    P: Parser<'a, I, O, extra::Err<Rich<'a, lr::Token, Span>>> + Clone + 'a,
+    P: Parser<'a, I, O, ParserError<'a>> + Clone + 'a,
     O: SupportsDocComment + 'a,
 {
     doc_comment()
@@ -166,10 +169,10 @@ trait SupportsDocComment {
 /// include the surrounding delimiters.
 fn sequence<'a, I, P, O>(
     parser: P,
-) -> impl Parser<'a, I, Vec<O>, extra::Err<Rich<'a, lr::Token, Span>>> + Clone + 'a
+) -> impl Parser<'a, I, Vec<O>, ParserError<'a>> + Clone + 'a
 where
     I: Input<'a, Token = lr::Token, Span = Span> + BorrowInput<'a>,
-    P: Parser<'a, I, O, extra::Err<Rich<'a, lr::Token, Span>>> + Clone + 'a,
+    P: Parser<'a, I, O, ParserError<'a>> + Clone + 'a,
     O: 'a,
 {
     parser
@@ -190,7 +193,7 @@ where
         .padded_by(new_line().repeated())
 }
 
-fn pipe<'a, I>() -> impl Parser<'a, I, (), extra::Err<Rich<'a, lr::Token, Span>>> + Clone
+fn pipe<'a, I>() -> impl Parser<'a, I, (), ParserError<'a>> + Clone
 where
     I: Input<'a, Token = lr::Token, Span = Span> + BorrowInput<'a>,
 {
