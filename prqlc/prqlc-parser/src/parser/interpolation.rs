@@ -1,44 +1,139 @@
+use chumsky;
+use chumsky::input::ValueInput;
 use chumsky::prelude::*;
-use itertools::Itertools;
 
-use crate::lexer::lr::{Literal, TokenKind};
-use crate::parser::perror::{ChumError, PError};
+use crate::error::{Error, WithErrorInfo};
 use crate::parser::pr::*;
-use crate::span::{string_stream, Span};
+use crate::span::Span;
 
 /// Parses interpolated strings
-pub(crate) fn parse(string: String, span_base: Span) -> Result<Vec<InterpolateItem>, Vec<PError>> {
-    let prepped_stream = string_stream(string, span_base);
+pub(crate) fn parse(string: String, span_base: Span) -> Result<Vec<InterpolateItem>, Vec<Error>> {
+    let res = interpolated_parser().parse(string.as_str());
 
-    let res = interpolated_parser().parse(prepped_stream);
+    let (output, errors) = res.into_output_errors();
 
-    match res {
-        Ok(items) => {
-            log::trace!("interpolated string ok: {items:?}");
-            Ok(items)
-        }
-        Err(errors) => Err(errors
+    if !errors.is_empty() {
+        // Convert Rich errors to our Error type
+        return Err(errors
             .into_iter()
-            .map(|err| {
-                log::debug!("interpolated string error (lex inside parse): {err:?}");
-                err.map(|c| TokenKind::Literal(Literal::String(c.to_string())))
+            .map(|e| {
+                use chumsky::error::RichReason;
+
+                // Adjust span to be relative to span_base
+                let span = Span {
+                    start: span_base.start + e.span().start,
+                    end: span_base.start + e.span().end,
+                    source_id: span_base.source_id,
+                };
+
+                // Format the error message properly based on the reason
+                let message = match e.reason() {
+                    RichReason::ExpectedFound { expected, found } => {
+                        use chumsky::error::RichPattern;
+
+                        // First check if we have a label - that gives the best context
+                        let has_label = expected.iter().any(|p| matches!(p, RichPattern::Label(_)));
+
+                        let expected_strs: Vec<String> = expected
+                            .iter()
+                            .filter_map(|p| match p {
+                                RichPattern::Token(c) => Some(format!("{:?}", c)),
+                                RichPattern::EndOfInput => Some("end of input".to_string()),
+                                RichPattern::Label(l) => {
+                                    // If it's the only pattern, use it; otherwise filter it out
+                                    // since we'll use it as a prefix
+                                    if expected.len() == 1 {
+                                        Some(l.to_string())
+                                    } else {
+                                        None
+                                    }
+                                }
+                                // Don't include these generic patterns in the list
+                                RichPattern::Identifier(_)
+                                | RichPattern::Any
+                                | RichPattern::SomethingElse => None,
+                            })
+                            .collect();
+
+                        let found_str = match found {
+                            Some(c) => format!("{:?}", c),
+                            None => "end of input".to_string(),
+                        };
+
+                        // Build the message with label as prefix if present
+                        let label_prefix = if has_label && expected.len() > 1 {
+                            expected
+                                .iter()
+                                .find_map(|p| match p {
+                                    RichPattern::Label(l) => Some(format!("{} ", l)),
+                                    _ => None,
+                                })
+                                .unwrap_or_default()
+                        } else {
+                            String::new()
+                        };
+
+                        if expected_strs.is_empty() {
+                            format!("{}unexpected {}", label_prefix, found_str)
+                        } else {
+                            let expected_str = match expected_strs.len() {
+                                1 => expected_strs[0].clone(),
+                                2 => expected_strs.join(" or "),
+                                _ => {
+                                    let mut sorted = expected_strs;
+                                    sorted.sort();
+                                    let last = sorted.pop().unwrap();
+                                    format!("one of {} or {}", sorted.join(", "), last)
+                                }
+                            };
+                            format!(
+                                "{}expected {}, but found {}",
+                                label_prefix, expected_str, found_str
+                            )
+                        }
+                    }
+                    RichReason::Custom(msg) => msg.to_string(),
+                };
+
+                Error::new_simple(message).with_span(Some(span))
             })
-            .collect_vec()),
+            .collect());
     }
+
+    Ok(output.unwrap_or_default())
 }
 
-fn interpolated_parser() -> impl Parser<char, Vec<InterpolateItem>, Error = ChumError<char>> {
+fn interpolated_parser<'a, I>(
+) -> impl Parser<'a, I, Vec<InterpolateItem>, extra::Err<Rich<'a, char, SimpleSpan>>>
+where
+    I: Input<'a, Token = char, Span = SimpleSpan> + ValueInput<'a>,
+{
     let expr = interpolate_ident_part()
         .separated_by(just('.'))
         .at_least(1)
+        .collect()
         .map(Ident::from_path)
         .map(ExprKind::Ident)
-        .map_with_span(ExprKind::into_expr)
+        .map_with(|kind, extra| {
+            // Convert SimpleSpan to our Span type (will be adjusted in parse() function)
+            let simple_span: SimpleSpan = extra.span();
+            let span = Span {
+                start: simple_span.start,
+                end: simple_span.end,
+                source_id: 0,
+            };
+            ExprKind::into_expr(kind, span)
+        })
         .map(Box::new)
         .labelled("interpolated string variable")
         .then(
             just(':')
-                .ignore_then(filter(|c| *c != '}').repeated().collect::<String>())
+                .ignore_then(
+                    any()
+                        .filter(|c: &char| *c != '}')
+                        .repeated()
+                        .collect::<String>(),
+                )
                 .or_not(),
         )
         .delimited_by(just('{'), just('}'))
@@ -54,18 +149,36 @@ fn interpolated_parser() -> impl Parser<char, Vec<InterpolateItem>, Error = Chum
         .collect::<String>()
         .map(InterpolateItem::String);
 
-    expr.or(string).repeated().then_ignore(end())
+    expr.or(string).repeated().collect().then_ignore(end())
 }
 
-pub(crate) fn interpolate_ident_part() -> impl Parser<char, String, Error = ChumError<char>> + Clone
+pub(crate) fn interpolate_ident_part<'a, I>(
+) -> impl Parser<'a, I, String, extra::Err<Rich<'a, char, SimpleSpan>>> + Clone
+where
+    I: Input<'a, Token = char, Span = SimpleSpan> + ValueInput<'a>,
 {
-    let plain = filter(|c: &char| c.is_alphabetic() || *c == '_')
-        .chain(filter(|c: &char| c.is_alphanumeric() || *c == '_').repeated())
+    let plain = any()
+        .filter(|c: &char| c.is_alphabetic() || *c == '_')
+        .then(
+            any()
+                .filter(|c: &char| c.is_alphanumeric() || *c == '_')
+                .repeated()
+                .collect(),
+        )
+        .map(|(first, rest): (char, Vec<char>)| {
+            let mut s = String::new();
+            s.push(first);
+            s.extend(rest);
+            s
+        })
         .labelled("interpolated string");
 
-    let backticks = none_of('`').repeated().delimited_by(just('`'), just('`'));
+    let backticks = none_of('`')
+        .repeated()
+        .collect::<String>()
+        .delimited_by(just('`'), just('`'));
 
-    plain.or(backticks.labelled("interp:backticks")).collect()
+    plain.or(backticks.labelled("interp:backticks"))
 }
 
 #[test]

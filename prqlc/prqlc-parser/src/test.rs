@@ -1,37 +1,35 @@
-use chumsky::Parser;
+use chumsky::prelude::*;
 use insta::{assert_debug_snapshot, assert_yaml_snapshot};
-use std::fmt::Debug;
 
+use crate::error::Error;
 use crate::parser::pr::Stmt;
-use crate::parser::prepare_stream;
-use crate::parser::stmt;
-use crate::{error::Error, lexer::lr::TokenKind, parser::perror::PError};
+use crate::parser::{stmt, TokenSlice};
 
-/// Parse source code based on the supplied parser.
-///
-/// Use this to test any parser!
-pub(crate) fn parse_with_parser<O: Debug>(
-    source: &str,
-    parser: impl Parser<TokenKind, O, Error = PError>,
-) -> Result<O, Vec<Error>> {
+/// Parse into statements
+pub(crate) fn parse_source(source: &str) -> Result<Vec<Stmt>, Vec<Error>> {
     let tokens = crate::lexer::lex_source(source)?;
-    let stream = prepare_stream(tokens.0, 0);
 
-    // TODO: possibly should check we consume all the input? Either with an
-    // end() parser or some other way (but if we add an end parser then this
-    // func doesn't work with `source`, which has its own end parser...)
-    let (ast, parse_errors) = parser.parse_recovery_verbose(stream);
+    // Filter out comments
+    let semantic_tokens: Vec<_> = tokens
+        .0
+        .into_iter()
+        .filter(|token| {
+            !matches!(
+                token.kind,
+                crate::lexer::lr::TokenKind::Comment(_) | crate::lexer::lr::TokenKind::LineWrap(_)
+            )
+        })
+        .collect();
+
+    let input = TokenSlice::new(&semantic_tokens, 0);
+    let parse_result = stmt::source().parse(input);
+    let (ast, parse_errors) = parse_result.into_output_errors();
 
     if !parse_errors.is_empty() {
         log::info!("ast: {ast:?}");
         return Err(parse_errors.into_iter().map(|e| e.into()).collect());
     }
     Ok(ast.unwrap())
-}
-
-/// Parse into statements
-pub(crate) fn parse_source(source: &str) -> Result<Vec<Stmt>, Vec<Error>> {
-    parse_with_parser(source, stmt::source())
 }
 
 #[test]
@@ -89,10 +87,10 @@ fn test_error_unexpected() {
         Error {
             kind: Error,
             span: Some(
-                0:6-7,
+                0:15-16,
             ),
             reason: Simple(
-                "unexpected :",
+                "unexpected !",
             ),
             hints: [],
             code: None,
@@ -578,7 +576,7 @@ fn test_function() {
                     expr:
                       Ident:
                         - X
-                      span: "0:24-25"
+                      span: "0:5-6"
                     format: ~
                 - String: )
               span: "0:17-28"

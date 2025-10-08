@@ -3,12 +3,12 @@
 ## Executive Summary
 
 **Goal:** Migrate PRQL parser from Chumsky 0.9 to 0.10 (lexer already migrated)
-**Scope:** ~1,500 lines across 6 parser modules
-**Complexity:** High - custom error types, recursive parsers, operator precedence
-**Test Coverage:** Excellent - ~30 inline tests + integration tests with snapshots
-**Timeline:** 8-12 hours (1-2 focused days)
-**Strategy:** All-at-once migration (parser modules exchange combinators, not data - cannot migrate incrementally)
-**Safety net:** 101 parser tests + 100+ integration tests with snapshot testing
+**Scope:** ~1,500 lines across 6 parser modules **Complexity:** High - custom
+error types, recursive parsers, operator precedence **Test Coverage:**
+Excellent - ~30 inline tests + integration tests with snapshots **Timeline:**
+8-12 hours (1-2 focused days) **Strategy:** All-at-once migration (parser
+modules exchange combinators, not data - cannot migrate incrementally) **Safety
+net:** 101 parser tests + 100+ integration tests with snapshot testing
 
 ## Critical Findings from Analysis
 
@@ -17,6 +17,7 @@
 The lexer migration (1,148 line diff) provides these key patterns:
 
 1. **Type Setup:**
+
    ```rust
    use chumsky_0_10 as chumsky;
    use chumsky::extra;
@@ -26,6 +27,7 @@ The lexer migration (1,148 line diff) provides these key patterns:
    ```
 
 2. **All functions need `<'a>` lifetime:**
+
    ```rust
    fn parser<'a>() -> impl Parser<'a, ParserInput<'a>, Output, ParserError<'a>>
    ```
@@ -34,7 +36,8 @@ The lexer migration (1,148 line diff) provides these key patterns:
    - `parse_recovery()` → `parse().into_result()`
    - `.repeated()` requires `.collect()`
    - `.map_with_span()` → `.map_with()` using `extra.span()`
-   - **Critical:** SimpleSpan uses **byte** offsets for `&str` - convert to char offsets
+   - **Critical:** SimpleSpan uses **byte** offsets for `&str` - convert to char
+     offsets
 
 4. **Error Handling:**
    - Manual conversion from `Rich` errors to custom `Error` type
@@ -43,6 +46,7 @@ The lexer migration (1,148 line diff) provides these key patterns:
 ### Parser Architecture
 
 **Module Structure:**
+
 - `perror.rs` (420 lines) - Custom error type implementing 0.9's Error trait
 - `mod.rs` (212 lines) - Entry point, stream prep, utilities
 - `types.rs` (119 lines) - Type expression parsing
@@ -51,6 +55,7 @@ The lexer migration (1,148 line diff) provides these key patterns:
 - `stmt.rs` (604 lines) - Statement parsing
 
 **Key Patterns:**
+
 - 3 critical recursive parsers (expr, module contents, types)
 - Circular dependency: expr ↔ types
 - 7-level binary operator precedence using foldl/foldr
@@ -84,19 +89,24 @@ The lexer migration (1,148 line diff) provides these key patterns:
 ## Staging Strategy: All-at-Once Migration
 
 **Why incremental DOESN'T work:**
+
 - ❌ Parser modules exchange **parser combinators**, not just data
-- ❌ `stmt.rs` imports `expr()`, `ident()`, `pipeline()` - these are Chumsky 0.9 `Parser` traits
+- ❌ `stmt.rs` imports `expr()`, `ident()`, `pipeline()` - these are Chumsky 0.9
+  `Parser` traits
 - ❌ `types.rs` imports `ident()` from expr.rs - also a parser combinator
-- ❌ The `Parser` trait is different between 0.9 and 0.10 - **incompatible across versions**
+- ❌ The `Parser` trait is different between 0.9 and 0.10 - **incompatible
+  across versions**
 - ❌ `recursive()` creates circular dependencies within and across modules
 
 **Why lexer COULD migrate independently:**
+
 - ✅ Lexer output is just **data**: `Vec<Token>`
-- ✅ Interface to parser is `prepare_stream()` which takes data, returns Chumsky 0.9 Stream
+- ✅ Interface to parser is `prepare_stream()` which takes data, returns Chumsky
+  0.9 Stream
 - ✅ **No parser combinators cross the boundary**
 
-**The atomic migration unit:**
-All parser modules in one commit (~1,500 lines):
+**The atomic migration unit:** All parser modules in one commit (~1,500 lines):
+
 - `perror.rs` (420 lines) - Error type
 - `mod.rs` (212 lines) - Utilities & entry point
 - `interpolation.rs` (151 lines) - String interpolation
@@ -105,6 +115,7 @@ All parser modules in one commit (~1,500 lines):
 - `stmt.rs` (604 lines) - Statements
 
 **Migration phases:**
+
 ```
 Phase 1 (2-3h)  → Research & prepare      [Understand blockers, prep tests]
 Phase 2 (4-6h)  → Migrate all modules     [One big commit, no intermediate testing]
@@ -122,12 +133,14 @@ These are compatible with Chumsky 0.9 and prepare for 0.10:
 **File: `prqlc/prqlc-parser/src/test.rs`**
 
 - [ ] Add type aliases for future compatibility:
+
   ```rust
   use chumsky::Parser;
   type ParseResult<T> = Result<T, Vec<Error>>;
   ```
 
 - [ ] Improve documentation on `parse_with_parser`:
+
   ```rust
   /// Parse source with a specific parser.
   ///
@@ -170,7 +183,8 @@ pub(crate) fn parse_with_parser<O: Debug>(
 }
 ```
 
-**Key pattern from lexer:** Tests use `.output().unwrap()` instead of direct `.unwrap()`
+**Key pattern from lexer:** Tests use `.output().unwrap()` instead of direct
+`.unwrap()`
 
 ### Test Files Affected
 
@@ -180,7 +194,8 @@ pub(crate) fn parse_with_parser<O: Debug>(
 4. `/prqlc/prqlc-parser/src/parser/stmt.rs` - Stmt tests (~200 lines)
 5. `/prqlc/prqlc-parser/src/parser/interpolation.rs` - Interpolation tests
 
-**Minimal changes needed:** Most test structure remains the same; extraction pattern handled in helpers.
+**Minimal changes needed:** Most test structure remains the same; extraction
+pattern handled in helpers.
 
 ## Migration Phases
 
@@ -208,11 +223,13 @@ pub(crate) fn parse_with_parser<O: Debug>(
   - Alternative: `skip_parser()` combinator
   - Check recovery strategies in docs
 
-- [ ] **DON'T research Pratt parser yet** - stick with foldl/foldr for first migration
+- [ ] **DON'T research Pratt parser yet** - stick with foldl/foldr for first
+      migration
 
 #### 1.2 Prepare Development Environment
 
 - [ ] Create migration branch:
+
   ```bash
   git switch -c parser-chumsky-10-migration
   git commit --allow-empty -m "Start parser migration to Chumsky 0.10"
@@ -225,6 +242,7 @@ pub(crate) fn parse_with_parser<O: Debug>(
 #### 1.3 Create Migration Checklist
 
 Based on research, create concrete checklist:
+
 - [ ] List all `.map_with_span()` → `.map_with()` changes needed
 - [ ] List all `.repeated()` that need `.collect()`
 - [ ] Identify `Stream::from_iter()` replacement pattern
@@ -237,6 +255,7 @@ Based on research, create concrete checklist:
 Change imports in ALL files simultaneously:
 
 **Files to update:**
+
 - [ ] `prqlc/prqlc-parser/src/parser/perror.rs`
 - [ ] `prqlc/prqlc-parser/src/parser/mod.rs`
 - [ ] `prqlc/prqlc-parser/src/parser/expr.rs`
@@ -245,6 +264,7 @@ Change imports in ALL files simultaneously:
 - [ ] `prqlc/prqlc-parser/src/parser/interpolation.rs`
 
 **Change:**
+
 ```rust
 // OLD:
 use chumsky::prelude::*;
@@ -287,12 +307,14 @@ use chumsky::prelude::*;
 #### 2.4 Update Simple Parsers (1h)
 
 **`interpolation.rs`:**
+
 - [ ] Add `<'a>` to all functions
 - [ ] Update `recursive()` usage
 - [ ] Fix `.map_with_span()` → `.map_with()`
 - [ ] Apply lexer patterns (char-level parsing)
 
 **`types.rs`:**
+
 - [ ] Add `<'a>` to all functions
 - [ ] Update `recursive()` usage
 - [ ] Fix `.map_with_span()` → `.map_with()`
@@ -344,6 +366,7 @@ use chumsky::prelude::*;
 **Don't test until it compiles!**
 
 **Checkpoint:** Once `cargo build -p prqlc-parser` succeeds, commit:
+
 ```bash
 git add -A
 git commit -m "refactor: Migrate parser to Chumsky 0.10 (builds but tests not fixed)"
@@ -354,14 +377,17 @@ git commit -m "refactor: Migrate parser to Chumsky 0.10 (builds but tests not fi
 #### 4.1 Run Tests and Fix Failures
 
 - [ ] Run parser unit tests:
+
   ```bash
   cargo insta test -p prqlc-parser --accept
   ```
+
   - Review ALL snapshot changes carefully
   - Check for unexpected behavior changes
   - Fix test-specific issues (e.g., `.output()` extraction)
 
 - [ ] Run integration tests:
+
   ```bash
   cargo insta test -p prqlc --test integration --accept
   cargo insta test -p prqlc --test error_messages --accept
@@ -392,6 +418,7 @@ git commit -m "refactor: Migrate parser to Chumsky 0.10 (builds but tests not fi
 #### 5.1 Remove Dual Dependency
 
 - [ ] Update `prqlc/prqlc-parser/Cargo.toml`:
+
   ```toml
   # Remove both old entries:
   # chumsky = { version = "0.9.2" }
@@ -415,11 +442,13 @@ git commit -m "refactor: Migrate parser to Chumsky 0.10 (builds but tests not fi
 #### 5.2 Final Validation
 
 - [ ] Run full test suite:
+
   ```bash
   task test-all
   ```
 
 - [ ] Run lints:
+
   ```bash
   task test-lint
   ```
@@ -437,14 +466,17 @@ git commit -m "refactor: Migrate parser to Chumsky 0.10 (builds but tests not fi
 - [ ] Update CLAUDE.md if needed (migration complete)
 - [ ] Add learnings to this TODO.md for future reference
 
-**Final Commit:** ✅ `refactor: Remove Chumsky 0.9 dependency, complete migration`
+**Final Commit:** ✅
+`refactor: Remove Chumsky 0.9 dependency, complete migration`
 
 ## High-Risk Areas & Mitigation
 
 ### Risk 1: Custom Error Type (PError)
+
 **Issue:** Implements 0.9's Error trait which likely changed significantly
 
 **Mitigation:**
+
 - Research Error trait API in 0.10 first
 - Consider using Rich errors directly if trait too different
 - Create wrapper type if needed
@@ -453,9 +485,11 @@ git commit -m "refactor: Migrate parser to Chumsky 0.10 (builds but tests not fi
 **Contingency:** Simplify to wrapper around Rich instead of trait implementation
 
 ### Risk 2: Stream API Changes
+
 **Issue:** `Stream::from_iter()` may not exist or work differently
 
 **Mitigation:**
+
 - Research Stream API in 0.10 docs
 - May parse token slice `&[Token]` directly instead
 - Consider zero-copy benefits
@@ -463,9 +497,12 @@ git commit -m "refactor: Migrate parser to Chumsky 0.10 (builds but tests not fi
 **Contingency:** Refactor to slice-based parsing, move filtering to parser
 
 ### Risk 3: Recursive Parser Lifetimes
-**Issue:** Circular dependencies (expr ↔ types) may cause lifetime/borrowing issues
+
+**Issue:** Circular dependencies (expr ↔ types) may cause lifetime/borrowing
+issues
 
 **Mitigation:**
+
 - Use `lazy()` wrapper if needed
 - Add explicit type annotations
 - Test circular case early
@@ -473,9 +510,11 @@ git commit -m "refactor: Migrate parser to Chumsky 0.10 (builds but tests not fi
 **Contingency:** Break circular dependency (move ident to separate module)
 
 ### Risk 4: Error Recovery
+
 **Issue:** `nested_delimiters` may not exist, recovery may work differently
 
 **Mitigation:**
+
 - Research 0.10 recovery strategies early
 - Use `skip_parser()` combinator
 - Test error recovery explicitly
@@ -483,9 +522,11 @@ git commit -m "refactor: Migrate parser to Chumsky 0.10 (builds but tests not fi
 **Contingency:** Simplify recovery, prioritize correctness
 
 ### Risk 5: Operator Precedence Performance
+
 **Issue:** Pratt parser may have different performance
 
 **Mitigation:**
+
 - Benchmark before/after
 - Can keep foldl/foldr if needed
 - Profile with large expressions
@@ -499,12 +540,14 @@ git commit -m "refactor: Migrate parser to Chumsky 0.10 (builds but tests not fi
 **Question:** Migrate to Pratt parser for expressions?
 
 **Pratt Pros:**
+
 - Cleaner code (~100 lines eliminated)
 - Built-in precedence handling
 - Likely better performance
 - Eliminates complex foldr transformation
 
 **Pratt Cons:**
+
 - New API to learn
 - May behave differently
 - Migration risk
@@ -516,6 +559,7 @@ git commit -m "refactor: Migrate parser to Chumsky 0.10 (builds but tests not fi
 **Question:** Keep Stream or parse token slices directly?
 
 **Research needed:**
+
 - Does Stream exist in 0.10?
 - Performance implications?
 - Zero-copy requirements?
@@ -527,6 +571,7 @@ git commit -m "refactor: Migrate parser to Chumsky 0.10 (builds but tests not fi
 **Question:** How to replace `nested_delimiters`?
 
 **Research needed:**
+
 - Available recovery strategies in 0.10
 - Can we achieve similar behavior?
 
@@ -535,27 +580,32 @@ git commit -m "refactor: Migrate parser to Chumsky 0.10 (builds but tests not fi
 ## Success Criteria
 
 ✅ **All tests passing:**
+
 - Inline parser tests (~30)
 - Integration tests
 - Error message tests
 
 ✅ **No performance regression:**
+
 - Benchmark against 0.9
 - Target: <10% regression, ideally improvement
 
 ✅ **Error quality maintained:**
+
 - Helpful error messages
 - Accurate spans
 - Recovery works for IDE use
 
 ✅ **Code quality:**
+
 - Cleaner than before (leverage new APIs)
 - Well-documented
 - No TODO comments
 
 ## Key Learnings from Lexer (Reference)
 
-1. **Byte vs char offsets:** SimpleSpan uses byte offsets for `&str` - must convert
+1. **Byte vs char offsets:** SimpleSpan uses byte offsets for `&str` - must
+   convert
 2. **Collect required:** `.repeated()` needs `.collect()`
 3. **Manual error conversion:** Convert Rich to custom Error manually
 4. **Span access:** Use `extra.span()` in `.map_with()`
@@ -596,33 +646,42 @@ parser.repeated().foldr(...)
 
 **Cannot migrate incrementally because:**
 
-1. **Parser modules exchange combinators, not data:** `stmt.rs` imports `expr()`, `ident()`, `pipeline()` - these return Chumsky 0.9 `Parser` traits
-2. **Trait incompatibility:** The `Parser` trait in 0.9 vs 0.10 are different types - cannot mix
-3. **Circular dependencies:** `recursive()` creates tight coupling within and across modules
-4. **Lexer was different:** Lexer could migrate independently because it outputs **data** (`Vec<Token>`), not parser combinators
+1. **Parser modules exchange combinators, not data:** `stmt.rs` imports
+   `expr()`, `ident()`, `pipeline()` - these return Chumsky 0.9 `Parser` traits
+2. **Trait incompatibility:** The `Parser` trait in 0.9 vs 0.10 are different
+   types - cannot mix
+3. **Circular dependencies:** `recursive()` creates tight coupling within and
+   across modules
+4. **Lexer was different:** Lexer could migrate independently because it outputs
+   **data** (`Vec<Token>`), not parser combinators
 
 **Why this approach works despite being all-at-once:**
 
-1. **Strong test coverage:** 101 parser tests + 100+ integration tests catch regressions
+1. **Strong test coverage:** 101 parser tests + 100+ integration tests catch
+   regressions
 2. **Snapshot testing:** `insta` tests show exact behavioral changes
 3. **Proven patterns:** Lexer migration provides migration template
 4. **Clear interfaces:** Only `TokenKind` crosses module boundaries as data
-5. **Fast iteration:** 8-12 hours total (vs weeks of architectural redesign for incremental)
+5. **Fast iteration:** 8-12 hours total (vs weeks of architectural redesign for
+   incremental)
 
 ### Critical Success Factors
 
 **Do first:**
+
 - ✅ Prepare tests (add helpers, update docs) - compatible with 0.9
 - ✅ Research Phase 0 (Error trait, Stream API, recursion)
 - ✅ Create migration branch with empty commit
 
 **During migration:**
+
 - ✅ One module = one commit
 - ✅ Run tests after EVERY module (no batching)
 - ✅ Manually review ALL snapshot changes (don't blindly accept)
 - ✅ Check error message quality (common regression point)
 
 **Don't do:**
+
 - ❌ Skip test validation between modules
 - ❌ Batch multiple modules before testing
 - ❌ Accept snapshots without review
@@ -631,26 +690,31 @@ parser.repeated().foldr(...)
 ### Migration Checklist (Quick Reference)
 
 **Phase 1 (Research & Prep):** 2-3h
+
 - [ ] Research Error trait, Stream API, recursive(), recovery strategies
 - [ ] Create migration branch
 - [ ] Prepare test infrastructure
 
 **Phase 2 (Migrate All):** 4-6h
+
 - [ ] Update imports in ALL 6 files simultaneously
 - [ ] Update perror.rs, mod.rs, interpolation.rs, types.rs
 - [ ] Update expr.rs (the big one - keep foldl/foldr, no Pratt yet)
 - [ ] Update stmt.rs
 
 **Phase 3 (Compile):** 1-2h
+
 - [ ] Fix compilation errors iteratively
 - [ ] Commit when it builds
 
 **Phase 4 (Test):** 1-2h
+
 - [ ] Run tests, review snapshots
 - [ ] Fix test failures
 - [ ] Validate error messages
 
 **Phase 5 (Cleanup):** 30m
+
 - [ ] Remove dual dependency
 - [ ] Final validation
 
@@ -667,13 +731,16 @@ parser.repeated().foldr(...)
 ### Next Immediate Steps
 
 **Right now:**
+
 1. Make test preparation changes (Phase 0 section above)
 2. Create migration branch: `git switch -c parser-chumsky-10-migration`
 3. Review Chumsky 0.10 documentation for answers to open questions
 
 **Then:**
+
 1. Start Phase 1.1: Migrate perror.rs
 2. Test thoroughly
 3. Commit and move to Phase 1.2
 
-**Remember:** AD FONTES - reproduce and verify at each step. The test suite is our safety net.
+**Remember:** AD FONTES - reproduce and verify at each step. The test suite is
+our safety net.

@@ -4027,17 +4027,10 @@ fn test_direct_table_references() {
     select s"{x}.field"
     "#,
     )
-    .unwrap_err(), @r#"
-    Error:
-       ╭─[ :3:15 ]
-       │
-     3 │     select s"{x}.field"
-       │               ┬
-       │               ╰── table instance cannot be referenced directly
-       │
-       │ Help: did you forget to specify the column name?
-    ───╯
-    "#);
+    .unwrap_err(), @r"
+    Error: table instance cannot be referenced directly
+    ↳ Hint: did you forget to specify the column name?
+    ");
 
     assert_snapshot!(compile(
         r###"

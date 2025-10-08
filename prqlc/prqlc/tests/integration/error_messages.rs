@@ -100,11 +100,11 @@ fn test_errors() {
 
     assert_snapshot!(compile("Answer: T-H-A-T!").unwrap_err(), @r"
     Error:
-       ╭─[ :1:7 ]
+       ╭─[ :1:16 ]
        │
      1 │ Answer: T-H-A-T!
-       │       ┬
-       │       ╰── unexpected :
+       │                ┬
+       │                ╰── unexpected !
     ───╯
     ");
 }
@@ -344,7 +344,7 @@ fn empty_interpolations() {
        │
      1 │ from x | select f"{}"
        │                    ┬
-       │                    ╰── interpolated string variable expected "`" or "{", but found "}"
+       │                    ╰── unexpected end of input
     ───╯
     "#);
 }

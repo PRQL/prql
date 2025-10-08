@@ -1,6 +1,6 @@
 //! PRQL Lexer implementation
 
-use chumsky_0_10 as chumsky;
+use chumsky;
 
 use chumsky::extra;
 use chumsky::prelude::*;

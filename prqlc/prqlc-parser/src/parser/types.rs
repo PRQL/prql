@@ -1,12 +1,16 @@
-use chumsky::prelude::*;
+use chumsky;
+use chumsky::input::ValueInput;
 
 use super::expr::ident;
-use super::perror::PError;
 use super::pr::*;
 use super::*;
 use crate::lexer::lr::TokenKind;
 
-pub(crate) fn type_expr() -> impl Parser<TokenKind, Ty, Error = PError> + Clone {
+pub(crate) fn type_expr<'a, I>(
+) -> impl Parser<'a, I, Ty, extra::Err<Rich<'a, TokenKind, Span>>> + Clone
+where
+    I: Input<'a, Token = TokenKind, Span = Span> + ValueInput<'a>,
+{
     recursive(|nested_type_expr| {
         let basic = select! {
             TokenKind::Ident(i) if i == "int"=> TyKind::Primitive(PrimitiveSet::Int),
@@ -26,6 +30,7 @@ pub(crate) fn type_expr() -> impl Parser<TokenKind, Ty, Error = PError> + Clone 
                     .clone()
                     .map(Some)
                     .repeated()
+                    .collect()
                     .then_ignore(just(TokenKind::ArrowThin))
                     .then(nested_type_expr.clone().map(Box::new).map(Some))
                     .map(|(params, return_ty)| TyFunc {
@@ -50,23 +55,15 @@ pub(crate) fn type_expr() -> impl Parser<TokenKind, Ty, Error = PError> + Clone 
                 .map(|(name, ty)| TyTupleField::Single(name, ty)),
         )))
         .delimited_by(ctrl('{'), ctrl('}'))
-        .recover_with(nested_delimiters(
-            TokenKind::Control('{'),
-            TokenKind::Control('}'),
-            [
-                (TokenKind::Control('{'), TokenKind::Control('}')),
-                (TokenKind::Control('('), TokenKind::Control(')')),
-                (TokenKind::Control('['), TokenKind::Control(']')),
-            ],
-            |_| vec![],
-        ))
+        // TODO: Add back error recovery with Chumsky 0.10 API
+        // .recover_with(...)
         .try_map(|fields, span| {
             let without_last = &fields[0..fields.len().saturating_sub(1)];
 
             if let Some(unpack) = without_last.iter().find_map(|f| f.as_wildcard()) {
-                let span = unpack.as_ref().and_then(|s| s.span).unwrap_or(span);
-                return Err(PError::custom(
-                    span,
+                let err_span = unpack.as_ref().and_then(|s| s.span).unwrap_or(span);
+                return Err(Rich::custom(
+                    err_span,
                     "unpacking must come after all other fields",
                 ));
             }
@@ -81,20 +78,13 @@ pub(crate) fn type_expr() -> impl Parser<TokenKind, Ty, Error = PError> + Clone 
             .or_not()
             .padded_by(new_line().repeated())
             .delimited_by(ctrl('['), ctrl(']'))
-            .recover_with(nested_delimiters(
-                TokenKind::Control('['),
-                TokenKind::Control(']'),
-                [
-                    (TokenKind::Control('{'), TokenKind::Control('}')),
-                    (TokenKind::Control('('), TokenKind::Control(')')),
-                    (TokenKind::Control('['), TokenKind::Control(']')),
-                ],
-                |_| None,
-            ))
+            // TODO: Add back error recovery with Chumsky 0.10 API
+            // .recover_with(...)
             .map(TyKind::Array)
             .labelled("array");
 
-        choice((basic, ident, func, tuple, array)).map_with_span(TyKind::into_ty)
+        choice((basic, ident, func, tuple, array))
+            .map_with(|kind, extra| TyKind::into_ty(kind, extra.span()))
 
         // exclude
         // term.clone()

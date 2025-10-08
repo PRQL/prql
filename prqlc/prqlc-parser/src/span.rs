@@ -1,7 +1,7 @@
 use std::fmt::{self, Debug, Formatter};
 use std::ops::{Add, Range, Sub};
 
-use chumsky::Stream;
+use chumsky;
 use schemars::JsonSchema;
 use serde::de::Visitor;
 use serde::{Deserialize, Serialize};
@@ -13,6 +13,40 @@ pub struct Span {
 
     /// A key representing the path of the source. Value is stored in prqlc's SourceTree::source_ids.
     pub source_id: u16,
+}
+
+// Implement Chumsky 0.10's Span trait for our custom Span
+impl chumsky::span::Span for Span {
+    type Context = u16; // source_id
+    type Offset = usize;
+
+    fn new(context: Self::Context, range: Range<Self::Offset>) -> Self {
+        Span {
+            start: range.start,
+            end: range.end,
+            source_id: context,
+        }
+    }
+
+    fn context(&self) -> Self::Context {
+        self.source_id
+    }
+
+    fn start(&self) -> Self::Offset {
+        self.start
+    }
+
+    fn end(&self) -> Self::Offset {
+        self.end
+    }
+
+    fn to_end(&self) -> Self {
+        Span {
+            start: self.end,
+            end: self.end,
+            source_id: self.source_id,
+        }
+    }
 }
 
 impl From<Span> for Range<usize> {
@@ -106,32 +140,6 @@ impl<'de> Deserialize<'de> for Span {
     }
 }
 
-impl chumsky::Span for Span {
-    type Context = u16;
-
-    type Offset = usize;
-
-    fn new(context: Self::Context, range: std::ops::Range<Self::Offset>) -> Self {
-        Self {
-            start: range.start,
-            end: range.end,
-            source_id: context,
-        }
-    }
-
-    fn context(&self) -> Self::Context {
-        self.source_id
-    }
-
-    fn start(&self) -> Self::Offset {
-        self.start
-    }
-
-    fn end(&self) -> Self::Offset {
-        self.end
-    }
-}
-
 impl Add<usize> for Span {
     type Output = Span;
 
@@ -156,30 +164,31 @@ impl Sub<usize> for Span {
     }
 }
 
-pub(crate) fn string_stream<'a>(
-    s: String,
-    span_base: Span,
-) -> Stream<'a, char, Span, Box<dyn Iterator<Item = (char, Span)>>> {
-    let chars = s.chars().collect::<Vec<_>>();
-
-    Stream::from_iter(
-        Span {
-            start: span_base.start + chars.len(),
-            end: span_base.start + chars.len(),
-            source_id: span_base.source_id,
-        },
-        Box::new(chars.into_iter().enumerate().map(move |(i, c)| {
-            (
-                c,
-                Span {
-                    start: span_base.start + i,
-                    end: span_base.start + i + 1,
-                    source_id: span_base.source_id,
-                },
-            )
-        })),
-    )
-}
+// This function used Chumsky 0.9's Stream and is no longer needed in 0.10
+// pub(crate) fn string_stream<'a>(
+//     s: String,
+//     span_base: Span,
+// ) -> Stream<'a, char, Span, Box<dyn Iterator<Item = (char, Span)>>> {
+//     let chars = s.chars().collect::<Vec<_>>();
+//
+//     Stream::from_iter(
+//         Span {
+//             start: span_base.start + chars.len(),
+//             end: span_base.start + chars.len(),
+//             source_id: span_base.source_id,
+//         },
+//         Box::new(chars.into_iter().enumerate().map(move |(i, c)| {
+//             (
+//                 c,
+//                 Span {
+//                     start: span_base.start + i,
+//                     end: span_base.start + i + 1,
+//                     source_id: span_base.source_id,
+//                 },
+//             )
+//         })),
+//     )
+// }
 
 #[cfg(test)]
 mod test {

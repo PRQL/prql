@@ -1,8 +1,10 @@
 use core::fmt;
 use std::collections::HashSet;
 use std::fmt::Debug;
-use std::fmt::Display;
 use std::hash::Hash;
+
+use chumsky;
+use chumsky::error::Rich;
 
 use crate::error::WithErrorInfo;
 use crate::error::{Error, ErrorSource, Reason};
@@ -72,76 +74,9 @@ impl<T: Hash + Eq + Debug> ChumError<T> {
     }
 }
 
-impl<T: Hash + Eq + Display + Debug> chumsky::Error<T> for ChumError<T> {
-    type Span = Span;
-    type Label = &'static str;
-
-    fn expected_input_found<Iter: IntoIterator<Item = Option<T>>>(
-        span: Span,
-        expected: Iter,
-        found: Option<T>,
-    ) -> Self {
-        let exp = expected.into_iter().collect();
-        log::trace!("looking for {exp:?} but found {found:?} at: {span:?}");
-        Self {
-            span,
-            // reason: Some(String::from("unexpected")),
-            reason: None,
-            expected: exp,
-            found,
-            label: SimpleLabel::None,
-        }
-    }
-
-    fn unclosed_delimiter(
-        unclosed_span: Self::Span,
-        delimiter: T,
-        span: Self::Span,
-        expected: T,
-        found: Option<T>,
-    ) -> Self {
-        Self {
-            span,
-            reason: Some(format!(
-                "unclosed delimiter: {delimiter} within span {}..{}",
-                unclosed_span.start, unclosed_span.end
-            )),
-            expected: core::iter::once(Some(expected)).collect(),
-            found,
-            label: SimpleLabel::None,
-        }
-    }
-
-    fn with_label(mut self, label: Self::Label) -> Self {
-        match self.label {
-            SimpleLabel::Some(_) => {}
-            _ => {
-                self.label = SimpleLabel::Some(label);
-            }
-        }
-        self
-    }
-
-    ///from chumsky::error::Simple
-    fn merge(mut self, other: Self) -> Self {
-        // TODO: Assert that `self.span == other.span` here?
-        // self.reason = match (&self.reason, &other.reason) {
-        //     (Some(..), None) => self.reason,
-        //     (None, Some(..) ) => other.reason,
-        //     (Some(mut r1), Some(r2)) => {r1.push('s');Some(r1)},
-        // };
-
-        self.reason = self.reason.zip(other.reason).map(|(mut r1, r2)| {
-            r1.push_str(" | ");
-            r1.push_str(r2.as_str());
-            r1
-        });
-
-        self.label = self.label.merge(other.label);
-        self.expected.extend(other.expected);
-        self
-    }
-}
+// Note: We no longer implement LabelError and Error traits for ChumError.
+// Instead, we use Chumsky's built-in Rich error type directly in parsers,
+// and only use ChumError internally for conversion.
 
 impl<T: Hash + Eq + Debug> PartialEq for ChumError<T> {
     fn eq(&self, other: &Self) -> bool {
@@ -267,6 +202,80 @@ impl From<PError> for Error {
     }
 }
 
+// Convert from Chumsky 0.10's Rich error type to our Error type
+impl<'a> From<Rich<'a, TokenKind, Span>> for Error {
+    fn from(rich: Rich<'a, TokenKind, Span>) -> Error {
+        use chumsky::error::RichReason;
+
+        let span = *rich.span();
+
+        fn token_to_string(t: &TokenKind) -> String {
+            t.to_string()
+        }
+
+        let error = match rich.reason() {
+            RichReason::ExpectedFound { expected, found } => {
+                use chumsky::error::RichPattern;
+                let expected_strs: Vec<String> = expected
+                    .iter()
+                    .filter(|p| {
+                        // Filter out whitespace tokens unless that's all we're expecting
+                        let is_whitespace = match p {
+                            RichPattern::EndOfInput => true,
+                            RichPattern::Token(t) => {
+                                matches!(**t, TokenKind::NewLine | TokenKind::Start)
+                            }
+                            _ => false,
+                        };
+                        !is_whitespace
+                            || expected.iter().all(|p| match p {
+                                RichPattern::EndOfInput => true,
+                                RichPattern::Token(t) => matches!(**t, TokenKind::NewLine),
+                                _ => false,
+                            })
+                    })
+                    .map(|p| match p {
+                        RichPattern::Token(t) => token_to_string(t),
+                        RichPattern::EndOfInput => "end of input".to_string(),
+                        _ => format!("{:?}", p),
+                    })
+                    .collect();
+
+                let found_str = match found {
+                    Some(t) => token_to_string(t),
+                    None => "end of input".to_string(),
+                };
+
+                if expected_strs.is_empty() || expected_strs.len() > 10 {
+                    // TODO: In Chumsky 0.10, labels are in context, not on Rich directly
+                    Error::new_simple(format!("unexpected {found_str}"))
+                } else {
+                    let mut expected_sorted = expected_strs;
+                    expected_sorted.sort();
+
+                    let expected_str = match expected_sorted.len() {
+                        1 => expected_sorted[0].clone(),
+                        2 => expected_sorted.join(" or "),
+                        _ => {
+                            let last = expected_sorted.pop().unwrap();
+                            format!("one of {} or {last}", expected_sorted.join(", "))
+                        }
+                    };
+
+                    Error::new(Reason::Expected {
+                        who: None, // TODO: In Chumsky 0.10, labels are in context
+                        expected: expected_str,
+                        found: found_str,
+                    })
+                }
+            }
+            RichReason::Custom(msg) => Error::new_simple(msg),
+        };
+
+        error.with_span(Some(span))
+    }
+}
+
 // Vendored from
 // https://github.com/zesterer/chumsky/pull/238/files#diff-97e25e2a0e41c578875856e97b659be2719a65227c104b992e3144efa000c35eR184
 // since it's private in chumsky
@@ -274,22 +283,11 @@ impl From<PError> for Error {
 /// A type representing zero, one, or many labels applied to an error
 #[derive(Clone, Copy, Debug, PartialEq)]
 enum SimpleLabel {
+    #[allow(dead_code)]
     Some(&'static str),
     None,
+    #[allow(dead_code)]
     Multi,
-}
-
-impl SimpleLabel {
-    fn merge(self, other: Self) -> Self {
-        match (self, other) {
-            (SimpleLabel::Some(a), SimpleLabel::Some(b)) if a == b => SimpleLabel::Some(a),
-            (SimpleLabel::Some(_), SimpleLabel::Some(_)) => SimpleLabel::Multi,
-            (SimpleLabel::Multi, _) => SimpleLabel::Multi,
-            (_, SimpleLabel::Multi) => SimpleLabel::Multi,
-            (SimpleLabel::None, x) => x,
-            (x, SimpleLabel::None) => x,
-        }
-    }
 }
 
 impl From<SimpleLabel> for Option<&'static str> {
