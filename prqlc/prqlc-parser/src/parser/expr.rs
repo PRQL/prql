@@ -58,7 +58,6 @@ where
         let tuple = tuple(nested_expr.clone());
         let array = array(nested_expr.clone());
         let pipeline_expr = {
-            // TODO: Add error recovery
             pipeline(nested_expr.clone())
                 .padded_by(new_line().repeated())
                 .delimited_by(ctrl('('), ctrl(')'))
@@ -278,8 +277,6 @@ where
                 .into_expr(span)
             })
         })
-        // TODO: Add error recovery
-        // .recover_with(...)
         .labelled("pipeline")
 }
 

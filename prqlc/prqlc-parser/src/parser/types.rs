@@ -58,8 +58,6 @@ where
                 .map(|(name, ty)| TyTupleField::Single(name, ty)),
         )))
         .delimited_by(ctrl('{'), ctrl('}'))
-        // TODO: Add error recovery
-        // .recover_with(...)
         .try_map(|fields, span| {
             let without_last = &fields[0..fields.len().saturating_sub(1)];
 
@@ -81,8 +79,6 @@ where
             .or_not()
             .padded_by(new_line().repeated())
             .delimited_by(ctrl('['), ctrl(']'))
-            // TODO: Add error recovery
-            // .recover_with(...)
             .map(TyKind::Array)
             .labelled("array");
 
