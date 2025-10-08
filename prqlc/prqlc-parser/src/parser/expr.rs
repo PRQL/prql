@@ -55,9 +55,22 @@ where
 
         let tuple = tuple(nested_expr.clone());
         let array = array(nested_expr.clone());
-        let pipeline_expr = pipeline(nested_expr.clone())
-            .padded_by(new_line().repeated())
-            .delimited_by(ctrl('('), ctrl(')'));
+        let pipeline_expr = {
+            use chumsky::recovery::{nested_delimiters, via_parser};
+
+            pipeline(nested_expr.clone())
+                .padded_by(new_line().repeated())
+                .delimited_by(ctrl('('), ctrl(')'))
+                .recover_with(via_parser(nested_delimiters(
+                    TokenKind::Control('('),
+                    TokenKind::Control(')'),
+                    [
+                        (TokenKind::Control('['), TokenKind::Control(']')),
+                        (TokenKind::Control('('), TokenKind::Control(')')),
+                    ],
+                    |span| ExprKind::Literal(Literal::Null).into_expr(span),
+                )))
+        };
         let interpolation = interpolation();
         let case = case(expr.clone());
 
@@ -104,10 +117,20 @@ fn tuple<'a, I>(
 where
     I: Input<'a, Token = TokenKind, Span = Span> + ValueInput<'a>,
 {
+    use chumsky::recovery::{nested_delimiters, via_parser};
+
     sequence(maybe_aliased(nested_expr))
         .delimited_by(ctrl('{'), ctrl('}'))
-        // TODO: Add back error recovery with Chumsky 0.10 API
-        // .recover_with(...)
+        .recover_with(via_parser(nested_delimiters(
+            TokenKind::Control('{'),
+            TokenKind::Control('}'),
+            [
+                (TokenKind::Control('{'), TokenKind::Control('}')),
+                (TokenKind::Control('('), TokenKind::Control(')')),
+                (TokenKind::Control('['), TokenKind::Control(']')),
+            ],
+            |_| vec![],
+        )))
         .map(ExprKind::Tuple)
         .labelled("tuple")
 }
@@ -118,10 +141,20 @@ fn array<'a, I>(
 where
     I: Input<'a, Token = TokenKind, Span = Span> + ValueInput<'a>,
 {
+    use chumsky::recovery::{nested_delimiters, via_parser};
+
     sequence(expr)
         .delimited_by(ctrl('['), ctrl(']'))
-        // TODO: Add back error recovery with Chumsky 0.10 API
-        // .recover_with(...)
+        .recover_with(via_parser(nested_delimiters(
+            TokenKind::Control('['),
+            TokenKind::Control(']'),
+            [
+                (TokenKind::Control('{'), TokenKind::Control('}')),
+                (TokenKind::Control('('), TokenKind::Control(')')),
+                (TokenKind::Control('['), TokenKind::Control(']')),
+            ],
+            |_| vec![],
+        )))
         .map(ExprKind::Array)
         .labelled("array")
 }
