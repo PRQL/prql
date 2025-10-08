@@ -202,9 +202,9 @@ fn keyword<'a>() -> impl Parser<'a, ParserInput<'a>, TokenKind, ParserError<'a>>
         just("import"),
         just("enum"),
     ))
+    .to_slice()
     .then_ignore(end_expr())
-    // TODO: possibly we can avoid an allocation by using `.map(TokenKind::Keyword)`
-    .map(|x| TokenKind::Keyword(x.to_string()))
+    .map(|s: &str| TokenKind::Keyword(s.to_string()))
 }
 
 fn param<'a>() -> impl Parser<'a, ParserInput<'a>, TokenKind, ParserError<'a>> {
@@ -213,7 +213,8 @@ fn param<'a>() -> impl Parser<'a, ParserInput<'a>, TokenKind, ParserError<'a>> {
             any()
                 .filter(|c: &char| c.is_alphanumeric() || *c == '_' || *c == '.')
                 .repeated()
-                .collect::<String>(),
+                .to_slice()
+                .map(|s: &str| s.to_string()),
         )
         .map(TokenKind::Param)
 }
@@ -283,14 +284,10 @@ pub fn ident_part<'a>() -> impl Parser<'a, ParserInput<'a>, String, ParserError<
             // .then(text::ascii::ident())
             any()
                 .filter(|c: &char| c.is_alphanumeric() || *c == '_')
-                .repeated()
-                .collect::<Vec<char>>(),
+                .repeated(),
         )
-        .map(|(first, rest)| {
-            let mut chars = vec![first];
-            chars.extend(rest);
-            chars.into_iter().collect::<String>()
-        });
+        .to_slice()
+        .map(|s: &str| s.to_string());
 
     let backtick = none_of('`')
         .repeated()
@@ -463,7 +460,7 @@ fn number<'a>() -> impl Parser<'a, ParserInput<'a>, Literal, ParserError<'a>> {
     }
 
     // Parse integer part
-    let integer = parse_integer().map(|chars| chars.into_iter().collect::<String>());
+    let integer = parse_integer();
 
     // Parse fractional part
     let fraction_digits = any()
@@ -471,18 +468,13 @@ fn number<'a>() -> impl Parser<'a, ParserInput<'a>, Literal, ParserError<'a>> {
         .then(
             any()
                 .filter(|c: &char| c.is_ascii_digit() || *c == '_')
-                .repeated()
-                .collect::<Vec<char>>(),
+                .repeated(),
         )
-        .map(|(first, rest)| {
-            let mut chars = vec![first];
-            chars.extend(rest);
-            chars
-        });
+        .to_slice();
 
     let frac = just('.')
         .then(fraction_digits)
-        .map(|(dot, digits)| format!("{}{}", dot, String::from_iter(digits)));
+        .map(|(dot, digits): (char, &str)| format!("{}{}", dot, digits));
 
     // Parse exponent
     let exp_digits = one_of("+-")
@@ -491,21 +483,13 @@ fn number<'a>() -> impl Parser<'a, ParserInput<'a>, Literal, ParserError<'a>> {
             any()
                 .filter(|c: &char| c.is_ascii_digit())
                 .repeated()
-                .at_least(1)
-                .collect::<Vec<char>>(),
+                .at_least(1),
         )
-        .map(|(sign_opt, digits)| {
-            let mut s = String::new();
-            if let Some(sign) = sign_opt {
-                s.push(sign);
-            }
-            s.push_str(&String::from_iter(digits));
-            s
-        });
+        .to_slice();
 
     let exp = one_of("eE")
         .then(exp_digits)
-        .map(|(e, digits)| format!("{}{}", e, digits));
+        .map(|(e, digits): (char, &str)| format!("{}{}", e, digits));
 
     // Combine all parts into a number using the helper function
     integer
@@ -529,7 +513,7 @@ fn number<'a>() -> impl Parser<'a, ParserInput<'a>, Literal, ParserError<'a>> {
         })
 }
 
-fn parse_integer<'a>() -> impl Parser<'a, ParserInput<'a>, Vec<char>, ParserError<'a>> {
+fn parse_integer<'a>() -> impl Parser<'a, ParserInput<'a>, &'a str, ParserError<'a>> {
     // Handle both multi-digit numbers (can't start with 0) and single digit 0
     choice((
         any()
@@ -537,17 +521,10 @@ fn parse_integer<'a>() -> impl Parser<'a, ParserInput<'a>, Vec<char>, ParserErro
             .then(
                 any()
                     .filter(|c: &char| c.is_ascii_digit() || *c == '_')
-                    .repeated()
-                    .collect::<Vec<char>>(),
+                    .repeated(),
             )
-            // TODO: there's a few of these, which seems unlikely to be the
-            // idomatic approach. I tried `.to_slice()` but couldn't get it to work
-            .map(|(first, rest)| {
-                let mut chars = vec![first];
-                chars.extend(rest);
-                chars
-            }),
-        just('0').map(|c| vec![c]),
+            .to_slice(),
+        just('0').to_slice(),
     ))
 }
 
@@ -593,18 +570,16 @@ fn value_and_unit<'a>() -> impl Parser<'a, ParserInput<'a>, Literal, ParserError
     ));
 
     // Parse the integer value followed by a unit
-    parse_integer()
-        .map(|chars| chars.into_iter().filter(|c| *c != '_').collect::<String>())
-        .then(unit)
-        .then_ignore(end_expr())
-        .map(|(number_str, unit_str): (String, &str)| {
-            // Parse the number, defaulting to 1 if parsing fails
-            let n = number_str.parse::<i64>().unwrap_or(1);
+    parse_integer().then(unit).then_ignore(end_expr()).map(
+        |(number_str, unit_str): (&str, &str)| {
+            // Parse the number (removing underscores), defaulting to 1 if parsing fails
+            let n = number_str.replace('_', "").parse::<i64>().unwrap_or(1);
             Literal::ValueAndUnit(ValueAndUnit {
                 n,
                 unit: unit_str.to_string(),
             })
-        })
+        },
+    )
 }
 
 pub fn quoted_string<'a>(
