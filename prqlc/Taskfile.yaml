@@ -12,9 +12,7 @@ vars:
 
 tasks:
   fmt:
-    desc:
-      Format prqlc source files. (Duplicates `pre-commit` checks, but some
-      developers prefer to use this directly.)
+    desc: Format prqlc code (run before committing).
     cmds:
       - cmd: |
           # remove trailing whitespace
@@ -37,33 +35,39 @@ tasks:
           --ignore-unknown \
           --log-level=warn
 
-  test-fast:
-    desc: A fast test used for feedback during compiler development
-    cmds:
-      - cmd: |
-          INSTA_FORCE_PASS=1 cargo nextest run {{.packages_core}} --no-fail-fast
-
-      - cmd: cargo insta review
-
-      - cmd: cargo clippy --all-targets {{.packages_core}}
-
   test:
-    desc: |
-      A full test of prqlc (excluding --test-dbs-external).
-      Generates coverage report.
+    desc: Fast inner-loop test, accepting snapshots (run during development).
+    env:
+      NEXTEST_STATUS_LEVEL: fail
+      NEXTEST_FINAL_STATUS_LEVEL: slow
+      NEXTEST_HIDE_PROGRESS_BAR: "true"
     cmds:
-      - cmd: |
-          cargo \
-            llvm-cov --lcov --output-path lcov.info \
-            nextest --features=test-dbs \
-            {{.packages_core}} {{.packages_addon}} {{.packages_bindings}}
+      - cargo insta test --accept {{.packages_core}} --test-runner=nextest
+      - cargo clippy --fix --allow-dirty --allow-staged {{.packages_core}}
 
-      - cmd:
-          cargo clippy --all-targets {{.packages_core}} {{.packages_addon}}
-          {{.packages_bindings}} -- -D warnings
+  test-full:
+    desc: Comprehensive prqlc test with coverage, accepting snapshots.
+    env:
+      NEXTEST_STATUS_LEVEL: fail
+      NEXTEST_FINAL_STATUS_LEVEL: slow
+      NEXTEST_HIDE_PROGRESS_BAR: "true"
+    cmds:
+      - cargo insta test --accept --features=default,test-dbs
+        --test-runner=nextest --unreferenced=auto {{.packages_core}}
+        {{.packages_addon}} {{.packages_bindings}}
+      - cargo llvm-cov --lcov --output-path lcov.info
+        --features=default,test-dbs nextest {{.packages_core}}
+        {{.packages_addon}} {{.packages_bindings}}
+
+  lint:
+    desc: Run all lints (run before committing).
+    cmds:
+      - pre-commit run --all-files
+      - cargo clippy --all-targets --all-features
 
   pull-request:
-    desc: Most checks that run within GH actions for a pull request
+    desc: Complete PR checks (combines fmt + test-full + lint).
     cmds:
       - task: fmt
-      - task: test
+      - task: test-full
+      - task: lint
