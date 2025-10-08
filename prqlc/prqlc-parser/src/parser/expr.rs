@@ -53,9 +53,19 @@ where
         let tuple = tuple(nested_expr.clone());
         let array = array(nested_expr.clone());
         let pipeline_expr = {
+            use chumsky::recovery::{skip_then_retry_until, via_parser};
+
             pipeline(nested_expr.clone())
                 .padded_by(new_line().repeated())
-                .delimited_by(ctrl('('), ctrl(')'))
+                .delimited_by(
+                    ctrl('('),
+                    ctrl(')')
+                        .recover_with(via_parser(end()))
+                        .recover_with(skip_then_retry_until(
+                            any_ref().ignored(),
+                            ctrl(')').ignored().or(end()),
+                        )),
+                )
         };
         let interpolation = interpolation();
         let case = case(expr.clone());

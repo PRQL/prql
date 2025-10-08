@@ -455,6 +455,19 @@ mod tests {
                 hints: [],
                 code: None,
             },
+            Error {
+                kind: Error,
+                span: Some(
+                    0:0-73,
+                ),
+                reason: Expected {
+                    who: None,
+                    expected: "one of import statement, module definition, new line, pipeline, something else, type definition or variable definition",
+                    found: "end of input",
+                },
+                hints: [],
+                code: None,
+            },
         ]
         "#);
     }
