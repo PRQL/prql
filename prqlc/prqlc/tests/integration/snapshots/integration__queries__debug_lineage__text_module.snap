@@ -208,7 +208,7 @@ nodes:
   parent: 156
 - id: 125
   kind: Ident
-  span: 0:3-8
+  span: 1:175-180
   ident: !Ident
   - this
   - albums
@@ -506,7 +506,7 @@ ast:
                     expr:
                       Ident:
                       - title
-                      span: 0:3-8
+                      span: 1:175-180
                     format: null
                   - !String '  '
                   span: 1:170-184

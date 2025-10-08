@@ -125,7 +125,15 @@ fn select_with_extra_fstr() {
     assert_snapshot!(compile(r#"
     from foo
     select lower f"{x}/{y}"
-    "#).unwrap_err(), @"Error: Unknown name `x`");
+    "#).unwrap_err(), @r#"
+    Error:
+       ╭─[ :3:21 ]
+       │
+     3 │     select lower f"{x}/{y}"
+       │                     ┬
+       │                     ╰── Unknown name `x`
+    ───╯
+    "#);
 }
 
 // See also test_error_messages::test_type_error_placement
