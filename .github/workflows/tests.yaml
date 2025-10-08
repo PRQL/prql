@@ -301,8 +301,8 @@ jobs:
       - run: task setup-dev
       # This also encompasses `build-all`
       - run: task test-all
-      - run: task test-rust-fast
-      - run: task test-lint
+      - run: task prqlc:test
+      - run: task lint
 
   test-rust-main:
     needs: rules

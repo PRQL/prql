@@ -1,3 +1,12 @@
+# prqlc Taskfile - core development tasks for fast iteration.
+#
+# This file contains tasks for prqlc development:
+# - test: Fast inner-loop test (~5s) - run during development
+# - test-all: Comprehensive test with coverage (~30s) - run before committing
+# - pull-request: Complete PR checks (test-all + lint)
+#
+# For repo-wide operations (lint, setup), use tasks from the root Taskfile.
+
 version: "3"
 
 includes:
@@ -11,59 +20,33 @@ vars:
   packages_bindings: -p prql -p prql-java -p prqlc-js -p prqlc-c -p prqlc-python
 
 tasks:
-  fmt:
-    desc:
-      Format prqlc source files. (Duplicates `pre-commit` checks, but some
-      developers prefer to use this directly.)
-    cmds:
-      - cmd: |
-          # remove trailing whitespace
-          rg '\s+$' --files-with-matches --glob '!*.{rs,snap}' . \
-          | xargs -I _ sh -c "echo Removing trailing whitespace from _ && sd '[\t ]+$' '' _"
-
-      - cmd: |
-          # rustfmt
-          cargo fmt {{.packages_core}} {{.packages_addon}} {{.packages_bindings}}
-
-      - cmd: |
-          # no dbg
-          rg 'dbg!' --glob '*.rs' . --no-heading
-        ignore_error: true
-
-      - cmd: |
-          prettier --write . \
-          --config=../.prettierrc.yaml \
-          --ignore-path=../.prettierignore \
-          --ignore-unknown \
-          --log-level=warn
-
-  test-fast:
-    desc: A fast test used for feedback during compiler development
-    cmds:
-      - cmd: |
-          INSTA_FORCE_PASS=1 cargo nextest run {{.packages_core}} --no-fail-fast
-
-      - cmd: cargo insta review
-
-      - cmd: cargo clippy --all-targets {{.packages_core}}
-
   test:
-    desc: |
-      A full test of prqlc (excluding --test-dbs-external).
-      Generates coverage report.
+    desc: Fast inner-loop test, accepting snapshots (run during development).
+    env:
+      NEXTEST_STATUS_LEVEL: fail
+      NEXTEST_FINAL_STATUS_LEVEL: slow
+      NEXTEST_HIDE_PROGRESS_BAR: "true"
     cmds:
-      - cmd: |
-          cargo \
-            llvm-cov --lcov --output-path lcov.info \
-            nextest --features=test-dbs \
-            {{.packages_core}} {{.packages_addon}} {{.packages_bindings}}
+      - cargo insta test --accept {{.packages_core}} --test-runner=nextest
+      - cargo clippy --fix --allow-dirty --allow-staged {{.packages_core}}
 
-      - cmd:
-          cargo clippy --all-targets {{.packages_core}} {{.packages_addon}}
-          {{.packages_bindings}} -- -D warnings
+  test-all:
+    desc: Comprehensive prqlc test with coverage, accepting snapshots.
+    env:
+      NEXTEST_STATUS_LEVEL: fail
+      NEXTEST_FINAL_STATUS_LEVEL: slow
+      NEXTEST_HIDE_PROGRESS_BAR: "true"
+    cmds:
+      - cargo insta test --accept --features=default,test-dbs
+        --test-runner=nextest --unreferenced=auto {{.packages_core}}
+        {{.packages_addon}} {{.packages_bindings}}
+      - cargo llvm-cov --lcov --output-path lcov.info
+        --features=default,test-dbs nextest {{.packages_core}}
+        {{.packages_addon}} {{.packages_bindings}}
 
   pull-request:
-    desc: Most checks that run within GH actions for a pull request
+    desc: Complete PR checks (combines test-all + lint).
     cmds:
-      - task: fmt
-      - task: test
+      - task: test-all
+      # Lint is repo-wide, so call it from root
+      - task: :lint

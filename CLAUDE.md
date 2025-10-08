@@ -8,10 +8,10 @@ returning to user:
 **Inner loop** (fast, focused, <5s):
 
 ```sh
-# Run lints on changed files
-task test-lint
+# Run fast tests on core packages (from project root)
+task prqlc:test
 
-# Run specific tests you're working on
+# Or run specific tests you're working on
 cargo insta test -p prqlc --test integration -- date
 
 # Run unit tests for a specific module
@@ -67,7 +67,7 @@ cargo run -p prqlc -- --help
 Run all lints with
 
 ```sh
-task test-lint
+task lint
 ```
 
 ## Documentation

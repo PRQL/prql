@@ -280,7 +280,7 @@ Our tests, from the bottom of the pyramid to the top:
   using [pre-commit](https://pre-commit.com). They can be run locally with
 
   ```sh
-  task test-lint
+  task lint
   # or
   pre-commit run -a
   ```
@@ -304,11 +304,9 @@ Our tests, from the bottom of the pyramid to the top:
   every save while you're developing. We include a `task` which does this:
 
   ```sh
-  task test-rust-fast
+  task prqlc:test
   # or
   cargo insta test --accept --package prqlc --lib
-  # or, to run on every change:
-  task -w test-rust-fast
   ```
 
 <!--
@@ -356,7 +354,7 @@ inconsistent in watchexec. Let's revert back if it gets solved.
   in-process tests can be run locally with:
 
   ```sh
-  task test-rust
+  task prqlc:test-all
   # or
   cargo insta test --accept --features=default,test-dbs
   ```
@@ -468,7 +466,7 @@ Currently we release in a semi-automated way:
 2. If the current version is correct, then skip ahead. But if the version needs
    to be changed — for example, we had planned on a patch release, but instead
    require a minor release — then run
-   `cargo release version $version -x && cargo release replace -x && task test-rust`
+   `cargo release version $version -x && cargo release replace -x && task prqlc:test-all`
    to bump the version, and PR the resulting commit.
 
 3. After merging, go to
@@ -486,12 +484,12 @@ Currently we release in a semi-automated way:
    [release workflow](https://github.com/PRQL/prql/blob/main/.github/workflows/release.yaml).
 
 5. Run
-   `cargo release patch --no-publish --no-push --execute --no-verify --no-confirm --no-tag && task test-rust`
+   `cargo release patch --no-publish --no-push --execute --no-verify --no-confirm --no-tag && task prqlc:test-all`
    to bump the versions and add a new Changelog section; then PR the resulting
-   commit. Note this currently contains `task test-rust` to update snapshot
+   commit. Note this currently contains `task prqlc:test-all` to update snapshot
    tests which contain the version.
 
-<!-- Note we used to have `cargo release version patch -x --no-confirm && cargo release replace -x --no-confirm && task test-rust`, which was simpler, but in order for `prev_version` to work, we can't separate the `patch` and `replace`, and we need `prev_version` for the prqlc version constraint (search for `prev_version` if unclear). If we moved back to upgrading the tags at the time of release rather than after, we could go back to that. -->
+<!-- Note we used to have `cargo release version patch -x --no-confirm && cargo release replace -x --no-confirm && task prqlc:test-all`, which was simpler, but in order for `prev_version` to work, we can't separate the `patch` and `replace`, and we need `prev_version` for the prqlc version constraint (search for `prev_version` if unclear). If we moved back to upgrading the tags at the time of release rather than after, we could go back to that. -->
 
 6. Check whether there are [milestones](https://github.com/PRQL/prql/milestones)
    that need to be pushed out.
