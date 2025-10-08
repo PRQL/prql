@@ -6059,3 +6059,113 @@ fn test_distinct_on_sort_on_compute() {
       billing_country
     ");
 }
+
+/// Ensures that the sort happens on `table0`.`_expr_0` and not on `table2`.`_expr_0`
+#[test]
+fn test_sort_cast_filter_join_select() {
+    assert_snapshot!(compile(r###"
+    from albums
+    select { this.`title`, this.`artist_id`, this.`album_id` }
+    sort { this.`artist_id`, this.`album_id` }
+    derive { `artist_id` = as `double precision` this.`artist_id` }
+    filter (this.`artist_id` != null)
+    join side:left artists (this.`artist_id` == that.`artist_id`)
+    select {this.`artist_id`, this.`title`, this.`name`}
+    "###
+    ).unwrap(), @r"
+    WITH table_1 AS (
+      SELECT
+        CAST(artist_id AS double precision) AS artist_id,
+        title,
+        artist_id AS _expr_0,
+        album_id
+      FROM
+        albums
+    ),
+    table_2 AS (
+      SELECT
+        artist_id,
+        title,
+        _expr_0,
+        album_id
+      FROM
+        table_1
+      WHERE
+        artist_id IS NOT NULL
+    ),
+    table_0 AS (
+      SELECT
+        artist_id,
+        title,
+        _expr_0,
+        album_id
+      FROM
+        table_2
+    )
+    SELECT
+      table_0.artist_id,
+      table_0.title,
+      artists.name
+    FROM
+      table_0
+      LEFT OUTER JOIN artists ON table_0.artist_id = artists.artist_id
+    ORDER BY
+      table_0._expr_0,
+      table_0.album_id
+    ")
+}
+
+/// Ensures that the sort happens on `table0`.`artist_id` and not on `table0`.`double_artist_id`
+#[test]
+fn test_sort_cast_filter_join_select_with_alias() {
+    assert_snapshot!(compile(r###"
+    from albums
+    select { this.`title`, this.`artist_id`, this.`album_id` }
+    sort { this.`artist_id`, this.`album_id` }
+    derive { `double_artist_id` = as `double precision` this.`artist_id` }
+    filter (this.`artist_id` != null)
+    join side:left artists (this.`double_artist_id` == that.`artist_id`)
+    select {this.`double_artist_id`, this.`title`, this.`name`}
+    "###
+    ).unwrap(), @r"
+    WITH table_1 AS (
+      SELECT
+        CAST(artist_id AS double precision) AS double_artist_id,
+        title,
+        artist_id,
+        album_id
+      FROM
+        albums
+    ),
+    table_2 AS (
+      SELECT
+        double_artist_id,
+        title,
+        artist_id,
+        album_id
+      FROM
+        table_1
+      WHERE
+        artist_id IS NOT NULL
+    ),
+    table_0 AS (
+      SELECT
+        double_artist_id,
+        title,
+        artist_id,
+        album_id
+      FROM
+        table_2
+    )
+    SELECT
+      table_0.double_artist_id,
+      table_0.title,
+      artists.name
+    FROM
+      table_0
+      LEFT OUTER JOIN artists ON table_0.double_artist_id = artists.artist_id
+    ORDER BY
+      table_0.artist_id,
+      table_0.album_id
+    ")
+}

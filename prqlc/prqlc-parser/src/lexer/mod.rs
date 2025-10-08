@@ -154,18 +154,19 @@ fn lex_token<'a>() -> impl Parser<'a, ParserInput<'a>, Token, ParserError<'a>> {
 /// Parse individual token kinds
 fn token<'a>() -> impl Parser<'a, ParserInput<'a>, TokenKind, ParserError<'a>> {
     // Main token parser for all tokens
+    // Strategic .boxed() calls reduce compile times for complex parsers with minimal runtime cost
     choice((
-        line_wrap(),                      // Line continuation with backslash
+        line_wrap().boxed(), // Line continuation with backslash (complex recursive)
         newline().to(TokenKind::NewLine), // Newline characters
-        multi_char_operators(),           // Multi-character operators (==, !=, etc.)
-        interpolation(),                  // String interpolation (f"...", s"...")
-        param(),                          // Parameters ($name)
+        multi_char_operators(), // Multi-character operators (==, !=, etc.)
+        interpolation().boxed(), // String interpolation (complex nested parsing)
+        param(),             // Parameters ($name)
         // Date literals must come before @ handling for annotations
-        date_token(), // Date literals (@2022-01-01)
+        date_token().boxed(), // Date literals (complex with multiple branches)
         // Special handling for @ annotations - must come after date_token
         just('@').to(TokenKind::Annotate), // @ annotation marker
         one_of("></%=+-*[]().,:|!{}").map(TokenKind::Control), // Single-character controls
-        literal().map(TokenKind::Literal), // Literals (numbers, strings, etc.)
+        literal().map(TokenKind::Literal).boxed(), // Literals (complex with many branches)
         keyword(),                         // Keywords (let, func, etc.)
         ident_part().map(TokenKind::Ident), // Identifiers
         comment(),                         // Comments (# and #!)
@@ -202,9 +203,9 @@ fn keyword<'a>() -> impl Parser<'a, ParserInput<'a>, TokenKind, ParserError<'a>>
         just("import"),
         just("enum"),
     ))
+    .to_slice()
     .then_ignore(end_expr())
-    // TODO: possibly we can avoid an allocation by using `.map(TokenKind::Keyword)`
-    .map(|x| TokenKind::Keyword(x.to_string()))
+    .map(|s: &str| TokenKind::Keyword(s.to_string()))
 }
 
 fn param<'a>() -> impl Parser<'a, ParserInput<'a>, TokenKind, ParserError<'a>> {
@@ -213,7 +214,8 @@ fn param<'a>() -> impl Parser<'a, ParserInput<'a>, TokenKind, ParserError<'a>> {
             any()
                 .filter(|c: &char| c.is_alphanumeric() || *c == '_' || *c == '.')
                 .repeated()
-                .collect::<String>(),
+                .to_slice()
+                .map(|s: &str| s.to_string()),
         )
         .map(TokenKind::Param)
 }
@@ -283,14 +285,10 @@ pub fn ident_part<'a>() -> impl Parser<'a, ParserInput<'a>, String, ParserError<
             // .then(text::ascii::ident())
             any()
                 .filter(|c: &char| c.is_alphanumeric() || *c == '_')
-                .repeated()
-                .collect::<Vec<char>>(),
+                .repeated(),
         )
-        .map(|(first, rest)| {
-            let mut chars = vec![first];
-            chars.extend(rest);
-            chars.into_iter().collect::<String>()
-        });
+        .to_slice()
+        .map(|s: &str| s.to_string());
 
     let backtick = none_of('`')
         .repeated()
@@ -301,10 +299,8 @@ pub fn ident_part<'a>() -> impl Parser<'a, ParserInput<'a>, String, ParserError<
 }
 
 // Date/time components
-fn digits<'a>(count: usize) -> impl Parser<'a, ParserInput<'a>, Vec<char>, ParserError<'a>> {
-    chumsky::text::digits(10)
-        .exactly(count)
-        .collect::<Vec<char>>()
+fn digits<'a>(count: usize) -> impl Parser<'a, ParserInput<'a>, &'a str, ParserError<'a>> {
+    chumsky::text::digits(10).exactly(count).to_slice()
 }
 
 fn date_inner<'a>() -> impl Parser<'a, ParserInput<'a>, String, ParserError<'a>> {
@@ -316,7 +312,8 @@ fn date_inner<'a>() -> impl Parser<'a, ParserInput<'a>, String, ParserError<'a>>
         .then(just('-'))
         .then(text::digits(10).exactly(2))
         .to_slice()
-        // TODO: can change this to return the slice and avoid the allocation
+        // TODO: Returning &str instead of String would require changing Literal::Date
+        // to use Cow<'a, str> or a similar approach, which is a larger refactoring
         .map(|s: &str| s.to_owned())
 }
 
@@ -324,17 +321,17 @@ fn time_inner<'a>() -> impl Parser<'a, ParserInput<'a>, String, ParserError<'a>>
     // Helper function for parsing time components with separators
     fn time_component<'p>(
         separator: char,
-        component_parser: impl Parser<'p, ParserInput<'p>, Vec<char>, ParserError<'p>>,
+        component_parser: impl Parser<'p, ParserInput<'p>, &'p str, ParserError<'p>>,
     ) -> impl Parser<'p, ParserInput<'p>, String, ParserError<'p>> {
         just(separator)
             .then(component_parser)
-            .map(move |(sep, comp)| format!("{}{}", sep, String::from_iter(comp)))
+            .map(move |(sep, comp): (char, &str)| format!("{}{}", sep, comp))
             .or_not()
             .map(|opt| opt.unwrap_or_default())
     }
 
     // Hours (required)
-    let hours = digits(2).map(String::from_iter);
+    let hours = digits(2).map(|s: &str| s.to_string());
 
     // Minutes and seconds (optional) - with colon separator
     let minutes = time_component(':', digits(2));
@@ -348,7 +345,7 @@ fn time_inner<'a>() -> impl Parser<'a, ParserInput<'a>, String, ParserError<'a>>
             .repeated()
             .at_least(1)
             .at_most(6)
-            .collect::<Vec<char>>(),
+            .to_slice(),
     );
 
     // Timezone (optional): either 'Z' or '+/-HH:MM'
@@ -356,10 +353,10 @@ fn time_inner<'a>() -> impl Parser<'a, ParserInput<'a>, String, ParserError<'a>>
         just('Z').map(|c| c.to_string()),
         one_of("-+")
             .then(digits(2).then(just(':').or_not().then(digits(2))).map(
-                |(hrs, (_opt_colon, mins))| {
+                |(hrs, (_opt_colon, mins)): (&str, (Option<char>, &str))| {
                     // Always format as -0800 without colon for SQL compatibility, regardless of input format
                     // We need to handle both -08:00 and -0800 input formats but standardize the output
-                    format!("{}{}", String::from_iter(hrs), String::from_iter(mins))
+                    format!("{}{}", hrs, mins)
                 },
             ))
             .map(|(sign, offset)| format!("{}{}", sign, offset)),
@@ -463,7 +460,7 @@ fn number<'a>() -> impl Parser<'a, ParserInput<'a>, Literal, ParserError<'a>> {
     }
 
     // Parse integer part
-    let integer = parse_integer().map(|chars| chars.into_iter().collect::<String>());
+    let integer = parse_integer();
 
     // Parse fractional part
     let fraction_digits = any()
@@ -471,18 +468,13 @@ fn number<'a>() -> impl Parser<'a, ParserInput<'a>, Literal, ParserError<'a>> {
         .then(
             any()
                 .filter(|c: &char| c.is_ascii_digit() || *c == '_')
-                .repeated()
-                .collect::<Vec<char>>(),
+                .repeated(),
         )
-        .map(|(first, rest)| {
-            let mut chars = vec![first];
-            chars.extend(rest);
-            chars
-        });
+        .to_slice();
 
     let frac = just('.')
         .then(fraction_digits)
-        .map(|(dot, digits)| format!("{}{}", dot, String::from_iter(digits)));
+        .map(|(dot, digits): (char, &str)| format!("{}{}", dot, digits));
 
     // Parse exponent
     let exp_digits = one_of("+-")
@@ -491,21 +483,13 @@ fn number<'a>() -> impl Parser<'a, ParserInput<'a>, Literal, ParserError<'a>> {
             any()
                 .filter(|c: &char| c.is_ascii_digit())
                 .repeated()
-                .at_least(1)
-                .collect::<Vec<char>>(),
+                .at_least(1),
         )
-        .map(|(sign_opt, digits)| {
-            let mut s = String::new();
-            if let Some(sign) = sign_opt {
-                s.push(sign);
-            }
-            s.push_str(&String::from_iter(digits));
-            s
-        });
+        .to_slice();
 
     let exp = one_of("eE")
         .then(exp_digits)
-        .map(|(e, digits)| format!("{}{}", e, digits));
+        .map(|(e, digits): (char, &str)| format!("{}{}", e, digits));
 
     // Combine all parts into a number using the helper function
     integer
@@ -529,7 +513,7 @@ fn number<'a>() -> impl Parser<'a, ParserInput<'a>, Literal, ParserError<'a>> {
         })
 }
 
-fn parse_integer<'a>() -> impl Parser<'a, ParserInput<'a>, Vec<char>, ParserError<'a>> {
+fn parse_integer<'a>() -> impl Parser<'a, ParserInput<'a>, &'a str, ParserError<'a>> {
     // Handle both multi-digit numbers (can't start with 0) and single digit 0
     choice((
         any()
@@ -537,17 +521,10 @@ fn parse_integer<'a>() -> impl Parser<'a, ParserInput<'a>, Vec<char>, ParserErro
             .then(
                 any()
                     .filter(|c: &char| c.is_ascii_digit() || *c == '_')
-                    .repeated()
-                    .collect::<Vec<char>>(),
+                    .repeated(),
             )
-            // TODO: there's a few of these, which seems unlikely to be the
-            // idomatic approach. I tried `.to_slice()` but couldn't get it to work
-            .map(|(first, rest)| {
-                let mut chars = vec![first];
-                chars.extend(rest);
-                chars
-            }),
-        just('0').map(|c| vec![c]),
+            .to_slice(),
+        just('0').to_slice(),
     ))
 }
 
@@ -562,10 +539,14 @@ fn raw_string<'a>() -> impl Parser<'a, ParserInput<'a>, Literal, ParserError<'a>
             any()
                 .filter(move |c: &char| *c != '\'' && *c != '"' && *c != '\n' && *c != '\r')
                 .repeated()
-                .collect::<Vec<char>>(),
+                .to_slice(),
         )
         .then(choice((just('\''), just('"'))))
-        .map(|(((_, _), chars), _)| Literal::RawString(chars.into_iter().collect()))
+        .map(
+            |(((_, _open_quote), s), _close_quote): (((&str, char), &str), char)| {
+                Literal::RawString(s.to_string())
+            },
+        )
 }
 
 fn boolean<'a>() -> impl Parser<'a, ParserInput<'a>, Literal, ParserError<'a>> {
@@ -593,18 +574,16 @@ fn value_and_unit<'a>() -> impl Parser<'a, ParserInput<'a>, Literal, ParserError
     ));
 
     // Parse the integer value followed by a unit
-    parse_integer()
-        .map(|chars| chars.into_iter().filter(|c| *c != '_').collect::<String>())
-        .then(unit)
-        .then_ignore(end_expr())
-        .map(|(number_str, unit_str): (String, &str)| {
-            // Parse the number, defaulting to 1 if parsing fails
-            let n = number_str.parse::<i64>().unwrap_or(1);
+    parse_integer().then(unit).then_ignore(end_expr()).map(
+        |(number_str, unit_str): (&str, &str)| {
+            // Parse the number (removing underscores), defaulting to 1 if parsing fails
+            let n = number_str.replace('_', "").parse::<i64>().unwrap_or(1);
             Literal::ValueAndUnit(ValueAndUnit {
                 n,
                 unit: unit_str.to_string(),
             })
-        })
+        },
+    )
 }
 
 pub fn quoted_string<'a>(

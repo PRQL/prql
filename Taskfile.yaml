@@ -1,8 +1,15 @@
 # yaml-language-server: $schema=https://json.schemastore.org/taskfile.json
 
+# Root Taskfile - handles setup, orchestration, and repo-wide operations.
+#
 # This file gives new contributors an easy way to get everything they need,
 # assuming `cargo` and [Task](https://taskfile.dev) are installed.
-
+#
+# Structure:
+# - Root (this file): Setup, orchestration, repo-wide tasks (lint, test-all, build-all)
+# - prqlc/: Core development tasks (test, test-all, pull-request)
+# - web/: Web-related tasks (build, run-*)
+#
 # Beyond installing requirements, we generally shouldn't be using this as a
 # Makefile — in other words, we shouldn't require running this as part of normal
 # development. Rust tools are independently good, and adding an intermediate
@@ -275,7 +282,7 @@ tasks:
         cargo test {{ range without (splitLines .PACKAGES) "prqlc-parser" }} -p={{ . }} {{ end }}
 
   test-all:
-    desc: Test everything, accepting snapshots.
+    desc: Test everything across all workspaces, accepting snapshots.
     summary: |
       Test everything, accepting snapshots.
 
@@ -287,54 +294,12 @@ tasks:
       # - We deliberately don't test some other bindings, such as `prql-php`,
       #   given they require more dependencies and aren't yet Supported. They
       #   run in CI.
-      - task: test-lint
-      - task: test-rust
+      - task: prqlc:pull-request
       - task: test-js
       # No nextest here as doesn't work with wasm
       - cargo test --target=wasm32-unknown-unknown
       - task: python:test
       - task: build-all
-
-  test-rust:
-    desc: Test all rust code, accepting snapshots.
-    # Commenting out the ability to watch, since Task doesn't handle watching
-    # big directories well: https://github.com/go-task/task/issues/985
-    #
-    # sources:
-    #   - "**/*.rs"
-    #   - "**/*.md"
-    #   - "**/*.toml"
-    #   - "**/*.lock"
-    #   - "**/*.snap"
-    env:
-      NEXTEST_STATUS_LEVEL: fail
-      NEXTEST_FINAL_STATUS_LEVEL: slow
-      NEXTEST_HIDE_PROGRESS_BAR: "true"
-    cmds:
-      - cargo insta test --accept --features=default,test-dbs
-        --test-runner=nextest --unreferenced=auto
-      - cargo clippy --fix --allow-dirty --allow-staged
-
-  test-rust-fast:
-    desc: Test prqlc's unit tests.
-    summary: |
-      Test only unit tests, including accepting snapshots.
-
-      This can be useful as an inner loop when developing, by running this on any file change.
-      Use `-w` to get that behavior:
-
-        task -w test-rust-fast
-
-      New or changed snapshots are accepted, and expected to be reviewed with git.
-
-    env:
-      RUST_BACKTRACE: 1
-    sources:
-      # I don't think we can specify this is a single glob, which would be nice.
-      - "prqlc/**/*.rs"
-      - "prqlc/**/*.snap"
-    cmds:
-      - cargo insta test --accept --lib --test-runner=nextest
 
   test-rust-coverage:
     desc: Run tests with instrumentation for code coverage.
@@ -349,6 +314,12 @@ tasks:
     cmds:
       - cargo llvm-cov --lcov --output-path lcov.info
         --features=default,test-dbs
+
+  lint:
+    desc: Run all lints (pre-commit & cargo clippy).
+    cmds:
+      - pre-commit run --all-files
+      - cargo clippy --all-targets --all-features
 
   test-rust-external-dbs:
     desc: Run tests which require external databases, with docker
@@ -384,12 +355,6 @@ tasks:
       - mix deps.get --force
       - mix compile
       - mix test
-
-  test-lint:
-    desc: Run pre-commit & cargo clippy.
-    cmds:
-      - pre-commit run --all-files
-      - cargo clippy --all-targets --all-features
 
   build-php:
     - cargo build --package prqlc-c --release

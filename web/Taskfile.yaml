@@ -41,16 +41,6 @@ tasks:
       - task: build-playground-dependencies
       - npm run dev
 
-  fmt:
-    # (Duplicates `pre-commit` checks, but some developers prefer to use this directly.)
-    cmds:
-      - cmd: |
-          prettier --write . \
-          --config=../.prettierrc.yaml \
-          --ignore-path=../.prettierignore \
-          --ignore-unknown \
-          --log-level=warn
-
   build-playground-dependencies:
     # Check if npm dependencies for the playground need to be updated
     # Use task's sources/generates to see if package.json,
