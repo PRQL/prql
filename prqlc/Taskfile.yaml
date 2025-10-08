@@ -1,3 +1,12 @@
+# prqlc Taskfile - core development tasks for fast iteration.
+#
+# This file contains tasks for prqlc development:
+# - test: Fast inner-loop test (~5s) - run during development
+# - test-all: Comprehensive test with coverage (~30s) - run before committing
+# - pull-request: Complete PR checks (test-all + lint)
+#
+# For repo-wide operations (lint, setup), use tasks from the root Taskfile.
+
 version: "3"
 
 includes:

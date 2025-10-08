@@ -1,8 +1,15 @@
 # yaml-language-server: $schema=https://json.schemastore.org/taskfile.json
 
+# Root Taskfile - handles setup, orchestration, and repo-wide operations.
+#
 # This file gives new contributors an easy way to get everything they need,
 # assuming `cargo` and [Task](https://taskfile.dev) are installed.
-
+#
+# Structure:
+# - Root (this file): Setup, orchestration, repo-wide tasks (lint, test-all, build-all)
+# - prqlc/: Core development tasks (test, test-all, pull-request)
+# - web/: Web-related tasks (build, run-*)
+#
 # Beyond installing requirements, we generally shouldn't be using this as a
 # Makefile — in other words, we shouldn't require running this as part of normal
 # development. Rust tools are independently good, and adding an intermediate
