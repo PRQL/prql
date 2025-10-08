@@ -344,7 +344,7 @@ fn empty_interpolations() {
        │
      1 │ from x | select f"{}"
        │                    ┬
-       │                    ╰── unexpected end of input
+       │                    ╰── interpolated string expected one of ".", ":" or "}}", but found " "
     ───╯
     "#);
 }

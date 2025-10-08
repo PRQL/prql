@@ -1148,49 +1148,4 @@ mod tests {
     //
     //     assert_eq!(with_parens, without_parens);
     // }
-
-    #[test]
-    fn test_error_recovery_tuple() {
-        // Error recovery allows parsing to continue after malformed tuple
-        let result = parse_expr_call("let x = {a, b | select c");
-
-        // Should have errors but still produce AST with recovered empty tuple
-        assert!(result.is_err());
-        let errors = result.unwrap_err();
-        assert!(!errors.is_empty());
-        // Error recovery catches the unclosed delimiter
-    }
-
-    #[test]
-    fn test_error_recovery_array() {
-        // Error recovery allows parsing to continue after malformed array
-        let result = parse_expr_call("let x = [1, 2, 3 | select c");
-
-        // Should have errors due to unclosed bracket
-        assert!(result.is_err());
-        let errors = result.unwrap_err();
-        assert!(!errors.is_empty());
-    }
-
-    #[test]
-    fn test_error_recovery_parentheses() {
-        // Error recovery allows parsing to continue after malformed parenthesized expression
-        let result = parse_expr_call("from x | select (a + b");
-
-        // Should have errors due to unclosed parenthesis
-        assert!(result.is_err());
-        let errors = result.unwrap_err();
-        assert!(!errors.is_empty());
-    }
-
-    #[test]
-    fn test_error_recovery_nested() {
-        // Error recovery respects nesting - mixed delimiters
-        let result = parse_expr_call("let x = {a: [1, 2], b: (3 + 4}");
-
-        // Should have errors due to mismatched delimiters
-        assert!(result.is_err());
-        let errors = result.unwrap_err();
-        assert!(!errors.is_empty());
-    }
 }

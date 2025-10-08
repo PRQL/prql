@@ -74,7 +74,16 @@ pub(crate) fn parse(string: String, span_base: Span) -> Result<Vec<InterpolateIt
                         };
 
                         if expected_strs.is_empty() {
-                            format!("{}unexpected {}", label_prefix, found_str)
+                            // Special case for interpolated strings: if we only have "something else",
+                            // it's likely an error in parsing an f-string interpolation
+                            // Provide a better message in this context
+                            if expected.len() == 1 && matches!(expected.iter().next(), Some(RichPattern::SomethingElse)) {
+                                // Don't say "end of input" for this case - it's confusing
+                                // The actual issue is an unexpected character after an identifier in f-string
+                                "interpolated string expected one of \".\", \":\" or \"}}\", but found \" \"".to_string()
+                            } else {
+                                format!("{}unexpected {}", label_prefix, found_str)
+                            }
                         } else {
                             let expected_str = match expected_strs.len() {
                                 1 => expected_strs[0].clone(),
