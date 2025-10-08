@@ -80,7 +80,7 @@ pub(crate) fn parse(string: String, span_base: Span) -> Result<Vec<InterpolateIt
                             if expected.len() == 1 && matches!(expected.iter().next(), Some(RichPattern::SomethingElse)) {
                                 // Don't say "end of input" for this case - it's confusing
                                 // The actual issue is an unexpected character after an identifier in f-string
-                                "interpolated string expected one of \".\", \":\" or \"}}\", but found \" \"".to_string()
+                                "interpolated string expected one of \".\", \":\" or \"}\", but found \" \"".to_string()
                             } else {
                                 format!("{}unexpected {}", label_prefix, found_str)
                             }
