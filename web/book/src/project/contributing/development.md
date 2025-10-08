@@ -486,8 +486,8 @@ Currently we release in a semi-automated way:
 5. Run
    `cargo release patch --no-publish --no-push --execute --no-verify --no-confirm --no-tag && task prqlc:test-full`
    to bump the versions and add a new Changelog section; then PR the resulting
-   commit. Note this currently contains `task prqlc:test-full` to update snapshot
-   tests which contain the version.
+   commit. Note this currently contains `task prqlc:test-full` to update
+   snapshot tests which contain the version.
 
 <!-- Note we used to have `cargo release version patch -x --no-confirm && cargo release replace -x --no-confirm && task prqlc:test-full`, which was simpler, but in order for `prev_version` to work, we can't separate the `patch` and `replace`, and we need `prev_version` for the prqlc version constraint (search for `prev_version` if unclear). If we moved back to upgrading the tags at the time of release rather than after, we could go back to that. -->
 
