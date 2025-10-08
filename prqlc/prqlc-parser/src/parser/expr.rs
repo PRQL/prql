@@ -19,7 +19,7 @@ use super::ParserError;
 
 pub(crate) fn expr_call<'a, I>() -> impl Parser<'a, I, Expr, ParserError<'a>> + Clone
 where
-    I: Input<'a, Token = lr::Token, Span = Span> + BorrowInput<'a> + chumsky::input::ValueInput<'a>,
+    I: Input<'a, Token = lr::Token, Span = Span> + BorrowInput<'a>,
 {
     let expr = expr();
 
@@ -32,7 +32,7 @@ where
 
 pub(crate) fn expr<'a, I>() -> impl Parser<'a, I, Expr, ParserError<'a>> + Clone
 where
-    I: Input<'a, Token = lr::Token, Span = Span> + BorrowInput<'a> + chumsky::input::ValueInput<'a>,
+    I: Input<'a, Token = lr::Token, Span = Span> + BorrowInput<'a>,
 {
     recursive(|expr| {
         let literal = select_ref! { lr::Token { kind: TokenKind::Literal(lit), .. } => ExprKind::Literal(lit.clone()) };
@@ -165,10 +165,20 @@ fn tuple<'a, I>(
     nested_expr: impl Parser<'a, I, Expr, ParserError<'a>> + Clone + 'a,
 ) -> impl Parser<'a, I, ExprKind, ParserError<'a>> + Clone + 'a
 where
-    I: Input<'a, Token = lr::Token, Span = Span> + BorrowInput<'a> + chumsky::input::ValueInput<'a>,
+    I: Input<'a, Token = lr::Token, Span = Span> + BorrowInput<'a>,
 {
+    use chumsky::recovery::{skip_then_retry_until, via_parser};
+
     sequence(maybe_aliased(nested_expr))
-        .delimited_by(ctrl('{'), ctrl('}'))
+        .delimited_by(
+            ctrl('{'),
+            ctrl('}')
+                .recover_with(via_parser(end()))
+                .recover_with(skip_then_retry_until(
+                    any_ref().ignored(),
+                    ctrl('}').ignored().or(ctrl(',').ignored()).or(end()),
+                )),
+        )
         .map(ExprKind::Tuple)
         .labelled("tuple")
 }
@@ -177,10 +187,20 @@ fn array<'a, I>(
     expr: impl Parser<'a, I, Expr, ParserError<'a>> + Clone + 'a,
 ) -> impl Parser<'a, I, ExprKind, ParserError<'a>> + Clone + 'a
 where
-    I: Input<'a, Token = lr::Token, Span = Span> + BorrowInput<'a> + chumsky::input::ValueInput<'a>,
+    I: Input<'a, Token = lr::Token, Span = Span> + BorrowInput<'a>,
 {
+    use chumsky::recovery::{skip_then_retry_until, via_parser};
+
     sequence(expr)
-        .delimited_by(ctrl('['), ctrl(']'))
+        .delimited_by(
+            ctrl('['),
+            ctrl(']')
+                .recover_with(via_parser(end()))
+                .recover_with(skip_then_retry_until(
+                    any_ref().ignored(),
+                    ctrl(']').ignored().or(ctrl(',').ignored()).or(end()),
+                )),
+        )
         .map(ExprKind::Array)
         .labelled("array")
 }
@@ -216,7 +236,7 @@ fn case<'a, I>(
     expr: impl Parser<'a, I, Expr, ParserError<'a>> + Clone + 'a,
 ) -> impl Parser<'a, I, ExprKind, ParserError<'a>> + Clone + 'a
 where
-    I: Input<'a, Token = lr::Token, Span = Span> + BorrowInput<'a> + chumsky::input::ValueInput<'a>,
+    I: Input<'a, Token = lr::Token, Span = Span> + BorrowInput<'a>,
 {
     // The `nickname != null => nickname,` part
     let mapping = func_call(expr.clone())
@@ -232,7 +252,7 @@ where
 
 fn unary<'a, I, E>(expr: E) -> impl Parser<'a, I, Expr, ParserError<'a>> + Clone + 'a
 where
-    I: Input<'a, Token = lr::Token, Span = Span> + BorrowInput<'a> + chumsky::input::ValueInput<'a>,
+    I: Input<'a, Token = lr::Token, Span = Span> + BorrowInput<'a>,
     E: Parser<'a, I, Expr, ParserError<'a>> + Clone + 'a,
 {
     expr.clone()
@@ -245,7 +265,7 @@ where
 
 fn range<'a, I, E>(expr: E) -> impl Parser<'a, I, Expr, ParserError<'a>> + Clone + 'a
 where
-    I: Input<'a, Token = lr::Token, Span = Span> + BorrowInput<'a> + chumsky::input::ValueInput<'a>,
+    I: Input<'a, Token = lr::Token, Span = Span> + BorrowInput<'a>,
     E: Parser<'a, I, Expr, ParserError<'a>> + Clone + 'a,
 {
     // Ranges have five cases we need to parse:
@@ -304,7 +324,7 @@ where
 /// A pipeline of `expr`, separated by pipes. Doesn't require parentheses.
 pub(crate) fn pipeline<'a, I, E>(expr: E) -> impl Parser<'a, I, Expr, ParserError<'a>> + Clone + 'a
 where
-    I: Input<'a, Token = lr::Token, Span = Span> + BorrowInput<'a> + chumsky::input::ValueInput<'a>,
+    I: Input<'a, Token = lr::Token, Span = Span> + BorrowInput<'a>,
     E: Parser<'a, I, Expr, ParserError<'a>> + Clone + 'a,
 {
     // expr has to be a param, because it can be either a normal expr() or a
@@ -337,7 +357,7 @@ where
 #[cfg(not(coverage))]
 fn aliased<'a, I, E>(expr: E) -> impl Parser<'a, I, Expr, ParserError<'a>> + Clone + 'a
 where
-    I: Input<'a, Token = lr::Token, Span = Span> + BorrowInput<'a> + chumsky::input::ValueInput<'a>,
+    I: Input<'a, Token = lr::Token, Span = Span> + BorrowInput<'a>,
     E: Parser<'a, I, Expr, ParserError<'a>> + Clone + 'a,
 {
     let aliased = ident_part()
@@ -356,7 +376,7 @@ where
 
 fn maybe_aliased<'a, I, E>(expr: E) -> impl Parser<'a, I, Expr, ParserError<'a>> + Clone + 'a
 where
-    I: Input<'a, Token = lr::Token, Span = Span> + BorrowInput<'a> + chumsky::input::ValueInput<'a>,
+    I: Input<'a, Token = lr::Token, Span = Span> + BorrowInput<'a>,
     E: Parser<'a, I, Expr, ParserError<'a>> + Clone + 'a,
 {
     let aliased = ident_part()
@@ -378,7 +398,7 @@ where
 
 fn func_call<'a, I, E>(expr: E) -> impl Parser<'a, I, Expr, ParserError<'a>> + Clone + 'a
 where
-    I: Input<'a, Token = lr::Token, Span = Span> + BorrowInput<'a> + chumsky::input::ValueInput<'a>,
+    I: Input<'a, Token = lr::Token, Span = Span> + BorrowInput<'a>,
     E: Parser<'a, I, Expr, ParserError<'a>> + Clone + 'a,
 {
     let func_name = expr.clone();
@@ -448,7 +468,7 @@ where
 
 fn lambda_func<'a, I, E>(expr: E) -> impl Parser<'a, I, Expr, ParserError<'a>> + Clone + 'a
 where
-    I: Input<'a, Token = lr::Token, Span = Span> + BorrowInput<'a> + chumsky::input::ValueInput<'a>,
+    I: Input<'a, Token = lr::Token, Span = Span> + BorrowInput<'a>,
     E: Parser<'a, I, Expr, ParserError<'a>> + Clone + 'a,
 {
     let param = ident_part()

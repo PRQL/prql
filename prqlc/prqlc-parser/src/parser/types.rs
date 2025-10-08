@@ -44,42 +44,66 @@ where
             )
             .map(TyKind::Function);
 
-        let tuple = sequence(choice((
-            select_ref! { lr::Token { kind: TokenKind::Range { bind_right: false, bind_left: _ }, .. } => () }
-                .to(TyTupleField::Wildcard(None)),
-            select_ref! { lr::Token { kind: TokenKind::Range { bind_right: true, bind_left: _ }, .. } => () }
-                .ignore_then(nested_type_expr.clone().or_not())
-                .map(TyTupleField::Wildcard),
-            ident_part()
-                .then_ignore(ctrl('='))
+        let tuple = {
+            use chumsky::recovery::{skip_then_retry_until, via_parser};
+
+            sequence(choice((
+                select_ref! { lr::Token { kind: TokenKind::Range { bind_right: false, bind_left: _ }, .. } => () }
+                    .to(TyTupleField::Wildcard(None)),
+                select_ref! { lr::Token { kind: TokenKind::Range { bind_right: true, bind_left: _ }, .. } => () }
+                    .ignore_then(nested_type_expr.clone().or_not())
+                    .map(TyTupleField::Wildcard),
+                ident_part()
+                    .then_ignore(ctrl('='))
+                    .or_not()
+                    .then(ctrl('*').to(None).or(nested_type_expr.clone().map(Some)))
+                    .map(|(name, ty)| TyTupleField::Single(name, ty)),
+            )))
+            .delimited_by(
+                ctrl('{'),
+                ctrl('}')
+                    .recover_with(via_parser(end()))
+                    .recover_with(skip_then_retry_until(
+                        any_ref().ignored(),
+                        ctrl('}').ignored().or(ctrl(',').ignored()).or(end()),
+                    )),
+            )
+            .try_map(|fields, span| {
+                let without_last = &fields[0..fields.len().saturating_sub(1)];
+
+                if let Some(unpack) = without_last.iter().find_map(|f| f.as_wildcard()) {
+                    let err_span = unpack.as_ref().and_then(|s| s.span).unwrap_or(span);
+                    return Err(Rich::custom(
+                        err_span,
+                        "unpacking must come after all other fields",
+                    ));
+                }
+
+                Ok(fields)
+            })
+            .map(TyKind::Tuple)
+            .labelled("tuple")
+        };
+
+        let array = {
+            use chumsky::recovery::{skip_then_retry_until, via_parser};
+
+            nested_type_expr
+                .map(Box::new)
                 .or_not()
-                .then(ctrl('*').to(None).or(nested_type_expr.clone().map(Some)))
-                .map(|(name, ty)| TyTupleField::Single(name, ty)),
-        )))
-        .delimited_by(ctrl('{'), ctrl('}'))
-        .try_map(|fields, span| {
-            let without_last = &fields[0..fields.len().saturating_sub(1)];
-
-            if let Some(unpack) = without_last.iter().find_map(|f| f.as_wildcard()) {
-                let err_span = unpack.as_ref().and_then(|s| s.span).unwrap_or(span);
-                return Err(Rich::custom(
-                    err_span,
-                    "unpacking must come after all other fields",
-                ));
-            }
-
-            Ok(fields)
-        })
-        .map(TyKind::Tuple)
-        .labelled("tuple");
-
-        let array = nested_type_expr
-            .map(Box::new)
-            .or_not()
-            .padded_by(new_line().repeated())
-            .delimited_by(ctrl('['), ctrl(']'))
-            .map(TyKind::Array)
-            .labelled("array");
+                .padded_by(new_line().repeated())
+                .delimited_by(
+                    ctrl('['),
+                    ctrl(']')
+                        .recover_with(via_parser(end()))
+                        .recover_with(skip_then_retry_until(
+                            any_ref().ignored(),
+                            ctrl(']').ignored().or(ctrl(',').ignored()).or(end()),
+                        )),
+                )
+                .map(TyKind::Array)
+                .labelled("array")
+        };
 
         choice((basic, ident, func, tuple, array))
             .map_with(|kind, extra| TyKind::into_ty(kind, extra.span()))
