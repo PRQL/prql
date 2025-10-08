@@ -11,11 +11,11 @@ returning to user:
 # Run fast tests on core packages (from project root)
 task prqlc:test
 
-# Or run specific tests you're working on
-cargo insta test -p prqlc --test integration -- date
+# Unit tests filtered by test name
+cargo insta test -p prqlc --lib -- resolver
 
-# Run unit tests for a specific module
-cargo insta test -p prqlc --lib semantic::resolver
+# Integration tests filtered by test name
+cargo insta test -p prqlc --test integration -- date
 ```
 
 **Outer loop** (comprehensive, ~1min, before returning to user):
