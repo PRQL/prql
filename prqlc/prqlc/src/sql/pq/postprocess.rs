@@ -190,20 +190,12 @@ impl PqFold for SortingInference<'_> {
 
                     // if new columns are added, the relation instance needs to be updated
                     if !new_columns.is_empty() {
-                        let mut used_new_names = HashSet::new();
                         let mut cid_redirects_to_add = Vec::new();
                         for old_cid in new_columns {
                             let new_cid = self.ctx.anchor.cid.gen();
-                            let old_name = self.ctx.anchor.ensure_column_name(*old_cid).cloned();
-                            let mut new_name = old_name;
-                            if let Some(new) = &mut new_name {
-                                if used_new_names.contains(new) {
-                                    *new = self.ctx.anchor.col_name.gen();
-                                    self.ctx.anchor.column_names.insert(*old_cid, new.clone());
-                                }
-
-                                used_new_names.insert(new.clone());
-                                self.ctx.anchor.column_names.insert(new_cid, new.clone());
+                            let name = self.ctx.anchor.ensure_column_name(*old_cid).cloned();
+                            if let Some(name) = name.clone() {
+                                self.ctx.anchor.column_names.insert(new_cid, name);
                             }
 
                             let old_def = self.ctx.anchor.column_decls.get(old_cid).unwrap();
@@ -211,7 +203,7 @@ impl PqFold for SortingInference<'_> {
                                 ColumnDecl::RelationColumn(_, _, RelationColumn::Wildcard) => {
                                     RelationColumn::Wildcard
                                 }
-                                _ => RelationColumn::Single(new_name),
+                                _ => RelationColumn::Single(name),
                             };
 
                             cid_redirects_to_add.push((*old_cid, new_cid, col));
