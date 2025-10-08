@@ -17,8 +17,7 @@ use crate::span::Span;
 use super::ParserError;
 
 /// The top-level parser for a PRQL file
-pub fn source<'a, I>(
-) -> impl Parser<'a, I, Vec<Stmt>, ParserError<'a>> + Clone
+pub fn source<'a, I>() -> impl Parser<'a, I, Vec<Stmt>, ParserError<'a>> + Clone
 where
     I: Input<'a, Token = lr::Token, Span = Span> + BorrowInput<'a>,
 {
@@ -36,8 +35,7 @@ where
         .then_ignore(end())
 }
 
-fn module_contents<'a, I>(
-) -> impl Parser<'a, I, Vec<Stmt>, ParserError<'a>> + Clone
+fn module_contents<'a, I>() -> impl Parser<'a, I, Vec<Stmt>, ParserError<'a>> + Clone
 where
     I: Input<'a, Token = lr::Token, Span = Span> + BorrowInput<'a>,
 {

@@ -20,8 +20,7 @@ use super::ParserError;
 type ExprWithSpan = (Expr, Span);
 type BinOpChain = Vec<(BinOp, ExprWithSpan)>;
 
-pub(crate) fn expr_call<'a, I>(
-) -> impl Parser<'a, I, Expr, ParserError<'a>> + Clone
+pub(crate) fn expr_call<'a, I>() -> impl Parser<'a, I, Expr, ParserError<'a>> + Clone
 where
     I: Input<'a, Token = lr::Token, Span = Span> + BorrowInput<'a>,
 {
@@ -34,8 +33,7 @@ where
     ))
 }
 
-pub(crate) fn expr<'a, I>(
-) -> impl Parser<'a, I, Expr, ParserError<'a>> + Clone
+pub(crate) fn expr<'a, I>() -> impl Parser<'a, I, Expr, ParserError<'a>> + Clone
 where
     I: Input<'a, Token = lr::Token, Span = Span> + BorrowInput<'a>,
 {
@@ -126,8 +124,7 @@ where
         .labelled("array")
 }
 
-fn interpolation<'a, I>(
-) -> impl Parser<'a, I, ExprKind, ParserError<'a>> + Clone
+fn interpolation<'a, I>() -> impl Parser<'a, I, ExprKind, ParserError<'a>> + Clone
 where
     I: Input<'a, Token = lr::Token, Span = Span> + BorrowInput<'a>,
 {
@@ -172,9 +169,7 @@ where
         .map(ExprKind::Case)
 }
 
-fn unary<'a, I, E>(
-    expr: E,
-) -> impl Parser<'a, I, Expr, ParserError<'a>> + Clone + 'a
+fn unary<'a, I, E>(expr: E) -> impl Parser<'a, I, Expr, ParserError<'a>> + Clone + 'a
 where
     I: Input<'a, Token = lr::Token, Span = Span> + BorrowInput<'a>,
     E: Parser<'a, I, Expr, ParserError<'a>> + Clone + 'a,
@@ -187,9 +182,7 @@ where
         .boxed()
 }
 
-fn range<'a, I, E>(
-    expr: E,
-) -> impl Parser<'a, I, Expr, ParserError<'a>> + Clone + 'a
+fn range<'a, I, E>(expr: E) -> impl Parser<'a, I, Expr, ParserError<'a>> + Clone + 'a
 where
     I: Input<'a, Token = lr::Token, Span = Span> + BorrowInput<'a>,
     E: Parser<'a, I, Expr, ParserError<'a>> + Clone + 'a,
@@ -248,9 +241,7 @@ where
 }
 
 /// A pipeline of `expr`, separated by pipes. Doesn't require parentheses.
-pub(crate) fn pipeline<'a, I, E>(
-    expr: E,
-) -> impl Parser<'a, I, Expr, ParserError<'a>> + Clone + 'a
+pub(crate) fn pipeline<'a, I, E>(expr: E) -> impl Parser<'a, I, Expr, ParserError<'a>> + Clone + 'a
 where
     I: Input<'a, Token = lr::Token, Span = Span> + BorrowInput<'a>,
     E: Parser<'a, I, Expr, ParserError<'a>> + Clone + 'a,
@@ -371,9 +362,7 @@ where
 // Can remove if we don't end up using this
 #[allow(dead_code)]
 #[cfg(not(coverage))]
-fn aliased<'a, I, E>(
-    expr: E,
-) -> impl Parser<'a, I, Expr, ParserError<'a>> + Clone + 'a
+fn aliased<'a, I, E>(expr: E) -> impl Parser<'a, I, Expr, ParserError<'a>> + Clone + 'a
 where
     I: Input<'a, Token = lr::Token, Span = Span> + BorrowInput<'a>,
     E: Parser<'a, I, Expr, ParserError<'a>> + Clone + 'a,
@@ -392,9 +381,7 @@ where
         .or(aliased.delimited_by(ctrl('('), ctrl(')')))
 }
 
-fn maybe_aliased<'a, I, E>(
-    expr: E,
-) -> impl Parser<'a, I, Expr, ParserError<'a>> + Clone + 'a
+fn maybe_aliased<'a, I, E>(expr: E) -> impl Parser<'a, I, Expr, ParserError<'a>> + Clone + 'a
 where
     I: Input<'a, Token = lr::Token, Span = Span> + BorrowInput<'a>,
     E: Parser<'a, I, Expr, ParserError<'a>> + Clone + 'a,
@@ -416,9 +403,7 @@ where
         .or(aliased.delimited_by(ctrl('('), ctrl(')')))
 }
 
-fn func_call<'a, I, E>(
-    expr: E,
-) -> impl Parser<'a, I, Expr, ParserError<'a>> + Clone + 'a
+fn func_call<'a, I, E>(expr: E) -> impl Parser<'a, I, Expr, ParserError<'a>> + Clone + 'a
 where
     I: Input<'a, Token = lr::Token, Span = Span> + BorrowInput<'a>,
     E: Parser<'a, I, Expr, ParserError<'a>> + Clone + 'a,
@@ -488,9 +473,7 @@ where
         .labelled("function call")
 }
 
-fn lambda_func<'a, I, E>(
-    expr: E,
-) -> impl Parser<'a, I, Expr, ParserError<'a>> + Clone + 'a
+fn lambda_func<'a, I, E>(expr: E) -> impl Parser<'a, I, Expr, ParserError<'a>> + Clone + 'a
 where
     I: Input<'a, Token = lr::Token, Span = Span> + BorrowInput<'a>,
     E: Parser<'a, I, Expr, ParserError<'a>> + Clone + 'a,
@@ -540,8 +523,7 @@ where
     .labelled("function definition")
 }
 
-pub(crate) fn ident<'a, I>(
-) -> impl Parser<'a, I, Ident, ParserError<'a>> + Clone
+pub(crate) fn ident<'a, I>() -> impl Parser<'a, I, Ident, ParserError<'a>> + Clone
 where
     I: Input<'a, Token = lr::Token, Span = Span> + BorrowInput<'a>,
 {
@@ -586,8 +568,7 @@ where
 {
     (ctrl('+').to(BinOp::Add)).or(ctrl('-').to(BinOp::Sub))
 }
-fn operator_compare<'a, I>(
-) -> impl Parser<'a, I, BinOp, ParserError<'a>> + Clone
+fn operator_compare<'a, I>() -> impl Parser<'a, I, BinOp, ParserError<'a>> + Clone
 where
     I: Input<'a, Token = lr::Token, Span = Span> + BorrowInput<'a>,
 {
@@ -613,8 +594,7 @@ where
 {
     select_ref! { lr::Token { kind: TokenKind::Or, .. } => BinOp::Or }
 }
-fn operator_coalesce<'a, I>(
-) -> impl Parser<'a, I, BinOp, ParserError<'a>> + Clone
+fn operator_coalesce<'a, I>() -> impl Parser<'a, I, BinOp, ParserError<'a>> + Clone
 where
     I: Input<'a, Token = lr::Token, Span = Span> + BorrowInput<'a>,
 {
