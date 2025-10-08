@@ -13,30 +13,41 @@ bench = false
 doctest = false
 
 [dependencies]
-enum-as-inner = {workspace = true}
-itertools = {workspace = true}
-log = {workspace = true}
-schemars = {workspace = true}
-semver = {workspace = true}
-serde = {workspace = true}
-serde_yaml = {workspace = true, optional = true}
-strum = {workspace = true}
+enum-as-inner = { workspace = true }
+itertools = { workspace = true }
+log = { workspace = true }
+schemars = { workspace = true }
+semver = { workspace = true }
+serde = { workspace = true }
+serde_yaml = { workspace = true, optional = true }
+strum = { workspace = true }
 
 # Chumsky's default features have issues when running in wasm (though we only
 # see it when compiling on macOS), so we only include features when running
 # outside wasm.
 [target.'cfg(not(target_family="wasm"))'.dependencies]
-chumsky = "0.9.2"
+# Use chumsky 0.9.2 for the parser
+chumsky = { version = "0.9.2" }
+# Use chumsky 0.10.1 for the lexer
+chumsky_0_10 = { version = "0.10.1", package = "chumsky" }
 # Not direct dependencies, but pinning because of bugs in previous versions
 stacker = "0.1.22"
 [target.'cfg(target_family="wasm")'.dependencies]
-chumsky = {version = "0.9.2", features = ["ahash", "std"], default-features = false}
+chumsky = { version = "0.9.2", features = [
+    "ahash",
+    "std",
+], default-features = false }
+chumsky_0_10 = { version = "0.10.1", package = "chumsky", features = [
+    "std",
+], default-features = false }
 
 [dev-dependencies]
-insta = {workspace = true}
-serde_json = {workspace = true}
+insta = { workspace = true }
+serde_json = { workspace = true }
 
 [lints.rust]
 # https://github.com/taiki-e/cargo-llvm-cov/blob/4039500dc7ce5874748769166f1f481be294c90f/README.md#exclude-function-from-coverage
-unexpected_cfgs = {level = "warn", check-cfg = ['cfg(coverage,coverage_nightly)']}
+unexpected_cfgs = { level = "warn", check-cfg = [
+    'cfg(coverage,coverage_nightly)',
+] }
 unsafe_code = "forbid"

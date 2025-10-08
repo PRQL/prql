@@ -227,6 +227,8 @@ impl Resolver<'_> {
             self.root_mod.module.shadow(NS_THIS);
             self.root_mod.module.shadow(NS_THAT);
 
+            // First, resolve all relational arguments
+            let mut resolved_relations = Vec::new();
             for (pos, (index, (param, mut arg))) in relations.into_iter().with_position() {
                 let is_last = matches!(pos, Position::Last | Position::Only);
 
@@ -241,7 +243,11 @@ impl Resolver<'_> {
                 }
                 log::debug!("resolved arg to {}", arg.kind.as_ref());
 
-                // add relation frame into scope
+                resolved_relations.push((index, arg, is_last));
+            }
+
+            // Then, add relation frames into scope
+            for (index, arg, is_last) in resolved_relations {
                 if partial_application_position.is_none() {
                     let frame = arg
                         .lineage
