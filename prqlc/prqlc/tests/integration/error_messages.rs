@@ -104,7 +104,7 @@ fn test_errors() {
        │
      1 │ Answer: T-H-A-T!
        │                ┬
-       │                ╰── unexpected !
+       │                ╰── expected something else, but found !
     ───╯
     ");
 }

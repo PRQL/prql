@@ -202,6 +202,79 @@ impl From<PError> for Error {
     }
 }
 
+// Convert from Chumsky 0.10's Rich error type with lr::Token to our Error type
+impl<'a> From<Rich<'a, crate::lexer::lr::Token, Span>> for Error {
+    fn from(rich: Rich<'a, crate::lexer::lr::Token, Span>) -> Error {
+        use chumsky::error::RichReason;
+
+        let span = *rich.span();
+
+        fn token_to_string(t: &crate::lexer::lr::Token) -> String {
+            t.kind.to_string()
+        }
+
+        let error = match rich.reason() {
+            RichReason::ExpectedFound { expected, found } => {
+                use chumsky::error::RichPattern;
+                let expected_strs: Vec<String> = expected
+                    .iter()
+                    .filter(|p| {
+                        // Filter out whitespace tokens unless that's all we're expecting
+                        let is_whitespace = match p {
+                            RichPattern::EndOfInput => true,
+                            RichPattern::Token(t) => {
+                                matches!(t.kind, TokenKind::NewLine | TokenKind::Start)
+                            }
+                            _ => false,
+                        };
+                        !is_whitespace
+                            || expected.iter().all(|p| match p {
+                                RichPattern::EndOfInput => true,
+                                RichPattern::Token(t) => matches!(t.kind, TokenKind::NewLine),
+                                _ => false,
+                            })
+                    })
+                    .map(|p| match p {
+                        RichPattern::Token(t) => token_to_string(t),
+                        RichPattern::EndOfInput => "end of input".to_string(),
+                        _ => format!("{:?}", p),
+                    })
+                    .collect();
+
+                let found_str = match found {
+                    Some(t) => token_to_string(t),
+                    None => "end of input".to_string(),
+                };
+
+                if expected_strs.is_empty() || expected_strs.len() > 10 {
+                    Error::new_simple(format!("unexpected {found_str}"))
+                } else {
+                    let mut expected_sorted = expected_strs;
+                    expected_sorted.sort();
+
+                    let expected_str = match expected_sorted.len() {
+                        1 => expected_sorted[0].clone(),
+                        2 => expected_sorted.join(" or "),
+                        _ => {
+                            let last = expected_sorted.pop().unwrap();
+                            format!("one of {} or {last}", expected_sorted.join(", "))
+                        }
+                    };
+
+                    Error::new(Reason::Expected {
+                        who: None,
+                        expected: expected_str,
+                        found: found_str,
+                    })
+                }
+            }
+            RichReason::Custom(msg) => Error::new_simple(msg),
+        };
+
+        error.with_span(Some(span))
+    }
+}
+
 // Convert from Chumsky 0.10's Rich error type to our Error type
 impl<'a> From<Rich<'a, TokenKind, Span>> for Error {
     fn from(rich: Rich<'a, TokenKind, Span>) -> Error {

@@ -1,10 +1,11 @@
 use std::collections::{hash_map::Entry, HashMap};
 
 use chumsky;
-use chumsky::input::ValueInput;
+use chumsky::input::BorrowInput;
 use chumsky::prelude::*;
 use itertools::Itertools;
 
+use crate::lexer::lr;
 use crate::lexer::lr::TokenKind;
 use crate::parser::interpolation;
 use crate::parser::pr::*;
@@ -19,9 +20,9 @@ type ExprWithSpan = (Expr, Span);
 type BinOpChain = Vec<(BinOp, ExprWithSpan)>;
 
 pub(crate) fn expr_call<'a, I>(
-) -> impl Parser<'a, I, Expr, extra::Err<Rich<'a, TokenKind, Span>>> + Clone
+) -> impl Parser<'a, I, Expr, extra::Err<Rich<'a, lr::Token, Span>>> + Clone
 where
-    I: Input<'a, Token = TokenKind, Span = Span> + ValueInput<'a>,
+    I: Input<'a, Token = lr::Token, Span = Span> + BorrowInput<'a>,
 {
     let expr = expr();
 
@@ -33,12 +34,12 @@ where
 }
 
 pub(crate) fn expr<'a, I>(
-) -> impl Parser<'a, I, Expr, extra::Err<Rich<'a, TokenKind, Span>>> + Clone
+) -> impl Parser<'a, I, Expr, extra::Err<Rich<'a, lr::Token, Span>>> + Clone
 where
-    I: Input<'a, Token = TokenKind, Span = Span> + ValueInput<'a>,
+    I: Input<'a, Token = lr::Token, Span = Span> + BorrowInput<'a>,
 {
     recursive(|expr| {
-        let literal = select! { TokenKind::Literal(lit) => ExprKind::Literal(lit) };
+        let literal = select_ref! { lr::Token { kind: TokenKind::Literal(lit), .. } => ExprKind::Literal(lit.clone()) };
 
         let ident_kind = ident().map(ExprKind::Ident);
 
@@ -56,25 +57,15 @@ where
         let tuple = tuple(nested_expr.clone());
         let array = array(nested_expr.clone());
         let pipeline_expr = {
-            use chumsky::recovery::{nested_delimiters, via_parser};
-
+            // TODO: Add back error recovery with Chumsky 0.10 API once we have reference-based delimiters
             pipeline(nested_expr.clone())
                 .padded_by(new_line().repeated())
                 .delimited_by(ctrl('('), ctrl(')'))
-                .recover_with(via_parser(nested_delimiters(
-                    TokenKind::Control('('),
-                    TokenKind::Control(')'),
-                    [
-                        (TokenKind::Control('['), TokenKind::Control(']')),
-                        (TokenKind::Control('('), TokenKind::Control(')')),
-                    ],
-                    |span| ExprKind::Literal(Literal::Null).into_expr(span),
-                )))
         };
         let interpolation = interpolation();
         let case = case(expr.clone());
 
-        let param = select! { TokenKind::Param(id) => ExprKind::Param(id) };
+        let param = select_ref! { lr::Token { kind: TokenKind::Param(id), .. } => ExprKind::Param(id.clone()) };
 
         let term = with_doc_comment(
             choice((
@@ -112,61 +103,39 @@ where
 }
 
 fn tuple<'a, I>(
-    nested_expr: impl Parser<'a, I, Expr, extra::Err<Rich<'a, TokenKind, Span>>> + Clone + 'a,
-) -> impl Parser<'a, I, ExprKind, extra::Err<Rich<'a, TokenKind, Span>>> + Clone + 'a
+    nested_expr: impl Parser<'a, I, Expr, extra::Err<Rich<'a, lr::Token, Span>>> + Clone + 'a,
+) -> impl Parser<'a, I, ExprKind, extra::Err<Rich<'a, lr::Token, Span>>> + Clone + 'a
 where
-    I: Input<'a, Token = TokenKind, Span = Span> + ValueInput<'a>,
+    I: Input<'a, Token = lr::Token, Span = Span> + BorrowInput<'a>,
 {
-    use chumsky::recovery::{nested_delimiters, via_parser};
-
+    // TODO: Add back error recovery with Chumsky 0.10 API once we have reference-based delimiters
     sequence(maybe_aliased(nested_expr))
         .delimited_by(ctrl('{'), ctrl('}'))
-        .recover_with(via_parser(nested_delimiters(
-            TokenKind::Control('{'),
-            TokenKind::Control('}'),
-            [
-                (TokenKind::Control('{'), TokenKind::Control('}')),
-                (TokenKind::Control('('), TokenKind::Control(')')),
-                (TokenKind::Control('['), TokenKind::Control(']')),
-            ],
-            |_| vec![],
-        )))
         .map(ExprKind::Tuple)
         .labelled("tuple")
 }
 
 fn array<'a, I>(
-    expr: impl Parser<'a, I, Expr, extra::Err<Rich<'a, TokenKind, Span>>> + Clone + 'a,
-) -> impl Parser<'a, I, ExprKind, extra::Err<Rich<'a, TokenKind, Span>>> + Clone + 'a
+    expr: impl Parser<'a, I, Expr, extra::Err<Rich<'a, lr::Token, Span>>> + Clone + 'a,
+) -> impl Parser<'a, I, ExprKind, extra::Err<Rich<'a, lr::Token, Span>>> + Clone + 'a
 where
-    I: Input<'a, Token = TokenKind, Span = Span> + ValueInput<'a>,
+    I: Input<'a, Token = lr::Token, Span = Span> + BorrowInput<'a>,
 {
-    use chumsky::recovery::{nested_delimiters, via_parser};
-
+    // TODO: Add back error recovery with Chumsky 0.10 API once we have reference-based delimiters
     sequence(expr)
         .delimited_by(ctrl('['), ctrl(']'))
-        .recover_with(via_parser(nested_delimiters(
-            TokenKind::Control('['),
-            TokenKind::Control(']'),
-            [
-                (TokenKind::Control('{'), TokenKind::Control('}')),
-                (TokenKind::Control('('), TokenKind::Control(')')),
-                (TokenKind::Control('['), TokenKind::Control(']')),
-            ],
-            |_| vec![],
-        )))
         .map(ExprKind::Array)
         .labelled("array")
 }
 
 fn interpolation<'a, I>(
-) -> impl Parser<'a, I, ExprKind, extra::Err<Rich<'a, TokenKind, Span>>> + Clone
+) -> impl Parser<'a, I, ExprKind, extra::Err<Rich<'a, lr::Token, Span>>> + Clone
 where
-    I: Input<'a, Token = TokenKind, Span = Span> + ValueInput<'a>,
+    I: Input<'a, Token = lr::Token, Span = Span> + BorrowInput<'a>,
 {
-    select! {
-        TokenKind::Interpolation('s', string) => (ExprKind::SString as fn(_) -> _, string),
-        TokenKind::Interpolation('f', string) => (ExprKind::FString as fn(_) -> _, string),
+    select_ref! {
+        lr::Token { kind: TokenKind::Interpolation('s', string), .. } => (ExprKind::SString as fn(_) -> _, string.clone()),
+        lr::Token { kind: TokenKind::Interpolation('f', string), .. } => (ExprKind::FString as fn(_) -> _, string.clone()),
     }
     .validate(|(finish, string), extra, emit| {
         let span = extra.span();
@@ -188,15 +157,15 @@ where
 }
 
 fn case<'a, I>(
-    expr: impl Parser<'a, I, Expr, extra::Err<Rich<'a, TokenKind, Span>>> + Clone + 'a,
-) -> impl Parser<'a, I, ExprKind, extra::Err<Rich<'a, TokenKind, Span>>> + Clone + 'a
+    expr: impl Parser<'a, I, Expr, extra::Err<Rich<'a, lr::Token, Span>>> + Clone + 'a,
+) -> impl Parser<'a, I, ExprKind, extra::Err<Rich<'a, lr::Token, Span>>> + Clone + 'a
 where
-    I: Input<'a, Token = TokenKind, Span = Span> + ValueInput<'a>,
+    I: Input<'a, Token = lr::Token, Span = Span> + BorrowInput<'a>,
 {
     // The `nickname != null => nickname,` part
     let mapping = func_call(expr.clone())
         .map(Box::new)
-        .then_ignore(just(TokenKind::ArrowFat))
+        .then_ignore(select_ref! { lr::Token { kind: TokenKind::ArrowFat, .. } => () })
         .then(func_call(expr).map(Box::new))
         .map(|(condition, value)| SwitchCase { condition, value });
 
@@ -207,10 +176,10 @@ where
 
 fn unary<'a, I, E>(
     expr: E,
-) -> impl Parser<'a, I, Expr, extra::Err<Rich<'a, TokenKind, Span>>> + Clone + 'a
+) -> impl Parser<'a, I, Expr, extra::Err<Rich<'a, lr::Token, Span>>> + Clone + 'a
 where
-    I: Input<'a, Token = TokenKind, Span = Span> + ValueInput<'a>,
-    E: Parser<'a, I, Expr, extra::Err<Rich<'a, TokenKind, Span>>> + Clone + 'a,
+    I: Input<'a, Token = lr::Token, Span = Span> + BorrowInput<'a>,
+    E: Parser<'a, I, Expr, extra::Err<Rich<'a, lr::Token, Span>>> + Clone + 'a,
 {
     expr.clone()
         .or(operator_unary()
@@ -222,10 +191,10 @@ where
 
 fn range<'a, I, E>(
     expr: E,
-) -> impl Parser<'a, I, Expr, extra::Err<Rich<'a, TokenKind, Span>>> + Clone + 'a
+) -> impl Parser<'a, I, Expr, extra::Err<Rich<'a, lr::Token, Span>>> + Clone + 'a
 where
-    I: Input<'a, Token = TokenKind, Span = Span> + ValueInput<'a>,
-    E: Parser<'a, I, Expr, extra::Err<Rich<'a, TokenKind, Span>>> + Clone + 'a,
+    I: Input<'a, Token = lr::Token, Span = Span> + BorrowInput<'a>,
+    E: Parser<'a, I, Expr, extra::Err<Rich<'a, lr::Token, Span>>> + Clone + 'a,
 {
     // Ranges have five cases we need to parse:
     // x..y (bounded)
@@ -243,11 +212,11 @@ where
         expr.clone()
             .then(choice((
                 // range and end bound
-                just(TokenKind::range(true, true))
+                select_ref! { lr::Token { kind: TokenKind::Range { bind_left: true, bind_right: true }, .. } => () }
                     .ignore_then(expr.clone())
                     .map(|x| Some(Some(x))),
                 // range and no end bound
-                select! { TokenKind::Range { bind_left: true, .. } => Some(None) },
+                select_ref! { lr::Token { kind: TokenKind::Range { bind_left: true, .. }, .. } => Some(None) },
                 // no range
                 empty().to(None),
             )))
@@ -259,11 +228,11 @@ where
                 }
             }),
         // only end bound
-        select! { TokenKind::Range { bind_right: true, .. } => () }
+        select_ref! { lr::Token { kind: TokenKind::Range { bind_right: true, .. }, .. } => () }
             .ignore_then(expr)
             .map(|range| RangeCase::Range(None, Some(range))),
         // unbounded
-        select! { TokenKind::Range { .. } => RangeCase::Range(None, None) },
+        select_ref! { lr::Token { kind: TokenKind::Range { .. }, .. } => RangeCase::Range(None, None) },
     ))
     .map_with(|case, extra| {
         let span = extra.span();
@@ -283,10 +252,10 @@ where
 /// A pipeline of `expr`, separated by pipes. Doesn't require parentheses.
 pub(crate) fn pipeline<'a, I, E>(
     expr: E,
-) -> impl Parser<'a, I, Expr, extra::Err<Rich<'a, TokenKind, Span>>> + Clone + 'a
+) -> impl Parser<'a, I, Expr, extra::Err<Rich<'a, lr::Token, Span>>> + Clone + 'a
 where
-    I: Input<'a, Token = TokenKind, Span = Span> + ValueInput<'a>,
-    E: Parser<'a, I, Expr, extra::Err<Rich<'a, TokenKind, Span>>> + Clone + 'a,
+    I: Input<'a, Token = lr::Token, Span = Span> + BorrowInput<'a>,
+    E: Parser<'a, I, Expr, extra::Err<Rich<'a, lr::Token, Span>>> + Clone + 'a,
 {
     // expr has to be a param, because it can be either a normal expr() or a
     // recursive expr called from within expr(), which causes a stack overflow
@@ -318,11 +287,11 @@ where
 fn binary_op_parser<'a, I, Term, Op>(
     term: Term,
     op: Op,
-) -> impl Parser<'a, I, Expr, extra::Err<Rich<'a, TokenKind, Span>>> + 'a + Clone
+) -> impl Parser<'a, I, Expr, extra::Err<Rich<'a, lr::Token, Span>>> + 'a + Clone
 where
-    I: Input<'a, Token = TokenKind, Span = Span> + ValueInput<'a>,
-    Term: Parser<'a, I, Expr, extra::Err<Rich<'a, TokenKind, Span>>> + 'a + Clone,
-    Op: Parser<'a, I, BinOp, extra::Err<Rich<'a, TokenKind, Span>>> + 'a + Clone,
+    I: Input<'a, Token = lr::Token, Span = Span> + BorrowInput<'a>,
+    Term: Parser<'a, I, Expr, extra::Err<Rich<'a, lr::Token, Span>>> + 'a + Clone,
+    Op: Parser<'a, I, BinOp, extra::Err<Rich<'a, lr::Token, Span>>> + 'a + Clone,
 {
     let term = term.map_with(|e, extra| (e, extra.span())).boxed();
 
@@ -350,11 +319,11 @@ where
 pub(crate) fn binary_op_parser_right<'a, I, Term, Op>(
     term: Term,
     op: Op,
-) -> impl Parser<'a, I, Expr, extra::Err<Rich<'a, TokenKind, Span>>> + Clone + 'a
+) -> impl Parser<'a, I, Expr, extra::Err<Rich<'a, lr::Token, Span>>> + Clone + 'a
 where
-    I: Input<'a, Token = TokenKind, Span = Span> + ValueInput<'a>,
-    Term: Parser<'a, I, Expr, extra::Err<Rich<'a, TokenKind, Span>>> + Clone + 'a,
-    Op: Parser<'a, I, BinOp, extra::Err<Rich<'a, TokenKind, Span>>> + Clone + 'a,
+    I: Input<'a, Token = lr::Token, Span = Span> + BorrowInput<'a>,
+    Term: Parser<'a, I, Expr, extra::Err<Rich<'a, lr::Token, Span>>> + Clone + 'a,
+    Op: Parser<'a, I, BinOp, extra::Err<Rich<'a, lr::Token, Span>>> + Clone + 'a,
 {
     let term = term.map_with(|e, extra| (e, extra.span())).boxed();
 
@@ -408,10 +377,10 @@ where
 #[cfg(not(coverage))]
 fn aliased<'a, I, E>(
     expr: E,
-) -> impl Parser<'a, I, Expr, extra::Err<Rich<'a, TokenKind, Span>>> + Clone + 'a
+) -> impl Parser<'a, I, Expr, extra::Err<Rich<'a, lr::Token, Span>>> + Clone + 'a
 where
-    I: Input<'a, Token = TokenKind, Span = Span> + ValueInput<'a>,
-    E: Parser<'a, I, Expr, extra::Err<Rich<'a, TokenKind, Span>>> + Clone + 'a,
+    I: Input<'a, Token = lr::Token, Span = Span> + BorrowInput<'a>,
+    E: Parser<'a, I, Expr, extra::Err<Rich<'a, lr::Token, Span>>> + Clone + 'a,
 {
     let aliased = ident_part()
         .then_ignore(ctrl('='))
@@ -429,10 +398,10 @@ where
 
 fn maybe_aliased<'a, I, E>(
     expr: E,
-) -> impl Parser<'a, I, Expr, extra::Err<Rich<'a, TokenKind, Span>>> + Clone + 'a
+) -> impl Parser<'a, I, Expr, extra::Err<Rich<'a, lr::Token, Span>>> + Clone + 'a
 where
-    I: Input<'a, Token = TokenKind, Span = Span> + ValueInput<'a>,
-    E: Parser<'a, I, Expr, extra::Err<Rich<'a, TokenKind, Span>>> + Clone + 'a,
+    I: Input<'a, Token = lr::Token, Span = Span> + BorrowInput<'a>,
+    E: Parser<'a, I, Expr, extra::Err<Rich<'a, lr::Token, Span>>> + Clone + 'a,
 {
     let aliased = ident_part()
         .then_ignore(ctrl('='))
@@ -453,10 +422,10 @@ where
 
 fn func_call<'a, I, E>(
     expr: E,
-) -> impl Parser<'a, I, Expr, extra::Err<Rich<'a, TokenKind, Span>>> + Clone + 'a
+) -> impl Parser<'a, I, Expr, extra::Err<Rich<'a, lr::Token, Span>>> + Clone + 'a
 where
-    I: Input<'a, Token = TokenKind, Span = Span> + ValueInput<'a>,
-    E: Parser<'a, I, Expr, extra::Err<Rich<'a, TokenKind, Span>>> + Clone + 'a,
+    I: Input<'a, Token = lr::Token, Span = Span> + BorrowInput<'a>,
+    E: Parser<'a, I, Expr, extra::Err<Rich<'a, lr::Token, Span>>> + Clone + 'a,
 {
     let func_name = expr.clone();
 
@@ -525,10 +494,10 @@ where
 
 fn lambda_func<'a, I, E>(
     expr: E,
-) -> impl Parser<'a, I, Expr, extra::Err<Rich<'a, TokenKind, Span>>> + Clone + 'a
+) -> impl Parser<'a, I, Expr, extra::Err<Rich<'a, lr::Token, Span>>> + Clone + 'a
 where
-    I: Input<'a, Token = TokenKind, Span = Span> + ValueInput<'a>,
-    E: Parser<'a, I, Expr, extra::Err<Rich<'a, TokenKind, Span>>> + Clone + 'a,
+    I: Input<'a, Token = lr::Token, Span = Span> + BorrowInput<'a>,
+    E: Parser<'a, I, Expr, extra::Err<Rich<'a, lr::Token, Span>>> + Clone + 'a,
 {
     let param = ident_part()
         .then(type_expr().delimited_by(ctrl('<'), ctrl('>')).or_not())
@@ -547,7 +516,7 @@ where
         // plain
         param.repeated().collect(),
     ))
-    .then_ignore(just(TokenKind::ArrowThin))
+    .then_ignore(select_ref! { lr::Token { kind: TokenKind::ArrowThin, .. } => () })
     // return type
     .then(type_expr().delimited_by(ctrl('<'), ctrl('>')).or_not())
     // body
@@ -576,9 +545,9 @@ where
 }
 
 pub(crate) fn ident<'a, I>(
-) -> impl Parser<'a, I, Ident, extra::Err<Rich<'a, TokenKind, Span>>> + Clone
+) -> impl Parser<'a, I, Ident, extra::Err<Rich<'a, lr::Token, Span>>> + Clone
 where
-    I: Input<'a, Token = TokenKind, Span = Span> + ValueInput<'a>,
+    I: Input<'a, Token = lr::Token, Span = Span> + BorrowInput<'a>,
 {
     ident_part()
         .then_ignore(ctrl('.'))
@@ -591,69 +560,69 @@ where
         })
 }
 
-fn operator_unary<'a, I>() -> impl Parser<'a, I, UnOp, extra::Err<Rich<'a, TokenKind, Span>>> + Clone
+fn operator_unary<'a, I>() -> impl Parser<'a, I, UnOp, extra::Err<Rich<'a, lr::Token, Span>>> + Clone
 where
-    I: Input<'a, Token = TokenKind, Span = Span> + ValueInput<'a>,
+    I: Input<'a, Token = lr::Token, Span = Span> + BorrowInput<'a>,
 {
     (ctrl('+').to(UnOp::Add))
         .or(ctrl('-').to(UnOp::Neg))
         .or(ctrl('!').to(UnOp::Not))
-        .or(just(TokenKind::Eq).to(UnOp::EqSelf))
+        .or(select_ref! { lr::Token { kind: TokenKind::Eq, .. } => UnOp::EqSelf })
 }
-fn operator_pow<'a, I>() -> impl Parser<'a, I, BinOp, extra::Err<Rich<'a, TokenKind, Span>>> + Clone
+fn operator_pow<'a, I>() -> impl Parser<'a, I, BinOp, extra::Err<Rich<'a, lr::Token, Span>>> + Clone
 where
-    I: Input<'a, Token = TokenKind, Span = Span> + ValueInput<'a>,
+    I: Input<'a, Token = lr::Token, Span = Span> + BorrowInput<'a>,
 {
-    just(TokenKind::Pow).to(BinOp::Pow)
+    select_ref! { lr::Token { kind: TokenKind::Pow, .. } => BinOp::Pow }
 }
-fn operator_mul<'a, I>() -> impl Parser<'a, I, BinOp, extra::Err<Rich<'a, TokenKind, Span>>> + Clone
+fn operator_mul<'a, I>() -> impl Parser<'a, I, BinOp, extra::Err<Rich<'a, lr::Token, Span>>> + Clone
 where
-    I: Input<'a, Token = TokenKind, Span = Span> + ValueInput<'a>,
+    I: Input<'a, Token = lr::Token, Span = Span> + BorrowInput<'a>,
 {
-    (just(TokenKind::DivInt).to(BinOp::DivInt))
+    (select_ref! { lr::Token { kind: TokenKind::DivInt, .. } => BinOp::DivInt })
         .or(ctrl('*').to(BinOp::Mul))
         .or(ctrl('/').to(BinOp::DivFloat))
         .or(ctrl('%').to(BinOp::Mod))
 }
-fn operator_add<'a, I>() -> impl Parser<'a, I, BinOp, extra::Err<Rich<'a, TokenKind, Span>>> + Clone
+fn operator_add<'a, I>() -> impl Parser<'a, I, BinOp, extra::Err<Rich<'a, lr::Token, Span>>> + Clone
 where
-    I: Input<'a, Token = TokenKind, Span = Span> + ValueInput<'a>,
+    I: Input<'a, Token = lr::Token, Span = Span> + BorrowInput<'a>,
 {
     (ctrl('+').to(BinOp::Add)).or(ctrl('-').to(BinOp::Sub))
 }
 fn operator_compare<'a, I>(
-) -> impl Parser<'a, I, BinOp, extra::Err<Rich<'a, TokenKind, Span>>> + Clone
+) -> impl Parser<'a, I, BinOp, extra::Err<Rich<'a, lr::Token, Span>>> + Clone
 where
-    I: Input<'a, Token = TokenKind, Span = Span> + ValueInput<'a>,
+    I: Input<'a, Token = lr::Token, Span = Span> + BorrowInput<'a>,
 {
     choice((
-        just(TokenKind::Eq).to(BinOp::Eq),
-        just(TokenKind::Ne).to(BinOp::Ne),
-        just(TokenKind::Lte).to(BinOp::Lte),
-        just(TokenKind::Gte).to(BinOp::Gte),
-        just(TokenKind::RegexSearch).to(BinOp::RegexSearch),
+        select_ref! { lr::Token { kind: TokenKind::Eq, .. } => BinOp::Eq },
+        select_ref! { lr::Token { kind: TokenKind::Ne, .. } => BinOp::Ne },
+        select_ref! { lr::Token { kind: TokenKind::Lte, .. } => BinOp::Lte },
+        select_ref! { lr::Token { kind: TokenKind::Gte, .. } => BinOp::Gte },
+        select_ref! { lr::Token { kind: TokenKind::RegexSearch, .. } => BinOp::RegexSearch },
         ctrl('<').to(BinOp::Lt),
         ctrl('>').to(BinOp::Gt),
     ))
 }
-fn operator_and<'a, I>() -> impl Parser<'a, I, BinOp, extra::Err<Rich<'a, TokenKind, Span>>> + Clone
+fn operator_and<'a, I>() -> impl Parser<'a, I, BinOp, extra::Err<Rich<'a, lr::Token, Span>>> + Clone
 where
-    I: Input<'a, Token = TokenKind, Span = Span> + ValueInput<'a>,
+    I: Input<'a, Token = lr::Token, Span = Span> + BorrowInput<'a>,
 {
-    just(TokenKind::And).to(BinOp::And)
+    select_ref! { lr::Token { kind: TokenKind::And, .. } => BinOp::And }
 }
-fn operator_or<'a, I>() -> impl Parser<'a, I, BinOp, extra::Err<Rich<'a, TokenKind, Span>>> + Clone
+fn operator_or<'a, I>() -> impl Parser<'a, I, BinOp, extra::Err<Rich<'a, lr::Token, Span>>> + Clone
 where
-    I: Input<'a, Token = TokenKind, Span = Span> + ValueInput<'a>,
+    I: Input<'a, Token = lr::Token, Span = Span> + BorrowInput<'a>,
 {
-    just(TokenKind::Or).to(BinOp::Or)
+    select_ref! { lr::Token { kind: TokenKind::Or, .. } => BinOp::Or }
 }
 fn operator_coalesce<'a, I>(
-) -> impl Parser<'a, I, BinOp, extra::Err<Rich<'a, TokenKind, Span>>> + Clone
+) -> impl Parser<'a, I, BinOp, extra::Err<Rich<'a, lr::Token, Span>>> + Clone
 where
-    I: Input<'a, Token = TokenKind, Span = Span> + ValueInput<'a>,
+    I: Input<'a, Token = lr::Token, Span = Span> + BorrowInput<'a>,
 {
-    just(TokenKind::Coalesce).to(BinOp::Coalesce)
+    select_ref! { lr::Token { kind: TokenKind::Coalesce, .. } => BinOp::Coalesce }
 }
 
 #[cfg(test)]
@@ -663,7 +632,7 @@ mod tests {
 
     use super::*;
     use crate::error::Error;
-    use crate::parser::TokenSlice;
+    use chumsky::span::SimpleSpan;
 
     // Macro to eliminate test helper boilerplate
     macro_rules! parse_test {
@@ -674,7 +643,27 @@ mod tests {
                 .into_iter()
                 .filter(|t| !matches!(t.kind, TokenKind::Comment(_) | TokenKind::LineWrap(_)))
                 .collect();
-            let input = TokenSlice::new(&semantic_tokens, 0);
+            let input = semantic_tokens
+                .as_slice()
+                .map_span(|simple_span: SimpleSpan| {
+                    let start_idx = simple_span.start();
+                    let end_idx = simple_span.end();
+
+                    let start = semantic_tokens
+                        .get(start_idx)
+                        .map(|t| t.span.start)
+                        .unwrap_or(0);
+                    let end = semantic_tokens
+                        .get(end_idx.saturating_sub(1))
+                        .map(|t| t.span.end)
+                        .unwrap_or(start);
+
+                    Span {
+                        start,
+                        end,
+                        source_id: 0,
+                    }
+                });
             let (ast, errors) = $parser.parse(input).into_output_errors();
             if !errors.is_empty() {
                 return Err(errors.into_iter().map(Into::into).collect());
@@ -830,7 +819,7 @@ mod tests {
                 ),
                 reason: Expected {
                     who: None,
-                    expected: "new line or }",
+                    expected: "new line or something else",
                     found: "b",
                 },
                 hints: [],
@@ -986,7 +975,7 @@ mod tests {
                 ),
                 reason: Expected {
                     who: None,
-                    expected: "one of new line, something else or }",
+                    expected: "new line or something else",
                     found: "z",
                 },
                 hints: [],

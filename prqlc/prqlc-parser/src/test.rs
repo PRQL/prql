@@ -1,9 +1,11 @@
 use chumsky::prelude::*;
+use chumsky::span::SimpleSpan;
 use insta::{assert_debug_snapshot, assert_yaml_snapshot};
 
 use crate::error::Error;
 use crate::parser::pr::Stmt;
-use crate::parser::{stmt, TokenSlice};
+use crate::parser::stmt;
+use crate::span::Span;
 
 /// Parse into statements
 pub(crate) fn parse_source(source: &str) -> Result<Vec<Stmt>, Vec<Error>> {
@@ -21,7 +23,28 @@ pub(crate) fn parse_source(source: &str) -> Result<Vec<Stmt>, Vec<Error>> {
         })
         .collect();
 
-    let input = TokenSlice::new(&semantic_tokens, 0);
+    let input = semantic_tokens
+        .as_slice()
+        .map_span(|simple_span: SimpleSpan| {
+            let start_idx = simple_span.start();
+            let end_idx = simple_span.end();
+
+            let start = semantic_tokens
+                .get(start_idx)
+                .map(|t| t.span.start)
+                .unwrap_or(0);
+            let end = semantic_tokens
+                .get(end_idx.saturating_sub(1))
+                .map(|t| t.span.end)
+                .unwrap_or(start);
+
+            Span {
+                start,
+                end,
+                source_id: 0,
+            }
+        });
+
     let parse_result = stmt::source().parse(input);
     let (ast, parse_errors) = parse_result.into_output_errors();
 
@@ -89,9 +112,11 @@ fn test_error_unexpected() {
             span: Some(
                 0:15-16,
             ),
-            reason: Simple(
-                "unexpected !",
-            ),
+            reason: Expected {
+                who: None,
+                expected: "something else",
+                found: "!",
+            },
             hints: [],
             code: None,
         },

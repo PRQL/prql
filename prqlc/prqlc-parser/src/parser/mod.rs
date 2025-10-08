@@ -1,104 +1,14 @@
 // Migrating parser to Chumsky 0.10
 use chumsky;
-use chumsky::input::ValueInput;
+use chumsky::input::BorrowInput;
 use chumsky::prelude::*;
+use chumsky::span::SimpleSpan;
 
 use self::pr::{Annotation, Stmt, StmtKind};
 use crate::error::Error;
 use crate::lexer::lr;
 use crate::lexer::lr::TokenKind;
 use crate::span::Span;
-
-// Custom input wrapper that extracts TokenKind and Span from Token structs
-pub(crate) struct TokenSlice<'a> {
-    tokens: &'a [lr::Token],
-    source_id: u16,
-}
-
-impl<'a> TokenSlice<'a> {
-    pub(crate) fn new(tokens: &'a [lr::Token], source_id: u16) -> Self {
-        Self { tokens, source_id }
-    }
-}
-
-// Chumsky 0.10's Input trait requires unsafe methods for performance
-#[allow(unsafe_code)]
-impl<'a> chumsky::input::Input<'a> for TokenSlice<'a> {
-    type Cursor = usize;
-    type Span = Span;
-    type Token = TokenKind;
-    type MaybeToken = TokenKind; // We clone TokenKind, so use by-value
-    type Cache = Self;
-
-    #[inline]
-    fn begin(self) -> (Self::Cursor, Self::Cache) {
-        (0, self)
-    }
-
-    #[inline]
-    fn cursor_location(cursor: &Self::Cursor) -> usize {
-        *cursor
-    }
-
-    #[inline(always)]
-    unsafe fn next_maybe(
-        this: &mut Self::Cache,
-        cursor: &mut Self::Cursor,
-    ) -> Option<Self::MaybeToken> {
-        if let Some(token) = this.tokens.get(*cursor) {
-            *cursor += 1;
-            Some(token.kind.clone())
-        } else {
-            None
-        }
-    }
-
-    #[inline(always)]
-    unsafe fn span(this: &mut Self::Cache, range: std::ops::Range<&Self::Cursor>) -> Self::Span {
-        // Get the span from the first token in the range to the last
-        let start_idx = *range.start;
-        let end_idx = *range.end;
-
-        if start_idx >= this.tokens.len() {
-            // Past end, return empty span at end
-            return this
-                .tokens
-                .last()
-                .map(|t| Span {
-                    start: t.span.start,
-                    end: t.span.end,
-                    source_id: this.source_id,
-                })
-                .unwrap_or(Span {
-                    start: 0,
-                    end: 0,
-                    source_id: this.source_id,
-                });
-        }
-
-        let start_token = &this.tokens[start_idx];
-        let end_token = if end_idx > 0 && end_idx <= this.tokens.len() {
-            &this.tokens[end_idx - 1]
-        } else {
-            start_token
-        };
-
-        Span {
-            start: start_token.span.start,
-            end: end_token.span.end,
-            source_id: this.source_id,
-        }
-    }
-}
-
-// Chumsky 0.10's ValueInput trait also requires unsafe methods
-#[allow(unsafe_code)]
-impl<'a> ValueInput<'a> for TokenSlice<'a> {
-    #[inline(always)]
-    unsafe fn next(this: &mut Self::Cache, cursor: &mut Self::Cursor) -> Option<Self::Token> {
-        Self::next_maybe(this, cursor)
-    }
-}
 
 mod expr;
 mod interpolation;
@@ -124,7 +34,30 @@ pub fn parse_lr_to_pr(source_id: u16, lr: Vec<lr::Token>) -> (Option<Vec<pr::Stm
         })
         .collect();
 
-    let input = TokenSlice::new(&semantic_tokens, source_id);
+    // Use built-in Input impl for &[Token], then map_span to convert token indices to byte spans
+    let input = semantic_tokens
+        .as_slice()
+        .map_span(|simple_span: SimpleSpan| {
+            let start_idx = simple_span.start();
+            let end_idx = simple_span.end();
+
+            // Convert token indices to byte offsets in the source file
+            let start = semantic_tokens
+                .get(start_idx)
+                .map(|t| t.span.start)
+                .unwrap_or(0);
+            let end = semantic_tokens
+                .get(end_idx.saturating_sub(1))
+                .map(|t| t.span.end)
+                .unwrap_or(start);
+
+            Span {
+                start,
+                end,
+                source_id,
+            }
+        });
+
     let parse_result = stmt::source().parse(input);
     let (pr, parse_errors) = parse_result.into_output_errors();
 
@@ -134,22 +67,24 @@ pub fn parse_lr_to_pr(source_id: u16, lr: Vec<lr::Token>) -> (Option<Vec<pr::Stm
     (pr, errors)
 }
 
-fn ident_part<'a, I>() -> impl Parser<'a, I, String, extra::Err<Rich<'a, TokenKind, Span>>> + Clone
+fn ident_part<'a, I>() -> impl Parser<'a, I, String, extra::Err<Rich<'a, lr::Token, Span>>> + Clone
 where
-    I: Input<'a, Token = TokenKind, Span = Span> + ValueInput<'a>,
+    I: Input<'a, Token = lr::Token, Span = Span> + BorrowInput<'a>,
 {
-    select! {
-        TokenKind::Ident(ident) => ident,
+    select_ref! {
+        lr::Token { kind: TokenKind::Ident(ident), .. } => ident.clone(),
     }
 }
 
 fn keyword<'a, I>(
     kw: &'static str,
-) -> impl Parser<'a, I, (), extra::Err<Rich<'a, TokenKind, Span>>> + Clone
+) -> impl Parser<'a, I, (), extra::Err<Rich<'a, lr::Token, Span>>> + Clone
 where
-    I: Input<'a, Token = TokenKind, Span = Span> + ValueInput<'a>,
+    I: Input<'a, Token = lr::Token, Span = Span> + BorrowInput<'a>,
 {
-    just(TokenKind::Keyword(kw.to_string())).ignored()
+    select_ref! {
+        lr::Token { kind: TokenKind::Keyword(k), .. } if k == kw => (),
+    }
 }
 
 /// Our approach to new lines is each item consumes new lines _before_ itself,
@@ -157,23 +92,24 @@ where
 /// some items. The only place we handle new lines after an item is in the root
 /// parser.
 pub(crate) fn new_line<'a, I>(
-) -> impl Parser<'a, I, (), extra::Err<Rich<'a, TokenKind, Span>>> + Clone
+) -> impl Parser<'a, I, (), extra::Err<Rich<'a, lr::Token, Span>>> + Clone
 where
-    I: Input<'a, Token = TokenKind, Span = Span> + ValueInput<'a>,
+    I: Input<'a, Token = lr::Token, Span = Span> + BorrowInput<'a>,
 {
-    just(TokenKind::NewLine)
-        // Start is considered a new line, so we can enforce things start on a new
-        // line while allowing them to be at the beginning of a file
-        .or(just(TokenKind::Start))
-        .ignored()
-        .labelled("new line")
+    select_ref! {
+        lr::Token { kind: TokenKind::NewLine, .. } => (),
+        lr::Token { kind: TokenKind::Start, .. } => (),
+    }
+    .labelled("new line")
 }
 
-fn ctrl<'a, I>(char: char) -> impl Parser<'a, I, (), extra::Err<Rich<'a, TokenKind, Span>>> + Clone
+fn ctrl<'a, I>(char: char) -> impl Parser<'a, I, (), extra::Err<Rich<'a, lr::Token, Span>>> + Clone
 where
-    I: Input<'a, Token = TokenKind, Span = Span> + ValueInput<'a>,
+    I: Input<'a, Token = lr::Token, Span = Span> + BorrowInput<'a>,
 {
-    just(TokenKind::Control(char)).ignored()
+    select_ref! {
+        lr::Token { kind: TokenKind::Control(c), .. } if *c == char => (),
+    }
 }
 
 fn into_stmt((annotations, kind): (Vec<Annotation>, StmtKind), span: Span) -> Stmt {
@@ -185,17 +121,17 @@ fn into_stmt((annotations, kind): (Vec<Annotation>, StmtKind), span: Span) -> St
     }
 }
 
-fn doc_comment<'a, I>() -> impl Parser<'a, I, String, extra::Err<Rich<'a, TokenKind, Span>>> + Clone
+fn doc_comment<'a, I>() -> impl Parser<'a, I, String, extra::Err<Rich<'a, lr::Token, Span>>> + Clone
 where
-    I: Input<'a, Token = TokenKind, Span = Span> + ValueInput<'a>,
+    I: Input<'a, Token = lr::Token, Span = Span> + BorrowInput<'a>,
 {
     // doc comments must start on a new line, so we enforce a new line (which
     // can also be a file start) before the doc comment
     //
     // TODO: we currently lose any empty newlines between doc comments;
     // eventually we want to retain or restrict them
-    (new_line().repeated().at_least(1).ignore_then(select! {
-        TokenKind::DocComment(dc) => dc,
+    (new_line().repeated().at_least(1).ignore_then(select_ref! {
+        lr::Token { kind: TokenKind::DocComment(dc), .. } => dc.clone(),
     }))
     .repeated()
     .at_least(1)
@@ -206,10 +142,10 @@ where
 
 fn with_doc_comment<'a, I, P, O>(
     parser: P,
-) -> impl Parser<'a, I, O, extra::Err<Rich<'a, TokenKind, Span>>> + Clone + 'a
+) -> impl Parser<'a, I, O, extra::Err<Rich<'a, lr::Token, Span>>> + Clone + 'a
 where
-    I: Input<'a, Token = TokenKind, Span = Span> + ValueInput<'a>,
-    P: Parser<'a, I, O, extra::Err<Rich<'a, TokenKind, Span>>> + Clone + 'a,
+    I: Input<'a, Token = lr::Token, Span = Span> + BorrowInput<'a>,
+    P: Parser<'a, I, O, extra::Err<Rich<'a, lr::Token, Span>>> + Clone + 'a,
     O: SupportsDocComment + 'a,
 {
     doc_comment()
@@ -231,10 +167,10 @@ trait SupportsDocComment {
 /// include the surrounding delimiters.
 fn sequence<'a, I, P, O>(
     parser: P,
-) -> impl Parser<'a, I, Vec<O>, extra::Err<Rich<'a, TokenKind, Span>>> + Clone + 'a
+) -> impl Parser<'a, I, Vec<O>, extra::Err<Rich<'a, lr::Token, Span>>> + Clone + 'a
 where
-    I: Input<'a, Token = TokenKind, Span = Span> + ValueInput<'a>,
-    P: Parser<'a, I, O, extra::Err<Rich<'a, TokenKind, Span>>> + Clone + 'a,
+    I: Input<'a, Token = lr::Token, Span = Span> + BorrowInput<'a>,
+    P: Parser<'a, I, O, extra::Err<Rich<'a, lr::Token, Span>>> + Clone + 'a,
     O: 'a,
 {
     parser
@@ -255,9 +191,9 @@ where
         .padded_by(new_line().repeated())
 }
 
-fn pipe<'a, I>() -> impl Parser<'a, I, (), extra::Err<Rich<'a, TokenKind, Span>>> + Clone
+fn pipe<'a, I>() -> impl Parser<'a, I, (), extra::Err<Rich<'a, lr::Token, Span>>> + Clone
 where
-    I: Input<'a, Token = TokenKind, Span = Span> + ValueInput<'a>,
+    I: Input<'a, Token = lr::Token, Span = Span> + BorrowInput<'a>,
 {
     ctrl('|')
         .ignored()
@@ -285,7 +221,28 @@ mod tests {
             })
             .collect();
 
-        let input = TokenSlice::new(&semantic_tokens, 0);
+        let input = semantic_tokens
+            .as_slice()
+            .map_span(|simple_span: SimpleSpan| {
+                let start_idx = simple_span.start();
+                let end_idx = simple_span.end();
+
+                let start = semantic_tokens
+                    .get(start_idx)
+                    .map(|t| t.span.start)
+                    .unwrap_or(0);
+                let end = semantic_tokens
+                    .get(end_idx.saturating_sub(1))
+                    .map(|t| t.span.end)
+                    .unwrap_or(start);
+
+                Span {
+                    start,
+                    end,
+                    source_id: 0,
+                }
+            });
+
         let parser = doc_comment()
             .then_ignore(new_line().repeated())
             .then_ignore(end());

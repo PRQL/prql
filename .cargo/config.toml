@@ -1,3 +1,8 @@
+[build]
+# Use v0 symbol mangling to compress long symbol names
+# Required to avoid linker symbol length limits with complex parser generic types
+rustflags = ["-Csymbol-mangling-version=v0"]
+
 [target.wasm32-unknown-unknown]
 runner = 'wasm-bindgen-test-runner'
 

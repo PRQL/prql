@@ -1,10 +1,11 @@
 use chumsky;
 use chumsky::prelude::*;
+use chumsky::span::SimpleSpan;
 use insta::assert_yaml_snapshot;
 
 use super::pr::{Expr, FuncCall};
 use crate::error::Error;
-use crate::parser::TokenSlice;
+use crate::span::Span;
 
 fn parse_expr(source: &str) -> Result<Expr, Vec<Error>> {
     let tokens = crate::lexer::lex_source(source)?;
@@ -21,7 +22,28 @@ fn parse_expr(source: &str) -> Result<Expr, Vec<Error>> {
         })
         .collect();
 
-    let input = TokenSlice::new(&semantic_tokens, 0);
+    let input = semantic_tokens
+        .as_slice()
+        .map_span(|simple_span: SimpleSpan| {
+            let start_idx = simple_span.start();
+            let end_idx = simple_span.end();
+
+            let start = semantic_tokens
+                .get(start_idx)
+                .map(|t| t.span.start)
+                .unwrap_or(0);
+            let end = semantic_tokens
+                .get(end_idx.saturating_sub(1))
+                .map(|t| t.span.end)
+                .unwrap_or(start);
+
+            Span {
+                start,
+                end,
+                source_id: 0,
+            }
+        });
+
     let parser = super::new_line()
         .repeated()
         .collect::<Vec<_>>()

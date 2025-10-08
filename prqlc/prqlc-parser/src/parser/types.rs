@@ -1,25 +1,26 @@
 use chumsky;
-use chumsky::input::ValueInput;
+use chumsky::input::BorrowInput;
 
 use super::expr::ident;
 use super::pr::*;
 use super::*;
+use crate::lexer::lr;
 use crate::lexer::lr::TokenKind;
 
 pub(crate) fn type_expr<'a, I>(
-) -> impl Parser<'a, I, Ty, extra::Err<Rich<'a, TokenKind, Span>>> + Clone
+) -> impl Parser<'a, I, Ty, extra::Err<Rich<'a, lr::Token, Span>>> + Clone
 where
-    I: Input<'a, Token = TokenKind, Span = Span> + ValueInput<'a>,
+    I: Input<'a, Token = lr::Token, Span = Span> + BorrowInput<'a>,
 {
     recursive(|nested_type_expr| {
-        let basic = select! {
-            TokenKind::Ident(i) if i == "int"=> TyKind::Primitive(PrimitiveSet::Int),
-            TokenKind::Ident(i) if i == "float"=> TyKind::Primitive(PrimitiveSet::Float),
-            TokenKind::Ident(i) if i == "bool"=> TyKind::Primitive(PrimitiveSet::Bool),
-            TokenKind::Ident(i) if i == "text"=> TyKind::Primitive(PrimitiveSet::Text),
-            TokenKind::Ident(i) if i == "date"=> TyKind::Primitive(PrimitiveSet::Date),
-            TokenKind::Ident(i) if i == "time"=> TyKind::Primitive(PrimitiveSet::Time),
-            TokenKind::Ident(i) if i == "timestamp"=> TyKind::Primitive(PrimitiveSet::Timestamp),
+        let basic = select_ref! {
+            lr::Token { kind: TokenKind::Ident(i), .. } if i == "int"=> TyKind::Primitive(PrimitiveSet::Int),
+            lr::Token { kind: TokenKind::Ident(i), .. } if i == "float"=> TyKind::Primitive(PrimitiveSet::Float),
+            lr::Token { kind: TokenKind::Ident(i), .. } if i == "bool"=> TyKind::Primitive(PrimitiveSet::Bool),
+            lr::Token { kind: TokenKind::Ident(i), .. } if i == "text"=> TyKind::Primitive(PrimitiveSet::Text),
+            lr::Token { kind: TokenKind::Ident(i), .. } if i == "date"=> TyKind::Primitive(PrimitiveSet::Date),
+            lr::Token { kind: TokenKind::Ident(i), .. } if i == "time"=> TyKind::Primitive(PrimitiveSet::Time),
+            lr::Token { kind: TokenKind::Ident(i), .. } if i == "timestamp"=> TyKind::Primitive(PrimitiveSet::Timestamp),
         };
 
         let ident = ident().map(TyKind::Ident);
@@ -31,7 +32,7 @@ where
                     .map(Some)
                     .repeated()
                     .collect()
-                    .then_ignore(just(TokenKind::ArrowThin))
+                    .then_ignore(select_ref! { lr::Token { kind: TokenKind::ArrowThin, .. } => () })
                     .then(nested_type_expr.clone().map(Box::new).map(Some))
                     .map(|(params, return_ty)| TyFunc {
                         name_hint: None,
@@ -43,9 +44,9 @@ where
             .map(TyKind::Function);
 
         let tuple = sequence(choice((
-            select! { TokenKind::Range { bind_right: false, bind_left: _ } => () }
+            select_ref! { lr::Token { kind: TokenKind::Range { bind_right: false, bind_left: _ }, .. } => () }
                 .to(TyTupleField::Wildcard(None)),
-            select! { TokenKind::Range { bind_right: true, bind_left: _ } => () }
+            select_ref! { lr::Token { kind: TokenKind::Range { bind_right: true, bind_left: _ }, .. } => () }
                 .ignore_then(nested_type_expr.clone().or_not())
                 .map(TyTupleField::Wildcard),
             ident_part()

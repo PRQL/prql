@@ -110,20 +110,27 @@ pub(crate) fn parse(string: String, span_base: Span) -> Result<Vec<InterpolateIt
     }
 
     // Adjust spans in the output to be relative to span_base
-    let adjusted_output = output.unwrap_or_default().into_iter().map(|item| match item {
-        InterpolateItem::Expr { expr, format } => {
-            let adjusted_expr = Box::new(Expr {
-                span: expr.span.map(|s| Span {
-                    start: span_base.start + s.start,
-                    end: span_base.start + s.end,
-                    source_id: span_base.source_id,
-                }),
-                ..(*expr)
-            });
-            InterpolateItem::Expr { expr: adjusted_expr, format }
-        }
-        InterpolateItem::String(s) => InterpolateItem::String(s),
-    }).collect();
+    let adjusted_output = output
+        .unwrap_or_default()
+        .into_iter()
+        .map(|item| match item {
+            InterpolateItem::Expr { expr, format } => {
+                let adjusted_expr = Box::new(Expr {
+                    span: expr.span.map(|s| Span {
+                        start: span_base.start + s.start,
+                        end: span_base.start + s.end,
+                        source_id: span_base.source_id,
+                    }),
+                    ..(*expr)
+                });
+                InterpolateItem::Expr {
+                    expr: adjusted_expr,
+                    format,
+                }
+            }
+            InterpolateItem::String(s) => InterpolateItem::String(s),
+        })
+        .collect();
 
     Ok(adjusted_output)
 }

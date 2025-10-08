@@ -1,13 +1,14 @@
 use std::collections::HashMap;
 
 use chumsky;
-use chumsky::input::ValueInput;
+use chumsky::input::BorrowInput;
 use chumsky::prelude::*;
 use itertools::Itertools;
 use semver::VersionReq;
 
 use super::expr::{expr, expr_call, ident, pipeline};
 use super::{ctrl, ident_part, into_stmt, keyword, new_line, pipe, with_doc_comment};
+use crate::lexer::lr;
 use crate::lexer::lr::{Literal, TokenKind};
 use crate::parser::pr::*;
 use crate::parser::types::type_expr;
@@ -15,9 +16,9 @@ use crate::span::Span;
 
 /// The top-level parser for a PRQL file
 pub fn source<'a, I>(
-) -> impl Parser<'a, I, Vec<Stmt>, extra::Err<Rich<'a, TokenKind, Span>>> + Clone
+) -> impl Parser<'a, I, Vec<Stmt>, extra::Err<Rich<'a, lr::Token, Span>>> + Clone
 where
-    I: Input<'a, Token = TokenKind, Span = Span> + ValueInput<'a>,
+    I: Input<'a, Token = lr::Token, Span = Span> + BorrowInput<'a>,
 {
     with_doc_comment(query_def())
         .or_not()
@@ -34,9 +35,9 @@ where
 }
 
 fn module_contents<'a, I>(
-) -> impl Parser<'a, I, Vec<Stmt>, extra::Err<Rich<'a, TokenKind, Span>>> + Clone
+) -> impl Parser<'a, I, Vec<Stmt>, extra::Err<Rich<'a, lr::Token, Span>>> + Clone
 where
-    I: Input<'a, Token = TokenKind, Span = Span> + ValueInput<'a>,
+    I: Input<'a, Token = lr::Token, Span = Span> + BorrowInput<'a>,
 {
     recursive(|module_contents| {
         let module_def = keyword("module")
@@ -54,7 +55,7 @@ where
             .at_least(1)
             .collect::<Vec<_>>()
             .ignore_then(
-                just(TokenKind::Annotate)
+                select_ref! { lr::Token { kind: TokenKind::Annotate, .. } => () }
                     .ignore_then(expr())
                     .map(|expr| Annotation {
                         expr: Box::new(expr),
@@ -90,9 +91,9 @@ where
     })
 }
 
-fn query_def<'a, I>() -> impl Parser<'a, I, Stmt, extra::Err<Rich<'a, TokenKind, Span>>> + Clone
+fn query_def<'a, I>() -> impl Parser<'a, I, Stmt, extra::Err<Rich<'a, lr::Token, Span>>> + Clone
 where
-    I: Input<'a, Token = TokenKind, Span = Span> + ValueInput<'a>,
+    I: Input<'a, Token = lr::Token, Span = Span> + BorrowInput<'a>,
 {
     new_line()
         .repeated()
@@ -161,9 +162,9 @@ where
 /// - `let foo = 5`
 /// - `from artists` — captured as a "main"
 /// - `from artists | into x` — captured as an "into"`
-fn var_def<'a, I>() -> impl Parser<'a, I, StmtKind, extra::Err<Rich<'a, TokenKind, Span>>> + Clone
+fn var_def<'a, I>() -> impl Parser<'a, I, StmtKind, extra::Err<Rich<'a, lr::Token, Span>>> + Clone
 where
-    I: Input<'a, Token = TokenKind, Span = Span> + ValueInput<'a>,
+    I: Input<'a, Token = lr::Token, Span = Span> + BorrowInput<'a>,
 {
     let let_ = new_line()
         .repeated()
@@ -211,9 +212,9 @@ where
     let_.or(main_or_into)
 }
 
-fn type_def<'a, I>() -> impl Parser<'a, I, StmtKind, extra::Err<Rich<'a, TokenKind, Span>>> + Clone
+fn type_def<'a, I>() -> impl Parser<'a, I, StmtKind, extra::Err<Rich<'a, lr::Token, Span>>> + Clone
 where
-    I: Input<'a, Token = TokenKind, Span = Span> + ValueInput<'a>,
+    I: Input<'a, Token = lr::Token, Span = Span> + BorrowInput<'a>,
 {
     keyword("type")
         .ignore_then(ident_part())
@@ -222,9 +223,9 @@ where
         .labelled("type definition")
 }
 
-fn import_def<'a, I>() -> impl Parser<'a, I, StmtKind, extra::Err<Rich<'a, TokenKind, Span>>> + Clone
+fn import_def<'a, I>() -> impl Parser<'a, I, StmtKind, extra::Err<Rich<'a, lr::Token, Span>>> + Clone
 where
-    I: Input<'a, Token = TokenKind, Span = Span> + ValueInput<'a>,
+    I: Input<'a, Token = lr::Token, Span = Span> + BorrowInput<'a>,
 {
     keyword("import")
         .ignore_then(ident_part().then_ignore(ctrl('=')).or_not())
@@ -241,7 +242,7 @@ mod tests {
     use super::*;
     use crate::error::Error;
     use crate::lexer::lr::TokenKind;
-    use crate::parser::TokenSlice;
+    use chumsky::span::SimpleSpan;
 
     fn parse_module_contents(source: &str) -> Result<Vec<Stmt>, Vec<Error>> {
         let tokens = crate::lexer::lex_source(source)?;
@@ -251,7 +252,28 @@ mod tests {
             .filter(|token| !matches!(token.kind, TokenKind::Comment(_) | TokenKind::LineWrap(_)))
             .collect();
 
-        let input = TokenSlice::new(&semantic_tokens, 0);
+        let input = semantic_tokens
+            .as_slice()
+            .map_span(|simple_span: SimpleSpan| {
+                let start_idx = simple_span.start();
+                let end_idx = simple_span.end();
+
+                let start = semantic_tokens
+                    .get(start_idx)
+                    .map(|t| t.span.start)
+                    .unwrap_or(0);
+                let end = semantic_tokens
+                    .get(end_idx.saturating_sub(1))
+                    .map(|t| t.span.end)
+                    .unwrap_or(start);
+
+                Span {
+                    start,
+                    end,
+                    source_id: 0,
+                }
+            });
+
         let parser = module_contents()
             .then_ignore(new_line().repeated())
             .then_ignore(end());
@@ -271,7 +293,28 @@ mod tests {
             .filter(|token| !matches!(token.kind, TokenKind::Comment(_) | TokenKind::LineWrap(_)))
             .collect();
 
-        let input = TokenSlice::new(&semantic_tokens, 0);
+        let input = semantic_tokens
+            .as_slice()
+            .map_span(|simple_span: SimpleSpan| {
+                let start_idx = simple_span.start();
+                let end_idx = simple_span.end();
+
+                let start = semantic_tokens
+                    .get(start_idx)
+                    .map(|t| t.span.start)
+                    .unwrap_or(0);
+                let end = semantic_tokens
+                    .get(end_idx.saturating_sub(1))
+                    .map(|t| t.span.end)
+                    .unwrap_or(start);
+
+                Span {
+                    start,
+                    end,
+                    source_id: 0,
+                }
+            });
+
         let parser = var_def()
             .then_ignore(new_line().repeated())
             .then_ignore(end());
@@ -291,7 +334,28 @@ mod tests {
             .filter(|token| !matches!(token.kind, TokenKind::Comment(_) | TokenKind::LineWrap(_)))
             .collect();
 
-        let input = TokenSlice::new(&semantic_tokens, 0);
+        let input = semantic_tokens
+            .as_slice()
+            .map_span(|simple_span: SimpleSpan| {
+                let start_idx = simple_span.start();
+                let end_idx = simple_span.end();
+
+                let start = semantic_tokens
+                    .get(start_idx)
+                    .map(|t| t.span.start)
+                    .unwrap_or(0);
+                let end = semantic_tokens
+                    .get(end_idx.saturating_sub(1))
+                    .map(|t| t.span.end)
+                    .unwrap_or(start);
+
+                Span {
+                    start,
+                    end,
+                    source_id: 0,
+                }
+            });
+
         let parser = module_contents().then_ignore(end());
         let (ast, errors) = parser.parse(input).into_output_errors();
 
@@ -385,21 +449,8 @@ mod tests {
                 ),
                 reason: Expected {
                     who: None,
-                    expected: "one of (, ), doc comment, function call, function definition, new line or something else",
+                    expected: "one of doc comment, function call, function definition, new line or something else",
                     found: "keyword into",
-                },
-                hints: [],
-                code: None,
-            },
-            Error {
-                kind: Error,
-                span: Some(
-                    0:72-73,
-                ),
-                reason: Expected {
-                    who: None,
-                    expected: "one of @{, import statement, module definition, new line, pipeline, something else, type definition or variable definition",
-                    found: "end of input",
                 },
                 hints: [],
                 code: None,
