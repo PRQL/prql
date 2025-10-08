@@ -27,7 +27,7 @@ select {
     small = 1.000_000_1,
     big = 5_000_000,
     huge = 5e9,
-    binary = 0x0011,
+    binary = 0b0011,
     hex = 0x80,
     octal = 0o777,
 }
