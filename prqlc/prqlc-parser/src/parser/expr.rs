@@ -2,8 +2,8 @@ use std::collections::{hash_map::Entry, HashMap};
 
 use chumsky;
 use chumsky::input::BorrowInput;
-use chumsky::prelude::*;
 use chumsky::pratt::*;
+use chumsky::prelude::*;
 use itertools::Itertools;
 
 use crate::lexer::lr;
