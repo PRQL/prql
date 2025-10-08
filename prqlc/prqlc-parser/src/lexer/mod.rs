@@ -154,18 +154,19 @@ fn lex_token<'a>() -> impl Parser<'a, ParserInput<'a>, Token, ParserError<'a>> {
 /// Parse individual token kinds
 fn token<'a>() -> impl Parser<'a, ParserInput<'a>, TokenKind, ParserError<'a>> {
     // Main token parser for all tokens
+    // Strategic .boxed() calls reduce compile times for complex parsers with minimal runtime cost
     choice((
-        line_wrap(),                      // Line continuation with backslash
+        line_wrap().boxed(), // Line continuation with backslash (complex recursive)
         newline().to(TokenKind::NewLine), // Newline characters
-        multi_char_operators(),           // Multi-character operators (==, !=, etc.)
-        interpolation(),                  // String interpolation (f"...", s"...")
-        param(),                          // Parameters ($name)
+        multi_char_operators(), // Multi-character operators (==, !=, etc.)
+        interpolation().boxed(), // String interpolation (complex nested parsing)
+        param(),             // Parameters ($name)
         // Date literals must come before @ handling for annotations
-        date_token(), // Date literals (@2022-01-01)
+        date_token().boxed(), // Date literals (complex with multiple branches)
         // Special handling for @ annotations - must come after date_token
         just('@').to(TokenKind::Annotate), // @ annotation marker
         one_of("></%=+-*[]().,:|!{}").map(TokenKind::Control), // Single-character controls
-        literal().map(TokenKind::Literal), // Literals (numbers, strings, etc.)
+        literal().map(TokenKind::Literal).boxed(), // Literals (complex with many branches)
         keyword(),                         // Keywords (let, func, etc.)
         ident_part().map(TokenKind::Ident), // Identifiers
         comment(),                         // Comments (# and #!)
