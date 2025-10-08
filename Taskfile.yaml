@@ -275,7 +275,7 @@ tasks:
         cargo test {{ range without (splitLines .PACKAGES) "prqlc-parser" }} -p={{ . }} {{ end }}
 
   test-all:
-    desc: Test everything across all workspaces.
+    desc: Test everything across all workspaces, accepting snapshots.
     summary: |
       Test everything, accepting snapshots.
 
