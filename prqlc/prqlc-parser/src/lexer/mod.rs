@@ -298,10 +298,8 @@ pub fn ident_part<'a>() -> impl Parser<'a, ParserInput<'a>, String, ParserError<
 }
 
 // Date/time components
-fn digits<'a>(count: usize) -> impl Parser<'a, ParserInput<'a>, Vec<char>, ParserError<'a>> {
-    chumsky::text::digits(10)
-        .exactly(count)
-        .collect::<Vec<char>>()
+fn digits<'a>(count: usize) -> impl Parser<'a, ParserInput<'a>, &'a str, ParserError<'a>> {
+    chumsky::text::digits(10).exactly(count).to_slice()
 }
 
 fn date_inner<'a>() -> impl Parser<'a, ParserInput<'a>, String, ParserError<'a>> {
@@ -313,7 +311,8 @@ fn date_inner<'a>() -> impl Parser<'a, ParserInput<'a>, String, ParserError<'a>>
         .then(just('-'))
         .then(text::digits(10).exactly(2))
         .to_slice()
-        // TODO: can change this to return the slice and avoid the allocation
+        // TODO: Returning &str instead of String would require changing Literal::Date
+        // to use Cow<'a, str> or a similar approach, which is a larger refactoring
         .map(|s: &str| s.to_owned())
 }
 
@@ -321,17 +320,17 @@ fn time_inner<'a>() -> impl Parser<'a, ParserInput<'a>, String, ParserError<'a>>
     // Helper function for parsing time components with separators
     fn time_component<'p>(
         separator: char,
-        component_parser: impl Parser<'p, ParserInput<'p>, Vec<char>, ParserError<'p>>,
+        component_parser: impl Parser<'p, ParserInput<'p>, &'p str, ParserError<'p>>,
     ) -> impl Parser<'p, ParserInput<'p>, String, ParserError<'p>> {
         just(separator)
             .then(component_parser)
-            .map(move |(sep, comp)| format!("{}{}", sep, String::from_iter(comp)))
+            .map(move |(sep, comp): (char, &str)| format!("{}{}", sep, comp))
             .or_not()
             .map(|opt| opt.unwrap_or_default())
     }
 
     // Hours (required)
-    let hours = digits(2).map(String::from_iter);
+    let hours = digits(2).map(|s: &str| s.to_string());
 
     // Minutes and seconds (optional) - with colon separator
     let minutes = time_component(':', digits(2));
@@ -345,7 +344,7 @@ fn time_inner<'a>() -> impl Parser<'a, ParserInput<'a>, String, ParserError<'a>>
             .repeated()
             .at_least(1)
             .at_most(6)
-            .collect::<Vec<char>>(),
+            .to_slice(),
     );
 
     // Timezone (optional): either 'Z' or '+/-HH:MM'
@@ -353,10 +352,10 @@ fn time_inner<'a>() -> impl Parser<'a, ParserInput<'a>, String, ParserError<'a>>
         just('Z').map(|c| c.to_string()),
         one_of("-+")
             .then(digits(2).then(just(':').or_not().then(digits(2))).map(
-                |(hrs, (_opt_colon, mins))| {
+                |(hrs, (_opt_colon, mins)): (&str, (Option<char>, &str))| {
                     // Always format as -0800 without colon for SQL compatibility, regardless of input format
                     // We need to handle both -08:00 and -0800 input formats but standardize the output
-                    format!("{}{}", String::from_iter(hrs), String::from_iter(mins))
+                    format!("{}{}", hrs, mins)
                 },
             ))
             .map(|(sign, offset)| format!("{}{}", sign, offset)),
@@ -539,10 +538,14 @@ fn raw_string<'a>() -> impl Parser<'a, ParserInput<'a>, Literal, ParserError<'a>
             any()
                 .filter(move |c: &char| *c != '\'' && *c != '"' && *c != '\n' && *c != '\r')
                 .repeated()
-                .collect::<Vec<char>>(),
+                .to_slice(),
         )
         .then(choice((just('\''), just('"'))))
-        .map(|(((_, _), chars), _)| Literal::RawString(chars.into_iter().collect()))
+        .map(
+            |(((_, _open_quote), s), _close_quote): (((&str, char), &str), char)| {
+                Literal::RawString(s.to_string())
+            },
+        )
 }
 
 fn boolean<'a>() -> impl Parser<'a, ParserInput<'a>, Literal, ParserError<'a>> {
