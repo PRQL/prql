@@ -45,7 +45,7 @@ tasks:
       - cargo insta test --accept {{.packages_core}} --test-runner=nextest
       - cargo clippy --fix --allow-dirty --allow-staged {{.packages_core}}
 
-  test-full:
+  test-all:
     desc: Comprehensive prqlc test with coverage, accepting snapshots.
     env:
       NEXTEST_STATUS_LEVEL: fail
@@ -60,9 +60,9 @@ tasks:
         {{.packages_addon}} {{.packages_bindings}}
 
   pull-request:
-    desc: Complete PR checks (combines fmt + test-full + lint).
+    desc: Complete PR checks (combines fmt + test-all + lint).
     cmds:
       - task: fmt
-      - task: test-full
+      - task: test-all
       # Lint is repo-wide, so call it from root
       - task: :lint
