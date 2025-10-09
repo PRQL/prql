@@ -12,10 +12,6 @@ use crate::span::Span;
 // Type alias for parser error type to reduce verbosity
 pub(crate) type ParserError<'a> = extra::Err<Rich<'a, lr::Token, Span>>;
 
-// Type aliases for boxed parsers to reduce symbol complexity and improve compilation times.
-// Boxing breaks up deeply nested generic types that can create extremely long symbol names.
-pub(crate) type BoxedParser<'a, I, O> = Boxed<'a, 'a, I, O, ParserError<'a>>;
-
 mod expr;
 mod interpolation;
 pub(crate) mod perror;

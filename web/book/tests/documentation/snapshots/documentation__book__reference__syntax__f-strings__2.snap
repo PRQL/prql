@@ -7,5 +7,5 @@ Error:
    │
  2 │ select length_str = f"{length_seconds / 60} minutes"
    │                                      ┬
-   │                                      ╰── found ' ' expected something else, '.', ':', or '}'
+   │                                      ╰── expected something else, '.', ':', or '}', but found " "
 ───╯
