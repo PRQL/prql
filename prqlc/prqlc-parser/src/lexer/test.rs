@@ -1,4 +1,4 @@
-use chumsky_0_10 as chumsky;
+use chumsky;
 
 use chumsky::Parser;
 use insta::assert_debug_snapshot;
@@ -475,10 +475,10 @@ fn test_interpolation_empty() {
             Error {
                 kind: Error,
                 span: Some(
-                    0:17-18,
+                    0:20-20,
                 ),
                 reason: Unexpected {
-                    found: "'\"'",
+                    found: "end of input",
                 },
                 hints: [],
                 code: None,

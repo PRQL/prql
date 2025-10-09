@@ -1,34 +1,51 @@
 use std::collections::HashMap;
 
+use chumsky;
+use chumsky::input::BorrowInput;
 use chumsky::prelude::*;
 use itertools::Itertools;
 use semver::VersionReq;
 
 use super::expr::{expr, expr_call, ident, pipeline};
 use super::{ctrl, ident_part, into_stmt, keyword, new_line, pipe, with_doc_comment};
+use crate::lexer::lr;
 use crate::lexer::lr::{Literal, TokenKind};
-use crate::parser::perror::PError;
 use crate::parser::pr::*;
 use crate::parser::types::type_expr;
+use crate::span::Span;
+
+use super::ParserError;
 
 /// The top-level parser for a PRQL file
-pub fn source() -> impl Parser<TokenKind, Vec<Stmt>, Error = PError> {
+pub fn source<'a, I>() -> impl Parser<'a, I, Vec<Stmt>, ParserError<'a>> + Clone
+where
+    I: Input<'a, Token = lr::Token, Span = Span> + BorrowInput<'a> + chumsky::input::ValueInput<'a>,
+{
     with_doc_comment(query_def())
         .or_not()
-        .chain(module_contents())
+        .map(|opt| opt.into_iter().collect::<Vec<_>>())
+        .then(module_contents())
+        .map(|(mut first, mut second)| {
+            first.append(&mut second);
+            first
+        })
         // This is the only instance we can consume newlines at the end of something, since
         // this is the end of the file
-        .then_ignore(new_line().repeated())
+        .then_ignore(new_line().repeated().collect::<Vec<_>>())
         .then_ignore(end())
+        .boxed()
 }
 
-fn module_contents() -> impl Parser<TokenKind, Vec<Stmt>, Error = PError> {
+fn module_contents<'a, I>() -> impl Parser<'a, I, Vec<Stmt>, ParserError<'a>> + Clone
+where
+    I: Input<'a, Token = lr::Token, Span = Span> + BorrowInput<'a> + chumsky::input::ValueInput<'a>,
+{
     recursive(|module_contents| {
         let module_def = keyword("module")
             .ignore_then(ident_part())
             .then(
                 module_contents
-                    .then_ignore(new_line().repeated())
+                    .then_ignore(new_line().repeated().collect::<Vec<_>>())
                     .delimited_by(ctrl('{'), ctrl('}')),
             )
             .map(|(name, stmts)| StmtKind::ModuleDef(ModuleDef { name, stmts }))
@@ -37,8 +54,9 @@ fn module_contents() -> impl Parser<TokenKind, Vec<Stmt>, Error = PError> {
         let annotation = new_line()
             .repeated()
             .at_least(1)
+            .collect::<Vec<_>>()
             .ignore_then(
-                just(TokenKind::Annotate)
+                select_ref! { lr::Token { kind: TokenKind::Annotate, .. } => () }
                     .ignore_then(expr())
                     .map(|expr| Annotation {
                         expr: Box::new(expr),
@@ -53,48 +71,63 @@ fn module_contents() -> impl Parser<TokenKind, Vec<Stmt>, Error = PError> {
         // `module` if we wanted to?)
         //
         // let stmt_kind = new_line().repeated().at_least(1).ignore_then(choice((
-        let stmt_kind = new_line().repeated().ignore_then(choice((
-            module_def,
-            type_def(),
-            import_def(),
-            var_def(),
-        )));
+        let stmt_kind = new_line()
+            .repeated()
+            .collect::<Vec<_>>()
+            .ignore_then(choice((module_def, type_def(), import_def(), var_def())));
 
         // Currently doc comments need to be before the annotation; probably
         // should relax this?
         with_doc_comment(
             annotation
                 .repeated()
+                .collect::<Vec<_>>()
                 .then(stmt_kind)
-                .map_with_span(into_stmt),
+                .map_with(|(annotations, kind), extra| {
+                    into_stmt((annotations, kind), extra.span())
+                }),
         )
         .repeated()
+        .collect()
     })
+    .boxed()
 }
 
-fn query_def() -> impl Parser<TokenKind, Stmt, Error = PError> + Clone {
+fn query_def<'a, I>() -> impl Parser<'a, I, Stmt, ParserError<'a>> + Clone
+where
+    I: Input<'a, Token = lr::Token, Span = Span> + BorrowInput<'a> + chumsky::input::ValueInput<'a>,
+{
     new_line()
         .repeated()
         .at_least(1)
+        .collect::<Vec<_>>()
         .ignore_then(keyword("prql"))
         .ignore_then(
             // named arg
-            ident_part().then_ignore(ctrl(':')).then(expr()).repeated(),
+            ident_part()
+                .then_ignore(ctrl(':'))
+                .then(expr())
+                .repeated()
+                .collect::<Vec<_>>(),
         )
         .then_ignore(new_line())
-        .try_map(|args, span| {
+        .validate(|args, extra, emit| {
+            let span = extra.span();
             let mut args: HashMap<_, _> = args.into_iter().collect();
 
-            let version = args
-                .remove("version")
-                .map(|v| match v.kind {
-                    ExprKind::Literal(Literal::String(v)) => {
-                        VersionReq::parse(&v).map_err(|e| e.to_string())
+            let version = args.remove("version").and_then(|v| match v.kind {
+                ExprKind::Literal(Literal::String(v)) => match VersionReq::parse(&v) {
+                    Ok(ver) => Some(ver),
+                    Err(e) => {
+                        emit.emit(Rich::custom(span, e.to_string()));
+                        None
                     }
-                    _ => Err("version must be a string literal".to_string()),
-                })
-                .transpose()
-                .map_err(|msg| PError::custom(span, msg))?;
+                },
+                _ => {
+                    emit.emit(Rich::custom(span, "version must be a string literal"));
+                    None
+                }
+            });
 
             // TODO: `QueryDef` is currently implemented as `version` & `other`
             // fields. We want to raise an error if an unsupported field is
@@ -104,21 +137,20 @@ fn query_def() -> impl Parser<TokenKind, Stmt, Error = PError> + Clone {
             // have this awkward construction in the meantime.
             let other = args
                 .remove("target")
-                .map(|v| {
+                .and_then(|v| {
                     if let ExprKind::Ident(name) = v.kind {
-                        Ok(name.to_string())
+                        Some(name.to_string())
                     } else {
-                        Err("target must be a string literal".to_string())
+                        emit.emit(Rich::custom(span, "target must be a string literal"));
+                        None
                     }
                 })
-                .transpose()
-                .map_err(|msg| PError::custom(span, msg))?
                 .map_or_else(HashMap::new, |x| {
                     HashMap::from_iter(vec![("target".to_string(), x)])
                 });
 
             if !args.is_empty() {
-                return Err(PError::custom(
+                emit.emit(Rich::custom(
                     span,
                     format!(
                         "unknown query definition arguments {}",
@@ -127,20 +159,25 @@ fn query_def() -> impl Parser<TokenKind, Stmt, Error = PError> + Clone {
                 ));
             }
 
-            Ok(StmtKind::QueryDef(Box::new(QueryDef { version, other })))
+            StmtKind::QueryDef(Box::new(QueryDef { version, other }))
         })
         .map(|kind| (Vec::new(), kind))
-        .map_with_span(into_stmt)
+        .map_with(|(annotations, kind), extra| into_stmt((annotations, kind), extra.span()))
         .labelled("query header")
+        .boxed()
 }
 
 /// A variable definition could be any of:
 /// - `let foo = 5`
 /// - `from artists` — captured as a "main"
 /// - `from artists | into x` — captured as an "into"`
-fn var_def() -> impl Parser<TokenKind, StmtKind, Error = PError> + Clone {
+fn var_def<'a, I>() -> impl Parser<'a, I, StmtKind, ParserError<'a>> + Clone
+where
+    I: Input<'a, Token = lr::Token, Span = Span> + BorrowInput<'a> + chumsky::input::ValueInput<'a>,
+{
     let let_ = new_line()
         .repeated()
+        .collect::<Vec<_>>()
         .ignore_then(keyword("let"))
         .ignore_then(ident_part())
         .then(type_expr().delimited_by(ctrl('<'), ctrl('>')).or_not())
@@ -157,6 +194,7 @@ fn var_def() -> impl Parser<TokenKind, StmtKind, Error = PError> + Clone {
 
     let main_or_into = new_line()
         .repeated()
+        .collect::<Vec<_>>()
         .ignore_then(pipeline(expr_call()))
         .map(Box::new)
         .then(
@@ -180,10 +218,13 @@ fn var_def() -> impl Parser<TokenKind, StmtKind, Error = PError> + Clone {
             })
         });
 
-    let_.or(main_or_into)
+    let_.or(main_or_into).boxed()
 }
 
-fn type_def() -> impl Parser<TokenKind, StmtKind, Error = PError> + Clone {
+fn type_def<'a, I>() -> impl Parser<'a, I, StmtKind, ParserError<'a>> + Clone
+where
+    I: Input<'a, Token = lr::Token, Span = Span> + BorrowInput<'a> + chumsky::input::ValueInput<'a>,
+{
     keyword("type")
         .ignore_then(ident_part())
         .then(ctrl('=').ignore_then(type_expr()))
@@ -191,7 +232,10 @@ fn type_def() -> impl Parser<TokenKind, StmtKind, Error = PError> + Clone {
         .labelled("type definition")
 }
 
-fn import_def() -> impl Parser<TokenKind, StmtKind, Error = PError> + Clone {
+fn import_def<'a, I>() -> impl Parser<'a, I, StmtKind, ParserError<'a>> + Clone
+where
+    I: Input<'a, Token = lr::Token, Span = Span> + BorrowInput<'a> + chumsky::input::ValueInput<'a>,
+{
     keyword("import")
         .ignore_then(ident_part().then_ignore(ctrl('=')).or_not())
         .then(ident())
@@ -201,17 +245,40 @@ fn import_def() -> impl Parser<TokenKind, StmtKind, Error = PError> + Clone {
 
 #[cfg(test)]
 mod tests {
+    use chumsky::prelude::*;
     use insta::{assert_debug_snapshot, assert_yaml_snapshot};
 
     use super::*;
-    use crate::test::parse_with_parser;
+    use crate::error::Error;
+
+    fn parse_module_contents(source: &str) -> Result<Vec<Stmt>, Vec<Error>> {
+        crate::parse_test!(
+            source,
+            module_contents()
+                .then_ignore(new_line().repeated())
+                .then_ignore(end())
+        )
+    }
+
+    fn parse_var_def(source: &str) -> Result<StmtKind, Vec<Error>> {
+        crate::parse_test!(
+            source,
+            var_def()
+                .then_ignore(new_line().repeated())
+                .then_ignore(end())
+        )
+    }
+
+    fn parse_module_contents_complete(source: &str) -> Result<Vec<Stmt>, Vec<Error>> {
+        crate::parse_test!(source, module_contents().then_ignore(end()))
+    }
 
     #[test]
     fn test_module_contents() {
-        assert_yaml_snapshot!(parse_with_parser(r#"
+        assert_yaml_snapshot!(parse_module_contents(r#"
             let world = 1
             let man = module.world
-        "#, module_contents()).unwrap(), @r#"
+        "#).unwrap(), @r#"
         - VarDef:
             kind: Let
             name: world
@@ -234,10 +301,10 @@ mod tests {
 
     #[test]
     fn into() {
-        assert_yaml_snapshot!(parse_with_parser(r#"
+        assert_yaml_snapshot!(parse_var_def(r#"
             from artists
             into x
-        "#, var_def()).unwrap(), @r#"
+        "#).unwrap(), @r#"
         VarDef:
           kind: Into
           name: x
@@ -254,9 +321,9 @@ mod tests {
             span: "0:13-25"
         "#);
 
-        assert_yaml_snapshot!(parse_with_parser(r#"
+        assert_yaml_snapshot!(parse_var_def(r#"
             from artists | into x
-        "#, var_def()).unwrap(), @r#"
+        "#).unwrap(), @r#"
         VarDef:
           kind: Into
           name: x
@@ -276,31 +343,33 @@ mod tests {
 
     #[test]
     fn let_into() {
-        assert_debug_snapshot!(parse_with_parser(r#"
+        assert_debug_snapshot!(parse_module_contents_complete(r#"
         let y = (
             from artists
             into x
         )
-        "#, module_contents().then_ignore(end())).unwrap_err(), @r#"
+        "#).unwrap_err(), @r#"
         [
             Error {
                 kind: Error,
                 span: Some(
                     0:56-60,
                 ),
-                reason: Simple(
-                    "unexpected keyword into while parsing pipeline",
-                ),
+                reason: Expected {
+                    who: None,
+                    expected: "one of doc comment, function call, function definition, new line or something else",
+                    found: "keyword into",
+                },
                 hints: [],
                 code: None,
             },
             Error {
                 kind: Error,
                 span: Some(
-                    0:73-73,
+                    0:0-73,
                 ),
                 reason: Simple(
-                    "unexpected end of input",
+                    "Expected one of import statement, module definition, new line, pipeline, something else, type definition or variable definition, but didn't find anything before the end.",
                 ),
                 hints: [],
                 code: None,
@@ -311,7 +380,7 @@ mod tests {
 
     #[test]
     fn test_module() {
-        let parse_module = |s| parse_with_parser(s, module_contents()).unwrap();
+        let parse_module = |s| parse_module_contents(s).unwrap();
 
         let module_ast = parse_module(
             r#"
@@ -367,8 +436,8 @@ mod tests {
     #[test]
     fn test_module_def() {
         // Same line
-        assert_yaml_snapshot!(parse_with_parser(r#"module two {let houses = both.alike}
-        "#, module_contents()).unwrap(), @r#"
+        assert_yaml_snapshot!(parse_module_contents(r#"module two {let houses = both.alike}
+        "#).unwrap(), @r#"
         - ModuleDef:
             name: two
             stmts:
@@ -384,12 +453,12 @@ mod tests {
           span: "0:0-36"
         "#);
 
-        assert_yaml_snapshot!(parse_with_parser(r#"
+        assert_yaml_snapshot!(parse_module_contents(r#"
           module dignity {
             let fair = 1
             let verona = we.lay
          }
-        "#, module_contents()).unwrap(), @r#"
+        "#).unwrap(), @r#"
         - ModuleDef:
             name: dignity
             stmts:
@@ -416,12 +485,12 @@ mod tests {
 
     #[test]
     fn doc_comment_module() {
-        assert_yaml_snapshot!(parse_with_parser(r#"
+        assert_yaml_snapshot!(parse_module_contents(r#"
 
         #! first doc comment
         from foo
 
-        "#, module_contents()).unwrap(), @r#"
+        "#).unwrap(), @r#"
         - VarDef:
             kind: Main
             name: main
@@ -440,7 +509,7 @@ mod tests {
           doc_comment: " first doc comment"
         "#);
 
-        assert_yaml_snapshot!(parse_with_parser(r#"
+        assert_yaml_snapshot!(parse_module_contents(r#"
 
 
         #! first doc comment
@@ -450,7 +519,7 @@ mod tests {
         #! second doc comment
         from bar
 
-        "#, module_contents()).unwrap(), @r#"
+        "#).unwrap(), @r#"
         - VarDef:
             kind: Into
             name: x
@@ -490,12 +559,12 @@ mod tests {
     fn doc_comment_inline_module() {
         // Check the newline doesn't get eated by the `{}` of the module
         // TODO: could give a better error when we forget the module name
-        assert_yaml_snapshot!(parse_with_parser(r#"
+        assert_yaml_snapshot!(parse_module_contents(r#"
         module bar {
           #! first doc comment
           from foo
         }
-        "#, module_contents()).unwrap(), @r#"
+        "#).unwrap(), @r#"
         - ModuleDef:
             name: bar
             stmts:
@@ -521,9 +590,9 @@ mod tests {
 
     #[test]
     fn lambdas() {
-        assert_yaml_snapshot!(parse_with_parser(r#"
+        assert_yaml_snapshot!(parse_module_contents(r#"
         let first = column <array> -> internal std.first
-        "#, module_contents()).unwrap(), @r#"
+        "#).unwrap(), @r#"
         - VarDef:
             kind: Let
             name: first
@@ -547,12 +616,12 @@ mod tests {
           span: "0:0-57"
         "#);
 
-        assert_yaml_snapshot!(parse_with_parser(r#"
+        assert_yaml_snapshot!(parse_module_contents(r#"
       module defs {
         let first = column <array> -> internal std.first
         let last  = column <array> -> internal std.last
     }
-        "#, module_contents()).unwrap(), @r#"
+        "#).unwrap(), @r#"
         - ModuleDef:
             name: defs
             stmts:

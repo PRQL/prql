@@ -75,7 +75,9 @@ impl pl::PlFold for Resolver<'_> {
         let r = match node.kind {
             pl::ExprKind::Ident(ident) => {
                 log::debug!("resolving ident {ident}...");
-                let fq_ident = self.resolve_ident(&ident).with_span(node.span)?;
+                let fq_ident = self
+                    .resolve_ident(&ident)
+                    .map_err(|e| e.with_span(node.span))?;
                 log::debug!("... resolved to {fq_ident}");
                 let entry = self.root_mod.module.get(&fq_ident).unwrap();
                 log::debug!("... which is {entry}");

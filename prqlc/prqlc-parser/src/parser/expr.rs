@@ -1,31 +1,42 @@
 use std::collections::{hash_map::Entry, HashMap};
 
+use chumsky;
+use chumsky::input::BorrowInput;
+use chumsky::pratt::*;
 use chumsky::prelude::*;
 use itertools::Itertools;
 
-use crate::lexer::lr::{Literal, TokenKind};
+use crate::lexer::lr;
+use crate::lexer::lr::TokenKind;
 use crate::parser::interpolation;
-use crate::parser::perror::PError;
 use crate::parser::pr::*;
 use crate::parser::types::type_expr;
 use crate::parser::{ctrl, ident_part, keyword, new_line, sequence, with_doc_comment};
 use crate::span::Span;
 
 use super::pipe;
+use super::ParserError;
 
-pub(crate) fn expr_call() -> impl Parser<TokenKind, Expr, Error = PError> + Clone {
+pub(crate) fn expr_call<'a, I>() -> impl Parser<'a, I, Expr, ParserError<'a>> + Clone
+where
+    I: Input<'a, Token = lr::Token, Span = Span> + BorrowInput<'a>,
+{
     let expr = expr();
 
     choice((
-        lambda_func(expr.clone()),
-        func_call(expr.clone()),
-        pipeline(expr),
+        lambda_func(expr.clone()).boxed(),
+        func_call(expr.clone()).boxed(),
+        pipeline(expr).boxed(),
     ))
+    .boxed()
 }
 
-pub(crate) fn expr() -> impl Parser<TokenKind, Expr, Error = PError> + Clone {
+pub(crate) fn expr<'a, I>() -> impl Parser<'a, I, Expr, ParserError<'a>> + Clone
+where
+    I: Input<'a, Token = lr::Token, Span = Span> + BorrowInput<'a>,
+{
     recursive(|expr| {
-        let literal = select! { TokenKind::Literal(lit) => ExprKind::Literal(lit) };
+        let literal = select_ref! { lr::Token { kind: TokenKind::Literal(lit), .. } => ExprKind::Literal(lit.clone()) };
 
         let ident_kind = ident().map(ExprKind::Ident);
 
@@ -42,13 +53,25 @@ pub(crate) fn expr() -> impl Parser<TokenKind, Expr, Error = PError> + Clone {
 
         let tuple = tuple(nested_expr.clone());
         let array = array(nested_expr.clone());
-        let pipeline_expr = pipeline(nested_expr.clone())
-            .padded_by(new_line().repeated())
-            .delimited_by(ctrl('('), ctrl(')'));
+        let pipeline_expr = {
+            use chumsky::recovery::{skip_then_retry_until, via_parser};
+
+            pipeline(nested_expr.clone())
+                .padded_by(new_line().repeated())
+                .delimited_by(
+                    ctrl('('),
+                    ctrl(')')
+                        .recover_with(via_parser(end()))
+                        .recover_with(skip_then_retry_until(
+                            any_ref().ignored(),
+                            ctrl(')').ignored().or(end()),
+                        )),
+                )
+        };
         let interpolation = interpolation();
         let case = case(expr.clone());
 
-        let param = select! { TokenKind::Param(id) => ExprKind::Param(id) };
+        let param = select_ref! { lr::Token { kind: TokenKind::Param(id), .. } => ExprKind::Param(id.clone()) };
 
         let term = with_doc_comment(
             choice((
@@ -61,7 +84,7 @@ pub(crate) fn expr() -> impl Parser<TokenKind, Expr, Error = PError> + Clone {
                 case,
                 param,
             ))
-            .map_with_span(ExprKind::into_expr)
+            .map_with(|kind, extra| ExprKind::into_expr(kind, extra.span()))
             // No longer used given the TODO in `pipeline`; can remove if we
             // don't resolve.
             // .or(aliased(expr.clone()))
@@ -72,83 +95,167 @@ pub(crate) fn expr() -> impl Parser<TokenKind, Expr, Error = PError> + Clone {
         let term = unary(term);
         let term = range(term);
 
-        // Binary operators
-        let expr = term;
-        let expr = binary_op_parser_right(expr, operator_pow());
-        let expr = binary_op_parser(expr, operator_mul());
-        let expr = binary_op_parser(expr, operator_add());
-        let expr = binary_op_parser(expr, operator_compare());
-        let expr = binary_op_parser(expr, operator_coalesce());
-        let expr = binary_op_parser(expr, operator_and());
-
-        binary_op_parser(expr, operator_or())
+        // Binary operators using Pratt parsing
+        // Precedence levels (higher = tighter binding):
+        // 6: Pow (right associative)
+        // 5: Mul, Div, Mod (left associative)
+        // 4: Add, Sub (left associative)
+        // 3: Compare operators (left associative)
+        // 2: Coalesce (left associative)
+        // 1: And (left associative)
+        // 0: Or (left associative)
+        term.pratt((
+            infix(right(6), operator_pow(), |left, op, right, extra| {
+                let span = extra.span();
+                ExprKind::Binary(BinaryExpr {
+                    left: Box::new(left),
+                    op,
+                    right: Box::new(right),
+                })
+                .into_expr(span)
+            }),
+            infix(left(5), operator_mul(), |left, op, right, extra| {
+                let span = extra.span();
+                ExprKind::Binary(BinaryExpr {
+                    left: Box::new(left),
+                    op,
+                    right: Box::new(right),
+                })
+                .into_expr(span)
+            }),
+            infix(left(4), operator_add(), |left, op, right, extra| {
+                let span = extra.span();
+                ExprKind::Binary(BinaryExpr {
+                    left: Box::new(left),
+                    op,
+                    right: Box::new(right),
+                })
+                .into_expr(span)
+            }),
+            infix(left(3), operator_compare(), |left, op, right, extra| {
+                let span = extra.span();
+                ExprKind::Binary(BinaryExpr {
+                    left: Box::new(left),
+                    op,
+                    right: Box::new(right),
+                })
+                .into_expr(span)
+            }),
+            infix(left(2), operator_coalesce(), |left, op, right, extra| {
+                let span = extra.span();
+                ExprKind::Binary(BinaryExpr {
+                    left: Box::new(left),
+                    op,
+                    right: Box::new(right),
+                })
+                .into_expr(span)
+            }),
+            infix(left(1), operator_and(), |left, op, right, extra| {
+                let span = extra.span();
+                ExprKind::Binary(BinaryExpr {
+                    left: Box::new(left),
+                    op,
+                    right: Box::new(right),
+                })
+                .into_expr(span)
+            }),
+            infix(left(0), operator_or(), |left, op, right, extra| {
+                let span = extra.span();
+                ExprKind::Binary(BinaryExpr {
+                    left: Box::new(left),
+                    op,
+                    right: Box::new(right),
+                })
+                .into_expr(span)
+            }),
+        ))
+        .boxed()
     })
 }
 
-fn tuple<'a>(
-    nested_expr: impl Parser<TokenKind, Expr, Error = PError> + Clone + 'a,
-) -> impl Parser<TokenKind, ExprKind, Error = PError> + Clone + 'a {
+fn tuple<'a, I>(
+    nested_expr: impl Parser<'a, I, Expr, ParserError<'a>> + Clone + 'a,
+) -> impl Parser<'a, I, ExprKind, ParserError<'a>> + Clone + 'a
+where
+    I: Input<'a, Token = lr::Token, Span = Span> + BorrowInput<'a>,
+{
+    use chumsky::recovery::{skip_then_retry_until, via_parser};
+
     sequence(maybe_aliased(nested_expr))
-        .delimited_by(ctrl('{'), ctrl('}'))
-        .recover_with(nested_delimiters(
-            TokenKind::Control('{'),
-            TokenKind::Control('}'),
-            [
-                (TokenKind::Control('{'), TokenKind::Control('}')),
-                (TokenKind::Control('('), TokenKind::Control(')')),
-                (TokenKind::Control('['), TokenKind::Control(']')),
-            ],
-            |_| vec![],
-        ))
+        .delimited_by(
+            ctrl('{'),
+            ctrl('}')
+                .recover_with(via_parser(end()))
+                .recover_with(skip_then_retry_until(
+                    any_ref().ignored(),
+                    ctrl('}').ignored().or(ctrl(',').ignored()).or(end()),
+                )),
+        )
         .map(ExprKind::Tuple)
         .labelled("tuple")
+        .boxed()
 }
 
-fn array<'a>(
-    expr: impl Parser<TokenKind, Expr, Error = PError> + Clone + 'a,
-) -> impl Parser<TokenKind, ExprKind, Error = PError> + Clone + 'a {
+fn array<'a, I>(
+    expr: impl Parser<'a, I, Expr, ParserError<'a>> + Clone + 'a,
+) -> impl Parser<'a, I, ExprKind, ParserError<'a>> + Clone + 'a
+where
+    I: Input<'a, Token = lr::Token, Span = Span> + BorrowInput<'a>,
+{
+    use chumsky::recovery::{skip_then_retry_until, via_parser};
+
     sequence(expr)
-        .delimited_by(ctrl('['), ctrl(']'))
-        .recover_with(nested_delimiters(
-            TokenKind::Control('['),
-            TokenKind::Control(']'),
-            [
-                (TokenKind::Control('{'), TokenKind::Control('}')),
-                (TokenKind::Control('('), TokenKind::Control(')')),
-                (TokenKind::Control('['), TokenKind::Control(']')),
-            ],
-            |_| vec![],
-        ))
+        .delimited_by(
+            ctrl('['),
+            ctrl(']')
+                .recover_with(via_parser(end()))
+                .recover_with(skip_then_retry_until(
+                    any_ref().ignored(),
+                    ctrl(']').ignored().or(ctrl(',').ignored()).or(end()),
+                )),
+        )
         .map(ExprKind::Array)
         .labelled("array")
+        .boxed()
 }
 
-fn interpolation() -> impl Parser<TokenKind, ExprKind, Error = PError> + Clone {
-    select! {
-        TokenKind::Interpolation('s', string) => (ExprKind::SString as fn(_) -> _, string),
-        TokenKind::Interpolation('f', string) => (ExprKind::FString as fn(_) -> _, string),
+fn interpolation<'a, I>() -> impl Parser<'a, I, ExprKind, ParserError<'a>> + Clone
+where
+    I: Input<'a, Token = lr::Token, Span = Span> + BorrowInput<'a>,
+{
+    select_ref! {
+        lr::Token { kind: TokenKind::Interpolation('s', string), .. } => (ExprKind::SString as fn(_) -> _, string.clone()),
+        lr::Token { kind: TokenKind::Interpolation('f', string), .. } => (ExprKind::FString as fn(_) -> _, string.clone()),
     }
-    .validate(
-        |(finish, string), span: Span, emit| match interpolation::parse(string, span + 2) {
+    .validate(|(finish, string), extra, emit| {
+        let span = extra.span();
+        match interpolation::parse(string, span + 2) {
             Ok(items) => finish(items),
             Err(errors) => {
                 for err in errors {
-                    emit(err)
+                    // Convert Error to Rich for emission
+                    let err_span = err.span.unwrap_or(span);
+                    // Use the reason's Display impl, not Error's Debug
+                    let message = err.reason.to_string();
+                    emit.emit(Rich::custom(err_span, message));
                 }
                 finish(vec![])
             }
-        },
-    )
+        }
+    })
     .labelled("interpolated string")
 }
 
-fn case<'a>(
-    expr: impl Parser<TokenKind, Expr, Error = PError> + Clone + 'a,
-) -> impl Parser<TokenKind, ExprKind, Error = PError> + Clone + 'a {
+fn case<'a, I>(
+    expr: impl Parser<'a, I, Expr, ParserError<'a>> + Clone + 'a,
+) -> impl Parser<'a, I, ExprKind, ParserError<'a>> + Clone + 'a
+where
+    I: Input<'a, Token = lr::Token, Span = Span> + BorrowInput<'a>,
+{
     // The `nickname != null => nickname,` part
     let mapping = func_call(expr.clone())
         .map(Box::new)
-        .then_ignore(just(TokenKind::ArrowFat))
+        .then_ignore(select_ref! { lr::Token { kind: TokenKind::ArrowFat, .. } => () })
         .then(func_call(expr).map(Box::new))
         .map(|(condition, value)| SwitchCase { condition, value });
 
@@ -157,21 +264,23 @@ fn case<'a>(
         .map(ExprKind::Case)
 }
 
-fn unary<'a, E>(expr: E) -> impl Parser<TokenKind, Expr, Error = PError> + Clone + 'a
+fn unary<'a, I, E>(expr: E) -> impl Parser<'a, I, Expr, ParserError<'a>> + Clone + 'a
 where
-    E: Parser<TokenKind, Expr, Error = PError> + Clone + 'a,
+    I: Input<'a, Token = lr::Token, Span = Span> + BorrowInput<'a>,
+    E: Parser<'a, I, Expr, ParserError<'a>> + Clone + 'a,
 {
     expr.clone()
         .or(operator_unary()
             .then(expr.map(Box::new))
             .map(|(op, expr)| ExprKind::Unary(UnaryExpr { op, expr }))
-            .map_with_span(ExprKind::into_expr))
+            .map_with(|kind, extra| ExprKind::into_expr(kind, extra.span())))
         .boxed()
 }
 
-fn range<'a, E>(expr: E) -> impl Parser<TokenKind, Expr, Error = PError> + Clone + 'a
+fn range<'a, I, E>(expr: E) -> impl Parser<'a, I, Expr, ParserError<'a>> + Clone + 'a
 where
-    E: Parser<TokenKind, Expr, Error = PError> + Clone + 'a,
+    I: Input<'a, Token = lr::Token, Span = Span> + BorrowInput<'a>,
+    E: Parser<'a, I, Expr, ParserError<'a>> + Clone + 'a,
 {
     // Ranges have five cases we need to parse:
     // x..y (bounded)
@@ -189,11 +298,11 @@ where
         expr.clone()
             .then(choice((
                 // range and end bound
-                just(TokenKind::range(true, true))
+                select_ref! { lr::Token { kind: TokenKind::Range { bind_left: true, bind_right: true }, .. } => () }
                     .ignore_then(expr.clone())
                     .map(|x| Some(Some(x))),
                 // range and no end bound
-                select! { TokenKind::Range { bind_left: true, .. } => Some(None) },
+                select_ref! { lr::Token { kind: TokenKind::Range { bind_left: true, .. }, .. } => Some(None) },
                 // no range
                 empty().to(None),
             )))
@@ -205,28 +314,33 @@ where
                 }
             }),
         // only end bound
-        select! { TokenKind::Range { bind_right: true, .. } => () }
+        select_ref! { lr::Token { kind: TokenKind::Range { bind_right: true, .. }, .. } => () }
             .ignore_then(expr)
             .map(|range| RangeCase::Range(None, Some(range))),
         // unbounded
-        select! { TokenKind::Range { .. } => RangeCase::Range(None, None) },
+        select_ref! { lr::Token { kind: TokenKind::Range { .. }, .. } => RangeCase::Range(None, None) },
     ))
-    .map_with_span(|case, span| match case {
-        RangeCase::NoOp(x) => x,
-        RangeCase::Range(start, end) => {
-            let kind = ExprKind::Range(Range {
-                start: start.map(Box::new),
-                end: end.map(Box::new),
-            });
-            kind.into_expr(span)
+    .map_with(|case, extra| {
+        let span = extra.span();
+        match case {
+            RangeCase::NoOp(x) => x,
+            RangeCase::Range(start, end) => {
+                let kind = ExprKind::Range(Range {
+                    start: start.map(Box::new),
+                    end: end.map(Box::new),
+                });
+                kind.into_expr(span)
+            }
         }
     })
+    .boxed()
 }
 
 /// A pipeline of `expr`, separated by pipes. Doesn't require parentheses.
-pub(crate) fn pipeline<'a, E>(expr: E) -> impl Parser<TokenKind, Expr, Error = PError> + Clone + 'a
+pub(crate) fn pipeline<'a, I, E>(expr: E) -> impl Parser<'a, I, Expr, ParserError<'a>> + Clone + 'a
 where
-    E: Parser<TokenKind, Expr, Error = PError> + Clone + 'a,
+    I: Input<'a, Token = lr::Token, Span = Span> + BorrowInput<'a>,
+    E: Parser<'a, I, Expr, ParserError<'a>> + Clone + 'a,
 {
     // expr has to be a param, because it can be either a normal expr() or a
     // recursive expr called from within expr(), which causes a stack overflow
@@ -237,7 +351,9 @@ where
     with_doc_comment(maybe_aliased(expr))
         .separated_by(pipe())
         .at_least(1)
-        .map_with_span(|exprs, span| {
+        .collect::<Vec<_>>()
+        .map_with(|exprs: Vec<Expr>, extra| {
+            let span = extra.span();
             // If there's only one expr, then we don't need to wrap it
             // in a pipeline — just return the lone expr. Otherwise,
             // wrap them in a pipeline.
@@ -248,107 +364,16 @@ where
                 .into_expr(span)
             })
         })
-        .recover_with(nested_delimiters(
-            TokenKind::Control('('),
-            TokenKind::Control(')'),
-            [
-                (TokenKind::Control('['), TokenKind::Control(']')),
-                (TokenKind::Control('('), TokenKind::Control(')')),
-            ],
-            |_| Expr::new(ExprKind::Literal(Literal::Null)),
-        ))
         .labelled("pipeline")
-}
-
-fn binary_op_parser<'a, Term, Op>(
-    term: Term,
-    op: Op,
-) -> impl Parser<TokenKind, Expr, Error = PError> + 'a + Clone
-where
-    Term: Parser<TokenKind, Expr, Error = PError> + 'a + Clone,
-    Op: Parser<TokenKind, BinOp, Error = PError> + 'a + Clone,
-{
-    let term = term.map_with_span(|e, s| (e, s)).boxed();
-
-    term.clone()
-        .then(op.then(term).repeated())
-        .foldl(|left, (op, right)| {
-            let span = Span {
-                start: left.1.start,
-                end: right.1.end,
-                source_id: left.1.source_id,
-            };
-            let kind = ExprKind::Binary(BinaryExpr {
-                left: Box::new(left.0),
-                op,
-                right: Box::new(right.0),
-            });
-            (ExprKind::into_expr(kind, span), span)
-        })
-        .map(|(e, _)| e)
-        .boxed()
-}
-
-pub(crate) fn binary_op_parser_right<'a, Term, Op>(
-    term: Term,
-    op: Op,
-) -> impl Parser<TokenKind, Expr, Error = PError> + Clone + 'a
-where
-    Term: Parser<TokenKind, Expr, Error = PError> + Clone + 'a,
-    Op: Parser<TokenKind, BinOp, Error = PError> + Clone + 'a,
-{
-    let term = term.map_with_span(|e, s| (e, s)).boxed();
-
-    (term.clone())
-        .then(op.then(term).repeated())
-        .map(|(first, others)| {
-            // A transformation from this:
-            // ```
-            // first: e1
-            // others: [(op1 e2) (op2 e3)]
-            // ```
-            // ... into:
-            // ```
-            // r: [(e1 op1) (e2 op2)]
-            // e3
-            // ```
-            // .. so we can use foldr for right associativity.
-            // We could use `(term.then(op)).repeated().then(term)` instead,
-            // and have the correct structure from the get-go, but that would
-            // perform miserably with simple expressions without operators, because
-            // it would re-parse the term twice for each level of precedence we have.
-
-            let mut free = first;
-            let mut r = Vec::new();
-            for (op, expr) in others {
-                r.push((free, op));
-                free = expr;
-            }
-            (r, free)
-        })
-        .foldr(|(left, op), right| {
-            let span = Span {
-                start: left.1.start,
-                end: right.1.end,
-                source_id: left.1.source_id,
-            };
-            let kind = ExprKind::Binary(BinaryExpr {
-                left: Box::new(left.0),
-                op,
-                right: Box::new(right.0),
-            });
-            (kind.into_expr(span), span)
-        })
-        .map(|(e, _)| e)
-        .boxed()
 }
 
 // Can remove if we don't end up using this
 #[allow(dead_code)]
 #[cfg(not(coverage))]
-fn aliased<'a, E>(expr: E) -> impl Parser<TokenKind, Expr, Error = PError> + Clone + 'a
+fn aliased<'a, I, E>(expr: E) -> impl Parser<'a, I, Expr, ParserError<'a>> + Clone + 'a
 where
-    E: Parser<TokenKind, Expr, Error = PError> + Clone + 'a,
+    I: Input<'a, Token = lr::Token, Span = Span> + BorrowInput<'a>,
+    E: Parser<'a, I, Expr, ParserError<'a>> + Clone + 'a,
 {
     let aliased = ident_part()
         .then_ignore(ctrl('='))
@@ -364,9 +389,10 @@ where
         .or(aliased.delimited_by(ctrl('('), ctrl(')')))
 }
 
-fn maybe_aliased<'a, E>(expr: E) -> impl Parser<TokenKind, Expr, Error = PError> + Clone + 'a
+fn maybe_aliased<'a, I, E>(expr: E) -> impl Parser<'a, I, Expr, ParserError<'a>> + Clone + 'a
 where
-    E: Parser<TokenKind, Expr, Error = PError> + Clone + 'a,
+    I: Input<'a, Token = lr::Token, Span = Span> + BorrowInput<'a>,
+    E: Parser<'a, I, Expr, ParserError<'a>> + Clone + 'a,
 {
     let aliased = ident_part()
         .then_ignore(ctrl('='))
@@ -385,9 +411,10 @@ where
         .or(aliased.delimited_by(ctrl('('), ctrl(')')))
 }
 
-fn func_call<'a, E>(expr: E) -> impl Parser<TokenKind, Expr, Error = PError> + Clone + 'a
+fn func_call<'a, I, E>(expr: E) -> impl Parser<'a, I, Expr, ParserError<'a>> + Clone + 'a
 where
-    E: Parser<TokenKind, Expr, Error = PError> + Clone + 'a,
+    I: Input<'a, Token = lr::Token, Span = Span> + BorrowInput<'a>,
+    E: Parser<'a, I, Expr, ParserError<'a>> + Clone + 'a,
 {
     let func_name = expr.clone();
 
@@ -414,44 +441,51 @@ where
     let positional_arg = maybe_aliased(expr.clone()).map(|e| (None, e));
 
     func_name
-        .then(named_arg.or(positional_arg).repeated())
-        .validate(|(name, args), span, emit| {
-            if args.is_empty() {
-                return name.kind;
-            }
-
-            let mut named_args = HashMap::new();
-            let mut positional = Vec::new();
-
-            for (name, arg) in args {
-                if let Some(name) = name {
-                    match named_args.entry(name) {
-                        Entry::Occupied(entry) => emit(PError::custom(
-                            span,
-                            format!("argument '{}' is used multiple times", entry.key()),
-                        )),
-                        Entry::Vacant(entry) => {
-                            entry.insert(arg);
-                        }
-                    }
-                } else {
-                    positional.push(arg);
+        .then(named_arg.or(positional_arg).repeated().collect::<Vec<_>>())
+        .validate(
+            |(name, args): (Expr, Vec<(Option<String>, Expr)>), extra, emit| {
+                let span = extra.span();
+                if args.is_empty() {
+                    return name.kind;
                 }
-            }
 
-            ExprKind::FuncCall(FuncCall {
-                name: Box::new(name),
-                args: positional,
-                named_args,
-            })
-        })
-        .map_with_span(ExprKind::into_expr)
+                let mut named_args = HashMap::new();
+                let mut positional = Vec::new();
+
+                for (name, arg) in args {
+                    if let Some(name) = name {
+                        match named_args.entry(name) {
+                            Entry::Occupied(entry) => {
+                                emit.emit(Rich::custom(
+                                    span,
+                                    format!("argument '{}' is used multiple times", entry.key()),
+                                ));
+                            }
+                            Entry::Vacant(entry) => {
+                                entry.insert(arg);
+                            }
+                        }
+                    } else {
+                        positional.push(arg);
+                    }
+                }
+
+                ExprKind::FuncCall(FuncCall {
+                    name: Box::new(name),
+                    args: positional,
+                    named_args,
+                })
+            },
+        )
+        .map_with(|kind, extra| ExprKind::into_expr(kind, extra.span()))
         .labelled("function call")
+        .boxed()
 }
 
-fn lambda_func<'a, E>(expr: E) -> impl Parser<TokenKind, Expr, Error = PError> + Clone + 'a
+fn lambda_func<'a, I, E>(expr: E) -> impl Parser<'a, I, Expr, ParserError<'a>> + Clone + 'a
 where
-    E: Parser<TokenKind, Expr, Error = PError> + Clone + 'a,
+    I: Input<'a, Token = lr::Token, Span = Span> + BorrowInput<'a>,
+    E: Parser<'a, I, Expr, ParserError<'a>> + Clone + 'a,
 {
     let param = ident_part()
         .then(type_expr().delimited_by(ctrl('<'), ctrl('>')).or_not())
@@ -464,12 +498,13 @@ where
                 .clone()
                 .separated_by(new_line().repeated())
                 .allow_leading()
-                .allow_trailing(),
+                .allow_trailing()
+                .collect::<Vec<_>>(),
         ),
         // plain
-        param.repeated(),
+        param.repeated().collect(),
     ))
-    .then_ignore(just(TokenKind::ArrowThin))
+    .then_ignore(select_ref! { lr::Token { kind: TokenKind::ArrowThin, .. } => () })
     // return type
     .then(type_expr().delimited_by(ctrl('<'), ctrl('>')).or_not())
     // body
@@ -493,71 +528,171 @@ where
         })
     })
     .map(ExprKind::Func)
-    .map_with_span(ExprKind::into_expr)
+    .map_with(|kind, extra| ExprKind::into_expr(kind, extra.span()))
     .labelled("function definition")
+    .boxed()
 }
 
-pub(crate) fn ident() -> impl Parser<TokenKind, Ident, Error = PError> + Clone {
+pub(crate) fn ident<'a, I>() -> impl Parser<'a, I, Ident, ParserError<'a>> + Clone
+where
+    I: Input<'a, Token = lr::Token, Span = Span> + BorrowInput<'a>,
+{
     ident_part()
         .then_ignore(ctrl('.'))
         .repeated()
-        .chain(choice((ident_part(), ctrl('*').map(|_| "*".to_string()))).map(Some))
-        .map(Ident::from_path::<String>)
+        .collect()
+        .then(choice((ident_part(), ctrl('*').map(|_| "*".to_string()))))
+        .map(|(mut parts, last): (Vec<String>, String)| {
+            parts.push(last);
+            Ident::from_path(parts)
+        })
 }
 
-fn operator_unary() -> impl Parser<TokenKind, UnOp, Error = PError> + Clone {
+fn operator_unary<'a, I>() -> impl Parser<'a, I, UnOp, ParserError<'a>> + Clone
+where
+    I: Input<'a, Token = lr::Token, Span = Span> + BorrowInput<'a>,
+{
     (ctrl('+').to(UnOp::Add))
         .or(ctrl('-').to(UnOp::Neg))
         .or(ctrl('!').to(UnOp::Not))
-        .or(just(TokenKind::Eq).to(UnOp::EqSelf))
+        .or(select_ref! { lr::Token { kind: TokenKind::Eq, .. } => UnOp::EqSelf })
 }
-fn operator_pow() -> impl Parser<TokenKind, BinOp, Error = PError> + Clone {
-    just(TokenKind::Pow).to(BinOp::Pow)
+fn operator_pow<'a, I>() -> impl Parser<'a, I, BinOp, ParserError<'a>> + Clone
+where
+    I: Input<'a, Token = lr::Token, Span = Span> + BorrowInput<'a>,
+{
+    select_ref! { lr::Token { kind: TokenKind::Pow, .. } => BinOp::Pow }
 }
-fn operator_mul() -> impl Parser<TokenKind, BinOp, Error = PError> + Clone {
-    (just(TokenKind::DivInt).to(BinOp::DivInt))
+fn operator_mul<'a, I>() -> impl Parser<'a, I, BinOp, ParserError<'a>> + Clone
+where
+    I: Input<'a, Token = lr::Token, Span = Span> + BorrowInput<'a>,
+{
+    (select_ref! { lr::Token { kind: TokenKind::DivInt, .. } => BinOp::DivInt })
         .or(ctrl('*').to(BinOp::Mul))
         .or(ctrl('/').to(BinOp::DivFloat))
         .or(ctrl('%').to(BinOp::Mod))
 }
-fn operator_add() -> impl Parser<TokenKind, BinOp, Error = PError> + Clone {
+fn operator_add<'a, I>() -> impl Parser<'a, I, BinOp, ParserError<'a>> + Clone
+where
+    I: Input<'a, Token = lr::Token, Span = Span> + BorrowInput<'a>,
+{
     (ctrl('+').to(BinOp::Add)).or(ctrl('-').to(BinOp::Sub))
 }
-fn operator_compare() -> impl Parser<TokenKind, BinOp, Error = PError> + Clone {
+fn operator_compare<'a, I>() -> impl Parser<'a, I, BinOp, ParserError<'a>> + Clone
+where
+    I: Input<'a, Token = lr::Token, Span = Span> + BorrowInput<'a>,
+{
     choice((
-        just(TokenKind::Eq).to(BinOp::Eq),
-        just(TokenKind::Ne).to(BinOp::Ne),
-        just(TokenKind::Lte).to(BinOp::Lte),
-        just(TokenKind::Gte).to(BinOp::Gte),
-        just(TokenKind::RegexSearch).to(BinOp::RegexSearch),
+        select_ref! { lr::Token { kind: TokenKind::Eq, .. } => BinOp::Eq },
+        select_ref! { lr::Token { kind: TokenKind::Ne, .. } => BinOp::Ne },
+        select_ref! { lr::Token { kind: TokenKind::Lte, .. } => BinOp::Lte },
+        select_ref! { lr::Token { kind: TokenKind::Gte, .. } => BinOp::Gte },
+        select_ref! { lr::Token { kind: TokenKind::RegexSearch, .. } => BinOp::RegexSearch },
         ctrl('<').to(BinOp::Lt),
         ctrl('>').to(BinOp::Gt),
     ))
 }
-fn operator_and() -> impl Parser<TokenKind, BinOp, Error = PError> + Clone {
-    just(TokenKind::And).to(BinOp::And)
+fn operator_and<'a, I>() -> impl Parser<'a, I, BinOp, ParserError<'a>> + Clone
+where
+    I: Input<'a, Token = lr::Token, Span = Span> + BorrowInput<'a>,
+{
+    select_ref! { lr::Token { kind: TokenKind::And, .. } => BinOp::And }
 }
-fn operator_or() -> impl Parser<TokenKind, BinOp, Error = PError> + Clone {
-    just(TokenKind::Or).to(BinOp::Or)
+fn operator_or<'a, I>() -> impl Parser<'a, I, BinOp, ParserError<'a>> + Clone
+where
+    I: Input<'a, Token = lr::Token, Span = Span> + BorrowInput<'a>,
+{
+    select_ref! { lr::Token { kind: TokenKind::Or, .. } => BinOp::Or }
 }
-fn operator_coalesce() -> impl Parser<TokenKind, BinOp, Error = PError> + Clone {
-    just(TokenKind::Coalesce).to(BinOp::Coalesce)
+fn operator_coalesce<'a, I>() -> impl Parser<'a, I, BinOp, ParserError<'a>> + Clone
+where
+    I: Input<'a, Token = lr::Token, Span = Span> + BorrowInput<'a>,
+{
+    select_ref! { lr::Token { kind: TokenKind::Coalesce, .. } => BinOp::Coalesce }
 }
 
 #[cfg(test)]
 mod tests {
-
     use insta::{assert_debug_snapshot, assert_yaml_snapshot};
 
-    use super::super::test::trim_start;
-    use crate::test::parse_with_parser;
-
     use super::*;
+    use crate::error::Error;
+
+    fn parse_expr_call(source: &str) -> Result<Expr, Vec<Error>> {
+        crate::parse_test!(
+            source,
+            new_line()
+                .repeated()
+                .collect::<Vec<_>>()
+                .ignore_then(expr_call())
+                .then_ignore(new_line().repeated())
+                .then_ignore(end())
+        )
+    }
+
+    fn parse_tuple(source: &str) -> Result<Expr, Vec<Error>> {
+        crate::parse_test!(
+            source,
+            new_line()
+                .repeated()
+                .collect::<Vec<_>>()
+                .ignore_then(tuple(expr()))
+                .map_with(|kind, extra| ExprKind::into_expr(kind, extra.span()))
+                .then_ignore(new_line().repeated())
+                .then_ignore(end())
+        )
+    }
+
+    fn parse_any_expr(source: &str) -> Result<Expr, Vec<Error>> {
+        crate::parse_test!(
+            source,
+            new_line()
+                .repeated()
+                .collect::<Vec<_>>()
+                .ignore_then(expr())
+        )
+    }
+
+    fn parse_pipeline(source: &str) -> Result<Expr, Vec<Error>> {
+        crate::parse_test!(
+            source,
+            new_line()
+                .repeated()
+                .collect::<Vec<_>>()
+                .ignore_then(pipeline(expr_call()))
+                .then_ignore(new_line().repeated())
+                .then_ignore(end())
+        )
+    }
+
+    fn parse_case(source: &str) -> Result<Expr, Vec<Error>> {
+        crate::parse_test!(
+            source,
+            new_line()
+                .repeated()
+                .collect::<Vec<_>>()
+                .ignore_then(case(expr()))
+                .map_with(|kind, extra| ExprKind::into_expr(kind, extra.span()))
+                .then_ignore(new_line().repeated())
+                .then_ignore(end())
+        )
+    }
+
+    fn parse_expr_call_complete(source: &str) -> Result<Expr, Vec<Error>> {
+        crate::parse_test!(
+            source,
+            new_line()
+                .repeated()
+                .collect::<Vec<_>>()
+                .ignore_then(expr_call())
+                .then_ignore(end())
+        )
+    }
 
     #[test]
     fn test_expr_call() {
         assert_yaml_snapshot!(
-            parse_with_parser(r#"derive x = 5"#, trim_start().ignore_then(expr_call())).unwrap(),
+            parse_expr_call(r#"derive x = 5"#).unwrap(),
              @r#"
         FuncCall:
           name:
@@ -573,7 +708,7 @@ mod tests {
         "#);
 
         assert_yaml_snapshot!(
-            parse_with_parser(r#"aggregate {sum salary}"#, trim_start().ignore_then(expr_call())).unwrap(),
+            parse_expr_call(r#"aggregate {sum salary}"#).unwrap(),
              @r#"
         FuncCall:
           name:
@@ -597,21 +732,12 @@ mod tests {
         "#);
     }
 
-    #[test]
-    fn aliased_in_expr() {
-        assert_yaml_snapshot!(
-            parse_with_parser(r#"x = 5"#, trim_start().ignore_then(expr())).unwrap(), @r#"
-        Ident:
-          - x
-        span: "0:0-1"
-        "#);
-    }
+    // The behavior that expr() doesn't parse aliases is tested by test_tuple
 
     #[test]
     fn test_tuple() {
-        let tuple = || trim_start().ignore_then(tuple(expr()));
         assert_yaml_snapshot!(
-            parse_with_parser(r#"{a = 5, b = 6}"#, tuple()).unwrap(),
+            parse_tuple(r#"{a = 5, b = 6}"#).unwrap(),
             @r#"
         Tuple:
           - Literal:
@@ -622,12 +748,13 @@ mod tests {
               Integer: 6
             span: "0:12-13"
             alias: b
+        span: "0:0-14"
         "#);
 
         assert_debug_snapshot!(
-            parse_with_parser(r#"
+            parse_tuple(r#"
             {a = 5
-             b = 6}"#, tuple()).unwrap_err(),
+             b = 6}"#).unwrap_err(),
             @r#"
         [
             Error {
@@ -636,10 +763,8 @@ mod tests {
                     0:33-34,
                 ),
                 reason: Expected {
-                    who: Some(
-                        "new line",
-                    ),
-                    expected: "}",
+                    who: None,
+                    expected: "new line or something else",
                     found: "b",
                 },
                 hints: [],
@@ -648,7 +773,7 @@ mod tests {
         ]
         "#);
 
-        assert_yaml_snapshot!(parse_with_parser(r#"{d_str = (d | date.to_text "%Y/%m/%d")}"#, tuple()).unwrap(),
+        assert_yaml_snapshot!(parse_tuple(r#"{d_str = (d | date.to_text "%Y/%m/%d")}"#).unwrap(),
         @r#"
         Tuple:
           - Pipeline:
@@ -669,13 +794,14 @@ mod tests {
                   span: "0:14-37"
             span: "0:10-37"
             alias: d_str
+        span: "0:0-39"
         "#);
     }
 
     #[test]
     fn test_expr() {
         assert_yaml_snapshot!(
-            parse_with_parser(r#"5+5"#, trim_start().ignore_then(expr())).unwrap(),
+            parse_any_expr(r#"5+5"#).unwrap(),
              @r#"
         Binary:
           left:
@@ -694,12 +820,12 @@ mod tests {
     #[test]
     fn test_pipeline() {
         assert_yaml_snapshot!(
-            parse_with_parser(r#"
+            parse_pipeline(r#"
             (
               from artists
               derive x = 5
             )
-            "#, trim_start().ignore_then(pipeline(expr_call()))).unwrap(),
+            "#).unwrap(),
             @r#"
         Pipeline:
           exprs:
@@ -731,7 +857,7 @@ mod tests {
     #[test]
     fn test_case() {
         assert_yaml_snapshot!(
-            parse_with_parser(r#"
+            parse_case(r#"
 
         case [
 
@@ -739,32 +865,32 @@ mod tests {
             true => null
 
         ]
-            "#, trim_start().then(case(expr()))).unwrap(),
+            "#).unwrap(),
         @r#"
-        - ~
-        - Case:
-            - condition:
-                Binary:
-                  left:
-                    Ident:
-                      - nickname
-                    span: "0:30-38"
-                  op: Ne
-                  right:
-                    Literal: "Null"
-                    span: "0:42-46"
-                span: "0:30-46"
-              value:
-                Ident:
-                  - nickname
-                span: "0:50-58"
-            - condition:
-                Literal:
-                  Boolean: true
-                span: "0:72-76"
-              value:
-                Literal: "Null"
-                span: "0:80-84"
+        Case:
+          - condition:
+              Binary:
+                left:
+                  Ident:
+                    - nickname
+                  span: "0:30-38"
+                op: Ne
+                right:
+                  Literal: "Null"
+                  span: "0:42-46"
+              span: "0:30-46"
+            value:
+              Ident:
+                - nickname
+              span: "0:50-58"
+          - condition:
+              Literal:
+                Boolean: true
+              span: "0:72-76"
+            value:
+              Literal: "Null"
+              span: "0:80-84"
+        span: "0:0-95"
         "#);
     }
 
@@ -773,9 +899,7 @@ mod tests {
     #[test]
     fn should_error_01() {
         assert_debug_snapshot!(
-            parse_with_parser(r#"
-            derive {x = y z = 3}
-            "#.trim(), trim_start().ignore_then(expr_call()).then_ignore(end())).unwrap_err(),
+            parse_expr_call_complete(r#"derive {x = y z = 3}"#).unwrap_err(),
             @r###"
         "###);
     }
@@ -783,12 +907,10 @@ mod tests {
     #[test]
     fn tuple_missing_comma() {
         assert_debug_snapshot!(
-            parse_with_parser(r#"
-            {
+            parse_expr_call_complete(r#"{
               x = y
               z = 3
-            }
-            "#.trim(), trim_start().ignore_then(expr_call()).then_ignore(end())).unwrap_err(),
+            }"#).unwrap_err(),
             @r#"
         [
             Error {
@@ -797,10 +919,8 @@ mod tests {
                     0:36-37,
                 ),
                 reason: Expected {
-                    who: Some(
-                        "new line",
-                    ),
-                    expected: "}",
+                    who: None,
+                    expected: "new line or something else",
                     found: "z",
                 },
                 hints: [],
@@ -811,28 +931,10 @@ mod tests {
     }
 
     #[test]
-    fn forced_new_lines() {
-        // Not sure whether this is possible to adjust, putting a test here
-        // as a note.
-        //
-        // Check the opening new lines aren't consumed
-        assert!(parse_with_parser(
-            r#"
-            {
-            #! doc comment
-            derive x = 5
-            }
-            "#,
-            trim_start().ignore_then(tuple(expr())),
-        )
-        .is_err());
-    }
-
-    #[test]
     fn args_in_parens() {
         // Ensure function arguments allow parentheses
         assert_yaml_snapshot!(
-            parse_with_parser(r#"f (a) b"#, trim_start().ignore_then(expr_call()).then_ignore(end())).unwrap(), @r#"
+            parse_expr_call_complete(r#"f (a) b"#).unwrap(), @r#"
         FuncCall:
           name:
             Ident:
@@ -849,7 +951,7 @@ mod tests {
         "#);
 
         assert_yaml_snapshot!(
-            parse_with_parser(r#"f (a=2) b"#, trim_start().ignore_then(expr_call()).then_ignore(end())).unwrap(), @r#"
+            parse_expr_call_complete(r#"f (a=2) b"#).unwrap(), @r#"
         FuncCall:
           name:
             Ident:
@@ -867,7 +969,7 @@ mod tests {
         "#);
 
         assert_yaml_snapshot!(
-            parse_with_parser(r#"f (a b)"#, trim_start().ignore_then(expr_call()).then_ignore(end())).unwrap(), @r#"
+            parse_expr_call_complete(r#"f (a b)"#).unwrap(), @r#"
         FuncCall:
           name:
             Ident:
@@ -897,7 +999,7 @@ mod tests {
     )
     "#;
 
-        assert_yaml_snapshot!(parse_with_parser(source, trim_start().ignore_then(pipeline(expr_call()))).unwrap(), @r#"
+        assert_yaml_snapshot!(parse_pipeline(source).unwrap(), @r#"
         Pipeline:
           exprs:
             - Ident:
@@ -924,7 +1026,7 @@ mod tests {
     )
     "#;
 
-        assert_yaml_snapshot!(parse_with_parser(source, trim_start().ignore_then(pipeline(expr_call()))).unwrap(), @r#"
+        assert_yaml_snapshot!(parse_pipeline(source).unwrap(), @r#"
         Pipeline:
           exprs:
             - Ident:
@@ -944,32 +1046,5 @@ mod tests {
               span: "0:27-40"
         span: "0:5-46"
         "#);
-    }
-
-    // TODO: I think this should pass...
-    #[should_panic]
-    #[test]
-    fn pipeline_starting_with_parenthesized_alias() {
-        let with_parens = parse_with_parser(
-            r#"
-        (
-          (t = tbl)
-          select t.date
-        )"#,
-            trim_start().ignore_then(pipeline(expr_call())),
-        )
-        .unwrap();
-
-        let without_parens = parse_with_parser(
-            r#"
-        (
-          t = tbl
-          select t.date
-        )"#,
-            trim_start().ignore_then(pipeline(expr_call())),
-        )
-        .unwrap();
-
-        assert_eq!(with_parens, without_parens);
     }
 }

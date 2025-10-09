@@ -2,7 +2,6 @@ use std::fmt::Debug;
 
 use serde::Serialize;
 
-use super::parser::perror::PError;
 use crate::span::Span;
 
 /// A prqlc error. Used internally, exposed as prqlc::ErrorMessage.
@@ -21,7 +20,6 @@ pub struct Error {
 #[derive(Clone, Debug, Default)]
 pub enum ErrorSource {
     Lexer(String),
-    Parser(PError),
     #[default]
     Unknown,
     NameResolver,
