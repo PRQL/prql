@@ -1,22 +1,17 @@
 [build]
-# Use v0 symbol mangling to compress long symbol names
-# Required to avoid linker symbol length limits with complex parser generic types
-rustflags = ["-Csymbol-mangling-version=v0"]
 
 [target.wasm32-unknown-unknown]
 runner = 'wasm-bindgen-test-runner'
 
-# Note: [build] rustflags don't apply to cross-compilation targets.
-# Python bindings use cross-compilation, so we must specify v0 symbol mangling
-# for each target platform to avoid linker symbol length limits.
-
+# Use rust-lld instead of Apple's ld64 to avoid symbol length limits.
+# rust-lld handles long symbol names from complex parser generics better than ld64.
+# See: https://github.com/leptos-rs/leptos/issues/3148
 [target.aarch64-apple-darwin]
-rustflags = ["-Csymbol-mangling-version=v0"]
+linker = "rust-lld"
 
 [target.x86_64-apple-darwin]
-rustflags = ["-Csymbol-mangling-version=v0"]
+linker = "rust-lld"
 
 [target.x86_64-pc-windows-msvc]
 # https://github.com/rust-lang/rust/issues/141626#issuecomment-2919988483
 linker = "rust-lld"
-rustflags = ["-Csymbol-mangling-version=v0"]

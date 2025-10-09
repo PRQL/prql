@@ -33,6 +33,7 @@ where
         // this is the end of the file
         .then_ignore(new_line().repeated().collect::<Vec<_>>())
         .then_ignore(end())
+        .boxed()
 }
 
 fn module_contents<'a, I>() -> impl Parser<'a, I, Vec<Stmt>, ParserError<'a>> + Clone
