@@ -241,128 +241,28 @@ mod tests {
 
     use super::*;
     use crate::error::Error;
-    use crate::lexer::lr::TokenKind;
-    use chumsky::span::SimpleSpan;
+    use crate::parse_test;
 
     fn parse_module_contents(source: &str) -> Result<Vec<Stmt>, Vec<Error>> {
-        let tokens = crate::lexer::lex_source(source)?;
-        let semantic_tokens: Vec<_> = tokens
-            .0
-            .into_iter()
-            .filter(|token| !matches!(token.kind, TokenKind::Comment(_) | TokenKind::LineWrap(_)))
-            .collect();
-
-        let input = semantic_tokens
-            .as_slice()
-            .map_span(|simple_span: SimpleSpan| {
-                let start_idx = simple_span.start();
-                let end_idx = simple_span.end();
-
-                let start = semantic_tokens
-                    .get(start_idx)
-                    .map(|t| t.span.start)
-                    .unwrap_or(0);
-                let end = semantic_tokens
-                    .get(end_idx.saturating_sub(1))
-                    .map(|t| t.span.end)
-                    .unwrap_or(start);
-
-                Span {
-                    start,
-                    end,
-                    source_id: 0,
-                }
-            });
-
-        let parser = module_contents()
-            .then_ignore(new_line().repeated())
-            .then_ignore(end());
-        let (ast, errors) = parser.parse(input).into_output_errors();
-
-        if !errors.is_empty() {
-            return Err(errors.into_iter().map(Into::into).collect());
-        }
-        Ok(ast.unwrap())
+        parse_test(
+            source,
+            module_contents()
+                .then_ignore(new_line().repeated())
+                .then_ignore(end())
+        )
     }
 
     fn parse_var_def(source: &str) -> Result<StmtKind, Vec<Error>> {
-        let tokens = crate::lexer::lex_source(source)?;
-        let semantic_tokens: Vec<_> = tokens
-            .0
-            .into_iter()
-            .filter(|token| !matches!(token.kind, TokenKind::Comment(_) | TokenKind::LineWrap(_)))
-            .collect();
-
-        let input = semantic_tokens
-            .as_slice()
-            .map_span(|simple_span: SimpleSpan| {
-                let start_idx = simple_span.start();
-                let end_idx = simple_span.end();
-
-                let start = semantic_tokens
-                    .get(start_idx)
-                    .map(|t| t.span.start)
-                    .unwrap_or(0);
-                let end = semantic_tokens
-                    .get(end_idx.saturating_sub(1))
-                    .map(|t| t.span.end)
-                    .unwrap_or(start);
-
-                Span {
-                    start,
-                    end,
-                    source_id: 0,
-                }
-            });
-
-        let parser = var_def()
-            .then_ignore(new_line().repeated())
-            .then_ignore(end());
-        let (ast, errors) = parser.parse(input).into_output_errors();
-
-        if !errors.is_empty() {
-            return Err(errors.into_iter().map(Into::into).collect());
-        }
-        Ok(ast.unwrap())
+        parse_test(
+            source,
+            var_def()
+                .then_ignore(new_line().repeated())
+                .then_ignore(end())
+        )
     }
 
     fn parse_module_contents_complete(source: &str) -> Result<Vec<Stmt>, Vec<Error>> {
-        let tokens = crate::lexer::lex_source(source)?;
-        let semantic_tokens: Vec<_> = tokens
-            .0
-            .into_iter()
-            .filter(|token| !matches!(token.kind, TokenKind::Comment(_) | TokenKind::LineWrap(_)))
-            .collect();
-
-        let input = semantic_tokens
-            .as_slice()
-            .map_span(|simple_span: SimpleSpan| {
-                let start_idx = simple_span.start();
-                let end_idx = simple_span.end();
-
-                let start = semantic_tokens
-                    .get(start_idx)
-                    .map(|t| t.span.start)
-                    .unwrap_or(0);
-                let end = semantic_tokens
-                    .get(end_idx.saturating_sub(1))
-                    .map(|t| t.span.end)
-                    .unwrap_or(start);
-
-                Span {
-                    start,
-                    end,
-                    source_id: 0,
-                }
-            });
-
-        let parser = module_contents().then_ignore(end());
-        let (ast, errors) = parser.parse(input).into_output_errors();
-
-        if !errors.is_empty() {
-            return Err(errors.into_iter().map(Into::into).collect());
-        }
-        Ok(ast.unwrap())
+        parse_test(source, module_contents().then_ignore(end()))
     }
 
     #[test]

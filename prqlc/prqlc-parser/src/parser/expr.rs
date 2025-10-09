@@ -606,65 +606,26 @@ where
 
 #[cfg(test)]
 mod tests {
-
     use insta::{assert_debug_snapshot, assert_yaml_snapshot};
 
     use super::*;
     use crate::error::Error;
-    use chumsky::span::SimpleSpan;
-
-    // Macro to eliminate test helper boilerplate
-    macro_rules! parse_test {
-        ($source:expr, $parser:expr) => {{
-            let tokens = crate::lexer::lex_source($source)?;
-            let semantic_tokens: Vec<_> = tokens
-                .0
-                .into_iter()
-                .filter(|t| !matches!(t.kind, TokenKind::Comment(_) | TokenKind::LineWrap(_)))
-                .collect();
-            let input = semantic_tokens
-                .as_slice()
-                .map_span(|simple_span: SimpleSpan| {
-                    let start_idx = simple_span.start();
-                    let end_idx = simple_span.end();
-
-                    let start = semantic_tokens
-                        .get(start_idx)
-                        .map(|t| t.span.start)
-                        .unwrap_or(0);
-                    let end = semantic_tokens
-                        .get(end_idx.saturating_sub(1))
-                        .map(|t| t.span.end)
-                        .unwrap_or(start);
-
-                    Span {
-                        start,
-                        end,
-                        source_id: 0,
-                    }
-                });
-            let (ast, errors) = $parser.parse(input).into_output_errors();
-            if !errors.is_empty() {
-                return Err(errors.into_iter().map(Into::into).collect());
-            }
-            Ok(ast.unwrap())
-        }};
-    }
+    use crate::parser::test::parse_test;
 
     fn parse_expr_call(source: &str) -> Result<Expr, Vec<Error>> {
-        parse_test!(
+        parse_test(
             source,
             new_line()
                 .repeated()
                 .collect::<Vec<_>>()
                 .ignore_then(expr_call())
                 .then_ignore(new_line().repeated())
-                .then_ignore(end())
+                .then_ignore(end()),
         )
     }
 
     fn parse_tuple(source: &str) -> Result<Expr, Vec<Error>> {
-        parse_test!(
+        parse_test(
             source,
             new_line()
                 .repeated()
@@ -677,7 +638,7 @@ mod tests {
     }
 
     fn parse_any_expr(source: &str) -> Result<Expr, Vec<Error>> {
-        parse_test!(
+        parse_test(
             source,
             new_line()
                 .repeated()
@@ -687,7 +648,7 @@ mod tests {
     }
 
     fn parse_pipeline(source: &str) -> Result<Expr, Vec<Error>> {
-        parse_test!(
+        parse_test(
             source,
             new_line()
                 .repeated()
@@ -699,7 +660,7 @@ mod tests {
     }
 
     fn parse_case(source: &str) -> Result<Expr, Vec<Error>> {
-        parse_test!(
+        parse_test(
             source,
             new_line()
                 .repeated()
@@ -712,7 +673,7 @@ mod tests {
     }
 
     fn parse_expr_call_complete(source: &str) -> Result<Expr, Vec<Error>> {
-        parse_test!(
+        parse_test(
             source,
             new_line()
                 .repeated()

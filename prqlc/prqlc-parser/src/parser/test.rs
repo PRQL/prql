@@ -5,57 +5,66 @@ use insta::assert_yaml_snapshot;
 
 use super::pr::{Expr, FuncCall};
 use crate::error::Error;
+use crate::lexer::lr;
 use crate::span::Span;
 
+/// Macro to eliminate test helper boilerplate.
+/// Converts source code to the parsed input format that our parsers expect.
+#[macro_export]
+macro_rules! parse_test {
+    ($source:expr, $parser:expr) => {{
+        let tokens = crate::lexer::lex_source($source)?;
+        let semantic_tokens: Vec<_> = tokens
+            .0
+            .into_iter()
+            .filter(|token| {
+                !matches!(
+                    token.kind,
+                    crate::lexer::lr::TokenKind::Comment(_)
+                        | crate::lexer::lr::TokenKind::LineWrap(_)
+                )
+            })
+            .collect();
+
+        let input =
+            semantic_tokens
+                .as_slice()
+                .map_span(|simple_span: chumsky::span::SimpleSpan| {
+                    let start_idx = simple_span.start();
+                    let end_idx = simple_span.end();
+
+                    let start = semantic_tokens
+                        .get(start_idx)
+                        .map(|t| t.span.start)
+                        .unwrap_or(0);
+                    let end = semantic_tokens
+                        .get(end_idx.saturating_sub(1))
+                        .map(|t| t.span.end)
+                        .unwrap_or(start);
+
+                    crate::span::Span {
+                        start,
+                        end,
+                        source_id: 0,
+                    }
+                });
+
+        let (ast, errors) = $parser.parse(input).into_output_errors();
+        if !errors.is_empty() {
+            return Err(errors.into_iter().map(Into::into).collect());
+        }
+        Ok(ast.unwrap())
+    }};
+}
+
 fn parse_expr(source: &str) -> Result<Expr, Vec<Error>> {
-    let tokens = crate::lexer::lex_source(source)?;
-
-    // Filter out comments
-    let semantic_tokens: Vec<_> = tokens
-        .0
-        .into_iter()
-        .filter(|token| {
-            !matches!(
-                token.kind,
-                crate::lexer::lr::TokenKind::Comment(_) | crate::lexer::lr::TokenKind::LineWrap(_)
-            )
-        })
-        .collect();
-
-    let input = semantic_tokens
-        .as_slice()
-        .map_span(|simple_span: SimpleSpan| {
-            let start_idx = simple_span.start();
-            let end_idx = simple_span.end();
-
-            let start = semantic_tokens
-                .get(start_idx)
-                .map(|t| t.span.start)
-                .unwrap_or(0);
-            let end = semantic_tokens
-                .get(end_idx.saturating_sub(1))
-                .map(|t| t.span.end)
-                .unwrap_or(start);
-
-            Span {
-                start,
-                end,
-                source_id: 0,
-            }
-        });
-
-    let parser = super::new_line()
-        .repeated()
-        .collect::<Vec<_>>()
-        .ignore_then(super::expr::expr_call());
-    let parse_result = parser.parse(input);
-    let (ast, parse_errors) = parse_result.into_output_errors();
-
-    if !parse_errors.is_empty() {
-        log::info!("ast: {ast:?}");
-        return Err(parse_errors.into_iter().map(|e| e.into()).collect());
-    }
-    Ok(ast.unwrap())
+    parse_test!(
+        source,
+        super::new_line()
+            .repeated()
+            .collect::<Vec<_>>()
+            .ignore_then(super::expr::expr_call())
+    )
 }
 
 #[test]
