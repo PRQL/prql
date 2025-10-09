@@ -125,6 +125,18 @@ mod tests {
             end: 5,
             source_id: 0,
         }));
-        assert_debug_snapshot!(error2);
+        assert_debug_snapshot!(error2, @r#"
+        Error {
+            kind: Error,
+            span: Some(
+                0:0-5,
+            ),
+            reason: Simple(
+                "another error",
+            ),
+            hints: [],
+            code: None,
+        }
+        "#);
     }
 }
