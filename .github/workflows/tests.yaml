@@ -666,12 +666,6 @@ jobs:
           - os: windows-latest
             target: x86_64-pc-windows-msvc
             features: default
-    # We need consistent env vars across all workflows for the cache to work
-    env:
-      CARGO_TERM_COLOR: always
-      CLICOLOR_FORCE: 1
-      RUSTFLAGS: "-C debuginfo=0"
-      RUSTDOCFLAGS: "-Dwarnings"
     steps:
       - name: 📂 Checkout code
         uses: actions/checkout@v5
@@ -680,6 +674,12 @@ jobs:
           target: ${{ matrix.target }}
           profile: dev
           features: ${{ matrix.features }}
+    # We need consistent env vars across all workflows for the cache to work
+    env:
+      CARGO_TERM_COLOR: always
+      CLICOLOR_FORCE: 1
+      RUSTFLAGS: "-C debuginfo=0"
+      RUSTDOCFLAGS: "-Dwarnings"
 
   build-prqlc-c:
     runs-on: ${{ matrix.os }}
@@ -699,12 +699,6 @@ jobs:
           - os: windows-latest
             target: x86_64-pc-windows-msvc
             features: default
-    # We need consistent env vars across all workflows for the cache to work
-    env:
-      CARGO_TERM_COLOR: always
-      CLICOLOR_FORCE: 1
-      RUSTFLAGS: "-C debuginfo=0"
-      RUSTDOCFLAGS: "-Dwarnings"
     steps:
       - name: 📂 Checkout code
         uses: actions/checkout@v5
@@ -713,6 +707,12 @@ jobs:
           target: ${{ matrix.target }}
           profile: dev
           features: ${{ matrix.features }}
+    # We need consistent env vars across all workflows for the cache to work
+    env:
+      CARGO_TERM_COLOR: always
+      CLICOLOR_FORCE: 1
+      RUSTFLAGS: "-C debuginfo=0"
+      RUSTDOCFLAGS: "-Dwarnings"
 
   create-issue-on-nightly-failure:
     runs-on: ubuntu-24.04

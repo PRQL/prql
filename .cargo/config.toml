@@ -1,4 +1,6 @@
-[build]
-
 [target.wasm32-unknown-unknown]
 runner = 'wasm-bindgen-test-runner'
+
+[target.x86_64-pc-windows-msvc]
+# https://github.com/rust-lang/rust/issues/141626#issuecomment-2919988483
+linker = "rust-lld"
