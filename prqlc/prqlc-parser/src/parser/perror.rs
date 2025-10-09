@@ -108,7 +108,7 @@ impl<'a> From<Rich<'a, TokenKind, Span>> for Error {
 mod tests {
     use insta::{assert_debug_snapshot, assert_snapshot};
 
-    use crate::error::{Error, Errors, WithErrorInfo};
+    use crate::error::{Error, WithErrorInfo};
 
     // Helper function to create a simple Error object
     fn simple_error(message: &str) -> Error {

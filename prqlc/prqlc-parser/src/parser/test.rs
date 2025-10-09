@@ -1,27 +1,29 @@
-use chumsky;
-use chumsky::prelude::*;
-use chumsky::span::SimpleSpan;
 use insta::assert_yaml_snapshot;
 
 use super::pr::{Expr, FuncCall};
 use crate::error::Error;
-use crate::lexer::lr;
-use crate::span::Span;
 
 /// Macro to eliminate test helper boilerplate.
 /// Converts source code to the parsed input format that our parsers expect.
 #[macro_export]
 macro_rules! parse_test {
     ($source:expr, $parser:expr) => {{
-        let tokens = crate::lexer::lex_source($source)?;
+        #[allow(unused_imports)]
+        use chumsky::input::Input as _;
+        #[allow(unused_imports)]
+        use chumsky::IterParser as _;
+        #[allow(unused_imports)]
+        use chumsky::Parser as _;
+
+        let tokens = $crate::lexer::lex_source($source)?;
         let semantic_tokens: Vec<_> = tokens
             .0
             .into_iter()
             .filter(|token| {
                 !matches!(
                     token.kind,
-                    crate::lexer::lr::TokenKind::Comment(_)
-                        | crate::lexer::lr::TokenKind::LineWrap(_)
+                    $crate::lexer::lr::TokenKind::Comment(_)
+                        | $crate::lexer::lr::TokenKind::LineWrap(_)
                 )
             })
             .collect();
@@ -30,8 +32,8 @@ macro_rules! parse_test {
             semantic_tokens
                 .as_slice()
                 .map_span(|simple_span: chumsky::span::SimpleSpan| {
-                    let start_idx = simple_span.start();
-                    let end_idx = simple_span.end();
+                    let start_idx = simple_span.start;
+                    let end_idx = simple_span.end;
 
                     let start = semantic_tokens
                         .get(start_idx)
@@ -42,7 +44,7 @@ macro_rules! parse_test {
                         .map(|t| t.span.end)
                         .unwrap_or(start);
 
-                    crate::span::Span {
+                    $crate::span::Span {
                         start,
                         end,
                         source_id: 0,
