@@ -20,3 +20,5 @@ uery = "uery"
 # `wee-alloc` is a crate name
 wee = "wee"
 flate = "flate"
+# distinct_ons is correct (SQL DISTINCT ON)
+ons = "ons"
