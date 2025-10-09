@@ -22,8 +22,48 @@ pub(crate) fn parse(string: String, span_base: Span) -> Result<Vec<InterpolateIt
                     source_id: span_base.source_id,
                 };
 
-                // Use the error's default Display implementation
-                Error::new_simple(e.to_string()).with_span(Some(span))
+                // Convert Rich error to our Error format
+                // Custom error formatting for consistent user experience across all PRQL errors.
+                // Chumsky's default format varies between versions and doesn't match our
+                // "{label} expected {X}, but found {Y}" pattern used elsewhere.
+                let message = {
+                    // Get the label from contexts (most specific one)
+                    let label = e.contexts().last().map(|(pat, _)| pat.to_string());
+
+                    // Build expected list
+                    let expected: Vec<_> = e.expected().map(|e| format!("{e}")).collect();
+                    let expected_str = match expected.len() {
+                        0 => String::new(),
+                        1 => expected[0].clone(),
+                        2 => format!("{} or {}", expected[0], expected[1]),
+                        _ => format!(
+                            "{}, or {}",
+                            expected[..expected.len() - 1].join(", "),
+                            expected.last().unwrap()
+                        ),
+                    };
+
+                    // Format the found token consistently: quote actual tokens, but not "end of input"
+                    let found = if let Some(f) = e.found() {
+                        format!("\"{}\"", f)
+                    } else {
+                        "end of input".to_string()
+                    };
+
+                    if let Some(label) = label {
+                        if expected_str.is_empty() {
+                            format!("unexpected {found}")
+                        } else {
+                            format!("{label} expected {expected_str}, but found {found}")
+                        }
+                    } else if expected_str.is_empty() {
+                        format!("unexpected {found}")
+                    } else {
+                        format!("expected {expected_str}, but found {found}")
+                    }
+                };
+
+                Error::new_simple(message).with_span(Some(span))
             })
             .collect());
     }

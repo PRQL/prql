@@ -344,7 +344,7 @@ fn empty_interpolations() {
        │
      1 │ from x | select f"{}"
        │                    ┬
-       │                    ╰── found '}' expected interpolated string variable, or '{'
+       │                    ╰── expected interpolated string variable or '{', but found "}"
     ───╯
     "#);
 }
