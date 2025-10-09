@@ -28,6 +28,10 @@
     {
       "pattern": "^https://invent.kde.org",
       "_comment": "Blocking automated requests from GitHub Actions with 403s."
+    },
+    {
+      "pattern": "^https://news.ycombinator.com",
+      "_comment": "Blocking automated requests from GitHub Actions with 403s."
     }
   ],
   "httpHeaders": [
