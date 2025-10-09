@@ -25,6 +25,11 @@ jobs:
     strategy:
       matrix:
         os: ${{ fromJSON(inputs.oss) }}
+    env:
+      # macOS linker has symbol length limits that Chumsky's generic types can exceed
+      # Use v0 symbol mangling to compress symbol names
+      # See: https://github.com/rust-lang/rust/issues/141626
+      RUSTFLAGS: ${{ startsWith(matrix.os, 'macos') && '-C debuginfo=0 -Csymbol-mangling-version=v0' || '-C debuginfo=0' }}
     steps:
       - name: Checkout code
         uses: actions/checkout@v5

@@ -58,6 +58,11 @@ jobs:
           - os: macos-13
             target: x86_64-apple-darwin
             features: default,test-dbs
+    env:
+      # macOS linker has symbol length limits that Chumsky's generic types can exceed
+      # Use v0 symbol mangling to compress symbol names
+      # See: https://github.com/rust-lang/rust/issues/141626
+      RUSTFLAGS: ${{ startsWith(matrix.os, 'macos') && '-C debuginfo=0 -Csymbol-mangling-version=v0' || '-C debuginfo=0' }}
     permissions:
       contents: write
     steps:
@@ -105,6 +110,11 @@ jobs:
             target: aarch64-apple-darwin
           - os: windows-latest
             target: x86_64-pc-windows-msvc
+    env:
+      # macOS linker has symbol length limits that Chumsky's generic types can exceed
+      # Use v0 symbol mangling to compress symbol names
+      # See: https://github.com/rust-lang/rust/issues/141626
+      RUSTFLAGS: ${{ startsWith(matrix.os, 'macos') && '-C debuginfo=0 -Csymbol-mangling-version=v0' || '-C debuginfo=0' }}
     permissions:
       contents: write
     steps:
@@ -293,6 +303,11 @@ jobs:
           - os: ubuntu-24.04
             package: prqlc-python
             target: source
+    env:
+      # macOS linker has symbol length limits that Chumsky's generic types can exceed
+      # Use v0 symbol mangling to compress symbol names
+      # See: https://github.com/rust-lang/rust/issues/141626
+      RUSTFLAGS: ${{ startsWith(matrix.os, 'macos') && '-C debuginfo=0 -Csymbol-mangling-version=v0' || '-C debuginfo=0' }}
     steps:
       - name: 📂 Checkout code
         uses: actions/checkout@v5
