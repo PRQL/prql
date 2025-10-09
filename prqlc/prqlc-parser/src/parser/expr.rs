@@ -24,10 +24,11 @@ where
     let expr = expr();
 
     choice((
-        lambda_func(expr.clone()),
-        func_call(expr.clone()),
-        pipeline(expr),
+        lambda_func(expr.clone()).boxed(),
+        func_call(expr.clone()).boxed(),
+        pipeline(expr).boxed(),
     ))
+    .boxed()
 }
 
 pub(crate) fn expr<'a, I>() -> impl Parser<'a, I, Expr, ParserError<'a>> + Clone
@@ -192,6 +193,7 @@ where
         )
         .map(ExprKind::Tuple)
         .labelled("tuple")
+        .boxed()
 }
 
 fn array<'a, I>(
@@ -214,6 +216,7 @@ where
         )
         .map(ExprKind::Array)
         .labelled("array")
+        .boxed()
 }
 
 fn interpolation<'a, I>() -> impl Parser<'a, I, ExprKind, ParserError<'a>> + Clone
@@ -476,6 +479,7 @@ where
         )
         .map_with(|kind, extra| ExprKind::into_expr(kind, extra.span()))
         .labelled("function call")
+        .boxed()
 }
 
 fn lambda_func<'a, I, E>(expr: E) -> impl Parser<'a, I, Expr, ParserError<'a>> + Clone + 'a
@@ -526,6 +530,7 @@ where
     .map(ExprKind::Func)
     .map_with(|kind, extra| ExprKind::into_expr(kind, extra.span()))
     .labelled("function definition")
+    .boxed()
 }
 
 pub(crate) fn ident<'a, I>() -> impl Parser<'a, I, Ident, ParserError<'a>> + Clone

@@ -158,6 +158,7 @@ where
         .map(|kind| (Vec::new(), kind))
         .map_with(|(annotations, kind), extra| into_stmt((annotations, kind), extra.span()))
         .labelled("query header")
+        .boxed()
 }
 
 /// A variable definition could be any of:
@@ -211,7 +212,7 @@ where
             })
         });
 
-    let_.or(main_or_into)
+    let_.or(main_or_into).boxed()
 }
 
 fn type_def<'a, I>() -> impl Parser<'a, I, StmtKind, ParserError<'a>> + Clone

@@ -2,18 +2,3 @@
 
 [target.wasm32-unknown-unknown]
 runner = 'wasm-bindgen-test-runner'
-
-# Use rust-lld to handle long symbol names from Chumsky's generic types.
-# rust-lld on macOS uses the ld64.lld backend, which supports Python extension
-# module requirements (-undefined dynamic_lookup) as of LLVM 12+.
-# See: https://github.com/rust-lang/rust/issues/141626#issuecomment-2919988483
-# See: https://github.com/PRQL/prql/blob/chumsky-10-parser/ISSUE.md
-
-[target.x86_64-pc-windows-msvc]
-linker = "rust-lld"
-
-[target.aarch64-apple-darwin]
-linker = "rust-lld"
-
-[target.x86_64-apple-darwin]
-linker = "rust-lld"
