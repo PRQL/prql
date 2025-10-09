@@ -8,22 +8,68 @@
 
 **Fixes**:
 
-- `sort` step before an `aggregate` step no longer requires its columns in order
-  to avoid a group by clause error. (@julien-pinchelimouroux, #5347)
-
 **Documentation**:
 
 **Web**:
 
 **Integrations**:
 
-- TEA 63.3.1, a Qt-based text editor has syntax syntax highlighting for PRQL.
-  (@vanillajonathan)
-
 **Internal changes**:
 
 **New Contributors**:
 
+## 0.13.5 — 2025-10-09
+
+0.13.5 has 237 commits from 14 contributors. Selected changes:
+
+**Features**:
+
+- Support for SQL arrays as `s[...]` syntax (@Robert Valek, #5312)
+- Extract SQL column names from s-string tables when possible (@lukapeschke,
+  #5310)
+
+**Fixes**:
+
+- Sort step before an aggregate step no longer requires its columns to avoid a
+  group by clause error (@julien-pinchelimouroux, #5347)
+- Always add quotes on identifiers for Snowflake dialect
+  (@julien-pinchelimouroux, #5461)
+- Join with table containing column named "source" now works correctly (@Priit
+  Haamer, #5468)
+- Columns required by sorting are properly redirected (@lukapeschke, #5464)
+- Ensure sorts are done on columns of the right table (@lukapeschke, #5338)
+- Deduplicate selected items in gen_projection (@lukapeschke, #5305)
+- Handle complex append cases (@Elouan Poupard-Cosquer, #5366)
+- Improve requirement logic (@Elouan Poupard-Cosquer, #5357)
+- Avoid type mismatch with Postgres in append (@Elouan Poupard-Cosquer, #5343)
+- Apply column order on CTEs in append (@Elouan Poupard-Cosquer, #5323)
+
+**Documentation**:
+
+- Fix binary literal example (@ftsfranklin, #5475)
+- Use correct table in grouping tutorial (@fnuttens, #5332)
+
+**Integrations**:
+
+- TEA 63.3.1, a Qt-based text editor has syntax highlighting for PRQL
+  (@vanillajonathan, #5220)
+- Micro text editor grammar is now upstream (@vanillajonathan, #5353)
+- Add LSP stub (@vanillajonathan, #5197)
+
+**Internal changes**:
+
+- Upgrade parser and lexer to chumsky 0.11, providing a 7x performance
+  improvement (#5223, #5476, #5477)
+- Set Rust linker on win64, fix build crash (@kgutwin, #5345)
+- Integration tests compile all dialects and diff (@kgutwin, #5344)
+
+**New Contributors**:
+
+- @Elouan Poupard-Cosquer, with #5366
+- @Priit Haamer, with #5468
+- @Robert Valek, with #5312
+- @fnuttens, with #5332
+- @ftsfranklin, with #5475
 - @julien-pinchelimouroux, with #5347
 
 ## 0.13.4 — 2025-03-26
