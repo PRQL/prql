@@ -1,0 +1,9 @@
+# Python bindings need the system linker on macOS because maturin passes
+# macOS-specific linker flags (-Wl,-install_name) that rust-lld doesn't understand.
+# This overrides the workspace config to use the system linker (ld64/clang).
+
+[target.aarch64-apple-darwin]
+linker = "cc"
+
+[target.x86_64-apple-darwin]
+linker = "cc"

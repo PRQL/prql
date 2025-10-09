@@ -330,6 +330,7 @@ where
             }
         }
     })
+    .boxed()
 }
 
 /// A pipeline of `expr`, separated by pipes. Doesn't require parentheses.
