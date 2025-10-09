@@ -28,10 +28,6 @@
     {
       "pattern": "^https://invent.kde.org",
       "_comment": "Blocking automated requests from GitHub Actions with 403s."
-    },
-    {
-      "pattern": "^https://github.com/aljazerzen/dotfiles/blob/.*/scripts/tt$",
-      "_comment": "Old blog post references to specific commits that no longer exist (404s)."
     }
   ],
   "httpHeaders": [
