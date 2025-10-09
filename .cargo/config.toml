@@ -6,6 +6,14 @@ rustflags = ["-Csymbol-mangling-version=v0"]
 [target.wasm32-unknown-unknown]
 runner = 'wasm-bindgen-test-runner'
 
+# macOS targets need v0 symbol mangling for Python bindings cross-compilation
+[target.aarch64-apple-darwin]
+rustflags = ["-Csymbol-mangling-version=v0"]
+
+[target.x86_64-apple-darwin]
+rustflags = ["-Csymbol-mangling-version=v0"]
+
 [target.x86_64-pc-windows-msvc]
 # https://github.com/rust-lang/rust/issues/141626#issuecomment-2919988483
 linker = "rust-lld"
+rustflags = ["-Csymbol-mangling-version=v0"]
