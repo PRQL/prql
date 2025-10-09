@@ -5,15 +5,6 @@ runner = 'wasm-bindgen-test-runner'
 
 # Use rust-lld to handle long symbol names from Chumsky's generic types
 # See: https://github.com/rust-lang/rust/issues/141626#issuecomment-2919988483
-#
-# Note: Python bindings override this in prqlc/bindings/prqlc-python/.cargo/config.toml
-# because maturin requires macOS-specific linker flags that rust-lld doesn't support.
 
 [target.x86_64-pc-windows-msvc]
-linker = "rust-lld"
-
-[target.aarch64-apple-darwin]
-linker = "rust-lld"
-
-[target.x86_64-apple-darwin]
 linker = "rust-lld"
