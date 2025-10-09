@@ -6115,6 +6115,55 @@ fn test_sort_cast_filter_join_select() {
     ")
 }
 
+/// Ensures that the sort happens on `table1`.`artist_id` and not on `table2`.`artist_id`
+#[test]
+fn test_sort_filter_derive_join_select() {
+    assert_snapshot!(compile(r###"
+    from albums
+    sort this.`artist_id`
+    filter (this.`artist_id` != null)
+    derive { `artist_id` = as `double precision` this.`artist_id` }
+    join side:left (from artists
+        select {`artist_id_right` = this.`artist_id`}
+    ) (this.`artist_id` == that.`artist_id_right`)
+    select {this.`artist_id`, this.`title`}
+    "###
+    ).unwrap(), @r"
+    WITH table_2 AS (
+      SELECT
+        CAST(artist_id AS double precision) AS artist_id,
+        title,
+        artist_id AS _expr_0
+      FROM
+        albums
+      WHERE
+        artist_id IS NOT NULL
+    ),
+    table_1 AS (
+      SELECT
+        artist_id,
+        title,
+        _expr_0
+      FROM
+        table_2
+    ),
+    table_0 AS (
+      SELECT
+        artist_id AS artist_id_right
+      FROM
+        artists
+    )
+    SELECT
+      table_1.artist_id,
+      table_1.title
+    FROM
+      table_1
+      LEFT OUTER JOIN table_0 ON table_1.artist_id = table_0.artist_id_right
+    ORDER BY
+      table_1._expr_0
+    ")
+}
+
 /// Ensures that the sort happens on `table0`.`artist_id` and not on `table0`.`double_artist_id`
 #[test]
 fn test_sort_cast_filter_join_select_with_alias() {

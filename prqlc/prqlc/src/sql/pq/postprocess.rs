@@ -209,15 +209,26 @@ impl PqFold for SortingInference<'_> {
                             cid_redirects_to_add.push((*old_cid, new_cid, col));
                         }
 
-                        let riid = RIId::from(cte.tid.get());
-                        let relation_instance =
-                            self.ctx.anchor.relation_instances.get_mut(&riid).unwrap();
+                        let (riid, relation_instance) = self
+                            .ctx
+                            .anchor
+                            .relation_instances
+                            .iter_mut()
+                            .find(|(_riid, rel_inst)| rel_inst.table_ref.source == cte.tid)
+                            .unwrap();
 
                         cid_redirects_to_add
                             .into_iter()
                             .for_each(|(old_cid, new_cid, col)| {
-                                let def = ColumnDecl::RelationColumn(riid, new_cid, col);
+                                let def = ColumnDecl::RelationColumn(*riid, new_cid, col);
+
                                 self.ctx.anchor.column_decls.insert(new_cid, def);
+                                log::debug!(
+                                    "-- redirecting {old_cid:?} to {new_cid:?} for CTE {cte:?} (RIId: {riid:?})",
+                                    cte = cte.tid,
+                                    riid = riid
+                                );
+
                                 relation_instance.cid_redirects.insert(old_cid, new_cid);
                             });
                     }
