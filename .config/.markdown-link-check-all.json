@@ -16,6 +16,22 @@
     {
       "pattern": "^https://benn.substack.com",
       "_comment": "Frequently giving 403s. Can be removed if it starts working again."
+    },
+    {
+      "pattern": "^https://stackoverflow.com",
+      "_comment": "Blocking automated requests from GitHub Actions with 403s."
+    },
+    {
+      "pattern": "^https://www.npmjs.com",
+      "_comment": "Blocking automated requests from GitHub Actions with 403s."
+    },
+    {
+      "pattern": "^https://invent.kde.org",
+      "_comment": "Blocking automated requests from GitHub Actions with 403s."
+    },
+    {
+      "pattern": "^https://news.ycombinator.com",
+      "_comment": "Blocking automated requests from GitHub Actions with 403s."
     }
   ],
   "httpHeaders": [
