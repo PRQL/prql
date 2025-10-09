@@ -26,9 +26,12 @@ jobs:
       matrix:
         os: ${{ fromJSON(inputs.oss) }}
     env:
-      # macOS linker has symbol length limits that Chumsky's generic types can exceed
-      # Use v0 symbol mangling to compress symbol names
-      # See: https://github.com/rust-lang/rust/issues/141626
+      # Python bindings need system linker (cc) on macOS because maturin passes
+      # linker flags with -Wl, prefix that rust-lld doesn't understand.
+      # Also need v0 symbol mangling to reduce symbol lengths for ld64's hard limits.
+      # See: ISSUE.md for details
+      CARGO_TARGET_AARCH64_APPLE_DARWIN_LINKER: ${{ startsWith(matrix.os, 'macos') && 'cc' || '' }}
+      CARGO_TARGET_X86_64_APPLE_DARWIN_LINKER: ${{ startsWith(matrix.os, 'macos') && 'cc' || '' }}
       RUSTFLAGS: ${{ startsWith(matrix.os, 'macos') && '-C debuginfo=0 -Csymbol-mangling-version=v0' || '-C debuginfo=0' }}
     steps:
       - name: 📂 Checkout code
