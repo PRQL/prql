@@ -1,0 +1,15 @@
+---
+source: prqlc/prqlc-parser/src/parser/perror.rs
+expression: error2
+---
+Error {
+    kind: Error,
+    span: Some(
+        0:0-5,
+    ),
+    reason: Simple(
+        "another error",
+    ),
+    hints: [],
+    code: None,
+}

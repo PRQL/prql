@@ -361,11 +361,9 @@ mod tests {
                 span: Some(
                     0:0-73,
                 ),
-                reason: Expected {
-                    who: None,
-                    expected: "one of import statement, module definition, new line, pipeline, something else, type definition or variable definition",
-                    found: "end of input",
-                },
+                reason: Simple(
+                    "Expected one of import statement, module definition, new line, pipeline, something else, type definition or variable definition, but didn't find anything before the end.",
+                ),
                 hints: [],
                 code: None,
             },
