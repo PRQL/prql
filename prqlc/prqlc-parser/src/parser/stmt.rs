@@ -244,7 +244,7 @@ mod tests {
     use crate::parse_test;
 
     fn parse_module_contents(source: &str) -> Result<Vec<Stmt>, Vec<Error>> {
-        parse_test(
+        parse_test!(
             source,
             module_contents()
                 .then_ignore(new_line().repeated())
@@ -253,7 +253,7 @@ mod tests {
     }
 
     fn parse_var_def(source: &str) -> Result<StmtKind, Vec<Error>> {
-        parse_test(
+        parse_test!(
             source,
             var_def()
                 .then_ignore(new_line().repeated())
@@ -262,7 +262,7 @@ mod tests {
     }
 
     fn parse_module_contents_complete(source: &str) -> Result<Vec<Stmt>, Vec<Error>> {
-        parse_test(source, module_contents().then_ignore(end()))
+        parse_test!(source, module_contents().then_ignore(end()))
     }
 
     #[test]
