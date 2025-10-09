@@ -3,13 +3,17 @@
 [target.wasm32-unknown-unknown]
 runner = 'wasm-bindgen-test-runner'
 
-# Note: We cannot use rust-lld on macOS because:
-# 1. Python bindings use macOS-specific linker flags that rust-lld doesn't support
-# 2. Even with that, the system linker still crashes with symbol length limits
+# Use rust-lld to handle long symbol names from Chumsky's generic types
+# See: https://github.com/rust-lang/rust/issues/141626#issuecomment-2919988483
 #
-# Symbol length issues are mitigated by strategic boxing in parser code.
-# See: https://github.com/leptos-rs/leptos/issues/3148
+# Note: Python bindings override this in prqlc/bindings/prqlc-python/.cargo/config.toml
+# because maturin requires macOS-specific linker flags that rust-lld doesn't support.
 
 [target.x86_64-pc-windows-msvc]
-# https://github.com/rust-lang/rust/issues/141626#issuecomment-2919988483
+linker = "rust-lld"
+
+[target.aarch64-apple-darwin]
+linker = "rust-lld"
+
+[target.x86_64-apple-darwin]
 linker = "rust-lld"
