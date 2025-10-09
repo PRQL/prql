@@ -1,9 +1,15 @@
 # Python bindings need the system linker on macOS because maturin passes
 # macOS-specific linker flags (-Wl,-install_name) that rust-lld doesn't understand.
 # This overrides the workspace config to use the system linker (ld64/clang).
+#
+# macOS ld64 has hard symbol length limits that Chumsky's deeply nested generic types
+# can exceed. We use v0 symbol mangling to compress symbol names as a mitigation.
+# See: https://github.com/rust-lang/rust/issues/141626
 
 [target.aarch64-apple-darwin]
 linker = "cc"
+rustflags = ["-Csymbol-mangling-version=v0"]
 
 [target.x86_64-apple-darwin]
 linker = "cc"
+rustflags = ["-Csymbol-mangling-version=v0"]
