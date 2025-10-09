@@ -3,27 +3,24 @@ source: prqlc/prqlc/tests/integration/queries.rs
 expression: "# mssql:test\nlet distinct = rel -> (from t = _param.rel | group {t.*} (take 1))\n\nfrom_text format:json '{ \"columns\": [\"a\"], \"data\": [[1], [2], [2], [3]] }'\ndistinct\nremove (from_text format:json '{ \"columns\": [\"a\"], \"data\": [[1], [2]] }')\nsort a\n"
 input_file: prqlc/prqlc/tests/integration/queries/set_ops_remove.prql
 ---
-WITH table_0 AS (
+WITH
+table_0 AS (
   SELECT
     1 AS a
-  UNION
-  ALL
+  UNION ALL
   SELECT
     2 AS a
-  UNION
-  ALL
+  UNION ALL
   SELECT
     2 AS a
-  UNION
-  ALL
+  UNION ALL
   SELECT
     3 AS a
 ),
 table_1 AS (
   SELECT
     1 AS a
-  UNION
-  ALL
+  UNION ALL
   SELECT
     2 AS a
 ),
