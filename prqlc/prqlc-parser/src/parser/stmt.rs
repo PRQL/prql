@@ -129,6 +129,12 @@ where
                 }
             });
 
+            // TODO: `QueryDef` is currently implemented as `version` & `other`
+            // fields. We want to raise an error if an unsupported field is
+            // used, to avoid confusion (e.g. if someone passes `dialect`). So
+            // at the moment we implement this as having a HashMap with 0 or 1
+            // entries... We can decide how to implement `QueryDef` later, and
+            // have this awkward construction in the meantime.
             let other = args
                 .remove("target")
                 .and_then(|v| {
