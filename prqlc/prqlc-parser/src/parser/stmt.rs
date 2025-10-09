@@ -248,7 +248,7 @@ mod tests {
             source,
             module_contents()
                 .then_ignore(new_line().repeated())
-                .then_ignore(end())
+                .then_ignore(end()),
         )
     }
 
@@ -257,7 +257,7 @@ mod tests {
             source,
             var_def()
                 .then_ignore(new_line().repeated())
-                .then_ignore(end())
+                .then_ignore(end()),
         )
     }
 

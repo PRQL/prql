@@ -633,7 +633,7 @@ mod tests {
                 .ignore_then(tuple(expr()))
                 .map_with(|kind, extra| ExprKind::into_expr(kind, extra.span()))
                 .then_ignore(new_line().repeated())
-                .then_ignore(end())
+                .then_ignore(end()),
         )
     }
 
@@ -643,7 +643,7 @@ mod tests {
             new_line()
                 .repeated()
                 .collect::<Vec<_>>()
-                .ignore_then(expr())
+                .ignore_then(expr()),
         )
     }
 
@@ -655,7 +655,7 @@ mod tests {
                 .collect::<Vec<_>>()
                 .ignore_then(pipeline(expr_call()))
                 .then_ignore(new_line().repeated())
-                .then_ignore(end())
+                .then_ignore(end()),
         )
     }
 
@@ -668,7 +668,7 @@ mod tests {
                 .ignore_then(case(expr()))
                 .map_with(|kind, extra| ExprKind::into_expr(kind, extra.span()))
                 .then_ignore(new_line().repeated())
-                .then_ignore(end())
+                .then_ignore(end()),
         )
     }
 
@@ -679,7 +679,7 @@ mod tests {
                 .repeated()
                 .collect::<Vec<_>>()
                 .ignore_then(expr_call())
-                .then_ignore(end())
+                .then_ignore(end()),
         )
     }
 
