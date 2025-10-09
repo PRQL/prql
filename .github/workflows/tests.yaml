@@ -666,6 +666,12 @@ jobs:
           - os: windows-latest
             target: x86_64-pc-windows-msvc
             features: default
+    # macOS system linker (ld64) has symbol length limits that Chumsky's generic types can exceed
+    # Use rust-lld which handles long symbols natively
+    # See: https://github.com/rust-lang/rust/issues/141626#issuecomment-2919988483
+    env:
+      CARGO_TARGET_AARCH64_APPLE_DARWIN_LINKER: ${{ startsWith(matrix.os, 'macos') && 'rust-lld' || '' }}
+      CARGO_TARGET_X86_64_APPLE_DARWIN_LINKER: ${{ startsWith(matrix.os, 'macos') && 'rust-lld' || '' }}
     steps:
       - name: 📂 Checkout code
         uses: actions/checkout@v5
@@ -699,6 +705,12 @@ jobs:
           - os: windows-latest
             target: x86_64-pc-windows-msvc
             features: default
+    # macOS system linker (ld64) has symbol length limits that Chumsky's generic types can exceed
+    # Use rust-lld which handles long symbols natively
+    # See: https://github.com/rust-lang/rust/issues/141626#issuecomment-2919988483
+    env:
+      CARGO_TARGET_AARCH64_APPLE_DARWIN_LINKER: ${{ startsWith(matrix.os, 'macos') && 'rust-lld' || '' }}
+      CARGO_TARGET_X86_64_APPLE_DARWIN_LINKER: ${{ startsWith(matrix.os, 'macos') && 'rust-lld' || '' }}
     steps:
       - name: 📂 Checkout code
         uses: actions/checkout@v5
