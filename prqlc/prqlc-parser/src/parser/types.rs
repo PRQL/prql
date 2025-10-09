@@ -127,5 +127,6 @@ where
         //         into_ty(kind, span)
         //     });
     })
+    .boxed()
     .labelled("type expression")
 }

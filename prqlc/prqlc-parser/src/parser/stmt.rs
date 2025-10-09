@@ -89,6 +89,7 @@ where
         .repeated()
         .collect()
     })
+    .boxed()
 }
 
 fn query_def<'a, I>() -> impl Parser<'a, I, Stmt, ParserError<'a>> + Clone
@@ -241,28 +242,27 @@ mod tests {
 
     use super::*;
     use crate::error::Error;
-    use crate::parse_test;
 
     fn parse_module_contents(source: &str) -> Result<Vec<Stmt>, Vec<Error>> {
-        parse_test!(
+        crate::parse_test!(
             source,
             module_contents()
                 .then_ignore(new_line().repeated())
-                .then_ignore(end()),
+                .then_ignore(end())
         )
     }
 
     fn parse_var_def(source: &str) -> Result<StmtKind, Vec<Error>> {
-        parse_test!(
+        crate::parse_test!(
             source,
             var_def()
                 .then_ignore(new_line().repeated())
-                .then_ignore(end()),
+                .then_ignore(end())
         )
     }
 
     fn parse_module_contents_complete(source: &str) -> Result<Vec<Stmt>, Vec<Error>> {
-        parse_test!(source, module_contents().then_ignore(end()))
+        crate::parse_test!(source, module_contents().then_ignore(end()))
     }
 
     #[test]

@@ -168,6 +168,7 @@ where
                 .into_expr(span)
             }),
         ))
+        .boxed()
     })
 }
 
@@ -610,22 +611,21 @@ mod tests {
 
     use super::*;
     use crate::error::Error;
-    use crate::parser::test::parse_test;
 
     fn parse_expr_call(source: &str) -> Result<Expr, Vec<Error>> {
-        parse_test(
+        crate::parse_test!(
             source,
             new_line()
                 .repeated()
                 .collect::<Vec<_>>()
                 .ignore_then(expr_call())
                 .then_ignore(new_line().repeated())
-                .then_ignore(end()),
+                .then_ignore(end())
         )
     }
 
     fn parse_tuple(source: &str) -> Result<Expr, Vec<Error>> {
-        parse_test(
+        crate::parse_test!(
             source,
             new_line()
                 .repeated()
@@ -633,34 +633,34 @@ mod tests {
                 .ignore_then(tuple(expr()))
                 .map_with(|kind, extra| ExprKind::into_expr(kind, extra.span()))
                 .then_ignore(new_line().repeated())
-                .then_ignore(end()),
+                .then_ignore(end())
         )
     }
 
     fn parse_any_expr(source: &str) -> Result<Expr, Vec<Error>> {
-        parse_test(
+        crate::parse_test!(
             source,
             new_line()
                 .repeated()
                 .collect::<Vec<_>>()
-                .ignore_then(expr()),
+                .ignore_then(expr())
         )
     }
 
     fn parse_pipeline(source: &str) -> Result<Expr, Vec<Error>> {
-        parse_test(
+        crate::parse_test!(
             source,
             new_line()
                 .repeated()
                 .collect::<Vec<_>>()
                 .ignore_then(pipeline(expr_call()))
                 .then_ignore(new_line().repeated())
-                .then_ignore(end()),
+                .then_ignore(end())
         )
     }
 
     fn parse_case(source: &str) -> Result<Expr, Vec<Error>> {
-        parse_test(
+        crate::parse_test!(
             source,
             new_line()
                 .repeated()
@@ -668,18 +668,18 @@ mod tests {
                 .ignore_then(case(expr()))
                 .map_with(|kind, extra| ExprKind::into_expr(kind, extra.span()))
                 .then_ignore(new_line().repeated())
-                .then_ignore(end()),
+                .then_ignore(end())
         )
     }
 
     fn parse_expr_call_complete(source: &str) -> Result<Expr, Vec<Error>> {
-        parse_test(
+        crate::parse_test!(
             source,
             new_line()
                 .repeated()
                 .collect::<Vec<_>>()
                 .ignore_then(expr_call())
-                .then_ignore(end()),
+                .then_ignore(end())
         )
     }
 
