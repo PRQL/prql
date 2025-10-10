@@ -426,9 +426,9 @@ fn parse_number_with_base<'a>(
                 .repeated()
                 .at_least(1)
                 .at_most(max_digits)
-                .collect::<String>()
-                .map(move |digits| {
-                    i64::from_str_radix(&digits, base)
+                .to_slice()
+                .map(move |digits: &str| {
+                    i64::from_str_radix(digits, base)
                         .map(Literal::Integer)
                         .unwrap_or(Literal::Integer(0))
                 }),
@@ -496,11 +496,19 @@ fn number<'a>() -> impl Parser<'a, ParserInput<'a>, Literal, ParserError<'a>> {
         .then(optional_component(frac, |f| f))
         .then(optional_component(exp, |e| e))
         .map(|((int_part, frac_part), exp_part)| {
-            // Construct the number string and remove underscores
-            let num_str = format!("{}{}{}", int_part, frac_part, exp_part)
-                .chars()
-                .filter(|&c| c != '_')
-                .collect::<String>();
+            // Build the number string directly, filtering underscores as we go
+            // Pre-allocate with approximate capacity (may be slightly larger due to underscores)
+            let mut num_str =
+                String::with_capacity(int_part.len() + frac_part.len() + exp_part.len());
+
+            // Copy integer part, filtering underscores
+            num_str.extend(int_part.chars().filter(|&c| c != '_'));
+
+            // Copy fractional part, filtering underscores
+            num_str.extend(frac_part.chars().filter(|&c| c != '_'));
+
+            // Copy exponent part (no underscores allowed in exponent)
+            num_str.push_str(&exp_part);
 
             // Try to parse as integer first, then as float
             if let Ok(i) = num_str.parse::<i64>() {
