@@ -49,11 +49,31 @@ fn static_eval_rq_operator(mut expr: Expr) -> Expr {
             {
                 // don't eval comparisons between different types of literals
                 if left.as_ref() == right.as_ref() {
-                    return Expr::new(Literal::Boolean(left == right));
+                    return Expr::new(Literal::Boolean(left.three_val_eq(right)));
                 }
             }
         }
         "std.ne" => {
+            if let (ExprKind::Literal(left), ExprKind::Literal(right)) =
+                (&args[0].kind, &args[1].kind)
+            {
+                // don't eval comparisons between different types of literals
+                if left.as_ref() == right.as_ref() {
+                    return Expr::new(Literal::Boolean(left.three_val_eq(right)));
+                }
+            }
+        }
+        "std.seq" => {
+            if let (ExprKind::Literal(left), ExprKind::Literal(right)) =
+                (&args[0].kind, &args[1].kind)
+            {
+                // don't eval comparisons between different types of literals
+                if left.as_ref() == right.as_ref() {
+                    return Expr::new(Literal::Boolean(left == right));
+                }
+            }
+        }
+        "std.sne" => {
             if let (ExprKind::Literal(left), ExprKind::Literal(right)) =
                 (&args[0].kind, &args[1].kind)
             {

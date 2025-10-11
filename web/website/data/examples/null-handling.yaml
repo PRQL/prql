@@ -1,8 +1,8 @@
 label: Null handling
 prql: |
   from users
-  filter last_login != null
-  filter deleted_at == null
+  filter last_login !== null
+  filter deleted_at === null
   derive channel = channel ?? "unknown"
 sql: |
   SELECT

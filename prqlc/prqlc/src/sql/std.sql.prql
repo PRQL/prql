@@ -155,6 +155,12 @@ let eq = l r -> null
 let ne = l r -> null
 
 @{binding_strength=6}
+let seq = l r -> null
+
+@{binding_strength=6}
+let sne = l r -> null
+
+@{binding_strength=6}
 let gt = l r -> null
 
 @{binding_strength=6}

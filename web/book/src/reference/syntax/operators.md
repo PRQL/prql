@@ -30,7 +30,7 @@ operations and for function calls (see the discussion below.)
 |            pow | `**`                        |     4      | right-to-left |
 |            mul | `*` `/` `//` `%`            |     5      | left-to-right |
 |            add | `+` `-`                     |     6      | left-to-right |
-|        compare | `==` `!=` `<=` `>=` `<` `>` |     7      | left-to-right |
+|        compare | `==` `!=` `===` `!==` `<=` `>=` `<` `>` |     7      | left-to-right |
 |       coalesce | `??`                        |     8      | left-to-right |
 |            and | `&&`                        |     9      | left-to-right |
 |             or | <code>\|\|</code>           |     10     | left-to-right |

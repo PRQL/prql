@@ -42,6 +42,8 @@ pub enum TokenKind {
     ArrowFat,    // =>
     Eq,          // ==
     Ne,          // !=
+    SEq,         // ===
+    SNe,         // !==
     Gte,         // >=
     Lte,         // <=
     RegexSearch, // ~=
@@ -88,6 +90,17 @@ pub enum Literal {
     Time(String),
     Timestamp(String),
     ValueAndUnit(ValueAndUnit),
+}
+
+impl Literal {
+    // FIXME: Should it be a `null_safe_eq`, with `PartialEq` implementing
+    // 3VAL logic instead? This requires manual `PartialEq` implementation.
+    pub fn three_val_eq(&self, other: &Self) -> bool {
+        match (self, other) {
+            (Self::Null, Self::Null) => false,
+            _ => self == other,
+        }
+    }
 }
 
 impl TokenKind {
@@ -197,6 +210,8 @@ impl std::fmt::Display for TokenKind {
             TokenKind::ArrowFat => f.write_str("=>"),
             TokenKind::Eq => f.write_str("=="),
             TokenKind::Ne => f.write_str("!="),
+            TokenKind::SEq => f.write_str("==="),
+            TokenKind::SNe => f.write_str("!=="),
             TokenKind::Gte => f.write_str(">="),
             TokenKind::Lte => f.write_str("<="),
             TokenKind::RegexSearch => f.write_str("~="),

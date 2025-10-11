@@ -52,6 +52,8 @@ fn highlight_token_kind(token: &TokenKind) -> String {
         | TokenKind::ArrowFat
         | TokenKind::Eq
         | TokenKind::Ne
+        | TokenKind::SEq
+        | TokenKind::SNe
         | TokenKind::Gte
         | TokenKind::Lte
         | TokenKind::RegexSearch => output.push_str(&format!("{}", token)),

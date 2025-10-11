@@ -543,6 +543,7 @@ fn operator_unary() -> impl Parser<TokenKind, UnOp, Error = PError> + Clone {
         .or(ctrl('-').to(UnOp::Neg))
         .or(ctrl('!').to(UnOp::Not))
         .or(just(TokenKind::Eq).to(UnOp::EqSelf))
+        .or(just(TokenKind::SEq).to(UnOp::SEqSelf))
 }
 fn operator_pow() -> impl Parser<TokenKind, BinOp, Error = PError> + Clone {
     just(TokenKind::Pow).to(BinOp::Pow)
@@ -560,6 +561,8 @@ fn operator_compare() -> impl Parser<TokenKind, BinOp, Error = PError> + Clone {
     choice((
         just(TokenKind::Eq).to(BinOp::Eq),
         just(TokenKind::Ne).to(BinOp::Ne),
+        just(TokenKind::SEq).to(BinOp::SEq),
+        just(TokenKind::SNe).to(BinOp::SNe),
         just(TokenKind::Lte).to(BinOp::Lte),
         just(TokenKind::Gte).to(BinOp::Gte),
         just(TokenKind::RegexSearch).to(BinOp::RegexSearch),

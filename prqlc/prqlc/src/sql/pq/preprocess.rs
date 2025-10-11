@@ -507,6 +507,8 @@ fn all_null(exprs: Vec<&Expr>) -> bool {
 
 /// Converts `(a == b) and ((c == d) and (e == f))`
 /// into `([a, c, e], [b, d, f])`
+// FIXME: Should similar convertation happen for `===`? It is used for joins, and I don't know about `===` applicability
+// here.
 fn collect_equals(expr: &Expr) -> Result<(Vec<&Expr>, Vec<&Expr>)> {
     let mut lefts = Vec::new();
     let mut rights = Vec::new();
@@ -594,7 +596,9 @@ impl RqFold for Normalizer {
         };
 
         if let ExprKind::Operator { name, args } = &expr.kind {
-            if name == "std.eq" && args.len() == 2 {
+            // Reorder arguments, null === a => a === null
+            // FIXME: Shouldn't it also process !==?
+            if name == "std.seq" && args.len() == 2 {
                 let (left, right) = (&args[0], &args[1]);
                 let span = expr.span;
                 let new_args = if let ExprKind::Literal(Literal::Null) = &left.kind {

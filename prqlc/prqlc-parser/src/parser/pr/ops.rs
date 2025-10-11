@@ -23,6 +23,8 @@ pub enum UnOp {
     Not,
     #[strum(to_string = "==")]
     EqSelf,
+    #[strum(to_string = "===")]
+    SEqSelf,
 }
 
 #[derive(
@@ -57,6 +59,10 @@ pub enum BinOp {
     Eq,
     #[strum(to_string = "!=")]
     Ne,
+    #[strum(to_string = "===")]
+    SEq,
+    #[strum(to_string = "!==")]
+    SNe,
     #[strum(to_string = ">")]
     Gt,
     #[strum(to_string = "<")]

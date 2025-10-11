@@ -162,7 +162,9 @@ fn expand_unary(pr::UnaryExpr { op, expr }: pr::UnaryExpr) -> Result<pl::ExprKin
         Neg => ["std", "neg"],
         Not => ["std", "not"],
         Add => return Ok(expr.kind),
-        EqSelf => {
+        EqSelf | SEqSelf => {
+            let method = if op == EqSelf { "eq" } else { "seq" };
+
             let pl::ExprKind::Ident(ident) = expr.kind else {
                 return Err(Error::new_simple(
                     "you can only use column names with self-equality operator",
@@ -188,7 +190,7 @@ fn expand_unary(pr::UnaryExpr { op, expr }: pr::UnaryExpr) -> Result<pl::ExprKin
                     name: ident.name,
                 })
             };
-            return Ok(new_binop(left, &["std", "eq"], right).kind);
+            return Ok(new_binop(left, &["std", method], right).kind);
         }
     };
     Ok(pl::ExprKind::FuncCall(pl::FuncCall::new_simple(
@@ -212,6 +214,8 @@ fn expand_binary(pr::BinaryExpr { op, left, right }: pr::BinaryExpr) -> Result<p
         pr::BinOp::Sub => vec!["std", "sub"],
         pr::BinOp::Eq => vec!["std", "eq"],
         pr::BinOp::Ne => vec!["std", "ne"],
+        pr::BinOp::SEq => vec!["std", "seq"],
+        pr::BinOp::SNe => vec!["std", "sne"],
         pr::BinOp::Gt => vec!["std", "gt"],
         pr::BinOp::Lt => vec!["std", "lt"],
         pr::BinOp::Gte => vec!["std", "gte"],

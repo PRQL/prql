@@ -1,5 +1,7 @@
 # Null handling
 
+FIXME: Update for null-safe equality operator
+
 SQL has an unconventional way of handling `NULL` values, since it treats them as
 unknown values. As a result, in SQL:
 
@@ -17,14 +19,14 @@ For more information, check out the
 
 PRQL, on the other hand, treats `null` as a value, which means that:
 
-- `null == null` evaluates to `true`,
-- `null != null` evaluates to `false`,
+- `null === null` evaluates to `true`,
+- `null !== null` evaluates to `false`,
 - distinct column cannot contain multiple `null` values.
 
 ```prql
 from employees
-filter first_name == null
-filter null != last_name
+filter first_name === null
+filter null !== last_name
 ```
 
 Note that PRQL doesn't change how `NULL` is compared between columns, for

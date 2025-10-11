@@ -295,6 +295,8 @@ fn binding_strength(expr: &pr::ExprKind) -> u8 {
             pr::BinOp::Add | pr::BinOp::Sub => 17,
             pr::BinOp::Eq
             | pr::BinOp::Ne
+            | pr::BinOp::SEq
+            | pr::BinOp::SNe
             | pr::BinOp::Gt
             | pr::BinOp::Lt
             | pr::BinOp::Gte

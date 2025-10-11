@@ -15,7 +15,7 @@ A summary of PRQL syntax:
 | `:`                    | [Named args & parameters](../declarations/functions.md)                        | `interp low:0 1600 sat_score`                           |
 | `{}`                   | [Tuples](./tuples.md)                                                          | `{id, false, total = 3}`                                |
 | `[]`                   | [Arrays](./arrays.md)                                                          | `[1, 4, 3, 4]`                                          |
-| `+`,`!`,`&&`,`==`, etc | [Operators](./operators.md)                                                    | <code>filter a == b + c \|\| d >= e</code>              |
+| `+`,`!`,`&&`,`==`,`===` etc | [Operators](./operators.md)                                                    | <code>filter a == b + c \|\| d >= e</code>              |
 | `()`                   | [Parentheses](./operators.md#parentheses)                                      | `derive celsius = (fht - 32) / 1.8`                     |
 | `\`                    | [Line wrap](./operators.md#wrapping-lines)                                     | <code>1 + 2 + 3 +</code><br><code>\ 4 + 5</code>        |
 | `1`,`100_000`,`5e10`   | [Numbers](./literals.md#numbers)                                               | `derive { huge = 5e10 * 10_000 }`                       |

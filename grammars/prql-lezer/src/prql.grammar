@@ -62,7 +62,7 @@ testInner { binaryTest | unaryTest | expression }
 binaryTest[@name="BinaryExpression"] {
   testInner !or LogicOp<"||" | "??"> testInner |
   testInner !and LogicOp<"&&"> testInner |
-  testInner !compare (CompareOp<"==" | "!=" | "~=" | ">=" | "<=" | ">" | "<"> | kw<"in">) testInner
+  testInner !compare (CompareOp<"==" | "!=" | "~=" | "===" | "!==" | ">=" | "<=" | ">" | "<"> | kw<"in">) testInner
 }
 
 unaryTest[@name="UnaryExpression"] { kw<"!"> testInner }
@@ -100,7 +100,7 @@ ParenthesizedExpression { "(" expression ")" }
 
 UnaryExpression {
   !prefix ArithOp<"+" | "-"> expression |
-  !prefix CompareOp<"=="> Identifier
+  !prefix CompareOp<"==" | "==="> Identifier
 }
 
 // Because this is outside tokens, we can't disallow whitespace.

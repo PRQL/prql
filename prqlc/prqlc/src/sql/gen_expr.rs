@@ -90,7 +90,7 @@ pub(super) fn translate_expr(expr: rq::Expr, ctx: &mut Context) -> Result<ExprOr
                 // for the wrong number of args will be bad (though it's an
                 // unusual case where RQ contains something like `std.eq`
                 // with the wrong number of args).
-                "std.eq" | "std.ne" => {
+                "std.eq" | "std.ne" | "std.seq" | "std.sne" => {
                     if let [a, b] = args.as_slice() {
                         if a.kind == rq::ExprKind::Literal(Literal::Null)
                             || b.kind == rq::ExprKind::Literal(Literal::Null)
@@ -139,13 +139,23 @@ fn process_null(name: &str, args: &[rq::Expr], ctx: &mut Context) -> Result<sql_
     };
 
     // If this were an Enum, we could match on it (see notes in `std.rs`).
-    if name == "std.eq" {
+    if name == "std.eq" || name == "std.ne" {
+        // FIXME: Should it be just a warning initially with gradual deprecation?
+        Err(Error::new_simple(
+            "equality operator is not null-safe, using it to compare with null is incorrect",
+        )
+        .push_hint(if name == "std.eq" {
+            "did you mean to use strict equality `===` operator?"
+        } else {
+            "did you mean to use strict non-equality `!==` operator?"
+        }))
+    } else if name == "std.seq" {
         let strength =
             sql_ast::Expr::IsNull(Box::new(sql_ast::Expr::Value(Value::Null))).binding_strength();
         let expr = translate_operand(operand.clone(), true, strength, Associativity::Both, ctx)?;
         let expr = Box::new(expr.into_ast());
         Ok(sql_ast::Expr::IsNull(expr))
-    } else if name == "std.ne" {
+    } else if name == "std.sne" {
         let strength = sql_ast::Expr::IsNotNull(Box::new(sql_ast::Expr::Value(Value::Null)))
             .binding_strength();
         let expr = translate_operand(operand.clone(), true, strength, Associativity::Both, ctx)?;
@@ -287,7 +297,7 @@ fn process_concat(expr: &rq::Expr, ctx: &mut Context) -> Result<sql_ast::Expr> {
 fn translate_binary_operator(
     left: &rq::Expr,
     right: &rq::Expr,
-    op: BinaryOperator,
+    op: BinaryOperatorEx,
     ctx: &mut Context,
 ) -> Result<sql_ast::Expr> {
     let strength = op.binding_strength();
@@ -298,7 +308,11 @@ fn translate_binary_operator(
     let left = Box::new(left.into_ast());
     let right = Box::new(right.into_ast());
 
-    Ok(sql_ast::Expr::BinaryOp { left, op, right })
+    Ok(match op {
+        BinaryOperatorEx::Plain(op) => sql_ast::Expr::BinaryOp { left, op, right },
+        BinaryOperatorEx::SEq => sql_ast::Expr::IsNotDistinctFrom(left, right),
+        BinaryOperatorEx::SNotEq => sql_ast::Expr::IsDistinctFrom(left, right),
+    })
 }
 
 fn collect_concat_args(expr: &rq::Expr) -> Vec<&rq::Expr> {
@@ -358,23 +372,25 @@ fn try_into_between(expr: rq::Expr, ctx: &mut Context) -> Result<Option<sql_ast:
     Ok(None)
 }
 
-fn operator_from_name(name: &str) -> Option<BinaryOperator> {
+fn operator_from_name(name: &str) -> Option<BinaryOperatorEx> {
     use BinaryOperator::*;
-    match name {
-        "std.mul" => Some(Multiply),
-        "std.add" => Some(Plus),
-        "std.sub" => Some(Minus),
-        "std.eq" => Some(Eq),
-        "std.ne" => Some(NotEq),
-        "std.gt" => Some(Gt),
-        "std.lt" => Some(Lt),
-        "std.gte" => Some(GtEq),
-        "std.lte" => Some(LtEq),
-        "std.and" => Some(And),
-        "std.or" => Some(Or),
-        "std.concat" => Some(StringConcat),
-        _ => None,
-    }
+    Some(BinaryOperatorEx::Plain(match name {
+        "std.mul" => Multiply,
+        "std.add" => Plus,
+        "std.sub" => Minus,
+        "std.eq" => Eq,
+        "std.ne" => NotEq,
+        "std.gt" => Gt,
+        "std.lt" => Lt,
+        "std.gte" => GtEq,
+        "std.lte" => LtEq,
+        "std.and" => And,
+        "std.or" => Or,
+        "std.concat" => StringConcat,
+        "std.seq" => return Some(BinaryOperatorEx::SEq),
+        "std.sne" => return Some(BinaryOperatorEx::SNotEq),
+        _ => return None,
+    }))
 }
 
 pub(super) fn translate_literal(l: Literal, ctx: &Context) -> Result<sql_ast::Expr> {
@@ -929,6 +945,11 @@ impl SQLExpression for sql_ast::Expr {
 
             sql_ast::Expr::Like { .. } | sql_ast::Expr::ILike { .. } => 7,
 
+            // FIXME: Check that there is no operators with higher/lower binding power.
+            // 8 should work for prql right now, but I'm not sure about future, shouldn't all
+            // binding power constants be enumerated in one place?
+            sql_ast::Expr::IsDistinctFrom(_, _) | sql_ast::Expr::IsNotDistinctFrom(_, _) => 8,
+
             sql_ast::Expr::IsNull(_) | sql_ast::Expr::IsNotNull(_) => 5,
 
             // all other items types bind stronger (function calls, literals, ...)
@@ -973,6 +994,30 @@ impl SQLExpression for UnaryOperator {
             UnaryOperator::Minus | UnaryOperator::Plus => 13,
             UnaryOperator::Not => 4,
             _ => 9,
+        }
+    }
+}
+
+/// In sqlparser crate, `IS [NOT] DISTINCT FROM` are defined
+/// as a separate expression kind instead of `BinaryOperator`.
+/// FIXME: Maybe it needs to be refactored upstream?
+enum BinaryOperatorEx {
+    Plain(BinaryOperator),
+    SEq,
+    SNotEq,
+}
+impl SQLExpression for BinaryOperatorEx {
+    fn binding_strength(&self) -> i32 {
+        match self {
+            BinaryOperatorEx::Plain(plain) => plain.binding_strength(),
+            BinaryOperatorEx::SEq | BinaryOperatorEx::SNotEq => 8,
+        }
+    }
+
+    fn associativity(&self) -> Associativity {
+        match self {
+            BinaryOperatorEx::Plain(plain) => plain.associativity(),
+            BinaryOperatorEx::SEq | BinaryOperatorEx::SNotEq => Associativity::Both,
         }
     }
 }

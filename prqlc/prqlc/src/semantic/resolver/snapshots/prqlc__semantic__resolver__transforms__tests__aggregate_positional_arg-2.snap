@@ -15,19 +15,19 @@ TransformCall:
             Tuple:
               - Wildcard:
                   kind: Any
-                  span: "0:2045-2052"
+                  span: "0:2141-2148"
                   name: ~
-          span: "0:2042-2053"
+          span: "0:2138-2149"
           name: tuple
-      span: "0:2158-2165"
+      span: "0:2254-2261"
       name: relation
     lineage:
       columns:
         - All:
-            input_id: 118
+            input_id: 120
             except: []
       inputs:
-        - id: 118
+        - id: 120
           name: c_invoice
           table:
             - default_db
@@ -48,9 +48,9 @@ TransformCall:
                     kind:
                       Array:
                         kind: Any
-                        span: "0:1929-1936"
+                        span: "0:2025-2032"
                         name: ~
-                    span: "0:1928-1937"
+                    span: "0:2024-2033"
                     name: array
             span: "1:73-87"
             ty:
@@ -59,14 +59,14 @@ TransformCall:
                   - - ~
                     - kind:
                         Primitive: Float
-                      span: "0:4188-4193"
+                      span: "0:4284-4289"
                       name: ~
                   - - ~
                     - kind:
                         Singleton: "Null"
-                      span: "0:4197-4201"
+                      span: "0:4293-4297"
                       name: ~
-              span: "0:4188-4201"
+              span: "0:4284-4297"
               name: ~
         span: "1:73-87"
         ty:
@@ -79,14 +79,14 @@ TransformCall:
                         - - ~
                           - kind:
                               Primitive: Float
-                            span: "0:4188-4193"
+                            span: "0:4284-4289"
                             name: ~
                         - - ~
                           - kind:
                               Singleton: "Null"
-                            span: "0:4197-4201"
+                            span: "0:4293-4297"
                             name: ~
-                    span: "0:4188-4201"
+                    span: "0:4284-4297"
                     name: ~
           span: ~
           name: ~
@@ -106,55 +106,55 @@ TransformCall:
                       - - ~
                         - kind:
                             Primitive: Int
-                          span: "0:1963-1966"
+                          span: "0:2059-2062"
                           name: ~
                       - - ~
                         - kind:
                             Primitive: Float
-                          span: "0:1970-1975"
+                          span: "0:2066-2071"
                           name: ~
                       - - ~
                         - kind:
                             Primitive: Bool
-                          span: "0:1979-1983"
+                          span: "0:2075-2079"
                           name: ~
                       - - ~
                         - kind:
                             Primitive: Text
-                          span: "0:1987-1991"
+                          span: "0:2083-2087"
                           name: ~
                       - - ~
                         - kind:
                             Primitive: Date
-                          span: "0:1995-1999"
+                          span: "0:2091-2095"
                           name: ~
                       - - ~
                         - kind:
                             Primitive: Time
-                          span: "0:2003-2007"
+                          span: "0:2099-2103"
                           name: ~
                       - - ~
                         - kind:
                             Primitive: Timestamp
-                          span: "0:2011-2020"
+                          span: "0:2107-2116"
                           name: ~
                       - - ~
                         - kind:
                             Singleton: "Null"
-                          span: "0:2024-2028"
+                          span: "0:2120-2124"
                           name: ~
-                  span: "0:1963-2028"
+                  span: "0:2059-2124"
                   name: scalar
               - - ~
                 - kind:
                     Tuple:
                       - Wildcard:
                           kind: Any
-                          span: "0:2045-2052"
+                          span: "0:2141-2148"
                           name: ~
-                  span: "0:2042-2053"
+                  span: "0:2138-2149"
                   name: tuple
-          span: "0:3013-3028"
+          span: "0:3109-3124"
           name: ~
     span: "1:38-47"
     ty:
@@ -170,55 +170,55 @@ TransformCall:
                             - - ~
                               - kind:
                                   Primitive: Int
-                                span: "0:1963-1966"
+                                span: "0:2059-2062"
                                 name: ~
                             - - ~
                               - kind:
                                   Primitive: Float
-                                span: "0:1970-1975"
+                                span: "0:2066-2071"
                                 name: ~
                             - - ~
                               - kind:
                                   Primitive: Bool
-                                span: "0:1979-1983"
+                                span: "0:2075-2079"
                                 name: ~
                             - - ~
                               - kind:
                                   Primitive: Text
-                                span: "0:1987-1991"
+                                span: "0:2083-2087"
                                 name: ~
                             - - ~
                               - kind:
                                   Primitive: Date
-                                span: "0:1995-1999"
+                                span: "0:2091-2095"
                                 name: ~
                             - - ~
                               - kind:
                                   Primitive: Time
-                                span: "0:2003-2007"
+                                span: "0:2099-2103"
                                 name: ~
                             - - ~
                               - kind:
                                   Primitive: Timestamp
-                                span: "0:2011-2020"
+                                span: "0:2107-2116"
                                 name: ~
                             - - ~
                               - kind:
                                   Singleton: "Null"
-                                span: "0:2024-2028"
+                                span: "0:2120-2124"
                                 name: ~
-                        span: "0:1963-2028"
+                        span: "0:2059-2124"
                         name: scalar
                     - - ~
                       - kind:
                           Tuple:
                             - Wildcard:
                                 kind: Any
-                                span: "0:2045-2052"
+                                span: "0:2141-2148"
                                 name: ~
-                        span: "0:2042-2053"
+                        span: "0:2138-2149"
                         name: tuple
-                span: "0:3013-3028"
+                span: "0:3109-3124"
                 name: ~
       span: ~
       name: ~
@@ -238,55 +238,55 @@ ty:
                             - - ~
                               - kind:
                                   Primitive: Int
-                                span: "0:1963-1966"
+                                span: "0:2059-2062"
                                 name: ~
                             - - ~
                               - kind:
                                   Primitive: Float
-                                span: "0:1970-1975"
+                                span: "0:2066-2071"
                                 name: ~
                             - - ~
                               - kind:
                                   Primitive: Bool
-                                span: "0:1979-1983"
+                                span: "0:2075-2079"
                                 name: ~
                             - - ~
                               - kind:
                                   Primitive: Text
-                                span: "0:1987-1991"
+                                span: "0:2083-2087"
                                 name: ~
                             - - ~
                               - kind:
                                   Primitive: Date
-                                span: "0:1995-1999"
+                                span: "0:2091-2095"
                                 name: ~
                             - - ~
                               - kind:
                                   Primitive: Time
-                                span: "0:2003-2007"
+                                span: "0:2099-2103"
                                 name: ~
                             - - ~
                               - kind:
                                   Primitive: Timestamp
-                                span: "0:2011-2020"
+                                span: "0:2107-2116"
                                 name: ~
                             - - ~
                               - kind:
                                   Singleton: "Null"
-                                span: "0:2024-2028"
+                                span: "0:2120-2124"
                                 name: ~
-                        span: "0:1963-2028"
+                        span: "0:2059-2124"
                         name: scalar
                     - - ~
                       - kind:
                           Tuple:
                             - Wildcard:
                                 kind: Any
-                                span: "0:2045-2052"
+                                span: "0:2141-2148"
                                 name: ~
-                        span: "0:2042-2053"
+                        span: "0:2138-2149"
                         name: tuple
-                span: "0:3013-3028"
+                span: "0:3109-3124"
                 name: ~
           - Single:
               - ~
@@ -295,14 +295,14 @@ ty:
                     - - ~
                       - kind:
                           Primitive: Float
-                        span: "0:4188-4193"
+                        span: "0:4284-4289"
                         name: ~
                     - - ~
                       - kind:
                           Singleton: "Null"
-                        span: "0:4197-4201"
+                        span: "0:4293-4297"
                         name: ~
-                span: "0:4188-4201"
+                span: "0:4284-4297"
                 name: ~
       span: ~
       name: ~
@@ -314,14 +314,14 @@ lineage:
         name:
           - c_invoice
           - issued_at
-        target_id: 120
+        target_id: 122
         target_name: ~
     - Single:
         name: ~
-        target_id: 136
+        target_id: 138
         target_name: ~
   inputs:
-    - id: 118
+    - id: 120
       name: c_invoice
       table:
         - default_db

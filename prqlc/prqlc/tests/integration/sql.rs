@@ -357,10 +357,10 @@ fn test_precedence_04() {
       zero = !gtz && !ltz,
       is_not_equal = !(a==b),
       is_not_gt = !(a>b),
-      negated_is_null_1 = !a == null,
-      negated_is_null_2 = (!a) == null,
-      is_not_null = !(a == null),
-      (a + b) == null,
+      negated_is_null_1 = !a === null,
+      negated_is_null_2 = (!a) === null,
+      is_not_null = !(a === null),
+      (a + b) === null,
     }
     "###).unwrap()), @r###"
     SELECT
@@ -1824,7 +1824,7 @@ fn test_nulls_03() {
     // IS NULL
     assert_snapshot!((compile(r###"
     from employees
-    filter first_name == null && null == last_name
+    filter first_name === null && null === last_name
     "###).unwrap()), @r###"
     SELECT
       *
@@ -1841,7 +1841,7 @@ fn test_nulls_04() {
     // IS NOT NULL
     assert_snapshot!((compile(r###"
     from employees
-    filter first_name != null && null != last_name
+    filter first_name !== null && null !== last_name
     "###).unwrap()), @r###"
     SELECT
       *

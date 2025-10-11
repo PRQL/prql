@@ -80,6 +80,8 @@ fn lex_token() -> impl Parser<char, Token, Error = Cheap<char>> {
     let control_multi = choice((
         just("->").to(TokenKind::ArrowThin),
         just("=>").to(TokenKind::ArrowFat),
+        just("===").to(TokenKind::SEq),
+        just("!==").to(TokenKind::SNe),
         just("==").to(TokenKind::Eq),
         just("!=").to(TokenKind::Ne),
         just(">=").to(TokenKind::Gte),
