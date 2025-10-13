@@ -586,6 +586,12 @@ mod test {
     }
 
     #[test]
+    fn test_sstring_escaped_quotes() {
+        // Test that escaped quotes in s-strings round-trip correctly (issue #5496)
+        assert_is_formatted(r#"from s"SELECT \"col1 foo\"""#);
+    }
+
+    #[test]
     fn test_unary() {
         assert_is_formatted(r#"sort {-duration}"#);
 
