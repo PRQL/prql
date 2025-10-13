@@ -1,0 +1,42 @@
+---
+source: prqlc/prqlc/tests/integration/queries.rs
+expression: "prql target:sql.postgres\n\nlet invoices_wrap = (\n  from invoices\n  select { invoice_id, billing_country }\n)\n\nlet employees_wrap = (\n  from employees\n  select { employee_id, country }\n)\n\nlet invoices_final = (\n  from invoices_wrap\n  select { invoice_id, billing_country }\n  derive { source = f\"{billing_country} from invoices\" }\n)\n\nlet employees_final = (\n  from employees_wrap\n  select { employee_id, country }\n  derive { source = f\"{country} from employees\" }\n)\n\nfrom invoices_final\nappend employees_final\n"
+input_file: prqlc/prqlc/tests/integration/queries/append_cte_complex.prql
+snapshot_kind: text
+---
+WITH invoices_wrap AS (
+  SELECT
+    invoice_id,
+    billing_country
+  FROM
+    invoices
+),
+invoices_final AS (
+  SELECT
+    invoice_id,
+    billing_country,
+    CONCAT(billing_country, ' from invoices') AS source
+  FROM
+    invoices_wrap
+),
+employees_wrap AS (
+  SELECT
+    employee_id,
+    country
+  FROM
+    employees
+)
+SELECT
+  invoice_id,
+  billing_country,
+  source
+FROM
+  invoices_final
+UNION
+ALL
+SELECT
+  employee_id,
+  country,
+  CONCAT(country, ' from employees') AS source
+FROM
+  employees_wrap
