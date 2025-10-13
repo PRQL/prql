@@ -1,0 +1,23 @@
+---
+source: prqlc/prqlc/tests/integration/queries.rs
+expression: "# Test s-strings with escaped quotes (regression test for issue #5494)\nlet outputs_sql = (\n  from s\"\n    select 'a' as \\\"col1 foo\\\", 'b' as \\\"col2#bar\\\"\n  \"\n)\n\nfrom outputs_sql\nselect {\n  `col1 foo` = outputs_sql.`col1 foo`,\n  `col2#bar` = outputs_sql.`col2#bar`\n}\n"
+input_file: prqlc/prqlc/tests/integration/queries/sstring_escaped_quotes.prql
+snapshot_kind: text
+---
+WITH table_0 AS (
+  SELECT
+    'a' as "col1 foo",
+    'b' as "col2#bar"
+),
+outputs_sql AS (
+  SELECT
+    "col1 foo",
+    "col2#bar"
+  FROM
+    table_0
+)
+SELECT
+  "col1 foo",
+  "col2#bar"
+FROM
+  outputs_sql

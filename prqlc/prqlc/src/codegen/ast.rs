@@ -479,8 +479,15 @@ fn display_interpolation(
     r += "\"";
     for part in parts {
         match &part {
-            // We use double braces to escape braces
-            pr::InterpolateItem::String(s) => r += s.replace('{', "{{").replace('}', "}}").as_str(),
+            // We use double braces to escape braces and backslash-quote to escape quotes
+            pr::InterpolateItem::String(s) => {
+                r += s
+                    .replace('\\', "\\\\")
+                    .replace('"', "\\\"")
+                    .replace('{', "{{")
+                    .replace('}', "}}")
+                    .as_str()
+            }
             pr::InterpolateItem::Expr { expr, .. } => {
                 r += "{";
                 r += &expr.write(opt.clone())?;

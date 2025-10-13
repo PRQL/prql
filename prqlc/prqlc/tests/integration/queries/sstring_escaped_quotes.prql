@@ -1,0 +1,12 @@
+# Test s-strings with escaped quotes (regression test for issue #5494)
+let outputs_sql = (
+  from s"
+    select 'a' as \"col1 foo\", 'b' as \"col2#bar\"
+  "
+)
+
+from outputs_sql
+select {
+  `col1 foo` = outputs_sql.`col1 foo`,
+  `col2#bar` = outputs_sql.`col2#bar`
+}
