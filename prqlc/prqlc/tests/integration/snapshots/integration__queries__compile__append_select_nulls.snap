@@ -1,6 +1,6 @@
 ---
 source: prqlc/prqlc/tests/integration/queries.rs
-expression: "# duckdb:skip\n# postgres:skip\n\nfrom invoices\nselect {an_id = invoice_id, name = null}\ntake 2\nappend (\n  from employees\n  select {an_id = null, name = first_name}\n  take 2\n)\n"
+expression: "from invoices\nselect {an_id = invoice_id, name = null}\ntake 2\nappend (\n  from employees\n  select {an_id = null, name = first_name}\n  take 2\n)\n"
 input_file: prqlc/prqlc/tests/integration/queries/append_select_nulls.prql
 ---
 SELECT
@@ -15,8 +15,7 @@ FROM
     LIMIT
       2
   ) AS table_2
-UNION
-ALL
+UNION ALL
 SELECT
   *
 FROM
