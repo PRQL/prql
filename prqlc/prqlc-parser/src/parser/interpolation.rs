@@ -1,44 +1,125 @@
+use chumsky::input::{SliceInput, ValueInput};
 use chumsky::prelude::*;
-use itertools::Itertools;
 
-use crate::lexer::lr::{Literal, TokenKind};
-use crate::parser::perror::{ChumError, PError};
+use crate::error::{Error, WithErrorInfo};
 use crate::parser::pr::*;
-use crate::span::{string_stream, Span};
+use crate::span::Span;
 
 /// Parses interpolated strings
-pub(crate) fn parse(string: String, span_base: Span) -> Result<Vec<InterpolateItem>, Vec<PError>> {
-    let prepped_stream = string_stream(string, span_base);
+pub(crate) fn parse(string: String, span_base: Span) -> Result<Vec<InterpolateItem>, Vec<Error>> {
+    let res = interpolated_parser().parse(string.as_str());
 
-    let res = interpolated_parser().parse(prepped_stream);
+    let (output, errors) = res.into_output_errors();
 
-    match res {
-        Ok(items) => {
-            log::trace!("interpolated string ok: {items:?}");
-            Ok(items)
-        }
-        Err(errors) => Err(errors
+    if !errors.is_empty() {
+        return Err(errors
             .into_iter()
-            .map(|err| {
-                log::debug!("interpolated string error (lex inside parse): {err:?}");
-                err.map(|c| TokenKind::Literal(Literal::String(c.to_string())))
+            .map(|e| {
+                // Adjust span to be relative to span_base
+                let span = Span {
+                    start: span_base.start + e.span().start,
+                    end: span_base.start + e.span().end,
+                    source_id: span_base.source_id,
+                };
+
+                // Convert Rich error to our Error format
+                // Custom error formatting for consistent user experience across all PRQL errors.
+                // Chumsky's default format varies between versions and doesn't match our
+                // "{label} expected {X}, but found {Y}" pattern used elsewhere.
+                let message = {
+                    // Get the label from contexts (most specific one)
+                    let label = e.contexts().last().map(|(pat, _)| pat.to_string());
+
+                    // Build expected list
+                    let expected: Vec<_> = e.expected().map(|e| format!("{e}")).collect();
+                    let expected_str = match expected.len() {
+                        0 => String::new(),
+                        1 => expected[0].clone(),
+                        2 => format!("{} or {}", expected[0], expected[1]),
+                        _ => format!(
+                            "{}, or {}",
+                            expected[..expected.len() - 1].join(", "),
+                            expected.last().unwrap()
+                        ),
+                    };
+
+                    // Format the found token consistently: quote actual tokens, but not "end of input"
+                    let found = if let Some(f) = e.found() {
+                        format!("\"{}\"", f)
+                    } else {
+                        "end of input".to_string()
+                    };
+
+                    if let Some(label) = label {
+                        if expected_str.is_empty() {
+                            format!("unexpected {found}")
+                        } else {
+                            format!("{label} expected {expected_str}, but found {found}")
+                        }
+                    } else if expected_str.is_empty() {
+                        format!("unexpected {found}")
+                    } else {
+                        format!("expected {expected_str}, but found {found}")
+                    }
+                };
+
+                Error::new_simple(message).with_span(Some(span))
             })
-            .collect_vec()),
+            .collect());
     }
+
+    // Adjust spans in the output to be relative to span_base
+    let adjusted_output = output
+        .unwrap_or_default()
+        .into_iter()
+        .map(|item| match item {
+            InterpolateItem::Expr { expr, format } => {
+                let adjusted_expr = Box::new(Expr {
+                    span: expr.span.map(|s| Span {
+                        start: span_base.start + s.start,
+                        end: span_base.start + s.end,
+                        source_id: span_base.source_id,
+                    }),
+                    ..(*expr)
+                });
+                InterpolateItem::Expr {
+                    expr: adjusted_expr,
+                    format,
+                }
+            }
+            InterpolateItem::String(s) => InterpolateItem::String(s),
+        })
+        .collect();
+
+    Ok(adjusted_output)
 }
 
-fn interpolated_parser() -> impl Parser<char, Vec<InterpolateItem>, Error = ChumError<char>> {
+fn interpolated_parser<'a, I>(
+) -> impl Parser<'a, I, Vec<InterpolateItem>, extra::Err<Rich<'a, char, SimpleSpan>>>
+where
+    I: ValueInput<'a, Token = char, Span = SimpleSpan> + SliceInput<'a, Slice = &'a str>,
+{
     let expr = interpolate_ident_part()
         .separated_by(just('.'))
         .at_least(1)
+        .collect()
         .map(Ident::from_path)
         .map(ExprKind::Ident)
-        .map_with_span(ExprKind::into_expr)
+        .map_with(|kind, extra| {
+            // Convert SimpleSpan to our Span type (will be adjusted in parse() function)
+            let simple_span: SimpleSpan = extra.span();
+            let span = Span {
+                start: simple_span.start,
+                end: simple_span.end,
+                source_id: 0,
+            };
+            ExprKind::into_expr(kind, span)
+        })
         .map(Box::new)
         .labelled("interpolated string variable")
         .then(
             just(':')
-                .ignore_then(filter(|c| *c != '}').repeated().collect::<String>())
+                .ignore_then(none_of('}').repeated().collect::<String>())
                 .or_not(),
         )
         .delimited_by(just('{'), just('}'))
@@ -54,18 +135,32 @@ fn interpolated_parser() -> impl Parser<char, Vec<InterpolateItem>, Error = Chum
         .collect::<String>()
         .map(InterpolateItem::String);
 
-    expr.or(string).repeated().then_ignore(end())
+    expr.or(string).repeated().collect().then_ignore(end())
 }
 
-pub(crate) fn interpolate_ident_part() -> impl Parser<char, String, Error = ChumError<char>> + Clone
+pub(crate) fn interpolate_ident_part<'a, I>(
+) -> impl Parser<'a, I, String, extra::Err<Rich<'a, char, SimpleSpan>>> + Clone
+where
+    I: ValueInput<'a, Token = char, Span = SimpleSpan> + SliceInput<'a, Slice = &'a str>,
 {
-    let plain = filter(|c: &char| c.is_alphabetic() || *c == '_')
-        .chain(filter(|c: &char| c.is_alphanumeric() || *c == '_').repeated())
+    let plain = any()
+        .filter(|c: &char| c.is_alphabetic() || *c == '_')
+        .then(
+            any()
+                .filter(|c: &char| c.is_alphanumeric() || *c == '_')
+                .repeated(),
+        )
+        .to_slice()
+        .map(|s: &str| s.to_string())
         .labelled("interpolated string");
 
-    let backticks = none_of('`').repeated().delimited_by(just('`'), just('`'));
+    let backticks = none_of('`')
+        .repeated()
+        .to_slice()
+        .map(|s: &str| s.to_string())
+        .delimited_by(just('`'), just('`'));
 
-    plain.or(backticks.labelled("interp:backticks")).collect()
+    plain.or(backticks.labelled("interp:backticks"))
 }
 
 #[test]

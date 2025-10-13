@@ -1,6 +1,6 @@
 //! PRQL Lexer implementation
 
-use chumsky_0_10 as chumsky;
+use chumsky;
 
 use chumsky::extra;
 use chumsky::prelude::*;
@@ -426,9 +426,9 @@ fn parse_number_with_base<'a>(
                 .repeated()
                 .at_least(1)
                 .at_most(max_digits)
-                .collect::<String>()
-                .map(move |digits| {
-                    i64::from_str_radix(&digits, base)
+                .to_slice()
+                .map(move |digits: &str| {
+                    i64::from_str_radix(digits, base)
                         .map(Literal::Integer)
                         .unwrap_or(Literal::Integer(0))
                 }),
