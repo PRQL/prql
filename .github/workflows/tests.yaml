@@ -521,12 +521,6 @@ jobs:
     steps:
       - name: 📂 Checkout code
         uses: actions/checkout@v5
-      - name: Prepare for MSRV testing
-        # Resolver v3 requires Rust 1.84+ to parse the Cargo.toml, but our library MSRV is 1.75.
-        # We temporarily downgrade to resolver v2 for MSRV testing.
-        run: |
-          echo "Patching Cargo.toml for MSRV testing (resolver v3 requires Rust 1.84+)"
-          sed -i 's/resolver = "3"/resolver = "2"/g' Cargo.toml
       - uses: baptiste0928/cargo-install@v3
         with:
           crate: cargo-msrv
