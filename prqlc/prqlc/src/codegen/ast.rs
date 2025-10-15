@@ -479,8 +479,15 @@ fn display_interpolation(
     r += "\"";
     for part in parts {
         match &part {
-            // We use double braces to escape braces
-            pr::InterpolateItem::String(s) => r += s.replace('{', "{{").replace('}', "}}").as_str(),
+            // We use double braces to escape braces and backslash-quote to escape quotes
+            pr::InterpolateItem::String(s) => {
+                r += s
+                    .replace('\\', "\\\\")
+                    .replace('"', "\\\"")
+                    .replace('{', "{{")
+                    .replace('}', "}}")
+                    .as_str()
+            }
             pr::InterpolateItem::Expr { expr, .. } => {
                 r += "{";
                 r += &expr.write(opt.clone())?;
@@ -576,6 +583,12 @@ mod test {
         assert_is_formatted(
             r#"let has_valid_title = s"regexp_contains(title, '([a-z0-9]*-){{2,}}')""#,
         );
+    }
+
+    #[test]
+    fn test_sstring_escaped_quotes() {
+        // Test that escaped quotes in s-strings round-trip correctly (issue #5496)
+        assert_is_formatted(r#"from s"SELECT \"col1 foo\"""#);
     }
 
     #[test]

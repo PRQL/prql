@@ -222,7 +222,7 @@ fn param<'a>() -> impl Parser<'a, ParserInput<'a>, TokenKind, ParserError<'a>> {
 
 fn interpolation<'a>() -> impl Parser<'a, ParserInput<'a>, TokenKind, ParserError<'a>> {
     // For s-strings and f-strings, use the same multi-quote string parser
-    // No escaping for interpolated strings
+    // Enable escaping so that `\"` in the source becomes a literal `"` in the string
     //
     // NOTE: Known limitation in error reporting for unclosed interpolated strings:
     // When an f-string or s-string is unclosed (e.g., `f"{}`), the error is reported at the
@@ -231,7 +231,7 @@ fn interpolation<'a>() -> impl Parser<'a, ParserInput<'a>, TokenKind, ParserErro
     // modifies error spans during error recovery, and there's no way to prevent this from
     // custom parsers.
     one_of("sf")
-        .then(quoted_string(false))
+        .then(quoted_string(true))
         .map(|(c, s)| TokenKind::Interpolation(c, s))
 }
 

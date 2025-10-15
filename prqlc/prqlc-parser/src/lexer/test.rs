@@ -178,6 +178,15 @@ fn interpolated_strings() {
         ],
     )
     "#);
+
+    // Test s-string with escaped quotes (issue #5494 regression)
+    assert_debug_snapshot!(test_interpolation_tokens(r#"s"SELECT \"col1 foo\"""#), @r#"
+    Tokens(
+        [
+            0..22: Interpolation('s', "SELECT \"col1 foo\""),
+        ],
+    )
+    "#);
 }
 
 #[test]
