@@ -1,0 +1,426 @@
+---
+source: prqlc/prqlc/tests/integration/queries.rs
+expression: "prql target:sql.postgres\n\nlet invoices_wrap = (\n  from invoices\n  select { invoice_id, billing_country }\n)\n\nlet employees_wrap = (\n  from employees\n  select { employee_id, country }\n)\n\nlet invoices_final = (\n  from invoices_wrap\n  select { invoice_id, billing_country }\n  derive { source = f\"{billing_country} from invoices\" }\n)\n\nlet employees_final = (\n  from employees_wrap\n  select { employee_id, country }\n  derive { source = f\"{country} from employees\" }\n)\n\nfrom invoices_final\nappend employees_final\n"
+input_file: prqlc/prqlc/tests/integration/queries/append_cte_complex.prql
+snapshot_kind: text
+---
+1,Germany,Germany from invoices
+2,Norway,Norway from invoices
+3,Belgium,Belgium from invoices
+4,Canada,Canada from invoices
+5,USA,USA from invoices
+6,Germany,Germany from invoices
+7,Germany,Germany from invoices
+8,France,France from invoices
+9,France,France from invoices
+10,Ireland,Ireland from invoices
+11,United Kingdom,United Kingdom from invoices
+12,Germany,Germany from invoices
+13,USA,USA from invoices
+14,USA,USA from invoices
+15,USA,USA from invoices
+16,USA,USA from invoices
+17,USA,USA from invoices
+18,Canada,Canada from invoices
+19,France,France from invoices
+20,United Kingdom,United Kingdom from invoices
+21,Australia,Australia from invoices
+22,Chile,Chile from invoices
+23,India,India from invoices
+24,Norway,Norway from invoices
+25,Brazil,Brazil from invoices
+26,USA,USA from invoices
+27,Canada,Canada from invoices
+28,Portugal,Portugal from invoices
+29,Germany,Germany from invoices
+30,Germany,Germany from invoices
+31,France,France from invoices
+32,Netherlands,Netherlands from invoices
+33,Chile,Chile from invoices
+34,Brazil,Brazil from invoices
+35,Brazil,Brazil from invoices
+36,Canada,Canada from invoices
+37,USA,USA from invoices
+38,USA,USA from invoices
+39,USA,USA from invoices
+40,Germany,Germany from invoices
+41,Spain,Spain from invoices
+42,Sweden,Sweden from invoices
+43,United Kingdom,United Kingdom from invoices
+44,Australia,Australia from invoices
+45,India,India from invoices
+46,Czech Republic,Czech Republic from invoices
+47,Canada,Canada from invoices
+48,Canada,Canada from invoices
+49,Canada,Canada from invoices
+50,Canada,Canada from invoices
+51,Portugal,Portugal from invoices
+52,Germany,Germany from invoices
+53,Finland,Finland from invoices
+54,United Kingdom,United Kingdom from invoices
+55,Belgium,Belgium from invoices
+56,Denmark,Denmark from invoices
+57,Brazil,Brazil from invoices
+58,Brazil,Brazil from invoices
+59,USA,USA from invoices
+60,USA,USA from invoices
+61,Canada,Canada from invoices
+62,Ireland,Ireland from invoices
+63,Italy,Italy from invoices
+64,Poland,Poland from invoices
+65,Sweden,Sweden from invoices
+66,Australia,Australia from invoices
+67,Germany,Germany from invoices
+68,Brazil,Brazil from invoices
+69,USA,USA from invoices
+70,USA,USA from invoices
+71,USA,USA from invoices
+72,Canada,Canada from invoices
+73,Portugal,Portugal from invoices
+74,France,France from invoices
+75,Poland,Poland from invoices
+76,Norway,Norway from invoices
+77,Czech Republic,Czech Republic from invoices
+78,Austria,Austria from invoices
+79,Denmark,Denmark from invoices
+80,Brazil,Brazil from invoices
+81,USA,USA from invoices
+82,USA,USA from invoices
+83,France,France from invoices
+84,France,France from invoices
+85,Hungary,Hungary from invoices
+86,Italy,Italy from invoices
+87,Sweden,Sweden from invoices
+88,Chile,Chile from invoices
+89,Austria,Austria from invoices
+90,USA,USA from invoices
+91,USA,USA from invoices
+92,USA,USA from invoices
+93,USA,USA from invoices
+94,Canada,Canada from invoices
+95,Germany,Germany from invoices
+96,Hungary,Hungary from invoices
+97,India,India from invoices
+98,Brazil,Brazil from invoices
+99,Canada,Canada from invoices
+100,Czech Republic,Czech Republic from invoices
+101,Denmark,Denmark from invoices
+102,Canada,Canada from invoices
+103,USA,USA from invoices
+104,Germany,Germany from invoices
+105,France,France from invoices
+106,France,France from invoices
+107,France,France from invoices
+108,Italy,Italy from invoices
+109,United Kingdom,United Kingdom from invoices
+110,Canada,Canada from invoices
+111,USA,USA from invoices
+112,USA,USA from invoices
+113,USA,USA from invoices
+114,USA,USA from invoices
+115,USA,USA from invoices
+116,Canada,Canada from invoices
+117,France,France from invoices
+118,Australia,Australia from invoices
+119,Argentina,Argentina from invoices
+120,India,India from invoices
+121,Brazil,Brazil from invoices
+122,Czech Republic,Czech Republic from invoices
+123,Brazil,Brazil from invoices
+124,USA,USA from invoices
+125,Portugal,Portugal from invoices
+126,Portugal,Portugal from invoices
+127,Germany,Germany from invoices
+128,France,France from invoices
+129,France,France from invoices
+130,Poland,Poland from invoices
+131,India,India from invoices
+132,Brazil,Brazil from invoices
+133,Canada,Canada from invoices
+134,USA,USA from invoices
+135,USA,USA from invoices
+136,USA,USA from invoices
+137,USA,USA from invoices
+138,Germany,Germany from invoices
+139,Sweden,Sweden from invoices
+140,United Kingdom,United Kingdom from invoices
+141,United Kingdom,United Kingdom from invoices
+142,Argentina,Argentina from invoices
+143,Brazil,Brazil from invoices
+144,Austria,Austria from invoices
+145,USA,USA from invoices
+146,Canada,Canada from invoices
+147,Canada,Canada from invoices
+148,Canada,Canada from invoices
+149,Portugal,Portugal from invoices
+150,France,France from invoices
+151,Hungary,Hungary from invoices
+152,United Kingdom,United Kingdom from invoices
+153,Denmark,Denmark from invoices
+154,Brazil,Brazil from invoices
+155,Brazil,Brazil from invoices
+156,Canada,Canada from invoices
+157,USA,USA from invoices
+158,USA,USA from invoices
+159,Canada,Canada from invoices
+160,Italy,Italy from invoices
+161,Netherlands,Netherlands from invoices
+162,Spain,Spain from invoices
+163,United Kingdom,United Kingdom from invoices
+164,Argentina,Argentina from invoices
+165,Canada,Canada from invoices
+166,Brazil,Brazil from invoices
+167,USA,USA from invoices
+168,USA,USA from invoices
+169,Canada,Canada from invoices
+170,Canada,Canada from invoices
+171,Portugal,Portugal from invoices
+172,France,France from invoices
+173,Spain,Spain from invoices
+174,Czech Republic,Czech Republic from invoices
+175,Czech Republic,Czech Republic from invoices
+176,Belgium,Belgium from invoices
+177,Brazil,Brazil from invoices
+178,Canada,Canada from invoices
+179,USA,USA from invoices
+180,Canada,Canada from invoices
+181,France,France from invoices
+182,Finland,Finland from invoices
+183,Ireland,Ireland from invoices
+184,Netherlands,Netherlands from invoices
+185,United Kingdom,United Kingdom from invoices
+186,India,India from invoices
+187,Belgium,Belgium from invoices
+188,USA,USA from invoices
+189,USA,USA from invoices
+190,USA,USA from invoices
+191,USA,USA from invoices
+192,Canada,Canada from invoices
+193,Germany,Germany from invoices
+194,Ireland,Ireland from invoices
+195,Brazil,Brazil from invoices
+196,Germany,Germany from invoices
+197,Norway,Norway from invoices
+198,Czech Republic,Czech Republic from invoices
+199,Brazil,Brazil from invoices
+200,USA,USA from invoices
+201,USA,USA from invoices
+202,France,France from invoices
+203,France,France from invoices
+204,France,France from invoices
+205,Finland,Finland from invoices
+206,Netherlands,Netherlands from invoices
+207,United Kingdom,United Kingdom from invoices
+208,Norway,Norway from invoices
+209,USA,USA from invoices
+210,USA,USA from invoices
+211,USA,USA from invoices
+212,USA,USA from invoices
+213,USA,USA from invoices
+214,Canada,Canada from invoices
+215,France,France from invoices
+216,Argentina,Argentina from invoices
+217,Chile,Chile from invoices
+218,India,India from invoices
+219,Germany,Germany from invoices
+220,Czech Republic,Czech Republic from invoices
+221,Brazil,Brazil from invoices
+222,USA,USA from invoices
+223,Portugal,Portugal from invoices
+224,Germany,Germany from invoices
+225,Germany,Germany from invoices
+226,France,France from invoices
+227,Finland,Finland from invoices
+228,Spain,Spain from invoices
+229,India,India from invoices
+230,Canada,Canada from invoices
+231,Canada,Canada from invoices
+232,USA,USA from invoices
+233,USA,USA from invoices
+234,USA,USA from invoices
+235,Canada,Canada from invoices
+236,Germany,Germany from invoices
+237,United Kingdom,United Kingdom from invoices
+238,United Kingdom,United Kingdom from invoices
+239,Australia,Australia from invoices
+240,Chile,Chile from invoices
+241,Germany,Germany from invoices
+242,Belgium,Belgium from invoices
+243,USA,USA from invoices
+244,Canada,Canada from invoices
+245,Canada,Canada from invoices
+246,Portugal,Portugal from invoices
+247,Germany,Germany from invoices
+248,France,France from invoices
+249,Ireland,Ireland from invoices
+250,Australia,Australia from invoices
+251,Brazil,Brazil from invoices
+252,Brazil,Brazil from invoices
+253,Brazil,Brazil from invoices
+254,Canada,Canada from invoices
+255,USA,USA from invoices
+256,USA,USA from invoices
+257,Portugal,Portugal from invoices
+258,Netherlands,Netherlands from invoices
+259,Poland,Poland from invoices
+260,Sweden,Sweden from invoices
+261,United Kingdom,United Kingdom from invoices
+262,Chile,Chile from invoices
+263,Norway,Norway from invoices
+264,Brazil,Brazil from invoices
+265,USA,USA from invoices
+266,USA,USA from invoices
+267,Canada,Canada from invoices
+268,Canada,Canada from invoices
+269,Germany,Germany from invoices
+270,France,France from invoices
+271,Sweden,Sweden from invoices
+272,Czech Republic,Czech Republic from invoices
+273,Austria,Austria from invoices
+274,Denmark,Denmark from invoices
+275,Brazil,Brazil from invoices
+276,Canada,Canada from invoices
+277,USA,USA from invoices
+278,Canada,Canada from invoices
+279,Finland,Finland from invoices
+280,Hungary,Hungary from invoices
+281,Italy,Italy from invoices
+282,Poland,Poland from invoices
+283,United Kingdom,United Kingdom from invoices
+284,India,India from invoices
+285,Denmark,Denmark from invoices
+286,USA,USA from invoices
+287,USA,USA from invoices
+288,USA,USA from invoices
+289,USA,USA from invoices
+290,Canada,Canada from invoices
+291,Germany,Germany from invoices
+292,Italy,Italy from invoices
+293,Germany,Germany from invoices
+294,Canada,Canada from invoices
+295,Czech Republic,Czech Republic from invoices
+296,Austria,Austria from invoices
+297,Brazil,Brazil from invoices
+298,USA,USA from invoices
+299,USA,USA from invoices
+300,France,France from invoices
+301,France,France from invoices
+302,France,France from invoices
+303,Hungary,Hungary from invoices
+304,Poland,Poland from invoices
+305,Australia,Australia from invoices
+306,Czech Republic,Czech Republic from invoices
+307,USA,USA from invoices
+308,USA,USA from invoices
+309,USA,USA from invoices
+310,USA,USA from invoices
+311,USA,USA from invoices
+312,Portugal,Portugal from invoices
+313,France,France from invoices
+314,Chile,Chile from invoices
+315,India,India from invoices
+316,Brazil,Brazil from invoices
+317,Canada,Canada from invoices
+318,Austria,Austria from invoices
+319,Brazil,Brazil from invoices
+320,USA,USA from invoices
+321,Germany,Germany from invoices
+322,Germany,Germany from invoices
+323,France,France from invoices
+324,France,France from invoices
+325,Hungary,Hungary from invoices
+326,Sweden,Sweden from invoices
+327,Brazil,Brazil from invoices
+328,Canada,Canada from invoices
+329,USA,USA from invoices
+330,USA,USA from invoices
+331,USA,USA from invoices
+332,USA,USA from invoices
+333,Canada,Canada from invoices
+334,France,France from invoices
+335,United Kingdom,United Kingdom from invoices
+336,United Kingdom,United Kingdom from invoices
+337,Argentina,Argentina from invoices
+338,India,India from invoices
+339,Canada,Canada from invoices
+340,Denmark,Denmark from invoices
+341,USA,USA from invoices
+342,Canada,Canada from invoices
+343,Canada,Canada from invoices
+344,Portugal,Portugal from invoices
+345,Germany,Germany from invoices
+346,France,France from invoices
+347,Italy,Italy from invoices
+348,Argentina,Argentina from invoices
+349,Brazil,Brazil from invoices
+350,Brazil,Brazil from invoices
+351,Canada,Canada from invoices
+352,USA,USA from invoices
+353,USA,USA from invoices
+354,USA,USA from invoices
+355,Portugal,Portugal from invoices
+356,Poland,Poland from invoices
+357,Spain,Spain from invoices
+358,United Kingdom,United Kingdom from invoices
+359,United Kingdom,United Kingdom from invoices
+360,India,India from invoices
+361,Czech Republic,Czech Republic from invoices
+362,Canada,Canada from invoices
+363,USA,USA from invoices
+364,Canada,Canada from invoices
+365,Canada,Canada from invoices
+366,Canada,Canada from invoices
+367,Germany,Germany from invoices
+368,France,France from invoices
+369,United Kingdom,United Kingdom from invoices
+370,Austria,Austria from invoices
+371,Belgium,Belgium from invoices
+372,Brazil,Brazil from invoices
+373,Brazil,Brazil from invoices
+374,USA,USA from invoices
+375,USA,USA from invoices
+376,Canada,Canada from invoices
+377,Hungary,Hungary from invoices
+378,Ireland,Ireland from invoices
+379,Netherlands,Netherlands from invoices
+380,Spain,Spain from invoices
+381,United Kingdom,United Kingdom from invoices
+382,Brazil,Brazil from invoices
+383,Brazil,Brazil from invoices
+384,USA,USA from invoices
+385,USA,USA from invoices
+386,USA,USA from invoices
+387,Canada,Canada from invoices
+388,Canada,Canada from invoices
+389,France,France from invoices
+390,Netherlands,Netherlands from invoices
+391,Canada,Canada from invoices
+392,Norway,Norway from invoices
+393,Czech Republic,Czech Republic from invoices
+394,Belgium,Belgium from invoices
+395,Brazil,Brazil from invoices
+396,USA,USA from invoices
+397,USA,USA from invoices
+398,France,France from invoices
+399,France,France from invoices
+400,Finland,Finland from invoices
+401,Ireland,Ireland from invoices
+402,Spain,Spain from invoices
+403,Argentina,Argentina from invoices
+404,Czech Republic,Czech Republic from invoices
+405,USA,USA from invoices
+406,USA,USA from invoices
+407,USA,USA from invoices
+408,USA,USA from invoices
+409,Canada,Canada from invoices
+410,Portugal,Portugal from invoices
+411,Finland,Finland from invoices
+412,India,India from invoices
+1,Canada,Canada from employees
+2,Canada,Canada from employees
+3,Canada,Canada from employees
+4,Canada,Canada from employees
+5,Canada,Canada from employees
+6,Canada,Canada from employees
+7,Canada,Canada from employees
+8,Canada,Canada from employees
