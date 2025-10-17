@@ -617,7 +617,6 @@ jobs:
               "check-links-book",
               "check-links-markdown",
               "lint-megalinter",
-              "measure-code-cov",
               "nightly",
               "publish-web",
               "test-deps-min-versions",
@@ -632,8 +631,7 @@ jobs:
               "test-python",
               "test-rust",
               "test-rust-main",
-              "test-taskfile",
-              "time-compilation"
+              "test-taskfile"
             ]
 
   build-prqlc:
