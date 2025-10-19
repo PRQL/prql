@@ -81,6 +81,7 @@ jobs:
               - .github/workflows/test-dotnet.yaml
             devcontainer-push:
               - .devcontainer/**/*Dockerfile
+              - .github/workflows/build-devcontainer.yaml
               - Taskfile.yaml
             devcontainer-build:
               - .devcontainer/**/*Dockerfile
