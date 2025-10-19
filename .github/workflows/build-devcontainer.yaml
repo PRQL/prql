@@ -1,5 +1,6 @@
 name: build-devcontainer
 
+# Multi-platform build for devcontainer base image
 on:
   workflow_call:
     inputs:
