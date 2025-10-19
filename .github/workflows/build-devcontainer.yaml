@@ -120,7 +120,7 @@ jobs:
         run: |
           docker buildx imagetools inspect ${{ env.IMAGE_NAME }}:${{ steps.meta.outputs.version }}
           platforms=$(docker buildx imagetools inspect ${{ env.IMAGE_NAME }}:${{ steps.meta.outputs.version }} --raw | \
-            jq -r '.manifests[].platform | "\(.os)/\(.architecture)"' | sort)
+            jq -r '.manifests[] | select(.platform.os != "unknown") | .platform | "\(.os)/\(.architecture)"' | sort)
           expected="linux/amd64
           linux/arm64"
           if [ "$platforms" != "$expected" ]; then
