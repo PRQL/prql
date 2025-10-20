@@ -111,5 +111,5 @@ repos:
 
 ci:
   # Currently network access isn't supported in the CI product.
-  skip: [fmt, lychee]
+  skip: [fmt, lychee, lychee-all]
   autoupdate_commit_msg: "chore: pre-commit autoupdate"
