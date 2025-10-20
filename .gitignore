@@ -51,3 +51,6 @@ vendor
 .hypothesis/
 .aider*
 .env
+
+# Lychee link checker cache
+.lycheecache

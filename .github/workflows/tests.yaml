@@ -354,25 +354,54 @@ jobs:
 
   check-links-markdown:
     needs: rules
-    # Another option is https://github.com/lycheeverse/lychee, but it was
-    # weirdly difficult to exclude a directory, and I managed to get
-    # rate-limited by GH because of it scanning node_modules.
+    # Using lychee via pre-commit for consistency with local development.
+    # Lychee has better retry support for transient network errors than markdown-link-check.
     runs-on: ubuntu-24.04
     steps:
       - name: 📂 Checkout code
         uses: actions/checkout@v5
-      - uses: gaurav-nelson/github-action-markdown-link-check@v1
+
+      - uses: baptiste0928/cargo-install@v3
         with:
-          # Run on:
-          # - All links on nightly schedule
-          # - Links within files which have been changed PRs
-          config-file:
-            ${{ needs.rules.outputs.nightly-upstream == 'true' &&
-            '.config/.markdown-link-check-all.json' ||
-            '.config/.markdown-link-check-local.json' }}
-          base-branch: main
-          check-modified-files-only:
-            ${{ needs.rules.outputs.nightly == 'true' && 'no' || 'yes' }}
+          crate: lychee
+
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.11"
+
+      - name: Install pre-commit
+        run: pip install pre-commit
+
+      - name: Cache lychee results
+        uses: actions/cache@v4
+        with:
+          path: .lycheecache
+          key: lychee-${{ github.sha }}
+          restore-keys: lychee-
+
+      # For PRs: get list of modified markdown files
+      - name: Get modified files
+        if: needs.rules.outputs.nightly != 'true'
+        id: changed-files
+        uses: tj-actions/changed-files@v45
+        with:
+          files: |
+            **/*.md
+            **/*.rst
+
+      - name: Link Checker (All files - Nightly)
+        if: needs.rules.outputs.nightly == 'true'
+        run: pre-commit run --hook-stage manual lychee-all --all-files
+        continue-on-error: true
+
+      - name: Link Checker (Modified files only - PRs)
+        if:
+          needs.rules.outputs.nightly != 'true' &&
+          steps.changed-files.outputs.any_modified == 'true'
+        run:
+          pre-commit run lychee --files ${{
+          steps.changed-files.outputs.all_changed_files }}
+        continue-on-error: true
 
   check-links-book:
     # We also have a check-links-markdown job, however it will not spot mdbook
