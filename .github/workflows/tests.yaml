@@ -383,7 +383,7 @@ jobs:
       - name: Get modified files
         if: needs.rules.outputs.nightly != 'true'
         id: changed-files
-        uses: tj-actions/changed-files@v45
+        uses: tj-actions/changed-files@v47
         with:
           files: |
             **/*.md
