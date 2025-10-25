@@ -28,6 +28,16 @@ impl PositionalMapper {
     /// Reorder or remove columns to make `Union` happy.
     pub(crate) fn apply_active_mapping(&mut self, output: Vec<CId>) -> Vec<CId> {
         if let Some(mapping) = &self.active_positional_mapping {
+            // Check if the mapping indices are valid for the output
+            if mapping.iter().any(|idx| *idx >= output.len()) {
+                log::warn!(
+                    "positional mapping indices out of bounds: mapping={mapping:?}, output_len={}",
+                    output.len()
+                );
+                // If mapping is invalid, don't apply it
+                return output;
+            }
+
             let new_output = mapping.iter().map(|idx| output[*idx]).collect();
             log::debug!("remapping {output:?} to {new_output:?} via {mapping:?}");
             new_output
@@ -48,9 +58,18 @@ impl PositionalMapper {
             })
             .collect();
 
-        if !self.relation_positional_mapping.contains_key(riid) {
+        // Only store the mapping if it's complete (all columns matched)
+        // If mapping is incomplete, it means the bottom relation hasn't been fully
+        // compiled yet, so we shouldn't apply any mapping
+        if mapping.len() == after.len() && !self.relation_positional_mapping.contains_key(riid) {
             log::debug!(".. relation {riid:?} will be mapped: {mapping:?}");
             self.relation_positional_mapping.insert(*riid, mapping);
+        } else if mapping.len() != after.len() {
+            log::debug!(
+                ".. skipping incomplete mapping for {riid:?}: {}/{} columns matched",
+                mapping.len(),
+                after.len()
+            );
         }
     }
 }
