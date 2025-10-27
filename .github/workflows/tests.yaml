@@ -466,7 +466,7 @@ jobs:
           cargo llvm-cov --cobertura --output-path=cobertura.xml
           --no-default-features --features=default,test-dbs
       - name: Upload code coverage results
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v5
         with:
           name: code-coverage-report
           path: cobertura.xml
