@@ -29,7 +29,7 @@ runs:
       with:
         command: build
         args: --timings --all-targets
-    - uses: actions/upload-artifact@v4
+    - uses: actions/upload-artifact@v5
       with:
         name:
           cargo-timing-${{ inputs.use_cache == 'true' && 'cache' || 'no_cache'
