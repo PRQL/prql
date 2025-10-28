@@ -5,15 +5,38 @@ use sqlparser::keywords::{
     Keyword, ALL_KEYWORDS, ALL_KEYWORDS_INDEX, RESERVED_FOR_COLUMN_ALIAS, RESERVED_FOR_TABLE_ALIAS,
 };
 
+use crate::sql::dialect::Dialect;
+
 /// True for keywords which we want to quote when translating to SQL.
 ///
 /// Currently we're being fairly permissive (over-quoting is not a big concern).
 // We're not including the full list from `SQL_KEYWORDS`, as that has terms such
 // as `ID`, instead we bring a few dialects' keywords in.
-pub(super) fn is_keyword(ident: &str) -> bool {
+pub(super) fn is_keyword(ident: &str, dialect: &Dialect) -> bool {
     let ident = ident.to_ascii_uppercase();
 
-    sql_keywords().contains(ident.as_str())
+    sql_keywords().contains(ident.as_str()) || dialect_keywords(dialect).contains(ident.as_str())
+}
+
+fn dialect_keywords(dialect: &Dialect) -> &'static HashSet<&'static str> {
+    match dialect {
+        Dialect::Redshift => redshift_keywords(),
+        _ => empty_keywords(),
+    }
+}
+
+fn empty_keywords() -> &'static HashSet<&'static str> {
+    static EMPTY: OnceLock<HashSet<&str>> = OnceLock::new();
+    EMPTY.get_or_init(HashSet::new)
+}
+
+fn redshift_keywords() -> &'static HashSet<&'static str> {
+    static REDSHIFT: OnceLock<HashSet<&str>> = OnceLock::new();
+    REDSHIFT.get_or_init(|| {
+        let mut m = HashSet::new();
+        m.extend(REDSHIFT_KEYWORDS);
+        m
+    })
 }
 
 fn sql_keywords() -> &'static HashSet<&'static str> {
@@ -492,8 +515,70 @@ const BIGQUERY_KEYWORDS: &[&str] = &[
     "WITHIN",
 ];
 
+// Source reserved keywords from Amazon Redshift
+// https://docs.aws.amazon.com/redshift/latest/dg/r_pg_keywords.html
+// Only including keywords that are NOT in the common SQL keywords above
+const REDSHIFT_KEYWORDS: &[&str] = &[
+    "AES128",
+    "AES256",
+    "ALLOWOVERWRITE",
+    "BACKUP",
+    "BLANKSASNULL",
+    "BYTEDICT",
+    "BZIP2",
+    "CREDENTIALS",
+    "DEFRAG",
+    "DEFLATE",
+    "DELTA",
+    "DELTA32K",
+    "EMPTYASNULL",
+    "ENCODE",
+    "ENCRYPT",
+    "ENCRYPTION",
+    "EXPLICIT",
+    "GLOBALDICT256",
+    "GLOBALDICT64K",
+    "GZIP",
+    "IDENTITY",
+    "LUN",
+    "LUNS",
+    "LZO",
+    "LZOP",
+    "MINUS",
+    "MOSTLY13",
+    "MOSTLY32",
+    "MOSTLY8",
+    "OFFLINE",
+    "OID",
+    "PARALLEL",
+    "PERCENT",
+    "PERMISSIONS",
+    "RAW",
+    "READRATIO",
+    "RECOVER",
+    "REJECTLOG",
+    "RESORT",
+    "RESTORE",
+    "SNAPSHOT",
+    "SYSDATE",
+    "SYSTEM",
+    "TAG",
+    "TDES",
+    "TEXT255",
+    "TEXT32K",
+    "TIME",
+    "TIMESTAMP",
+    "TOP",
+    "TRUNCATECOLUMNS",
+    "WALLET",
+];
+
 #[test]
 fn test_sql_keywords() {
-    assert!(is_keyword("from"));
-    assert!(is_keyword("user"));
+    assert!(is_keyword("from", &Dialect::Generic));
+    assert!(is_keyword("user", &Dialect::Generic));
+    // Redshift-specific keywords should only be keywords for Redshift
+    assert!(is_keyword("time", &Dialect::Redshift));
+    assert!(!is_keyword("time", &Dialect::Postgres));
+    assert!(!is_keyword("time", &Dialect::Generic));
 }

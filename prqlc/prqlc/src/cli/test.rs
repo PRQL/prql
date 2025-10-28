@@ -87,6 +87,7 @@ fn get_targets() {
     sql.mssql
     sql.mysql
     sql.postgres
+    sql.redshift
     sql.sqlite
     sql.snowflake
 

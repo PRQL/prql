@@ -17,6 +17,7 @@ defmodule PRQL do
           | :bigquery
           | :clickhouse
           | :glaredb
+          | :redshift
           | :sqlite
           | :snowflake
   @type format_opt :: {:format, boolean()}

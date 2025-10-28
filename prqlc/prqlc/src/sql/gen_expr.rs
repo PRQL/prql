@@ -834,7 +834,7 @@ pub(super) fn translate_ident_part(ident: String, ctx: &Context) -> sql_ast::Ide
     let is_bare = valid_ident().is_match(&ident);
     match ctx.dialect.ident_quoting_style() {
         IdentQuotingStyle::ConditionallyQuoted => {
-            if is_bare && !keywords::is_keyword(&ident) {
+            if is_bare && !keywords::is_keyword(&ident, &ctx.dialect_enum) {
                 sql_ast::Ident::new(ident)
             } else {
                 sql_ast::Ident::with_quote(ctx.dialect.ident_quote(), ident)

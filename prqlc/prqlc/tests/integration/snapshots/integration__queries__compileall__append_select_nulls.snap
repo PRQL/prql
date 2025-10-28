@@ -50,3 +50,51 @@ input_file: prqlc/prqlc/tests/integration/queries/append_select_nulls.prql
 +  LIMIT
 +    2
 +)
+
+--- generic
++++ redshift
+@@ -1,26 +1,19 @@
+-SELECT
+-  *
+-FROM
+-  (
+-    SELECT
+-      invoice_id AS an_id,
+-      NULL AS name
+-    FROM
+-      invoices
+-    LIMIT
+-      2
+-  ) AS table_2
++(
++  SELECT
++    invoice_id AS an_id,
++    NULL AS name
++  FROM
++    invoices
++  LIMIT
++    2
++)
+ UNION
+-ALL
+-SELECT
+-  *
+-FROM
+-  (
+-    SELECT
+-      NULL AS an_id,
+-      first_name AS name
+-    FROM
+-      employees
+-    LIMIT
+-      2
+-  ) AS table_3
++ALL (
++  SELECT
++    NULL AS an_id,
++    first_name AS name
++  FROM
++    employees
++  LIMIT
++    2
++)
