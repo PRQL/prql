@@ -6218,3 +6218,91 @@ fn test_sort_cast_filter_join_select_with_alias() {
       table_0.album_id
     ")
 }
+
+#[rstest]
+#[case::redshift_quotes_only_keywords(
+    sql::Dialect::Redshift,
+    r#"
+SELECT
+  invoice_id,
+  "time",
+  "timestamp",
+  "identity",
+  "system"
+FROM
+  invoice
+"#
+)]
+#[case::postgres_does_not_quote_redshift_keywords(
+    sql::Dialect::Postgres,
+    r#"
+SELECT
+  invoice_id,
+  time,
+  timestamp,
+  identity,
+  system
+FROM
+  invoice
+"#
+)]
+#[case::generic_does_not_quote_redshift_keywords(
+    sql::Dialect::Generic,
+    r#"
+SELECT
+  invoice_id,
+  time,
+  timestamp,
+  identity,
+  system
+FROM
+  invoice
+"#
+)]
+fn test_redshift_keyword_quoting(
+    #[case] dialect: sql::Dialect,
+    #[case] expected_sql: &'static str,
+) {
+    let query = r#"
+    from invoice
+    select {invoice_id, invoice.time, invoice.timestamp, invoice.identity, invoice.system}
+    "#;
+
+    assert_eq!(
+        compile_with_sql_dialect(query, dialect).unwrap(),
+        expected_sql.trim_start()
+    )
+}
+
+#[test]
+fn test_redshift_quotes_only_keywords_mixed() {
+    // Test that Redshift quotes ONLY keywords, not all identifiers
+    let query = r#"
+    from invoice
+    select {
+        invoice_id,
+        invoice.time,
+        invoice.timestamp,
+        customer_name,
+        invoice.identity,
+        amount
+    }
+    "#;
+
+    let expected = r#"
+SELECT
+  invoice_id,
+  "time",
+  "timestamp",
+  customer_name,
+  "identity",
+  amount
+FROM
+  invoice
+"#;
+
+    assert_eq!(
+        compile_with_sql_dialect(query, sql::Dialect::Redshift).unwrap(),
+        expected.trim_start()
+    )
+}

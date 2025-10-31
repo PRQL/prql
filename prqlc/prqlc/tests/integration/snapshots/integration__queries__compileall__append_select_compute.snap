@@ -93,3 +93,74 @@ input_file: prqlc/prqlc/tests/integration/queries/append_select_compute.prql
 +  ROUND((invoice_id * _expr_0)::numeric, 1) AS b
  FROM
    table_1
+
+--- generic
++++ redshift
+@@ -1,41 +1,34 @@
+ WITH table_1 AS (
+-  SELECT
+-    *
+-  FROM
+-    (
+-      SELECT
+-        invoice_id,
+-        CASE
+-          WHEN total < 10 THEN total * 2
+-          ELSE total
+-        END AS _expr_0,
+-        customer_id
+-      FROM
+-        invoices
+-      LIMIT
+-        5
+-    ) AS table_3
++  (
++    SELECT
++      invoice_id,
++      CASE
++        WHEN total < 10 THEN total * 2
++        ELSE total
++      END AS _expr_0,
++      customer_id
++    FROM
++      invoices
++    LIMIT
++      5
++  )
+   UNION
+-  ALL
+-  SELECT
+-    *
+-  FROM
+-    (
+-      SELECT
+-        invoice_id,
+-        CASE
+-          WHEN unit_price < 1 THEN unit_price * 2
+-          ELSE unit_price
+-        END AS unit_price,
+-        invoice_line_id
+-      FROM
+-        invoice_items
+-      LIMIT
+-        5
+-    ) AS table_4
++  ALL (
++    SELECT
++      invoice_id,
++      CASE
++        WHEN unit_price < 1 THEN unit_price * 2
++        ELSE unit_price
++      END AS unit_price,
++      invoice_line_id
++    FROM
++      invoice_items
++    LIMIT
++      5
++  )
+ )
+ SELECT
+   customer_id * 2 AS a,
+   ROUND(invoice_id * _expr_0, 1) AS b
+ FROM
+   table_1
