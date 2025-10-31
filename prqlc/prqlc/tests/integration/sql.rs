@@ -6006,6 +6006,61 @@ fn test_append_select_multiple() {
 }
 
 #[test]
+fn test_append_with_cte() {
+    // Regression test for issue #5494 - append with CTEs (let statements)
+    // Tests that positional mapping doesn't cause out-of-bounds errors
+    assert_snapshot!(compile(r###"
+    prql target:sql.postgres
+
+    let invoices_wrap = (
+      from invoices
+      select { invoice_id, billing_country }
+    )
+
+    let employees_wrap = (
+      from employees
+      select { employee_id, country }
+    )
+
+    from invoices_wrap
+    derive { source = "invoices" }
+    append (
+      from employees_wrap
+      derive { source = "employees" }
+    )
+    "###).unwrap(), @r"
+    WITH invoices_wrap AS (
+      SELECT
+        invoice_id,
+        billing_country
+      FROM
+        invoices
+    ),
+    employees_wrap AS (
+      SELECT
+        employee_id,
+        country
+      FROM
+        employees
+    )
+    SELECT
+      invoice_id,
+      billing_country,
+      'invoices' AS source
+    FROM
+      invoices_wrap
+    UNION
+    ALL
+    SELECT
+      employee_id,
+      country,
+      'employees' AS source
+    FROM
+      employees_wrap
+    ");
+}
+
+#[test]
 fn test_distinct_on_sort_on_compute() {
     // Test for handling distinct on with sorting on computed columns
     assert_snapshot!(compile(r###"
