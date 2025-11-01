@@ -18,24 +18,6 @@
 
 **New Contributors**:
 
-## [unreleased]
-
-**Language**:
-
-**Features**:
-
-**Fixes**:
-
-**Documentation**:
-
-**Web**:
-
-**Integrations**:
-
-**Internal changes**:
-
-**New Contributors**:
-
 ## 0.13.6 — 2025-11-01
 
 0.13.6 has 40 commits from 6 contributors. Selected changes:
