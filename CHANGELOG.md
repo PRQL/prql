@@ -18,6 +18,31 @@
 
 **New Contributors**:
 
+## 0.13.6 — 2025-11-01
+
+0.13.6 has 40 commits from 6 contributors. Selected changes:
+
+**Features**:
+
+- Add support for Redshift dialect (@priithaamer, #5537)
+
+**Fixes**:
+
+- Fix append regression in 0.13.5 (@priithaamer, #5495)
+- Fix s-string escaping (@priithaamer, #5497)
+- Filter out attestation manifests in platform verification (@max-sixty, #5509)
+
+**Internal changes**:
+
+- Migrate devcontainer build from QEMU to native ARM64 runners (@max-sixty,
+  #5506)
+- Migrate from markdown-link-check to lychee (@max-sixty, #5519)
+- Use zero-copy slice for binary/hex/octal number parsing (perf improvement,
+  @max-sixty, #5488)
+- Update rust toolchain version (#5536)
+- Do not allow incompatible rust-version dependencies (@eitsupi, #5493)
+- Pin typos to v1.37.2 (@max-sixty, #5510)
+
 ## 0.13.5 — 2025-10-09
 
 0.13.5 has 237 commits from 14 contributors. Selected changes:
