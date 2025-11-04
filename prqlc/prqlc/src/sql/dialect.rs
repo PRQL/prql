@@ -371,6 +371,12 @@ impl DialectHandler for RedshiftDialect {
     fn prefers_subquery_parentheses_shorthand(&self) -> bool {
         true
     }
+
+    // Redshift only supports CONCAT with two elements, the docs recommend to use the || operator
+    // for more than two elements: https://docs.aws.amazon.com/redshift/latest/dg/r_CONCAT.html
+    fn has_concat_function(&self) -> bool {
+        false
+    }
 }
 
 impl DialectHandler for GlareDbDialect {

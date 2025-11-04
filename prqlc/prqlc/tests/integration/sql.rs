@@ -6361,3 +6361,21 @@ FROM
         expected.trim_start()
     )
 }
+
+// Test that Redshift uses double pipe (||) over CONCAT
+#[test]
+fn test_redshift_uses_double_pipe_over_concat() {
+    assert_snapshot!(compile_with_sql_dialect(r###"
+    from invoice
+    derive {
+        concatenated = f"{col_one} + {col_two}"
+    }
+    "###, sql::Dialect::Redshift
+    ).unwrap(), @r"
+    SELECT
+      *,
+      col_one || ' + ' || col_two AS concatenated
+    FROM
+      invoice
+    ");
+}

@@ -2,7 +2,6 @@
 source: prqlc/prqlc/tests/integration/queries.rs
 expression: "# mssql:test\n# glaredb:skip — TODO: started raising an error on 2024-05-20; see `window.prql`\n# for more details\nfrom albums\nselect {\n    title,\n    title_and_spaces = f\"  {title}  \",\n    low = (title | text.lower),\n    up = (title | text.upper),\n    ltrimmed = (title | text.ltrim),\n    rtrimmed = (title | text.rtrim),\n    trimmed = (title | text.trim),\n    len = (title | text.length),\n    subs = (title | text.extract 2 5),\n    replace = (title | text.replace \"al\" \"PIKA\"),\n}\nsort {title}\nfilter (title | text.starts_with \"Black\") || (title | text.contains \"Sabbath\") || (title | text.ends_with \"os\")\n"
 input_file: prqlc/prqlc/tests/integration/queries/text_module.prql
-snapshot_kind: text
 ---
 --- generic
 +++ clickhouse
@@ -159,6 +158,24 @@ snapshot_kind: text
    up,
    ltrimmed,
 
+--- generic
++++ redshift
+@@ -1,14 +1,14 @@
+ WITH table_0 AS (
+   SELECT
+     title,
+-    CONCAT('  ', title, '  ') AS title_and_spaces,
++    '  ' || title || '  ' AS title_and_spaces,
+     LOWER(title) AS low,
+     UPPER(title) AS up,
+     LTRIM(title) AS ltrimmed,
+     RTRIM(title) AS rtrimmed,
+     TRIM(title) AS trimmed,
+     CHAR_LENGTH(title) AS len,
+     SUBSTRING(title, 2, 5) AS subs,
+     REPLACE(title, 'al', 'PIKA') AS "replace"
+   FROM
+     albums
 
 --- generic
 +++ sqlite
