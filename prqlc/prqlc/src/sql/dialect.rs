@@ -16,6 +16,7 @@ use std::any::{Any, TypeId};
 
 use chrono::format::{Fixed, Item, Numeric, Pad, StrftimeItems};
 use serde::{Deserialize, Serialize};
+use sqlparser::ast::DateTimeField;
 use strum::VariantNames;
 
 use crate::{Error, Result};
@@ -141,6 +142,16 @@ pub enum IdentQuotingStyle {
     ConditionallyQuoted,
 }
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum IntervalQuotingStyle {
+    // INTERVAL 1 day
+    NoQuotes,
+    // INTERVAL '1' day
+    ValueQuoted,
+    // INTERVAL '1 day'
+    ValueAndUnitQuoted,
+}
+
 pub(super) trait DialectHandler: Any + Debug {
     fn use_fetch(&self) -> bool {
         false
@@ -181,9 +192,9 @@ pub(super) trait DialectHandler: Any + Debug {
     }
 
     /// Whether or not intervals such as `INTERVAL 1 HOUR` require quotes like
-    /// `INTERVAL '1 HOUR'`
-    fn requires_quotes_intervals(&self) -> bool {
-        false
+    /// `INTERVAL '1 HOUR'` or `INTERVAL '1' HOUR`
+    fn interval_quoting_style(&self, _dtf: &DateTimeField) -> IntervalQuotingStyle {
+        IntervalQuotingStyle::NoQuotes
     }
 
     /// Support for GROUP BY *
@@ -249,8 +260,8 @@ impl DialectHandler for GenericDialect {
 }
 
 impl DialectHandler for PostgresDialect {
-    fn requires_quotes_intervals(&self) -> bool {
-        true
+    fn interval_quoting_style(&self, _dtf: &DateTimeField) -> IntervalQuotingStyle {
+        IntervalQuotingStyle::ValueAndUnitQuoted
     }
 
     fn supports_distinct_on(&self) -> bool {
@@ -314,8 +325,16 @@ impl DialectHandler for RedshiftDialect {
         IdentQuotingStyle::ConditionallyQuoted
     }
 
-    fn requires_quotes_intervals(&self) -> bool {
-        true
+    fn interval_quoting_style(&self, dtf: &DateTimeField) -> IntervalQuotingStyle {
+        if let DateTimeField::Year
+        | DateTimeField::Years
+        | DateTimeField::Month
+        | DateTimeField::Months = dtf
+        {
+            IntervalQuotingStyle::ValueQuoted
+        } else {
+            IntervalQuotingStyle::ValueAndUnitQuoted
+        }
     }
 
     fn supports_distinct_on(&self) -> bool {
@@ -380,8 +399,8 @@ impl DialectHandler for RedshiftDialect {
 }
 
 impl DialectHandler for GlareDbDialect {
-    fn requires_quotes_intervals(&self) -> bool {
-        true
+    fn interval_quoting_style(&self, _dtf: &DateTimeField) -> IntervalQuotingStyle {
+        IntervalQuotingStyle::ValueAndUnitQuoted
     }
 }
 

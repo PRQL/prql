@@ -16,7 +16,7 @@ use super::{keywords, Context};
 use crate::ir::generic::{ColumnSort, SortDirection, WindowFrame, WindowKind};
 use crate::ir::pl::{self, Ident, Literal};
 use crate::ir::rq;
-use crate::sql::dialect::IdentQuotingStyle;
+use crate::sql::dialect::{IdentQuotingStyle, IntervalQuotingStyle};
 use crate::sql::pq::context::ColumnDecl;
 use crate::utils::{valid_ident, OrMap};
 use crate::{Error, Result, Span, WithErrorInfo};
@@ -428,27 +428,46 @@ pub(super) fn translate_literal(l: Literal, ctx: &Context) -> Result<sql_ast::Ex
                     )))
                 }
             };
-            if ctx.dialect.requires_quotes_intervals() {
-                //postgres requires quotes around number and unit together eg '3 WEEK'
-                let value = Box::new(sql_ast::Expr::Value(
-                    Value::SingleQuotedString(format!("{} {}", vau.n, sql_parser_datetime)).into(),
-                ));
-                sql_ast::Expr::Interval(sqlparser::ast::Interval {
-                    value,
-                    leading_field: None, //set to none since field is now contained in string
-                    leading_precision: None,
-                    last_field: None,
-                    fractional_seconds_precision: None,
-                })
-            } else {
-                let value = Box::new(translate_literal(Literal::Integer(vau.n), ctx)?);
-                sql_ast::Expr::Interval(sqlparser::ast::Interval {
-                    value,
-                    leading_field: Some(sql_parser_datetime),
-                    leading_precision: None,
-                    last_field: None,
-                    fractional_seconds_precision: None,
-                })
+            match ctx.dialect.interval_quoting_style(&sql_parser_datetime) {
+                IntervalQuotingStyle::ValueAndUnitQuoted => {
+                    //postgres requires quotes around number and unit together eg '3 WEEK'
+                    let value = Box::new(sql_ast::Expr::Value(
+                        Value::SingleQuotedString(format!("{} {}", vau.n, sql_parser_datetime))
+                            .into(),
+                    ));
+                    sql_ast::Expr::Interval(sqlparser::ast::Interval {
+                        value,
+                        leading_field: None, //set to none since field is now contained in string
+                        leading_precision: None,
+                        last_field: None,
+                        fractional_seconds_precision: None,
+                    })
+                }
+                IntervalQuotingStyle::NoQuotes => {
+                    let value = Box::new(translate_literal(Literal::Integer(vau.n), ctx)?);
+                    sql_ast::Expr::Interval(sqlparser::ast::Interval {
+                        value,
+                        leading_field: Some(sql_parser_datetime),
+                        leading_precision: None,
+                        last_field: None,
+                        fractional_seconds_precision: None,
+                    })
+                }
+                // Redshift requires quotes around the number only, otherwise months and years are
+                // not supported. eg '3' MONTH
+                IntervalQuotingStyle::ValueQuoted => {
+                    // Adding single quotes around the number
+                    let value = Box::new(sql_ast::Expr::Value(
+                        Value::SingleQuotedString(vau.n.to_string()).into(),
+                    ));
+                    sql_ast::Expr::Interval(sqlparser::ast::Interval {
+                        value,
+                        leading_field: Some(sql_parser_datetime),
+                        leading_precision: None,
+                        last_field: None,
+                        fractional_seconds_precision: None,
+                    })
+                }
             }
         }
     })
