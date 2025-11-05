@@ -323,6 +323,11 @@ module postgres {
   let regex_search = text pattern -> s"{text} ~ {pattern}"
 }
 
+module redshift {
+  @{binding_strength=11}
+  let div_f = l r -> s"({l} * 1.0 / {r:12})"
+}
+
 module glaredb {
   @{binding_strength=11}
   let div_f = l r -> s"({l} * 1.0 / {r:12})"
