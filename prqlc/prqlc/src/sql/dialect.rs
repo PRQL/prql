@@ -326,14 +326,10 @@ impl DialectHandler for RedshiftDialect {
     }
 
     fn interval_quoting_style(&self, dtf: &DateTimeField) -> IntervalQuotingStyle {
-        if let DateTimeField::Year
-        | DateTimeField::Years
-        | DateTimeField::Month
-        | DateTimeField::Months = dtf
-        {
-            IntervalQuotingStyle::ValueQuoted
-        } else {
+        if matches!(dtf, DateTimeField::Week(_) | DateTimeField::Weeks) {
             IntervalQuotingStyle::ValueAndUnitQuoted
+        } else {
+            IntervalQuotingStyle::ValueQuoted
         }
     }
 
