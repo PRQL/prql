@@ -6379,3 +6379,21 @@ fn test_redshift_uses_double_pipe_over_concat() {
       invoice
     ");
 }
+
+#[test]
+fn test_redshift_text_contains_uses_double_pipe() {
+    assert_snapshot!(compile_with_sql_dialect(r###"
+    from employees
+    select {
+        name,
+        has_substring = (name | text.contains "pika")
+    }
+    "###, sql::Dialect::Redshift
+    ).unwrap(), @r"
+    SELECT
+      name,
+      name LIKE '%' || 'pika' || '%' AS has_substring
+    FROM
+      employees
+    ");
+}

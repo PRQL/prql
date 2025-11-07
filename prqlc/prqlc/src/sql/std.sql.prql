@@ -326,6 +326,12 @@ module postgres {
 module redshift {
   @{binding_strength=11}
   let div_f = l r -> s"({l} * 1.0 / {r:12})"
+
+  # Text functions
+  module text {
+    # https://docs.aws.amazon.com/redshift/latest/dg/r_concat_op.html
+    let contains = substr column -> s"{column:0} LIKE '%' || {substr:0} || '%'"
+  }
 }
 
 module glaredb {
