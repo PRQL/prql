@@ -35,5 +35,5 @@
     "test": "mocha tests"
   },
   "types": "dist/node/prqlc_js.d.ts",
-  "version": "0.13.7"
+  "version": "0.13.8"
 }

@@ -18,6 +18,24 @@
 
 **New Contributors**:
 
+## [unreleased]
+
+**Language**:
+
+**Features**:
+
+**Fixes**:
+
+**Documentation**:
+
+**Web**:
+
+**Integrations**:
+
+**Internal changes**:
+
+**New Contributors**:
+
 ## 0.13.7 — 2025-11-08
 
 0.13.7 has 8 commits from 6 contributors. Selected changes:
