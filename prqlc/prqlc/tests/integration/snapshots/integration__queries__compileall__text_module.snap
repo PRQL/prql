@@ -176,6 +176,22 @@ input_file: prqlc/prqlc/tests/integration/queries/text_module.prql
      REPLACE(title, 'al', 'PIKA') AS "replace"
    FROM
      albums
+@@ -21,14 +21,14 @@
+   ltrimmed,
+   rtrimmed,
+   trimmed,
+   len,
+   subs,
+   "replace"
+ FROM
+   table_0
+ WHERE
+   title LIKE CONCAT('Black', '%')
+-  OR title LIKE CONCAT('%', 'Sabbath', '%')
++  OR title LIKE '%' || 'Sabbath' || '%'
+   OR title LIKE CONCAT('%', 'os')
+ ORDER BY
+   title
 
 --- generic
 +++ sqlite

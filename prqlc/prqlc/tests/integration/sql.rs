@@ -6399,3 +6399,21 @@ fn test_redshift_interval_quoting(#[case] query: &str, #[case] expected: &str) {
         expected
     )
 }
+
+#[test]
+fn test_redshift_text_contains_uses_double_pipe() {
+    assert_snapshot!(compile_with_sql_dialect(r###"
+    from employees
+    select {
+        name,
+        has_substring = (name | text.contains "pika")
+    }
+    "###, sql::Dialect::Redshift
+    ).unwrap(), @r"
+    SELECT
+      name,
+      name LIKE '%' || 'pika' || '%' AS has_substring
+    FROM
+      employees
+    ");
+}
