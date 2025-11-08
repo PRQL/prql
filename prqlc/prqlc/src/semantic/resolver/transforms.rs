@@ -736,12 +736,39 @@ fn append(mut top: Lineage, bottom: Lineage) -> Result<Lineage, Error> {
         ));
     }
 
-    // TODO: I'm not sure what to use as input_name and expr_id...
+    // Merge inputs from both relations so lineage can track both sources
+    // This is similar to how `join` handles inputs
+    top.inputs.extend(bottom.inputs);
+
+    // Merge columns positionally
+    // In a union, columns are aligned by position, so column 0 from top
+    // and column 0 from bottom become one output column
     let mut columns = Vec::with_capacity(top.columns.len());
     for (t, b) in zip(top.columns, bottom.columns) {
         columns.push(match (t, b) {
-            (LineageColumn::All { input_id, except }, LineageColumn::All { .. }) => {
-                LineageColumn::All { input_id, except }
+            // For All columns, keep the top's input_id but merge except sets
+            (
+                LineageColumn::All {
+                    input_id: input_id_t,
+                    except: except_t,
+                },
+                LineageColumn::All {
+                    input_id: input_id_b,
+                    except: except_b,
+                },
+            ) => {
+                // If both are All columns from the same input, merge the except sets
+                // Otherwise, keep the top's input_id
+                // Note: In a union, both inputs should be available, so we keep top's
+                let mut except = except_t;
+                if input_id_t == input_id_b {
+                    // Same input, merge except sets
+                    except.extend(except_b);
+                }
+                LineageColumn::All {
+                    input_id: input_id_t,
+                    except,
+                }
             }
             (
                 LineageColumn::Single {
@@ -750,24 +777,23 @@ fn append(mut top: Lineage, bottom: Lineage) -> Result<Lineage, Error> {
                     target_name,
                 },
                 LineageColumn::Single { name: name_b, .. },
-            ) => match (name_t, name_b) {
-                (None, None) => {
-                    let name = None;
-                    LineageColumn::Single {
-                        name,
+            ) => {
+                // For Single columns in a union, we keep the top's target_id
+                // Both inputs are now tracked in top.inputs, so lineage can
+                // reference either source even though the column only points to one
+                match (name_t, name_b) {
+                    (None, None) => LineageColumn::Single {
+                        name: None,
                         target_id,
                         target_name,
-                    }
-                }
-                (None, Some(name)) | (Some(name), _) => {
-                    let name = Some(name);
-                    LineageColumn::Single {
-                        name,
+                    },
+                    (None, Some(name)) | (Some(name), _) => LineageColumn::Single {
+                        name: Some(name),
                         target_id,
                         target_name,
-                    }
+                    },
                 }
-            },
+            }
             (t, b) => return Err(Error::new_simple(format!(
                 "cannot match columns `{t:?}` and `{b:?}`"
             ))
