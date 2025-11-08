@@ -6380,6 +6380,26 @@ fn test_redshift_uses_double_pipe_over_concat() {
     ");
 }
 
+#[rstest]
+#[case(
+    "from t | select { inter = 2weeks }",
+    "SELECT\n  INTERVAL '2 WEEK' AS inter\nFROM\n  t\n"
+)]
+#[case(
+    "from t | select { inter = 2months }",
+    "SELECT\n  INTERVAL '2' MONTH AS inter\nFROM\n  t\n"
+)]
+#[case(
+    "from t | select { inter = 2hours }",
+    "SELECT\n  INTERVAL '2' HOUR AS inter\nFROM\n  t\n"
+)]
+fn test_redshift_interval_quoting(#[case] query: &str, #[case] expected: &str) {
+    assert_eq!(
+        compile_with_sql_dialect(query, sql::Dialect::Redshift).unwrap(),
+        expected
+    )
+}
+
 #[test]
 fn test_redshift_text_contains_uses_double_pipe() {
     assert_snapshot!(compile_with_sql_dialect(r###"
