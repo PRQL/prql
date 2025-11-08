@@ -753,18 +753,16 @@ fn append(mut top: Lineage, bottom: Lineage) -> Result<Lineage, Error> {
                     except: except_t,
                 },
                 LineageColumn::All {
-                    input_id: input_id_b,
+                    input_id: _input_id_b,
                     except: except_b,
                 },
             ) => {
-                // If both are All columns from the same input, merge the except sets
-                // Otherwise, keep the top's input_id
-                // Note: In a union, both inputs should be available, so we keep top's
+                // Merge except sets from both tables
+                // This preserves exclusion information even when input_ids differ
+                // (e.g., "from employees select !{name}" append "from managers select !{salary}")
                 let mut except = except_t;
-                if input_id_t == input_id_b {
-                    // Same input, merge except sets
-                    except.extend(except_b);
-                }
+                except.extend(except_b);
+
                 LineageColumn::All {
                     input_id: input_id_t,
                     except,
