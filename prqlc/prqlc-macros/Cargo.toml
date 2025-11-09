@@ -15,7 +15,7 @@ proc-macro = true
 test = false
 
 [dependencies]
-prqlc = {path = "../prqlc", default-features = false, version = "0.13.7" }
+prqlc = {path = "../prqlc", default-features = false, version = "0.13.8" }
 syn = "2.0.108"
 
 [package.metadata.release]
