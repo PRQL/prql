@@ -88,3 +88,7 @@ View target/doc/prqlc/module_name/index.html
 # For function documentation
 View target/doc/prqlc/fn.compile.html
 ```
+
+## Releases & Environment
+
+For releases or environment issues, see `web/book/src/project/contributing/development.md`.
