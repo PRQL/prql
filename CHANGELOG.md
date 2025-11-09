@@ -33,11 +33,6 @@
 
 - Bump vite from 7.1.11 to 7.2.0 in playground (#5547)
 
-**Internal changes**:
-
-- Bump the patch group with 2 updates (#5542)
-- pre-commit autoupdate (#5541)
-
 ## 0.13.6 — 2025-11-01
 
 0.13.6 has 40 commits from 6 contributors. Selected changes:
