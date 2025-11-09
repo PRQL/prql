@@ -91,4 +91,5 @@ View target/doc/prqlc/fn.compile.html
 
 ## Releases & Environment
 
-For releases or environment issues, see `web/book/src/project/contributing/development.md`.
+For releases or environment issues, see
+`web/book/src/project/contributing/development.md`.
