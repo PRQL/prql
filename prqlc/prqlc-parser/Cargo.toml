@@ -26,7 +26,7 @@ strum = { workspace = true }
 # see it when compiling on macOS), so we only include features when running
 # outside wasm.
 [target.'cfg(not(target_family="wasm"))'.dependencies]
-chumsky = { version = "0.11.1", features = ["pratt"] }
+chumsky = { version = "0.11.2", features = ["pratt"] }
 # Not direct dependencies, but pinning because of bugs in previous versions
 stacker = "0.1.22"
 [target.'cfg(target_family="wasm")'.dependencies]
