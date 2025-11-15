@@ -1,5 +1,6 @@
 ---
 source: prqlc/prqlc/tests/integration/queries.rs
+assertion_line: 149
 expression: "from invoices\nselect { customer_id, invoice_id, billing_country }\ntake 5\nappend (\n  from employees\n  select { employee_id, employee_id, country }\n  take 5\n)\nappend (\n  from invoice_items\n  select { invoice_line_id, invoice_id, null }\n  take 5\n)\nselect { billing_country, invoice_id }\n"
 input_file: prqlc/prqlc/tests/integration/queries/append_select_multiple_with_null.prql
 ---
@@ -130,6 +131,11 @@ frames:
       table:
       - default_db
       - invoices
+    - id: 145
+      name: employees
+      table:
+      - default_db
+      - employees
 - - 1:189-233
   - columns:
     - !Single
@@ -204,6 +210,16 @@ frames:
       table:
       - default_db
       - invoices
+    - id: 145
+      name: employees
+      table:
+      - default_db
+      - employees
+    - id: 124
+      name: invoice_items
+      table:
+      - default_db
+      - invoice_items
 - - 1:245-283
   - columns:
     - !Single
@@ -224,6 +240,16 @@ frames:
       table:
       - default_db
       - invoices
+    - id: 145
+      name: employees
+      table:
+      - default_db
+      - employees
+    - id: 124
+      name: invoice_items
+      table:
+      - default_db
+      - invoice_items
 nodes:
 - id: 124
   kind: Ident

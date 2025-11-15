@@ -1,5 +1,6 @@
 ---
 source: prqlc/prqlc/tests/integration/queries.rs
+assertion_line: 149
 expression: "from invoices\nselect { invoice_id, billing_country }\nappend (\n  from invoices\n  select { invoice_id = `invoice_id` + 100, billing_country }\n)\nfilter (billing_country | text.starts_with(\"I\"))\n"
 input_file: prqlc/prqlc/tests/integration/queries/append_select_simple.prql
 ---
@@ -63,6 +64,11 @@ frames:
       table:
       - default_db
       - invoices
+    - id: 121
+      name: invoices
+      table:
+      - default_db
+      - invoices
 - - 1:142-190
   - columns:
     - !Single
@@ -79,6 +85,11 @@ frames:
       target_name: null
     inputs:
     - id: 135
+      name: invoices
+      table:
+      - default_db
+      - invoices
+    - id: 121
       name: invoices
       table:
       - default_db

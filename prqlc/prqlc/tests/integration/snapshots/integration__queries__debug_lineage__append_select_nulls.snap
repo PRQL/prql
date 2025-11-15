@@ -1,5 +1,6 @@
 ---
 source: prqlc/prqlc/tests/integration/queries.rs
+assertion_line: 149
 expression: "from invoices\nselect {an_id = invoice_id, name = null}\ntake 2\nappend (\n  from employees\n  select {an_id = null, name = first_name}\n  take 2\n)\n"
 input_file: prqlc/prqlc/tests/integration/queries/append_select_nulls.prql
 ---
@@ -94,6 +95,11 @@ frames:
       table:
       - default_db
       - invoices
+    - id: 121
+      name: employees
+      table:
+      - default_db
+      - employees
 nodes:
 - id: 121
   kind: Ident
