@@ -30,7 +30,7 @@ chumsky = { version = "0.11.2", features = ["pratt"] }
 # Not direct dependencies, but pinning because of bugs in previous versions
 stacker = "0.1.22"
 [target.'cfg(target_family="wasm")'.dependencies]
-chumsky = { version = "0.11.1", features = [
+chumsky = { version = "0.11.2", features = [
     "std",
     "pratt",
 ], default-features = false }
