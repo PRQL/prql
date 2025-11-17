@@ -56,7 +56,8 @@ The test commands above with `--accept` will fill in the result automatically.
   - Use `insta::assert_snapshot!` for compact, readable test assertions
   - Fast to run, easy to review in PRs
 
-- **Use integration tests** (`prqlc/tests/integration/queries/*.prql`) only when:
+- **Use integration tests** (`prqlc/tests/integration/queries/*.prql`) only
+  when:
   - Developing large, complex features that need comprehensive testing
   - Testing end-to-end behavior across multiple compilation stages
   - The test requires external resources or multi-file scenarios
