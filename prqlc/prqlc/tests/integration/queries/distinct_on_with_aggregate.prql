@@ -1,0 +1,5 @@
+# Test for issue #5556: DISTINCT ON with aggregate should include wildcard
+# skip_results
+from tracks
+group {genre_id, media_type_id} (take 1)
+aggregate {c=count this}

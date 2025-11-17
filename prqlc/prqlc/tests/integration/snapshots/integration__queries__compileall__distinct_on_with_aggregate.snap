@@ -1,0 +1,58 @@
+---
+source: prqlc/prqlc/tests/integration/queries.rs
+expression: "# Test for issue #5556: DISTINCT ON with aggregate should include wildcard\n# skip_results\nfrom tracks\ngroup {genre_id, media_type_id} (take 1)\naggregate {c=count this}\n"
+input_file: prqlc/prqlc/tests/integration/queries/distinct_on_with_aggregate.prql
+---
+--- generic
++++ clickhouse
+@@ -1,12 +1,10 @@
+ WITH table_0 AS (
+   SELECT
+-    ROW_NUMBER() OVER (PARTITION BY genre_id, media_type_id) AS _expr_0
++    DISTINCT ON (genre_id, media_type_id) *
+   FROM
+     tracks
+ )
+ SELECT
+   COUNT(*) AS c
+ FROM
+   table_0
+-WHERE
+-  _expr_0 <= 1
+
+--- generic
++++ duckdb
+@@ -1,12 +1,10 @@
+ WITH table_0 AS (
+   SELECT
+-    ROW_NUMBER() OVER (PARTITION BY genre_id, media_type_id) AS _expr_0
++    DISTINCT ON (genre_id, media_type_id) *
+   FROM
+     tracks
+ )
+ SELECT
+   COUNT(*) AS c
+ FROM
+   table_0
+-WHERE
+-  _expr_0 <= 1
+
+
+
+
+--- generic
++++ postgres
+@@ -1,12 +1,10 @@
+ WITH table_0 AS (
+   SELECT
+-    ROW_NUMBER() OVER (PARTITION BY genre_id, media_type_id) AS _expr_0
++    DISTINCT ON (genre_id, media_type_id) *
+   FROM
+     tracks
+ )
+ SELECT
+   COUNT(*) AS c
+ FROM
+   table_0
+-WHERE
+-  _expr_0 <= 1

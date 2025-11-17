@@ -1,0 +1,175 @@
+---
+source: prqlc/prqlc/tests/integration/queries.rs
+expression: "# Test for issue #5556: DISTINCT ON with aggregate should include wildcard\n# skip_results\nfrom tracks\ngroup {genre_id, media_type_id} (take 1)\naggregate {c=count this}\n"
+input_file: prqlc/prqlc/tests/integration/queries/distinct_on_with_aggregate.prql
+---
+frames:
+- - 1:135-141
+  - columns:
+    - !Single
+      name:
+      - tracks
+      - genre_id
+      target_id: 120
+      target_name: null
+    - !Single
+      name:
+      - tracks
+      - media_type_id
+      target_id: 121
+      target_name: null
+    - !All
+      input_id: 118
+      except:
+      - genre_id
+      - media_type_id
+    inputs:
+    - id: 118
+      name: tracks
+      table:
+      - default_db
+      - tracks
+- - 1:143-167
+  - columns:
+    - !Single
+      name:
+      - c
+      target_id: 147
+      target_name: null
+    inputs:
+    - id: 118
+      name: tracks
+      table:
+      - default_db
+      - tracks
+nodes:
+- id: 118
+  kind: Ident
+  span: 1:90-101
+  ident: !Ident
+  - default_db
+  - tracks
+  parent: 138
+- id: 120
+  kind: Ident
+  span: 1:109-117
+  ident: !Ident
+  - this
+  - tracks
+  - genre_id
+  targets:
+  - 118
+  parent: 122
+- id: 121
+  kind: Ident
+  span: 1:119-132
+  ident: !Ident
+  - this
+  - tracks
+  - media_type_id
+  targets:
+  - 118
+  parent: 122
+- id: 122
+  kind: Tuple
+  span: 1:108-133
+  children:
+  - 120
+  - 121
+- id: 138
+  kind: 'TransformCall: Take'
+  span: 1:135-141
+  children:
+  - 118
+  - 139
+  parent: 150
+- id: 139
+  kind: Literal
+  parent: 138
+- id: 147
+  kind: RqOperator
+  span: 1:156-166
+  alias: c
+  targets:
+  - 148
+  parent: 149
+- id: 148
+  kind: Literal
+- id: 149
+  kind: Tuple
+  span: 1:153-167
+  children:
+  - 147
+  parent: 150
+- id: 150
+  kind: 'TransformCall: Aggregate'
+  span: 1:143-167
+  children:
+  - 138
+  - 149
+ast:
+  name: Project
+  stmts:
+  - VarDef:
+      kind: Main
+      name: main
+      value:
+        Pipeline:
+          exprs:
+          - FuncCall:
+              name:
+                Ident:
+                - from
+                span: 1:90-94
+              args:
+              - Ident:
+                - tracks
+                span: 1:95-101
+            span: 1:90-101
+          - FuncCall:
+              name:
+                Ident:
+                - group
+                span: 1:102-107
+              args:
+              - Tuple:
+                - Ident:
+                  - genre_id
+                  span: 1:109-117
+                - Ident:
+                  - media_type_id
+                  span: 1:119-132
+                span: 1:108-133
+              - FuncCall:
+                  name:
+                    Ident:
+                    - take
+                    span: 1:135-139
+                  args:
+                  - Literal:
+                      Integer: 1
+                    span: 1:140-141
+                span: 1:135-141
+            span: 1:102-142
+          - FuncCall:
+              name:
+                Ident:
+                - aggregate
+                span: 1:143-152
+              args:
+              - Tuple:
+                - FuncCall:
+                    name:
+                      Ident:
+                      - count
+                      span: 1:156-161
+                    args:
+                    - Ident:
+                      - this
+                      span: 1:162-166
+                  span: 1:156-166
+                  alias: c
+                span: 1:153-167
+            span: 1:143-167
+        span: 1:90-167
+    span: 1:0-167

@@ -1,0 +1,8 @@
+---
+source: prqlc/prqlc/tests/integration/queries.rs
+expression: "# Test for issue #5556: DISTINCT ON with aggregate should include wildcard\n# skip_results\nfrom tracks\ngroup {genre_id, media_type_id} (take 1)\naggregate {c=count this}\n"
+input_file: prqlc/prqlc/tests/integration/queries/distinct_on_with_aggregate.prql
+---
+from tracks
+group {genre_id, media_type_id} (take 1)
+aggregate {c = count this}
