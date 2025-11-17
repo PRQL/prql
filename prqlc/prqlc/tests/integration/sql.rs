@@ -5036,6 +5036,55 @@ fn test_read_parquet_duckdb() {
 }
 
 #[test]
+fn test_read_parquet_with_named_args() {
+    assert_snapshot!(compile_with_sql_dialect(r#"
+    std.read_parquet 'data.parquet' union_by_name:true
+    "#, sql::Dialect::DuckDb).unwrap(),
+        @r"
+    WITH table_0 AS (
+      SELECT
+        *
+      FROM
+        read_parquet(
+          'data.parquet',
+          binary_as_string = false,
+          file_row_number = false,
+          hive_partitioning = NULL,
+          union_by_name = true
+        )
+    )
+    SELECT
+      *
+    FROM
+      table_0
+    "
+    );
+
+    assert_snapshot!(compile_with_sql_dialect(r#"
+    std.read_parquet 'data.parquet' union_by_name:true binary_as_string:true
+    "#, sql::Dialect::DuckDb).unwrap(),
+        @r"
+    WITH table_0 AS (
+      SELECT
+        *
+      FROM
+        read_parquet(
+          'data.parquet',
+          binary_as_string = true,
+          file_row_number = false,
+          hive_partitioning = NULL,
+          union_by_name = true
+        )
+    )
+    SELECT
+      *
+    FROM
+      table_0
+    "
+    );
+}
+
+#[test]
 fn test_excess_columns() {
     // https://github.com/PRQL/prql/issues/2079
     assert_snapshot!(compile(r#"
