@@ -10,7 +10,7 @@ use crate::pr::{Ty, TyFunc};
 use crate::semantic::resolver::types;
 use crate::semantic::{NS_PARAM, NS_THAT, NS_THIS};
 use crate::Result;
-use crate::{Error, Span, WithErrorInfo};
+use crate::{Error, Reason, Span, WithErrorInfo};
 
 impl Resolver<'_> {
     pub fn fold_function(&mut self, closure: Box<Func>, span: Option<Span>) -> Result<Expr> {
@@ -249,10 +249,25 @@ impl Resolver<'_> {
             // Then, add relation frames into scope
             for (index, arg, is_last) in resolved_relations {
                 if partial_application_position.is_none() {
-                    let frame = arg
-                        .lineage
-                        .as_ref()
-                        .ok_or_else(|| Error::new_bug(4317).with_span(closure.body.span))?;
+                    let frame = arg.lineage.as_ref().ok_or_else(|| {
+                        // Provide helpful error for empty arrays/tuples used directly
+                        // (not from functions like std.from_text which set lineage properly)
+                        match &arg.kind {
+                            ExprKind::Array(v) if v.is_empty() => Error::new(Reason::Expected {
+                                who: None,
+                                expected: "a table or query".to_string(),
+                                found: "an empty array `[]`".to_string(),
+                            })
+                            .with_span(arg.span),
+                            ExprKind::Tuple(v) if v.is_empty() => Error::new(Reason::Expected {
+                                who: None,
+                                expected: "a table or query".to_string(),
+                                found: "an empty tuple `{}`".to_string(),
+                            })
+                            .with_span(arg.span),
+                            _ => Error::new_bug(4317).with_span(closure.body.span),
+                        }
+                    })?;
                     if is_last {
                         self.root_mod.module.insert_frame(frame, NS_THIS);
                     } else {
