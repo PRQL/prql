@@ -68,13 +68,13 @@ fn test_bad_error_messages() {
     ───╯
     ");
 
-    // It's better if we can tell them to put in {} braces
+    // Now provides helpful hint about wrapping in parentheses
     assert_snapshot!(compile(r###"
     from artists
     sort -name
     "###).unwrap_err(), @r"
     Error: expected a pipeline that resolves to a table, but found `internal std.sub`
-    ↳ Hint: are you missing `from` statement?
+    ↳ Hint: wrap negative numbers in parentheses, e.g. `sort (-column_name)`
     ");
 }
 
@@ -165,7 +165,19 @@ fn invalid_lineage_in_transform() {
   )
   "###).unwrap_err(), @r"
     Error: expected a pipeline that resolves to a table, but found `internal std.sub`
-    ↳ Hint: are you missing `from` statement?
+    ↳ Hint: wrap negative numbers in parentheses, e.g. `sort (-column_name)`
+    ");
+}
+
+#[test]
+fn take_negative_number() {
+    // Test for issue #4315 - take with negative number should suggest wrapping in parentheses
+    assert_snapshot!(compile(r###"
+    from pets
+    take -10
+    "###).unwrap_err(), @r"
+    Error: expected a pipeline that resolves to a table, but found `internal std.sub`
+    ↳ Hint: wrap negative numbers in parentheses, e.g. `sort (-column_name)`
     ");
 }
 

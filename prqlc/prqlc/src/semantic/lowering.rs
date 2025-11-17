@@ -411,13 +411,24 @@ impl Lowerer {
             }
 
             _ => {
-                return Err(Error::new(Reason::Expected {
+                let found_str = write_pl(expr.clone());
+                let mut error = Error::new(Reason::Expected {
                     who: None,
                     expected: "a pipeline that resolves to a table".to_string(),
-                    found: format!("`{}`", write_pl(expr.clone())),
-                })
-                .push_hint("are you missing `from` statement?")
-                .with_span(expr.span))
+                    found: format!("`{}`", found_str),
+                });
+
+                // Provide better hints for common mistakes
+                if found_str.starts_with("internal std.sub") {
+                    // This is likely a negative number or expression that should be wrapped in parentheses
+                    error = error.push_hint(
+                        "wrap negative numbers in parentheses, e.g. `sort (-column_name)`",
+                    );
+                } else {
+                    error = error.push_hint("are you missing `from` statement?");
+                }
+
+                return Err(error.with_span(expr.span));
             }
         })
     }
