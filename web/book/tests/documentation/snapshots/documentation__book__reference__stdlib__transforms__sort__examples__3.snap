@@ -2,8 +2,7 @@
 source: web/book/tests/documentation/book.rs
 expression: "from employees\nsort {s\"substr({first_name}, 2, 5)\"}\n"
 ---
-WITH
-table_0 AS (
+WITH table_0 AS (
   SELECT
     *,
     substr(first_name, 2, 5) AS _expr_0

@@ -40,7 +40,7 @@ input_file: prqlc/prqlc/tests/integration/queries/math_module.prql
 
 --- generic
 +++ mssql
-@@ -1,19 +1,23 @@
+@@ -1,19 +1,24 @@
  SELECT
    ROUND(total, 2) AS total_original,
    ABS(ROUND(PI() - total, 2)) AS total_x,
@@ -67,7 +67,8 @@ input_file: prqlc/prqlc/tests/integration/queries/math_module.prql
 +ORDER BY
 +  (
 +    SELECT
-+      NULL) OFFSET 0 ROWS
++      NULL
++  ) OFFSET 0 ROWS
 +FETCH FIRST
 +  5 ROWS ONLY
 

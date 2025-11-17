@@ -2,8 +2,7 @@
 source: web/book/tests/documentation/book.rs
 expression: "prql target:sql.duckdb\n\nfrom (read_parquet \"artists.parquet\")\njoin (read_csv \"albums.csv\") (==track_id)\n"
 ---
-WITH
-table_0 AS (
+WITH table_0 AS (
   SELECT
     *
   FROM

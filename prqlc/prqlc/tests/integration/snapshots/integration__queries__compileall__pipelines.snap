@@ -6,9 +6,8 @@ snapshot_kind: text
 ---
 --- generic
 +++ clickhouse
-@@ -1,21 +1,21 @@
- WITH
- table_0 AS (
+@@ -1,20 +1,20 @@
+ WITH table_0 AS (
    SELECT
      name,
      composer,
@@ -16,9 +15,9 @@ snapshot_kind: text
    FROM
      tracks
    WHERE
--    REGEXP (name, 'Love')
+-    REGEXP(name, 'Love')
 -    AND milliseconds / 1000 / 60 BETWEEN 3 AND 4
-+    match (name, 'Love')
++    match(name, 'Love')
 +    AND ((milliseconds / 1000) / 60) BETWEEN 3 AND 4
    ORDER BY
      track_id
@@ -33,9 +32,8 @@ snapshot_kind: text
 
 --- generic
 +++ duckdb
-@@ -1,21 +1,21 @@
- WITH
- table_0 AS (
+@@ -1,20 +1,20 @@
+ WITH table_0 AS (
    SELECT
      name,
      composer,
@@ -43,7 +41,7 @@ snapshot_kind: text
    FROM
      tracks
    WHERE
--    REGEXP (name, 'Love')
+-    REGEXP(name, 'Love')
 -    AND milliseconds / 1000 / 60 BETWEEN 3 AND 4
 +    REGEXP_MATCHES(name, 'Love')
 +    AND ((milliseconds / 1000) / 60) BETWEEN 3 AND 4
@@ -61,9 +59,8 @@ snapshot_kind: text
 
 --- generic
 +++ glaredb
-@@ -1,21 +1,21 @@
- WITH
- table_0 AS (
+@@ -1,20 +1,20 @@
+ WITH table_0 AS (
    SELECT
      name,
      composer,
@@ -71,7 +68,7 @@ snapshot_kind: text
    FROM
      tracks
    WHERE
--    REGEXP (name, 'Love')
+-    REGEXP(name, 'Love')
 -    AND milliseconds / 1000 / 60 BETWEEN 3 AND 4
 +    name ~ 'Love'
 +    AND ((milliseconds * 1.0 / 1000) * 1.0 / 60) BETWEEN 3 AND 4
@@ -88,9 +85,8 @@ snapshot_kind: text
 
 --- generic
 +++ mysql
-@@ -1,21 +1,21 @@
- WITH
- table_0 AS (
+@@ -1,20 +1,20 @@
+ WITH table_0 AS (
    SELECT
      name,
      composer,
@@ -98,7 +94,7 @@ snapshot_kind: text
    FROM
      tracks
    WHERE
--    REGEXP (name, 'Love')
+-    REGEXP(name, 'Love')
 -    AND milliseconds / 1000 / 60 BETWEEN 3 AND 4
 +    REGEXP_LIKE(name, 'Love', 'c')
 +    AND ((milliseconds / 1000) / 60) BETWEEN 3 AND 4
@@ -115,9 +111,8 @@ snapshot_kind: text
 
 --- generic
 +++ postgres
-@@ -1,21 +1,21 @@
- WITH
- table_0 AS (
+@@ -1,20 +1,20 @@
+ WITH table_0 AS (
    SELECT
      name,
      composer,
@@ -125,7 +120,7 @@ snapshot_kind: text
    FROM
      tracks
    WHERE
--    REGEXP (name, 'Love')
+-    REGEXP(name, 'Love')
 -    AND milliseconds / 1000 / 60 BETWEEN 3 AND 4
 +    name ~ 'Love'
 +    AND ((milliseconds * 1.0 / 1000) * 1.0 / 60) BETWEEN 3 AND 4

@@ -2,8 +2,7 @@
 source: web/book/tests/documentation/book.rs
 expression: "let is_adult = col -> col >= 18\nlet writes_code = col -> (col | in [\"PRQL\", \"Rust\"])\nlet square = col -> (col | math.pow 2)\nlet starts_with_a = col -> (col | text.lower | text.starts_with(\"a\"))\n\nfrom employees\nselect {\n    first_name,\n    last_name,\n    hobby,\n    adult = is_adult age,\n    age_squared = square age,\n}\nfilter ((starts_with_a last_name) && (writes_code hobby))\n"
 ---
-WITH
-table_0 AS (
+WITH table_0 AS (
   SELECT
     first_name,
     last_name,

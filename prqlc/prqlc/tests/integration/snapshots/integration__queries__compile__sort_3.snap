@@ -3,8 +3,7 @@ source: prqlc/prqlc/tests/integration/queries.rs
 expression: "from [{track_id=0, album_id=1, genre_id=2}]\nselect { AA=track_id, album_id, genre_id }\nsort AA\njoin side:left [{album_id=1, album_title=\"Songs\"}] (==album_id)\nselect { AA, AT = album_title ?? \"unknown\", genre_id }\nfilter AA < 25\njoin side:left [{genre_id=1, genre_title=\"Rock\"}] (==genre_id)\nselect { AA, AT, GT = genre_title ?? \"unknown\" }\n"
 input_file: prqlc/prqlc/tests/integration/queries/sort_3.prql
 ---
-WITH
-table_0 AS (
+WITH table_0 AS (
   SELECT
     0 AS track_id,
     1 AS album_id,
@@ -20,7 +19,9 @@ table_5 AS (
 ),
 table_1 AS (
   SELECT
-    1 AS album_id, 'Songs' AS album_title),
+    1 AS album_id,
+    'Songs' AS album_title
+),
 table_4 AS (
   SELECT
     table_5."AA",
@@ -42,7 +43,9 @@ table_3 AS (
 ),
 table_2 AS (
   SELECT
-    1 AS genre_id, 'Rock' AS genre_title)
+    1 AS genre_id,
+    'Rock' AS genre_title
+)
 SELECT
   table_3."AA",
   table_3."AT",

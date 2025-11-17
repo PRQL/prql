@@ -3,8 +3,7 @@ source: prqlc/prqlc/tests/integration/queries.rs
 expression: "from albums\nselect { AA=album_id, artist_id }\nsort AA\nfilter AA >= 25\njoin artists (==artist_id)\n"
 input_file: prqlc/prqlc/tests/integration/queries/sort_2.prql
 ---
-WITH
-table_1 AS (
+WITH table_1 AS (
   SELECT
     album_id AS "AA",
     artist_id

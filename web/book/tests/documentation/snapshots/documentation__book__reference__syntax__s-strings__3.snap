@@ -2,10 +2,9 @@
 source: web/book/tests/documentation/book.rs
 expression: "from s\"SELECT DISTINCT ON first_name, id, age FROM employees ORDER BY age ASC\"\njoin s = s\"SELECT * FROM salaries\" (==id)\n"
 ---
-WITH
-table_0 AS (
-  SELECT DISTINCT
-    ON first_name,
+WITH table_0 AS (
+  SELECT
+    DISTINCT ON first_name,
     id,
     age
   FROM

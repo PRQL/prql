@@ -3,8 +3,7 @@ source: prqlc/prqlc/tests/integration/queries.rs
 expression: "# sqlite:skip (Only works on Sqlite implementations which have the extension\n# installed\n# https://stackoverflow.com/questions/24037982/how-to-use-regexp-in-sqlite)\n\nfrom tracks\n\nfilter (name ~= \"Love\")\nfilter ((milliseconds / 1000 / 60) | in 3..4)\nsort track_id\ntake 1..15\nselect {name, composer}\n"
 input_file: prqlc/prqlc/tests/integration/queries/pipelines.prql
 ---
-WITH
-table_0 AS (
+WITH table_0 AS (
   SELECT
     name,
     composer,
@@ -12,7 +11,7 @@ table_0 AS (
   FROM
     tracks
   WHERE
-    REGEXP (name, 'Love')
+    REGEXP(name, 'Love')
     AND milliseconds / 1000 / 60 BETWEEN 3 AND 4
   ORDER BY
     track_id

@@ -5,9 +5,8 @@ input_file: prqlc/prqlc/tests/integration/queries/sort_3.prql
 ---
 --- generic
 +++ clickhouse
-@@ -1,49 +1,49 @@
- WITH
- table_0 AS (
+@@ -1,52 +1,52 @@
+ WITH table_0 AS (
    SELECT
      0 AS track_id,
      1 AS album_id,
@@ -24,7 +23,9 @@ input_file: prqlc/prqlc/tests/integration/queries/sort_3.prql
  ),
  table_1 AS (
    SELECT
-     1 AS album_id, 'Songs' AS album_title),
+     1 AS album_id,
+     'Songs' AS album_title
+ ),
  table_4 AS (
    SELECT
 -    table_5."AA",
@@ -51,7 +52,9 @@ input_file: prqlc/prqlc/tests/integration/queries/sort_3.prql
  ),
  table_2 AS (
    SELECT
-     1 AS genre_id, 'Rock' AS genre_title)
+     1 AS genre_id,
+     'Rock' AS genre_title
+ )
  SELECT
 -  table_3."AA",
 -  table_3."AT",
@@ -71,9 +74,8 @@ input_file: prqlc/prqlc/tests/integration/queries/sort_3.prql
 
 --- generic
 +++ mysql
-@@ -1,49 +1,49 @@
- WITH
- table_0 AS (
+@@ -1,52 +1,52 @@
+ WITH table_0 AS (
    SELECT
      0 AS track_id,
      1 AS album_id,
@@ -90,7 +92,9 @@ input_file: prqlc/prqlc/tests/integration/queries/sort_3.prql
  ),
  table_1 AS (
    SELECT
-     1 AS album_id, 'Songs' AS album_title),
+     1 AS album_id,
+     'Songs' AS album_title
+ ),
  table_4 AS (
    SELECT
 -    table_5."AA",
@@ -117,7 +121,9 @@ input_file: prqlc/prqlc/tests/integration/queries/sort_3.prql
  ),
  table_2 AS (
    SELECT
-     1 AS genre_id, 'Rock' AS genre_title)
+     1 AS genre_id,
+     'Rock' AS genre_title
+ )
  SELECT
 -  table_3."AA",
 -  table_3."AT",

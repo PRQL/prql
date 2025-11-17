@@ -5,7 +5,7 @@ input_file: prqlc/prqlc/tests/integration/queries/text_module.prql
 ---
 --- generic
 +++ clickhouse
-@@ -3,33 +3,33 @@
+@@ -2,33 +2,33 @@
    SELECT
      title,
      CONCAT('  ', title, '  ') AS title_and_spaces,
@@ -16,8 +16,8 @@ input_file: prqlc/prqlc/tests/integration/queries/text_module.prql
      TRIM(title) AS trimmed,
      CHAR_LENGTH(title) AS len,
      SUBSTRING(title, 2, 5) AS subs,
--    REPLACE (title, 'al', 'PIKA') AS "replace"
-+    REPLACE (title, 'al', 'PIKA') AS `replace`
+-    REPLACE(title, 'al', 'PIKA') AS "replace"
++    REPLACE(title, 'al', 'PIKA') AS `replace`
    FROM
      albums
  )
@@ -44,9 +44,8 @@ input_file: prqlc/prqlc/tests/integration/queries/text_module.prql
 
 --- generic
 +++ duckdb
-@@ -1,21 +1,21 @@
- WITH
- table_0 AS (
+@@ -1,20 +1,20 @@
+ WITH table_0 AS (
    SELECT
      title,
      CONCAT('  ', title, '  ') AS title_and_spaces,
@@ -58,7 +57,7 @@ input_file: prqlc/prqlc/tests/integration/queries/text_module.prql
 -    CHAR_LENGTH(title) AS len,
 +    LENGTH(title) AS len,
      SUBSTRING(title, 2, 5) AS subs,
-     REPLACE (title, 'al', 'PIKA') AS "replace"
+     REPLACE(title, 'al', 'PIKA') AS "replace"
    FROM
      albums
  )
@@ -71,9 +70,8 @@ input_file: prqlc/prqlc/tests/integration/queries/text_module.prql
 
 --- generic
 +++ mssql
-@@ -1,21 +1,21 @@
- WITH
- table_0 AS (
+@@ -1,20 +1,20 @@
+ WITH table_0 AS (
    SELECT
      title,
      CONCAT('  ', title, '  ') AS title_and_spaces,
@@ -85,7 +83,7 @@ input_file: prqlc/prqlc/tests/integration/queries/text_module.prql
 -    CHAR_LENGTH(title) AS len,
 +    LEN(title) AS len,
      SUBSTRING(title, 2, 5) AS subs,
-     REPLACE (title, 'al', 'PIKA') AS "replace"
+     REPLACE(title, 'al', 'PIKA') AS "replace"
    FROM
      albums
  )
@@ -97,7 +95,7 @@ input_file: prqlc/prqlc/tests/integration/queries/text_module.prql
 
 --- generic
 +++ mysql
-@@ -3,33 +3,33 @@
+@@ -2,33 +2,33 @@
    SELECT
      title,
      CONCAT('  ', title, '  ') AS title_and_spaces,
@@ -108,8 +106,8 @@ input_file: prqlc/prqlc/tests/integration/queries/text_module.prql
      TRIM(title) AS trimmed,
      CHAR_LENGTH(title) AS len,
      SUBSTRING(title, 2, 5) AS subs,
--    REPLACE (title, 'al', 'PIKA') AS "replace"
-+    REPLACE (title, 'al', 'PIKA') AS `replace`
+-    REPLACE(title, 'al', 'PIKA') AS "replace"
++    REPLACE(title, 'al', 'PIKA') AS `replace`
    FROM
      albums
  )
@@ -136,8 +134,8 @@ input_file: prqlc/prqlc/tests/integration/queries/text_module.prql
 
 --- generic
 +++ postgres
-@@ -2,21 +2,21 @@
- table_0 AS (
+@@ -1,21 +1,21 @@
+ WITH table_0 AS (
    SELECT
      title,
      CONCAT('  ', title, '  ') AS title_and_spaces,
@@ -149,7 +147,7 @@ input_file: prqlc/prqlc/tests/integration/queries/text_module.prql
      CHAR_LENGTH(title) AS len,
 -    SUBSTRING(title, 2, 5) AS subs,
 +    SUBSTR(title, 2, 5) AS subs,
-     REPLACE (title, 'al', 'PIKA') AS "replace"
+     REPLACE(title, 'al', 'PIKA') AS "replace"
    FROM
      albums
  )
@@ -197,9 +195,8 @@ input_file: prqlc/prqlc/tests/integration/queries/text_module.prql
 
 --- generic
 +++ sqlite
-@@ -1,35 +1,35 @@
- WITH
- table_0 AS (
+@@ -1,34 +1,34 @@
+ WITH table_0 AS (
    SELECT
      title,
 -    CONCAT('  ', title, '  ') AS title_and_spaces,
@@ -212,7 +209,7 @@ input_file: prqlc/prqlc/tests/integration/queries/text_module.prql
 -    CHAR_LENGTH(title) AS len,
 +    LENGTH(title) AS len,
      SUBSTRING(title, 2, 5) AS subs,
-     REPLACE (title, 'al', 'PIKA') AS "replace"
+     REPLACE(title, 'al', 'PIKA') AS "replace"
    FROM
      albums
  )

@@ -7,4 +7,4 @@ SELECT
 FROM
   tracks
 WHERE
-  REGEXP (name, 'Love')
+  REGEXP(name, 'Love')

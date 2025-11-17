@@ -6,7 +6,8 @@ SELECT
   *,
   RANK() OVER (
     ORDER BY
-      age) AS rnk
+      age
+  ) AS rnk
 FROM
   employees
 ORDER BY

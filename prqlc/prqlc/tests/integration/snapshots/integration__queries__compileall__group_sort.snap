@@ -5,7 +5,7 @@ input_file: prqlc/prqlc/tests/integration/queries/group_sort.prql
 ---
 --- generic
 +++ mssql
-@@ -9,21 +9,21 @@
+@@ -8,21 +8,21 @@
      album_id + 1
  ),
  table_1 AS (

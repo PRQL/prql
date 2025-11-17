@@ -6,8 +6,8 @@ snapshot_kind: text
 ---
 --- generic
 +++ mssql
-@@ -18,21 +18,20 @@
-   UNION ALL
+@@ -21,21 +21,20 @@
+   ALL
    SELECT
      2 AS a
  ),
@@ -34,8 +34,8 @@ snapshot_kind: text
 
 --- generic
 +++ sqlite
-@@ -18,21 +18,20 @@
-   UNION ALL
+@@ -21,21 +21,20 @@
+   ALL
    SELECT
      2 AS a
  ),

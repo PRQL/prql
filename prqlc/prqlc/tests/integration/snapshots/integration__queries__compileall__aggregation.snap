@@ -11,7 +11,7 @@ input_file: prqlc/prqlc/tests/integration/queries/aggregation.prql
 -  COALESCE(STRING_AGG(name, ''), ''),
 -  COALESCE(BOOL_AND(name = ''), TRUE),
 -  COALESCE(BOOL_OR(name = ''), FALSE)
-+  COALESCE(GROUP_CONCAT (name, ''), ''),
++  COALESCE(GROUP_CONCAT(name, ''), ''),
 +  COALESCE(MIN(name = '') > 0, TRUE),
 +  COALESCE(MAX(name = '') > 0, FALSE)
  FROM

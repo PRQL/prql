@@ -16,7 +16,8 @@ FROM
     LIMIT
       5
   ) AS table_4
-UNION ALL
+UNION
+ALL
 SELECT
   *
 FROM
@@ -29,7 +30,8 @@ FROM
     LIMIT
       5
   ) AS table_5
-UNION ALL
+UNION
+ALL
 SELECT
   *
 FROM

@@ -5,8 +5,7 @@ expression: "from employees\ngroup department (\n  sort age\n  derive {rnk = ran
 SELECT
   *,
   RANK() OVER (
-    PARTITION BY
-      department
+    PARTITION BY department
     ORDER BY
       age
   ) AS rnk

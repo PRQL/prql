@@ -5,19 +5,16 @@ input_file: prqlc/prqlc/tests/integration/queries/distinct_on.prql
 ---
 --- generic
 +++ clickhouse
-@@ -1,27 +1,22 @@
- WITH
- table_0 AS (
--  SELECT
+@@ -1,25 +1,21 @@
+ WITH table_0 AS (
+   SELECT
 -    genre_id,
-+  SELECT DISTINCT
-+    ON (genre_id, media_type_id) genre_id,
++    DISTINCT ON (genre_id, media_type_id) genre_id,
      media_type_id,
 -    album_id,
 -    ROW_NUMBER() OVER (
--      PARTITION BY
--        genre_id,
--        media_type_id
+-      PARTITION BY genre_id,
+-      media_type_id
 -      ORDER BY
 -        album_id DESC
 -    ) AS _expr_0
@@ -43,19 +40,16 @@ input_file: prqlc/prqlc/tests/integration/queries/distinct_on.prql
 
 --- generic
 +++ duckdb
-@@ -1,27 +1,22 @@
- WITH
- table_0 AS (
--  SELECT
+@@ -1,25 +1,21 @@
+ WITH table_0 AS (
+   SELECT
 -    genre_id,
-+  SELECT DISTINCT
-+    ON (genre_id, media_type_id) genre_id,
++    DISTINCT ON (genre_id, media_type_id) genre_id,
      media_type_id,
 -    album_id,
 -    ROW_NUMBER() OVER (
--      PARTITION BY
--        genre_id,
--        media_type_id
+-      PARTITION BY genre_id,
+-      media_type_id
 -      ORDER BY
 -        album_id DESC
 -    ) AS _expr_0
@@ -85,19 +79,16 @@ input_file: prqlc/prqlc/tests/integration/queries/distinct_on.prql
 
 --- generic
 +++ postgres
-@@ -1,27 +1,22 @@
- WITH
- table_0 AS (
--  SELECT
+@@ -1,25 +1,21 @@
+ WITH table_0 AS (
+   SELECT
 -    genre_id,
-+  SELECT DISTINCT
-+    ON (genre_id, media_type_id) genre_id,
++    DISTINCT ON (genre_id, media_type_id) genre_id,
      media_type_id,
 -    album_id,
 -    ROW_NUMBER() OVER (
--      PARTITION BY
--        genre_id,
--        media_type_id
+-      PARTITION BY genre_id,
+-      media_type_id
 -      ORDER BY
 -        album_id DESC
 -    ) AS _expr_0

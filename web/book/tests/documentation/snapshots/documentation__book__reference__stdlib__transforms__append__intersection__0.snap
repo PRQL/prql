@@ -6,7 +6,8 @@ SELECT
   *
 FROM
   employees_1 AS t
-INTERSECT ALL
+INTERSECT
+ALL
 SELECT
   *
 FROM

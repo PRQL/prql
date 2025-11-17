@@ -6,8 +6,8 @@ snapshot_kind: text
 ---
 --- generic
 +++ clickhouse
-@@ -23,42 +23,36 @@
-   UNION ALL
+@@ -25,42 +25,36 @@
+   ALL
    SELECT
      4 AS id,
      -13 AS x_int,
@@ -64,8 +64,8 @@ snapshot_kind: text
 
 --- generic
 +++ duckdb
-@@ -23,42 +23,39 @@
-   UNION ALL
+@@ -25,42 +25,39 @@
+   ALL
    SELECT
      4 AS id,
      -13 AS x_int,
@@ -123,8 +123,8 @@ snapshot_kind: text
 
 --- generic
 +++ glaredb
-@@ -23,42 +23,46 @@
-   UNION ALL
+@@ -25,42 +25,46 @@
+   ALL
    SELECT
      4 AS id,
      -13 AS x_int,
@@ -185,8 +185,8 @@ snapshot_kind: text
 
 --- generic
 +++ mssql
-@@ -23,24 +23,24 @@
-   UNION ALL
+@@ -25,24 +25,24 @@
+   ALL
    SELECT
      4 AS id,
      -13 AS x_int,
@@ -217,8 +217,8 @@ snapshot_kind: text
 
 --- generic
 +++ mysql
-@@ -23,42 +23,42 @@
-   UNION ALL
+@@ -25,42 +25,42 @@
+   ALL
    SELECT
      4 AS id,
      -13 AS x_int,
@@ -279,8 +279,8 @@ snapshot_kind: text
 
 --- generic
 +++ postgres
-@@ -23,42 +23,46 @@
-   UNION ALL
+@@ -25,42 +25,46 @@
+   ALL
    SELECT
      4 AS id,
      -13 AS x_int,
@@ -373,8 +373,8 @@ snapshot_kind: text
 
 --- generic
 +++ sqlite
-@@ -23,42 +23,42 @@
-   UNION ALL
+@@ -25,42 +25,42 @@
+   ALL
    SELECT
      4 AS id,
      -13 AS x_int,

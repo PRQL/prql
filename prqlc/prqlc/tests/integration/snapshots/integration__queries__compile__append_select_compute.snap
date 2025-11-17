@@ -4,8 +4,7 @@ expression: "from invoices\nderive total = case [total < 10 => total * 2, true =
 input_file: prqlc/prqlc/tests/integration/queries/append_select_compute.prql
 snapshot_kind: text
 ---
-WITH
-table_1 AS (
+WITH table_1 AS (
   SELECT
     *
   FROM
@@ -22,7 +21,8 @@ table_1 AS (
       LIMIT
         5
     ) AS table_3
-  UNION ALL
+  UNION
+  ALL
   SELECT
     *
   FROM

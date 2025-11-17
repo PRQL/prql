@@ -6,7 +6,8 @@ SELECT
   *
 FROM
   employees_1
-UNION ALL
+UNION
+ALL
 SELECT
   *
 FROM

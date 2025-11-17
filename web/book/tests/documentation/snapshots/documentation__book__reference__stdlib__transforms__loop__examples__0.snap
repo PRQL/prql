@@ -2,16 +2,17 @@
 source: web/book/tests/documentation/book.rs
 expression: "from [{n = 1}]\nloop (\n    filter n<4\n    select n = n+1\n)\n\n# returns [1, 2, 3, 4]\n"
 ---
-WITH
-RECURSIVE table_0 AS (
+WITH RECURSIVE table_0 AS (
   SELECT
-    1 AS n),
+    1 AS n
+),
 table_1 AS (
   SELECT
     n
   FROM
     table_0
-  UNION ALL
+  UNION
+  ALL
   SELECT
     n + 1
   FROM
