@@ -229,7 +229,13 @@ module date {
 }
 
 ## File-reading functions, primarily for DuckDB
-let read_parquet = source<text> -> <relation> internal std.read_parquet
+let read_parquet = func
+  source <text>
+  binary_as_string <bool>:false
+  file_row_number <bool>:false
+  hive_partitioning <bool>:null
+  union_by_name <bool>:false
+  -> <relation> internal std.read_parquet
 let read_csv = source<text> -> <relation> internal std.read_csv
 
 

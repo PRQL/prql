@@ -572,7 +572,7 @@ jobs:
     steps:
       - name: 📂 Checkout code
         uses: actions/checkout@v5
-      - run: rustup override set nightly-2025-01-12
+      - run: rustup override set nightly-2025-11-10
       - uses: actions/setup-python@v6
         with:
           python-version: "3.11"
