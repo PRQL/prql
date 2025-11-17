@@ -148,7 +148,7 @@ jobs:
     permissions:
       contents: write
     steps:
-      - uses: actions/download-artifact@v5
+      - uses: actions/download-artifact@v6
         with:
           name: prqlc-${{ matrix.target }}-release
       - name: Copy files into .deb package
@@ -181,7 +181,7 @@ jobs:
 
             PRQL is a modern language for transforming data — a simple,
             powerful, pipelined SQL replacement.
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v5
         with:
           name: deb-${{ matrix.target }}
           path: ./*.deb
@@ -203,7 +203,7 @@ jobs:
     permissions:
       contents: write
     steps:
-      - uses: actions/download-artifact@v5
+      - uses: actions/download-artifact@v6
         with:
           name: prqlc-${{ matrix.target }}-release
       - name: Copy files into .rpm package
@@ -238,7 +238,7 @@ jobs:
             PRQL is a modern language for transforming data — a simple,
             powerful, pipelined SQL replacement.
           license: Apache-2.0
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v5
         with:
           name: artifact-rpm
           path: |
@@ -313,7 +313,7 @@ jobs:
         package:
           - prqlc-python
     steps:
-      - uses: actions/download-artifact@v5
+      - uses: actions/download-artifact@v6
         with:
           # `*` covers target & OS
           pattern: ${{ matrix.package }}-*-release
@@ -334,7 +334,7 @@ jobs:
           crate: wasm-pack
 
       - name: Setup Node
-        uses: actions/setup-node@v5
+        uses: actions/setup-node@v6
         with:
           node-version: "20.x"
           registry-url: "https://registry.npmjs.org"

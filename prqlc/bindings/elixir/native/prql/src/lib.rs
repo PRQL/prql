@@ -22,6 +22,7 @@ mod atoms {
       mssql,
       mysql,
       postgres,
+      redshift,
       sqlite,
       snowflake
     }
@@ -61,6 +62,8 @@ fn target_from_atom(a: Atom) -> prqlc::Target {
         MySql
     } else if a == atoms::postgres() {
         Postgres
+    } else if a == atoms::redshift() {
+        Redshift
     } else if a == atoms::sqlite() {
         SQLite
     } else if a == atoms::snowflake() {

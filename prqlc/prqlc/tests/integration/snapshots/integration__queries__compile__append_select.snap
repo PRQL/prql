@@ -2,6 +2,7 @@
 source: prqlc/prqlc/tests/integration/queries.rs
 expression: "from invoices\nselect { customer_id, invoice_id, billing_country }\ntake 10..15\nappend (\n  from invoices\n  select { customer_id, invoice_id, billing_country }\n  take 40..45\n)\nselect { billing_country, invoice_id }\n"
 input_file: prqlc/prqlc/tests/integration/queries/append_select.prql
+snapshot_kind: text
 ---
 SELECT
   *

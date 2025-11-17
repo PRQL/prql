@@ -1,0 +1,34 @@
+# Lychee link checker configuration
+# See: https://github.com/lycheeverse/lychee
+
+# Retry configuration for network errors
+max_retries = 5
+retry_wait_time = 30  # seconds between retries
+
+# Timeout configuration
+timeout = 20  # seconds
+
+# Maximum redirects to follow
+max_redirects = 5
+
+# Accept these status codes as valid
+accept = [200, 206, 429]
+
+# Exclude patterns - URLs to ignore
+exclude = [
+  # Sites that block GitHub Actions or have reliability issues
+  "^https://twitter\\.com",
+  "^https://www\\.cs\\.ox\\.ac\\.uk",
+  "^https://www\\.php\\.net",
+  "^https://github\\.com/.*container",
+  "^https://benn\\.substack\\.com",
+  "^https://stackoverflow\\.com",
+  "^https://www\\.npmjs\\.com",
+  "^https://invent\\.kde\\.org",
+  "^https://news\\.ycombinator\\.com",
+  "^https://repology\\.org",
+]
+
+# Use cache to reduce rate limiting issues
+cache = true
+max_cache_age = "1d"

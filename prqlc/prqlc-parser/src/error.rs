@@ -1,9 +1,7 @@
 use std::fmt::Debug;
 
-use chumsky::error::Cheap;
 use serde::Serialize;
 
-use super::parser::perror::PError;
 use crate::span::Span;
 
 /// A prqlc error. Used internally, exposed as prqlc::ErrorMessage.
@@ -21,13 +19,15 @@ pub struct Error {
 
 #[derive(Clone, Debug, Default)]
 pub enum ErrorSource {
-    Lexer(Cheap<char>),
-    Parser(PError),
+    Lexer(String),
     #[default]
     Unknown,
     NameResolver,
     TypeResolver,
     SQL,
+    Internal {
+        message: String,
+    },
 }
 
 /// Multiple prqlc errors. Used internally, exposed as prqlc::ErrorMessages.
@@ -64,6 +64,9 @@ pub enum Reason {
     Bug {
         issue: Option<i32>,
         details: Option<String>,
+    },
+    Internal {
+        message: String,
     },
 }
 
@@ -127,6 +130,9 @@ impl std::fmt::Display for Reason {
                     )?;
                 }
                 Ok(())
+            }
+            Reason::Internal { message } => {
+                write!(f, "internal error: {message}")
             }
         }
     }

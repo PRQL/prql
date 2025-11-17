@@ -2,6 +2,7 @@
 source: prqlc/prqlc/tests/integration/queries.rs
 expression: "from invoices\nselect { customer_id, invoice_id, billing_country }\ntake 10..15\nappend (\n  from invoices\n  select { customer_id, invoice_id, billing_country }\n  take 40..45\n)\nselect { billing_country, invoice_id }\n"
 input_file: prqlc/prqlc/tests/integration/queries/append_select.prql
+snapshot_kind: text
 ---
 --- generic
 +++ postgres
@@ -41,6 +42,54 @@ input_file: prqlc/prqlc/tests/integration/queries/append_select.prql
 -      6 OFFSET 39
 -  ) AS table_3
 +(
++  SELECT
++    billing_country,
++    invoice_id
++  FROM
++    invoices
++  LIMIT
++    6 OFFSET 39
++)
+
+--- generic
++++ redshift
+@@ -1,26 +1,19 @@
+-SELECT
+-  *
+-FROM
+-  (
+-    SELECT
+-      billing_country,
+-      invoice_id
+-    FROM
+-      invoices
+-    LIMIT
+-      6 OFFSET 9
+-  ) AS table_2
++(
++  SELECT
++    billing_country,
++    invoice_id
++  FROM
++    invoices
++  LIMIT
++    6 OFFSET 9
++)
+ UNION
+-ALL
+-SELECT
+-  *
+-FROM
+-  (
+-    SELECT
+-      billing_country,
+-      invoice_id
+-    FROM
+-      invoices
+-    LIMIT
+-      6 OFFSET 39
+-  ) AS table_3
++ALL (
 +  SELECT
 +    billing_country,
 +    invoice_id

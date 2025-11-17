@@ -97,8 +97,6 @@ When run on the file above, prql-query produces this pretty table:
 +------------+----------+
 ```
 
-The full code of my script can be
-[found here](https://github.com/aljazerzen/dotfiles/blob/aebe07e90b5dc86b3974946ded921bdee22e95e8/scripts/tt).
-
-If you want to see how looked when implemented with SQL and SQLite3, see this
-[old revision of the file](https://github.com/aljazerzen/dotfiles/blob/fe732ec72e4f4066bfe19041e7d71685dbf69184/scripts/tt).
+The full script implementation adds some conveniences like error handling and
+better output formatting, but the core concept remains: simple CSV logging that
+can be queried with PRQL.

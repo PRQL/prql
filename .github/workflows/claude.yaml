@@ -6,6 +6,13 @@ on:
   pull_request_review_comment:
     types: [created]
 
+# We need consistent env vars across all workflows for the cache to work
+env:
+  CARGO_TERM_COLOR: always
+  CLICOLOR_FORCE: 1
+  RUSTFLAGS: "-C debuginfo=0"
+  RUSTDOCFLAGS: "-Dwarnings"
+
 jobs:
   claude:
     # Only run when comment contains @claude
@@ -20,7 +27,7 @@ jobs:
       id-token: write
       actions: read # Required for Claude to read CI results on PRs
     steps:
-      - name: Checkout repository
+      - name: 📂 Checkout code
         uses: actions/checkout@v5
         with:
           # Fix: Checkout PR branch for issue_comment events instead of default branch
@@ -28,13 +35,38 @@ jobs:
             ${{ github.event.issue.pull_request && format('refs/pull/{0}/head',
             github.event.issue.number) || github.ref }}
           fetch-depth: 0 # Get more history for better context
+          fetch-tags: true
 
-      - name: Configure git for Claude
+      - name: 🔧 Configure git for Claude
         run: |
           git config --global user.name "Claude Code"
           git config --global user.email "claude@anthropic.com"
 
-      - name: Run Claude Code
+      # Install essential tools for the PRQL project
+      - name: 🔧 Setup Task
+        uses: go-task/setup-task@v1
+        with:
+          repo-token: ${{ secrets.GITHUB_TOKEN }}
+
+      # Rust is pre-installed on ubuntu-latest, but we ensure consistent toolchain
+      - uses: baptiste0928/cargo-install@v3
+        with:
+          crate: cargo-insta
+      - uses: baptiste0928/cargo-install@v3
+        with:
+          crate: cargo-nextest
+
+      - run: ./.github/workflows/scripts/set_version.sh
+        shell: bash
+
+      - name: 💰 Cache
+        uses: Swatinem/rust-cache@v2
+        with:
+          prefix-key: ${{ hashFiles('Cargo.lock') }}
+          shared-key: rust-x86_64-unknown-linux-gnu
+          save-if: false
+
+      - name: 🤖 Run Claude Code
         id: claude
         uses: anthropics/claude-code-action@v1
         with:
@@ -50,7 +82,7 @@ jobs:
             --allowedTools Bash,Edit,Read,Write,Glob,Grep,WebSearch,WebFetch
             --system-prompt "You are helping with the PRQL project in a GitHub Actions environment.
             Follow the project guidelines in CLAUDE.md.
-            After making changes, ensure tests pass with 'task test-all' and lints with 'task test-lint'.
+            After making changes, ensure tests pass with 'task test-all' and lints with 'task lint'.
 
             For CI failure diagnosis:
             - Use 'gh run list' and 'gh run view' to check CI status

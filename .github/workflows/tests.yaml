@@ -81,6 +81,7 @@ jobs:
               - .github/workflows/test-dotnet.yaml
             devcontainer-push:
               - .devcontainer/**/*Dockerfile
+              - .github/workflows/build-devcontainer.yaml
               - Taskfile.yaml
             devcontainer-build:
               - .devcontainer/**/*Dockerfile
@@ -292,7 +293,7 @@ jobs:
           shared-key: rust-aarch64-apple-darwin
           save-if: false
       - name: Install Task
-        uses: arduino/setup-task@v2
+        uses: go-task/setup-task@v1
         with:
           repo-token: ${{ secrets.GITHUB_TOKEN }}
       # Required because of https://github.com/cargo-bins/cargo-binstall/issues/1254
@@ -301,8 +302,8 @@ jobs:
       - run: task setup-dev
       # This also encompasses `build-all`
       - run: task test-all
-      - run: task test-rust-fast
-      - run: task test-lint
+      - run: task prqlc:test
+      - run: task lint
 
   test-rust-main:
     needs: rules
@@ -353,25 +354,54 @@ jobs:
 
   check-links-markdown:
     needs: rules
-    # Another option is https://github.com/lycheeverse/lychee, but it was
-    # weirdly difficult to exclude a directory, and I managed to get
-    # rate-limited by GH because of it scanning node_modules.
+    # Using lychee via pre-commit for consistency with local development.
+    # Lychee has better retry support for transient network errors than markdown-link-check.
     runs-on: ubuntu-24.04
     steps:
       - name: 📂 Checkout code
         uses: actions/checkout@v5
-      - uses: gaurav-nelson/github-action-markdown-link-check@v1
+
+      - uses: baptiste0928/cargo-install@v3
         with:
-          # Run on:
-          # - All links on nightly schedule
-          # - Links within files which have been changed PRs
-          config-file:
-            ${{ needs.rules.outputs.nightly-upstream == 'true' &&
-            '.config/.markdown-link-check-all.json' ||
-            '.config/.markdown-link-check-local.json' }}
-          base-branch: main
-          check-modified-files-only:
-            ${{ needs.rules.outputs.nightly == 'true' && 'no' || 'yes' }}
+          crate: lychee
+
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.11"
+
+      - name: Install pre-commit
+        run: pip install pre-commit
+
+      - name: Cache lychee results
+        uses: actions/cache@v4
+        with:
+          path: .lycheecache
+          key: lychee-${{ github.sha }}
+          restore-keys: lychee-
+
+      # For PRs: get list of modified markdown files
+      - name: Get modified files
+        if: needs.rules.outputs.nightly != 'true'
+        id: changed-files
+        uses: tj-actions/changed-files@v47
+        with:
+          files: |
+            **/*.md
+            **/*.rst
+
+      - name: Link Checker (All files - Nightly)
+        if: needs.rules.outputs.nightly == 'true'
+        run: pre-commit run --hook-stage manual lychee-all --all-files
+        continue-on-error: true
+
+      - name: Link Checker (Modified files only - PRs)
+        if:
+          needs.rules.outputs.nightly != 'true' &&
+          steps.changed-files.outputs.any_modified == 'true'
+        run:
+          pre-commit run lychee --files ${{
+          steps.changed-files.outputs.all_changed_files }}
+        continue-on-error: true
 
   check-links-book:
     # We also have a check-links-markdown job, however it will not spot mdbook
@@ -436,7 +466,7 @@ jobs:
           cargo llvm-cov --cobertura --output-path=cobertura.xml
           --no-default-features --features=default,test-dbs
       - name: Upload code coverage results
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v5
         with:
           name: code-coverage-report
           path: cobertura.xml
@@ -521,12 +551,6 @@ jobs:
     steps:
       - name: 📂 Checkout code
         uses: actions/checkout@v5
-      - name: Prepare for MSRV testing
-        # Resolver v3 requires Rust 1.84+ to parse the Cargo.toml, but our library MSRV is 1.75.
-        # We temporarily downgrade to resolver v2 for MSRV testing.
-        run: |
-          echo "Patching Cargo.toml for MSRV testing (resolver v3 requires Rust 1.84+)"
-          sed -i 's/resolver = "3"/resolver = "2"/g' Cargo.toml
       - uses: baptiste0928/cargo-install@v3
         with:
           crate: cargo-msrv
@@ -548,7 +572,7 @@ jobs:
     steps:
       - name: 📂 Checkout code
         uses: actions/checkout@v5
-      - run: rustup override set nightly-2025-01-12
+      - run: rustup override set nightly-2025-11-10
       - uses: actions/setup-python@v6
         with:
           python-version: "3.11"
@@ -623,7 +647,6 @@ jobs:
               "check-links-book",
               "check-links-markdown",
               "lint-megalinter",
-              "measure-code-cov",
               "nightly",
               "publish-web",
               "test-deps-min-versions",
@@ -638,8 +661,7 @@ jobs:
               "test-python",
               "test-rust",
               "test-rust-main",
-              "test-taskfile",
-              "time-compilation"
+              "test-taskfile"
             ]
 
   build-prqlc:

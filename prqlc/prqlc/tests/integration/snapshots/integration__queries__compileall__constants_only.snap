@@ -28,3 +28,27 @@ input_file: prqlc/prqlc/tests/integration/queries/constants_only.prql
  SELECT
    10 AS d
  FROM
+
+--- generic
++++ redshift
+@@ -1,20 +1,18 @@
+ WITH table_1 AS (
+   SELECT
+-    NULL
+   FROM
+     genres
+   LIMIT
+     10
+ ), table_0 AS (
+   SELECT
+-    NULL
+   FROM
+     table_1
+   WHERE
+     true
+   LIMIT
+     20
+ )
+ SELECT
+   10 AS d
+ FROM

@@ -10,7 +10,7 @@ repos:
         # rustfmt handles rust files, and in some snapshots we expect trailing spaces.
         exclude: '.*\.(rs|snap)$'
   - repo: https://github.com/crate-ci/typos
-    rev: v1.36.2
+    rev: v1
     hooks:
       - id: typos
         # https://github.com/crate-ci/typos/issues/347
@@ -25,13 +25,13 @@ repos:
           # https://github.com/PRQL/prql/issues/3078
           - prettier-plugin-go-template
   - repo: https://github.com/astral-sh/ruff-pre-commit
-    rev: v0.13.2
+    rev: v0.14.5
     hooks:
       - id: ruff
         args: [--fix]
       - id: ruff-format
   - repo: https://github.com/pre-commit/mirrors-clang-format
-    rev: v21.1.2
+    rev: v21.1.5
     hooks:
       - id: clang-format
         types_or: [c, c++]
@@ -45,22 +45,39 @@ repos:
       - id: clippy
         stages: [manual]
   - repo: https://github.com/rhysd/actionlint
-    rev: v1.7.7
+    rev: v1.7.8
     hooks:
       - id: actionlint
-  - repo: https://github.com/tcort/markdown-link-check
-    rev: v3.13.7
+  # Link checker using local hooks with language: rust
+  # Pre-commit will automatically install lychee via cargo
+  - repo: local
     hooks:
-      - id: markdown-link-check
-        name: markdown-link-check-local
-        types: [markdown]
-        args: ["--config=.config/.markdown-link-check-local.json"]
-        # To run across everything (see nightly.yaml for more details)
-      - id: markdown-link-check
-        name: markdown-link-check-all
+      - id: lychee
+        name: lychee (local links only)
+        entry: lychee
+        language: rust
+        additional_dependencies: ["cli:lychee:0.20.1"]
+        files: \.(md|rst)$
+        exclude: ^web/website/themes/
+        args:
+          - --no-progress
+          # For PRs: whitelist PRQL domains and local files only
+          # Pattern matches:
+          #   - github.com/PRQL/* and github.com/prql/*
+          #   - prql-lang.org/*
+          #   - raw.githubusercontent.com/PRQL/* and raw.githubusercontent.com/prql/*
+          #   - file://* (local/relative links)
+          # All other external links are skipped for faster PR checks
+          - --include=^(https://(github\.com/(PRQL|prql)|prql-lang\.org|raw\.githubusercontent\.com/(PRQL|prql))|file://)
+      - id: lychee-all
+        name: lychee-all (all links)
+        entry: lychee
+        language: rust
+        additional_dependencies: ["cli:lychee:0.20.1"]
         stages: [manual]
-        types: [markdown]
-        args: ["--config=.config/.markdown-link-check-all.json"]
+        files: \.(md|rst)$
+        exclude: ^web/website/themes/
+        args: ["--config=.config/lychee.toml", "--no-progress"]
   - repo: local
     hooks:
       - id: no-dbg
@@ -94,5 +111,5 @@ repos:
 
 ci:
   # Currently network access isn't supported in the CI product.
-  skip: [fmt, markdown-link-check]
+  skip: [fmt, lychee, lychee-all]
   autoupdate_commit_msg: "chore: pre-commit autoupdate"

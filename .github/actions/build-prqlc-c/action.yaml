@@ -87,7 +87,7 @@ runs:
         7z a "../../../${ARTIFACT_NAME}" *prqlc_c*
 
     - name: Upload prqlc-c
-      uses: actions/upload-artifact@v4
+      uses: actions/upload-artifact@v5
       with:
         name: prqlc_c-${{ inputs.target }}-${{ inputs.profile }}
         path: ${{ env.ARTIFACT_NAME }}

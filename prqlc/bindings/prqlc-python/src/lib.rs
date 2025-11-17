@@ -14,21 +14,21 @@ pub fn compile(prql_query: &str, options: Option<CompileOptions>) -> PyResult<St
     };
 
     prqlc_lib::compile(prql_query, &options.unwrap_or_default())
-        .map_err(|err| (PyErr::new::<exceptions::PyValueError, _>(err.to_string())))
+        .map_err(|err| PyErr::new::<exceptions::PyValueError, _>(err.to_string()))
 }
 
 #[pyfunction]
 pub fn prql_to_pl(prql_query: &str) -> PyResult<String> {
     prqlc_lib::prql_to_pl(prql_query)
         .and_then(|x| prqlc_lib::json::from_pl(&x))
-        .map_err(|err| (PyErr::new::<exceptions::PyValueError, _>(err.to_json())))
+        .map_err(|err| PyErr::new::<exceptions::PyValueError, _>(err.to_json()))
 }
 
 #[pyfunction]
 pub fn pl_to_prql(pl_json: &str) -> PyResult<String> {
     prqlc_lib::json::to_pl(pl_json)
         .and_then(|x| prqlc_lib::pl_to_prql(&x))
-        .map_err(|err| (PyErr::new::<exceptions::PyValueError, _>(err.to_json())))
+        .map_err(|err| PyErr::new::<exceptions::PyValueError, _>(err.to_json()))
 }
 
 #[pyfunction]
@@ -36,7 +36,7 @@ pub fn pl_to_rq(pl_json: &str) -> PyResult<String> {
     prqlc_lib::json::to_pl(pl_json)
         .and_then(prqlc_lib::pl_to_rq)
         .and_then(|x| prqlc_lib::json::from_rq(&x))
-        .map_err(|err| (PyErr::new::<exceptions::PyValueError, _>(err.to_json())))
+        .map_err(|err| PyErr::new::<exceptions::PyValueError, _>(err.to_json()))
 }
 
 #[pyfunction]
@@ -52,7 +52,7 @@ pub fn rq_to_sql(rq_json: &str, options: Option<CompileOptions>) -> PyResult<Str
                     .unwrap_or_default(),
             )
         })
-        .map_err(|err| (PyErr::new::<exceptions::PyValueError, _>(err.to_json())))
+        .map_err(|err| PyErr::new::<exceptions::PyValueError, _>(err.to_json()))
 }
 
 mod debug {
@@ -63,7 +63,7 @@ mod debug {
         prqlc_lib::prql_to_pl(prql_query)
             .and_then(prqlc_lib::internal::pl_to_lineage)
             .and_then(|x| prqlc_lib::internal::json::from_lineage(&x))
-            .map_err(|err| (PyErr::new::<exceptions::PyValueError, _>(err.to_json())))
+            .map_err(|err| PyErr::new::<exceptions::PyValueError, _>(err.to_json()))
     }
 
     #[pyfunction]
@@ -71,7 +71,7 @@ mod debug {
         prqlc_lib::json::to_pl(pl_json)
             .and_then(prqlc_lib::internal::pl_to_lineage)
             .and_then(|x| prqlc_lib::internal::json::from_lineage(&x))
-            .map_err(|err| (PyErr::new::<exceptions::PyValueError, _>(err.to_json())))
+            .map_err(|err| PyErr::new::<exceptions::PyValueError, _>(err.to_json()))
     }
 }
 

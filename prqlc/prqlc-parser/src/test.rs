@@ -1,37 +1,58 @@
-use chumsky::Parser;
+use chumsky::prelude::*;
+use chumsky::span::SimpleSpan;
 use insta::{assert_debug_snapshot, assert_yaml_snapshot};
-use std::fmt::Debug;
 
+use crate::error::Error;
 use crate::parser::pr::Stmt;
-use crate::parser::prepare_stream;
 use crate::parser::stmt;
-use crate::{error::Error, lexer::lr::TokenKind, parser::perror::PError};
+use crate::span::Span;
 
-/// Parse source code based on the supplied parser.
-///
-/// Use this to test any parser!
-pub(crate) fn parse_with_parser<O: Debug>(
-    source: &str,
-    parser: impl Parser<TokenKind, O, Error = PError>,
-) -> Result<O, Vec<Error>> {
+/// Parse into statements
+pub(crate) fn parse_source(source: &str) -> Result<Vec<Stmt>, Vec<Error>> {
     let tokens = crate::lexer::lex_source(source)?;
-    let stream = prepare_stream(tokens.0, 0);
 
-    // TODO: possibly should check we consume all the input? Either with an
-    // end() parser or some other way (but if we add an end parser then this
-    // func doesn't work with `source`, which has its own end parser...)
-    let (ast, parse_errors) = parser.parse_recovery_verbose(stream);
+    // Filter out comments
+    let semantic_tokens: Vec<_> = tokens
+        .0
+        .into_iter()
+        .filter(|token| {
+            !matches!(
+                token.kind,
+                crate::lexer::lr::TokenKind::Comment(_) | crate::lexer::lr::TokenKind::LineWrap(_)
+            )
+        })
+        .collect();
+
+    let input = semantic_tokens
+        .as_slice()
+        .map_span(|simple_span: SimpleSpan| {
+            let start_idx = simple_span.start();
+            let end_idx = simple_span.end();
+
+            let start = semantic_tokens
+                .get(start_idx)
+                .map(|t| t.span.start)
+                .unwrap_or(0);
+            let end = semantic_tokens
+                .get(end_idx.saturating_sub(1))
+                .map(|t| t.span.end)
+                .unwrap_or(start);
+
+            Span {
+                start,
+                end,
+                source_id: 0,
+            }
+        });
+
+    let parse_result = stmt::source().parse(input);
+    let (ast, parse_errors) = parse_result.into_output_errors();
 
     if !parse_errors.is_empty() {
         log::info!("ast: {ast:?}");
         return Err(parse_errors.into_iter().map(|e| e.into()).collect());
     }
     Ok(ast.unwrap())
-}
-
-/// Parse into statements
-pub(crate) fn parse_source(source: &str) -> Result<Vec<Stmt>, Vec<Error>> {
-    parse_with_parser(source, stmt::source())
 }
 
 #[test]
@@ -46,6 +67,25 @@ fn test_error_unicode_string() {
     parse_source("👍 s’").unwrap_err();
 
     let source = "Mississippi has four S’s and four I’s.";
+
+    // LEXER output for comparison (what the lexer sees):
+    assert_debug_snapshot!(crate::lexer::lex_source(source).unwrap_err(), @r#"
+    [
+        Error {
+            kind: Error,
+            span: Some(
+                0:22-23,
+            ),
+            reason: Unexpected {
+                found: "'’'",
+            },
+            hints: [],
+            code: None,
+        },
+    ]
+    "#);
+
+    // PARSER output (what happens after lexing):
     assert_debug_snapshot!(parse_source(source).unwrap_err(), @r#"
     [
         Error {
@@ -54,18 +94,7 @@ fn test_error_unicode_string() {
                 0:22-23,
             ),
             reason: Unexpected {
-                found: "’",
-            },
-            hints: [],
-            code: None,
-        },
-        Error {
-            kind: Error,
-            span: Some(
-                0:35-36,
-            ),
-            reason: Unexpected {
-                found: "’",
+                found: "'’'",
             },
             hints: [],
             code: None,
@@ -81,11 +110,13 @@ fn test_error_unexpected() {
         Error {
             kind: Error,
             span: Some(
-                0:6-7,
+                0:15-16,
             ),
-            reason: Simple(
-                "unexpected :",
-            ),
+            reason: Expected {
+                who: None,
+                expected: "something else",
+                found: "!",
+            },
             hints: [],
             code: None,
         },
@@ -1593,9 +1624,9 @@ fn test_unicode() {
             args:
               - Ident:
                   - tète
-                span: "0:5-9"
-          span: "0:0-9"
-      span: "0:0-9"
+                span: "0:5-10"
+          span: "0:0-10"
+      span: "0:0-10"
     "#);
 }
 

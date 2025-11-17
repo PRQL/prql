@@ -10,7 +10,7 @@ use super::anchor::CidRedirector;
 use super::ast::*;
 use crate::ir::generic::ColumnSort;
 use crate::ir::pl::Ident;
-use crate::ir::rq::{CId, ExprKind, RqFold, TId};
+use crate::ir::rq::{CId, ExprKind, RelationColumn, RqFold, TId};
 use crate::sql::pq::context::{ColumnDecl, RIId};
 use crate::sql::Context;
 use crate::Result;
@@ -152,13 +152,89 @@ struct CteSorting {
 
 impl RqFold for SortingInference<'_> {}
 
+/// Returns the CIds for the last SELECT statement in an AtomicPipeline CTE, or None if no such
+/// statement is found.
+fn find_last_select_for_cte(cte: &Cte) -> Option<&Vec<CId>> {
+    match &cte.kind {
+        CteKind::Normal(SqlRelation::AtomicPipeline(pipeline)) => {
+            pipeline.iter().rev().find_map(|transform| {
+                if let SqlTransform::Select(cids) = transform {
+                    Some(cids)
+                } else {
+                    None
+                }
+            })
+        }
+        _ => None,
+    }
+}
+
 impl PqFold for SortingInference<'_> {
     fn fold_sql_query(&mut self, query: SqlQuery) -> Result<SqlQuery> {
         let mut ctes = Vec::with_capacity(query.ctes.len());
 
         for cte in query.ctes {
             log::debug!("infer_sorts: {0:?}", cte.tid);
+
+            let last_select_before_fold = find_last_select_for_cte(&cte).cloned();
             let cte = self.fold_cte(cte)?;
+            let last_select_after_fold = find_last_select_for_cte(&cte);
+
+            // Checking if CTE folding has added some new columns to the CTE
+            match (last_select_before_fold.as_ref(), last_select_after_fold) {
+                (Some(before), Some(after)) if before != after => {
+                    let new_columns = after
+                        .iter()
+                        .filter(|cid| !before.contains(cid))
+                        .collect::<Vec<_>>();
+
+                    // if new columns are added, the relation instance needs to be updated
+                    if !new_columns.is_empty() {
+                        let mut cid_redirects_to_add = Vec::new();
+                        for old_cid in new_columns {
+                            let new_cid = self.ctx.anchor.cid.gen();
+                            let name = self.ctx.anchor.ensure_column_name(*old_cid).cloned();
+                            if let Some(name) = name.clone() {
+                                self.ctx.anchor.column_names.insert(new_cid, name);
+                            }
+
+                            let old_def = self.ctx.anchor.column_decls.get(old_cid).unwrap();
+                            let col = match old_def {
+                                ColumnDecl::RelationColumn(_, _, RelationColumn::Wildcard) => {
+                                    RelationColumn::Wildcard
+                                }
+                                _ => RelationColumn::Single(name),
+                            };
+
+                            cid_redirects_to_add.push((*old_cid, new_cid, col));
+                        }
+
+                        let (riid, relation_instance) = self
+                            .ctx
+                            .anchor
+                            .relation_instances
+                            .iter_mut()
+                            .find(|(_riid, rel_inst)| rel_inst.table_ref.source == cte.tid)
+                            .unwrap();
+
+                        cid_redirects_to_add
+                            .into_iter()
+                            .for_each(|(old_cid, new_cid, col)| {
+                                let def = ColumnDecl::RelationColumn(*riid, new_cid, col);
+
+                                self.ctx.anchor.column_decls.insert(new_cid, def);
+                                log::debug!(
+                                    "-- redirecting {old_cid:?} to {new_cid:?} for CTE {cte:?} (RIId: {riid:?})",
+                                    cte = cte.tid,
+                                    riid = riid
+                                );
+
+                                relation_instance.cid_redirects.insert(old_cid, new_cid);
+                            });
+                    }
+                }
+                _ => {}
+            }
 
             // store sorting to be used later in From references
             let sorting = self.last_sorting.drain(..).collect();

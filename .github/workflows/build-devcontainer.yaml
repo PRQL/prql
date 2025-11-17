@@ -1,5 +1,6 @@
 name: build-devcontainer
 
+# Multi-platform build for devcontainer base image
 on:
   workflow_call:
     inputs:
@@ -12,54 +13,120 @@ on:
         type: boolean
         default: false
 
+env:
+  IMAGE_NAME: ghcr.io/prql/prql-devcontainer-base
+
 jobs:
   build:
-    runs-on: ubuntu-24.04
-    timeout-minutes: 3600
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - platform: linux/amd64
+            platform_name: amd64
+            runner: ubuntu-24.04
+          - platform: linux/arm64
+            platform_name: arm64
+            runner: ubuntu-24.04-arm
+    runs-on: ${{ matrix.runner }}
+    timeout-minutes: 240
     steps:
-      - name: 📂 Checkout code
-        uses: actions/checkout@v5
-
-      - uses: docker/metadata-action@v5
-        id: meta
-        with:
-          images: ghcr.io/${{ github.repository_owner }}/prql-devcontainer-base
-          # We could use explicit tags (but mostly we just want the most recent version).
-          tags: |
-            type=raw,latest
-
-      - name: Login to GitHub Container Registry
-        uses: docker/login-action@v3
+      - uses: actions/checkout@v5
+      - uses: docker/login-action@v3
         with:
           registry: ghcr.io
           username: ${{ github.repository_owner }}
           password: ${{ secrets.GITHUB_TOKEN }}
+      - uses: docker/setup-buildx-action@v3
 
-      - name: Set up QEMU
-        uses: docker/setup-qemu-action@v3
+      - name: Prep build args
+        run:
+          echo "cargo_crates=$(yq -r '.vars.cargo_crates' Taskfile.yaml)" >>
+          "$GITHUB_ENV"
 
-      - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v3
-
-      - name: Prep args
-        run: |
-          echo "cargo_crates=$(yq -r '.vars.cargo_crates' Taskfile.yaml)" >>"$GITHUB_ENV"
-
-      - name: Build
+      - name: Build and push by digest
+        id: build
         uses: docker/build-push-action@v6
-        timeout-minutes: 3600
+        timeout-minutes: 240
         with:
           context: .devcontainer/base-image
-          build-args: |
-            cargo_crates=${{ env.cargo_crates }}
-          tags: ${{ steps.meta.outputs.tags }}
-          platforms: linux/amd64, linux/arm64
-          push: ${{ inputs.push }}
-          # `type=gha` not active, see below
-          cache-from: |
-            ${{ steps.meta.outputs.tags }}
-            type=gha
-          cache-to: |
-            type=inline
-          # Disabling GHA cache due to Https://github.com/docker/build-push-action/issues/939
-          # ${{ github.ref_name == 'main' && 'type=gha,mode=max' || '' }}
+          build-args: cargo_crates=${{ env.cargo_crates }}
+          platforms: ${{ matrix.platform }}
+          outputs:
+            type=image,name=${{ env.IMAGE_NAME
+            }},push-by-digest=true,name-canonical=true,push=${{ inputs.push }}
+          cache-from: type=gha,scope=${{ matrix.platform }}
+          cache-to: type=gha,mode=max,scope=${{ matrix.platform }}
+
+      - name: Export digest
+        if: inputs.push
+        run: |
+          mkdir -p /tmp/digests
+          digest="${{ steps.build.outputs.digest }}"
+          touch "/tmp/digests/${digest#sha256:}"
+
+      - name: Upload digest
+        if: inputs.push
+        uses: actions/upload-artifact@v5
+        with:
+          name: digests-${{ matrix.platform_name }}
+          path: /tmp/digests/*
+          if-no-files-found: error
+          retention-days: 1
+
+  merge:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    if: inputs.push
+    needs: build
+    steps:
+      - name: Download digests
+        uses: actions/download-artifact@v6
+        with:
+          path: /tmp/digests
+          pattern: digests-*
+          merge-multiple: true
+
+      - name: Validate digests
+        run: |
+          digest_count=$(find /tmp/digests -type f | wc -l)
+          if [ "$digest_count" -ne 2 ]; then
+            echo "Error: Expected 2 digests (amd64 + arm64), found $digest_count"
+            ls -la /tmp/digests
+            exit 1
+          fi
+
+      - uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.repository_owner }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - uses: docker/setup-buildx-action@v3
+      - uses: docker/metadata-action@v5
+        id: meta
+        with:
+          images: ${{ env.IMAGE_NAME }}
+          tags: type=raw,latest
+
+      - name: Create manifest list and push
+        working-directory: /tmp/digests
+        run: |
+          tags=$(jq -cr '.tags | map("-t " + .) | join(" ")' <<< "$DOCKER_METADATA_OUTPUT_JSON")
+          digests=$(printf '${{ env.IMAGE_NAME }}@sha256:%s ' *)
+          # shellcheck disable=SC2086
+          docker buildx imagetools create $tags $digests
+
+      - name: Verify multi-platform manifest
+        run: |
+          docker buildx imagetools inspect ${{ env.IMAGE_NAME }}:${{ steps.meta.outputs.version }}
+          platforms=$(docker buildx imagetools inspect ${{ env.IMAGE_NAME }}:${{ steps.meta.outputs.version }} --raw | \
+            jq -r '.manifests[] | select(.platform.os != "unknown") | .platform | "\(.os)/\(.architecture)"' | sort)
+          expected="linux/amd64
+          linux/arm64"
+          if [ "$platforms" != "$expected" ]; then
+            echo "Error: Expected platforms not found"
+            echo "Expected: $expected"
+            echo "Found: $platforms"
+            exit 1
+          fi
+          echo "✓ Multi-platform manifest verified: amd64 + arm64"

@@ -1,21 +1,37 @@
 # Claude
 
-## Tests
+## Development Workflow
 
-Prefer `cargo insta` tests.
+Use a tight inner loop for fast feedback, comprehensive outer loop before
+returning to user:
 
-When running tests, prefer:
+**Inner loop** (fast, focused, <5s):
 
 ```sh
-# Run tests and automatically accept snapshot changes
-cargo insta test --accept
+# Run fast tests on core packages (from project root)
+task prqlc:test
 
-# Run tests in a specific package
-cargo insta test -p prqlc-parser --accept
+# Unit tests filtered by test name
+cargo insta test -p prqlc --lib -- resolver
 
-# Run tests matching a specific pattern
+# Integration tests filtered by test name
 cargo insta test -p prqlc --test integration -- date
 ```
+
+**Outer loop** (comprehensive, ~1min, before returning to user):
+
+```sh
+# Run everything - this is required before returning
+task test-all
+```
+
+The test suite is configured to minimize token usage:
+
+- **Nextest** only shows failures and slow tests (not 600 PASS lines)
+- **Cargo builds** use `--quiet` flag (no compilation spam)
+- **Result**: ~52% reduction in output (1128 → 540 lines, ~4.5k tokens)
+
+## Tests
 
 Prefer inline snapshots for almost all tests:
 
@@ -23,20 +39,13 @@ Prefer inline snapshots for almost all tests:
 insta::assert_snapshot!(result, @"expected output");
 ```
 
-Initializing the test with:
+Initialize tests with empty snapshots, then run with `--accept`:
 
 ```rust
 insta::assert_snapshot!(result, @"");
 ```
 
-...and then running the test commands above with `--accept` will then fill in
-the result.
-
-To run all tests, accepting snapshots, run
-
-```sh
-task test-all
-```
+The test commands above with `--accept` will fill in the result automatically.
 
 ## Running the CLI
 
@@ -58,7 +67,7 @@ cargo run -p prqlc -- --help
 Run all lints with
 
 ```sh
-task test-lint
+task lint
 ```
 
 ## Documentation
@@ -79,3 +88,8 @@ View target/doc/prqlc/module_name/index.html
 # For function documentation
 View target/doc/prqlc/fn.compile.html
 ```
+
+## Releases & Environment
+
+For releases or environment issues, see
+`web/book/src/project/contributing/development.md`.

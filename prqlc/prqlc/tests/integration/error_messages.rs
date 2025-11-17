@@ -68,37 +68,43 @@ fn test_errors() {
     ───╯
     ");
 
-    assert_snapshot!(compile("Mississippi has four S’s and four I’s.").unwrap_err(), @r"
+    // LEXER output for Mississippi test (curly quotes are U+2019):
+    use insta::assert_debug_snapshot;
+    let mississippi = "Mississippi has four S’s and four I’s.";
+    assert_debug_snapshot!(prqlc_parser::lexer::lex_source(mississippi).unwrap_err(), @r#"
+    [
+        Error {
+            kind: Error,
+            span: Some(
+                0:22-23,
+            ),
+            reason: Unexpected {
+                found: "'’'",
+            },
+            hints: [],
+            code: None,
+        },
+    ]
+    "#);
+
+    // PARSER output (full compilation error):
+    assert_snapshot!(compile(mississippi).unwrap_err(), @r"
     Error:
        ╭─[ :1:23 ]
        │
      1 │ Mississippi has four S’s and four I’s.
        │                       ┬
-       │                       ╰── unexpected ’
-    ───╯
-    Error:
-       ╭─[ :1:36 ]
-       │
-     1 │ Mississippi has four S’s and four I’s.
-       │                                    ┬
-       │                                    ╰── unexpected ’
-    ───╯
-    Error:
-       ╭─[ :1:39 ]
-       │
-     1 │ Mississippi has four S’s and four I’s.
-       │                                       │
-       │                                       ╰─ Expected * or an identifier, but didn't find anything before the end.
+       │                       ╰── unexpected '’'
     ───╯
     ");
 
     assert_snapshot!(compile("Answer: T-H-A-T!").unwrap_err(), @r"
     Error:
-       ╭─[ :1:7 ]
+       ╭─[ :1:16 ]
        │
      1 │ Answer: T-H-A-T!
-       │       ┬
-       │       ╰── unexpected :
+       │                ┬
+       │                ╰── expected something else, but found !
     ───╯
     ");
 }
@@ -338,7 +344,38 @@ fn empty_interpolations() {
        │
      1 │ from x | select f"{}"
        │                    ┬
-       │                    ╰── interpolated string variable expected "`" or "{", but found "}"
+       │                    ╰── expected interpolated string variable or '{', but found "}"
     ───╯
     "#);
+}
+
+#[test]
+fn no_query_entered() {
+    // Empty query
+    assert_snapshot!(compile("").unwrap_err(), @r"
+    [E0001] Error: No PRQL query entered
+    ");
+
+    // Comment-only query
+    assert_snapshot!(compile("# just a comment").unwrap_err(), @r"
+    [E0001] Error: No PRQL query entered
+    ");
+}
+
+#[test]
+fn query_must_begin_with_from() {
+    // Query with declaration but no 'from'
+    assert_snapshot!(compile("let x = 5").unwrap_err(), @r"
+    [E0001] Error: PRQL queries must begin with 'from'
+    ↳ Hint: A query must start with a 'from' statement to define the main pipeline
+    ");
+
+    // Query with multiple declarations but no pipeline
+    assert_snapshot!(compile(r#"
+    let x = 5
+    let y = 10
+    "#).unwrap_err(), @r"
+    [E0001] Error: PRQL queries must begin with 'from'
+    ↳ Hint: A query must start with a 'from' statement to define the main pipeline
+    ");
 }

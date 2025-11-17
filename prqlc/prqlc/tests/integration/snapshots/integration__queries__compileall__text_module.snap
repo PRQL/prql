@@ -161,6 +161,41 @@ input_file: prqlc/prqlc/tests/integration/queries/text_module.prql
    ltrimmed,
 
 --- generic
++++ redshift
+@@ -1,14 +1,14 @@
+ WITH table_0 AS (
+   SELECT
+     title,
+-    CONCAT('  ', title, '  ') AS title_and_spaces,
++    '  ' || title || '  ' AS title_and_spaces,
+     LOWER(title) AS low,
+     UPPER(title) AS up,
+     LTRIM(title) AS ltrimmed,
+     RTRIM(title) AS rtrimmed,
+     TRIM(title) AS trimmed,
+     CHAR_LENGTH(title) AS len,
+     SUBSTRING(title, 2, 5) AS subs,
+     REPLACE(title, 'al', 'PIKA') AS "replace"
+   FROM
+     albums
+@@ -21,14 +21,14 @@
+   ltrimmed,
+   rtrimmed,
+   trimmed,
+   len,
+   subs,
+   "replace"
+ FROM
+   table_0
+ WHERE
+   title LIKE CONCAT('Black', '%')
+-  OR title LIKE CONCAT('%', 'Sabbath', '%')
++  OR title LIKE '%' || 'Sabbath' || '%'
+   OR title LIKE CONCAT('%', 'os')
+ ORDER BY
+   title
+
+--- generic
 +++ sqlite
 @@ -1,35 +1,35 @@
  WITH

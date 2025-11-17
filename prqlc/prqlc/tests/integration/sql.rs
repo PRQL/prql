@@ -218,6 +218,41 @@ FROM
 }
 
 #[rstest]
+#[case::generic(
+    sql::Dialect::Generic,
+    r#"
+SELECT
+  a,
+  b,
+  "col space"
+FROM
+  employees
+"#
+)]
+#[case::snowflake(
+    sql::Dialect::Snowflake,
+    r#"
+SELECT
+  "a",
+  "b",
+  "col space"
+FROM
+  "employees"
+"#
+)]
+fn test_quoting_style(#[case] dialect: sql::Dialect, #[case] expected_sql: &'static str) {
+    let query = r#"
+  from employees
+  select { a, `b`, `col space` }
+  "#;
+
+    assert_eq!(
+        compile_with_sql_dialect(query, dialect).unwrap(),
+        expected_sql.trim_start()
+    )
+}
+
+#[rstest]
 #[case::clickhouse(
     sql::Dialect::ClickHouse,
     "formatDateTimeInJodaSyntax(invoice_date, 'dd/MM/yyyy')"
@@ -2795,6 +2830,42 @@ fn test_join_side_literal_via_func_err() {
 }
 
 #[test]
+fn test_join_with_param_name_collision() {
+    // Regression test for issue #5015
+    // When joining tables that both have a column named "source",
+    // the compiler should not report an ambiguous name error due to
+    // the "source" parameter from the std library's "from" function.
+    assert_snapshot!((compile(r###"
+    let a = (
+      from events_a
+      select {
+        event_id,
+        source,
+      }
+    )
+
+    from a
+    join a (==event_id)
+    select {
+      event_id = a.event_id,
+    }
+    "###).unwrap()), @r"
+    WITH a AS (
+      SELECT
+        event_id,
+        source
+      FROM
+        events_a
+    )
+    SELECT
+      table_0.event_id
+    FROM
+      a
+      INNER JOIN a AS table_0 ON a.event_id = table_0.event_id
+    ");
+}
+
+#[test]
 fn test_from_json() {
     // Test that the SQL generated from the JSON of the PRQL is the same as the raw PRQL
     let original_prql = r#"
@@ -4382,12 +4453,12 @@ fn test_exclude_columns_05() {
     from tracks
     select !{milliseconds,bytes}
     "#).unwrap(),
-        @r"
+        @r#"
     SELECT
-      * EXCLUDE (milliseconds, bytes)
+      * EXCLUDE ("milliseconds", "bytes")
     FROM
-      tracks
-    "
+      "tracks"
+    "#
     );
 }
 
@@ -5037,6 +5108,55 @@ fn test_read_parquet_duckdb() {
     );
 
     // TODO: `from x=(read_parquet 'x.parquet')` currently fails
+}
+
+#[test]
+fn test_read_parquet_with_named_args() {
+    assert_snapshot!(compile_with_sql_dialect(r#"
+    std.read_parquet 'data.parquet' union_by_name:true
+    "#, sql::Dialect::DuckDb).unwrap(),
+        @r"
+    WITH table_0 AS (
+      SELECT
+        *
+      FROM
+        read_parquet(
+          'data.parquet',
+          binary_as_string = false,
+          file_row_number = false,
+          hive_partitioning = NULL,
+          union_by_name = true
+        )
+    )
+    SELECT
+      *
+    FROM
+      table_0
+    "
+    );
+
+    assert_snapshot!(compile_with_sql_dialect(r#"
+    std.read_parquet 'data.parquet' union_by_name:true binary_as_string:true
+    "#, sql::Dialect::DuckDb).unwrap(),
+        @r"
+    WITH table_0 AS (
+      SELECT
+        *
+      FROM
+        read_parquet(
+          'data.parquet',
+          binary_as_string = true,
+          file_row_number = false,
+          hive_partitioning = NULL,
+          union_by_name = true
+        )
+    )
+    SELECT
+      *
+    FROM
+      table_0
+    "
+    );
 }
 
 #[test]
@@ -6009,6 +6129,61 @@ fn test_append_select_multiple() {
 }
 
 #[test]
+fn test_append_with_cte() {
+    // Regression test for issue #5494 - append with CTEs (let statements)
+    // Tests that positional mapping doesn't cause out-of-bounds errors
+    assert_snapshot!(compile(r###"
+    prql target:sql.postgres
+
+    let invoices_wrap = (
+      from invoices
+      select { invoice_id, billing_country }
+    )
+
+    let employees_wrap = (
+      from employees
+      select { employee_id, country }
+    )
+
+    from invoices_wrap
+    derive { source = "invoices" }
+    append (
+      from employees_wrap
+      derive { source = "employees" }
+    )
+    "###).unwrap(), @r"
+    WITH invoices_wrap AS (
+      SELECT
+        invoice_id,
+        billing_country
+      FROM
+        invoices
+    ),
+    employees_wrap AS (
+      SELECT
+        employee_id,
+        country
+      FROM
+        employees
+    )
+    SELECT
+      invoice_id,
+      billing_country,
+      'invoices' AS source
+    FROM
+      invoices_wrap
+    UNION
+    ALL
+    SELECT
+      employee_id,
+      country,
+      'employees' AS source
+    FROM
+      employees_wrap
+    ");
+}
+
+#[test]
 fn test_distinct_on_sort_on_compute() {
     // Test for handling distinct on with sorting on computed columns
     assert_snapshot!(compile(r###"
@@ -6062,5 +6237,308 @@ fn test_distinct_on_sort_on_compute() {
       AND customer_id IN (4)
     GROUP BY
       billing_country
+    ");
+}
+
+/// Ensures that the sort happens on `table0`.`_expr_0` and not on `table2`.`_expr_0`
+#[test]
+fn test_sort_cast_filter_join_select() {
+    assert_snapshot!(compile(r###"
+    from albums
+    select { this.`title`, this.`artist_id`, this.`album_id` }
+    sort { this.`artist_id`, this.`album_id` }
+    derive { `artist_id` = as `double precision` this.`artist_id` }
+    filter (this.`artist_id` != null)
+    join side:left artists (this.`artist_id` == that.`artist_id`)
+    select {this.`artist_id`, this.`title`, this.`name`}
+    "###
+    ).unwrap(), @r"
+    WITH table_1 AS (
+      SELECT
+        CAST(artist_id AS double precision) AS artist_id,
+        title,
+        artist_id AS _expr_0,
+        album_id
+      FROM
+        albums
+    ),
+    table_2 AS (
+      SELECT
+        artist_id,
+        title,
+        _expr_0,
+        album_id
+      FROM
+        table_1
+      WHERE
+        artist_id IS NOT NULL
+    ),
+    table_0 AS (
+      SELECT
+        artist_id,
+        title,
+        _expr_0,
+        album_id
+      FROM
+        table_2
+    )
+    SELECT
+      table_0.artist_id,
+      table_0.title,
+      artists.name
+    FROM
+      table_0
+      LEFT OUTER JOIN artists ON table_0.artist_id = artists.artist_id
+    ORDER BY
+      table_0._expr_0,
+      table_0.album_id
+    ")
+}
+
+/// Ensures that the sort happens on `table1`.`artist_id` and not on `table2`.`artist_id`
+#[test]
+fn test_sort_filter_derive_join_select() {
+    assert_snapshot!(compile(r###"
+    from albums
+    sort this.`artist_id`
+    filter (this.`artist_id` != null)
+    derive { `artist_id` = as `double precision` this.`artist_id` }
+    join side:left (from artists
+        select {`artist_id_right` = this.`artist_id`}
+    ) (this.`artist_id` == that.`artist_id_right`)
+    select {this.`artist_id`, this.`title`}
+    "###
+    ).unwrap(), @r"
+    WITH table_2 AS (
+      SELECT
+        CAST(artist_id AS double precision) AS artist_id,
+        title,
+        artist_id AS _expr_0
+      FROM
+        albums
+      WHERE
+        artist_id IS NOT NULL
+    ),
+    table_1 AS (
+      SELECT
+        artist_id,
+        title,
+        _expr_0
+      FROM
+        table_2
+    ),
+    table_0 AS (
+      SELECT
+        artist_id AS artist_id_right
+      FROM
+        artists
+    )
+    SELECT
+      table_1.artist_id,
+      table_1.title
+    FROM
+      table_1
+      LEFT OUTER JOIN table_0 ON table_1.artist_id = table_0.artist_id_right
+    ORDER BY
+      table_1._expr_0
+    ")
+}
+
+/// Ensures that the sort happens on `table0`.`artist_id` and not on `table0`.`double_artist_id`
+#[test]
+fn test_sort_cast_filter_join_select_with_alias() {
+    assert_snapshot!(compile(r###"
+    from albums
+    select { this.`title`, this.`artist_id`, this.`album_id` }
+    sort { this.`artist_id`, this.`album_id` }
+    derive { `double_artist_id` = as `double precision` this.`artist_id` }
+    filter (this.`artist_id` != null)
+    join side:left artists (this.`double_artist_id` == that.`artist_id`)
+    select {this.`double_artist_id`, this.`title`, this.`name`}
+    "###
+    ).unwrap(), @r"
+    WITH table_1 AS (
+      SELECT
+        CAST(artist_id AS double precision) AS double_artist_id,
+        title,
+        artist_id,
+        album_id
+      FROM
+        albums
+    ),
+    table_2 AS (
+      SELECT
+        double_artist_id,
+        title,
+        artist_id,
+        album_id
+      FROM
+        table_1
+      WHERE
+        artist_id IS NOT NULL
+    ),
+    table_0 AS (
+      SELECT
+        double_artist_id,
+        title,
+        artist_id,
+        album_id
+      FROM
+        table_2
+    )
+    SELECT
+      table_0.double_artist_id,
+      table_0.title,
+      artists.name
+    FROM
+      table_0
+      LEFT OUTER JOIN artists ON table_0.double_artist_id = artists.artist_id
+    ORDER BY
+      table_0.artist_id,
+      table_0.album_id
+    ")
+}
+
+#[rstest]
+#[case::redshift_quotes_only_keywords(
+    sql::Dialect::Redshift,
+    r#"
+SELECT
+  invoice_id,
+  "time",
+  "timestamp",
+  "identity",
+  "system"
+FROM
+  invoice
+"#
+)]
+#[case::postgres_does_not_quote_redshift_keywords(
+    sql::Dialect::Postgres,
+    r#"
+SELECT
+  invoice_id,
+  time,
+  timestamp,
+  identity,
+  system
+FROM
+  invoice
+"#
+)]
+#[case::generic_does_not_quote_redshift_keywords(
+    sql::Dialect::Generic,
+    r#"
+SELECT
+  invoice_id,
+  time,
+  timestamp,
+  identity,
+  system
+FROM
+  invoice
+"#
+)]
+fn test_redshift_keyword_quoting(
+    #[case] dialect: sql::Dialect,
+    #[case] expected_sql: &'static str,
+) {
+    let query = r#"
+    from invoice
+    select {invoice_id, invoice.time, invoice.timestamp, invoice.identity, invoice.system}
+    "#;
+
+    assert_eq!(
+        compile_with_sql_dialect(query, dialect).unwrap(),
+        expected_sql.trim_start()
+    )
+}
+
+#[test]
+fn test_redshift_quotes_only_keywords_mixed() {
+    // Test that Redshift quotes ONLY keywords, not all identifiers
+    let query = r#"
+    from invoice
+    select {
+        invoice_id,
+        invoice.time,
+        invoice.timestamp,
+        customer_name,
+        invoice.identity,
+        amount
+    }
+    "#;
+
+    let expected = r#"
+SELECT
+  invoice_id,
+  "time",
+  "timestamp",
+  customer_name,
+  "identity",
+  amount
+FROM
+  invoice
+"#;
+
+    assert_eq!(
+        compile_with_sql_dialect(query, sql::Dialect::Redshift).unwrap(),
+        expected.trim_start()
+    )
+}
+
+// Test that Redshift uses double pipe (||) over CONCAT
+#[test]
+fn test_redshift_uses_double_pipe_over_concat() {
+    assert_snapshot!(compile_with_sql_dialect(r###"
+    from invoice
+    derive {
+        concatenated = f"{col_one} + {col_two}"
+    }
+    "###, sql::Dialect::Redshift
+    ).unwrap(), @r"
+    SELECT
+      *,
+      col_one || ' + ' || col_two AS concatenated
+    FROM
+      invoice
+    ");
+}
+
+#[rstest]
+#[case(
+    "from t | select { inter = 2weeks }",
+    "SELECT\n  INTERVAL '2 WEEK' AS inter\nFROM\n  t\n"
+)]
+#[case(
+    "from t | select { inter = 2months }",
+    "SELECT\n  INTERVAL '2' MONTH AS inter\nFROM\n  t\n"
+)]
+#[case(
+    "from t | select { inter = 2hours }",
+    "SELECT\n  INTERVAL '2' HOUR AS inter\nFROM\n  t\n"
+)]
+fn test_redshift_interval_quoting(#[case] query: &str, #[case] expected: &str) {
+    assert_eq!(
+        compile_with_sql_dialect(query, sql::Dialect::Redshift).unwrap(),
+        expected
+    )
+}
+
+#[test]
+fn test_redshift_text_contains_uses_double_pipe() {
+    assert_snapshot!(compile_with_sql_dialect(r###"
+    from employees
+    select {
+        name,
+        has_substring = (name | text.contains "pika")
+    }
+    "###, sql::Dialect::Redshift
+    ).unwrap(), @r"
+    SELECT
+      name,
+      name LIKE '%' || 'pika' || '%' AS has_substring
+    FROM
+      employees
     ");
 }

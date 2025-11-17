@@ -34,7 +34,7 @@ jobs:
           target: ${{ matrix.os == 'ubuntu-24.04' && 'x86_64' || '' }}
           package: prqlc-python
           profile: dev
-      - uses: actions/download-artifact@v5
+      - uses: actions/download-artifact@v6
         with:
           # `*` covers all targets (we could make this explicit...)
           pattern: prqlc-python-${{ runner.os }}-*-dev
@@ -46,7 +46,7 @@ jobs:
         with:
           python-version: "3.12"
       - name: Install uv
-        uses: astral-sh/setup-uv@v4
+        uses: astral-sh/setup-uv@v7
       - name: Install nox
         run: uv tool install nox
         shell: bash

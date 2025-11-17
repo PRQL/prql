@@ -30,11 +30,11 @@ strum = { workspace = true }
 strum_macros = { workspace = true }
 
 [target.'cfg(not(target_family="wasm"))'.dev-dependencies]
-anstream = { version = "0.6.20" }
-globset = "0.4.16"
+anstream = { version = "0.6.21" }
+globset = "0.4.18"
 insta = { workspace = true }
 log = { workspace = true }
-regex = "1.11.2"
+regex = "1.12.2"
 serde_json = { workspace = true }
 serde_yaml = { workspace = true }
 similar-asserts = { workspace = true }

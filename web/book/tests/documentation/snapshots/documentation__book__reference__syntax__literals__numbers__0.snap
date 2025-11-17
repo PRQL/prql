@@ -1,12 +1,12 @@
 ---
 source: web/book/tests/documentation/book.rs
-expression: "from numbers\nselect {\n    small = 1.000_000_1,\n    big = 5_000_000,\n    huge = 5e9,\n    binary = 0x0011,\n    hex = 0x80,\n    octal = 0o777,\n}\n"
+expression: "from numbers\nselect {\n    small = 1.000_000_1,\n    big = 5_000_000,\n    huge = 5e9,\n    binary = 0b0011,\n    hex = 0x80,\n    octal = 0o777,\n}\n"
 ---
 SELECT
   1.0000001 AS small,
   5000000 AS big,
   5000000000.0 AS huge,
-  17 AS "binary",
+  3 AS "binary",
   128 AS hex,
   511 AS octal
 FROM
