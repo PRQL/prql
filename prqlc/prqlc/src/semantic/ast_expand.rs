@@ -142,12 +142,12 @@ fn expand_unary(pr::UnaryExpr { op, expr }: pr::UnaryExpr) -> Result<pl::ExprKin
         EqSelf => {
             let pl::ExprKind::Ident(ident) = expr.kind else {
                 return Err(Error::new_simple(
-                    "you can only use column names with self-equality operator",
+                    "self-equality operator requires a column name",
                 ));
             };
             if !ident.path.is_empty() {
                 return Err(Error::new_simple(
-                    "you cannot use namespace prefix with self-equality operator",
+                    "self-equality operator does not support namespace prefix",
                 ));
             }
 
