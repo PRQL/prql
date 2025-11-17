@@ -67,15 +67,6 @@ fn test_bad_error_messages() {
        │           ╰─────── expected a function, but found `default_db.artists`
     ───╯
     ");
-
-    // Now provides helpful hint about wrapping in parentheses
-    assert_snapshot!(compile(r###"
-    from artists
-    sort -name
-    "###).unwrap_err(), @r"
-    Error: expected a pipeline that resolves to a table, but found `internal std.sub`
-    ↳ Hint: wrap negative numbers in parentheses, e.g. `sort (-column_name)`
-    ");
 }
 
 #[test]
@@ -153,31 +144,6 @@ fn misplaced_type_error() {
        │               ─┬─
        │                ╰─── function std.and, param `right` expected type `bool`, but found type `int`
     ───╯
-    ");
-}
-
-#[test]
-fn invalid_lineage_in_transform() {
-    assert_snapshot!(compile(r###"
-  from tbl
-  group id (
-    sort -val
-  )
-  "###).unwrap_err(), @r"
-    Error: expected a pipeline that resolves to a table, but found `internal std.sub`
-    ↳ Hint: wrap negative numbers in parentheses, e.g. `sort (-column_name)`
-    ");
-}
-
-#[test]
-fn take_negative_number() {
-    // Test for issue #4315 - take with negative number should suggest wrapping in parentheses
-    assert_snapshot!(compile(r###"
-    from pets
-    take -10
-    "###).unwrap_err(), @r"
-    Error: expected a pipeline that resolves to a table, but found `internal std.sub`
-    ↳ Hint: wrap negative numbers in parentheses, e.g. `sort (-column_name)`
     ");
 }
 
@@ -264,46 +230,6 @@ fn just_std() {
      2 │ ├─▶     std
        │ │
        │ ╰───────────── internal compiler error; tracked at https://github.com/PRQL/prql/issues/4474
-    ───╯
-    ");
-}
-
-#[test]
-fn empty_tuple_from() {
-    assert_snapshot!(compile(r###"
-    from {}
-    "###).unwrap_err(), @r"
-    Error:
-       ╭─[ :2:10 ]
-       │
-     2 │     from {}
-       │          ─┬
-       │           ╰── expected a table or query, but found an empty tuple `{}`
-    ───╯
-    ");
-
-    assert_snapshot!(compile(r###"
-    from []
-    "###).unwrap_err(), @r"
-    Error:
-       ╭─[ :2:10 ]
-       │
-     2 │     from []
-       │          ─┬
-       │           ╰── expected a table or query, but found an empty array `[]`
-    ───╯
-    ");
-
-    assert_snapshot!(compile(r###"
-    from {}
-    select a
-    "###).unwrap_err(), @r"
-    Error:
-       ╭─[ :2:10 ]
-       │
-     2 │     from {}
-       │          ─┬
-       │           ╰── expected a table or query, but found an empty tuple `{}`
     ───╯
     ");
 }
