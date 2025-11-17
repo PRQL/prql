@@ -121,7 +121,7 @@ module text {
 }
 
 # Source-reading functions, primarily for DuckDB
-let read_parquet = source -> s"read_parquet({source:0})"
+let read_parquet = binary_as_string file_row_number hive_partitioning union_by_name source -> s"read_parquet({source:0})"
 let read_csv = source -> s"read_csv({source:0})"
 
 @{binding_strength=11}
@@ -244,6 +244,8 @@ module duckdb {
   let regex_search = text pattern -> s"REGEXP_MATCHES({text:0}, {pattern:0})"
 
   let read_csv = source -> s"read_csv_auto({source:0})"
+
+  let read_parquet = binary_as_string file_row_number hive_partitioning union_by_name source -> s"read_parquet({source:0}, binary_as_string={binary_as_string:0}, file_row_number={file_row_number:0}, hive_partitioning={hive_partitioning:0}, union_by_name={union_by_name:0})"
 }
 
 module mssql {

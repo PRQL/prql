@@ -6,7 +6,13 @@ WITH table_0 AS (
   SELECT
     *
   FROM
-    read_parquet('artists.parquet')
+    read_parquet(
+      'artists.parquet',
+      binary_as_string = false,
+      file_row_number = false,
+      hive_partitioning = NULL,
+      union_by_name = false
+    )
 ),
 table_1 AS (
   SELECT
