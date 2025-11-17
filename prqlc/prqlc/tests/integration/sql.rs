@@ -4035,7 +4035,7 @@ fn test_direct_table_references() {
        │               ┬
        │               ╰── table instance cannot be referenced directly
        │
-       │ Help: did you forget to specify the column name?
+       │ Help: column name might be missing?
     ───╯
     "#);
 

@@ -416,7 +416,7 @@ impl Lowerer {
                     expected: "a pipeline that resolves to a table".to_string(),
                     found: format!("`{}`", write_pl(expr.clone())),
                 })
-                .push_hint("are you missing `from` statement?")
+                .push_hint("`from` statement might be missing?")
                 .with_span(expr.span))
             }
         })
@@ -917,7 +917,7 @@ impl Lowerer {
             pl::ExprKind::Tuple(_) => {
                 return Err(
                     Error::new_simple("table instance cannot be referenced directly")
-                        .push_hint("did you forget to specify the column name?")
+                        .push_hint("column name might be missing?")
                         .with_span(span),
                 );
             }
