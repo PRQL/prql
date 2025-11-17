@@ -54,9 +54,9 @@ insta = { version = "1.43.2", features = ["colors", "glob", "yaml", "filters"] }
 insta-cmd = "0.6.0"
 itertools = "0.14.0"
 log = "0.4.28"
-pyo3 = { version = "0.24.1", features = ["abi3-py37", "anyhow"] }
+pyo3 = { version = "0.27.1", features = ["abi3-py37", "anyhow"] }
 pyo3-build-config = "0.27.1"
-schemars = "1.0.5"
+schemars = "1.1.0"
 semver = { version = "1.0.27", features = ["serde"] }
 serde = { version = "1.0.228", features = ["derive"] }
 serde_json = "1.0.145"

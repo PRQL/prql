@@ -348,3 +348,34 @@ fn empty_interpolations() {
     ───╯
     "#);
 }
+
+#[test]
+fn no_query_entered() {
+    // Empty query
+    assert_snapshot!(compile("").unwrap_err(), @r"
+    [E0001] Error: No PRQL query entered
+    ");
+
+    // Comment-only query
+    assert_snapshot!(compile("# just a comment").unwrap_err(), @r"
+    [E0001] Error: No PRQL query entered
+    ");
+}
+
+#[test]
+fn query_must_begin_with_from() {
+    // Query with declaration but no 'from'
+    assert_snapshot!(compile("let x = 5").unwrap_err(), @r"
+    [E0001] Error: PRQL queries must begin with 'from'
+    ↳ Hint: A query must start with a 'from' statement to define the main pipeline
+    ");
+
+    // Query with multiple declarations but no pipeline
+    assert_snapshot!(compile(r#"
+    let x = 5
+    let y = 10
+    "#).unwrap_err(), @r"
+    [E0001] Error: PRQL queries must begin with 'from'
+    ↳ Hint: A query must start with a 'from' statement to define the main pipeline
+    ");
+}

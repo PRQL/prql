@@ -1,5 +1,6 @@
 ---
 source: prqlc/prqlc/tests/integration/queries.rs
+assertion_line: 149
 expression: "from invoices\nselect { customer_id, invoice_id, billing_country }\ntake 10..15\nappend (\n  from invoices\n  select { customer_id, invoice_id, billing_country }\n  take 40..45\n)\nselect { billing_country, invoice_id }\n"
 input_file: prqlc/prqlc/tests/integration/queries/append_select.prql
 ---
@@ -134,6 +135,11 @@ frames:
       table:
       - default_db
       - invoices
+    - id: 124
+      name: invoices
+      table:
+      - default_db
+      - invoices
 - - 1:173-211
   - columns:
     - !Single
@@ -150,6 +156,11 @@ frames:
       target_name: null
     inputs:
     - id: 143
+      name: invoices
+      table:
+      - default_db
+      - invoices
+    - id: 124
       name: invoices
       table:
       - default_db
