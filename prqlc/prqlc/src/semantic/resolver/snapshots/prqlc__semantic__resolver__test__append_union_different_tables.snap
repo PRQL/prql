@@ -1,0 +1,29 @@
+---
+source: prqlc/prqlc/src/semantic/resolver/mod.rs
+assertion_line: 234
+expression: final_lineage
+---
+columns:
+  - Single:
+      name:
+        - employees
+        - name
+      target_id: 131
+      target_name: ~
+  - Single:
+      name:
+        - employees
+        - salary
+      target_id: 132
+      target_name: ~
+inputs:
+  - id: 129
+    name: employees
+    table:
+      - default_db
+      - employees
+  - id: 118
+    name: managers
+    table:
+      - default_db
+      - managers
