@@ -218,7 +218,7 @@ where
             .map(|n| format!("to function {n}"))
             .unwrap_or_else(|| "in this function call?".to_string());
 
-        e = e.push_hint(format!("Have you forgotten an argument {to_what}?"));
+        e = e.push_hint(format!("Argument might be missing {to_what}?"));
     }
 
     if is_join && found_ty.kind.is_tuple() && !expected.kind.is_tuple() {

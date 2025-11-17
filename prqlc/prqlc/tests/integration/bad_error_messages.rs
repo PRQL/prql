@@ -32,7 +32,7 @@ fn test_bad_error_messages() {
        │     ──┬──
        │       ╰──── main expected type `relation`, but found type `func transform relation -> relation`
        │
-       │ Help: Have you forgotten an argument to function std.group?
+       │ Help: Argument might be missing to function std.group?
        │
        │ Note: Type `relation` expands to `[{..}]`
     ───╯
@@ -74,7 +74,7 @@ fn test_bad_error_messages() {
     sort -name
     "###).unwrap_err(), @r"
     Error: expected a pipeline that resolves to a table, but found `internal std.sub`
-    ↳ Hint: are you missing `from` statement?
+    ↳ Hint: `from` statement might be missing?
     ");
 }
 
@@ -165,7 +165,7 @@ fn invalid_lineage_in_transform() {
   )
   "###).unwrap_err(), @r"
     Error: expected a pipeline that resolves to a table, but found `internal std.sub`
-    ↳ Hint: are you missing `from` statement?
+    ↳ Hint: `from` statement might be missing?
     ");
 }
 
