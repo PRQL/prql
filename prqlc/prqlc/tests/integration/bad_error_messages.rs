@@ -260,14 +260,38 @@ fn just_std() {
 fn empty_tuple_from() {
     assert_snapshot!(compile(r###"
     from {}
-    "###).unwrap_err(), @"Error: internal compiler error; tracked at https://github.com/PRQL/prql/issues/4317");
+    "###).unwrap_err(), @r"
+    Error:
+       ╭─[ :2:10 ]
+       │
+     2 │     from {}
+       │          ─┬
+       │           ╰── expected a table or query, but found an empty tuple `{}`
+    ───╯
+    ");
 
     assert_snapshot!(compile(r###"
     from []
-    "###).unwrap_err(), @"Error: internal compiler error; tracked at https://github.com/PRQL/prql/issues/4317");
+    "###).unwrap_err(), @r"
+    Error:
+       ╭─[ :2:10 ]
+       │
+     2 │     from []
+       │          ─┬
+       │           ╰── expected a table or query, but found an empty array `[]`
+    ───╯
+    ");
 
     assert_snapshot!(compile(r###"
     from {}
     select a
-    "###).unwrap_err(), @"Error: internal compiler error; tracked at https://github.com/PRQL/prql/issues/4317");
+    "###).unwrap_err(), @r"
+    Error:
+       ╭─[ :2:10 ]
+       │
+     2 │     from {}
+       │          ─┬
+       │           ╰── expected a table or query, but found an empty tuple `{}`
+    ───╯
+    ");
 }
