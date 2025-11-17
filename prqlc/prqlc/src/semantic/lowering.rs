@@ -40,11 +40,27 @@ pub fn lower_to_ir(
 ) -> Result<(RelationalQuery, RootModule)> {
     // find main
     log::debug!("lookup for main pipeline in {main_path:?}");
-    let (_, main_ident) = root_mod.find_main_rel(main_path).map_err(|(hint, span)| {
-        Error::new_simple("Missing main pipeline")
-            .with_code("E0001")
-            .with_hints(hint)
-            .with_span(span)
+    let (_, main_ident) = root_mod.find_main_rel(main_path).map_err(|(_hint, span)| {
+        // Provide better error messages based on what's in the module
+        let user_declared_names: Vec<_> = root_mod
+            .module
+            .names
+            .keys()
+            .filter(|name| *name != "std" && *name != "default_db")
+            .collect();
+
+        let error = if user_declared_names.is_empty() {
+            // No user declarations - empty query or only comments
+            // Message is self-explanatory, no hint needed
+            Error::new_simple("No PRQL query entered").with_code("E0001")
+        } else {
+            // Has declarations but no pipeline starting with 'from'
+            Error::new_simple("PRQL queries must begin with 'from'")
+                .with_code("E0001")
+                .push_hint("A query must start with a 'from' statement to define the main pipeline")
+        };
+
+        error.with_span(span)
     })?;
 
     // find & validate query def
