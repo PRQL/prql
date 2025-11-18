@@ -4,9 +4,8 @@ use std::str::FromStr;
 
 use anyhow::{bail, Result};
 use itertools::Itertools;
-use mdbook::preprocess::Preprocessor;
-use mdbook::preprocess::PreprocessorContext;
-use mdbook::{book::Book, BookItem};
+use mdbook_preprocessor::{Preprocessor, PreprocessorContext};
+use mdbook_core::book::{Book, BookItem};
 use prqlc::compile;
 use pulldown_cmark::{CodeBlockKind, Event, Options, Parser, Tag};
 use pulldown_cmark_to_cmark::cmark_with_options;
@@ -32,8 +31,8 @@ impl Preprocessor for ComparisonPreprocessor {
         Ok(book)
     }
 
-    fn supports_renderer(&self, renderer: &str) -> bool {
-        renderer == "html"
+    fn supports_renderer(&self, renderer: &str) -> Result<bool> {
+        Ok(renderer == "html")
     }
 }
 
