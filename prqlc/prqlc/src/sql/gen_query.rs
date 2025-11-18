@@ -820,7 +820,7 @@ mod test {
     fn test_distinct_on_with_aggregate() {
         // #5556: DISTINCT ON with aggregate should include wildcard
         let query = &r#"
-        prql target:sql.duckdb
+        prql target:sql.postgres
 
         from t1
         group {id, name} (take 1)
