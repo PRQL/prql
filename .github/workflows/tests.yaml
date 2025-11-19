@@ -420,6 +420,8 @@ jobs:
       - uses: baptiste0928/cargo-install@v3
         with:
           crate: mdbook
+          # Lock to 0.4.x - mdbook 0.5.0 has breaking changes
+          version: "0.4.52"
       # the link checker
       - uses: baptiste0928/cargo-install@v3
         with:
