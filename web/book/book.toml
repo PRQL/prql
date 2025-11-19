@@ -1,6 +1,7 @@
 [book]
 description = "Modern language for transforming data — a simple, powerful, pipelined SQL replacement"
 language = "en"
+multilingual = false
 title = "PRQL language book"
 
 [output.html]
@@ -17,7 +18,6 @@ command = "cargo run --bin mdbook-prql"
 [preprocessor.admonish]
 assets_version = "3.0.0" # do not edit: managed by `mdbook-admonish install`
 command = "mdbook-admonish"
-optional = true
 
 [preprocessor.footnote]
 # Seems to be required for footnotes to show properly.
