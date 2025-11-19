@@ -17,6 +17,7 @@ command = "cargo run --bin mdbook-prql"
 [preprocessor.admonish]
 assets_version = "3.0.0" # do not edit: managed by `mdbook-admonish install`
 command = "mdbook-admonish"
+optional = true
 
 [preprocessor.footnote]
 # Seems to be required for footnotes to show properly.
