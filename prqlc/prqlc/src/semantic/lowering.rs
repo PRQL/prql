@@ -40,11 +40,27 @@ pub fn lower_to_ir(
 ) -> Result<(RelationalQuery, RootModule)> {
     // find main
     log::debug!("lookup for main pipeline in {main_path:?}");
-    let (_, main_ident) = root_mod.find_main_rel(main_path).map_err(|(hint, span)| {
-        Error::new_simple("Missing main pipeline")
-            .with_code("E0001")
-            .with_hints(hint)
-            .with_span(span)
+    let (_, main_ident) = root_mod.find_main_rel(main_path).map_err(|(_hint, span)| {
+        // Provide better error messages based on what's in the module
+        let user_declared_names: Vec<_> = root_mod
+            .module
+            .names
+            .keys()
+            .filter(|name| *name != "std" && *name != "default_db")
+            .collect();
+
+        let error = if user_declared_names.is_empty() {
+            // No user declarations - empty query or only comments
+            // Message is self-explanatory, no hint needed
+            Error::new_simple("No PRQL query entered").with_code("E0001")
+        } else {
+            // Has declarations but no pipeline starting with 'from'
+            Error::new_simple("PRQL queries must begin with 'from'")
+                .with_code("E0001")
+                .push_hint("A query must start with a 'from' statement to define the main pipeline")
+        };
+
+        error.with_span(span)
     })?;
 
     // find & validate query def
@@ -411,13 +427,24 @@ impl Lowerer {
             }
 
             _ => {
-                return Err(Error::new(Reason::Expected {
+                let found_str = write_pl(expr.clone());
+                let mut error = Error::new(Reason::Expected {
                     who: None,
                     expected: "a pipeline that resolves to a table".to_string(),
-                    found: format!("`{}`", write_pl(expr.clone())),
-                })
-                .push_hint("are you missing `from` statement?")
-                .with_span(expr.span))
+                    found: format!("`{}`", found_str),
+                });
+
+                // Provide better hints for common mistakes
+                if found_str.starts_with("internal std.sub") {
+                    // This is likely a negative number or expression that should be wrapped in parentheses
+                    error = error.push_hint(
+                        "wrap negative numbers in parentheses, e.g. `sort (-column_name)`",
+                    );
+                } else {
+                    error = error.push_hint("`from` statement might be missing?");
+                }
+
+                return Err(error.with_span(expr.span));
             }
         })
     }
@@ -917,7 +944,7 @@ impl Lowerer {
             pl::ExprKind::Tuple(_) => {
                 return Err(
                     Error::new_simple("table instance cannot be referenced directly")
-                        .push_hint("did you forget to specify the column name?")
+                        .push_hint("column name might be missing?")
                         .with_span(span),
                 );
             }

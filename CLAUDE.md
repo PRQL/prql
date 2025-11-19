@@ -100,6 +100,18 @@ Run all lints with
 task lint
 ```
 
+## Error Messages
+
+Error messages should avoid 2nd person (you/your). Use softer modal verbs like
+"might" for a friendlier tone:
+
+- ❌ "are you missing `from` statement?" → ✅ "`from` statement might be
+  missing?"
+- ❌ "did you forget to specify the column name?" → ✅ "column name might be
+  missing?"
+- ❌ "you can only use X" → ✅ "X requires Y" (for hard constraints)
+- ❌ "Have you forgotten an argument?" → ✅ "Argument might be missing?"
+
 ## Documentation
 
 For Claude to view crate documentation:

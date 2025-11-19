@@ -32,7 +32,7 @@ fn test_bad_error_messages() {
        │     ──┬──
        │       ╰──── main expected type `relation`, but found type `func transform relation -> relation`
        │
-       │ Help: Have you forgotten an argument to function std.group?
+       │ Help: Argument might be missing to function std.group?
        │
        │ Note: Type `relation` expands to `[{..}]`
     ───╯
@@ -66,15 +66,6 @@ fn test_bad_error_messages() {
        │     ──────┬─────
        │           ╰─────── expected a function, but found `default_db.artists`
     ───╯
-    ");
-
-    // It's better if we can tell them to put in {} braces
-    assert_snapshot!(compile(r###"
-    from artists
-    sort -name
-    "###).unwrap_err(), @r"
-    Error: expected a pipeline that resolves to a table, but found `internal std.sub`
-    ↳ Hint: are you missing `from` statement?
     ");
 }
 
@@ -153,19 +144,6 @@ fn misplaced_type_error() {
        │               ─┬─
        │                ╰─── function std.and, param `right` expected type `bool`, but found type `int`
     ───╯
-    ");
-}
-
-#[test]
-fn invalid_lineage_in_transform() {
-    assert_snapshot!(compile(r###"
-  from tbl
-  group id (
-    sort -val
-  )
-  "###).unwrap_err(), @r"
-    Error: expected a pipeline that resolves to a table, but found `internal std.sub`
-    ↳ Hint: are you missing `from` statement?
     ");
 }
 
@@ -254,20 +232,4 @@ fn just_std() {
        │ ╰───────────── internal compiler error; tracked at https://github.com/PRQL/prql/issues/4474
     ───╯
     ");
-}
-
-#[test]
-fn empty_tuple_from() {
-    assert_snapshot!(compile(r###"
-    from {}
-    "###).unwrap_err(), @"Error: internal compiler error; tracked at https://github.com/PRQL/prql/issues/4317");
-
-    assert_snapshot!(compile(r###"
-    from []
-    "###).unwrap_err(), @"Error: internal compiler error; tracked at https://github.com/PRQL/prql/issues/4317");
-
-    assert_snapshot!(compile(r###"
-    from {}
-    select a
-    "###).unwrap_err(), @"Error: internal compiler error; tracked at https://github.com/PRQL/prql/issues/4317");
 }

@@ -348,3 +348,104 @@ fn empty_interpolations() {
     ───╯
     "#);
 }
+
+#[test]
+fn no_query_entered() {
+    // Empty query
+    assert_snapshot!(compile("").unwrap_err(), @r"
+    [E0001] Error: No PRQL query entered
+    ");
+
+    // Comment-only query
+    assert_snapshot!(compile("# just a comment").unwrap_err(), @r"
+    [E0001] Error: No PRQL query entered
+    ");
+}
+
+#[test]
+fn query_must_begin_with_from() {
+    // Query with declaration but no 'from'
+    assert_snapshot!(compile("let x = 5").unwrap_err(), @r"
+    [E0001] Error: PRQL queries must begin with 'from'
+    ↳ Hint: A query must start with a 'from' statement to define the main pipeline
+    ");
+
+    // Query with multiple declarations but no pipeline
+    assert_snapshot!(compile(r#"
+    let x = 5
+    let y = 10
+    "#).unwrap_err(), @r"
+    [E0001] Error: PRQL queries must begin with 'from'
+    ↳ Hint: A query must start with a 'from' statement to define the main pipeline
+    ");
+}
+
+#[test]
+fn negative_number_in_transform() {
+    // Negative numbers need to be wrapped in parentheses when used in transforms
+    assert_snapshot!(compile(r###"
+    from artists
+    sort -name
+    "###).unwrap_err(), @r"
+    Error: expected a pipeline that resolves to a table, but found `internal std.sub`
+    ↳ Hint: wrap negative numbers in parentheses, e.g. `sort (-column_name)`
+    ");
+
+    assert_snapshot!(compile(r###"
+    from pets
+    take -10
+    "###).unwrap_err(), @r"
+    Error: expected a pipeline that resolves to a table, but found `internal std.sub`
+    ↳ Hint: wrap negative numbers in parentheses, e.g. `sort (-column_name)`
+    ");
+
+    assert_snapshot!(compile(r###"
+  from tbl
+  group id (
+    sort -val
+  )
+  "###).unwrap_err(), @r"
+    Error: expected a pipeline that resolves to a table, but found `internal std.sub`
+    ↳ Hint: wrap negative numbers in parentheses, e.g. `sort (-column_name)`
+    ");
+}
+
+#[test]
+fn empty_tuple_or_array_from() {
+    assert_snapshot!(compile(r###"
+    from {}
+    "###).unwrap_err(), @r"
+    Error:
+       ╭─[ :2:10 ]
+       │
+     2 │     from {}
+       │          ─┬
+       │           ╰── expected a table or query, but found an empty tuple `{}`
+    ───╯
+    ");
+
+    assert_snapshot!(compile(r###"
+    from []
+    "###).unwrap_err(), @r"
+    Error:
+       ╭─[ :2:10 ]
+       │
+     2 │     from []
+       │          ─┬
+       │           ╰── expected a table or query, but found an empty array `[]`
+    ───╯
+    ");
+
+    assert_snapshot!(compile(r###"
+    from {}
+    select a
+    "###).unwrap_err(), @r"
+    Error:
+       ╭─[ :2:10 ]
+       │
+     2 │     from {}
+       │          ─┬
+       │           ╰── expected a table or query, but found an empty tuple `{}`
+    ───╯
+    ");
+}
