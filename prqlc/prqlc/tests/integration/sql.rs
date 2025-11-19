@@ -2592,7 +2592,7 @@ fn test_distinct_on_03() {
     "###).unwrap()), @r"
     WITH table_0 AS (
       SELECT
-        DISTINCT ON (col1) NULL
+        DISTINCT ON (col1) *
       FROM
         tab1
     )
