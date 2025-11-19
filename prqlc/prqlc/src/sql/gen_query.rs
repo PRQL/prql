@@ -139,11 +139,14 @@ fn translate_select_pipeline(
         if projection.len() == 1 {
             if let SelectItem::UnnamedExpr(sql_ast::Expr::Value(ref v)) = projection[0] {
                 if matches!(v.value, sql_ast::Value::Null) {
-                    projection[0] = SelectItem::Wildcard(sql_ast::WildcardAdditionalOptions::default());
+                    projection[0] =
+                        SelectItem::Wildcard(sql_ast::WildcardAdditionalOptions::default());
                 }
             }
         } else if projection.is_empty() {
-            projection.push(SelectItem::Wildcard(sql_ast::WildcardAdditionalOptions::default()));
+            projection.push(SelectItem::Wildcard(
+                sql_ast::WildcardAdditionalOptions::default(),
+            ));
         }
     }
 
