@@ -1,6 +1,7 @@
 [book]
 description = "Modern language for transforming data — a simple, powerful, pipelined SQL replacement"
 language = "en"
+multilingual = false
 title = "PRQL language book"
 
 [output.html]
