@@ -1,0 +1,41 @@
+use lib '.';
+use Test;
+use prql;
+
+plan 9;
+
+# Integer
+ok PRQL.parse('filter 123');
+#query(pipeline(call-expression(identifier,arg-list(integer))))
+
+# Integer with underscore
+ok PRQL.parse('filter 123_456');
+#query(pipeline(call-expression(identifier,arg-list(integer))))
+
+# Integer with underscores
+ok PRQL.parse('filter 123_456_789');
+#query(pipeline(call-expression(identifier,arg-list(integer))))
+
+# Decimal
+ok PRQL.parse('filter 123.45');
+#query(pipeline(call-expression(identifier,arg-list(float))))
+
+# Scientific notation
+ok PRQL.parse('filter 123e10');
+#query(pipeline(call-expression(identifier,arg-list(integer))))
+
+# Number with time unit
+ok PRQL.parse('filter 5years');
+#query(pipeline(call-expression(identifier,arg-list(time-unit))))
+
+# Binary notation
+ok PRQL.parse('filter 0b1111');
+#query(pipeline(call-expression(identifier,arg-list(integer))))
+
+# Hex notation
+ok PRQL.parse('filter 0xff');
+#query(pipeline(call-expression(identifier,arg-list(integer))))
+
+# Octal notation
+ok PRQL.parse('filter 0o777');
+#query(pipeline(call-expression(identifier,arg-list(integer))))

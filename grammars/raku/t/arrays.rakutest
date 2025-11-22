@@ -1,0 +1,45 @@
+use lib '.';
+use Test;
+use prql;
+
+plan 6;
+
+# Array on one line
+ok PRQL.parse('filter [foo, bar, baz]');
+#query(pipeline(call-expression(identifier,arg-list(array-expression(identifier,identifier,identifier)))))
+
+# Array on multiple lines
+ok PRQL.parse(q:to/END/);
+filter [
+  foo,
+  bar,
+  baz
+]
+END
+#query(pipeline(call-expression(identifier,arg-list(array-expression(identifier,identifier,identifier)))))
+
+# Array on multiple lines with blank lines
+ok PRQL.parse(q:to/END/);
+filter [
+
+  foo,
+
+  bar,
+
+  baz
+
+]
+END
+#query(pipeline(call-expression(identifier,arg-list(array-expression(identifier,identifier,identifier)))))
+
+# Array of integers
+ok PRQL.parse('filter [1, 2, 3]');
+#query(pipeline(call-expression(identifier,arg-list(array-expression(integer,integer,integer)))))
+
+# Array of floats
+ok PRQL.parse('filter [1.1, 2.2, 3.3]');
+#query(pipeline(call-expression(identifier,arg-list(array-expression(float,float,float)))))
+
+# Array of strings
+ok PRQL.parse('filter ["string", f"format", r"raw", s"server"]');
+#query(pipeline(call-expression(identifier,arg-list(array-expression(string,f-string,r-string,s-string)))))

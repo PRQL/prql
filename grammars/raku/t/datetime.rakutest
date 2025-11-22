@@ -1,0 +1,33 @@
+use lib '.';
+use Test;
+use prql;
+
+plan 7;
+
+# Date YYYY-MM-DD
+ok PRQL.parse('filter @1970-01-01');
+#query(pipeline(call-expression(identifier,arg-list(date-time))))
+
+# Time HH:MM
+ok PRQL.parse('filter @08:30');
+#query(pipeline(call-expression(identifier,arg-list(date-time))))
+
+# Time HH:MM:SS
+ok PRQL.parse('filter @12:00:00');
+#query(pipeline(call-expression(identifier,arg-list(date-time))))
+
+# Time HH:MM:SS.xxx
+ok PRQL.parse('filter @12:00:00.500');
+#query(pipeline(call-expression(identifier,arg-list(date-time))))
+
+# Date and time
+ok PRQL.parse('filter @1970-01-01T12:00:00');
+#query(pipeline(call-expression(identifier,arg-list(date-time))))
+
+# Date and time with timezone
+ok PRQL.parse('filter @1970-01-01T12:00:00+01:00');
+#query(pipeline(call-expression(identifier,arg-list(date-time))))
+
+# Date and time in UTC
+ok PRQL.parse('filter @1970-01-01T12:00:00Z');
+#query(pipeline(call-expression(identifier,arg-list(date-time))))

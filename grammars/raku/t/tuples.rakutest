@@ -1,0 +1,45 @@
+use lib '.';
+use Test;
+use prql;
+
+plan 5;
+
+# Tuple on one line
+ok PRQL.parse('test {foo, bar, baz}');
+#query(pipeline(call-expression(identifier,arg-list(tuple-expression(identifier,identifier,identifier)))))
+
+# Tuple on multiple lines
+ok PRQL.parse(q:to/END/);
+test {
+  foo,
+  bar,
+  baz
+}
+END
+#query(pipeline(call-expression(identifier,arg-list(tuple-expression(identifier,identifier,identifier)))))
+
+# Tuple on multiple lines with blank lines
+ok PRQL.parse(q:to/END/);
+test {
+
+  foo,
+
+  bar,
+
+  baz
+
+}
+END
+#query(pipeline(call-expression(identifier,arg-list(tuple-expression(identifier,identifier,identifier)))))
+
+# Tuple with key and value
+ok PRQL.parse('test {foo=bar}');
+#query(pipeline(call-expression(identifier,arg-list(tuple-expression(declaration-tuple(declaration-item,equals,identifier))))))
+
+# Tuple with keys and values
+ok PRQL.parse(q:to/END/);
+test {identifier=identifier,int  =3, float=  3.14 ,
+string    =    "string"
+}
+END
+#query(pipeline(call-expression(identifier,arg-list(tuple-expression(declaration-tuple(declaration-item,equals,identifier),declaration-tuple(declaration-item,equals,integer),declaration-tuple(declaration-item,equals,float),declaration-tuple(declaration-item,equals,string))))))

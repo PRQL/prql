@@ -1,0 +1,29 @@
+use lib '.';
+use Test;
+use prql;
+
+plan 6;
+
+# Plus
+ok PRQL.parse('filter 10 + 10.5');
+#query(pipeline(call-expression(identifier,arg-list(binary-expression(integer,arith-op,float)))))
+
+# Minus
+ok PRQL.parse('filter 10 - 10');
+#query(pipeline(call-expression(identifier,arg-list(binary-expression(integer,arith-op,integer)))))
+
+# Multiply
+ok PRQL.parse('filter 10 * 10');
+#query(pipeline(call-expression(identifier,arg-list(binary-expression(integer,arith-op,integer)))))
+
+# Divide
+ok PRQL.parse('filter 10 / 10');
+#query(pipeline(call-expression(identifier,arg-list(binary-expression(integer,arith-op,integer)))))
+
+# Exponentiation
+ok PRQL.parse('filter 10 ** 10');
+#query(pipeline(call-expression(identifier,arg-list(binary-expression(integer,arith-op,integer)))))
+
+# Multiple ops
+ok PRQL.parse('filter 10 + 10 + 10');
+#query(pipeline(call-expression(identifier,arg-list(binary-expression(binary-expression(integer,arith-op,integer),arith-op,integer)))))

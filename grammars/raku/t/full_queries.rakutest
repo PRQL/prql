@@ -1,0 +1,30 @@
+use lib '.';
+use Test;
+use prql;
+
+plan 1;
+
+ok PRQL.parse(q:to/END/);
+# Website showcasing example
+from invoices
+filter invoice_date >= @1970-01-16
+derive {
+  transaction_fees = 0.8,
+  income = total - transaction_fees
+}
+filter income > 1
+group customer_id (
+  aggregate {
+    average total
+  }
+)
+sort {-sum_income}
+take 10
+join c=customers (==customer_id)
+derive name = f"{c.last_name}, {c.first_name}"
+select {
+  c.customer_id, name, sum_income
+}
+derive db_version = s"version()"
+END
+#query(pipeline(call-expression(identifier,arg-list(identifier)),call-expression(identifier,arg-list(binary-expression(identifier,compare-op,date-time))),call-expression(identifier,arg-list(tuple-expression(declaration-tuple(declaration-item,equals,float),declaration-tuple(declaration-item,equals,binary-expression(identifier,arith-op,identifier))))),call-expression(identifier,arg-list(binary-expression(identifier,compare-op,integer))),call-expression(identifier,arg-list(identifier,nested-pipeline(pipeline(call-expression(identifier,arg-list(tuple-expression(call-expression(identifier,arg-list(identifier))))))))),call-expression(identifier,arg-list(tuple-expression(unary-expression(arith-op,identifier)))),call-expression(identifier,arg-list(integer)),call-expression(identifier,arg-list(declaration(declaration-item,equals,identifier),parenthesized-expression(unary-Expression(compare-op,identifier)))),call-expression(identifier,arg-list(declaration(declaration-item,equals,f-string))),call-expression(identifier,arg-list(tuple-expression(identifier,identifier,identifier))),call-expression(identifier,arg-list(declaration(declaration-item,equals,s-string)))))

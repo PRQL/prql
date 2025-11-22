@@ -1,0 +1,45 @@
+use lib '.';
+use Test;
+use prql;
+
+plan 10;
+
+# == Equals
+ok PRQL.parse('filter foo == bar');
+#query(pipeline(call-expression(identifier,arg-list(binary-expression(identifier,compare-op,identifier)))))
+
+# != Not equals
+ok PRQL.parse('filter foo != bar');
+#query(pipeline(call-expression(identifier,arg-list(binary-expression(identifier,compare-op,identifier)))))
+
+# >= Greater than
+ok PRQL.parse('filter foo >= bar');
+#query(pipeline(call-expression(identifier,arg-list(binary-expression(identifier,compare-op,identifier)))))
+
+# <= Less than
+ok PRQL.parse('filter foo <= bar');
+#query(pipeline(call-expression(identifier,arg-list(binary-expression(identifier,compare-op,identifier)))))
+
+# ~= Regex match
+ok PRQL.parse('filter foo ~= bar');
+#query(pipeline(call-expression(identifier,arg-list(binary-expression(identifier,compare-op,identifier)))))
+
+# && And
+ok PRQL.parse('filter foo && bar');
+#query(pipeline(call-expression(identifier,arg-list(binary-expression(identifier,logic-op,identifier)))))
+
+# || Or
+ok PRQL.parse('filter foo || bar');
+#query(pipeline(call-expression(identifier,arg-list(binary-expression(identifier,logic-op,identifier)))))
+
+# ?? Coalesce
+ok PRQL.parse('filter foo ?? bar');
+#query(pipeline(call-expression(identifier,arg-list(binary-expression(identifier,logic-op,identifier)))))
+
+# Unary operator -
+ok PRQL.parse('sort { -name }');
+#query(pipeline(call-expression(identifier,arg-list(tuple-expression(unary-expression(arith-op,identifier))))))
+
+# Unary operator ==
+ok PRQL.parse('join customers (==customer_id)');
+#query(pipeline(call-expression(identifier,arg-list(identifier,parenthesized-expression(unary-expression(compare-op,identifier))))))
