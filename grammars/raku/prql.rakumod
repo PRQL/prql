@@ -30,7 +30,7 @@ grammar PRQL {
     token TOP {
         <statement>*
     }
-    
+
     rule statement {
         | <doc-block>
         | <comment>
@@ -40,24 +40,24 @@ grammar PRQL {
         | <variable-declaration>
         | <pipeline-statement> <comment>?
     }
-    
+
     rule query-definition {
         'prql' <named-arg>+
     }
-    
+
     rule module {
         'module' <identifier> '{' <statement>* '}'
     }
-    
+
     rule pipeline-statement {
         <pipeline>
     }
-    
+
     rule pipeline {
         | <call-expression>+ % '|'
         | <expression> '|' <identifier>
     }
-    
+
     rule tuple-expression {
         '{'
         (
@@ -68,13 +68,13 @@ grammar PRQL {
         )* %% ','
         '}'
     }
-    
+
     rule annotation {
         '@{'
         <declaration>? % ','
         '}'
     }
-    
+
     rule call-expression {
         <identifier>
         (
@@ -83,15 +83,15 @@ grammar PRQL {
         | <test>
         )+
     }
-    
+
     rule named-arg {
         <identifier> ':' <expression>
     }
-    
+
     rule declaration {
         <identifier> '=' <expression>
     }
-    
+
     rule declaration-tuple {
         <identifier> '=' <expression>
     }
@@ -99,32 +99,32 @@ grammar PRQL {
     rule case-branch {
         <expression> '=>' <expression>
     }
-    
+
     rule case-expression {
         'case' <tuple-expression>
     }
-    
+
     rule nested-pipeline {
         '(' <pipeline> ')'
     }
-    
+
     # The name "test" here means equality testing. It is the name used in the Python grammar.
     rule test {
         <test-inner>
     }
-    
+
     rule test-inner {
         | <binary-test>
         | '!' <test-inner>
         | <expression>
     }
-    
+
     rule binary-test {
         | <expression> <logic-op> <expression>
         | <expression> <compare-op> <expression>
         | <expression> <arith-op> <expression>
     }
-    
+
     token expression {
         | 'this'
         | 'that'
@@ -148,49 +148,49 @@ grammar PRQL {
         | <r-string>
         | <s-string>
     }
-    
+
     token boolean {
         | 'true'
         | 'false'
     }
-    
+
     token variable-name {
         <.ident>
     }
-    
+
     token identifier {
         <.ident>
         ['.' [<.ident> | '*']]*
     }
-    
+
     rule array-expression {
         '['
         (<test> | '*' <expression>)+ %% ','
         ']'
     }
-    
+
     rule binary-expression {
         <identifier> <arith-op> <expression>
     }
-    
+
     rule parenthesized-expression {
         '(' <expression> ')'
     }
-    
+
     rule unary-expression {
         | ('+' | '-') <expression>
         | '==' <identifier>
     }
-    
+
     token number {
         | <float>
         | <integer>
     }
-    
+
     rule variable-declaration {
         'let' <variable-name> '=' (<nested-pipeline> | <lambda>)
     }
-    
+
     rule lambda {
         <lambda-param>* '->' <expression>
     }
@@ -206,7 +206,7 @@ grammar PRQL {
     rule lambda-param {
         <identifier> <type-definition>? (':' <expression>)?
     }
-    
+
     token integer {
         | <.digit> [<.digit> | '_']* ['e' ['+' | '-']? <integer>]?
         | '0x' [<.xdigit> | '_']+
@@ -217,7 +217,7 @@ grammar PRQL {
     token float {
         \d [\d | '_']* '.' \d [\d | '_']* ['e' <integer>]?
     }
-    
+
     token date {
         \d+ '-' \d+ '-' \d+
     }
@@ -226,7 +226,7 @@ grammar PRQL {
         \d+ ':' \d+
         [':' \d+ ['.' \d+]?]?
     }
-    
+
     token date-time {
         '@'
         (
@@ -235,12 +235,12 @@ grammar PRQL {
         | <time>
         )
     }
-    
+
     token time-unit {
         $<number>=\d+
         <dimension>
     }
-    
+
     token escape {
         '\\'
         (
@@ -249,26 +249,26 @@ grammar PRQL {
         | <[bfnrt]>
         )
     }
-    
+
     token parameter {
         '$'
         \w+
     }
-    
+
     token doc-block {
         '#!' .+? $$
     }
-    
+
     token comment {
         '#' .+? $$
     }
-    
+
     token range-expression {
         (<.digit>+)
         '..'
         (<.digit>+)
     }
-    
+
     token dimension {
         [
         | microseconds
@@ -286,30 +286,30 @@ grammar PRQL {
     token arith-op {
         '+' | '-' | '*' | '/' | '%' | '//' | '**'
     }
-    
+
     token compare-op {
         '==' | '!=' | '~=' | '>=' | '<=' | '>' | '<' | 'in'
     }
-    
+
     token logic-op {
         '&&' | '||' | '??'
     }
-    
+
     token f-string {
         | 'f"' (<-[\"]> | <escape>)* '"'
         | 'f\'' (<-[\']> | <escape>)* '\''
     }
-    
+
     token r-string {
         | 'r"' <-[\"]>* '"'
         | 'r\'' <-[\']>* '\''
     }
-    
+
     token s-string {
         | 's"' (<-[\"]> | <escape>)* '"'
         | 's\'' (<-[\']> | <escape>)* '\''
     }
-    
+
     token string {
         | '"""' (<-[\"]> | <escape>)* '"""'
         | '"' (<-[\"]> | <escape>)* '"'

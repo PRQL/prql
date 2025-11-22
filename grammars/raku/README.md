@@ -14,7 +14,8 @@ say PRQL.parsefile('employees.prql');
 
 ## Tests
 
-Tests can be run individually by specifying the test filename on the command line:
+Tests can be run individually by specifying the test filename on the command
+line:
 
     raku t/arithmetics.rakutest
 
