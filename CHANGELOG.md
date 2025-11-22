@@ -14,6 +14,8 @@
 
 **Integrations**:
 
+- Add grammar file for Raku. (@vanillajonathan, #5576)
+
 **Internal changes**:
 
 **New Contributors**:
