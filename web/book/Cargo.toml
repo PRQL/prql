@@ -21,11 +21,12 @@ test = false
 ansi-to-html = "0.2.2"
 anyhow = { workspace = true }
 itertools = { workspace = true }
-mdbook = { version = "0.4.52", default-features = false }
-mdbook-preprocessor-boilerplate = "0.1.2"
+mdbook-core = { version = "0.5.0", default-features = false }
+mdbook-preprocessor = { version = "0.5.0", default-features = false }
 prqlc = { path = "../../prqlc/prqlc", default-features = false }
 pulldown-cmark = { version = "0.10.3", default-features = false }
 pulldown-cmark-to-cmark = "14.0.1"
+serde_json = { workspace = true }
 strum = { workspace = true }
 strum_macros = { workspace = true }
 
