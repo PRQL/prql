@@ -1,4 +1,3 @@
-use lib '.';
 use Test;
 use prql;
 
