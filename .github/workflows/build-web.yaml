@@ -31,9 +31,13 @@ jobs:
       - uses: baptiste0928/cargo-install@v3
         with:
           crate: mdbook-footnote
+          # Lock to 0.1.x - mdbook-footnote 0.2.0 requires mdbook 0.5.x
+          version: "0.1.1"
       - uses: baptiste0928/cargo-install@v3
         with:
           crate: mdbook-admonish
+          # Lock to version compatible with mdbook 0.4.x
+          version: "1.18.0"
       - uses: baptiste0928/cargo-install@v3
         with:
           crate: wasm-pack
