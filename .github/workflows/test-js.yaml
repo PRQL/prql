@@ -42,11 +42,20 @@ jobs:
 
       - run: ./.github/workflows/scripts/set_version.sh
 
+      - name: Compute Cargo.lock hash
+        shell: bash
+        run: |
+          if command -v sha256sum &> /dev/null; then
+            echo "cargo_lock_hash=$(sha256sum Cargo.lock | cut -d' ' -f1)" >> "$GITHUB_ENV"
+          else
+            echo "cargo_lock_hash=$(shasum -a 256 Cargo.lock | cut -d' ' -f1)" >> "$GITHUB_ENV"
+          fi
+
       - name: 💰 Cache
         uses: Swatinem/rust-cache@v2
         id: cache
         with:
-          prefix-key: ${{ env.version }}-${{ hashFiles('Cargo.lock') }}
+          prefix-key: ${{ env.version }}-${{ env.cargo_lock_hash }}
           # `web` is the closest rust cache key. It's useful on ubuntu (last
           # checked, roughly halved the time, to 4 min), but not on other OSs
           # given we don't have those caches. We can't use a separate one given
