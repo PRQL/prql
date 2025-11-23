@@ -62,7 +62,7 @@ jobs:
       - name: 💰 Cache
         uses: Swatinem/rust-cache@v2
         with:
-          prefix-key: ${{ hashFiles('Cargo.lock') }}
+          prefix-key: ${{ hashFiles('./Cargo.lock') }}
           shared-key: rust-x86_64-unknown-linux-gnu
           save-if: false
 

@@ -286,7 +286,7 @@ jobs:
       - name: 💰 Cache
         uses: Swatinem/rust-cache@v2
         with:
-          prefix-key: ${{ env.version }}-${{ hashFiles('Cargo.lock') }}
+          prefix-key: ${{ env.version }}-${{ hashFiles('./Cargo.lock') }}
           # The mac rust cache key. It's not _that_ useful since this will build
           # much more, but it's better than nothing. This task can't have our own
           # cache, since we're out of cache space and this workflow takes 1.5GB.
@@ -430,7 +430,7 @@ jobs:
       - name: Cache
         uses: Swatinem/rust-cache@v2
         with:
-          prefix-key: ${{ env.version }}-${{ hashFiles('Cargo.lock') }}
+          prefix-key: ${{ env.version }}-${{ hashFiles('./Cargo.lock') }}
           shared-key: web
           # Created by `build-web`
           save-if: false
@@ -456,7 +456,7 @@ jobs:
       - name: 💰 Cache
         uses: Swatinem/rust-cache@v2
         with:
-          prefix-key: ${{ env.version }}-${{ hashFiles('Cargo.lock') }}
+          prefix-key: ${{ env.version }}-${{ hashFiles('./Cargo.lock') }}
           save-if: ${{ github.ref == 'refs/heads/main' }}
       # Ensure nothing remains from caching
       - run: cargo llvm-cov clean --workspace
@@ -588,7 +588,7 @@ jobs:
       - name: 💰 Cache
         uses: Swatinem/rust-cache@v2
         with:
-          prefix-key: ${{ env.version }}-${{ hashFiles('Cargo.lock') }}
+          prefix-key: ${{ env.version }}-${{ hashFiles('./Cargo.lock') }}
           save-if: ${{ github.ref == 'refs/heads/main' }}
       - name: Verify minimum rust version
         run: cargo minimal-versions test --direct
