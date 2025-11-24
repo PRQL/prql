@@ -25,13 +25,13 @@ repos:
           # https://github.com/PRQL/prql/issues/3078
           - prettier-plugin-go-template
   - repo: https://github.com/astral-sh/ruff-pre-commit
-    rev: v0.14.5
+    rev: v0.14.6
     hooks:
       - id: ruff
         args: [--fix]
       - id: ruff-format
   - repo: https://github.com/pre-commit/mirrors-clang-format
-    rev: v21.1.5
+    rev: v21.1.6
     hooks:
       - id: clang-format
         types_or: [c, c++]
@@ -45,7 +45,7 @@ repos:
       - id: clippy
         stages: [manual]
   - repo: https://github.com/rhysd/actionlint
-    rev: v1.7.8
+    rev: v1.7.9
     hooks:
       - id: actionlint
   # Link checker using local hooks with language: rust
