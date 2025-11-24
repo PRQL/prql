@@ -1,0 +1,25 @@
+{
+  "name": "PRQL",
+  "version": "0.0.1",
+  "description": "Grammar for PRQL",
+  "tags": [
+    "data",
+    "grammar",
+    "pipeline",
+    "sql"
+  ],
+  "source-url": "https://github.com/PRQL/prql/",
+  "support": {
+    "source": "https://github.com/PRQL/prql/",
+    "bugtracker": "https://github.com/PRQL/prql/issues"
+  },
+  "api": "1.0",
+  "production": false,
+  "auth": "github:PRQL",
+  "license": "Artistic-2.0",
+  "provides": {
+    "prql": "lib/prql.rakumod"
+  },
+  "raku": "6.*",
+  "meta-version": "1"
+}

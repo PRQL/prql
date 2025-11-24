@@ -12,6 +12,12 @@ say PRQL.parse('from employees');
 say PRQL.parsefile('employees.prql');
 ```
 
+## Installation
+
+To install from source run:
+
+    zef install .
+
 ## Tests
 
 Tests can be run individually by specifying the test filename on the command
