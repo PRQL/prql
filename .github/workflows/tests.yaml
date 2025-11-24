@@ -265,45 +265,42 @@ jobs:
       'true'
     uses: ./.github/workflows/test-prqlc-c.yaml
 
-  test-taskfile:
-    needs: rules
-    if:
-      # We only run on nightly scheduled, since this is very expensive and we
-      # don't want to have to run it on, for example, every dependency change.
-      #
-      # Disabling due to https://github.com/PRQL/prql/pull/4876
-      false
-      # needs.rules.outputs.taskfile == 'true' ||
-      # needs.rules.outputs.nightly-upstream == 'true'
-    runs-on: macos-14
-    steps:
-      - name: 📂 Checkout code
-        uses: actions/checkout@v5
-      - run: ./.github/workflows/scripts/set_version.sh
-      - uses: actions/setup-python@v6
-        with:
-          python-version: "3.11"
-      - name: 💰 Cache
-        uses: Swatinem/rust-cache@v2
-        with:
-          prefix-key: ${{ env.version }}-${{ hashFiles('./Cargo.lock') }}
-          # The mac rust cache key. It's not _that_ useful since this will build
-          # much more, but it's better than nothing. This task can't have our own
-          # cache, since we're out of cache space and this workflow takes 1.5GB.
-          shared-key: rust-aarch64-apple-darwin
-          save-if: false
-      - name: Install Task
-        uses: go-task/setup-task@v1
-        with:
-          repo-token: ${{ secrets.GITHUB_TOKEN }}
-      # Required because of https://github.com/cargo-bins/cargo-binstall/issues/1254
-      - run: brew install bash
-      - run: task install-brew-dependencies
-      - run: task setup-dev
-      # This also encompasses `build-all`
-      - run: task test-all
-      - run: task prqlc:test
-      - run: task lint
+  # Disabled due to https://github.com/PRQL/prql/pull/4876
+  # To re-enable, uncomment this entire job block
+  # test-taskfile:
+  #   needs: rules
+  #   if: |
+  #     needs.rules.outputs.taskfile == 'true' ||
+  #     needs.rules.outputs.nightly-upstream == 'true'
+  #   runs-on: macos-14
+  #   steps:
+  #     - name: 📂 Checkout code
+  #       uses: actions/checkout@v5
+  #     - run: ./.github/workflows/scripts/set_version.sh
+  #     - uses: actions/setup-python@v6
+  #       with:
+  #         python-version: "3.11"
+  #     - name: 💰 Cache
+  #       uses: Swatinem/rust-cache@v2
+  #       with:
+  #         prefix-key: ${{ env.version }}-${{ hashFiles('./Cargo.lock') }}
+  #         # The mac rust cache key. It's not _that_ useful since this will build
+  #         # much more, but it's better than nothing. This task can't have our own
+  #         # cache, since we're out of cache space and this workflow takes 1.5GB.
+  #         shared-key: rust-aarch64-apple-darwin
+  #         save-if: false
+  #     - name: Install Task
+  #       uses: go-task/setup-task@v1
+  #       with:
+  #         repo-token: ${{ secrets.GITHUB_TOKEN }}
+  #     # Required because of https://github.com/cargo-bins/cargo-binstall/issues/1254
+  #     - run: brew install bash
+  #     - run: task install-brew-dependencies
+  #     - run: task setup-dev
+  #     # This also encompasses `build-all`
+  #     - run: task test-all
+  #     - run: task prqlc:test
+  #     - run: task lint
 
   test-rust-main:
     needs: rules
@@ -618,7 +615,7 @@ jobs:
       - test-python
       - test-rust
       - test-rust-main
-      - test-taskfile
+      # - test-taskfile  # Disabled due to https://github.com/PRQL/prql/pull/4876
     runs-on: ubuntu-24.04
     steps:
       - name: Decide whether the needed jobs succeeded or failed
