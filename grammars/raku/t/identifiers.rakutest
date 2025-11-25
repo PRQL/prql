@@ -1,0 +1,16 @@
+use Test;
+use prql;
+
+plan 3;
+
+# Basic identifier
+ok PRQL.parse('filter foo');
+#query(pipeline(call-expression(identifier,arg-list(identifier))))
+
+# Identifier with underscore and digit
+ok PRQL.parse('filter foo_123');
+#query(pipeline(call-expression(identifier,arg-list(identifier))))
+
+# Unicode identifier
+ok PRQL.parse('filter räksmörgås');
+#query(pipeline(call-expression(identifier,arg-list(identifier))))
