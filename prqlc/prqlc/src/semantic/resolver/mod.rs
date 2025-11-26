@@ -481,4 +481,53 @@ pub(super) mod test {
             _ => panic!("Expected All column"),
         }
     }
+
+    #[test]
+    fn test_cte_lineage_with_union_traces_to_all_source_tables() {
+        // This test verifies that CTEs with UNIONs trace lineage
+        // back to ALL underlying source tables.
+        use crate::internal::pl_to_lineage;
+
+        let query = r#"
+        let combined = (
+            from employees
+            select {name, dept}
+            append (
+                from contractors
+                select {name, dept}
+            )
+        )
+        from combined
+        select {name}
+        "#;
+
+        let pl = crate::prql_to_pl(query).unwrap();
+        let fc = pl_to_lineage(pl).unwrap();
+        let final_lineage = &fc.frames.last().unwrap().1;
+
+        // Should have inputs from both employees and contractors
+        assert_eq!(
+            final_lineage.inputs.len(),
+            2,
+            "CTE with UNION should have 2 inputs, got {:?}",
+            final_lineage.inputs
+        );
+
+        let tables: Vec<_> = final_lineage
+            .inputs
+            .iter()
+            .map(|inp| inp.table.name.as_str())
+            .collect();
+
+        assert!(
+            tables.contains(&"employees"),
+            "Should contain employees table, got {:?}",
+            tables
+        );
+        assert!(
+            tables.contains(&"contractors"),
+            "Should contain contractors table, got {:?}",
+            tables
+        );
+    }
 }

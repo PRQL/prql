@@ -71,17 +71,54 @@ impl Resolver<'_> {
         input_id: usize,
     ) -> Lineage {
         let table_decl = self.root_mod.module.get(table_fq).unwrap();
-        let TableDecl { ty, .. } = table_decl.kind.as_table_decl().unwrap();
+        let TableDecl { ty, expr } = table_decl.kind.as_table_decl().unwrap();
+
+        // For CTEs (RelationVar), trace lineage back to the underlying source tables.
+        // We preserve the underlying inputs' `table` fields (which point to the actual
+        // source tables like `default_db.employees`) but use the CTE's name for the
+        // `name` field (used for column references in SQL generation).
+        //
+        // For UNIONs and JOINs, this means we include all underlying source tables.
+        let inputs = if let TableExpr::RelationVar(relation_expr) = expr {
+            if let Some(underlying_lineage) = &relation_expr.lineage {
+                if underlying_lineage.inputs.is_empty() {
+                    vec![LineageInput {
+                        id: input_id,
+                        name: input_name.clone(),
+                        table: table_fq.clone(),
+                    }]
+                } else {
+                    // Trace back to all underlying source tables
+                    underlying_lineage
+                        .inputs
+                        .iter()
+                        .map(|inp| LineageInput {
+                            id: input_id,
+                            name: input_name.clone(),
+                            table: inp.table.clone(),
+                        })
+                        .collect()
+                }
+            } else {
+                vec![LineageInput {
+                    id: input_id,
+                    name: input_name.clone(),
+                    table: table_fq.clone(),
+                }]
+            }
+        } else {
+            vec![LineageInput {
+                id: input_id,
+                name: input_name.clone(),
+                table: table_fq.clone(),
+            }]
+        };
 
         // TODO: can this panic?
         let columns = ty.as_ref().unwrap().as_relation().unwrap();
 
         let mut instance_frame = Lineage {
-            inputs: vec![LineageInput {
-                id: input_id,
-                name: input_name.clone(),
-                table: table_fq.clone(),
-            }],
+            inputs,
             columns: Vec::new(),
             ..Default::default()
         };
