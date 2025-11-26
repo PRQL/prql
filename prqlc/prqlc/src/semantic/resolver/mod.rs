@@ -484,7 +484,7 @@ pub(super) mod test {
 
     #[test]
     fn test_cte_lineage_with_union_traces_to_all_source_tables() {
-        // This test verifies that CTEs with UNIONs trace lineage
+        // This test verifies that CTEs with UNIONNs trace lineage
         // back to ALL underlying source tables.
         use crate::internal::pl_to_lineage;
 

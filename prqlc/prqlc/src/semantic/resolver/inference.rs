@@ -78,7 +78,7 @@ impl Resolver<'_> {
         // source tables like `default_db.employees`) but use the CTE's name for the
         // `name` field (used for column references in SQL generation).
         //
-        // For UNIONs and JOINs, this means we include all underlying source tables.
+        // For UNIONNs and JOINs, this means we include all underlying source tables.
         let inputs = if let TableExpr::RelationVar(relation_expr) = expr {
             if let Some(underlying_lineage) = &relation_expr.lineage {
                 if underlying_lineage.inputs.is_empty() {
