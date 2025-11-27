@@ -22,3 +22,6 @@ wee = "wee"
 flate = "flate"
 # distinct_ons is correct (SQL DISTINCT ON)
 ons = "ons"
+# SQL UNIONs - typos incorrectly thinks UNIO should be UNION
+# This happens because typos tokenizes UNIONs and finds UNIO
+UNIO = "UNIO"
