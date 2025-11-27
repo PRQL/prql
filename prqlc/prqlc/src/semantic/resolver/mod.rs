@@ -518,8 +518,37 @@ pub(super) mod test {
     }
 
     #[test]
+    fn test_direct_table_lineage_uses_table_itself() {
+        // This test verifies that direct table references (non-CTEs)
+        // use the table itself as the lineage input, exercising the
+        // fallback path in lineage_of_table_decl.
+        use crate::internal::pl_to_lineage;
+
+        let query = r#"
+        from employees
+        select {name, salary}
+        "#;
+
+        let pl = crate::prql_to_pl(query).unwrap();
+        let fc = pl_to_lineage(pl).unwrap();
+        let final_lineage = &fc.frames.last().unwrap().1;
+
+        assert_eq!(
+            final_lineage.inputs.len(),
+            1,
+            "Direct table should have 1 input"
+        );
+
+        let input = &final_lineage.inputs[0];
+        assert_eq!(
+            input.table.name, "employees",
+            "Table should be 'employees' directly"
+        );
+    }
+
+    #[test]
     fn test_cte_lineage_with_union_traces_to_all_source_tables() {
-        // This test verifies that CTEs with UNIONNs trace lineage
+        // This test verifies that CTEs with UNIONs trace lineage
         // back to ALL underlying source tables.
         use crate::internal::pl_to_lineage;
 
