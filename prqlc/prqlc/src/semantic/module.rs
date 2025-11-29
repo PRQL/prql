@@ -255,17 +255,20 @@ impl Module {
             // insert column decl
             match column {
                 LineageColumn::All { input_id, .. } => {
-                    let input = lineage.find_input(*input_id).unwrap();
-
-                    let kind = DeclKind::Infer(Box::new(DeclKind::Column(input.id)));
-                    let declared_at = Some(input.id);
-                    let decl = Decl {
-                        kind,
-                        declared_at,
-                        order: col_index + 1,
-                        ..Default::default()
-                    };
-                    ns.names.insert(NS_INFER.to_string(), decl);
+                    // Input might not exist if lineage references an outer scope
+                    // (e.g., join inside group). This is an error caught during
+                    // lowering - skip here to avoid panic during resolution.
+                    if let Some(input) = lineage.find_input(*input_id) {
+                        let kind = DeclKind::Infer(Box::new(DeclKind::Column(input.id)));
+                        let declared_at = Some(input.id);
+                        let decl = Decl {
+                            kind,
+                            declared_at,
+                            order: col_index + 1,
+                            ..Default::default()
+                        };
+                        ns.names.insert(NS_INFER.to_string(), decl);
+                    }
                 }
                 LineageColumn::Single {
                     name: Some(name),

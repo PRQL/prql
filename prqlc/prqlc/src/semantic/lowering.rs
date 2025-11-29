@@ -680,7 +680,12 @@ impl Lowerer {
                     columns.push((RelationColumn::Single(name), cid));
                 }
                 LineageColumn::All { input_id, except } => {
-                    let input = lineage.find_input(*input_id).unwrap();
+                    let Some(input) = lineage.find_input(*input_id) else {
+                        return Err(Error::new_simple(
+                            "column references a table not accessible in this context",
+                        )
+                        .push_hint("join is not supported inside group"));
+                    };
 
                     match &self.node_mapping[&input.id] {
                         LoweredTarget::Compute(_cid) => unreachable!(),

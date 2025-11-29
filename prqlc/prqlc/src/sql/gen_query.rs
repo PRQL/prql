@@ -843,4 +843,22 @@ mod test {
           table_0
         ");
     }
+
+    #[test]
+    fn test_join_with_inaccessible_table() {
+        // issue #5280: join referencing table not accessible in current scope
+        let query = r#"
+        from c = companies
+        join ca = companies_addresses (c.tax_code == ca.company)
+        group c.tax_code (
+          join a = addresses (a.id == ca.address)
+          sort {-ca.created_at}
+          take 2..
+        )
+        sort tax_code
+        "#;
+
+        let err = crate::tests::compile(query).unwrap_err();
+        assert!(err.to_string().contains("not accessible in this context"));
+    }
 }

@@ -49,6 +49,9 @@ impl Resolver<'_> {
                     1 => {
                         let (input_id, _) = wildcard_inputs.into_iter().next().unwrap();
 
+                        // input_id comes from LineageColumn::All in frame.columns.
+                        // Should be valid, but if this panics, see #5280 and lowering.rs
+                        // for the pattern where columns reference out-of-scope inputs.
                         let input = frame.find_input(*input_id).unwrap();
                         let table_ident = input.table.clone();
                         self.infer_table_column(&table_ident, col_name)?;

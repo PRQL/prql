@@ -100,6 +100,14 @@ Run all lints with
 task lint
 ```
 
+## Error Handling
+
+Never panic on user input or recoverable errors. Use proper error returns:
+
+- ❌ `.unwrap()` on operations that can fail with user input
+- ✅ `?` operator or `return Err(Error::new_simple("message"))`
+- ✅ `.expect("reason")` or `unreachable!()` only for compiler-bug invariants
+
 ## Error Messages
 
 Error messages should avoid 2nd person (you/your). Use softer modal verbs like
