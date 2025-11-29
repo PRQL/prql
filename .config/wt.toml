@@ -1,0 +1,20 @@
+# Worktrunk configuration for PRQL
+#
+# Available template variables:
+#   {{ repo }}      - Repository name
+#   {{ branch }}    - Branch name (slashes replaced with dashes)
+#   {{ worktree }}  - Path to the new worktree
+#   {{ repo_root }} - Path to the main repository root
+
+# Seed compiled dependencies from main worktree using CoW (copy-on-write)
+# Copies essential files, skipping incremental build objects
+# Result: warm-start builds instead of cold compiles
+# macOS: uses cp -c (clonefile on APFS)
+# Linux: would need cp --reflink=auto
+post-start = """
+[ -d {{ repo_root }}/target/debug/deps ] && [ ! -e {{ worktree }}/target ] &&
+mkdir -p {{ worktree }}/target/debug/deps &&
+cp -c {{ repo_root }}/target/debug/deps/*.rlib {{ repo_root }}/target/debug/deps/*.rmeta {{ worktree }}/target/debug/deps/ 2>/dev/null;
+cp -cR {{ repo_root }}/target/debug/.fingerprint {{ repo_root }}/target/debug/build {{ worktree }}/target/debug/ 2>/dev/null;
+true
+"""
