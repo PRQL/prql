@@ -6547,3 +6547,21 @@ fn test_snowflake_row_number_with_explicit_sort() {
       "_expr_0" <= 1
     "#);
 }
+
+#[test]
+fn test_group_with_only_sort() {
+    // Issue #5092: group with only sort (no take) should not cause ICE.
+    // The sort inside a group without take is semantically a no-op,
+    // so it should compile to just the table.
+    assert_snapshot!(compile(r###"
+    from a = employees
+    group { a.department } (
+        sort a.salary
+    )
+    "###).unwrap(), @r"
+    SELECT
+      *
+    FROM
+      employees AS a
+    ");
+}
