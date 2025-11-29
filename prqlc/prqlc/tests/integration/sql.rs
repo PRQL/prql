@@ -4054,6 +4054,30 @@ fn test_direct_table_references() {
 }
 
 #[test]
+fn test_table_variable_in_scalar_context() {
+    // https://github.com/PRQL/prql/issues/5158
+    assert_snapshot!(compile(
+        r#"
+    let mod_id = (from users | filter login == "nightpool" | select id | take 1)
+
+    from modlog
+    filter actor_id == mod_id
+    "#,
+    )
+    .unwrap_err(), @r#"
+    Error:
+       ╭─[ :5:24 ]
+       │
+     5 │     filter actor_id == mod_id
+       │                        ───┬──
+       │                           ╰──── table variable cannot be used as a scalar value
+       │
+       │ Help: use a join instead, or inline the subquery
+    ───╯
+    "#);
+}
+
+#[test]
 fn test_name_shadowing() {
     assert_snapshot!(compile(
         r###"

@@ -935,6 +935,17 @@ impl Lowerer {
                     .try_collect()?,
             ),
             pl::ExprKind::RqOperator { name, args } => {
+                // Check for relation types used as operator arguments
+                for arg in &args {
+                    if arg.ty.as_ref().is_some_and(|x| x.is_relation()) {
+                        return Err(Error::new_simple(
+                            "table variable cannot be used as a scalar value",
+                        )
+                        .push_hint("use a join instead, or inline the subquery")
+                        .with_span(arg.span));
+                    }
+                }
+
                 let args = args.into_iter().map(|x| self.lower_expr(x)).try_collect()?;
 
                 rq::ExprKind::Operator { name, args }
