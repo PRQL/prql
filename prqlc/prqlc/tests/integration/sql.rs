@@ -6466,3 +6466,60 @@ fn test_redshift_text_contains_uses_double_pipe() {
       employees
     ");
 }
+
+#[test]
+fn test_snowflake_row_number_requires_order_by() {
+    // https://github.com/PRQL/prql/issues/5580
+    // Snowflake requires ORDER BY for ROW_NUMBER() in window specification
+    assert_snapshot!(compile_with_sql_dialect(r###"
+    from invoices
+    group { customer_id } (take 1)
+    "###, sql::Dialect::Snowflake
+    ).unwrap(), @r#"
+    WITH "table_0" AS (
+      SELECT
+        *,
+        ROW_NUMBER() OVER (
+          PARTITION BY "customer_id"
+          ORDER BY
+            1
+        ) AS "_expr_0"
+      FROM
+        "invoices"
+    )
+    SELECT
+      * EXCLUDE ("_expr_0")
+    FROM
+      "table_0"
+    WHERE
+      "_expr_0" <= 1
+    "#);
+}
+
+#[test]
+fn test_snowflake_row_number_with_explicit_sort() {
+    // When user provides explicit sort, it should be used instead of the fallback
+    assert_snapshot!(compile_with_sql_dialect(r###"
+    from invoices
+    group { customer_id } (sort invoice_date | take 1)
+    "###, sql::Dialect::Snowflake
+    ).unwrap(), @r#"
+    WITH "table_0" AS (
+      SELECT
+        *,
+        ROW_NUMBER() OVER (
+          PARTITION BY "customer_id"
+          ORDER BY
+            "invoice_date"
+        ) AS "_expr_0"
+      FROM
+        "invoices"
+    )
+    SELECT
+      * EXCLUDE ("_expr_0")
+    FROM
+      "table_0"
+    WHERE
+      "_expr_0" <= 1
+    "#);
+}
