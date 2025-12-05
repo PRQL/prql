@@ -16,7 +16,8 @@ frames:
     - id: 133
       name: genre_count
       table:
-      - genre_count
+      - default_db
+      - genres
 - - 1:217-230
   - columns:
     - !Single
@@ -28,7 +29,8 @@ frames:
     - id: 133
       name: genre_count
       table:
-      - genre_count
+      - default_db
+      - genres
 nodes:
 - id: 133
   kind: Ident

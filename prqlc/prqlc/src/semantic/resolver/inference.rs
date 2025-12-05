@@ -74,17 +74,36 @@ impl Resolver<'_> {
         input_id: usize,
     ) -> Lineage {
         let table_decl = self.root_mod.module.get(table_fq).unwrap();
-        let TableDecl { ty, .. } = table_decl.kind.as_table_decl().unwrap();
+        let TableDecl { ty, expr } = table_decl.kind.as_table_decl().unwrap();
+
+        // For CTEs (RelationVar), trace lineage back to the underlying source tables.
+        // For UNIONs and JOINs, this includes all underlying source tables.
+        let underlying_inputs = match expr {
+            TableExpr::RelationVar(rel) => rel.lineage.as_ref().map(|l| &l.inputs),
+            _ => None,
+        };
+
+        let inputs = match underlying_inputs {
+            Some(inputs) if !inputs.is_empty() => inputs
+                .iter()
+                .map(|inp| LineageInput {
+                    id: input_id,
+                    name: input_name.clone(),
+                    table: inp.table.clone(),
+                })
+                .collect(),
+            _ => vec![LineageInput {
+                id: input_id,
+                name: input_name.clone(),
+                table: table_fq.clone(),
+            }],
+        };
 
         // TODO: can this panic?
         let columns = ty.as_ref().unwrap().as_relation().unwrap();
 
         let mut instance_frame = Lineage {
-            inputs: vec![LineageInput {
-                id: input_id,
-                name: input_name.clone(),
-                table: table_fq.clone(),
-            }],
+            inputs,
             columns: Vec::new(),
             ..Default::default()
         };
