@@ -53,7 +53,7 @@ enum-as-inner = "0.6.1"
 insta = { version = "1.43.2", features = ["colors", "glob", "yaml", "filters"] }
 insta-cmd = "0.6.0"
 itertools = "0.14.0"
-log = "0.4.28"
+log = "0.4.29"
 pyo3 = { version = "0.27.1", features = ["abi3-py37", "anyhow"] }
 pyo3-build-config = "0.27.1"
 schemars = "1.1.0"
