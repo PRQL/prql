@@ -1,0 +1,4 @@
+# Custom runner labels not yet recognized by actionlint
+self-hosted-runner:
+  labels:
+    - macos-15-intel
