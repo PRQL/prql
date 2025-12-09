@@ -476,7 +476,7 @@ fn translate_cte(cte: Cte, ctx: &mut Context) -> Result<(sql_ast::Cte, bool)> {
     };
 
     let cte = sql_ast::Cte {
-        alias: simple_table_alias(cte_name),
+        alias: cte_table_alias(cte_name),
         query: Box::new(query),
         from: None,
         materialized: None,
@@ -661,6 +661,15 @@ fn simple_table_alias(name: sql_ast::Ident) -> TableAlias {
     TableAlias {
         name,
         columns: Vec::new(),
+        explicit: true,
+    }
+}
+
+fn cte_table_alias(name: sql_ast::Ident) -> TableAlias {
+    TableAlias {
+        name,
+        columns: Vec::new(),
+        explicit: false,
     }
 }
 
