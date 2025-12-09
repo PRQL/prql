@@ -379,3 +379,73 @@ fn query_must_begin_with_from() {
     ↳ Hint: A query must start with a 'from' statement to define the main pipeline
     ");
 }
+
+#[test]
+fn negative_number_in_transform() {
+    // Negative numbers need to be wrapped in parentheses when used in transforms
+    assert_snapshot!(compile(r###"
+    from artists
+    sort -name
+    "###).unwrap_err(), @r"
+    Error: expected a pipeline that resolves to a table, but found `internal std.sub`
+    ↳ Hint: wrap negative numbers in parentheses, e.g. `sort (-column_name)`
+    ");
+
+    assert_snapshot!(compile(r###"
+    from pets
+    take -10
+    "###).unwrap_err(), @r"
+    Error: expected a pipeline that resolves to a table, but found `internal std.sub`
+    ↳ Hint: wrap negative numbers in parentheses, e.g. `sort (-column_name)`
+    ");
+
+    assert_snapshot!(compile(r###"
+  from tbl
+  group id (
+    sort -val
+  )
+  "###).unwrap_err(), @r"
+    Error: expected a pipeline that resolves to a table, but found `internal std.sub`
+    ↳ Hint: wrap negative numbers in parentheses, e.g. `sort (-column_name)`
+    ");
+}
+
+#[test]
+fn empty_tuple_or_array_from() {
+    assert_snapshot!(compile(r###"
+    from {}
+    "###).unwrap_err(), @r"
+    Error:
+       ╭─[ :2:10 ]
+       │
+     2 │     from {}
+       │          ─┬
+       │           ╰── expected a table or query, but found an empty tuple `{}`
+    ───╯
+    ");
+
+    assert_snapshot!(compile(r###"
+    from []
+    "###).unwrap_err(), @r"
+    Error:
+       ╭─[ :2:10 ]
+       │
+     2 │     from []
+       │          ─┬
+       │           ╰── expected a table or query, but found an empty array `[]`
+    ───╯
+    ");
+
+    assert_snapshot!(compile(r###"
+    from {}
+    select a
+    "###).unwrap_err(), @r"
+    Error:
+       ╭─[ :2:10 ]
+       │
+     2 │     from {}
+       │          ─┬
+       │           ╰── expected a table or query, but found an empty tuple `{}`
+    ───╯
+    ");
+}

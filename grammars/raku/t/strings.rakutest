@@ -1,0 +1,48 @@
+use Test;
+use prql;
+
+plan 11;
+
+# Single-quoted string
+ok PRQL.parse("filter 'Hello'");
+#query(pipeline(call-expression(identifier,arg-list(string))))
+
+# Double-quoted string
+ok PRQL.parse('filter "Hello"');
+#query(pipeline(call-expression(identifier,arg-list(string))))
+
+# Single-quoted f-string
+ok PRQL.parse("filter f'Hello \{name\}!'");
+#query(pipeline(call-expression(identifier,arg-list(f-string))))
+
+# Double-quoted f-string
+ok PRQL.parse('filter f"Hello {name}!"');
+#query(pipeline(call-expression(identifier,arg-list(f-string))))
+
+# Single-quoted r-string
+ok PRQL.parse("filter r'version()'");
+#query(pipeline(call-expression(identifier,arg-list(r-string))))
+
+# Double-quoted r-string
+ok PRQL.parse('filter r"version()"');
+#query(pipeline(call-expression(identifier,arg-list(r-string))))
+
+# Single-quoted s-string
+ok PRQL.parse("filter s'version()'");
+#query(pipeline(call-expression(identifier,arg-list(s-string))))
+
+# Double-quoted s-string
+ok PRQL.parse('filter s"version()"');
+#query(pipeline(call-expression(identifier,arg-list(s-string))))
+
+# Triple-quoted single-quoted string
+ok PRQL.parse("filter '''Hello world!'''");
+#query(pipeline(call-expression(identifier,arg-list(string))))
+
+# Triple-quoted double-quoted string
+ok PRQL.parse('filter """Hello world!"""');
+#query(pipeline(call-expression(identifier,arg-list(string))))
+
+# Escape sequence
+ok PRQL.parse('filter "\xff"');
+#query(pipeline(call-expression(identifier,arg-list(string(escape)))))

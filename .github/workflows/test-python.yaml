@@ -50,15 +50,21 @@ jobs:
       - name: Install nox
         run: uv tool install nox
         shell: bash
+      - name: Compute pyproject.toml hash
+        shell: bash
+        run: |
+          if command -v sha256sum &> /dev/null; then
+            echo "pyproject_hash=$(sha256sum prqlc/bindings/prqlc-python/pyproject.toml | cut -d' ' -f1)" >> "$GITHUB_ENV"
+          else
+            echo "pyproject_hash=$(shasum -a 256 prqlc/bindings/prqlc-python/pyproject.toml | cut -d' ' -f1)" >> "$GITHUB_ENV"
+          fi
       - name: Cache uv and Nox
         uses: actions/cache@v4
         with:
           path: |
             .nox
             ~/.cache/uv
-          key:
-            nox-uv-${{ hashFiles('prqlc/bindings/prqlc-python/pyproject.toml')
-            }}
+          key: nox-uv-${{ env.pyproject_hash }}
       - name: Run tests and typing
         shell: bash
         run: |

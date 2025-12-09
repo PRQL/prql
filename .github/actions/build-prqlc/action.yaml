@@ -28,9 +28,18 @@ runs:
     - run: ./.github/workflows/scripts/set_version.sh
       shell: bash
 
+    - name: Compute Cargo.lock hash
+      shell: bash
+      run: |
+        if command -v sha256sum &> /dev/null; then
+          echo "cargo_lock_hash=$(sha256sum Cargo.lock | cut -d' ' -f1)" >> "$GITHUB_ENV"
+        else
+          echo "cargo_lock_hash=$(shasum -a 256 Cargo.lock | cut -d' ' -f1)" >> "$GITHUB_ENV"
+        fi
+
     - uses: Swatinem/rust-cache@v2
       with:
-        prefix-key: ${{ env.version }}-${{ hashFiles('Cargo.lock') }}
+        prefix-key: ${{ env.version }}-${{ env.cargo_lock_hash }}
         # Share cache with `test-rust`, except for `musl` targets.
         save-if:
           ${{ (github.ref == 'refs/heads/main') && contains(inputs.target,

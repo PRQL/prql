@@ -70,6 +70,9 @@ an index.
   ([prql.py](https://github.com/pygments/pygments/blob/master/pygments/lexers/prql.py)).
   See the [demo](https://pygments.org/demo/).
 
+- [Raku](https://raku.org/) — Grammar can be found at
+  [`grammars/raku/`](https://github.com/PRQL/prql/tree/main/grammars/raku/).
+
 - [TEA](https://github.com/psemiletov/tea-qt/) — supported. The grammar is
   [upstream](https://github.com/psemiletov/tea-qt/blob/master/hls/prql.xml).
 

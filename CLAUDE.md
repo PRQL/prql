@@ -47,6 +47,36 @@ insta::assert_snapshot!(result, @"");
 
 The test commands above with `--accept` will fill in the result automatically.
 
+### Test Strategy
+
+**Prefer small inline `insta` snapshot tests** over full integration tests:
+
+- **Use inline tests** for most bug fixes and small features
+  - Add `#[test]` functions in a `#[cfg(test)]` module at the end of the file
+  - Use `insta::assert_snapshot!` for compact, readable test assertions
+  - Fast to run, easy to review in PRs
+
+- **Use integration tests** (`prqlc/tests/integration/queries/*.prql`) only
+  when:
+  - Developing large, complex features that need comprehensive testing
+  - Testing end-to-end behavior across multiple compilation stages
+  - The test requires external resources or multi-file scenarios
+
+Example of a good inline test:
+
+```rust
+#[cfg(test)]
+mod test {
+    use insta::assert_snapshot;
+
+    #[test]
+    fn test_my_feature() {
+        let query = "from employees | filter country == 'USA'";
+        assert_snapshot!(crate::tests::compile(query).unwrap(), @"");
+    }
+}
+```
+
 ## Running the CLI
 
 For viewing `prqlc` output, for any stage of the compilation process:

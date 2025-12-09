@@ -1,0 +1,128 @@
+use Test;
+use prql;
+
+plan 23;
+
+# Boolean: true
+ok PRQL.parse('filter true');
+#query(pipeline(call-expression(identifier,arg-list(boolean))))
+
+# Boolean: false
+ok PRQL.parse('filter false');
+#query(pipeline(call-expression(identifier,arg-list(boolean))))
+
+# Null
+ok PRQL.parse('filter null');
+#query(pipeline(call-expression(identifier,arg-list(null))))
+
+# Keyword: this
+ok PRQL.parse('filter this');
+#query(pipeline(call-expression(identifier,arg-list(this))))
+
+# Keyword: that
+ok PRQL.parse('filter that');
+#query(pipeline(call-expression(identifier,arg-list(that))))
+
+# Annotation
+ok PRQL.parse(q:to/END/);
+@{binding_strength=1}
+let x = y -> z
+END
+#query(annotation(declaration(declaration-item,equals,integer)),variable-declaration(let,variable-name,equals,lambda(lambda-param,identifier)))
+
+# Range: 10..20
+ok PRQL.parse('filter 10..20');
+#query(pipeline(call-expression(identifier,arg-list(range-expression))))
+
+# Comment
+ok PRQL.parse('filter 1 # Hello');
+#query(pipeline(call-expression(identifier,arg-list(integer))),comment)
+
+# Two comments
+ok PRQL.parse(q:to/END/);
+# Hello
+# Bar
+END
+#query(comment,comment)
+
+# Comment between pipes
+ok PRQL.parse(q:to/END/);
+from foo
+# filter...
+select bar
+END
+#query(pipeline(call-expression(identifier,arg-list(identifier)),comment,call-expression(identifier,arg-list(identifier))))
+
+# Docblock
+ok PRQL.parse(q:to/END/);
+#! Hello
+filter 1
+END
+#query(docblock,pipeline(call-expression(identifier,arg-list(integer))))
+
+# Variable declaration
+ok PRQL.parse('let foo = (from foo)');
+#query(variable-declaration(let,variable-name,equals,nested-pipeline(pipeline(call-expression(identifier,arg-list(identifier))))))
+
+# Function declaration
+ok PRQL.parse('let my_func = arg1 -> arg1');
+#query(variable-declaration(let,variable-name,equals,lambda(lambda-param,identifier)))
+
+# Function declaration with two args
+ok PRQL.parse('let my_func = arg1 arg2 -> arg1 + arg2');
+#query(variable-declaration(let,variable-name,equals,lambda(lambda-param,lambda-param,binary-expression(identifier,arith-op,identifier))))
+
+# Function declaration with type annotation
+ok PRQL.parse('let my_func = arg1<int32> -> arg1');
+#query(variable-declaration(let,variable-name,equals,lambda(lambda-param(type-definition(type-name)),identifier)))
+
+# Parameter
+ok PRQL.parse('filter id == $1');
+#query(pipeline(call-expression(identifier,arg-list(binary-expression(identifier,compare-op,parameter)))))
+
+# Parenthesized expression
+ok PRQL.parse('filter (1)');
+#query(pipeline(call-expression(identifier,arg-list(parenthesized-expression(integer)))))
+
+# Simple pipeline
+ok PRQL.parse('from foo | select bar');
+#query(pipeline(call-expression(identifier,arg-list(identifier)),call-expression(identifier,arg-list(identifier))))
+
+# Derive
+ok PRQL.parse(q:to/END/);
+derive {
+  transaction_fees = 0.8,
+  income = total - transaction_fees
+}
+END
+#query(pipeline(call-expression(identifier,arg-list(tuple-expression(declaration-tuple(declaration-item,equals,float),declaration-tuple(declaration-item,equals,binary-expression(identifier,arith-op,identifier)))))))
+
+# Nested pipeline
+ok PRQL.parse(q:to/END/);
+group customer_id (
+  aggregate {
+    average total
+  }
+)
+END
+#query(pipeline(call-expression(identifier,arg-list(identifier,nested-pipeline(pipeline(call-expression(identifier,arg-list(tuple-expression(call-expression(identifier,arg-list(identifier)))))))))))
+
+# Tabs as spaces
+ok PRQL.parse('let		foo		=		(foo 1)');
+#query(variable-declaration(let,variable-name,equals,nested-pipeline(pipeline(call-expression(identifier,arg-list(integer))))))
+
+# Module
+ok PRQL.parse(q:to/END/);
+module foo {
+  let x = -> s"foo()"
+}
+END
+#query(module(module,identifier,variable-declaration(let,variable-name,equals,lambda(s-string))))
+
+# Pipeline within tuple
+ok PRQL.parse(q:to/END/);
+derive {
+  a = (b | math.abs)
+}
+END
+#query(pipeline(call-expression(identifier,arg-list(tuple-expression(declaration-tuple(declaration-item,equals,nested-pipeline(pipeline(identifier,identifier))))))))

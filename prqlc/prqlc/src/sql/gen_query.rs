@@ -110,7 +110,7 @@ fn translate_select_pipeline(
         .exactly_one()
         .unwrap();
     let projection = translate_wildcards(&ctx.anchor, projection);
-    let projection = translate_select_items(projection.0, projection.1, ctx)?;
+    let mut projection = translate_select_items(projection.0, projection.1, ctx)?;
 
     let order_by = pipeline.pluck(|t| t.into_sort());
     let takes = pipeline.pluck(|t| t.into_take());
@@ -131,6 +131,24 @@ fn translate_select_pipeline(
     } else {
         None
     };
+
+    // When we have DISTINCT ON, we must have at least a wildcard in the projection
+    // (PostgreSQL requires DISTINCT ON to have a non-empty SELECT list)
+    // Replace NULL placeholder with wildcard if present, or add wildcard if empty
+    if matches!(distinct, Some(sql_ast::Distinct::On(_))) {
+        if projection.len() == 1 {
+            if let SelectItem::UnnamedExpr(sql_ast::Expr::Value(ref v)) = projection[0] {
+                if matches!(v.value, sql_ast::Value::Null) {
+                    projection[0] =
+                        SelectItem::Wildcard(sql_ast::WildcardAdditionalOptions::default());
+                }
+            }
+        } else if projection.is_empty() {
+            projection.push(SelectItem::Wildcard(
+                sql_ast::WildcardAdditionalOptions::default(),
+            ));
+        }
+    }
 
     // Split the pipeline into before & after the aggregate
     let (mut before_agg, mut after_agg) =
@@ -798,6 +816,31 @@ mod test {
           table_0
         WHERE
           _expr_0 > 3
+        ");
+    }
+
+    #[test]
+    fn test_distinct_on_with_aggregate() {
+        // #5556: DISTINCT ON with aggregate should include wildcard
+        let query = &r#"
+        prql target:sql.postgres
+
+        from t1
+        group {id, name} (take 1)
+        aggregate {c=count this}
+        "#;
+
+        assert_snapshot!(crate::tests::compile(query).unwrap(), @r"
+        WITH table_0 AS (
+          SELECT
+            DISTINCT ON (id, name) *
+          FROM
+            t1
+        )
+        SELECT
+          COUNT(*) AS c
+        FROM
+          table_0
         ");
     }
 }

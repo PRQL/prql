@@ -57,6 +57,14 @@ jobs:
           crate: cargo-nextest
       - run: ./.github/workflows/scripts/set_version.sh
         shell: bash
+      - name: Compute Cargo.lock hash
+        shell: bash
+        run: |
+          if command -v sha256sum &> /dev/null; then
+            echo "cargo_lock_hash=$(sha256sum Cargo.lock | cut -d' ' -f1)" >> "$GITHUB_ENV"
+          else
+            echo "cargo_lock_hash=$(shasum -a 256 Cargo.lock | cut -d' ' -f1)" >> "$GITHUB_ENV"
+          fi
       - name: 💰 Cache
         uses: Swatinem/rust-cache@v2
         id: cache
@@ -68,7 +76,7 @@ jobs:
           # as much as GHA can handle, such that if we hold old packages, it
           # balloons to 2GB and fails. Some discussion at:
           # https://github.com/Swatinem/rust-cache/issues/177
-          prefix-key: ${{ env.version }}-${{ hashFiles('Cargo.lock') }}
+          prefix-key: ${{ env.version }}-${{ env.cargo_lock_hash }}
           shared-key: rust-${{ inputs.target }}
           # Don't save if empty features, because we run a test with empty
           # features on linux, and don't want to save that instead of the one
