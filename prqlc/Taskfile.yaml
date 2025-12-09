@@ -27,7 +27,9 @@ tasks:
       NEXTEST_FINAL_STATUS_LEVEL: slow
       NEXTEST_HIDE_PROGRESS_BAR: "true"
     cmds:
-      - cargo insta test --accept {{.packages_core}} --test-runner=nextest
+      # --dnd: nextest doesn't support doctests, so we run them separately below
+      - cargo insta test --accept --dnd {{.packages_core}} --test-runner=nextest
+      - cargo test --doc {{.packages_core}}
       - cargo clippy --fix --allow-dirty --allow-staged {{.packages_core}}
 
   test-all:
@@ -37,8 +39,10 @@ tasks:
       NEXTEST_FINAL_STATUS_LEVEL: slow
       NEXTEST_HIDE_PROGRESS_BAR: "true"
     cmds:
-      - cargo insta test --accept --features=default,test-dbs
+      - cargo insta test --accept --dnd --features=default,test-dbs
         --test-runner=nextest --unreferenced=auto {{.packages_core}}
+        {{.packages_addon}} {{.packages_bindings}}
+      - cargo test --doc --features=default,test-dbs {{.packages_core}}
         {{.packages_addon}} {{.packages_bindings}}
       - cargo llvm-cov --lcov --output-path lcov.info
         --features=default,test-dbs nextest {{.packages_core}}
