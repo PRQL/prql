@@ -34,7 +34,6 @@ from employees
 select first_name
 ```
 
-```admonish note
-Prior to `0.9.0`, tuples were previously named Lists, and represented with
-`[]` syntax. There may still be references to the old naming.
-```
+> [!NOTE]
+> Prior to `0.9.0`, tuples were previously named Lists, and represented with
+> `[]` syntax. There may still be references to the old naming.

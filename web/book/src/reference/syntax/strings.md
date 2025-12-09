@@ -46,20 +46,18 @@ derive turtle = "\u{01F422}"                              # "🐢"
 - [**S-strings**](./s-strings.md) - Insert SQL statements directly into the
   query. Use when PRQL doesn't have an equivalent facility.
 
-```admonish warning
-Currently PRQL allows multiline strings with either a single character or
-multiple character quotes. This may change for strings using a single character
-quote in future versions.
-```
+> [!WARNING]
+> Currently PRQL allows multiline strings with either a single character or
+> multiple character quotes. This may change for strings using a single character
+> quote in future versions.
 
-```admonish note
-These escape rules specify how PRQL interprets escape characters when compiling
-strings to SQL, not necessarily how the database will interpret the string.
-Dialects interpret escape characters differently,
-and PRQL doesn't currently account for
-these differences. Please open issues with any difficulties in the current
-implementation.
-```
+> [!NOTE]
+> These escape rules specify how PRQL interprets escape characters when compiling
+> strings to SQL, not necessarily how the database will interpret the string.
+> Dialects interpret escape characters differently,
+> and PRQL doesn't currently account for
+> these differences. Please open issues with any difficulties in the current
+> implementation.
 
 ## Escape sequences
 

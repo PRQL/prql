@@ -1,17 +1,16 @@
 # Modules
 
-```admonish warning
-The `module` facility is in discussion.
-This page documents our understanding of the way
-the final PRQL compiler will likely work.
-The PRQL compiler currently uses these techniques to compile
-the `std`, `date`, `text`, and `math` modules into the language.
-
-However, at this time (Spring 2024), the `module` facility does not work
-within a PRQL query itself.
-That is, a `module` statement in a query cannot import files
-from the local file system.
-```
+> [!WARNING]
+> The `module` facility is in discussion.
+> This page documents our understanding of the way
+> the final PRQL compiler will likely work.
+> The PRQL compiler currently uses these techniques to compile
+> the `std`, `date`, `text`, and `math` modules into the language.
+>
+> However, at this time (Spring 2024), the `module` facility does not work
+> within a PRQL query itself.
+> That is, a `module` statement in a query cannot import files
+> from the local file system.
 
 Design goals for **modules**:
 
@@ -123,13 +122,12 @@ let album_titles = my_playlists
 
 ## File importing
 
-```admonish warning
-The examples below do **not** work.
-At this time (Spring 2024), the `module` facility does not work
-within a PRQL query itself.
-That is, a `module` statement in a query cannot import files
-from the local file system.
-```
+> [!WARNING]
+> The examples below do **not** work.
+> At this time (Spring 2024), the `module` facility does not work
+> within a PRQL query itself.
+> That is, a `module` statement in a query cannot import files
+> from the local file system.
 
 To include PRQL source code from other files, we can use the following syntax:
 
@@ -279,13 +277,12 @@ module project {
 
 ## Example
 
-```admonish warning
-The examples below do **not** work.
-At this time (Spring 2024), the `module` facility does not work
-within a PRQL query itself.
-That is, a `module` statement in a query cannot import files
-from the local file system.
-```
+> [!WARNING]
+> The examples below do **not** work.
+> At this time (Spring 2024), the `module` facility does not work
+> within a PRQL query itself.
+> That is, a `module` statement in a query cannot import files
+> from the local file system.
 
 This is an example project, where each of code block is a separate file.
 
