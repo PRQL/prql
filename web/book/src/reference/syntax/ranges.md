@@ -24,8 +24,7 @@ sort {-value, created_at}
 take 101..110
 ```
 
-> [!NOTE]
-> Half-open ranges are generally less intuitive to read than a simple
+> [!NOTE] Half-open ranges are generally less intuitive to read than a simple
 > `>=` or `<=` operator.
 
 ## See also

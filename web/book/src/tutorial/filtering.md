@@ -56,8 +56,7 @@ take 3
 We did something a bit odd at the end: first we took rows `11..20` and then took
 the first 3 rows from that result.
 
-> [!NOTE]
-> Note that a single transform `take 11..13` would have produced the
+> [!NOTE] Note that a single transform `take 11..13` would have produced the
 > same SQL. The example serves an example of how PRQL allows fast data
 > exploration by "stacking" transforms in the pipeline, reducing the cognitive
 > burden of how a new transform with the previous query.

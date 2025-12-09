@@ -102,6 +102,5 @@ function `std.prql.version` in PRQL.
 [{version = prql.version}]
 ```
 
-> [!NOTE]
-> This function was renamed from `std.prql_version` to `prql.version` in
+> [!NOTE] This function was renamed from `std.prql_version` to `prql.version` in
 > PRQL 0.11.1. `std.prql_version` will be removed in PRQL 0.12.0.

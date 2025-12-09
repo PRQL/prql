@@ -7,8 +7,7 @@ us to easily create documents with the PRQL conversion results embedded in.
 
 Check out <https://prql.github.io/prqlc-r/> for more context.
 
-> [!NOTE]
-> `prqlr` is generously maintained by
+> [!NOTE] `prqlr` is generously maintained by
 > [@eitsupi](https://github.com/eitsupi) in the
 > [PRQL/prqlc-r](https://github.com/PRQL/prqlc-r) repo.
 

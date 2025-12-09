@@ -23,8 +23,7 @@ from `artist tracks`
 `default_db.tablename` can be used if the table name matches a function from the
 standard library.
 
-> [!NOTE]
-> We realize this is an awkward workaround. Track & 👍
+> [!NOTE] We realize this is an awkward workaround. Track & 👍
 > [#3271](https://github.com/PRQL/prql/issues/3271) for resolving this.
 
 ```prql

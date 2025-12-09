@@ -1,7 +1,6 @@
 # Modules
 
-> [!WARNING]
-> The `module` facility is in discussion. This page documents our
+> [!WARNING] The `module` facility is in discussion. This page documents our
 > understanding of the way the final PRQL compiler will likely work. The PRQL
 > compiler currently uses these techniques to compile the `std`, `date`, `text`,
 > and `math` modules into the language.
@@ -120,8 +119,7 @@ let album_titles = my_playlists
 
 ## File importing
 
-> [!WARNING]
-> The examples below do **not** work. At this time (Spring 2024), the
+> [!WARNING] The examples below do **not** work. At this time (Spring 2024), the
 > `module` facility does not work within a PRQL query itself. That is, a
 > `module` statement in a query cannot import files from the local file system.
 
@@ -273,8 +271,7 @@ module project {
 
 ## Example
 
-> [!WARNING]
-> The examples below do **not** work. At this time (Spring 2024), the
+> [!WARNING] The examples below do **not** work. At this time (Spring 2024), the
 > `module` facility does not work within a PRQL query itself. That is, a
 > `module` statement in a query cannot import files from the local file system.
 

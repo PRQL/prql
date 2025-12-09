@@ -11,8 +11,7 @@ When applied:
 aggregate {expression or assign operations}
 ```
 
-> [!NOTE]
-> Currently, all declared aggregation functions are `min`, `max`,
+> [!NOTE] Currently, all declared aggregation functions are `min`, `max`,
 > `count`, `average`, `stddev`, `avg`, `sum` and `count_distinct`. We are in the
 > process of filling out [std lib](../).
 
