@@ -244,6 +244,12 @@ pub(super) trait DialectHandler: Any + Debug {
     fn prefers_subquery_parentheses_shorthand(&self) -> bool {
         false
     }
+
+    /// Whether window functions require an ORDER BY clause.
+    /// Snowflake requires ORDER BY for ranking functions like ROW_NUMBER().
+    fn requires_order_by_in_window_function(&self) -> bool {
+        false
+    }
 }
 
 impl dyn DialectHandler {
@@ -605,6 +611,12 @@ impl DialectHandler for SnowflakeDialect {
     fn set_ops_distinct(&self) -> bool {
         // https://docs.snowflake.com/en/sql-reference/operators-query.html
         false
+    }
+
+    fn requires_order_by_in_window_function(&self) -> bool {
+        // https://docs.snowflake.com/en/sql-reference/functions/row_number
+        // ROW_NUMBER() requires ORDER BY in window specification
+        true
     }
 }
 

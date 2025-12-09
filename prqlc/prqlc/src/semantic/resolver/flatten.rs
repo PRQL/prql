@@ -97,9 +97,19 @@ impl PlFold for Flattener {
                         self.sort.clear();
                         self.sort_undone = sort_undone;
 
+                        // If the pipeline simplified to a non-TransformCall (e.g., sort was
+                        // dropped), use the pipeline's lineage since the original GROUP lineage
+                        // may reference expressions that no longer exist in the tree.
+                        // Otherwise, preserve the GROUP's lineage which includes the `by` columns.
+                        let lineage = if matches!(pipeline.kind, ExprKind::TransformCall(_)) {
+                            expr.lineage
+                        } else {
+                            pipeline.lineage
+                        };
+
                         return Ok(Expr {
                             ty: expr.ty,
-                            lineage: expr.lineage,
+                            lineage,
                             ..pipeline
                         });
                     }

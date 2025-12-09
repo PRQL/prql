@@ -680,7 +680,12 @@ impl Lowerer {
                     columns.push((RelationColumn::Single(name), cid));
                 }
                 LineageColumn::All { input_id, except } => {
-                    let input = lineage.find_input(*input_id).unwrap();
+                    let Some(input) = lineage.find_input(*input_id) else {
+                        return Err(Error::new_simple(
+                            "column references a table not accessible in this context",
+                        )
+                        .push_hint("join is not supported inside group"));
+                    };
 
                     match &self.node_mapping[&input.id] {
                         LoweredTarget::Compute(_cid) => unreachable!(),
@@ -935,6 +940,17 @@ impl Lowerer {
                     .try_collect()?,
             ),
             pl::ExprKind::RqOperator { name, args } => {
+                // Check for relation types used as operator arguments
+                for arg in &args {
+                    if arg.ty.as_ref().is_some_and(|x| x.is_relation()) {
+                        return Err(Error::new_simple(
+                            "table variable cannot be used as a scalar value",
+                        )
+                        .push_hint("use a join instead, or inline the subquery")
+                        .with_span(arg.span));
+                    }
+                }
+
                 let args = args.into_iter().map(|x| self.lower_expr(x)).try_collect()?;
 
                 rq::ExprKind::Operator { name, args }

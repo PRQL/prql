@@ -752,13 +752,28 @@ fn translate_windowed(
         })
     );
 
+    let mut order_by: Vec<OrderByExpr> = (window.sort)
+        .into_iter()
+        .map(|sort| translate_column_sort(&sort, ctx))
+        .try_collect()?;
+
+    // Some dialects (e.g., Snowflake) require ORDER BY for window functions
+    // When no ORDER BY is specified, use ORDER BY 1 as a fallback
+    if order_by.is_empty() && ctx.dialect.requires_order_by_in_window_function() {
+        order_by.push(OrderByExpr {
+            expr: sql_ast::Expr::Value(Value::Number("1".to_string(), false).into()),
+            options: sqlparser::ast::OrderByOptions {
+                asc: None,
+                nulls_first: None,
+            },
+            with_fill: None,
+        });
+    }
+
     let window = WindowSpec {
         window_name: None,
         partition_by: try_into_exprs(window.partition, ctx, span)?,
-        order_by: (window.sort)
-            .into_iter()
-            .map(|sort| translate_column_sort(&sort, ctx))
-            .try_collect()?,
+        order_by,
         window_frame: if supports_frame && window.frame != default_frame {
             Some(try_into_window_frame(window.frame)?)
         } else {

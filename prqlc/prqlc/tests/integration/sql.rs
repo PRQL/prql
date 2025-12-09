@@ -4054,6 +4054,30 @@ fn test_direct_table_references() {
 }
 
 #[test]
+fn test_table_variable_in_scalar_context() {
+    // https://github.com/PRQL/prql/issues/5158
+    assert_snapshot!(compile(
+        r#"
+    let mod_id = (from users | filter login == "nightpool" | select id | take 1)
+
+    from modlog
+    filter actor_id == mod_id
+    "#,
+    )
+    .unwrap_err(), @r#"
+    Error:
+       ╭─[ :5:24 ]
+       │
+     5 │     filter actor_id == mod_id
+       │                        ───┬──
+       │                           ╰──── table variable cannot be used as a scalar value
+       │
+       │ Help: use a join instead, or inline the subquery
+    ───╯
+    "#);
+}
+
+#[test]
 fn test_name_shadowing() {
     assert_snapshot!(compile(
         r###"
@@ -6464,5 +6488,80 @@ fn test_redshift_text_contains_uses_double_pipe() {
       name LIKE '%' || 'pika' || '%' AS has_substring
     FROM
       employees
+    ");
+}
+
+#[test]
+fn test_snowflake_row_number_requires_order_by() {
+    // https://github.com/PRQL/prql/issues/5580
+    // Snowflake requires ORDER BY for ROW_NUMBER() in window specification
+    assert_snapshot!(compile_with_sql_dialect(r###"
+    from invoices
+    group { customer_id } (take 1)
+    "###, sql::Dialect::Snowflake
+    ).unwrap(), @r#"
+    WITH "table_0" AS (
+      SELECT
+        *,
+        ROW_NUMBER() OVER (
+          PARTITION BY "customer_id"
+          ORDER BY
+            1
+        ) AS "_expr_0"
+      FROM
+        "invoices"
+    )
+    SELECT
+      * EXCLUDE ("_expr_0")
+    FROM
+      "table_0"
+    WHERE
+      "_expr_0" <= 1
+    "#);
+}
+
+#[test]
+fn test_snowflake_row_number_with_explicit_sort() {
+    // When user provides explicit sort, it should be used instead of the fallback
+    assert_snapshot!(compile_with_sql_dialect(r###"
+    from invoices
+    group { customer_id } (sort invoice_date | take 1)
+    "###, sql::Dialect::Snowflake
+    ).unwrap(), @r#"
+    WITH "table_0" AS (
+      SELECT
+        *,
+        ROW_NUMBER() OVER (
+          PARTITION BY "customer_id"
+          ORDER BY
+            "invoice_date"
+        ) AS "_expr_0"
+      FROM
+        "invoices"
+    )
+    SELECT
+      * EXCLUDE ("_expr_0")
+    FROM
+      "table_0"
+    WHERE
+      "_expr_0" <= 1
+    "#);
+}
+
+#[test]
+fn test_group_with_only_sort() {
+    // Issue #5092: group with only sort (no take) should not cause ICE.
+    // The sort inside a group without take is semantically a no-op,
+    // so it should compile to just the table.
+    assert_snapshot!(compile(r###"
+    from a = employees
+    group { a.department } (
+        sort a.salary
+    )
+    "###).unwrap(), @r"
+    SELECT
+      *
+    FROM
+      employees AS a
     ");
 }

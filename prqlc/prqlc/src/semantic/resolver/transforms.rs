@@ -876,6 +876,10 @@ impl Lineage {
                                 LineageColumn::Single {
                                     name: Some(name), ..
                                 } => {
+                                    // input_id comes from LineageColumn::All in self.columns,
+                                    // which should reference valid inputs in self.inputs.
+                                    // If this panics, it may indicate a scope issue similar to
+                                    // #5280 (join inside group) - see lowering.rs for the fix pattern.
                                     let input = self.find_input(input_id).unwrap();
                                     let ex_input_name = name.iter().next().unwrap();
                                     if ex_input_name == &input.name {
@@ -891,6 +895,7 @@ impl Lineage {
                                         // The two `All`s match and will erase each other.
                                         // The only remaining columns are those from the first wildcard
                                         // that are not excluded, but are excluded in the second wildcard.
+                                        // Same assumption as above - input_id should be valid here.
                                         let input = self.find_input(input_id).unwrap();
                                         let input_name = input.name.clone();
                                         for remaining in e_e.difference(&except).sorted() {
