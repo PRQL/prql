@@ -35,23 +35,19 @@ That's sufficient for making an initial contribution to the compiler.
 
 ## Setting up a full dev environment
 
-```admonish info
-We really care about this process being easy, both because the
-project benefits from more contributors like you, and to reciprocate your
-future contribution. If something isn't easy, please let us know in a GitHub
-Issue. We'll enthusiastically help you, and use your feedback to improve the
-scripts & instructions.
-```
+> [!NOTE] We really care about this process being easy, both because the project
+> benefits from more contributors like you, and to reciprocate your future
+> contribution. If something isn't easy, please let us know in a GitHub Issue.
+> We'll enthusiastically help you, and use your feedback to improve the scripts
+> & instructions.
 
 For more advanced development; for example compiling for wasm or previewing the
 website, we have two options:
 
 ### Option 1: Use the project's `task`
 
-```admonish note
-This is tested on macOS, should work on amd64 Linux, but won't work on others (include Windows),
-since it relies on `brew`.
-```
+> [!NOTE] This is tested on macOS, should work on amd64 Linux, but won't work on
+> others (include Windows), since it relies on `brew`.
 
 - [Install Task](https://taskfile.dev/installation/).
 - Then run the `setup-dev` task. This runs commands from our
@@ -112,10 +108,8 @@ and its system requirements. Then refer to the links above to get started.
 
 ### Option 4: Use nix development environment
 
-```admonish note
-This is used by a member of the core team on Linux, but doesn't currently work on Mac. We're open to
-contributions to improve support.
-```
+> [!NOTE] This is used by a member of the core team on Linux, but doesn't
+> currently work on Mac. We're open to contributions to improve support.
 
 A [nix](https://nixos.org/) flake `flake.nix` provides 3 development
 environments:
@@ -264,12 +258,10 @@ Test](https://matklad.github.io//2021/05/31/how-to-test.html).}}.
 
 <!-- markdownlint-disable MD053 -->
 
-```admonish info
-If you're making your first contribution, you don't need to engage with all
-this — it's fine to just make a change and push the results; the tests that
-run in GitHub will point you towards any errors, which can be then be run
-locally if needed. We're always around to help out.
-```
+> [!NOTE] If you're making your first contribution, you don't need to engage
+> with all this — it's fine to just make a change and push the results; the
+> tests that run in GitHub will point you towards any errors, which can be then
+> be run locally if needed. We're always around to help out.
 
 Our tests, from the bottom of the pyramid to the top:
 
@@ -362,15 +354,14 @@ inconsistent in watchexec. Let's revert back if it gets solved.
   More details on running with external databases are in the
   [Readme](https://github.com/PRQL/prql/tree/main/prqlc/prqlc/tests/integration/dbs).
 
-```admonish note
-Integration tests use DuckDB, and so require a clang compiler to compile
-[`duckdb-rs`](https://github.com/wangfenjin/duckdb-rs). Most development
-systems will have one, but if the test command fails, install a clang compiler with:
-
-  - On macOS, install xcode with `xcode-select --install`
-  - On Debian Linux, `apt-get update && apt-get install clang`
-  - On Windows, `duckdb-rs` isn't supported, so these tests are excluded
-```
+> [!NOTE] Integration tests use DuckDB, and so require a clang compiler to
+> compile [`duckdb-rs`](https://github.com/wangfenjin/duckdb-rs). Most
+> development systems will have one, but if the test command fails, install a
+> clang compiler with:
+>
+> - On macOS, install xcode with `xcode-select --install`
+> - On Debian Linux, `apt-get update && apt-get install clang`
+> - On Windows, `duckdb-rs` isn't supported, so these tests are excluded
 
 - **[GitHub Actions on every commit](https://github.com/PRQL/prql/blob/main/.github/workflows/tests.yaml)**
   — we run tests relevant to a PR's changes in CI — for example changes to docs

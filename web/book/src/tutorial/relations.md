@@ -32,12 +32,10 @@ from relations such as the `invoices` table above. Here is the most basic query:
 from invoices
 ```
 
-```admonish note
-Try each of these examples here in the
-[Playground.](https://prql-lang.org/playground/) Enter the query on the
-left-hand side, and click **output.arrow** in the right-hand side to see the
-result.
-```
+> [!NOTE] Try each of these examples here in the
+> [Playground.](https://prql-lang.org/playground/) Enter the query on the
+> left-hand side, and click **output.arrow** in the right-hand side to see the
+> result.
 
 The result of the query above is not terribly interesting, it's just the same
 relation as before.
