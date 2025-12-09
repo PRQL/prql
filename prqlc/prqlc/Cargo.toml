@@ -88,7 +88,7 @@ vergen-gitcl = { version = "1.0.0", features = ["build"] }
 # unique dependencies from the CLI, marked as optional and included in the 'cli'
 # feature
 anyhow = { version = "1.0.100", features = ["backtrace"], optional = true }
-clap = { version = "4.5.0", features = [
+clap = { version = "4.5.53", features = [
   "derive",
   "env",
   "wrap_help",
