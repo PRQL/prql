@@ -24,10 +24,10 @@ from employees
 aggregate {average salary}
 ```
 
-> [!NOTE]
-> Because S-string contents are SQL, double-quotes (`"`) will denote a _column name_.
-> To avoid that, use single-quotes (`'`) around the SQL string, and
-> adjust the quotes of the S-string. For example, instead of `s'CONCAT("hello", "world")'` use `s"CONCAT('hello', 'world')"`
+> [!NOTE] Because S-string contents are SQL, double-quotes (`"`) will denote a
+> _column name_. To avoid that, use single-quotes (`'`) around the SQL string,
+> and adjust the quotes of the S-string. For example, instead of
+> `s'CONCAT("hello", "world")'` use `s"CONCAT('hello', 'world')"`
 
 Here's an example of a more involved use of an s-string:
 
@@ -55,10 +55,10 @@ from s"SELECT DISTINCT ON first_name, id, age FROM employees ORDER BY age ASC"
 join s = s"SELECT * FROM salaries" (==id)
 ```
 
-> [!NOTE]
-> S-strings in user code are intended as an escape hatch for an unimplemented
-> feature. If we often need s-strings to express something, that's a sign we
-> should implement it in PRQL or PRQL's stdlib. If you often require an s-string,
+> [!NOTE] S-strings in user code are intended as an escape hatch for an
+> unimplemented feature. If we often need s-strings to express something, that's
+> a sign we should implement it in PRQL or PRQL's stdlib. If you often require
+> an s-string,
 > [submit an issue with your use case](https://github.com/PRQL/prql/issues/new/choose).
 
 ## Braces

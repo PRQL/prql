@@ -67,8 +67,7 @@ derive amount ?? 0
 
 ## Regex expressions
 
-> [!NOTE]
-> This is currently experimental
+> [!NOTE] This is currently experimental
 
 To perform a case-sensitive regex search, use the `~=` operator. This generally
 compiles to `REGEXP`, though differs by dialect. A regex search means that to
@@ -182,10 +181,9 @@ from employees
 derive other_distance = (sum distance)
 ```
 
-> [!NOTE]
-> We're continuing to think whether these rules can be more intuitive.
-> We're also planning to make the error messages much better,
-> so the compiler can help out.
+> [!NOTE] We're continuing to think whether these rules can be more intuitive.
+> We're also planning to make the error messages much better, so the compiler
+> can help out.
 
 ## Wrapping lines
 
@@ -215,11 +213,11 @@ select listening_time_years = (spotify_plays + apple_music_plays + pandora_plays
 \ / 60 / 60 / 24 / 365
 ```
 
-> [!NOTE]
-> Note that PRQL differs from most languages, which use a `\` at the _end_ of the
-> preceding line. Because PRQL aims to be friendly for data exploration, we want
-> to make it possible to comment out any line, including the final line, without
-> breaking the query. This requires all lines after the first to be structured similarly,
-> and for the character to be at the start of each following line.
+> [!NOTE] Note that PRQL differs from most languages, which use a `\` at the
+> _end_ of the preceding line. Because PRQL aims to be friendly for data
+> exploration, we want to make it possible to comment out any line, including
+> the final line, without breaking the query. This requires all lines after the
+> first to be structured similarly, and for the character to be at the start of
+> each following line.
 
 See [Pipes](./pipes.md) for more details on line breaks.

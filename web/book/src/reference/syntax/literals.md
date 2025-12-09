@@ -52,8 +52,7 @@ how [PRQL handles nulls](../spec/null.md).
 Date and time literals are expressed with character `@`, followed by a string
 that encodes the date & time.
 
-> [!NOTE]
-> PRQL's notation is designed to be less verbose than SQL's
+> [!NOTE] PRQL's notation is designed to be less verbose than SQL's
 > `TIMESTAMP '2004-10-19 10:23:54'` and more explicit than SQL's implicit option
 > that just uses a string `'2004-10-19 10:23:54'`.
 
@@ -95,12 +94,11 @@ derive first_prql_commit_utc = @2020-01-02T21:19:55Z
 Durations are represented by `{N}{periods}`, such as `2years` or `10minutes`,
 without a space.
 
-> [!NOTE]
-> These aren't the same as ISO8601, because we evaluated `P3Y6M4DT12H30M5S` to
-> be difficult to understand, but we could support a simplified form if there's
-> demand for it. We don't currently support compound expressions, for example
-> `2years10months`, but most DBs will allow `2years + 10months`. Please raise an
-> issue if this is inconvenient.
+> [!NOTE] These aren't the same as ISO8601, because we evaluated
+> `P3Y6M4DT12H30M5S` to be difficult to understand, but we could support a
+> simplified form if there's demand for it. We don't currently support compound
+> expressions, for example `2years10months`, but most DBs will allow
+> `2years + 10months`. Please raise an issue if this is inconvenient.
 
 ```prql
 from projects
@@ -125,8 +123,7 @@ Here's a larger list of date and time examples:
 - `@2022-12-31+02` is invalid — date is always local, so it cannot have a
   timezone
 
-> [!NOTE]
-> Currently prqlc does not parse or validate any of the datetime strings
+> [!NOTE] Currently prqlc does not parse or validate any of the datetime strings
 > and will pass them to the database engine without adjustment. This might be
 > refined in the future to aid in compatibility across databases. We'll always
 > support the canonical [ISO8601](https://en.wikipedia.org/wiki/ISO_8601) format
