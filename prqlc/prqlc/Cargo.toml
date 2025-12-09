@@ -71,7 +71,7 @@ serde = { workspace = true }
 serde_json = { workspace = true }
 serde_yaml = { workspace = true, optional = true }
 sqlformat = "0.3.5"
-sqlparser = { version = "0.59.0", features = [
+sqlparser = { version = "0.60.0", features = [
   "serde",
   # enabling "recursive-protection" causes wasm compilation to fail on MacOS
 ], default-features = false }
@@ -135,7 +135,7 @@ tokio-util = { version = "0.7.17", optional = true, features = ["compat"] }
 [dev-dependencies]
 # default-features=false required to allow wasm compilation (which we don't use
 # for benchmarks but simplifies the code)
-criterion = { version = "0.8.0", default-features = false }
+criterion = { version = "0.8.1", default-features = false }
 glob = { version = "0.3.3" }
 insta = { workspace = true }
 insta-cmd = { workspace = true }
