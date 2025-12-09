@@ -26,13 +26,9 @@ jobs:
       - uses: baptiste0928/cargo-install@v3
         with:
           crate: mdbook
-          version: "0.5.0"
       - uses: baptiste0928/cargo-install@v3
         with:
           crate: mdbook-footnote
-          version: "0.2.0"
-      # mdbook-admonish disabled until it supports mdbook 0.5.x
-      # See: https://github.com/tommilligan/mdbook-admonish/issues/233
       - uses: baptiste0928/cargo-install@v3
         with:
           crate: wasm-pack

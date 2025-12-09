@@ -417,7 +417,6 @@ jobs:
       - uses: baptiste0928/cargo-install@v3
         with:
           crate: mdbook
-          version: "0.5.0"
       # the link checker
       - uses: baptiste0928/cargo-install@v3
         with:
