@@ -1,6 +1,7 @@
 [package]
 description = "PRQL is a modern language for transforming data — a simple, powerful, pipelined SQL replacement."
 name = "prqlc"
+autobenches = false
 
 edition.workspace = true
 license.workspace = true
@@ -71,7 +72,7 @@ serde = { workspace = true }
 serde_json = { workspace = true }
 serde_yaml = { workspace = true, optional = true }
 sqlformat = "0.3.5"
-sqlparser = { version = "0.59.0", features = [
+sqlparser = { version = "0.60.0", features = [
   "serde",
   # enabling "recursive-protection" causes wasm compilation to fail on MacOS
 ], default-features = false }
@@ -142,9 +143,9 @@ similar-asserts = { workspace = true }
 tempfile = { version = "3.23.0" }
 test_each_file = "0.3.6"
 
-# criterion 0.8.0 depends on `alloca` which doesn't support WASM targets
+# criterion 0.8 depends on `alloca` which doesn't support WASM targets
 [target.'cfg(not(target_family = "wasm"))'.dev-dependencies]
-criterion = { version = "0.8.0", default-features = false }
+criterion = { version = "0.8.1", default-features = false }
 
 # We use `benches/bench.rs` for the benchmark harness so disable searching for
 # benchmarks in bin & lib here to simplify using criterion
