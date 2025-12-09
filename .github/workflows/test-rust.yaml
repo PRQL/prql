@@ -128,13 +128,24 @@ jobs:
           # - Test runner - `--test-runner=nextest` when not targeting wasm32.
           # - Skip doc tests on Windows due to LNK1318 PDB errors
           args: >
-            test --target=${{ inputs.target }} --no-default-features
+            test --dnd --target=${{ inputs.target }} --no-default-features
             --features=${{ inputs.features }} ${{ contains(inputs.features,
             'test-dbs') && inputs.target == 'x86_64-unknown-linux-gnu' &&
             '--unreferenced=auto' || '' }} ${{ inputs.target !=
             'wasm32-unknown-unknown' && '--test-runner=nextest' || '' }} ${{
             inputs.os == 'windows-latest' && '--lib --bins --tests --examples'
             || '' }}
+      - name: 📋 Doctest
+        # Skip doctests on Windows (LNK1318 PDB errors) and wasm32
+        if:
+          inputs.os != 'windows-latest' && inputs.target !=
+          'wasm32-unknown-unknown'
+        uses: clechasseur/rs-cargo@v4
+        with:
+          command: test
+          args: >
+            --doc --target=${{ inputs.target }} --no-default-features
+            --features=${{ inputs.features }}
       - name: 📎 Clippy
         uses: clechasseur/rs-cargo@v4
         with:
