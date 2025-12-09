@@ -79,6 +79,7 @@ jobs:
           # Grant Claude full permissions to execute commands
           # Also include system prompt with project context via claude_args
           claude_args: |
+            --model opus
             --allowedTools Bash,Edit,Read,Write,Glob,Grep,WebSearch,WebFetch
             --system-prompt "You are helping with the PRQL project in a GitHub Actions environment.
             Follow the project guidelines in CLAUDE.md.

@@ -211,7 +211,7 @@ jobs:
       # 20 workflow limit.
       oss:
         ${{ (needs.rules.outputs.python == 'true' || needs.rules.outputs.nightly
-        == 'true') && '["ubuntu-24.04", "macos-14", "windows-latest"]' ||
+        == 'true') && '["ubuntu-24.04", "macos-15", "windows-latest"]' ||
         '["ubuntu-24.04"]' }}
 
   test-js:
@@ -222,7 +222,7 @@ jobs:
       # Only run on ubuntu unless there's a lang-specific change or we're running nightly.
       oss:
         ${{ (needs.rules.outputs.js == 'true' || needs.rules.outputs.nightly ==
-        'true') && '["ubuntu-24.04", "macos-14", "windows-latest"]' ||
+        'true') && '["ubuntu-24.04", "macos-15", "windows-latest"]' ||
         '["ubuntu-24.04"]' }}
 
   test-dotnet:
@@ -244,7 +244,7 @@ jobs:
       # Currently we never run windows
       oss:
         ${{ (needs.rules.outputs.java == 'true' || needs.rules.outputs.nightly
-        == 'true') && '["ubuntu-24.04", "macos-14"]' || '["ubuntu-24.04"]' }}
+        == 'true') && '["ubuntu-24.04", "macos-15"]' || '["ubuntu-24.04"]' }}
 
   test-elixir:
     needs: rules
@@ -272,7 +272,7 @@ jobs:
   #   if: |
   #     needs.rules.outputs.taskfile == 'true' ||
   #     needs.rules.outputs.nightly-upstream == 'true'
-  #   runs-on: macos-14
+  #   runs-on: macos-15
   #   steps:
   #     - name: 📂 Checkout code
   #       uses: actions/checkout@v5
@@ -309,7 +309,7 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - os: macos-14
+          - os: macos-15
             target: aarch64-apple-darwin
             features: default,test-dbs
           - os: windows-latest
@@ -681,7 +681,7 @@ jobs:
           #
           # - os: ubuntu-24.04
           #   target: aarch64-unknown-linux-musl
-          - os: macos-14
+          - os: macos-15
             target: aarch64-apple-darwin
             features: default,test-dbs
           - os: windows-latest
@@ -714,7 +714,7 @@ jobs:
           - os: ubuntu-24.04
             target: x86_64-unknown-linux-musl
             features: default
-          - os: macos-14
+          - os: macos-15
             target: aarch64-apple-darwin
             features: default,test-dbs
           - os: windows-latest
