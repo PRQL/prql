@@ -5,7 +5,8 @@ you browse tables, run SQL scripts, and chart and export the results. QStudio
 runs on Windows, macOS and Linux, and works with every popular database
 including mysql, postgresql, mssql, kdb....
 
-> [!NOTE] QStudio relies on the PRQL compiler. You must ensure that `prqlc` is
+> [!NOTE]
+> QStudio relies on the PRQL compiler. You must ensure that `prqlc` is
 > in your path. See the
 > [installation instructions](https://prql-lang.org/book/project/integrations/prqlc-cli.html#installation)
 > for `prqlc` in the PRQL reference guide for details.

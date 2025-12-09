@@ -309,6 +309,29 @@ this is an error
 }
 
 #[test]
+fn test_admonition() -> Result<()> {
+    use insta::assert_snapshot;
+
+    let md = r#"
+> [!NOTE]
+> This is a note.
+
+> [!WARNING]
+> This is a warning.
+"#;
+
+    assert_snapshot!(replace_examples(md)?, @r#"
+    > [!NOTE]
+    > This is a note.
+
+    > [!WARNING]
+    > This is a warning.
+    "#);
+
+    Ok(())
+}
+
+#[test]
 fn test_table() -> Result<()> {
     use insta::assert_snapshot;
     let table = r"

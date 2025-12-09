@@ -9,10 +9,12 @@ from (read_parquet "artists.parquet")
 join (read_csv "albums.csv") (==track_id)
 ```
 
-> [!NOTE] These don't currently have all the DuckDB options. If those would be
+> [!NOTE]
+> These don't currently have all the DuckDB options. If those would be
 > helpful, please log an issue and it's a fairly easy addition.
 
-> [!NOTE] We may be able to reduce the boilerplate
+> [!NOTE]
+> We may be able to reduce the boilerplate
 > `WITH table_x AS SELECT * FROM...` in future versions.
 
 When specifying file names directly in the `FROM` clause without using

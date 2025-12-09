@@ -24,8 +24,8 @@ itertools = { workspace = true }
 mdbook-core = { version = "0.5.0", default-features = false }
 mdbook-preprocessor = { version = "0.5.0", default-features = false }
 prqlc = { path = "../../prqlc/prqlc", default-features = false }
-pulldown-cmark = { version = "0.10.3", default-features = false }
-pulldown-cmark-to-cmark = "14.0.1"
+pulldown-cmark = { version = "0.13.0", default-features = false }
+pulldown-cmark-to-cmark = "21.1.0"
 serde_json = { workspace = true }
 strum = { workspace = true }
 strum_macros = { workspace = true }
