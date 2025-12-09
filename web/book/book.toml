@@ -14,10 +14,12 @@ git-repository-url = "https://github.com/PRQL/prql"
 #
 command = "cargo run --bin mdbook-prql"
 
-[preprocessor.admonish]
-assets_version = "3.0.0" # do not edit: managed by `mdbook-admonish install`
-command = "mdbook-admonish"
+# TODO: Re-enable once mdbook-admonish supports mdbook 0.5.x
+# See: https://github.com/tommilligan/mdbook-admonish/issues/233
+# [preprocessor.admonish]
+# assets_version = "3.0.0" # do not edit: managed by `mdbook-admonish install`
+# command = "mdbook-admonish"
 
 [preprocessor.footnote]
 # Seems to be required for footnotes to show properly.
-after = ["admonish"]
+# after = ["admonish"]  # Disabled while admonish is disabled
