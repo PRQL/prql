@@ -202,9 +202,29 @@ impl Resolver<'_> {
                     })?
                 };
 
-                let rows = into_literal_range(try_restrict_range(rows).unwrap())?;
+                let rows = {
+                    let range_tuple = try_restrict_range(rows).map_err(|expr| {
+                        Error::new(Reason::Expected {
+                            who: Some("parameter `rows`".to_string()),
+                            expected: "a range".to_string(),
+                            found: write_pl(expr.clone()),
+                        })
+                        .with_span(expr.span)
+                    })?;
+                    into_literal_range(range_tuple)?
+                };
 
-                let range = into_literal_range(try_restrict_range(range).unwrap())?;
+                let range = {
+                    let range_tuple = try_restrict_range(range).map_err(|expr| {
+                        Error::new(Reason::Expected {
+                            who: Some("parameter `range`".to_string()),
+                            expected: "a range".to_string(),
+                            found: write_pl(expr.clone()),
+                        })
+                        .with_span(expr.span)
+                    })?;
+                    into_literal_range(range_tuple)?
+                };
 
                 let (kind, start, end) = if expanding {
                     (WindowKind::Rows, None, Some(0))
