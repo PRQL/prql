@@ -449,3 +449,33 @@ fn empty_tuple_or_array_from() {
     ───╯
     ");
 }
+
+#[test]
+fn window_rows_expects_range() {
+    // Issue #5601: window with invalid rows parameter should produce error, not panic
+    assert_snapshot!(compile(r###"
+    from t
+    group sid (window rows:2 (sid))
+    "###).unwrap_err(), @r"
+    Error:
+       ╭─[ :3:28 ]
+       │
+     3 │     group sid (window rows:2 (sid))
+       │                            ┬
+       │                            ╰── parameter `rows` expected a range, but found 2
+    ───╯
+    ");
+
+    assert_snapshot!(compile(r###"
+    from t
+    group sid (window range:2 (sid))
+    "###).unwrap_err(), @r"
+    Error:
+       ╭─[ :3:29 ]
+       │
+     3 │     group sid (window range:2 (sid))
+       │                             ┬
+       │                             ╰── parameter `range` expected a range, but found 2
+    ───╯
+    ");
+}
