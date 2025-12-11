@@ -613,6 +613,12 @@ impl DialectHandler for SnowflakeDialect {
         false
     }
 
+    fn interval_quoting_style(&self, _dtf: &DateTimeField) -> IntervalQuotingStyle {
+        // Snowflake requires quotes around value and unit together
+        // https://docs.snowflake.com/en/sql-reference/data-types-datetime#interval-constants
+        IntervalQuotingStyle::ValueAndUnitQuoted
+    }
+
     fn requires_order_by_in_window_function(&self) -> bool {
         // https://docs.snowflake.com/en/sql-reference/functions/row_number
         // ROW_NUMBER() requires ORDER BY in window specification
