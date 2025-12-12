@@ -7,10 +7,10 @@ frames:
 - - 1:96-102
   - columns:
     - !All
-      input_id: 118
+      input_id: 119
       except: []
     inputs:
-    - id: 118
+    - id: 119
       name: invoices
       table:
       - default_db
@@ -20,109 +20,109 @@ frames:
     - !Single
       name:
       - total_original
-      target_id: 123
+      target_id: 124
       target_name: null
     - !Single
       name:
       - total_x
-      target_id: 128
+      target_id: 129
       target_name: null
     - !Single
       name:
       - total_floor
-      target_id: 139
+      target_id: 140
       target_name: null
     - !Single
       name:
       - total_ceil
-      target_id: 142
+      target_id: 143
       target_name: null
     - !Single
       name:
       - total_log10
-      target_id: 145
+      target_id: 146
       target_name: null
     - !Single
       name:
       - total_log2
-      target_id: 152
+      target_id: 153
       target_name: null
     - !Single
       name:
       - total_sqrt
-      target_id: 160
+      target_id: 161
       target_name: null
     - !Single
       name:
       - total_ln
-      target_id: 167
+      target_id: 168
       target_name: null
     - !Single
       name:
       - total_cos
-      target_id: 176
+      target_id: 177
       target_name: null
     - !Single
       name:
       - total_sin
-      target_id: 185
+      target_id: 186
       target_name: null
     - !Single
       name:
       - total_tan
-      target_id: 194
+      target_id: 195
       target_name: null
     - !Single
       name:
       - total_deg
-      target_id: 203
+      target_id: 204
       target_name: null
     - !Single
       name:
       - total_square
-      target_id: 212
+      target_id: 213
       target_name: null
     - !Single
       name:
       - total_square_op
-      target_id: 221
+      target_id: 222
       target_name: null
     inputs:
-    - id: 118
+    - id: 119
       name: invoices
       table:
       - default_db
       - invoices
 nodes:
-- id: 118
+- id: 119
   kind: Ident
   span: 1:82-95
   ident: !Ident
   - default_db
   - invoices
-  parent: 121
-- id: 121
+  parent: 122
+- id: 122
   kind: 'TransformCall: Take'
   span: 1:96-102
   children:
-  - 118
-  - 122
-  parent: 230
-- id: 122
-  kind: Literal
-  parent: 121
+  - 119
+  - 123
+  parent: 231
 - id: 123
+  kind: Literal
+  parent: 122
+- id: 124
   kind: RqOperator
   span: 1:142-154
   alias: total_original
   targets:
-  - 126
   - 127
-  parent: 229
-- id: 126
+  - 128
+  parent: 230
+- id: 127
   kind: Literal
   span: 1:153-154
-- id: 127
+- id: 128
   kind: Ident
   span: 1:134-139
   ident: !Ident
@@ -130,33 +130,33 @@ nodes:
   - invoices
   - total
   targets:
-  - 118
-- id: 128
+  - 119
+- id: 129
   kind: RqOperator
   span: 1:205-213
   alias: total_x
   targets:
-  - 130
-  parent: 229
-- id: 130
+  - 131
+  parent: 230
+- id: 131
   kind: RqOperator
   span: 1:190-202
   targets:
-  - 133
   - 134
-- id: 133
+  - 135
+- id: 134
   kind: Literal
   span: 1:201-202
-- id: 134
+- id: 135
   kind: RqOperator
   span: 1:172-187
   targets:
-  - 137
   - 138
-- id: 137
+  - 139
+- id: 138
   kind: RqOperator
   span: 1:172-179
-- id: 138
+- id: 139
   kind: Ident
   span: 1:182-187
   ident: !Ident
@@ -164,15 +164,15 @@ nodes:
   - invoices
   - total
   targets:
-  - 118
-- id: 139
+  - 119
+- id: 140
   kind: RqOperator
   span: 1:234-252
   alias: total_floor
   targets:
-  - 141
-  parent: 229
-- id: 141
+  - 142
+  parent: 230
+- id: 142
   kind: Ident
   span: 1:246-251
   ident: !Ident
@@ -180,15 +180,15 @@ nodes:
   - invoices
   - total
   targets:
-  - 118
-- id: 142
+  - 119
+- id: 143
   kind: RqOperator
   span: 1:271-288
   alias: total_ceil
   targets:
-  - 144
-  parent: 229
-- id: 144
+  - 145
+  parent: 230
+- id: 145
   kind: Ident
   span: 1:282-287
   ident: !Ident
@@ -196,24 +196,24 @@ nodes:
   - invoices
   - total
   targets:
-  - 118
-- id: 145
+  - 119
+- id: 146
   kind: RqOperator
   span: 1:328-340
   alias: total_log10
   targets:
-  - 148
   - 149
-  parent: 229
-- id: 148
+  - 150
+  parent: 230
+- id: 149
   kind: Literal
   span: 1:339-340
-- id: 149
+- id: 150
   kind: RqOperator
   span: 1:309-325
   targets:
-  - 151
-- id: 151
+  - 152
+- id: 152
   kind: Ident
   span: 1:320-325
   ident: !Ident
@@ -221,28 +221,28 @@ nodes:
   - invoices
   - total
   targets:
-  - 118
-- id: 152
+  - 119
+- id: 153
   kind: RqOperator
   span: 1:380-392
   alias: total_log2
   targets:
-  - 155
   - 156
-  parent: 229
-- id: 155
+  - 157
+  parent: 230
+- id: 156
   kind: Literal
   span: 1:391-392
-- id: 156
+- id: 157
   kind: RqOperator
   span: 1:361-377
   targets:
-  - 158
   - 159
-- id: 158
+  - 160
+- id: 159
   kind: Literal
   span: 1:370-371
-- id: 159
+- id: 160
   kind: Ident
   span: 1:372-377
   ident: !Ident
@@ -250,24 +250,24 @@ nodes:
   - invoices
   - total
   targets:
-  - 118
-- id: 160
+  - 119
+- id: 161
   kind: RqOperator
   span: 1:431-443
   alias: total_sqrt
   targets:
-  - 163
   - 164
-  parent: 229
-- id: 163
+  - 165
+  parent: 230
+- id: 164
   kind: Literal
   span: 1:442-443
-- id: 164
+- id: 165
   kind: RqOperator
   span: 1:413-428
   targets:
-  - 166
-- id: 166
+  - 167
+- id: 167
   kind: Ident
   span: 1:423-428
   ident: !Ident
@@ -275,29 +275,29 @@ nodes:
   - invoices
   - total
   targets:
-  - 118
-- id: 167
+  - 119
+- id: 168
   kind: RqOperator
   span: 1:489-501
   alias: total_ln
   targets:
-  - 170
   - 171
-  parent: 229
-- id: 170
+  - 172
+  parent: 230
+- id: 171
   kind: Literal
   span: 1:500-501
-- id: 171
+- id: 172
   kind: RqOperator
   span: 1:478-486
   targets:
-  - 173
-- id: 173
+  - 174
+- id: 174
   kind: RqOperator
   span: 1:462-475
   targets:
-  - 175
-- id: 175
+  - 176
+- id: 176
   kind: Ident
   span: 1:470-475
   ident: !Ident
@@ -305,29 +305,29 @@ nodes:
   - invoices
   - total
   targets:
-  - 118
-- id: 176
+  - 119
+- id: 177
   kind: RqOperator
   span: 1:550-562
   alias: total_cos
   targets:
-  - 179
   - 180
-  parent: 229
-- id: 179
+  - 181
+  parent: 230
+- id: 180
   kind: Literal
   span: 1:561-562
-- id: 180
+- id: 181
   kind: RqOperator
   span: 1:538-547
   targets:
-  - 182
-- id: 182
+  - 183
+- id: 183
   kind: RqOperator
   span: 1:521-535
   targets:
-  - 184
-- id: 184
+  - 185
+- id: 185
   kind: Ident
   span: 1:530-535
   ident: !Ident
@@ -335,29 +335,29 @@ nodes:
   - invoices
   - total
   targets:
-  - 118
-- id: 185
+  - 119
+- id: 186
   kind: RqOperator
   span: 1:611-623
   alias: total_sin
   targets:
-  - 188
   - 189
-  parent: 229
-- id: 188
+  - 190
+  parent: 230
+- id: 189
   kind: Literal
   span: 1:622-623
-- id: 189
+- id: 190
   kind: RqOperator
   span: 1:599-608
   targets:
-  - 191
-- id: 191
+  - 192
+- id: 192
   kind: RqOperator
   span: 1:582-596
   targets:
-  - 193
-- id: 193
+  - 194
+- id: 194
   kind: Ident
   span: 1:591-596
   ident: !Ident
@@ -365,29 +365,29 @@ nodes:
   - invoices
   - total
   targets:
-  - 118
-- id: 194
+  - 119
+- id: 195
   kind: RqOperator
   span: 1:672-684
   alias: total_tan
   targets:
-  - 197
   - 198
-  parent: 229
-- id: 197
+  - 199
+  parent: 230
+- id: 198
   kind: Literal
   span: 1:683-684
-- id: 198
+- id: 199
   kind: RqOperator
   span: 1:660-669
   targets:
-  - 200
-- id: 200
+  - 201
+- id: 201
   kind: RqOperator
   span: 1:643-657
   targets:
-  - 202
-- id: 202
+  - 203
+- id: 203
   kind: Ident
   span: 1:652-657
   ident: !Ident
@@ -395,29 +395,29 @@ nodes:
   - invoices
   - total
   targets:
-  - 118
-- id: 203
+  - 119
+- id: 204
   kind: RqOperator
   span: 1:742-754
   alias: total_deg
   targets:
-  - 206
   - 207
-  parent: 229
-- id: 206
+  - 208
+  parent: 230
+- id: 207
   kind: Literal
   span: 1:753-754
-- id: 207
+- id: 208
   kind: RqOperator
   span: 1:727-739
   targets:
-  - 209
-- id: 209
+  - 210
+- id: 210
   kind: RqOperator
   span: 1:712-724
   targets:
-  - 211
-- id: 211
+  - 212
+- id: 212
   kind: Ident
   span: 1:704-709
   ident: !Ident
@@ -425,28 +425,28 @@ nodes:
   - invoices
   - total
   targets:
-  - 118
-- id: 212
+  - 119
+- id: 213
   kind: RqOperator
   span: 1:798-810
   alias: total_square
   targets:
-  - 215
   - 216
-  parent: 229
-- id: 215
+  - 217
+  parent: 230
+- id: 216
   kind: Literal
   span: 1:809-810
-- id: 216
+- id: 217
   kind: RqOperator
   span: 1:785-795
   targets:
-  - 219
   - 220
-- id: 219
+  - 221
+- id: 220
   kind: Literal
   span: 1:794-795
-- id: 220
+- id: 221
   kind: Ident
   span: 1:777-782
   ident: !Ident
@@ -454,28 +454,28 @@ nodes:
   - invoices
   - total
   targets:
-  - 118
-- id: 221
+  - 119
+- id: 222
   kind: RqOperator
   span: 1:851-863
   alias: total_square_op
   targets:
-  - 224
   - 225
-  parent: 229
-- id: 224
+  - 226
+  parent: 230
+- id: 225
   kind: Literal
   span: 1:862-863
-- id: 225
+- id: 226
   kind: RqOperator
   span: 1:836-848
   targets:
-  - 227
   - 228
-- id: 227
+  - 229
+- id: 228
   kind: Literal
   span: 1:846-847
-- id: 228
+- id: 229
   kind: Ident
   span: 1:837-842
   ident: !Ident
@@ -483,32 +483,32 @@ nodes:
   - invoices
   - total
   targets:
-  - 118
-- id: 229
+  - 119
+- id: 230
   kind: Tuple
   span: 1:110-867
   children:
-  - 123
-  - 128
-  - 139
-  - 142
-  - 145
-  - 152
-  - 160
-  - 167
-  - 176
-  - 185
-  - 194
-  - 203
-  - 212
-  - 221
-  parent: 230
-- id: 230
+  - 124
+  - 129
+  - 140
+  - 143
+  - 146
+  - 153
+  - 161
+  - 168
+  - 177
+  - 186
+  - 195
+  - 204
+  - 213
+  - 222
+  parent: 231
+- id: 231
   kind: 'TransformCall: Select'
   span: 1:103-867
   children:
-  - 121
-  - 229
+  - 122
+  - 230
 ast:
   name: Project
   stmts:

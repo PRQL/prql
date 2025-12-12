@@ -5123,6 +5123,66 @@ fn test_read_parquet_with_named_args() {
 }
 
 #[test]
+fn test_read_json_duckdb() {
+    assert_snapshot!(compile_with_sql_dialect(r#"
+    from (read_json 'data.json')
+    "#, sql::Dialect::DuckDb).unwrap(),
+        @r"
+    WITH table_0 AS (
+      SELECT
+        *
+      FROM
+        read_json_auto('data.json')
+    )
+    SELECT
+      *
+    FROM
+      table_0
+    "
+    );
+}
+
+#[test]
+fn test_read_json_clickhouse() {
+    assert_snapshot!(compile_with_sql_dialect(r#"
+    from (read_json 'data.json')
+    "#, sql::Dialect::ClickHouse).unwrap(),
+        @r"
+    WITH table_0 AS (
+      SELECT
+        *
+      FROM
+        file('data.json', 'Json')
+    )
+    SELECT
+      *
+    FROM
+      table_0
+    "
+    );
+}
+
+#[test]
+fn test_read_json_generic() {
+    assert_snapshot!(compile(r#"
+    from (read_json 'data.json')
+    "#).unwrap(),
+        @r"
+    WITH table_0 AS (
+      SELECT
+        *
+      FROM
+        read_json('data.json')
+    )
+    SELECT
+      *
+    FROM
+      table_0
+    "
+    );
+}
+
+#[test]
 fn test_excess_columns() {
     // https://github.com/PRQL/prql/issues/2079
     assert_snapshot!(compile(r#"

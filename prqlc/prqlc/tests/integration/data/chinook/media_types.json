@@ -1,0 +1,7 @@
+[
+  { "media_type_id": 1, "name": "MPEG audio file" },
+  { "media_type_id": 2, "name": "Protected AAC audio file" },
+  { "media_type_id": 3, "name": "Protected MPEG-4 video file" },
+  { "media_type_id": 4, "name": "Purchased AAC audio file" },
+  { "media_type_id": 5, "name": "AAC audio file" }
+]

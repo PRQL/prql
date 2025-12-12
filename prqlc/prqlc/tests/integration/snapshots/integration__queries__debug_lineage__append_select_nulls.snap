@@ -1,6 +1,5 @@
 ---
 source: prqlc/prqlc/tests/integration/queries.rs
-assertion_line: 149
 expression: "from invoices\nselect {an_id = invoice_id, name = null}\ntake 2\nappend (\n  from employees\n  select {an_id = null, name = first_name}\n  take 2\n)\n"
 input_file: prqlc/prqlc/tests/integration/queries/append_select_nulls.prql
 ---
@@ -10,15 +9,15 @@ frames:
     - !Single
       name:
       - an_id
-      target_id: 140
+      target_id: 141
       target_name: null
     - !Single
       name:
       - name
-      target_id: 141
+      target_id: 142
       target_name: null
     inputs:
-    - id: 138
+    - id: 139
       name: invoices
       table:
       - default_db
@@ -28,15 +27,15 @@ frames:
     - !Single
       name:
       - an_id
-      target_id: 140
+      target_id: 141
       target_name: null
     - !Single
       name:
       - name
-      target_id: 141
+      target_id: 142
       target_name: null
     inputs:
-    - id: 138
+    - id: 139
       name: invoices
       table:
       - default_db
@@ -46,15 +45,15 @@ frames:
     - !Single
       name:
       - an_id
-      target_id: 123
+      target_id: 124
       target_name: null
     - !Single
       name:
       - name
-      target_id: 124
+      target_id: 125
       target_name: null
     inputs:
-    - id: 121
+    - id: 122
       name: employees
       table:
       - default_db
@@ -64,15 +63,15 @@ frames:
     - !Single
       name:
       - an_id
-      target_id: 123
+      target_id: 124
       target_name: null
     - !Single
       name:
       - name
-      target_id: 124
+      target_id: 125
       target_name: null
     inputs:
-    - id: 121
+    - id: 122
       name: employees
       table:
       - default_db
@@ -82,38 +81,38 @@ frames:
     - !Single
       name:
       - an_id
-      target_id: 140
+      target_id: 141
       target_name: null
     - !Single
       name:
       - name
-      target_id: 141
+      target_id: 142
       target_name: null
     inputs:
-    - id: 138
+    - id: 139
       name: invoices
       table:
       - default_db
       - invoices
-    - id: 121
+    - id: 122
       name: employees
       table:
       - default_db
       - employees
 nodes:
-- id: 121
+- id: 122
   kind: Ident
   span: 1:73-87
   ident: !Ident
   - default_db
   - employees
-  parent: 126
-- id: 123
+  parent: 127
+- id: 124
   kind: Literal
   span: 1:106-110
   alias: an_id
-  parent: 125
-- id: 124
+  parent: 126
+- id: 125
   kind: Ident
   span: 1:119-129
   alias: name
@@ -122,40 +121,40 @@ nodes:
   - employees
   - first_name
   targets:
-  - 121
-  parent: 125
-- id: 125
+  - 122
+  parent: 126
+- id: 126
   kind: Tuple
   span: 1:97-130
   children:
-  - 123
   - 124
-  parent: 126
-- id: 126
+  - 125
+  parent: 127
+- id: 127
   kind: 'TransformCall: Select'
   span: 1:90-130
   children:
-  - 121
-  - 125
-  parent: 128
-- id: 128
+  - 122
+  - 126
+  parent: 129
+- id: 129
   kind: 'TransformCall: Take'
   span: 1:133-139
   children:
-  - 126
-  - 129
-  parent: 147
-- id: 129
+  - 127
+  - 130
+  parent: 148
+- id: 130
   kind: Literal
-  parent: 128
-- id: 138
+  parent: 129
+- id: 139
   kind: Ident
   span: 1:0-13
   ident: !Ident
   - default_db
   - invoices
-  parent: 143
-- id: 140
+  parent: 144
+- id: 141
   kind: Ident
   span: 1:30-40
   alias: an_id
@@ -164,43 +163,43 @@ nodes:
   - invoices
   - invoice_id
   targets:
-  - 138
-  parent: 142
-- id: 141
+  - 139
+  parent: 143
+- id: 142
   kind: Literal
   span: 1:49-53
   alias: name
-  parent: 142
-- id: 142
+  parent: 143
+- id: 143
   kind: Tuple
   span: 1:21-54
   children:
-  - 140
   - 141
-  parent: 143
-- id: 143
+  - 142
+  parent: 144
+- id: 144
   kind: 'TransformCall: Select'
   span: 1:14-54
   children:
-  - 138
-  - 142
-  parent: 145
-- id: 145
+  - 139
+  - 143
+  parent: 146
+- id: 146
   kind: 'TransformCall: Take'
   span: 1:55-61
   children:
-  - 143
-  - 146
-  parent: 147
-- id: 146
-  kind: Literal
-  parent: 145
+  - 144
+  - 147
+  parent: 148
 - id: 147
+  kind: Literal
+  parent: 146
+- id: 148
   kind: 'TransformCall: Append'
   span: 1:62-141
   children:
-  - 145
-  - 128
+  - 146
+  - 129
 ast:
   name: Project
   stmts:

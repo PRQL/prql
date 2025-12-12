@@ -1,6 +1,5 @@
 ---
 source: prqlc/prqlc/tests/integration/queries.rs
-assertion_line: 149
 expression: "from invoices\nselect { invoice_id, billing_country }\nappend (\n  from invoices\n  select { invoice_id = `invoice_id` + 100, billing_country }\n)\nfilter (billing_country | text.starts_with(\"I\"))\n"
 input_file: prqlc/prqlc/tests/integration/queries/append_select_simple.prql
 ---
@@ -11,16 +10,16 @@ frames:
       name:
       - invoices
       - invoice_id
-      target_id: 137
+      target_id: 138
       target_name: null
     - !Single
       name:
       - invoices
       - billing_country
-      target_id: 138
+      target_id: 139
       target_name: null
     inputs:
-    - id: 135
+    - id: 136
       name: invoices
       table:
       - default_db
@@ -30,16 +29,16 @@ frames:
     - !Single
       name:
       - invoice_id
-      target_id: 123
+      target_id: 124
       target_name: null
     - !Single
       name:
       - invoices
       - billing_country
-      target_id: 127
+      target_id: 128
       target_name: null
     inputs:
-    - id: 121
+    - id: 122
       name: invoices
       table:
       - default_db
@@ -50,21 +49,21 @@ frames:
       name:
       - invoices
       - invoice_id
-      target_id: 137
+      target_id: 138
       target_name: null
     - !Single
       name:
       - invoices
       - billing_country
-      target_id: 138
+      target_id: 139
       target_name: null
     inputs:
-    - id: 135
+    - id: 136
       name: invoices
       table:
       - default_db
       - invoices
-    - id: 121
+    - id: 122
       name: invoices
       table:
       - default_db
@@ -75,42 +74,42 @@ frames:
       name:
       - invoices
       - invoice_id
-      target_id: 137
+      target_id: 138
       target_name: null
     - !Single
       name:
       - invoices
       - billing_country
-      target_id: 138
+      target_id: 139
       target_name: null
     inputs:
-    - id: 135
+    - id: 136
       name: invoices
       table:
       - default_db
       - invoices
-    - id: 121
+    - id: 122
       name: invoices
       table:
       - default_db
       - invoices
 nodes:
-- id: 121
+- id: 122
   kind: Ident
   span: 1:64-77
   ident: !Ident
   - default_db
   - invoices
-  parent: 129
-- id: 123
+  parent: 130
+- id: 124
   kind: RqOperator
   span: 1:102-120
   alias: invoice_id
   targets:
-  - 125
   - 126
-  parent: 128
-- id: 125
+  - 127
+  parent: 129
+- id: 126
   kind: Ident
   span: 1:102-114
   ident: !Ident
@@ -118,11 +117,11 @@ nodes:
   - invoices
   - invoice_id
   targets:
-  - 121
-- id: 126
+  - 122
+- id: 127
   kind: Literal
   span: 1:117-120
-- id: 127
+- id: 128
   kind: Ident
   span: 1:122-137
   ident: !Ident
@@ -130,30 +129,30 @@ nodes:
   - invoices
   - billing_country
   targets:
-  - 121
-  parent: 128
-- id: 128
+  - 122
+  parent: 129
+- id: 129
   kind: Tuple
   span: 1:87-139
   children:
-  - 123
-  - 127
-  parent: 129
-- id: 129
+  - 124
+  - 128
+  parent: 130
+- id: 130
   kind: 'TransformCall: Select'
   span: 1:80-139
   children:
-  - 121
-  - 128
-  parent: 141
-- id: 135
+  - 122
+  - 129
+  parent: 142
+- id: 136
   kind: Ident
   span: 1:0-13
   ident: !Ident
   - default_db
   - invoices
-  parent: 140
-- id: 137
+  parent: 141
+- id: 138
   kind: Ident
   span: 1:23-33
   ident: !Ident
@@ -161,9 +160,9 @@ nodes:
   - invoices
   - invoice_id
   targets:
-  - 135
-  parent: 139
-- id: 138
+  - 136
+  parent: 140
+- id: 139
   kind: Ident
   span: 1:35-50
   ident: !Ident
@@ -171,40 +170,40 @@ nodes:
   - invoices
   - billing_country
   targets:
-  - 135
-  parent: 139
-- id: 139
+  - 136
+  parent: 140
+- id: 140
   kind: Tuple
   span: 1:21-52
   children:
-  - 137
   - 138
-  parent: 140
-- id: 140
-  kind: 'TransformCall: Select'
-  span: 1:14-52
-  children:
-  - 135
   - 139
   parent: 141
 - id: 141
+  kind: 'TransformCall: Select'
+  span: 1:14-52
+  children:
+  - 136
+  - 140
+  parent: 142
+- id: 142
   kind: 'TransformCall: Append'
   span: 1:53-141
   children:
-  - 140
-  - 129
-  parent: 147
-- id: 142
+  - 141
+  - 130
+  parent: 148
+- id: 143
   kind: RqOperator
   span: 1:168-189
   targets:
-  - 145
   - 146
-  parent: 147
-- id: 145
+  - 147
+  parent: 148
+- id: 146
   kind: Literal
   span: 1:185-188
-- id: 146
+- id: 147
   kind: Ident
   span: 1:150-165
   ident: !Ident
@@ -212,13 +211,13 @@ nodes:
   - invoices
   - billing_country
   targets:
-  - 138
-- id: 147
+  - 139
+- id: 148
   kind: 'TransformCall: Filter'
   span: 1:142-190
   children:
-  - 141
   - 142
+  - 143
 ast:
   name: Project
   stmts:

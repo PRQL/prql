@@ -10,55 +10,55 @@ frames:
       name:
       - albums
       - title
-      target_id: 123
-      target_name: null
-    - !Single
-      name:
-      - title_and_spaces
       target_id: 124
       target_name: null
     - !Single
       name:
+      - title_and_spaces
+      target_id: 125
+      target_name: null
+    - !Single
+      name:
       - low
-      target_id: 126
+      target_id: 127
       target_name: null
     - !Single
       name:
       - up
-      target_id: 129
+      target_id: 130
       target_name: null
     - !Single
       name:
       - ltrimmed
-      target_id: 132
+      target_id: 133
       target_name: null
     - !Single
       name:
       - rtrimmed
-      target_id: 135
+      target_id: 136
       target_name: null
     - !Single
       name:
       - trimmed
-      target_id: 138
+      target_id: 139
       target_name: null
     - !Single
       name:
       - len
-      target_id: 141
+      target_id: 142
       target_name: null
     - !Single
       name:
       - subs
-      target_id: 144
+      target_id: 145
       target_name: null
     - !Single
       name:
       - replace
-      target_id: 150
+      target_id: 151
       target_name: null
     inputs:
-    - id: 121
+    - id: 122
       name: albums
       table:
       - default_db
@@ -69,55 +69,55 @@ frames:
       name:
       - albums
       - title
-      target_id: 123
-      target_name: null
-    - !Single
-      name:
-      - title_and_spaces
       target_id: 124
       target_name: null
     - !Single
       name:
+      - title_and_spaces
+      target_id: 125
+      target_name: null
+    - !Single
+      name:
       - low
-      target_id: 126
+      target_id: 127
       target_name: null
     - !Single
       name:
       - up
-      target_id: 129
+      target_id: 130
       target_name: null
     - !Single
       name:
       - ltrimmed
-      target_id: 132
+      target_id: 133
       target_name: null
     - !Single
       name:
       - rtrimmed
-      target_id: 135
+      target_id: 136
       target_name: null
     - !Single
       name:
       - trimmed
-      target_id: 138
+      target_id: 139
       target_name: null
     - !Single
       name:
       - len
-      target_id: 141
+      target_id: 142
       target_name: null
     - !Single
       name:
       - subs
-      target_id: 144
+      target_id: 145
       target_name: null
     - !Single
       name:
       - replace
-      target_id: 150
+      target_id: 151
       target_name: null
     inputs:
-    - id: 121
+    - id: 122
       name: albums
       table:
       - default_db
@@ -128,68 +128,68 @@ frames:
       name:
       - albums
       - title
-      target_id: 123
-      target_name: null
-    - !Single
-      name:
-      - title_and_spaces
       target_id: 124
       target_name: null
     - !Single
       name:
+      - title_and_spaces
+      target_id: 125
+      target_name: null
+    - !Single
+      name:
       - low
-      target_id: 126
+      target_id: 127
       target_name: null
     - !Single
       name:
       - up
-      target_id: 129
+      target_id: 130
       target_name: null
     - !Single
       name:
       - ltrimmed
-      target_id: 132
+      target_id: 133
       target_name: null
     - !Single
       name:
       - rtrimmed
-      target_id: 135
+      target_id: 136
       target_name: null
     - !Single
       name:
       - trimmed
-      target_id: 138
+      target_id: 139
       target_name: null
     - !Single
       name:
       - len
-      target_id: 141
+      target_id: 142
       target_name: null
     - !Single
       name:
       - subs
-      target_id: 144
+      target_id: 145
       target_name: null
     - !Single
       name:
       - replace
-      target_id: 150
+      target_id: 151
       target_name: null
     inputs:
-    - id: 121
+    - id: 122
       name: albums
       table:
       - default_db
       - albums
 nodes:
-- id: 121
+- id: 122
   kind: Ident
   span: 1:115-126
   ident: !Ident
   - default_db
   - albums
-  parent: 157
-- id: 123
+  parent: 158
+- id: 124
   kind: Ident
   span: 1:140-145
   ident: !Ident
@@ -197,16 +197,16 @@ nodes:
   - albums
   - title
   targets:
-  - 121
-  parent: 156
-- id: 124
+  - 122
+  parent: 157
+- id: 125
   kind: FString
   span: 1:170-184
   alias: title_and_spaces
   targets:
-  - 125
-  parent: 156
-- id: 125
+  - 126
+  parent: 157
+- id: 126
   kind: Ident
   span: 1:175-180
   ident: !Ident
@@ -214,15 +214,15 @@ nodes:
   - albums
   - title
   targets:
-  - 121
-- id: 126
+  - 122
+- id: 127
   kind: RqOperator
   span: 1:205-215
   alias: low
   targets:
-  - 128
-  parent: 156
-- id: 128
+  - 129
+  parent: 157
+- id: 129
   kind: Ident
   span: 1:197-202
   ident: !Ident
@@ -230,15 +230,15 @@ nodes:
   - albums
   - title
   targets:
-  - 121
-- id: 129
+  - 122
+- id: 130
   kind: RqOperator
   span: 1:236-246
   alias: up
   targets:
-  - 131
-  parent: 156
-- id: 131
+  - 132
+  parent: 157
+- id: 132
   kind: Ident
   span: 1:228-233
   ident: !Ident
@@ -246,15 +246,15 @@ nodes:
   - albums
   - title
   targets:
-  - 121
-- id: 132
+  - 122
+- id: 133
   kind: RqOperator
   span: 1:273-283
   alias: ltrimmed
   targets:
-  - 134
-  parent: 156
-- id: 134
+  - 135
+  parent: 157
+- id: 135
   kind: Ident
   span: 1:265-270
   ident: !Ident
@@ -262,15 +262,15 @@ nodes:
   - albums
   - title
   targets:
-  - 121
-- id: 135
+  - 122
+- id: 136
   kind: RqOperator
   span: 1:310-320
   alias: rtrimmed
   targets:
-  - 137
-  parent: 156
-- id: 137
+  - 138
+  parent: 157
+- id: 138
   kind: Ident
   span: 1:302-307
   ident: !Ident
@@ -278,15 +278,15 @@ nodes:
   - albums
   - title
   targets:
-  - 121
-- id: 138
+  - 122
+- id: 139
   kind: RqOperator
   span: 1:346-355
   alias: trimmed
   targets:
-  - 140
-  parent: 156
-- id: 140
+  - 141
+  parent: 157
+- id: 141
   kind: Ident
   span: 1:338-343
   ident: !Ident
@@ -294,15 +294,15 @@ nodes:
   - albums
   - title
   targets:
-  - 121
-- id: 141
+  - 122
+- id: 142
   kind: RqOperator
   span: 1:377-388
   alias: len
   targets:
-  - 143
-  parent: 156
-- id: 143
+  - 144
+  parent: 157
+- id: 144
   kind: Ident
   span: 1:369-374
   ident: !Ident
@@ -310,23 +310,23 @@ nodes:
   - albums
   - title
   targets:
-  - 121
-- id: 144
+  - 122
+- id: 145
   kind: RqOperator
   span: 1:411-427
   alias: subs
   targets:
-  - 147
   - 148
   - 149
-  parent: 156
-- id: 147
-  kind: Literal
-  span: 1:424-425
+  - 150
+  parent: 157
 - id: 148
   kind: Literal
-  span: 1:426-427
+  span: 1:424-425
 - id: 149
+  kind: Literal
+  span: 1:426-427
+- id: 150
   kind: Ident
   span: 1:403-408
   ident: !Ident
@@ -334,23 +334,23 @@ nodes:
   - albums
   - title
   targets:
-  - 121
-- id: 150
+  - 122
+- id: 151
   kind: RqOperator
   span: 1:453-477
   alias: replace
   targets:
-  - 153
   - 154
   - 155
-  parent: 156
-- id: 153
-  kind: Literal
-  span: 1:466-470
+  - 156
+  parent: 157
 - id: 154
   kind: Literal
-  span: 1:471-477
+  span: 1:466-470
 - id: 155
+  kind: Literal
+  span: 1:471-477
+- id: 156
   kind: Ident
   span: 1:445-450
   ident: !Ident
@@ -358,30 +358,30 @@ nodes:
   - albums
   - title
   targets:
-  - 121
-- id: 156
+  - 122
+- id: 157
   kind: Tuple
   span: 1:134-481
   children:
-  - 123
   - 124
-  - 126
-  - 129
-  - 132
-  - 135
-  - 138
-  - 141
-  - 144
-  - 150
-  parent: 157
-- id: 157
+  - 125
+  - 127
+  - 130
+  - 133
+  - 136
+  - 139
+  - 142
+  - 145
+  - 151
+  parent: 158
+- id: 158
   kind: 'TransformCall: Select'
   span: 1:127-481
   children:
-  - 121
-  - 156
-  parent: 160
-- id: 158
+  - 122
+  - 157
+  parent: 161
+- id: 159
   kind: Ident
   span: 1:488-493
   ident: !Ident
@@ -389,38 +389,38 @@ nodes:
   - albums
   - title
   targets:
-  - 123
-  parent: 160
-- id: 160
+  - 124
+  parent: 161
+- id: 161
   kind: 'TransformCall: Sort'
   span: 1:482-494
   children:
-  - 157
   - 158
-  parent: 180
-- id: 161
+  - 159
+  parent: 181
+- id: 162
   kind: RqOperator
   span: 1:502-606
   targets:
-  - 163
-  - 175
-  parent: 180
-- id: 163
+  - 164
+  - 176
+  parent: 181
+- id: 164
   kind: RqOperator
   span: 1:502-573
   targets:
-  - 165
-  - 170
-- id: 165
+  - 166
+  - 171
+- id: 166
   kind: RqOperator
   span: 1:511-535
   targets:
-  - 168
   - 169
-- id: 168
+  - 170
+- id: 169
   kind: Literal
   span: 1:528-535
-- id: 169
+- id: 170
   kind: Ident
   span: 1:503-508
   ident: !Ident
@@ -428,17 +428,17 @@ nodes:
   - albums
   - title
   targets:
-  - 123
-- id: 170
+  - 124
+- id: 171
   kind: RqOperator
   span: 1:549-572
   targets:
-  - 173
   - 174
-- id: 173
+  - 175
+- id: 174
   kind: Literal
   span: 1:563-572
-- id: 174
+- id: 175
   kind: Ident
   span: 1:541-546
   ident: !Ident
@@ -446,17 +446,17 @@ nodes:
   - albums
   - title
   targets:
-  - 123
-- id: 175
+  - 124
+- id: 176
   kind: RqOperator
   span: 1:586-605
   targets:
-  - 178
   - 179
-- id: 178
+  - 180
+- id: 179
   kind: Literal
   span: 1:601-605
-- id: 179
+- id: 180
   kind: Ident
   span: 1:578-583
   ident: !Ident
@@ -464,13 +464,13 @@ nodes:
   - albums
   - title
   targets:
-  - 123
-- id: 180
+  - 124
+- id: 181
   kind: 'TransformCall: Filter'
   span: 1:495-606
   children:
-  - 160
   - 161
+  - 162
 ast:
   name: Project
   stmts:
