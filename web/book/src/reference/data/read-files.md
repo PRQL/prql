@@ -9,6 +9,14 @@ from (read_parquet "artists.parquet")
 join (read_csv "albums.csv") (==track_id)
 ```
 
+`read_json` is also available; we route it to DuckDB's `read_json` so that the schema is inferred automatically.
+
+```prql
+prql target:sql.duckdb
+
+from (read_json "tracks.json")
+```
+
 > [!NOTE] These don't currently have all the DuckDB options. If those would be
 > helpful, please log an issue and it's a fairly easy addition.
 
