@@ -1,6 +1,5 @@
 ---
 source: prqlc/prqlc/tests/integration/queries.rs
-assertion_line: 149
 expression: "from invoices\nselect { customer_id, invoice_id, billing_country }\ntake 5\nappend (\n  from employees\n  select { employee_id, employee_id, country }\n  take 5\n)\nappend (\n  from invoice_items\n  select { invoice_line_id, invoice_id, null }\n  take 5\n)\nselect { billing_country, invoice_id }\n"
 input_file: prqlc/prqlc/tests/integration/queries/append_select_multiple_with_null.prql
 ---
@@ -11,22 +10,22 @@ frames:
       name:
       - invoices
       - customer_id
-      target_id: 165
-      target_name: null
-    - !Single
-      name:
-      - invoices
-      - invoice_id
       target_id: 166
       target_name: null
     - !Single
       name:
       - invoices
-      - billing_country
+      - invoice_id
       target_id: 167
       target_name: null
+    - !Single
+      name:
+      - invoices
+      - billing_country
+      target_id: 168
+      target_name: null
     inputs:
-    - id: 163
+    - id: 164
       name: invoices
       table:
       - default_db
@@ -37,22 +36,22 @@ frames:
       name:
       - invoices
       - customer_id
-      target_id: 165
-      target_name: null
-    - !Single
-      name:
-      - invoices
-      - invoice_id
       target_id: 166
       target_name: null
     - !Single
       name:
       - invoices
-      - billing_country
+      - invoice_id
       target_id: 167
       target_name: null
+    - !Single
+      name:
+      - invoices
+      - billing_country
+      target_id: 168
+      target_name: null
     inputs:
-    - id: 163
+    - id: 164
       name: invoices
       table:
       - default_db
@@ -61,22 +60,22 @@ frames:
   - columns:
     - !Single
       name: null
-      target_id: 147
-      target_name: null
-    - !Single
-      name:
-      - employees
-      - employee_id
       target_id: 148
       target_name: null
     - !Single
       name:
       - employees
-      - country
+      - employee_id
       target_id: 149
       target_name: null
+    - !Single
+      name:
+      - employees
+      - country
+      target_id: 150
+      target_name: null
     inputs:
-    - id: 145
+    - id: 146
       name: employees
       table:
       - default_db
@@ -85,22 +84,22 @@ frames:
   - columns:
     - !Single
       name: null
-      target_id: 147
-      target_name: null
-    - !Single
-      name:
-      - employees
-      - employee_id
       target_id: 148
       target_name: null
     - !Single
       name:
       - employees
-      - country
+      - employee_id
       target_id: 149
       target_name: null
+    - !Single
+      name:
+      - employees
+      - country
+      target_id: 150
+      target_name: null
     inputs:
-    - id: 145
+    - id: 146
       name: employees
       table:
       - default_db
@@ -111,27 +110,27 @@ frames:
       name:
       - invoices
       - customer_id
-      target_id: 165
-      target_name: null
-    - !Single
-      name:
-      - invoices
-      - invoice_id
       target_id: 166
       target_name: null
     - !Single
       name:
       - invoices
-      - billing_country
+      - invoice_id
       target_id: 167
       target_name: null
+    - !Single
+      name:
+      - invoices
+      - billing_country
+      target_id: 168
+      target_name: null
     inputs:
-    - id: 163
+    - id: 164
       name: invoices
       table:
       - default_db
       - invoices
-    - id: 145
+    - id: 146
       name: employees
       table:
       - default_db
@@ -142,20 +141,20 @@ frames:
       name:
       - invoice_items
       - invoice_line_id
-      target_id: 126
+      target_id: 127
       target_name: null
     - !Single
       name:
       - invoice_items
       - invoice_id
-      target_id: 127
+      target_id: 128
       target_name: null
     - !Single
       name: null
-      target_id: 128
+      target_id: 129
       target_name: null
     inputs:
-    - id: 124
+    - id: 125
       name: invoice_items
       table:
       - default_db
@@ -166,20 +165,20 @@ frames:
       name:
       - invoice_items
       - invoice_line_id
-      target_id: 126
+      target_id: 127
       target_name: null
     - !Single
       name:
       - invoice_items
       - invoice_id
-      target_id: 127
+      target_id: 128
       target_name: null
     - !Single
       name: null
-      target_id: 128
+      target_id: 129
       target_name: null
     inputs:
-    - id: 124
+    - id: 125
       name: invoice_items
       table:
       - default_db
@@ -190,32 +189,32 @@ frames:
       name:
       - invoices
       - customer_id
-      target_id: 165
-      target_name: null
-    - !Single
-      name:
-      - invoices
-      - invoice_id
       target_id: 166
       target_name: null
     - !Single
       name:
       - invoices
-      - billing_country
+      - invoice_id
       target_id: 167
       target_name: null
+    - !Single
+      name:
+      - invoices
+      - billing_country
+      target_id: 168
+      target_name: null
     inputs:
-    - id: 163
+    - id: 164
       name: invoices
       table:
       - default_db
       - invoices
-    - id: 145
+    - id: 146
       name: employees
       table:
       - default_db
       - employees
-    - id: 124
+    - id: 125
       name: invoice_items
       table:
       - default_db
@@ -226,39 +225,39 @@ frames:
       name:
       - invoices
       - billing_country
-      target_id: 175
+      target_id: 176
       target_name: null
     - !Single
       name:
       - invoices
       - invoice_id
-      target_id: 176
+      target_id: 177
       target_name: null
     inputs:
-    - id: 163
+    - id: 164
       name: invoices
       table:
       - default_db
       - invoices
-    - id: 145
+    - id: 146
       name: employees
       table:
       - default_db
       - employees
-    - id: 124
+    - id: 125
       name: invoice_items
       table:
       - default_db
       - invoice_items
 nodes:
-- id: 124
+- id: 125
   kind: Ident
   span: 1:168-186
   ident: !Ident
   - default_db
   - invoice_items
-  parent: 130
-- id: 126
+  parent: 131
+- id: 127
   kind: Ident
   span: 1:198-213
   ident: !Ident
@@ -266,9 +265,9 @@ nodes:
   - invoice_items
   - invoice_line_id
   targets:
-  - 124
-  parent: 129
-- id: 127
+  - 125
+  parent: 130
+- id: 128
   kind: Ident
   span: 1:215-225
   ident: !Ident
@@ -276,45 +275,45 @@ nodes:
   - invoice_items
   - invoice_id
   targets:
-  - 124
-  parent: 129
-- id: 128
+  - 125
+  parent: 130
+- id: 129
   kind: Literal
   span: 1:227-231
-  parent: 129
-- id: 129
+  parent: 130
+- id: 130
   kind: Tuple
   span: 1:196-233
   children:
-  - 126
   - 127
   - 128
-  parent: 130
-- id: 130
+  - 129
+  parent: 131
+- id: 131
   kind: 'TransformCall: Select'
   span: 1:189-233
   children:
-  - 124
-  - 129
-  parent: 132
-- id: 132
+  - 125
+  - 130
+  parent: 133
+- id: 133
   kind: 'TransformCall: Take'
   span: 1:236-242
   children:
-  - 130
-  - 133
-  parent: 174
-- id: 133
+  - 131
+  - 134
+  parent: 175
+- id: 134
   kind: Literal
-  parent: 132
-- id: 145
+  parent: 133
+- id: 146
   kind: Ident
   span: 1:84-98
   ident: !Ident
   - default_db
   - employees
-  parent: 151
-- id: 147
+  parent: 152
+- id: 148
   kind: Ident
   span: 1:110-121
   ident: !Ident
@@ -322,9 +321,9 @@ nodes:
   - employees
   - employee_id
   targets:
-  - 145
-  parent: 150
-- id: 148
+  - 146
+  parent: 151
+- id: 149
   kind: Ident
   span: 1:123-134
   ident: !Ident
@@ -332,9 +331,9 @@ nodes:
   - employees
   - employee_id
   targets:
-  - 145
-  parent: 150
-- id: 149
+  - 146
+  parent: 151
+- id: 150
   kind: Ident
   span: 1:136-143
   ident: !Ident
@@ -342,41 +341,41 @@ nodes:
   - employees
   - country
   targets:
-  - 145
-  parent: 150
-- id: 150
+  - 146
+  parent: 151
+- id: 151
   kind: Tuple
   span: 1:108-145
   children:
-  - 147
   - 148
   - 149
-  parent: 151
-- id: 151
+  - 150
+  parent: 152
+- id: 152
   kind: 'TransformCall: Select'
   span: 1:101-145
   children:
-  - 145
-  - 150
-  parent: 153
-- id: 153
+  - 146
+  - 151
+  parent: 154
+- id: 154
   kind: 'TransformCall: Take'
   span: 1:148-154
   children:
-  - 151
-  - 154
-  parent: 173
-- id: 154
+  - 152
+  - 155
+  parent: 174
+- id: 155
   kind: Literal
-  parent: 153
-- id: 163
+  parent: 154
+- id: 164
   kind: Ident
   span: 1:0-13
   ident: !Ident
   - default_db
   - invoices
-  parent: 169
-- id: 165
+  parent: 170
+- id: 166
   kind: Ident
   span: 1:23-34
   ident: !Ident
@@ -384,9 +383,9 @@ nodes:
   - invoices
   - customer_id
   targets:
-  - 163
-  parent: 168
-- id: 166
+  - 164
+  parent: 169
+- id: 167
   kind: Ident
   span: 1:36-46
   ident: !Ident
@@ -394,9 +393,9 @@ nodes:
   - invoices
   - invoice_id
   targets:
-  - 163
-  parent: 168
-- id: 167
+  - 164
+  parent: 169
+- id: 168
   kind: Ident
   span: 1:48-63
   ident: !Ident
@@ -404,48 +403,48 @@ nodes:
   - invoices
   - billing_country
   targets:
-  - 163
-  parent: 168
-- id: 168
+  - 164
+  parent: 169
+- id: 169
   kind: Tuple
   span: 1:21-65
   children:
-  - 165
   - 166
   - 167
-  parent: 169
-- id: 169
+  - 168
+  parent: 170
+- id: 170
   kind: 'TransformCall: Select'
   span: 1:14-65
   children:
-  - 163
-  - 168
-  parent: 171
-- id: 171
+  - 164
+  - 169
+  parent: 172
+- id: 172
   kind: 'TransformCall: Take'
   span: 1:66-72
   children:
-  - 169
-  - 172
-  parent: 173
-- id: 172
-  kind: Literal
-  parent: 171
+  - 170
+  - 173
+  parent: 174
 - id: 173
+  kind: Literal
+  parent: 172
+- id: 174
   kind: 'TransformCall: Append'
   span: 1:73-156
   children:
-  - 171
-  - 153
-  parent: 174
-- id: 174
+  - 172
+  - 154
+  parent: 175
+- id: 175
   kind: 'TransformCall: Append'
   span: 1:157-244
   children:
-  - 173
-  - 132
-  parent: 178
-- id: 175
+  - 174
+  - 133
+  parent: 179
+- id: 176
   kind: Ident
   span: 1:254-269
   ident: !Ident
@@ -453,9 +452,9 @@ nodes:
   - invoices
   - billing_country
   targets:
-  - 167
-  parent: 177
-- id: 176
+  - 168
+  parent: 178
+- id: 177
   kind: Ident
   span: 1:271-281
   ident: !Ident
@@ -463,21 +462,21 @@ nodes:
   - invoices
   - invoice_id
   targets:
-  - 166
-  parent: 177
-- id: 177
+  - 167
+  parent: 178
+- id: 178
   kind: Tuple
   span: 1:252-283
   children:
-  - 175
   - 176
-  parent: 178
-- id: 178
+  - 177
+  parent: 179
+- id: 179
   kind: 'TransformCall: Select'
   span: 1:245-283
   children:
-  - 174
-  - 177
+  - 175
+  - 178
 ast:
   name: Project
   stmts:

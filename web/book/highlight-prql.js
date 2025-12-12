@@ -41,6 +41,7 @@ formatting = function (hljs) {
     "sum",
     // File reading functions
     "read_csv",
+    "read_json",
     "read_parquet",
     // List functions
     "all",

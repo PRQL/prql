@@ -2,4 +2,5 @@
 # postgres:skip
 # mysql:skip
 from (read_csv "data_file_root/media_types.csv")
+append (read_json "data_file_root/media_types.json")
 sort media_type_id

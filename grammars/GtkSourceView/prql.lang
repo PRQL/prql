@@ -112,6 +112,7 @@
 
     <context id="file-reading-functions" style-ref="function">
       <keyword>read_csv</keyword>
+      <keyword>read_json</keyword>
       <keyword>read_parquet</keyword>
     </context>
 

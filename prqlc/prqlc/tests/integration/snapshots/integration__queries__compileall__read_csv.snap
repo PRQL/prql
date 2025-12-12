@@ -1,56 +1,85 @@
 ---
 source: prqlc/prqlc/tests/integration/queries.rs
-expression: "# sqlite:skip\n# postgres:skip\n# mysql:skip\nfrom (read_csv \"data_file_root/media_types.csv\")\nsort media_type_id\n"
+expression: "# sqlite:skip\n# postgres:skip\n# mysql:skip\nfrom (read_csv \"data_file_root/media_types.csv\")\nappend (read_json \"data_file_root/media_types.json\")\nsort media_type_id\n"
 input_file: prqlc/prqlc/tests/integration/queries/read_csv.prql
 ---
 --- generic
 +++ clickhouse
-@@ -1,12 +1,12 @@
+@@ -1,24 +1,24 @@
  WITH table_0 AS (
    SELECT
      *
    FROM
 -    read_csv('data_file_root/media_types.csv')
 +    file('data_file_root/media_types.csv', 'CSV')
+ ),
+ table_2 AS (
+   SELECT
+     *
+   FROM
+     table_0
+   UNION
+   ALL
+   SELECT
+     *
+   FROM
+-    read_json('data_file_root/media_types.json')
++    file('data_file_root/media_types.json', 'Json')
  )
  SELECT
    *
  FROM
-   table_0
+   table_2
  ORDER BY
    media_type_id
 
 --- generic
 +++ duckdb
-@@ -1,12 +1,12 @@
+@@ -1,24 +1,24 @@
  WITH table_0 AS (
    SELECT
      *
    FROM
 -    read_csv('data_file_root/media_types.csv')
 +    read_csv_auto('data_file_root/media_types.csv')
+ ),
+ table_2 AS (
+   SELECT
+     *
+   FROM
+     table_0
+   UNION
+   ALL
+   SELECT
+     *
+   FROM
+-    read_json('data_file_root/media_types.json')
++    read_json_auto('data_file_root/media_types.json')
  )
  SELECT
    *
  FROM
-   table_0
+   table_2
  ORDER BY
    media_type_id
 
 
 --- generic
 +++ glaredb
-@@ -1,12 +1,12 @@
+@@ -1,15 +1,15 @@
  WITH table_0 AS (
    SELECT
      *
    FROM
 -    read_csv('data_file_root/media_types.csv')
 +    csv_scan('data_file_root/media_types.csv')
- )
- SELECT
-   *
- FROM
-   table_0
- ORDER BY
-   media_type_id
+ ),
+ table_2 AS (
+   SELECT
+     *
+   FROM
+     table_0
+   UNION
+   ALL
+   SELECT
+     *

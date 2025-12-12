@@ -1,10 +1,15 @@
 ---
 source: prqlc/prqlc/tests/integration/queries.rs
-expression: "# sqlite:skip\n# postgres:skip\n# mysql:skip\nfrom (read_csv \"data_file_root/media_types.csv\")\nsort media_type_id\n"
+expression: "# sqlite:skip\n# postgres:skip\n# mysql:skip\nfrom (read_csv \"data_file_root/media_types.csv\")\nappend (read_json \"data_file_root/media_types.json\")\nsort media_type_id\n"
 input_file: prqlc/prqlc/tests/integration/queries/read_csv.prql
 ---
 1,MPEG audio file
+1,MPEG audio file
+2,Protected AAC audio file
 2,Protected AAC audio file
 3,Protected MPEG-4 video file
+3,Protected MPEG-4 video file
 4,Purchased AAC audio file
+4,Purchased AAC audio file
+5,AAC audio file
 5,AAC audio file

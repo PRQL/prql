@@ -43,6 +43,7 @@ commands:
   - beginString: stddev
   - beginString: sum
   - beginString: read_csv
+  - beginString: read_json
   - beginString: read_parquet
   - beginString: all
   - beginString: map

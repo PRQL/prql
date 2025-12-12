@@ -46,6 +46,7 @@ const globals: readonly Completion[] = ["false", "null", "true"]
       "sum",
       // file-reading-functions
       "read_csv",
+      "read_json",
       "read_parquet",
       // list-functions
       "all",

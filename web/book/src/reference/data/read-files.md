@@ -1,12 +1,13 @@
 # Reading files
 
-There are a couple of functions mainly designed for DuckDB to read from files:
+There are a few functions mainly designed for DuckDB to read from files:
 
 ```prql
 prql target:sql.duckdb
 
-from (read_parquet "artists.parquet")
-join (read_csv "albums.csv") (==track_id)
+from a = (read_parquet "artists.parquet")
+join b = (read_csv "albums.csv") (a.artist_id == b.artist_id)
+join c = (read_json "metadata.json") (a.artist_id == c.artist_id)
 ```
 
 > [!NOTE] These don't currently have all the DuckDB options. If those would be

@@ -237,6 +237,7 @@ let read_parquet = func
   union_by_name <bool>:false
   -> <relation> internal std.read_parquet
 let read_csv = source<text> -> <relation> internal std.read_csv
+let read_json = source<text> -> <relation> internal std.read_json
 
 
 ## PRQL compiler functions

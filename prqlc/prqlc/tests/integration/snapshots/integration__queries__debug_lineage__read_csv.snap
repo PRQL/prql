@@ -1,46 +1,83 @@
 ---
 source: prqlc/prqlc/tests/integration/queries.rs
-expression: "# sqlite:skip\n# postgres:skip\n# mysql:skip\nfrom (read_csv \"data_file_root/media_types.csv\")\nsort media_type_id\n"
+expression: "# sqlite:skip\n# postgres:skip\n# mysql:skip\nfrom (read_csv \"data_file_root/media_types.csv\")\nappend (read_json \"data_file_root/media_types.json\")\nsort media_type_id\n"
 input_file: prqlc/prqlc/tests/integration/queries/read_csv.prql
 ---
 frames:
-- - 1:92-110
+- - 1:92-144
   - columns:
     - !All
-      input_id: 115
+      input_id: 122
       except: []
     inputs:
-    - id: 115
-      name: _literal_115
+    - id: 122
+      name: _literal_122
       table:
       - default_db
-      - _literal_115
+      - _literal_122
+    - id: 117
+      name: _literal_117
+      table:
+      - default_db
+      - _literal_117
+- - 1:145-163
+  - columns:
+    - !All
+      input_id: 122
+      except: []
+    inputs:
+    - id: 122
+      name: _literal_122
+      table:
+      - default_db
+      - _literal_122
+    - id: 117
+      name: _literal_117
+      table:
+      - default_db
+      - _literal_117
 nodes:
-- id: 115
+- id: 117
+  kind: RqOperator
+  span: 1:100-143
+  targets:
+  - 119
+  parent: 126
+- id: 119
+  kind: Literal
+  span: 1:110-143
+- id: 122
   kind: RqOperator
   span: 1:43-91
   targets:
-  - 117
-  parent: 121
-- id: 117
+  - 124
+  parent: 126
+- id: 124
   kind: Literal
   span: 1:58-90
-- id: 119
+- id: 126
+  kind: 'TransformCall: Append'
+  span: 1:92-144
+  children:
+  - 122
+  - 117
+  parent: 129
+- id: 127
   kind: Ident
-  span: 1:97-110
+  span: 1:150-163
   ident: !Ident
   - this
-  - _literal_115
+  - _literal_122
   - media_type_id
   targets:
-  - 115
-  parent: 121
-- id: 121
+  - 122
+  parent: 129
+- id: 129
   kind: 'TransformCall: Sort'
-  span: 1:92-110
+  span: 1:145-163
   children:
-  - 115
-  - 119
+  - 126
+  - 127
 ast:
   name: Project
   stmts:
@@ -70,12 +107,29 @@ ast:
           - FuncCall:
               name:
                 Ident:
+                - append
+                span: 1:92-98
+              args:
+              - FuncCall:
+                  name:
+                    Ident:
+                    - read_json
+                    span: 1:100-109
+                  args:
+                  - Literal:
+                      String: data_file_root/media_types.json
+                    span: 1:110-143
+                span: 1:100-143
+            span: 1:92-144
+          - FuncCall:
+              name:
+                Ident:
                 - sort
-                span: 1:92-96
+                span: 1:145-149
               args:
               - Ident:
                 - media_type_id
-                span: 1:97-110
-            span: 1:92-110
-        span: 1:43-110
-    span: 1:0-110
+                span: 1:150-163
+            span: 1:145-163
+        span: 1:43-163
+    span: 1:0-163
