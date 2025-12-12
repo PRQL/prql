@@ -14,11 +14,52 @@
 
 **Integrations**:
 
-- Add grammar file for Raku. (@vanillajonathan, #5576)
-
 **Internal changes**:
 
 **New Contributors**:
+
+## 0.13.8 — 2025-12-12
+
+0.13.8 has 47 commits from 6 contributors. Selected changes:
+
+**Features**:
+
+- Add named parameter support for DuckDB read_parquet (@max-sixty, #5563)
+
+**Fixes**:
+
+- Snowflake interval quoting style (@priithaamer, #5604)
+- Return error instead of panicking when window rows/range is not a range
+  (@max-sixty, #5603)
+- Add ORDER BY fallback for Snowflake window functions (@max-sixty, #5583)
+- DISTINCT ON to include wildcard when projection is empty (@max-sixty, #5562)
+- Lineage traces through CTEs to source tables (@nightscape, #5581)
+- Lineage works with unions (@nightscape, #5550)
+- Handle lineage correctly when group pipeline simplifies to non-TransformCall
+  (@max-sixty, #5584)
+- Return error for join referencing inaccessible table (@max-sixty, #5587)
+- Error when table variable used in scalar context (@max-sixty, #5585)
+- Improve error messages for missing main pipeline (@max-sixty, #5565)
+- Provide clear error for empty tuple/array in from (@max-sixty, #5564)
+- Improve error message for negative numbers in transforms (@max-sixty, #5566)
+
+**Documentation**:
+
+- Close HTML comment in sort.md documentation (@max-sixty, #5597)
+
+**Integrations**:
+
+- Add grammar file for Raku (@vanillajonathan, #5576)
+
+**Internal changes**:
+
+- Upgrade mdbook to 0.5.0 (#5568)
+- Update macOS runners to version 15 (#5596)
+- Remove 2nd person from error messages (#5567)
+
+**New Contributors**:
+
+- @nightscape, with #5550
 
 ## 0.13.7 — 2025-11-08
 
