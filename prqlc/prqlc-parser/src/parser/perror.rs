@@ -83,7 +83,7 @@ where
 }
 
 impl<'a> From<Rich<'a, crate::lexer::lr::Token, Span>> for Error {
-    fn from(rich: Rich<'a, crate::lexer::lr::Token, Span>) -> Error {
+    fn from(rich: Rich<'a, crate::lexer::lr::Token, Span>) -> Self {
         rich_error_to_error(
             *rich.span(),
             rich.reason(),
@@ -94,7 +94,7 @@ impl<'a> From<Rich<'a, crate::lexer::lr::Token, Span>> for Error {
 }
 
 impl<'a> From<Rich<'a, TokenKind, Span>> for Error {
-    fn from(rich: Rich<'a, TokenKind, Span>) -> Error {
+    fn from(rich: Rich<'a, TokenKind, Span>) -> Self {
         rich_error_to_error(
             *rich.span(),
             rich.reason(),

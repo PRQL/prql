@@ -102,10 +102,10 @@ impl Default for WriteOpt {
 
 impl WriteOpt {
     fn new_width(max_width: u16) -> Self {
-        WriteOpt {
+        Self {
             max_width,
             rem_width: max_width,
-            ..WriteOpt::default()
+            ..Self::default()
         }
     }
 

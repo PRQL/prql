@@ -32,7 +32,7 @@ impl<T> WindowFrame<T> {
     pub(crate) fn is_default(&self) -> bool {
         matches!(
             self,
-            WindowFrame {
+            Self {
                 kind: WindowKind::Rows,
                 range: generic::Range {
                     start: None,

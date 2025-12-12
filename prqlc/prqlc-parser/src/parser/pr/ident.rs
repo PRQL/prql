@@ -13,7 +13,7 @@ pub struct Ident {
 
 impl Ident {
     pub fn from_name<S: ToString>(name: S) -> Self {
-        Ident {
+        Self {
             path: Vec::new(),
             name: name.to_string(),
         }
@@ -24,7 +24,7 @@ impl Ident {
     /// Panics if path is empty.
     pub fn from_path<S: ToString>(mut path: Vec<S>) -> Self {
         let name = path.pop().unwrap().to_string();
-        Ident {
+        Self {
             path: path.into_iter().map(|x| x.to_string()).collect(),
             name,
         }
@@ -42,10 +42,10 @@ impl Ident {
     /// Result will generally refer to the parent of this ident.
     pub fn pop(self) -> Option<Self> {
         let mut path = self.path;
-        path.pop().map(|name| Ident { path, name })
+        path.pop().map(|name| Self { path, name })
     }
 
-    pub fn pop_front(mut self) -> (String, Option<Ident>) {
+    pub fn pop_front(mut self) -> (String, Option<Self>) {
         if self.path.is_empty() {
             (self.name, None)
         } else {
@@ -54,9 +54,9 @@ impl Ident {
         }
     }
 
-    pub fn prepend(self, mut parts: Vec<String>) -> Ident {
+    pub fn prepend(self, mut parts: Vec<String>) -> Self {
         parts.extend(self);
-        Ident::from_path(parts)
+        Self::from_path(parts)
     }
 
     pub fn push(&mut self, name: String) {
@@ -73,7 +73,7 @@ impl Ident {
         self.path.iter().chain(std::iter::once(&self.name))
     }
 
-    pub fn starts_with(&self, prefix: &Ident) -> bool {
+    pub fn starts_with(&self, prefix: &Self) -> bool {
         if prefix.len() > self.len() {
             return false;
         }
@@ -126,11 +126,11 @@ impl IntoIterator for Ident {
     }
 }
 
-impl std::ops::Add<Ident> for Ident {
-    type Output = Ident;
+impl std::ops::Add<Self> for Ident {
+    type Output = Self;
 
-    fn add(self, rhs: Ident) -> Self::Output {
-        Ident {
+    fn add(self, rhs: Self) -> Self::Output {
+        Self {
             path: self.into_iter().chain(rhs.path).collect(),
             name: rhs.name,
         }
@@ -156,7 +156,7 @@ impl<'de> Deserialize<'de> for Ident {
     where
         D: Deserializer<'de>,
     {
-        <Vec<String> as Deserialize>::deserialize(deserializer).map(Ident::from_path)
+        <Vec<String> as Deserialize>::deserialize(deserializer).map(Self::from_path)
     }
 }
 

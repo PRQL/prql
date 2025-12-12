@@ -35,7 +35,7 @@ pub enum TyKind {
 }
 
 impl TyKind {
-    pub fn into_ty(self: TyKind, span: Span) -> Ty {
+    pub fn into_ty(self, span: Span) -> Ty {
         Ty {
             kind: self,
             span: Some(span),
@@ -92,8 +92,8 @@ pub struct TyFunc {
 }
 
 impl Ty {
-    pub fn new<K: Into<TyKind>>(kind: K) -> Ty {
-        Ty {
+    pub fn new<K: Into<TyKind>>(kind: K) -> Self {
+        Self {
             kind: kind.into(),
             span: None,
             name: None,
@@ -101,8 +101,8 @@ impl Ty {
     }
 
     pub fn relation(tuple_fields: Vec<TyTupleField>) -> Self {
-        let tuple = Ty::new(TyKind::Tuple(tuple_fields));
-        Ty::new(TyKind::Array(Some(Box::new(tuple))))
+        let tuple = Self::new(TyKind::Tuple(tuple_fields));
+        Self::new(TyKind::Array(Some(Box::new(tuple))))
     }
 
     pub fn as_relation(&self) -> Option<&Vec<TyTupleField>> {
@@ -130,20 +130,20 @@ impl Ty {
 impl TyTupleField {
     pub fn ty(&self) -> Option<&Ty> {
         match self {
-            TyTupleField::Single(_, ty) => ty.as_ref(),
-            TyTupleField::Wildcard(ty) => ty.as_ref(),
+            Self::Single(_, ty) => ty.as_ref(),
+            Self::Wildcard(ty) => ty.as_ref(),
         }
     }
 }
 
 impl From<PrimitiveSet> for TyKind {
     fn from(value: PrimitiveSet) -> Self {
-        TyKind::Primitive(value)
+        Self::Primitive(value)
     }
 }
 
 impl From<TyFunc> for TyKind {
     fn from(value: TyFunc) -> Self {
-        TyKind::Function(Some(value))
+        Self::Function(Some(value))
     }
 }

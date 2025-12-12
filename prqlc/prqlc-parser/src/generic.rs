@@ -17,7 +17,7 @@ pub struct Range<T> {
 
 impl<T> Range<T> {
     pub const fn unbounded() -> Self {
-        Range {
+        Self {
             start: None,
             end: None,
         }

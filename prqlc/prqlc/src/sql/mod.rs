@@ -100,7 +100,7 @@ struct QueryOpts {
 
 impl Default for QueryOpts {
     fn default() -> Self {
-        QueryOpts {
+        Self {
             omit_ident_prefix: false,
             pre_projection: false,
             allow_ctes: true,
@@ -112,7 +112,7 @@ impl Default for QueryOpts {
 
 impl Context {
     fn new(dialect: Dialect, anchor: AnchorContext) -> Self {
-        Context {
+        Self {
             dialect: dialect.handler(),
             dialect_enum: dialect,
             anchor,

@@ -44,7 +44,7 @@ impl<T> Pluck<T> for Vec<T> {
         F: Fn(T) -> Result<R, T>,
     {
         let mut matched = Vec::new();
-        let mut not_matched = Vec::new();
+        let mut not_matched = Self::new();
 
         for transform in self.drain(..) {
             match f(transform) {
@@ -69,7 +69,7 @@ pub trait BreakUp<T> {
 }
 
 impl<T> BreakUp<T> for Vec<T> {
-    fn break_up<F>(mut self, f: F) -> (Vec<T>, Vec<T>)
+    fn break_up<F>(mut self, f: F) -> (Self, Self)
     where
         F: FnMut(&T) -> bool,
     {

@@ -117,7 +117,7 @@ pub enum SqlTransform<Rel = RIId, Super = rq::Transform> {
 impl<Rel> SqlTransform<Rel> {
     pub fn as_str(&self) -> &str {
         match self {
-            SqlTransform::Super(t) => t.as_ref(),
+            Self::Super(t) => t.as_ref(),
             _ => self.as_ref(),
         }
     }
