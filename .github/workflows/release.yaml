@@ -326,6 +326,9 @@ jobs:
 
   publish-js:
     runs-on: ubuntu-24.04
+    permissions:
+      contents: read
+      id-token: write
     steps:
       - name: 📂 Checkout code
         uses: actions/checkout@v5
@@ -353,12 +356,11 @@ jobs:
       - run: npm install
         working-directory: prqlc/bindings/js/
 
-      - run:
-          npm publish ${{ (github.event_name != 'release') && '--dry-run' || ''
-          }}
+      - name: Publish to npm
+        run:
+          npm publish --provenance --access public ${{ (github.event_name !=
+          'release') && '--dry-run' || '' }}
         working-directory: prqlc/bindings/js/
-        env:
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
 
   publish-to-cargo:
     runs-on: ubuntu-24.04
