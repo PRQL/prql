@@ -18,6 +18,14 @@
 
 **New Contributors**:
 
+## 0.13.9 — 2025-12-12
+
+0.13.9 is a re-release of 0.13.8 with fixed npm publishing.
+
+**Internal changes**:
+
+- Use OIDC for npm publishing (@max-sixty, #5609)
+
 ## 0.13.8 — 2025-12-12
 
 0.13.8 has 47 commits from 6 contributors. Selected changes:
