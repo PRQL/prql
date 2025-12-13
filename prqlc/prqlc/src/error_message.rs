@@ -73,7 +73,7 @@ impl Debug for ErrorMessage {
 impl From<Error> for ErrorMessage {
     fn from(e: Error) -> Self {
         log::debug!("{e:#?}");
-        ErrorMessage {
+        Self {
             code: e.code.map(str::to_string),
             kind: e.kind,
             reason: e.reason.to_string(),
@@ -87,7 +87,7 @@ impl From<Error> for ErrorMessage {
 
 impl From<Vec<ErrorMessage>> for ErrorMessages {
     fn from(errors: Vec<ErrorMessage>) -> Self {
-        ErrorMessages { inner: errors }
+        Self { inner: errors }
     }
 }
 
@@ -99,13 +99,13 @@ impl StdError for ErrorMessages {}
 
 impl From<ErrorMessage> for ErrorMessages {
     fn from(e: ErrorMessage) -> Self {
-        ErrorMessages { inner: vec![e] }
+        Self { inner: vec![e] }
     }
 }
 
 impl From<Error> for ErrorMessages {
     fn from(e: Error) -> Self {
-        ErrorMessages {
+        Self {
             inner: vec![ErrorMessage::from(e)],
         }
     }
@@ -113,7 +113,7 @@ impl From<Error> for ErrorMessages {
 
 impl From<Errors> for ErrorMessages {
     fn from(errs: Errors) -> Self {
-        ErrorMessages {
+        Self {
             inner: errs.0.into_iter().map(ErrorMessage::from).collect(),
         }
     }

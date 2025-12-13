@@ -44,7 +44,7 @@ pub struct Flattener {
 
 impl Flattener {
     pub fn fold(expr: Expr) -> Expr {
-        let mut f = Flattener::default();
+        let mut f = Self::default();
         f.fold_expr(expr).unwrap()
     }
 }

@@ -93,7 +93,7 @@ pub enum Literal {
 
 impl TokenKind {
     pub fn range(bind_left: bool, bind_right: bool) -> Self {
-        TokenKind::Range {
+        Self::Range {
             bind_left,
             bind_right,
         }
@@ -109,27 +109,27 @@ pub struct ValueAndUnit {
 impl std::fmt::Display for Literal {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
-            Literal::Null => write!(f, "null")?,
-            Literal::Integer(i) => write!(f, "{i}")?,
-            Literal::Float(i) => write!(f, "{i}")?,
+            Self::Null => write!(f, "null")?,
+            Self::Integer(i) => write!(f, "{i}")?,
+            Self::Float(i) => write!(f, "{i}")?,
 
-            Literal::String(s) => {
+            Self::String(s) => {
                 write!(f, "{}", quote_string(escape_all_except_quotes(s).as_str()))?;
             }
 
-            Literal::RawString(s) => {
+            Self::RawString(s) => {
                 write!(f, "r{}", quote_string(s))?;
             }
 
-            Literal::Boolean(b) => {
+            Self::Boolean(b) => {
                 f.write_str(if *b { "true" } else { "false" })?;
             }
 
-            Literal::Date(inner) | Literal::Time(inner) | Literal::Timestamp(inner) => {
+            Self::Date(inner) | Self::Time(inner) | Self::Timestamp(inner) => {
                 write!(f, "@{inner}")?;
             }
 
-            Literal::ValueAndUnit(i) => {
+            Self::ValueAndUnit(i) => {
                 write!(f, "{}{}", i.n, i.unit)?;
             }
         }
@@ -206,8 +206,8 @@ impl std::cmp::Eq for TokenKind {}
 impl std::fmt::Display for TokenKind {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
-            TokenKind::NewLine => write!(f, "new line"),
-            TokenKind::Ident(s) => {
+            Self::NewLine => write!(f, "new line"),
+            Self::Ident(s) => {
                 if s.is_empty() {
                     // FYI this shows up in errors
                     write!(f, "an identifier")
@@ -215,27 +215,27 @@ impl std::fmt::Display for TokenKind {
                     write!(f, "{s}")
                 }
             }
-            TokenKind::Keyword(s) => write!(f, "keyword {s}"),
-            TokenKind::Literal(lit) => write!(f, "{lit}"),
-            TokenKind::Control(c) => write!(f, "{c}"),
+            Self::Keyword(s) => write!(f, "keyword {s}"),
+            Self::Literal(lit) => write!(f, "{lit}"),
+            Self::Control(c) => write!(f, "{c}"),
 
-            TokenKind::ArrowThin => f.write_str("->"),
-            TokenKind::ArrowFat => f.write_str("=>"),
-            TokenKind::Eq => f.write_str("=="),
-            TokenKind::Ne => f.write_str("!="),
-            TokenKind::Gte => f.write_str(">="),
-            TokenKind::Lte => f.write_str("<="),
-            TokenKind::RegexSearch => f.write_str("~="),
-            TokenKind::And => f.write_str("&&"),
-            TokenKind::Or => f.write_str("||"),
-            TokenKind::Coalesce => f.write_str("??"),
-            TokenKind::DivInt => f.write_str("//"),
-            TokenKind::Pow => f.write_str("**"),
-            TokenKind::Annotate => f.write_str("@{"),
+            Self::ArrowThin => f.write_str("->"),
+            Self::ArrowFat => f.write_str("=>"),
+            Self::Eq => f.write_str("=="),
+            Self::Ne => f.write_str("!="),
+            Self::Gte => f.write_str(">="),
+            Self::Lte => f.write_str("<="),
+            Self::RegexSearch => f.write_str("~="),
+            Self::And => f.write_str("&&"),
+            Self::Or => f.write_str("||"),
+            Self::Coalesce => f.write_str("??"),
+            Self::DivInt => f.write_str("//"),
+            Self::Pow => f.write_str("**"),
+            Self::Annotate => f.write_str("@{"),
 
-            TokenKind::Param(id) => write!(f, "${id}"),
+            Self::Param(id) => write!(f, "${id}"),
 
-            TokenKind::Range {
+            Self::Range {
                 bind_left,
                 bind_right,
             } => write!(
@@ -244,23 +244,23 @@ impl std::fmt::Display for TokenKind {
                 if *bind_left { "" } else { " " },
                 if *bind_right { "" } else { " " }
             ),
-            TokenKind::Interpolation(c, s) => {
+            Self::Interpolation(c, s) => {
                 write!(f, "{c}\"{s}\"")
             }
-            TokenKind::Comment(s) => {
+            Self::Comment(s) => {
                 writeln!(f, "#{s}")
             }
-            TokenKind::DocComment(s) => {
+            Self::DocComment(s) => {
                 writeln!(f, "#!{s}")
             }
-            TokenKind::LineWrap(comments) => {
+            Self::LineWrap(comments) => {
                 write!(f, "\n\\ ")?;
                 for comment in comments {
                     write!(f, "{comment}")?;
                 }
                 Ok(())
             }
-            TokenKind::Start => write!(f, "start of input"),
+            Self::Start => write!(f, "start of input"),
         }
     }
 }
