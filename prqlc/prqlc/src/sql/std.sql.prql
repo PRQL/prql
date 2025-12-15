@@ -392,4 +392,10 @@ module snowflake {
   # https://docs.snowflake.com/en/sql-reference/operators-arithmetic#division
   @{binding_strength=11}
   let div_f = l r -> s"({l} / {r:12})"
+
+  # Text functions
+  module text {
+    # https://docs.snowflake.com/en/sql-reference/functions-string
+    let length = column -> s"LENGTH({column:0})"
+  }
 }

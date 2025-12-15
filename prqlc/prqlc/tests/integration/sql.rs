@@ -6623,6 +6623,23 @@ fn test_snowflake_row_number_with_explicit_sort() {
 }
 
 #[test]
+fn test_snowflake_text_length_uses_length() {
+    // Snowflake should use LENGTH instead of CHAR_LENGTH
+    assert_snapshot!(compile_with_sql_dialect(r###"
+    from employees
+    select {
+        name_length = (name | text.length)
+    }
+    "###, sql::Dialect::Snowflake
+    ).unwrap(), @r#"
+    SELECT
+      LENGTH("name") AS "name_length"
+    FROM
+      "employees"
+    "#);
+}
+
+#[test]
 fn test_group_with_only_sort() {
     // Issue #5092: group with only sort (no take) should not cause ICE.
     // The sort inside a group without take is semantically a no-op,
