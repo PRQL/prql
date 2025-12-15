@@ -21,8 +21,8 @@ test = false
 ansi-to-html = "0.2.2"
 anyhow = { workspace = true }
 itertools = { workspace = true }
-mdbook-core = { version = "0.5.0", default-features = false }
-mdbook-preprocessor = { version = "0.5.0", default-features = false }
+mdbook-core = { version = "0.5.2", default-features = false }
+mdbook-preprocessor = { version = "0.5.2", default-features = false }
 prqlc = { path = "../../prqlc/prqlc", default-features = false }
 pulldown-cmark = { version = "0.13.0", default-features = false }
 pulldown-cmark-to-cmark = "21.1.0"
