@@ -460,7 +460,10 @@ Currently we release in a semi-automated way:
    `cargo release version $version -x && cargo release replace -x && task prqlc:test-all`
    to bump the version, and PR the resulting commit.
 
-3. After merging, go to
+3. Ensure all changes intended for the release are merged to `main`. Then create
+   the release (which creates the tag on the latest commit on `main`):
+
+   **Web UI:** Go to
    [Draft a new release](https://github.com/PRQL/prql/releases/new){{footnote: Only
        maintainers have access to this page.}},
    copy the changelog entry into the release
@@ -469,6 +472,15 @@ Currently we release in a semi-automated way:
         editing the markdown to look reasonable than manually editing the text
         or asking LLM to help.}}, enter the tag to be created, and hit
    "Publish".
+
+   **CLI:**
+
+   ```sh
+   gh release create $version --title "$version" --notes "$(cat <<'EOF'
+   <paste changelog entry here>
+   EOF
+   )"
+   ```
 
 4. From there, both the tag and release is created and all packages are
    published automatically based on our
