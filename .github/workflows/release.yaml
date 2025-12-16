@@ -339,7 +339,8 @@ jobs:
       - name: Setup Node
         uses: actions/setup-node@v6
         with:
-          node-version: "20.x"
+          # Node 24+ includes npm 11.5.1+ required for OIDC trusted publishing
+          node-version: "24.x"
           registry-url: "https://registry.npmjs.org"
 
       - run: ./.github/workflows/scripts/set_version.sh
