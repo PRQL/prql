@@ -405,6 +405,8 @@ jobs:
     steps:
       - name: 📂 Checkout code
         uses: actions/checkout@v5
+        with:
+          token: ${{ secrets.PRQL_BOT_GITHUB_TOKEN }}
       - run: git push origin HEAD:web --force
 
   push-devcontainer:

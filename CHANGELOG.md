@@ -1,40 +1,21 @@
 # PRQL Changelog
 
-## [unreleased]
+## 0.13.10 — 2025-12-16
 
-**Language**:
-
-**Features**:
-
-**Fixes**:
-
-**Documentation**:
-
-**Web**:
-
-**Integrations**:
-
-**Internal changes**:
-
-**New Contributors**:
-
-## [unreleased]
-
-**Language**:
+0.13.10 completes the npm OIDC publishing fix from 0.13.9.
 
 **Features**:
 
+- Add `read_json` support for DuckDB and ClickHouse (@adamnemecek, #5608)
+
 **Fixes**:
 
-**Documentation**:
-
-**Web**:
-
-**Integrations**:
+- Fix `text.length` on Snowflake (@priithaamer, #5614)
 
 **Internal changes**:
 
-**New Contributors**:
+- Fix npm OIDC publishing by upgrading to Node 24 (@max-sixty, #5619)
+- Fix push-web-branch workflow permissions (@max-sixty, #5620)
 
 ## 0.13.9 — 2025-12-12
 
