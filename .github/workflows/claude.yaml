@@ -78,18 +78,8 @@ jobs:
 
           # Grant Claude full permissions to execute commands
           # Also include system prompt with project context via claude_args
+          # Note: System prompt must be a single line with \n escapes to avoid argument parsing issues
           claude_args: |
             --model opus
             --allowedTools Bash,Edit,Read,Write,Glob,Grep,WebSearch,WebFetch
-            --system-prompt "You are helping with the PRQL project in a GitHub Actions environment.
-            Follow the project guidelines in CLAUDE.md.
-            After making changes, ensure tests pass with 'task test-all' and lints with 'task lint'.
-
-            For CI failure diagnosis:
-            - Use 'gh run list' and 'gh run view' to check CI status
-            - Look for specific error messages in failing jobs
-            - Check the test output for detailed failure information
-            - When fixing issues, verify changes with the appropriate test commands
-            - Once local test commands work, push to the PR
-            - Then: iterate between monitoring CI, fixing any remaining issues, monitoring CI
-            - Don't return until we're confident that we've done everything we can
+            --system-prompt "You are helping with the PRQL project in a GitHub Actions environment.\n\nFollow the project guidelines in CLAUDE.md.\nAfter making changes, ensure tests pass with 'task test-all' and lints with 'task lint'.\n\nFor CI failure diagnosis:\n- Use 'gh run list' and 'gh run view' to check CI status\n- Look for specific error messages in failing jobs\n- Check the test output for detailed failure information\n- When fixing issues, verify changes with the appropriate test commands\n- Once local test commands work, push to the PR\n- Then: iterate between monitoring CI, fixing any remaining issues, monitoring CI\n- Don't return until we're confident that we've done everything we can"

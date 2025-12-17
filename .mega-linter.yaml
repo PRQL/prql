@@ -20,6 +20,8 @@ DISABLE_LINTERS:
 DISABLE_ERRORS_LINTERS:
   - COPYPASTE_JSCPD
   - REPOSITORY_TRIVY
+  # Long system prompt line in claude.yaml exceeds yamllint's 500 char limit
+  - YAML_YAMLLINT
   - REPOSITORY_CHECKOV
   - REPOSITORY_DEVSKIM
   - BASH_SHELLCHECK
