@@ -1,5 +1,23 @@
 # PRQL Changelog
 
+## [unreleased]
+
+**Language**:
+
+**Features**:
+
+**Fixes**:
+
+**Documentation**:
+
+**Web**:
+
+**Integrations**:
+
+**Internal changes**:
+
+**New Contributors**:
+
 ## 0.13.10 — 2025-12-16
 
 0.13.10 completes the npm OIDC publishing fix from 0.13.9.
