@@ -2369,6 +2369,8 @@ fn test_take_mssql() {
 fn test_mssql_distinct_fetch() {
     // Issue #5628: MSSQL requires ORDER BY items to appear in SELECT list when DISTINCT is used.
     // Using (SELECT NULL) for ORDER BY with DISTINCT is invalid in MSSQL.
+
+    // Case 1: UnnamedExpr - simple column reference
     assert_snapshot!((compile(r#"
     prql target:sql.mssql
 
@@ -2383,6 +2385,45 @@ fn test_mssql_distinct_fetch() {
       t
     ORDER BY
       "District" OFFSET 0 ROWS
+    FETCH FIRST
+      100 ROWS ONLY
+    "###);
+
+    // Case 2: ExprWithAlias - uses the alias for ORDER BY
+    assert_snapshot!((compile(r#"
+    prql target:sql.mssql
+
+    from t
+    take 100
+    group {d = this.`District`} (take 1)
+    select {d}
+    "#).unwrap()), @r###"
+    SELECT
+      DISTINCT "District" AS d
+    FROM
+      t
+    ORDER BY
+      d OFFSET 0 ROWS
+    FETCH FIRST
+      100 ROWS ONLY
+    "###);
+
+    // Case 3: Multiple columns - uses first column for ORDER BY
+    assert_snapshot!((compile(r#"
+    prql target:sql.mssql
+
+    from t
+    take 100
+    group {this.`A`, this.`B`} (take 1)
+    select {this.`A`, this.`B`}
+    "#).unwrap()), @r###"
+    SELECT
+      DISTINCT "A",
+      "B"
+    FROM
+      t
+    ORDER BY
+      "A" OFFSET 0 ROWS
     FETCH FIRST
       100 ROWS ONLY
     "###);
