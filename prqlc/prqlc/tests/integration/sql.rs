@@ -2366,6 +2366,29 @@ fn test_take_mssql() {
 }
 
 #[test]
+fn test_mssql_distinct_fetch() {
+    // Issue #5628: MSSQL requires ORDER BY items to appear in SELECT list when DISTINCT is used.
+    // Using (SELECT NULL) for ORDER BY with DISTINCT is invalid in MSSQL.
+    assert_snapshot!((compile(r#"
+    prql target:sql.mssql
+
+    from t
+    take 100
+    group {this.`District`} (take 1)
+    select {this.`District`}
+    "#).unwrap()), @r###"
+    SELECT
+      DISTINCT "District"
+    FROM
+      t
+    ORDER BY
+      "District" OFFSET 0 ROWS
+    FETCH FIRST
+      100 ROWS ONLY
+    "###);
+}
+
+#[test]
 fn test_distinct_01() {
     // window functions cannot materialize into where statement: CTE is needed
     assert_snapshot!((compile(r###"
