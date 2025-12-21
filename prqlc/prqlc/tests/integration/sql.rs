@@ -6741,3 +6741,144 @@ fn test_group_empty_preserves_sort() {
       1
     ");
 }
+
+#[test]
+fn test_source_column_name() {
+    // Issue #5094: Using `source` as a column name should not cause
+    // "Ambiguous name" error.
+    assert_snapshot!(compile(r###"
+    let table1 = (
+        from ScrapedData
+        select { sd=SD_Land_Use_Code }
+        derive source="SD"
+        group { sd } (take 1)
+        sort { sd }
+    )
+
+    let table2 = (
+        from SpecialLand
+        select { sd = SL_Code }
+        derive source = "SL"
+        group { sd } (take 1)
+        sort { sd }
+    )
+
+    from table1
+    append table2
+    "###).unwrap(), @r#"
+    WITH table_0 AS (
+      SELECT
+        "SD_Land_Use_Code" AS sd,
+        'SD' AS source,
+        ROW_NUMBER() OVER (PARTITION BY "SD_Land_Use_Code") AS _expr_0
+      FROM
+        "ScrapedData"
+    ),
+    table1 AS (
+      SELECT
+        sd,
+        source
+      FROM
+        table_0
+      WHERE
+        _expr_0 <= 1
+    ),
+    table_1 AS (
+      SELECT
+        "SL_Code" AS sd,
+        'SL' AS source,
+        ROW_NUMBER() OVER (PARTITION BY "SL_Code") AS _expr_1
+      FROM
+        "SpecialLand"
+    )
+    SELECT
+      sd,
+      source
+    FROM
+      table1
+    UNION
+    ALL
+    SELECT
+      *
+    FROM
+      (
+        SELECT
+          sd,
+          source
+        FROM
+          table_1
+        WHERE
+          _expr_1 <= 1
+        ORDER BY
+          sd
+      ) AS table_2
+    "#);
+}
+
+#[test]
+fn test_column_inference_with_into() {
+    // Issue #4723: Column inference should work correctly with `into`.
+    assert_snapshot!(compile(r###"
+    from data
+    join side:left other (other.id == data.id)
+    into A
+
+    from A
+    select {
+        A.val
+    }
+    "###).unwrap(), @r#"
+    WITH "A" AS (
+      SELECT
+        data.*,
+        other.*
+      FROM
+        data
+        LEFT OUTER JOIN other ON other.id = data.id
+    )
+    SELECT
+      val
+    FROM
+      "A"
+    "#);
+}
+
+#[test]
+fn test_distinct_on_columns_propagated() {
+    // Issue #4432: DISTINCT ON should propagate all necessary columns to the CTE.
+    assert_snapshot!(compile(r###"
+    prql target:sql.postgres
+
+    from src
+    group {grouped_field} (
+        sort {sort_1}
+        take 2..3
+        sort {sort_2}
+        take 1
+    )
+    select { foo }
+    "###).unwrap(), @"
+    WITH table_0 AS (
+      SELECT
+        foo,
+        grouped_field,
+        sort_2,
+        ROW_NUMBER() OVER (
+          PARTITION BY grouped_field
+          ORDER BY
+            sort_1
+        ) AS _expr_0
+      FROM
+        src
+    )
+    SELECT
+      DISTINCT ON (grouped_field) foo
+    FROM
+      table_0
+    WHERE
+      _expr_0 BETWEEN 2 AND 3
+    ORDER BY
+      grouped_field,
+      sort_2
+    ");
+}
