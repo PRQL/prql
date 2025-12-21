@@ -77,7 +77,11 @@ impl PlFold for Flattener {
                     }
                     TransformKind::Group { by, pipeline } => {
                         let sort_undone = self.sort_undone;
-                        self.sort_undone = true;
+                        // Only mark sort as undone if there's an actual partition.
+                        // Empty group {} should preserve sort (fixes #5100).
+                        if !matches!(by.kind, ExprKind::Tuple(ref fields) if fields.is_empty()) {
+                            self.sort_undone = true;
+                        }
 
                         let input = self.fold_expr(*t.input)?;
 

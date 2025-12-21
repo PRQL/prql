@@ -6720,3 +6720,24 @@ fn test_group_with_only_sort() {
       employees AS a
     ");
 }
+
+#[test]
+fn test_group_empty_preserves_sort() {
+    // Issue #5100: Empty group {} should preserve inner sort.
+    assert_snapshot!(compile(r###"
+    from foo
+    group {} (
+        sort a
+        take 1
+    )
+    "###).unwrap(), @r"
+    SELECT
+      *
+    FROM
+      foo
+    ORDER BY
+      a
+    LIMIT
+      1
+    ");
+}
