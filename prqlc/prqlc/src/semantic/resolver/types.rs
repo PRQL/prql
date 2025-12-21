@@ -106,16 +106,21 @@ impl Resolver<'_> {
                 // similarly as normal table references, we want to be able to infer columns
                 // of this table, which means it needs to be defined somewhere
                 // in the module structure.
-                let frame = self.declare_table_for_literal(
-                    found
-                        .clone()
-                        .id
-                        // This is quite rare but possible with something like
-                        // `a -> b` at the moment.
-                        .ok_or_else(|| Error::new_bug(4280))?,
-                    None,
-                    found.alias.clone(),
-                );
+                let Some(id) = found.id else {
+                    // Expression has no id - this happens with bare lambdas like `x -> y`
+                    let found_desc = match &found.kind {
+                        ExprKind::Func(_) => "a function".to_string(),
+                        kind => format!("{kind:?}"),
+                    };
+                    return Err(Error::new(Reason::Expected {
+                        who: None,
+                        expected: "a table".to_string(),
+                        found: found_desc,
+                    })
+                    .with_span(found.span));
+                };
+
+                let frame = self.declare_table_for_literal(id, None, found.alias.clone());
 
                 // override the empty frame with frame of the new table
                 found.lineage = Some(frame)
