@@ -384,8 +384,21 @@ impl PqMapper<RelationExpr, RelationExpr, (), ()> for SortingInference<'_> {
                 }
 
                 // emit Sort before Take
-                SqlTransform::Take(_) => {
-                    result.push(SqlTransform::Sort(sorting.clone()));
+                SqlTransform::Take(ref take) => {
+                    // For simple takes (no partition), the sort may be embedded in the Take
+                    // struct from RQ lowering (sort | take -> Take { sort: [...] }).
+                    // Use the embedded sort if present, otherwise use accumulated sorting.
+                    //
+                    // Invariant: For simple takes, only one of take.sort or sorting should
+                    // be non-empty, never both. RQ lowering merges `sort | take` into a
+                    // single Take with embedded sort, while explicit SqlTransform::Sort
+                    // only appears when sort is not immediately followed by take.
+                    let sort_to_emit = if take.partition.is_empty() && !take.sort.is_empty() {
+                        take.sort.clone()
+                    } else {
+                        sorting.clone()
+                    };
+                    result.push(SqlTransform::Sort(sort_to_emit));
                 }
 
                 SqlTransform::DistinctOn(_) => {

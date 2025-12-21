@@ -6882,3 +6882,38 @@ fn test_distinct_on_columns_propagated() {
       sort_2
     ");
 }
+
+#[test]
+fn test_sort_take_before_aggregate() {
+    // Issue #5401: sort|take before an aggregation should enforce the sort in the CTE.
+    // Previously, the ORDER BY was lost because the sort was embedded in the Take struct
+    // but not emitted before the LIMIT.
+    assert_snapshot!(compile(r###"
+    from my_table
+    sort {-this.Total}
+    take 7
+    group { this.network } ( aggregate { total_sum = sum this.Total } )
+    sort {-this.total_sum}
+    "###).unwrap(), @r#"
+    WITH table_0 AS (
+      SELECT
+        network,
+        "Total"
+      FROM
+        my_table
+      ORDER BY
+        "Total" DESC
+      LIMIT
+        7
+    )
+    SELECT
+      network,
+      COALESCE(SUM("Total"), 0) AS total_sum
+    FROM
+      table_0
+    GROUP BY
+      network
+    ORDER BY
+      total_sum DESC
+    "#);
+}
