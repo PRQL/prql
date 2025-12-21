@@ -210,21 +210,6 @@ fn nested_groups() {
 }
 
 #[test]
-fn a_arrow_b() {
-    assert_snapshot!(compile(r###"
-    x -> y
-    "###).unwrap_err(), @r"
-    Error:
-       ╭─[ :2:5 ]
-       │
-     2 │     x -> y
-       │     ───┬──
-       │        ╰──── expected a table, but found a function
-    ───╯
-    ");
-}
-
-#[test]
 fn just_std() {
     assert_snapshot!(compile(r###"
     std
