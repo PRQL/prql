@@ -614,4 +614,117 @@ mod tests {
             .map(|name| Target::from_str(&name))
             .collect();
     }
+
+    /// Regression test for #4633: sort inside group should not leak to outer query after join.
+    ///
+    /// Per PRQL spec, `group` resets the order. The `sort` inside a group is for
+    /// row selection (which row to keep), not output ordering. After the group,
+    /// there is no defined order, so it should not appear in the outer query.
+    #[test]
+    fn test_sort_not_propagated_after_join() {
+        use insta::assert_snapshot;
+
+        // DISTINCT ON (postgres) uses the sort for row selection within the CTE.
+        // This internal sorting must not leak to the outer query after a join.
+        assert_snapshot!(
+            super::compile(
+                r#"
+                prql target:sql.postgres
+
+                from tracks
+                group media_type_id (
+                    sort name
+                    take 1
+                )
+                join media_types (== media_type_id)
+                select {
+                    tracks.track_id,
+                    media_types.name
+                }
+                "#,
+                &super::Options::default().no_signature()
+            ).unwrap(),
+            @"
+        WITH table_0 AS (
+          SELECT
+            DISTINCT ON (media_type_id) track_id,
+            media_type_id,
+            name
+          FROM
+            tracks
+          ORDER BY
+            media_type_id,
+            name
+        )
+        SELECT
+          table_0.track_id,
+          media_types.name
+        FROM
+          table_0
+          INNER JOIN media_types ON table_0.media_type_id = media_types.media_type_id
+        "
+        );
+    }
+
+    /// Verify that explicit sorts after group are preserved past joins.
+    ///
+    /// Per PRQL spec, `sort` introduces a new order. When the user explicitly
+    /// sorts AFTER a group, that becomes the new output order and should
+    /// propagate through subsequent transforms including joins.
+    #[test]
+    fn test_explicit_sort_after_distinct_on_preserved() {
+        use insta::assert_snapshot;
+
+        // Explicit `sort media_type_id` after the group introduces a new order.
+        // This user-requested ordering should propagate past the join.
+        assert_snapshot!(
+            super::compile(
+                r#"
+                prql target:sql.postgres
+
+                from tracks
+                group media_type_id (
+                    sort name
+                    take 1
+                )
+                sort media_type_id
+                join media_types (== media_type_id)
+                select {
+                    tracks.track_id,
+                    media_types.name
+                }
+                "#,
+                &super::Options::default().no_signature()
+            ).unwrap(),
+            @"
+        WITH table_0 AS (
+          SELECT
+            DISTINCT ON (media_type_id) track_id,
+            media_type_id,
+            name
+          FROM
+            tracks
+          ORDER BY
+            media_type_id,
+            name
+        ),
+        table_1 AS (
+          SELECT
+            table_0.track_id,
+            media_types.name,
+            table_0.media_type_id
+          FROM
+            table_0
+            INNER JOIN media_types ON table_0.media_type_id = media_types.media_type_id
+        )
+        SELECT
+          track_id,
+          name
+        FROM
+          table_1
+        ORDER BY
+          media_type_id
+        "
+        );
+    }
 }

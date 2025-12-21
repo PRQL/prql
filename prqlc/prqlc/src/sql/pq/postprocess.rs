@@ -27,6 +27,7 @@ pub(super) fn postprocess(query: SqlQuery, ctx: &mut Context) -> SqlQuery {
 fn infer_sorts(query: SqlQuery, ctx: &mut Context) -> SqlQuery {
     let mut s = SortingInference {
         last_sorting: Vec::new(),
+        last_sorting_from_distinct_on: false,
         ctes_sorting: HashMap::new(),
         main_relation: false,
         ctx,
@@ -37,6 +38,12 @@ fn infer_sorts(query: SqlQuery, ctx: &mut Context) -> SqlQuery {
 
 struct SortingInference<'a> {
     last_sorting: Sorting,
+    /// True if last_sorting originated from DISTINCT ON (used for row selection).
+    ///
+    /// Per the PRQL spec, `group` resets the order - any `sort` inside a group
+    /// is for internal row selection, not output ordering. This flag tracks such
+    /// internal sorting so it doesn't propagate past transforms like `join`.
+    last_sorting_from_distinct_on: bool,
     ctes_sorting: HashMap<TId, CteSorting>,
     main_relation: bool,
     ctx: &'a mut Context,
@@ -148,6 +155,12 @@ impl SortingInference<'_> {
 #[derive(Debug)]
 struct CteSorting {
     sorting: Sorting,
+    /// True if the CTE's sorting originated from DISTINCT ON (row selection).
+    ///
+    /// Per the PRQL spec, `group` resets the order. DISTINCT ON sorting is
+    /// internal to the group - it determines which row to keep, not output
+    /// ordering. This flag ensures such sorting doesn't leak to outer queries.
+    from_distinct_on: bool,
 }
 
 impl RqFold for SortingInference<'_> {}
@@ -239,7 +252,11 @@ impl PqFold for SortingInference<'_> {
             // store sorting to be used later in From references
             let sorting = self.last_sorting.drain(..).collect();
             log::debug!("--- sorting {sorting:?}");
-            let sorting = CteSorting { sorting };
+            let sorting = CteSorting {
+                sorting,
+                from_distinct_on: self.last_sorting_from_distinct_on,
+            };
+            self.last_sorting_from_distinct_on = false;
             self.ctes_sorting.insert(cte.tid, sorting);
 
             ctes.push(cte);
@@ -305,6 +322,9 @@ impl PqMapper<RelationExpr, RelationExpr, (), ()> for SortingInference<'_> {
         transforms: Vec<SqlTransform<RelationExpr, ()>>,
     ) -> Result<Vec<SqlTransform<RelationExpr, ()>>> {
         let mut sorting = Vec::new();
+        // Track whether sorting originated from DISTINCT ON (internal row selection).
+        // Per PRQL spec, `group` resets order - internal sorts don't define output order.
+        let mut sorting_from_distinct_on = false;
 
         let mut result = Vec::with_capacity(transforms.len() + 1);
 
@@ -314,10 +334,12 @@ impl PqMapper<RelationExpr, RelationExpr, (), ()> for SortingInference<'_> {
                     match expr.kind {
                         RelationExprKind::Ref(ref tid) => {
                             // infer sorting from referenced pipeline
-                            if let Some(cte_sorting) = self.ctes_sorting.get_mut(tid) {
+                            if let Some(cte_sorting) = self.ctes_sorting.get(tid) {
                                 sorting.clone_from(&cte_sorting.sorting);
+                                sorting_from_distinct_on = cte_sorting.from_distinct_on;
                             } else {
-                                sorting = Vec::new();
+                                sorting.clear();
+                                sorting_from_distinct_on = false;
                             };
                         }
                         RelationExprKind::SubQuery(rel) => {
@@ -325,6 +347,7 @@ impl PqMapper<RelationExpr, RelationExpr, (), ()> for SortingInference<'_> {
 
                             // infer sorting from sub-query
                             sorting = self.last_sorting.drain(..).collect();
+                            sorting_from_distinct_on = self.last_sorting_from_distinct_on;
 
                             expr.kind = RelationExprKind::SubQuery(rel);
                         }
@@ -337,16 +360,40 @@ impl PqMapper<RelationExpr, RelationExpr, (), ()> for SortingInference<'_> {
                 // just store sorting and don't emit Sort
                 SqlTransform::Sort(expr) => {
                     sorting.clone_from(&expr);
+                    // A new explicit Sort clears the DISTINCT ON flag - this is a
+                    // user-requested ordering, not an internal DISTINCT ON sort.
+                    sorting_from_distinct_on = false;
                     continue;
                 }
 
                 // clear sorting
                 SqlTransform::Distinct | SqlTransform::Aggregate { .. } => {
-                    sorting = Vec::new();
+                    sorting.clear();
+                    sorting_from_distinct_on = false;
+                }
+
+                // Per PRQL spec: `group` resets order, `join` retains left's order.
+                // DISTINCT ON sorting is internal to the group (for row selection),
+                // so it must not propagate past joins. Explicit user sorts are preserved.
+                // See issue #4633.
+                SqlTransform::Join { .. } => {
+                    if sorting_from_distinct_on {
+                        sorting.clear();
+                        sorting_from_distinct_on = false;
+                    }
                 }
 
                 // emit Sort before Take
-                SqlTransform::Take(_) | SqlTransform::DistinctOn(_) => {
+                SqlTransform::Take(_) => {
+                    result.push(SqlTransform::Sort(sorting.clone()));
+                }
+
+                SqlTransform::DistinctOn(_) => {
+                    // DISTINCT ON uses sorting for row selection within the group.
+                    // Mark it so this internal sorting doesn't leak to outer queries.
+                    // Note: ROW_NUMBER (used for take > 1 or non-Postgres) doesn't have
+                    // this issue because its sorting is embedded in the window function.
+                    sorting_from_distinct_on = true;
                     result.push(SqlTransform::Sort(sorting.clone()));
                 }
                 _ => {}
@@ -371,6 +418,7 @@ impl PqMapper<RelationExpr, RelationExpr, (), ()> for SortingInference<'_> {
 
         // remember sorting for this pipeline
         self.last_sorting = sorting;
+        self.last_sorting_from_distinct_on = sorting_from_distinct_on;
 
         Ok(result)
     }

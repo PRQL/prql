@@ -3299,7 +3299,7 @@ fn test_prql_to_sql_table() {
     "#;
     let sql = compile(query).unwrap();
     assert_snapshot!(sql,
-        @r"
+        @"
     WITH newest_employees AS (
       SELECT
         *
@@ -6338,7 +6338,7 @@ fn test_sort_cast_filter_join_select() {
     join side:left artists (this.`artist_id` == that.`artist_id`)
     select {this.`artist_id`, this.`title`, this.`name`}
     "###
-    ).unwrap(), @r"
+    ).unwrap(), @"
     WITH table_1 AS (
       SELECT
         CAST(artist_id AS double precision) AS artist_id,
@@ -6394,7 +6394,7 @@ fn test_sort_filter_derive_join_select() {
     ) (this.`artist_id` == that.`artist_id_right`)
     select {this.`artist_id`, this.`title`}
     "###
-    ).unwrap(), @r"
+    ).unwrap(), @"
     WITH table_2 AS (
       SELECT
         CAST(artist_id AS double precision) AS artist_id,
@@ -6442,7 +6442,7 @@ fn test_sort_cast_filter_join_select_with_alias() {
     join side:left artists (this.`double_artist_id` == that.`artist_id`)
     select {this.`double_artist_id`, this.`title`, this.`name`}
     "###
-    ).unwrap(), @r"
+    ).unwrap(), @"
     WITH table_1 AS (
       SELECT
         CAST(artist_id AS double precision) AS double_artist_id,
