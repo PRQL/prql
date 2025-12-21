@@ -479,3 +479,20 @@ fn window_rows_expects_range() {
     ───╯
     ");
 }
+
+#[test]
+fn bare_lambda_expression() {
+    // Issue #4280: A bare lambda expression like `x -> y` should produce
+    // a clear error, not a confusing internal message.
+    assert_snapshot!(compile(r###"
+    x -> y
+    "###).unwrap_err(), @r"
+    Error:
+       ╭─[ :2:5 ]
+       │
+     2 │     x -> y
+       │     ───┬──
+       │        ╰──── expected a table, but found a function
+    ───╯
+    ");
+}
