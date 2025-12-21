@@ -349,7 +349,17 @@ fn is_split_required(transform: &SqlTransform, following: &mut HashSet<String>) 
             contains_any(following, ["From", "Join", "Aggregate", "Compute"])
         }
         Super(Filter(_)) => contains_any(following, ["From", "Join"]),
-        Super(Compute(_)) => contains_any(following, ["From", "Join", /* "Aggregate" */ "Filter"]),
+        Super(Compute(_)) => {
+            // Don't split between Compute and Filter when there's an Aggregate in following.
+            // Filter after Aggregate becomes HAVING in the same SELECT, so all preceding
+            // Computes (including those with aggregation functions like SUM) must stay
+            // with the Aggregate to get proper GROUP BY.
+            if following.contains("Aggregate") {
+                contains_any(following, ["From", "Join"])
+            } else {
+                contains_any(following, ["From", "Join", /* "Aggregate" */ "Filter"])
+            }
+        }
 
         // Sort will be pushed down the CTEs, so there is no point in splitting for it.
         // Super(Sort(_)) => contains_any(following, ["From", "Join", "Compute", "Aggregate"]),
