@@ -6151,7 +6151,7 @@ fn test_append_select_multiple() {
     )
     sort { +invoice_id, +total }
     select { total, invoice_id }
-    "###).unwrap(), @r"
+    "###).unwrap(), @"
     WITH table_3 AS (
       SELECT
         *
@@ -6273,7 +6273,10 @@ fn test_append_with_cte() {
 
 #[test]
 fn test_distinct_on_sort_on_compute() {
-    // Test for handling distinct on with sorting on computed columns
+    // Test for handling distinct on with sorting on computed columns.
+    // Note: table_0 includes billing_city and _expr_1 even though they're unused
+    // downstream. This is a side effect of the fix for #5130 which keeps Computes
+    // together with Aggregates when Filter follows.
     assert_snapshot!(compile(r###"
     from invoices
     derive code = case [customer_id < 10 => billing_postal_code, true => null]
@@ -6283,7 +6286,7 @@ fn test_distinct_on_sort_on_compute() {
     )
     filter (customer_id | in [4])
     group {billing_country} (aggregate {total = math.round 2 (sum total)})
-    "###).unwrap(), @r"
+    "###).unwrap(), @"
     WITH table_1 AS (
       SELECT
         billing_country,
@@ -6309,7 +6312,9 @@ fn test_distinct_on_sort_on_compute() {
           billing_country
           ORDER BY
             _expr_1 DESC
-        ) AS _expr_0
+        ) AS _expr_0,
+        billing_city,
+        _expr_1
       FROM
         table_1
     )
@@ -6916,4 +6921,51 @@ fn test_sort_take_before_aggregate() {
     ORDER BY
       total_sum DESC
     "#);
+}
+
+#[test]
+fn test_aggregate_with_operations_and_filter() {
+    // Issue #5130: Filtering on combined aggregates was generating invalid SQL.
+    // The CTE was missing GROUP BY when aggregate expressions had operations.
+    // Previously, this produced a CTE with SUM() but no GROUP BY clause.
+    assert_snapshot!(compile(r###"
+    from invoices
+    group billing_city (
+      aggregate{
+        sum_c = (sum customer_id) + (sum customer_id)
+      }
+    )
+    filter sum_c > 0
+    "###).unwrap(), @"
+    SELECT
+      billing_city,
+      COALESCE(SUM(customer_id), 0) + COALESCE(SUM(customer_id), 0) AS sum_c
+    FROM
+      invoices
+    GROUP BY
+      billing_city
+    HAVING
+      COALESCE(SUM(customer_id), 0) + COALESCE(SUM(customer_id), 0) > 0
+    ");
+
+    // Also test with scalar operations
+    assert_snapshot!(compile(r###"
+    from invoices
+    group billing_city (
+      aggregate{
+        sum_c = (sum customer_id) * 2
+      }
+    )
+    filter sum_c > 0
+    "###).unwrap(), @"
+    SELECT
+      billing_city,
+      COALESCE(SUM(customer_id), 0) * 2 AS sum_c
+    FROM
+      invoices
+    GROUP BY
+      billing_city
+    HAVING
+      COALESCE(SUM(customer_id), 0) * 2 > 0
+    ");
 }
