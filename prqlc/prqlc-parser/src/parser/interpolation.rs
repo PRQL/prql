@@ -63,7 +63,7 @@ pub(crate) fn parse(string: String, span_base: Span) -> Result<Vec<InterpolateIt
                     }
                 };
 
-                Error::new_simple(message).with_span(Some(span))
+                WithErrorInfo::with_span(Error::new_simple(message), Some(span))
             })
             .collect());
     }
