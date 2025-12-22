@@ -50,14 +50,16 @@ fn convert_lexer_error(source: &str, error: &Simple<'_, char>, source_id: u16) -
         found_display, char_start, char_end
     );
 
-    Error::new(Reason::Unexpected {
-        found: found_display,
-    })
-    .with_span(Some(crate::span::Span {
-        start: char_start,
-        end: char_end,
-        source_id,
-    }))
+    WithErrorInfo::with_span(
+        Error::new(Reason::Unexpected {
+            found: found_display,
+        }),
+        Some(crate::span::Span {
+            start: char_start,
+            end: char_end,
+            source_id,
+        }),
+    )
     .with_source(ErrorSource::Lexer(error_source))
 }
 
