@@ -12,21 +12,21 @@ use crate::Error;
 use crate::Result;
 
 impl Module {
-    pub fn singleton<S: ToString>(name: S, entry: Decl) -> Module {
-        Module {
+    pub fn singleton<S: ToString>(name: S, entry: Decl) -> Self {
+        Self {
             names: HashMap::from([(name.to_string(), entry)]),
             ..Default::default()
         }
     }
 
-    pub fn new_root() -> Module {
+    pub fn new_root() -> Self {
         // Each module starts with a default namespace that contains a wildcard
         // and the standard library.
-        Module {
+        Self {
             names: HashMap::from([
                 (
                     NS_DEFAULT_DB.to_string(),
-                    Decl::from(DeclKind::Module(Module::new_database())),
+                    Decl::from(DeclKind::Module(Self::new_database())),
                 ),
                 (NS_STD.to_string(), Decl::from(DeclKind::default())),
             ]),
@@ -40,7 +40,7 @@ impl Module {
         }
     }
 
-    pub fn new_database() -> Module {
+    pub fn new_database() -> Self {
         let names = HashMap::from([
             (
                 NS_INFER.to_string(),
@@ -51,14 +51,14 @@ impl Module {
             ),
             (
                 NS_INFER_MODULE.to_string(),
-                Decl::from(DeclKind::Infer(Box::new(DeclKind::Module(Module {
+                Decl::from(DeclKind::Infer(Box::new(DeclKind::Module(Self {
                     names: HashMap::new(),
                     redirects: vec![],
                     shadowed: None,
                 })))),
             ),
         ]);
-        Module {
+        Self {
             names,
             shadowed: None,
             redirects: vec![],
@@ -218,7 +218,7 @@ impl Module {
                         let order = lineage.inputs.iter().position(|i| i.id == input.id);
                         let order = order.unwrap();
 
-                        let mut sub_ns = Module::default();
+                        let mut sub_ns = Self::default();
 
                         let self_ty = lin_ty.clone().kind.into_tuple().unwrap();
                         let self_ty = self_ty
@@ -303,7 +303,7 @@ impl Module {
 
     pub fn shadow(&mut self, ident: &str) {
         let shadowed = self.names.remove(ident).map(Box::new);
-        let entry = DeclKind::Module(Module {
+        let entry = DeclKind::Module(Self {
             shadowed,
             ..Default::default()
         });
@@ -320,7 +320,7 @@ impl Module {
         }
     }
 
-    pub fn stack_push(&mut self, ident: &str, namespace: Module) {
+    pub fn stack_push(&mut self, ident: &str, namespace: Self) {
         let entry = self
             .names
             .entry(ident.to_string())
@@ -330,7 +330,7 @@ impl Module {
         stack.push(namespace);
     }
 
-    pub fn stack_pop(&mut self, ident: &str) -> Option<Module> {
+    pub fn stack_pop(&mut self, ident: &str) -> Option<Self> {
         (self.names.get_mut(ident))
             .and_then(|e| e.kind.as_layered_modules_mut())
             .and_then(|stack| stack.pop())
@@ -343,8 +343,8 @@ impl Module {
             .collect()
     }
 
-    pub(crate) fn from_exprs(exprs: HashMap<String, Expr>) -> Module {
-        Module {
+    pub(crate) fn from_exprs(exprs: HashMap<String, Expr>) -> Self {
+        Self {
             names: exprs
                 .into_iter()
                 .map(|(key, expr)| {

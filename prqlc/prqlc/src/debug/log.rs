@@ -128,9 +128,9 @@ impl Stage {
 
     pub(super) fn sub_stage(&self) -> Option<&'_ str> {
         match self {
-            Stage::Parsing => None,
-            Stage::Semantic(s) => Some(s.as_ref()),
-            Stage::Sql(s) => Some(s.as_ref()),
+            Self::Parsing => None,
+            Self::Semantic(s) => Some(s.as_ref()),
+            Self::Sql(s) => Some(s.as_ref()),
         }
     }
 }
@@ -157,7 +157,7 @@ impl LogSuppressLock {
         if let Some(log) = lock.as_mut() {
             log.suppress_count += 1;
 
-            Some(LogSuppressLock(PhantomData))
+            Some(Self(PhantomData))
         } else {
             None
         }

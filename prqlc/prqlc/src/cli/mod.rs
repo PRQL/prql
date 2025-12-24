@@ -290,11 +290,11 @@ impl Command {
     /// Entrypoint called by [`main`]
     pub fn run(&mut self) -> Result<()> {
         match self {
-            Command::Watch(command) => watch::run(command),
-            Command::ListTargets => self.list_targets(),
+            Self::Watch(command) => watch::run(command),
+            Self::ListTargets => self.list_targets(),
             // Format is handled differently to the other IO commands, since it
             // always writes to the same output.
-            Command::Format { input } => {
+            Self::Format { input } => {
                 let sources = read_files(input)?;
                 let root = sources.root;
 
@@ -309,27 +309,25 @@ impl Command {
                         break;
                     }
 
-                    let path_buf = root
-                        .as_ref()
-                        .map_or_else(|| path.clone(), |root| root.join(&path));
-                    let path_str = path_buf.to_str().ok_or_else(|| {
-                        anyhow!("Path `{}` is not valid UTF-8", path_buf.display())
-                    })?;
+                    let path_buf = root.as_ref().map_or_else(|| path.clone(), |root| root.join(&path));
+                    let path_str = path_buf
+                        .to_str()
+                        .ok_or_else(|| anyhow!("Path `{}` is not valid UTF-8", path_buf.display()))?;
                     let mut output: Output = Output::new(path_str)?;
 
                     output.write_all(&pl_to_prql(&ast)?.into_bytes())?;
                 }
                 Ok(())
             }
-            Command::ShellCompletion { shell } => {
+            Self::ShellCompletion { shell } => {
                 shell.generate(&mut Cli::command(), &mut std::io::stdout());
                 Ok(())
             }
-            Command::Debug(DebugCommand::Ast) => {
+            Self::Debug(DebugCommand::Ast) => {
                 prqlc::ir::pl::print_mem_sizes();
                 Ok(())
             }
-            Command::Debug(DebugCommand::JsonSchema { ir_type }) => {
+            Self::Debug(DebugCommand::JsonSchema { ir_type }) => {
                 let schema = match ir_type {
                     IntermediateRepr::Pl => schema_for!(pl::ModuleDef),
                     IntermediateRepr::Rq => schema_for!(rq::RelationalQuery),
@@ -367,14 +365,14 @@ impl Command {
             .collect_vec();
 
         Ok(match self {
-            Command::Parse { format, .. } => {
+            Self::Parse { format, .. } => {
                 let ast = prql_to_pl_tree(sources)?;
                 match format {
                     Format::Json => serde_json::to_string_pretty(&ast)?.into_bytes(),
                     Format::Yaml => serde_yaml::to_string(&ast)?.into_bytes(),
                 }
             }
-            Command::Lex { format, .. } => {
+            Self::Lex { format, .. } => {
                 let s = sources.sources.values().exactly_one().or_else(|_| {
                     // TODO: allow multiple sources
                     bail!("Currently `lex` only works with a single source, but found multiple sources")
@@ -385,24 +383,26 @@ impl Command {
                     Format::Yaml => serde_yaml::to_string(&tokens)?.into_bytes(),
                 }
             }
-            Command::Collect(_) => {
+            Self::Collect(_) => {
                 let mut root_module_def = prql_to_pl_tree(sources)?;
 
                 drop_module_def(&mut root_module_def.stmts, "std");
 
                 pl_to_prql(&root_module_def)?.into_bytes()
             }
-            Command::Debug(DebugCommand::Annotate(_)) => {
-                let (_, source) = sources.sources.clone().into_iter().exactly_one().or_else(
-                    |_| bail!(
+            Self::Debug(DebugCommand::Annotate(_)) => {
+                let (_, source) = sources.sources.clone().into_iter().exactly_one().or_else(|_| {
+                    bail!(
                         "Currently `annotate` only works with a single source, but found multiple sources: {:?}",
-                        sources.sources.keys()
+                        sources
+                            .sources
+                            .keys()
                             .map(|x| x.display().to_string())
                             .sorted()
                             .map(|x| format!("`{x}`"))
                             .join(", ")
                     )
-                )?;
+                })?;
 
                 // TODO: potentially if there is code performing a role beyond
                 // presentation, it should be a library function; and we could
@@ -413,8 +413,7 @@ impl Command {
                 let ctx = semantic::resolve(root_mod)?;
 
                 let frames = if let Ok((main, _)) = ctx.find_main_rel(&[]) {
-                    semantic::reporting::collect_frames(*main.clone().into_relation_var().unwrap())
-                        .frames
+                    semantic::reporting::collect_frames(*main.clone().into_relation_var().unwrap()).frames
                 } else {
                     vec![]
                 };
@@ -422,7 +421,7 @@ impl Command {
                 // combine with source
                 combine_prql_and_frames(&source, frames).as_bytes().to_vec()
             }
-            Command::Debug(DebugCommand::Lineage { format, .. }) => {
+            Self::Debug(DebugCommand::Lineage { format, .. }) => {
                 let stmts = prql_to_pl_tree(sources)?;
                 let fc = pl_to_lineage(stmts)?;
 
@@ -431,19 +430,15 @@ impl Command {
                     Format::Yaml => serde_yaml::to_string(&fc)?.into_bytes(),
                 }
             }
-            Command::Experimental(ExperimentalCommand::GenerateDocs { format, .. }) => {
+            Self::Experimental(ExperimentalCommand::GenerateDocs { format, .. }) => {
                 let module_ref = prql_to_pl_tree(sources)?;
 
                 match format {
-                    DocsFormat::Html => {
-                        docs_generator::generate_html_docs(module_ref.stmts).into_bytes()
-                    }
-                    DocsFormat::Markdown => {
-                        docs_generator::generate_markdown_docs(module_ref.stmts).into_bytes()
-                    }
+                    DocsFormat::Html => docs_generator::generate_html_docs(module_ref.stmts).into_bytes(),
+                    DocsFormat::Markdown => docs_generator::generate_markdown_docs(module_ref.stmts).into_bytes(),
                 }
             }
-            Command::Experimental(ExperimentalCommand::Highlight(_)) => {
+            Self::Experimental(ExperimentalCommand::Highlight(_)) => {
                 let s = sources.sources.values().exactly_one().or_else(|_| {
                     // TODO: allow multiple sources
                     bail!("Currently `highlight` only works with a single source, but found multiple sources")
@@ -452,7 +447,7 @@ impl Command {
 
                 maybe_strip_colors(&highlight::highlight(&tokens)).into_bytes()
             }
-            Command::Compile {
+            Self::Compile {
                 signature_comment,
                 format,
                 target,
@@ -469,9 +464,7 @@ impl Command {
                     .with_format(*format);
 
                 let res = prql_to_pl_tree(sources)
-                    .and_then(|pl| {
-                        pl_to_rq_tree(pl, &main_path, &[semantic::NS_DEFAULT_DB.to_string()])
-                    })
+                    .and_then(|pl| pl_to_rq_tree(pl, &main_path, &[semantic::NS_DEFAULT_DB.to_string()]))
                     .and_then(|rq| rq_to_sql(rq, &opts))
                     .map_err(|e| e.composed(sources));
 
@@ -496,9 +489,7 @@ impl Command {
             | Lex { io_args, .. }
             | Collect(io_args)
             | Compile { io_args, .. }
-            | Debug(DebugCommand::Annotate(io_args) | DebugCommand::Lineage { io_args, .. }) => {
-                io_args
-            }
+            | Debug(DebugCommand::Annotate(io_args) | DebugCommand::Lineage { io_args, .. }) => io_args,
             Experimental(ExperimentalCommand::GenerateDocs { io_args, .. }) => io_args,
             Experimental(ExperimentalCommand::Highlight(io_args)) => io_args,
             _ => unreachable!(),
@@ -532,12 +523,8 @@ impl Command {
             | Lex { io_args, .. }
             | Collect(io_args)
             | Compile { io_args, .. }
-            | Debug(DebugCommand::Annotate(io_args) | DebugCommand::Lineage { io_args, .. }) => {
-                io_args.output.clone()
-            }
-            Experimental(ExperimentalCommand::GenerateDocs { io_args, .. }) => {
-                io_args.output.clone()
-            }
+            | Debug(DebugCommand::Annotate(io_args) | DebugCommand::Lineage { io_args, .. }) => io_args.output.clone(),
+            Experimental(ExperimentalCommand::GenerateDocs { io_args, .. }) => io_args.output.clone(),
             Experimental(ExperimentalCommand::Highlight(io_args)) => io_args.output.clone(),
             _ => unreachable!(),
         };
@@ -546,13 +533,7 @@ impl Command {
 }
 
 fn has_debug_log(cli: &Cli) -> bool {
-    matches!(
-        cli.command,
-        Some(Command::Compile {
-            debug_log: Some(_),
-            ..
-        })
-    )
+    matches!(cli.command, Some(Command::Compile { debug_log: Some(_), .. }))
 }
 
 pub fn write_log(path: &std::path::Path) -> Result<()> {
@@ -725,10 +706,7 @@ sort full
             &mut SourceTree::new(
                 [
                     ("Project.prql".into(), "orders.x | select y".to_string()),
-                    (
-                        "orders.prql".into(),
-                        "let x = (from z | select {y, u})".to_string(),
-                    ),
+                    ("orders.prql".into(), "let x = (from z | select {y, u})".to_string()),
                 ],
                 None,
             ),
