@@ -1,7 +1,7 @@
 # Aggregation
 
-A key feature of analytics is reducing many values down to some summary. This
-act is called "aggregation" and always includes a function &mdash; for example,
+A key feature of analytics is reducing many values down to a summary. This act
+is called "aggregation" and always includes a function &mdash; for example,
 `average` or `sum` &mdash; that reduces values in the table to a single row.
 
 ### `aggregate` transform

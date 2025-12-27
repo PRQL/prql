@@ -19,10 +19,10 @@ from cities
 derive temp_c = (fahrenheit_to_celsius temp_f)
 ```
 
-This function is named `interp`, and has two positional parameters named `high`
-and `x`, and one named parameter named `low` which takes a default argument of
-`0`. It calculates the proportion of the distance that `x` is between `low` and
-`high`.
+The function below is named `interp`, and has two positional parameters named
+`high` and `x`, and one named parameter named `low` which takes a default
+argument of `0`. It calculates the proportion of the distance that `x` is
+between `low` and `high`.
 
 ```prql
 let interp = low:0 high x -> (x - low) / (high - low)
