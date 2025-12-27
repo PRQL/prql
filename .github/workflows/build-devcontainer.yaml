@@ -58,6 +58,25 @@ jobs:
           cache-from: type=gha,scope=${{ matrix.platform }}
           cache-to: type=gha,mode=max,scope=${{ matrix.platform }}
 
+      # Smoke test: build local image and verify tools work
+      - name: Build local image for smoke test
+        uses: docker/build-push-action@v6
+        with:
+          context: .devcontainer/base-image
+          build-args: cargo_crates=${{ env.cargo_crates }}
+          load: true
+          tags: devcontainer-test:latest
+          cache-from: type=gha,scope=${{ matrix.platform }}
+
+      - name: Smoke test - run tests and build book
+        run: |
+          docker run --rm -v "${{ github.workspace }}:/workspace" -w /workspace \
+            devcontainer-test:latest bash -c "
+              set -euxo pipefail
+              cargo test
+              mdbook build web/book/
+            "
+
       - name: Export digest
         if: inputs.push
         run: |
