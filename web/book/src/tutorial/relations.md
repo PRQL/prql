@@ -32,7 +32,9 @@ from relations such as the `invoices` table above. Here is the most basic query:
 from invoices
 ```
 
-> [!NOTE] Try each of these examples here in the
+<!-- prettier-ignore -->
+> [!NOTE]
+> Try each of these examples here in the
 > [Playground.](https://prql-lang.org/playground/) Enter the query on the
 > left-hand side, and click the **Query Results** tab on the right-hand side to
 > see the result.

@@ -3,4 +3,6 @@
 Array is a container type, composed of multiple items. All items must be of the
 same type. Number of fields can be vary.
 
-> [!WARNING] This page is a stub.
+<!-- prettier-ignore -->
+> [!WARNING]
+> This page is a stub.

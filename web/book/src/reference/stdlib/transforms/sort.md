@@ -65,7 +65,9 @@ the context of the query result, `LIMIT` statement, or window function. The lack
 of inherent order can result in an unexpected reshuffling of a previously
 ordered relation from a `JOIN` or windowing operation.
 
-> [!NOTE] To be precise — in PRQL, a relation is an _array of tuples_ and not a
+<!-- prettier-ignore -->
+> [!NOTE]
+> To be precise — in PRQL, a relation is an _array of tuples_ and not a
 > set or a bag. The persistent nature of this order remains intact through
 > sub-queries and intermediate table definitions.
 
