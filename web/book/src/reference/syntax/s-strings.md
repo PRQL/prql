@@ -24,7 +24,9 @@ from employees
 aggregate {average salary}
 ```
 
-> [!NOTE] Because S-string contents are SQL, double-quotes (`"`) will denote a
+<!-- prettier-ignore -->
+> [!NOTE]
+> Because S-string contents are SQL, double-quotes (`"`) will denote a
 > _column name_. To avoid that, use single-quotes (`'`) around the SQL string,
 > and adjust the quotes of the S-string. For example, instead of
 > `s'CONCAT("hello", "world")'` use `s"CONCAT('hello', 'world')"`
@@ -55,7 +57,9 @@ from s"SELECT DISTINCT ON first_name, id, age FROM employees ORDER BY age ASC"
 join s = s"SELECT * FROM salaries" (==id)
 ```
 
-> [!NOTE] S-strings in user code are intended as an escape hatch for an
+<!-- prettier-ignore -->
+> [!NOTE]
+> S-strings in user code are intended as an escape hatch for an
 > unimplemented feature. If we often need s-strings to express something, that's
 > a sign we should implement it in PRQL or PRQL's stdlib. If you often require
 > an s-string,

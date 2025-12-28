@@ -9,10 +9,14 @@ Since there are many possible date representations, `to_text` takes a `format`
 parameter that describes thanks to [specifiers](#date--time-format-specifiers)
 how the date or timestamp should be structured.
 
-> [!NOTE] Since all RDBMS have different ways to format dates and times, PRQL
+<!-- prettier-ignore -->
+> [!NOTE]
+> Since all RDBMS have different ways to format dates and times, PRQL
 > **requires an explicit dialect** to be specified
 
-> [!NOTE] For now the supported DBs are: Clickhouse, DuckDB, MySQL, MSSQL and
+<!-- prettier-ignore -->
+> [!NOTE]
+> For now the supported DBs are: Clickhouse, DuckDB, MySQL, MSSQL and
 > Postgres.
 
 ```prql

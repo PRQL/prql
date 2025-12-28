@@ -12,7 +12,9 @@ In PRQL, names in the scope are composed from namespace and variable name which
 are separated by a dot, similar to SQL. Namespaces can contain many dots, but
 variable names cannot.
 
-> [!NOTE] For example, name `my_table.some_column` is a variable `some_column`
+<!-- prettier-ignore -->
+> [!NOTE]
+> For example, name `my_table.some_column` is a variable `some_column`
 > from namespace `my_table`.
 >
 > Name `foo.bar.baz` is a variable `baz` from namespace `foo.bar`.

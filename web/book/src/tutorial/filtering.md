@@ -56,7 +56,9 @@ take 3
 We did something a bit odd at the end: first we took rows `11..20` and then took
 the first 3 rows from that result.
 
-> [!NOTE] Note that a single transform `take 11..13` would have produced the
+<!-- prettier-ignore -->
+> [!NOTE]
+> Note that a single transform `take 11..13` would have produced the
 > same SQL. The example shows how PRQL allows fast data exploration by
 > "stacking" transforms in the pipeline. This reduces the cognitive burden:
 > unlike SQL, each new transform interacts _only_ with the results of the
