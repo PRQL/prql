@@ -140,7 +140,7 @@ insta-cmd = { workspace = true }
 rstest = "0.26.1"
 similar = { workspace = true }
 similar-asserts = { workspace = true }
-tempfile = { version = "3.23.0" }
+tempfile = { version = "3.24.0" }
 test_each_file = "0.3.6"
 
 # criterion 0.8 depends on `alloca` which doesn't support WASM targets
