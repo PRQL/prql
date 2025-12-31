@@ -14,6 +14,9 @@
 
 **Integrations**:
 
+- [micro](https://micro-editor.github.io/) 2.0.15 has syntax highlighting for
+  PRQL. (@vanillajonathan)
+
 **Internal changes**:
 
 **New Contributors**:
