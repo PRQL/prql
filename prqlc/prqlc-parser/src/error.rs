@@ -72,7 +72,7 @@ pub enum Reason {
 
 impl Error {
     pub fn new(reason: Reason) -> Self {
-        Error {
+        Self {
             kind: MessageKind::Error,
             span: None,
             reason,
@@ -83,11 +83,11 @@ impl Error {
     }
 
     pub fn new_simple<S: ToString>(reason: S) -> Self {
-        Error::new(Reason::Simple(reason.to_string()))
+        Self::new(Reason::Simple(reason.to_string()))
     }
 
     pub fn new_bug(issue_no: i32) -> Self {
-        Error::new(Reason::Bug {
+        Self::new(Reason::Bug {
             issue: Some(issue_no),
             details: None,
         })
@@ -95,7 +95,7 @@ impl Error {
 
     /// Used for things that you *think* should never happen, but are not sure.
     pub fn new_assert<S: ToString>(details: S) -> Self {
-        Error::new(Reason::Bug {
+        Self::new(Reason::Bug {
             issue: None,
             details: Some(details.to_string()),
         })
@@ -105,8 +105,8 @@ impl Error {
 impl std::fmt::Display for Reason {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
-            Reason::Simple(text) => f.write_str(text),
-            Reason::Expected {
+            Self::Simple(text) => f.write_str(text),
+            Self::Expected {
                 who,
                 expected,
                 found,
@@ -116,9 +116,9 @@ impl std::fmt::Display for Reason {
                 }
                 write!(f, "expected {expected}, but found {found}")
             }
-            Reason::Unexpected { found } => write!(f, "unexpected {found}"),
-            Reason::NotFound { name, namespace } => write!(f, "{namespace} `{name}` not found"),
-            Reason::Bug { issue, details } => {
+            Self::Unexpected { found } => write!(f, "unexpected {found}"),
+            Self::NotFound { name, namespace } => write!(f, "{namespace} `{name}` not found"),
+            Self::Bug { issue, details } => {
                 write!(f, "internal compiler error")?;
                 if let Some(details) = details {
                     write!(f, "; {details}")?;
@@ -131,7 +131,7 @@ impl std::fmt::Display for Reason {
                 }
                 Ok(())
             }
-            Reason::Internal { message } => {
+            Self::Internal { message } => {
                 write!(f, "internal error: {message}")
             }
         }
@@ -140,7 +140,7 @@ impl std::fmt::Display for Reason {
 
 impl From<Error> for Errors {
     fn from(error: Error) -> Self {
-        Errors(vec![error])
+        Self(vec![error])
     }
 }
 

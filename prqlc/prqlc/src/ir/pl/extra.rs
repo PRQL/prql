@@ -8,7 +8,7 @@ use crate::pr::Ty;
 
 impl FuncCall {
     pub fn new_simple(name: Expr, args: Vec<Expr>) -> Self {
-        FuncCall {
+        Self {
             name: Box::new(name),
             args,
             named_args: Default::default(),
@@ -117,7 +117,7 @@ pub enum JoinSide {
 
 impl Expr {
     pub fn new(kind: impl Into<ExprKind>) -> Self {
-        Expr {
+        Self {
             id: None,
             kind: kind.into(),
             span: None,
