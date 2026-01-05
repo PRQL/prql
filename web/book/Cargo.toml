@@ -25,7 +25,7 @@ mdbook-core = { version = "0.5.2", default-features = false }
 mdbook-preprocessor = { version = "0.5.2", default-features = false }
 prqlc = { path = "../../prqlc/prqlc", default-features = false }
 pulldown-cmark = { version = "0.13.0", default-features = false }
-pulldown-cmark-to-cmark = "21.1.0"
+pulldown-cmark-to-cmark = "22.0.0"
 serde_json = { workspace = true }
 strum = { workspace = true }
 strum_macros = { workspace = true }
