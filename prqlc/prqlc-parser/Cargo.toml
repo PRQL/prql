@@ -13,6 +13,10 @@ bench = false
 doctest = false
 
 [dependencies]
+chumsky = { version = "0.12.0", default-features = false, features = [
+    "std",
+    "pratt",
+] }
 enum-as-inner = { workspace = true }
 itertools = { workspace = true }
 log = { workspace = true }
@@ -22,18 +26,9 @@ serde = { workspace = true }
 serde_yaml = { workspace = true, optional = true }
 strum = { workspace = true }
 
-# Chumsky's default features have issues when running in wasm (though we only
-# see it when compiling on macOS), so we only include features when running
-# outside wasm.
-[target.'cfg(not(target_family="wasm"))'.dependencies]
-chumsky = { version = "0.12.0", features = ["pratt"] }
 # Not direct dependencies, but pinning because of bugs in previous versions
+[target.'cfg(not(target_family="wasm"))'.dependencies]
 stacker = "0.1.22"
-[target.'cfg(target_family="wasm")'.dependencies]
-chumsky = { version = "0.11.2", features = [
-    "std",
-    "pratt",
-], default-features = false }
 
 [dev-dependencies]
 insta = { workspace = true }
