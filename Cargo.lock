@@ -583,19 +583,6 @@ dependencies = [
 
 [[package]]
 name = "chumsky"
-version = "0.11.2"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "acc17a6284abccac6e50db35c1cee87f605474a72939b959a3a67d9371800efd"
-dependencies = [
- "hashbrown 0.15.5",
- "regex-automata 0.3.9",
- "serde",
- "unicode-ident",
- "unicode-segmentation",
-]
-
-[[package]]
-name = "chumsky"
 version = "0.12.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "4ba4a05c9ce83b07de31b31c874e87c069881ac4355db9e752e3a55c11ec75a6"
@@ -2809,8 +2796,7 @@ dependencies = [
 name = "prqlc-parser"
 version = "0.13.11"
 dependencies = [
- "chumsky 0.11.2",
- "chumsky 0.12.0",
+ "chumsky",
  "enum-as-inner",
  "insta",
  "itertools 0.14.0",
