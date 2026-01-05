@@ -26,10 +26,6 @@ serde = { workspace = true }
 serde_yaml = { workspace = true, optional = true }
 strum = { workspace = true }
 
-# Not direct dependencies, but pinning because of bugs in previous versions
-[target.'cfg(not(target_family="wasm"))'.dependencies]
-stacker = "0.1.22"
-
 [dev-dependencies]
 insta = { workspace = true }
 serde_json = { workspace = true }
