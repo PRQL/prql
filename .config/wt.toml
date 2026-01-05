@@ -13,8 +13,8 @@
 # Result: warm-start builds instead of cold compiles
 # macOS: uses cp -c (clonefile on APFS)
 deps = """
-[ -d {{ repo_root }}/target/debug/deps ] && [ ! -e target ] &&
+[ -d {{ repo_path }}/target/debug/deps ] && [ ! -e target ] &&
 mkdir -p target/debug/deps &&
-cp -c {{ repo_root }}/target/debug/deps/*.rlib {{ repo_root }}/target/debug/deps/*.rmeta target/debug/deps/ &&
-cp -cR {{ repo_root }}/target/debug/.fingerprint {{ repo_root }}/target/debug/build target/debug/
+cp -c {{ repo_path }}/target/debug/deps/*.rlib {{ repo_path }}/target/debug/deps/*.rmeta target/debug/deps/ &&
+cp -cR {{ repo_path }}/target/debug/.fingerprint {{ repo_path }}/target/debug/build target/debug/
 """
