@@ -1,0 +1,10 @@
+---
+source: web/book/tests/documentation/book.rs
+expression: "let top_n = n -> take n\nlet top_5 = top_n 5\n\nfrom invoices\ntop_5\n"
+---
+SELECT
+  *
+FROM
+  invoices
+LIMIT
+  5

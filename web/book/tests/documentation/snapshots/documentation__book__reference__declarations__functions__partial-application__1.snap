@@ -1,0 +1,11 @@
+---
+source: web/book/tests/documentation/book.rs
+expression: "let top_n = n -> take n\nlet add_constant = x -> derive {constant = x}\n\nlet my_pipeline = (top_n 5 | add_constant 42)\n\nfrom invoices\nmy_pipeline\n"
+---
+SELECT
+  *,
+  42 AS constant
+FROM
+  invoices
+LIMIT
+  5
