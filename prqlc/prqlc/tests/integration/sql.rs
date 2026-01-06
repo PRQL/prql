@@ -6969,3 +6969,39 @@ fn test_aggregate_with_operations_and_filter() {
       COALESCE(SUM(customer_id), 0) * 2 > 0
     ");
 }
+
+/// Regression test for issue #5661: partial application of transforms in
+/// user-defined functions.
+///
+/// When a user defines a function that wraps a transform with fewer parameters
+/// than the transform requires (e.g., `let foo = a -> take a`), the missing
+/// parameters should be propagated to the wrapper function, allowing it to work
+/// correctly in pipelines.
+#[test]
+fn test_partial_application_of_transform() {
+    // Basic case: wrapping `take` with a single parameter
+    assert_snapshot!(compile(r#"
+    let foo = a -> take a
+    from invoices | foo 10
+    "#).unwrap(), @r"
+    SELECT
+      *
+    FROM
+      invoices
+    LIMIT
+      10
+    ");
+
+    // Same behavior as explicit two-parameter version
+    assert_snapshot!(compile(r#"
+    let foo = a r -> take a r
+    from invoices | foo 10
+    "#).unwrap(), @r"
+    SELECT
+      *
+    FROM
+      invoices
+    LIMIT
+      10
+    ");
+}
