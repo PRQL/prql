@@ -107,3 +107,44 @@ derive {
   overhead_share = (cost_share overhead),
 }
 ```
+
+## Partial application
+
+Functions can be partially applied, which is useful for creating reusable
+transform wrappers. When a function returns a partially-applied transform, the
+missing parameters are automatically propagated.
+
+For example, we can create a `top_n` function that wraps `take`:
+
+```prql
+let top_n = n -> take n
+
+from invoices
+top_n 10
+```
+
+This works because `take` requires two arguments (the count and the relation),
+but `top_n` only provides one. The relation parameter is automatically filled in
+from the pipeline.
+
+We can also compose multiple partial applications:
+
+```prql
+let top_n = n -> take n
+let add_constant = x -> derive {constant = x}
+
+let my_pipeline = (top_n 5 | add_constant 42)
+
+from invoices
+my_pipeline
+```
+
+Or store a fully-configured transform for reuse:
+
+```prql
+let top_n = n -> take n
+let top_5 = top_n 5
+
+from invoices
+top_5
+```

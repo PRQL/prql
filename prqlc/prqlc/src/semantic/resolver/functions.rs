@@ -120,14 +120,29 @@ impl Resolver<'_> {
 
             inner_closure.env = func_env.into_exprs();
 
-            let (got, missing) = inner_closure.params.split_at(inner_closure.args.len());
-            let missing = missing.to_vec();
-            inner_closure.params = got.to_vec();
+            // Get the missing params (params that don't have args yet)
+            let missing = inner_closure.params[inner_closure.args.len()..].to_vec();
+
+            // Create wrapper params and add references to them as args to the inner closure
+            let mut wrapper_params = Vec::with_capacity(missing.len());
+            for (i, param) in missing.iter().enumerate() {
+                let param_name = format!("_partial_{i}");
+                let substitute_arg = Expr::new(Ident::from_path(vec![
+                    NS_PARAM.to_string(),
+                    param_name.clone(),
+                ]));
+                inner_closure.args.push(substitute_arg);
+                wrapper_params.push(FuncParam {
+                    name: param_name,
+                    ty: param.ty.clone(),
+                    default_value: None,
+                });
+            }
 
             Expr::new(ExprKind::Func(Box::new(Func {
                 name_hint: None,
                 args: vec![],
-                params: missing,
+                params: wrapper_params,
                 body: Box::new(Expr::new(ExprKind::Func(inner_closure))),
 
                 // these don't matter
