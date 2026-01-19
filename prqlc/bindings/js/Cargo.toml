@@ -21,7 +21,7 @@ default = ["console_error_panic_hook"]
 
 [target.'cfg(target_family="wasm")'.dependencies]
 prqlc = {path = "../../prqlc", default-features = false}
-wasm-bindgen = "0.2.97"
+wasm-bindgen = "0.2.108"
 
 # The `console_error_panic_hook` crate provides better debugging of panics by
 # logging them with `console.error`. While the docs state that "This is great
