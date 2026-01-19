@@ -36,7 +36,7 @@ wasm-bindgen = "0.2.97"
 console_error_panic_hook = {version = "0.1.7", optional = true}
 
 [target.'cfg(target_family="wasm")'.dev-dependencies]
-wasm-bindgen-test = "0.3.47"
+wasm-bindgen-test = "0.3.58"
 
 [package.metadata.cargo-udeps.ignore]
 development = ["wasm-bindgen-test"]
