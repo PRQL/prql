@@ -14,7 +14,7 @@ pub(crate) trait DbProtocol: Send {
     fn execute(&mut self, sql: &str) -> Result<()>;
 }
 
-impl DbProtocol for connector_arrow::sqlite::SQLiteConnection {
+impl DbProtocol for connector_arrow::rusqlite::SQLiteConnection {
     fn query(&mut self, sql: &str) -> Result<RecordBatch> {
         let mut statement = connector_arrow::api::Connector::query(self, sql)?;
         let reader = statement.start([])?;
