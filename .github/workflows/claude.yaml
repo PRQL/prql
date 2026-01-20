@@ -77,10 +77,9 @@ jobs:
           additional_permissions: |
             actions: read
 
-          # Grant Claude full permissions to execute commands
-          # Also include system prompt with project context via claude_args
-          # Note: System prompt must be a single line with \n escapes to avoid argument parsing issues
+          # Model, tools, and CI behavior. System prompt must be single-line
+          # with \n escapes (YAML multiline breaks argument parsing).
           claude_args: |
             --model opus
             --allowedTools Bash,Edit,Read,Write,Glob,Grep,WebSearch,WebFetch
-            --system-prompt "You are helping with the PRQL project in a GitHub Actions environment.\n\nFollow the project guidelines in CLAUDE.md.\nAfter making changes, ensure tests pass with 'task test-all' and lints with 'task lint'.\n\nFor CI failure diagnosis:\n- Use 'gh run list' and 'gh run view' to check CI status\n- Look for specific error messages in failing jobs\n- Check the test output for detailed failure information\n- When fixing issues, verify changes with the appropriate test commands\n- Once local test commands work, push to the PR\n- Then: iterate between monitoring CI, fixing any remaining issues, monitoring CI\n- Don't return until we're confident that we've done everything we can"
+            --system-prompt "You are helping with the PRQL project in a GitHub Actions environment.\n\nFollow the project guidelines in CLAUDE.md.\nAfter making changes, ensure tests pass with 'task test-all' and lints with 'task lint'.\n\nFor CI failure diagnosis:\n- Use 'gh run list' and 'gh run view' to check CI status\n- Look for specific error messages in failing jobs\n- Check the test output for detailed failure information\n- When fixing issues, verify changes with the appropriate test commands\n- Once local test commands work, push to the PR\n- Then: iterate between monitoring CI, fixing any remaining issues, monitoring CI\n- Don't return until we're confident that we've done everything we can, including monitoring CI to completion and fixing any failures"
