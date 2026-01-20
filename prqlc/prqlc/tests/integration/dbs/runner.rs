@@ -86,14 +86,14 @@ impl DbTestRunner for DuckDbTestRunner {
 }
 
 pub(crate) struct SQLiteTestRunner {
-    protocol: connector_arrow::sqlite::SQLiteConnection,
+    protocol: connector_arrow::rusqlite::SQLiteConnection,
     data_file_root: String,
 }
 
 impl SQLiteTestRunner {
     pub(crate) fn new(data_file_root: String) -> Self {
         let conn = rusqlite::Connection::open_in_memory().unwrap();
-        let conn_ar = connector_arrow::sqlite::SQLiteConnection::new(conn);
+        let conn_ar = connector_arrow::rusqlite::SQLiteConnection::new(conn);
         Self {
             protocol: conn_ar,
             data_file_root,
