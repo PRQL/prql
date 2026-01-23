@@ -35,6 +35,11 @@
 //! ```
 //!
 #![doc = include_str!("../ARCHITECTURE.md")]
+// TODO: remove when enum-as-inner is updated with the fix from
+// https://github.com/bluejekyll/enum-as-inner/pull/108
+// This suppresses false positive warnings from Rust 1.92+:
+// https://github.com/rust-lang/rust/issues/147648
+#![allow(unused_assignments)]
 //!
 //! ## Common use-cases
 //!
