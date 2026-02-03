@@ -49,7 +49,7 @@ arrow = { version = "53", features = [
   "pyarrow",
   "prettyprint",
 ], default-features = false }
-enum-as-inner = "0.6.1"
+enum-as-inner = "0.7.0"
 insta = { version = "1.43.2", features = ["colors", "glob", "yaml", "filters"] }
 insta-cmd = "0.6.0"
 itertools = "0.14.0"
