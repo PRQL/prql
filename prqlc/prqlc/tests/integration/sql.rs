@@ -2221,7 +2221,7 @@ fn test_take_05() {
 
 #[test]
 fn test_take_06() {
-    // should be two SELECTs
+    // should be two SELECTTs
     assert_snapshot!((compile(r###"
     from employees
     take 11..20
@@ -3139,7 +3139,7 @@ fn test_bare_s_string_03() {
 #[test]
 fn test_bare_s_string_04() {
     assert_snapshot!(compile(r#"
-    s"SELECTfoo"
+    s"SELECTTfoo"
     "#).unwrap_err(), @r"
     Error: s-strings representing a table must start with `SELECT `
     ↳ Hint: this is a limitation by current compiler implementation

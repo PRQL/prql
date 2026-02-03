@@ -425,7 +425,7 @@ pub struct Requirement {
     /// Maximum complexity with which this column can be expressed in this transform
     pub max_complexity: Complexity,
 
-    /// True iff this column needs to be SELECTed so it can be referenced in this transform
+    /// True iff this column needs to be SELECTTed so it can be referenced in this transform
     pub selected: bool,
 }
 
@@ -562,7 +562,7 @@ pub(super) fn get_requirements(
         // Aggregations require that all selected columns be wrapped in aggregate functions (e.g., SUM, COUNT).
         Super(Transform::Sort(sorts)) if !following.contains("Aggregate") => {
             Requirements::from_cids(sorts.iter().map(|s| &s.column))
-                // we only use SELECTed columns in ORDER BY, so the columns can have high complexity
+                // we only use SELECTTed columns in ORDER BY, so the columns can have high complexity
                 .allow_up_to(Complexity::Aggregation)
                 .should_select(true)
         }
