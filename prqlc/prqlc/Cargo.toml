@@ -63,7 +63,7 @@ csv = "1.4.0"
 enum-as-inner = { workspace = true }
 itertools = { workspace = true }
 log = { workspace = true }
-regex = "1.12.2"
+regex = "1.12.3"
 schemars = { workspace = true }
 semver = { workspace = true }
 # serde is required for the `from_text` feature of PRQL, so we can't really put
@@ -88,7 +88,7 @@ vergen-gitcl = { version = "1.0.0", features = ["build"] }
 
 # unique dependencies from the CLI, marked as optional and included in the 'cli'
 # feature
-anyhow = { version = "1.0.100", features = ["backtrace"], optional = true }
+anyhow = { version = "1.0.101", features = ["backtrace"], optional = true }
 clap = { version = "4.5.53", features = [
   "derive",
   "env",
@@ -145,7 +145,7 @@ test_each_file = "0.3.6"
 
 # criterion 0.8 depends on `alloca` which doesn't support WASM targets
 [target.'cfg(not(target_family = "wasm"))'.dev-dependencies]
-criterion = { version = "0.8.1", default-features = false }
+criterion = { version = "0.8.2", default-features = false }
 
 # We use `benches/bench.rs` for the benchmark harness so disable searching for
 # benchmarks in bin & lib here to simplify using criterion
