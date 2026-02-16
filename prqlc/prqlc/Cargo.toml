@@ -116,7 +116,7 @@ duckdb = { version = "1.4.4", optional = true, features = [
   "bundled",
   "chrono",
 ] }
-futures = { version = "0.3.31", optional = true }
+futures = { version = "0.3.32", optional = true }
 mysql = { version = "27", optional = true }
 postgres = { version = "0.19.10", optional = true }
 rusqlite = { version = "0.38.0", optional = true, features = [
@@ -141,7 +141,7 @@ rstest = "0.26.1"
 similar = { workspace = true }
 similar-asserts = { workspace = true }
 tempfile = { version = "3.25.0" }
-test_each_file = "0.3.6"
+test_each_file = "0.3.7"
 
 # criterion 0.8 depends on `alloca` which doesn't support WASM targets
 [target.'cfg(not(target_family = "wasm"))'.dev-dependencies]
