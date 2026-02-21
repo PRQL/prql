@@ -12,7 +12,7 @@ use crate::{generic, parser::SupportsDocComment};
 
 impl Expr {
     pub fn new<K: Into<ExprKind>>(kind: K) -> Self {
-        Expr {
+        Self {
             kind: kind.into(),
             span: None,
             alias: None,
@@ -171,12 +171,12 @@ pub type SwitchCase = generic::SwitchCase<Box<Expr>>;
 
 impl From<Literal> for ExprKind {
     fn from(value: Literal) -> Self {
-        ExprKind::Literal(value)
+        Self::Literal(value)
     }
 }
 
 impl From<Func> for ExprKind {
     fn from(value: Func) -> Self {
-        ExprKind::Func(Box::new(value))
+        Self::Func(Box::new(value))
     }
 }

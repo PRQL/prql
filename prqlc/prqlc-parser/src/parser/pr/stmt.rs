@@ -41,7 +41,7 @@ pub struct Stmt {
 
 impl SupportsDocComment for Stmt {
     fn with_doc_comment(self, doc_comment: Option<String>) -> Self {
-        Stmt {
+        Self {
             doc_comment,
             ..self
         }
@@ -91,8 +91,8 @@ pub struct Annotation {
 }
 
 impl Stmt {
-    pub fn new(kind: StmtKind) -> Stmt {
-        Stmt {
+    pub fn new(kind: StmtKind) -> Self {
+        Self {
             kind,
             span: None,
             annotations: Vec::new(),
