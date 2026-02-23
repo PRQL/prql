@@ -58,7 +58,7 @@ prqlc-parser = { path = "../prqlc-parser", version = "0.13.11" }
 
 anstream = { version = "1.0.0", features = ["auto"] }
 ariadne = "0.5.1"
-chrono = "0.4.43"
+chrono = "0.4.44"
 csv = "1.4.0"
 enum-as-inner = { workspace = true }
 itertools = { workspace = true }
@@ -88,7 +88,7 @@ vergen-gitcl = { version = "1.0.0", features = ["build"] }
 
 # unique dependencies from the CLI, marked as optional and included in the 'cli'
 # feature
-anyhow = { version = "1.0.101", features = ["backtrace"], optional = true }
+anyhow = { version = "1.0.102", features = ["backtrace"], optional = true }
 clap = { version = "4.5.53", features = [
   "derive",
   "env",
