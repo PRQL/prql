@@ -64,4 +64,4 @@ serde_yaml = { version = "0.9.34" }
 similar = "2.7.0"
 similar-asserts = "1.7.0"
 strum = { version = "0.27.2", features = ["std", "derive"] }
-strum_macros = "0.27.2"
+strum_macros = "0.28.0"
