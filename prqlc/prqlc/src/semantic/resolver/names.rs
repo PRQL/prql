@@ -215,11 +215,9 @@ impl Resolver<'_> {
     }
 
     fn resolve_ident_wildcard(&mut self, ident: &Ident) -> Result<Ident, String> {
-        let ident_self = ident
-            .clone()
-            .pop()
-            .ok_or_else(|| "Column wildcard `*` must be qualified, e.g. `table_name.*`".to_string())?
-            + Ident::from_name(NS_SELF);
+        let ident_self = ident.clone().pop().ok_or_else(|| {
+            "Column wildcard `*` must be qualified, e.g. `table_name.*`".to_string()
+        })? + Ident::from_name(NS_SELF);
         let mut res = self.root_mod.module.lookup(&ident_self);
         if res.contains(&ident_self) {
             res = HashSet::from_iter([ident_self]);
