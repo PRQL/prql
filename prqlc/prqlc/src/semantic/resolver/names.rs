@@ -91,8 +91,15 @@ impl Resolver<'_> {
             // if ident.name != "*" {
             //     return Err("Unsupported feature: advanced wildcard column matching".to_string());
             // }
+
+            // For bare `*` (no prefix), prepend the default namespace so it
+            // resolves like `this.*` within the current context.
+            let wildcard_ident = match (ident.path.is_empty(), default_namespace) {
+                (true, Some(ns)) => ident.clone().prepend(vec![ns.clone()]),
+                _ => ident.clone(),
+            };
             return self
-                .resolve_ident_wildcard(ident)
+                .resolve_ident_wildcard(&wildcard_ident)
                 .map_err(Error::new_simple);
         }
 
@@ -208,7 +215,9 @@ impl Resolver<'_> {
     }
 
     fn resolve_ident_wildcard(&mut self, ident: &Ident) -> Result<Ident, String> {
-        let ident_self = ident.clone().pop().unwrap() + Ident::from_name(NS_SELF);
+        let ident_self = ident.clone().pop().ok_or_else(|| {
+            "Column wildcard `*` must be qualified, e.g. `table_name.*`".to_string()
+        })? + Ident::from_name(NS_SELF);
         let mut res = self.root_mod.module.lookup(&ident_self);
         if res.contains(&ident_self) {
             res = HashSet::from_iter([ident_self]);
