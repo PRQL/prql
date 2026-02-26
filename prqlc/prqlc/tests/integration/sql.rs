@@ -5803,6 +5803,26 @@ fn test_select_this() {
 }
 
 #[test]
+fn test_select_bare_wildcard() {
+    // Regression test for #5694: bare `*` in `select` should produce
+    // a helpful error, not panic.
+    assert_snapshot!(compile(r#"
+    from page_titles
+    select *
+    "#).unwrap_err(),
+        @"
+    Error:
+       ╭─[ :3:12 ]
+       │
+     3 │     select *
+       │            ┬
+       │            ╰── Column wildcard `*` must be qualified, e.g. `table_name.*`
+    ───╯
+    "
+    );
+}
+
+#[test]
 fn test_select_repeated_and_derived() {
     assert_snapshot!(compile(
         r###"
