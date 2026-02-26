@@ -56,14 +56,14 @@ test-dbs-external = [
 [dependencies]
 prqlc-parser = { path = "../prqlc-parser", version = "0.13.11" }
 
-anstream = { version = "0.6.21", features = ["auto"] }
+anstream = { version = "1.0.0", features = ["auto"] }
 ariadne = "0.5.1"
-chrono = "0.4.43"
+chrono = "0.4.44"
 csv = "1.4.0"
 enum-as-inner = { workspace = true }
 itertools = { workspace = true }
 log = { workspace = true }
-regex = "1.12.2"
+regex = "1.12.3"
 schemars = { workspace = true }
 semver = { workspace = true }
 # serde is required for the `from_text` feature of PRQL, so we can't really put
@@ -88,7 +88,7 @@ vergen-gitcl = { version = "1.0.0", features = ["build"] }
 
 # unique dependencies from the CLI, marked as optional and included in the 'cli'
 # feature
-anyhow = { version = "1.0.100", features = ["backtrace"], optional = true }
+anyhow = { version = "1.0.102", features = ["backtrace"], optional = true }
 clap = { version = "4.5.53", features = [
   "derive",
   "env",
@@ -104,7 +104,7 @@ walkdir = { version = "2.5.0", optional = true }
 
 # We use minijinja just for the Jinja lexer, which is not part of the
 # public interface which is covered by semver guarantees.
-minijinja = { version = "2.14.0", features = [
+minijinja = { version = "2.15.1", features = [
   "unstable_machinery",
 ], optional = true }
 
@@ -112,11 +112,11 @@ minijinja = { version = "2.14.0", features = [
 # rather than dev-dependencies, because dev-dependencies can't be optional.
 
 connector_arrow = { version = "0.10.0", optional = true }
-duckdb = { version = "1.4.1", optional = true, features = [
+duckdb = { version = "1.4.4", optional = true, features = [
   "bundled",
   "chrono",
 ] }
-futures = { version = "0.3.31", optional = true }
+futures = { version = "0.3.32", optional = true }
 mysql = { version = "27", optional = true }
 postgres = { version = "0.19.10", optional = true }
 rusqlite = { version = "0.38.0", optional = true, features = [
@@ -140,12 +140,12 @@ insta-cmd = { workspace = true }
 rstest = "0.26.1"
 similar = { workspace = true }
 similar-asserts = { workspace = true }
-tempfile = { version = "3.24.0" }
-test_each_file = "0.3.6"
+tempfile = { version = "3.25.0" }
+test_each_file = "0.3.7"
 
 # criterion 0.8 depends on `alloca` which doesn't support WASM targets
 [target.'cfg(not(target_family = "wasm"))'.dev-dependencies]
-criterion = { version = "0.8.1", default-features = false }
+criterion = { version = "0.8.2", default-features = false }
 
 # We use `benches/bench.rs` for the benchmark harness so disable searching for
 # benchmarks in bin & lib here to simplify using criterion

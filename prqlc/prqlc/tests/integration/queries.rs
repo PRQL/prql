@@ -1,6 +1,6 @@
 #![cfg(not(target_family = "wasm"))]
+use std::fs;
 use std::path::Path;
-use std::{env, fs};
 
 use insta::assert_debug_snapshot;
 use insta::{assert_snapshot, with_settings};
