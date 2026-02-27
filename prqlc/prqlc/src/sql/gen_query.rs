@@ -391,6 +391,7 @@ fn translate_relation_expr(relation_expr: RelationExpr, ctx: &mut Context) -> Re
                 lateral: false,
                 subquery: Box::new(query),
                 alias,
+                sample: None,
             }
         }
     })
@@ -658,11 +659,13 @@ fn default_select() -> Select {
         qualify: None,
         value_table_mode: None,
         window_before_qualify: false,
-        connect_by: None,
+        connect_by: vec![],
         prewhere: None,
         exclude: None,
         select_token: sqlparser::ast::helpers::attached_token::AttachedToken::empty(),
         flavor: sqlparser::ast::SelectFlavor::Standard,
+        optimizer_hint: None,
+        select_modifiers: None,
     }
 }
 
@@ -715,6 +718,7 @@ fn query_to_set_expr(query: sql_ast::Query, context: &mut Context) -> Box<SetExp
                     alias: Some(simple_table_alias(sql_ast::Ident::new(
                         context.anchor.table_name.gen(),
                     ))),
+                    sample: None,
                 },
                 joins: vec![],
             }],
