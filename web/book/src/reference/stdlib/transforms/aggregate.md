@@ -5,7 +5,7 @@ Summarizes many rows into one row.
 When applied:
 
 - without `group`, it produces one row from the whole table,
-- within a `group` pipeline, it produces one row from each group.
+- within a `group` pipeline, it produces one column from each group.
 
 ```prql no-eval
 aggregate {expression or assign operations}
