@@ -67,31 +67,31 @@ pub enum Dialect {
 impl Dialect {
     pub(super) fn handler(&self) -> Box<dyn DialectHandler> {
         match self {
-            Dialect::MsSql => Box::new(MsSqlDialect),
-            Dialect::MySql => Box::new(MySqlDialect),
-            Dialect::BigQuery => Box::new(BigQueryDialect),
-            Dialect::SQLite => Box::new(SQLiteDialect),
-            Dialect::ClickHouse => Box::new(ClickHouseDialect),
-            Dialect::Snowflake => Box::new(SnowflakeDialect),
-            Dialect::DuckDb => Box::new(DuckDbDialect),
-            Dialect::Postgres => Box::new(PostgresDialect),
-            Dialect::Redshift => Box::new(RedshiftDialect),
-            Dialect::GlareDb => Box::new(GlareDbDialect),
-            Dialect::Ansi | Dialect::Generic => Box::new(GenericDialect),
+            Self::MsSql => Box::new(MsSqlDialect),
+            Self::MySql => Box::new(MySqlDialect),
+            Self::BigQuery => Box::new(BigQueryDialect),
+            Self::SQLite => Box::new(SQLiteDialect),
+            Self::ClickHouse => Box::new(ClickHouseDialect),
+            Self::Snowflake => Box::new(SnowflakeDialect),
+            Self::DuckDb => Box::new(DuckDbDialect),
+            Self::Postgres => Box::new(PostgresDialect),
+            Self::Redshift => Box::new(RedshiftDialect),
+            Self::GlareDb => Box::new(GlareDbDialect),
+            Self::Ansi | Self::Generic => Box::new(GenericDialect),
         }
     }
 
     pub fn support_level(&self) -> SupportLevel {
         match self {
-            Dialect::DuckDb
-            | Dialect::SQLite
-            | Dialect::Postgres
-            | Dialect::Redshift
-            | Dialect::MySql
-            | Dialect::Generic
-            | Dialect::GlareDb
-            | Dialect::ClickHouse => SupportLevel::Supported,
-            Dialect::MsSql | Dialect::Ansi | Dialect::BigQuery | Dialect::Snowflake => {
+            Self::DuckDb
+            | Self::SQLite
+            | Self::Postgres
+            | Self::Redshift
+            | Self::MySql
+            | Self::Generic
+            | Self::GlareDb
+            | Self::ClickHouse => SupportLevel::Supported,
+            Self::MsSql | Self::Ansi | Self::BigQuery | Self::Snowflake => {
                 SupportLevel::Unsupported
             }
         }
@@ -99,7 +99,7 @@ impl Dialect {
 
     #[deprecated(note = "Use `Dialect::VARIANTS` instead")]
     pub fn names() -> &'static [&'static str] {
-        Dialect::VARIANTS
+        Self::VARIANTS
     }
 }
 

@@ -26,8 +26,8 @@ impl<T: From<usize>> IdGenerator<T> {
 }
 
 impl<T: From<usize>> Default for IdGenerator<T> {
-    fn default() -> IdGenerator<T> {
-        IdGenerator {
+    fn default() -> Self {
+        Self {
             next_id: 0,
             phantom: PhantomData,
         }
@@ -72,7 +72,7 @@ pub struct NameGenerator {
 
 impl NameGenerator {
     pub fn new(prefix: &'static str) -> Self {
-        NameGenerator {
+        Self {
             prefix,
             id: IdGenerator::new(),
         }

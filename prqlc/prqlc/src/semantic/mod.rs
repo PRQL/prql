@@ -112,8 +112,8 @@ pub const NS_INFER: &str = "_infer";
 pub const NS_INFER_MODULE: &str = "_infer_module";
 
 impl Stmt {
-    pub fn new(kind: StmtKind) -> Stmt {
-        Stmt {
+    pub fn new(kind: StmtKind) -> Self {
+        Self {
             id: None,
             kind,
             span: None,
@@ -141,7 +141,7 @@ impl pl::Expr {
             Error::new(Reason::Expected {
                 who: who.map(|s| s.to_string()),
                 expected: expected.to_string(),
-                found: format!("`{}`", write_pl(pl::Expr::new(i))),
+                found: format!("`{}`", write_pl(Self::new(i))),
             })
             .with_span(self.span)
         })

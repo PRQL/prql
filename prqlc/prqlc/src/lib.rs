@@ -247,14 +247,14 @@ impl Target {
 impl FromStr for Target {
     type Err = Error;
 
-    fn from_str(s: &str) -> Result<Target, Self::Err> {
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
         if let Some(dialect) = s.strip_prefix("sql.") {
             if dialect == "any" {
-                return Ok(Target::Sql(None));
+                return Ok(Self::Sql(None));
             }
 
             if let Ok(dialect) = sql::Dialect::from_str(dialect) {
-                return Ok(Target::Sql(Some(dialect)));
+                return Ok(Self::Sql(Some(dialect)));
             }
         }
 
@@ -460,7 +460,7 @@ pub struct SourceTree {
 
 impl SourceTree {
     pub fn single(path: PathBuf, content: String) -> Self {
-        SourceTree {
+        Self {
             sources: [(path.clone(), content)].into(),
             source_ids: [(1, path)].into(),
             root: None,
@@ -471,7 +471,7 @@ impl SourceTree {
     where
         I: IntoIterator<Item = (PathBuf, String)>,
     {
-        let mut res = SourceTree {
+        let mut res = Self {
             sources: HashMap::new(),
             source_ids: HashMap::new(),
             root,
@@ -497,7 +497,7 @@ impl SourceTree {
 
 impl<S: ToString> From<S> for SourceTree {
     fn from(source: S) -> Self {
-        SourceTree::single(PathBuf::from(""), source.to_string())
+        Self::single(PathBuf::from(""), source.to_string())
     }
 }
 

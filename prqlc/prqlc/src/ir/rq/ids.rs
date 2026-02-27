@@ -13,7 +13,7 @@ impl CId {
 
 impl From<usize> for CId {
     fn from(id: usize) -> Self {
-        CId(id)
+        Self(id)
     }
 }
 
@@ -35,7 +35,7 @@ impl TId {
 
 impl From<usize> for TId {
     fn from(id: usize) -> Self {
-        TId(id)
+        Self(id)
     }
 }
 

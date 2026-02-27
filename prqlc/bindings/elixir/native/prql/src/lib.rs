@@ -76,7 +76,7 @@ fn target_from_atom(a: Atom) -> prqlc::Target {
 impl From<CompileOptions> for prqlc::Options {
     /// Get `prqlc::Options` options from `CompileOptions`
     fn from(o: CompileOptions) -> Self {
-        prqlc::Options {
+        Self {
             format: o.format,
             target: target_from_atom(o.target),
             signature_comment: o.signature_comment,

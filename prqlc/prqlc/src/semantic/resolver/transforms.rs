@@ -856,11 +856,11 @@ impl Lineage {
     pub fn apply_assign(&mut self, expr: &Expr, inline_refs: bool) {
         // special case: all except
         if let ExprKind::All { within, except } = &expr.kind {
-            let mut within_lineage = Lineage::default();
+            let mut within_lineage = Self::default();
             within_lineage.inputs.extend(self.inputs.clone());
             within_lineage.apply_assigns(within, true);
 
-            let mut except_lineage = Lineage::default();
+            let mut except_lineage = Self::default();
             except_lineage.inputs.extend(self.inputs.clone());
             except_lineage.apply_assigns(except, true);
 

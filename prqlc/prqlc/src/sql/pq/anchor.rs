@@ -451,11 +451,11 @@ impl fmt::Debug for Requirements {
 impl Requirements {
     /// Turns a list of `CId` into requirements with the least allowed complexity
     /// and unselected by default.
-    pub fn from_cids<'a, I>(cids: I) -> Requirements
+    pub fn from_cids<'a, I>(cids: I) -> Self
     where
         I: Iterator<Item = &'a CId>,
     {
-        Requirements(
+        Self(
             cids.cloned()
                 .map(|col| Requirement {
                     col,
@@ -468,14 +468,14 @@ impl Requirements {
 
     /// Collect columns from the given `Expr` into requirements with
     /// the least allowed complexity and unselected by default.
-    pub fn from_expr(expr: &Expr) -> Requirements {
+    pub fn from_expr(expr: &Expr) -> Self {
         let cids = CidCollector::collect(expr.clone());
-        Requirements::from_cids(cids.iter())
+        Self::from_cids(cids.iter())
     }
 
     /// Moves all the elements of `other` into `self`, leaving `other` empty,
     /// then return `self` for chainability.
-    pub fn append(mut self, mut other: Requirements) -> Requirements {
+    pub fn append(mut self, mut other: Self) -> Self {
         self.0.append(&mut other.0);
         self
     }
@@ -651,13 +651,13 @@ pub struct CidCollector {
 
 impl CidCollector {
     pub fn collect(expr: Expr) -> Vec<CId> {
-        let mut collector = CidCollector::default();
+        let mut collector = Self::default();
         collector.fold_expr(expr).unwrap();
         collector.cids
     }
 
     pub fn collect_t(t: Transform) -> (Transform, Vec<CId>) {
-        let mut collector = CidCollector::default();
+        let mut collector = Self::default();
         let t = collector.fold_transform(t).unwrap();
         (t, collector.cids)
     }
