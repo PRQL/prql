@@ -196,7 +196,7 @@ enum LoweredTarget {
 
 impl Lowerer {
     fn new(root_mod: RootModule, database_module_path: &[String]) -> Self {
-        Lowerer {
+        Self {
             root_mod,
             database_module_path: database_module_path.to_vec(),
 
@@ -1184,7 +1184,7 @@ struct TableExtractor {
 impl TableExtractor {
     /// Finds table declarations in a module, recursively.
     fn extract(root_module: &Module) -> Vec<(Ident, (decl::TableDecl, Option<usize>))> {
-        let mut te = TableExtractor::default();
+        let mut te = Self::default();
         te.extract_from_module(root_module);
         te.tables
     }
@@ -1248,7 +1248,7 @@ struct TableDepsCollector {
 
 impl TableDepsCollector {
     fn collect(expr: pl::Expr) -> Vec<Ident> {
-        let mut c = TableDepsCollector::default();
+        let mut c = Self::default();
         c.fold_expr(expr).unwrap();
         c.deps
     }
