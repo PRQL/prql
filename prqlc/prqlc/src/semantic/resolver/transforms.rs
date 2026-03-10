@@ -954,9 +954,8 @@ impl Lineage {
 
         // special case: an ref that should be inlined because this node
         // might not exist in the resulting AST
-        if inline_refs && expr.target_id.is_some() {
+        if let Some(target_id) = expr.target_id.filter(|_| inline_refs) {
             let ident = expr.kind.as_ident().unwrap().clone().pop_front().1.unwrap();
-            let target_id = expr.target_id.unwrap();
             let input = &self.find_input(target_id);
 
             self.columns.push(if input.is_some() {
@@ -973,7 +972,7 @@ impl Lineage {
                 }
             });
             return;
-        };
+        }
 
         // base case: define the expr as a new lineage column
         let (target_id, target_name) = (expr.id.unwrap(), None);
