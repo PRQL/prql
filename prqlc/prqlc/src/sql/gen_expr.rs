@@ -957,12 +957,12 @@ pub enum Associativity {
 impl Associativity {
     /// Returns true iff `a + b + c = (a + b) + c`
     fn left_associative(&self) -> bool {
-        matches!(self, Associativity::Left | Associativity::Both)
+        matches!(self, Self::Left | Self::Both)
     }
 
     /// Returns true iff `a + b + c = a + (b + c)`
     fn right_associative(&self) -> bool {
-        matches!(self, Associativity::Right | Associativity::Both)
+        matches!(self, Self::Right | Self::Both)
     }
 }
 
@@ -983,13 +983,13 @@ impl SQLExpression for sql_ast::Expr {
         // Strength of an expression depends only on the top-level operator, because all
         // other nested expressions can only have lower strength
         match self {
-            sql_ast::Expr::BinaryOp { op, .. } => op.binding_strength(),
+            Self::BinaryOp { op, .. } => op.binding_strength(),
 
-            sql_ast::Expr::UnaryOp { op, .. } => op.binding_strength(),
+            Self::UnaryOp { op, .. } => op.binding_strength(),
 
-            sql_ast::Expr::Like { .. } | sql_ast::Expr::ILike { .. } => 7,
+            Self::Like { .. } | Self::ILike { .. } => 7,
 
-            sql_ast::Expr::IsNull(_) | sql_ast::Expr::IsNotNull(_) => 5,
+            Self::IsNull(_) | Self::IsNotNull(_) => 5,
 
             // all other items types bind stronger (function calls, literals, ...)
             _ => 20,
@@ -997,8 +997,8 @@ impl SQLExpression for sql_ast::Expr {
     }
     fn associativity(&self) -> Associativity {
         match self {
-            sql_ast::Expr::BinaryOp { op, .. } => op.associativity(),
-            sql_ast::Expr::UnaryOp { op, .. } => op.associativity(),
+            Self::BinaryOp { op, .. } => op.associativity(),
+            Self::UnaryOp { op, .. } => op.associativity(),
             _ => Associativity::Both,
         }
     }
@@ -1030,8 +1030,8 @@ impl SQLExpression for BinaryOperator {
 impl SQLExpression for UnaryOperator {
     fn binding_strength(&self) -> i32 {
         match self {
-            UnaryOperator::Minus | UnaryOperator::Plus => 13,
-            UnaryOperator::Not => 4,
+            Self::Minus | Self::Plus => 13,
+            Self::Not => 4,
             _ => 9,
         }
     }
@@ -1056,8 +1056,8 @@ pub struct SourceExpr {
 impl ExprOrSource {
     pub fn into_ast(self) -> sql_ast::Expr {
         match self {
-            ExprOrSource::Expr(ast) => *ast,
-            ExprOrSource::Source(SourceExpr { text: source, .. }) => {
+            Self::Expr(ast) => *ast,
+            Self::Source(SourceExpr { text: source, .. }) => {
                 // The s-string hack
                 sql_ast::Expr::Identifier(sql_ast::Ident::new(source))
             }
@@ -1066,19 +1066,19 @@ impl ExprOrSource {
 
     pub fn into_source(self) -> String {
         match self {
-            ExprOrSource::Expr(e) => e.to_string(),
-            ExprOrSource::Source(SourceExpr { text, .. }) => text,
+            Self::Expr(e) => e.to_string(),
+            Self::Source(SourceExpr { text, .. }) => text,
         }
     }
 
     fn wrap_in_parenthesis(self) -> Self {
         match self {
-            ExprOrSource::Expr(expr) => ExprOrSource::Expr(Box::new(sql_ast::Expr::Nested(expr))),
-            ExprOrSource::Source(SourceExpr {
+            Self::Expr(expr) => Self::Expr(Box::new(sql_ast::Expr::Nested(expr))),
+            Self::Source(SourceExpr {
                 text, window_frame, ..
             }) => {
                 let text = format!("({text})");
-                ExprOrSource::Source(SourceExpr {
+                Self::Source(SourceExpr {
                     text,
                     binding_strength: 100,
                     window_frame,
@@ -1091,8 +1091,8 @@ impl ExprOrSource {
 impl SQLExpression for ExprOrSource {
     fn binding_strength(&self) -> i32 {
         match self {
-            ExprOrSource::Expr(expr) => expr.binding_strength(),
-            ExprOrSource::Source(SourceExpr {
+            Self::Expr(expr) => expr.binding_strength(),
+            Self::Source(SourceExpr {
                 binding_strength, ..
             }) => *binding_strength,
         }
@@ -1101,7 +1101,7 @@ impl SQLExpression for ExprOrSource {
 
 impl From<sql_ast::Expr> for ExprOrSource {
     fn from(value: sql_ast::Expr) -> Self {
-        ExprOrSource::Expr(Box::new(value))
+        Self::Expr(Box::new(value))
     }
 }
 

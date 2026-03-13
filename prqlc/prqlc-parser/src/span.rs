@@ -21,7 +21,7 @@ impl chumsky::span::Span for Span {
     type Offset = usize;
 
     fn new(context: Self::Context, range: Range<Self::Offset>) -> Self {
-        Span {
+        Self {
             start: range.start,
             end: range.end,
             source_id: context,
@@ -41,7 +41,7 @@ impl chumsky::span::Span for Span {
     }
 
     fn to_end(&self) -> Self {
-        Span {
+        Self {
             start: self.end,
             end: self.end,
             source_id: self.source_id,
@@ -141,9 +141,9 @@ impl<'de> Deserialize<'de> for Span {
 }
 
 impl Add<usize> for Span {
-    type Output = Span;
+    type Output = Self;
 
-    fn add(self, rhs: usize) -> Span {
+    fn add(self, rhs: usize) -> Self {
         Self {
             start: self.start + rhs,
             end: self.end + rhs,
@@ -153,9 +153,9 @@ impl Add<usize> for Span {
 }
 
 impl Sub<usize> for Span {
-    type Output = Span;
+    type Output = Self;
 
-    fn sub(self, rhs: usize) -> Span {
+    fn sub(self, rhs: usize) -> Self {
         Self {
             start: self.start - rhs,
             end: self.end - rhs,

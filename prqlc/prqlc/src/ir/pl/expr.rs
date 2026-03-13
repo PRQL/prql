@@ -136,19 +136,19 @@ pub type SwitchCase = generic::SwitchCase<Box<Expr>>;
 
 impl From<Literal> for ExprKind {
     fn from(value: Literal) -> Self {
-        ExprKind::Literal(value)
+        Self::Literal(value)
     }
 }
 
 impl From<Ident> for ExprKind {
     fn from(value: Ident) -> Self {
-        ExprKind::Ident(value)
+        Self::Ident(value)
     }
 }
 
 impl From<Func> for ExprKind {
     fn from(value: Func) -> Self {
-        ExprKind::Func(Box::new(value))
+        Self::Func(Box::new(value))
     }
 }
 
