@@ -280,25 +280,6 @@ fn date_to_text_with_column_format() {
 }
 
 #[test]
-fn date_to_text_bigquery_unpadded_month() {
-    assert_snapshot!(compile(r#"
-    prql target:sql.bigquery
-
-    from [{d = @2021-01-01}]
-    derive {
-      d_str = (d | date.to_text "%-m/%d/%Y")
-    }"#).unwrap_err(), @r#"
-    Error:
-       ╭─[ :6:33 ]
-       │
-     6 │       d_str = (d | date.to_text "%-m/%d/%Y")
-       │                                 ─────┬─────
-       │                                      ╰─────── format specifier `%-m` is not supported for BigQuery
-    ───╯
-    "#);
-}
-
-#[test]
 fn date_to_text_unsupported_chrono_item() {
     assert_snapshot!(compile(r#"
     prql target:sql.duckdb
