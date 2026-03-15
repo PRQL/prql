@@ -261,6 +261,10 @@ fn test_quoting_style(#[case] dialect: sql::Dialect, #[case] expected_sql: &'sta
 #[case::postgres(sql::Dialect::Postgres, "TO_CHAR(invoice_date, 'DD/MM/YYYY')")]
 #[case::mssql(sql::Dialect::MsSql, "FORMAT(invoice_date, 'dd/MM/yyyy')")]
 #[case::mysql(sql::Dialect::MySql, "DATE_FORMAT(invoice_date, '%d/%m/%Y')")]
+#[case::bigquery(
+    sql::Dialect::BigQuery,
+    "FORMAT_TIMESTAMP('%d/%m/%Y', CAST(invoice_date AS TIMESTAMP))"
+)]
 fn date_to_text_operator(
     #[case] dialect: sql::Dialect,
     #[case] expected_date_to_text: &'static str,
@@ -282,6 +286,27 @@ FROM
         compile_with_sql_dialect(query, dialect).unwrap(),
         expected.trim_start()
     )
+}
+
+#[test]
+fn date_to_text_bigquery_rfc3339() {
+    assert_snapshot!(compile(r#"
+    prql target:sql.bigquery
+
+    from [{d = @2021-01-01}]
+    derive {
+      d_str = (d | date.to_text "%+")
+    }"#).unwrap(), @"
+    WITH table_0 AS (
+      SELECT
+        DATE '2021-01-01' AS d
+    )
+    SELECT
+      d,
+      FORMAT_TIMESTAMP('%Y-%m-%dT%H:%M:%S%Ez', CAST(d AS TIMESTAMP)) AS d_str
+    FROM
+      table_0
+    ");
 }
 
 #[test]

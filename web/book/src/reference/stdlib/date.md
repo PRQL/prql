@@ -16,8 +16,8 @@ how the date or timestamp should be structured.
 
 <!-- prettier-ignore -->
 > [!NOTE]
-> For now the supported DBs are: Clickhouse, DuckDB, MySQL, MSSQL and
-> Postgres.
+> For now the supported DBs are: BigQuery, Clickhouse, DuckDB, MySQL, MSSQL
+> and Postgres.
 
 ```prql
 prql target:sql.duckdb

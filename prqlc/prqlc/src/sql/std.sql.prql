@@ -199,6 +199,10 @@ module bigquery {
     let radians = column -> s"({column:0} * PI() / 180)"
   }
 
+  module date {
+    let to_text = format column -> s"FORMAT_TIMESTAMP({format:0}, CAST({column:0} AS TIMESTAMP))"
+  }
+
   let regex_search = text pattern -> s"REGEXP_CONTAINS({text:0}, {pattern:0})"
 }
 

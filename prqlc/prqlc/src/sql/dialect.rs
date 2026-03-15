@@ -21,6 +21,41 @@ use strum::VariantNames;
 
 use crate::{Error, Result};
 
+/// Convert a chrono format `Item` back to its strftime string representation.
+fn chrono_item_to_strftime(item: &Item) -> String {
+    let pad_char = |pad: &Pad| match pad {
+        Pad::None => "-",
+        Pad::Zero => "",
+        Pad::Space => "_",
+    };
+    let numeric_char = |num: &Numeric| -> String {
+        match num {
+            Numeric::Year => "Y",
+            Numeric::YearMod100 => "y",
+            Numeric::Month => "m",
+            Numeric::Day => "d",
+            Numeric::Hour => "H",
+            Numeric::Hour12 => "I",
+            Numeric::Minute => "M",
+            Numeric::Second => "S",
+            Numeric::Nanosecond => "f",
+            _ => return format!("{num:?}"),
+        }
+        .to_string()
+    };
+    match item {
+        Item::Numeric(num, pad) => format!("%{}{}", pad_char(pad), numeric_char(num)),
+        Item::Fixed(Fixed::ShortMonthName) => "%b".to_string(),
+        Item::Fixed(Fixed::LongMonthName) => "%B".to_string(),
+        Item::Fixed(Fixed::ShortWeekdayName) => "%a".to_string(),
+        Item::Fixed(Fixed::LongWeekdayName) => "%A".to_string(),
+        Item::Fixed(Fixed::UpperAmPm) => "%p".to_string(),
+        Item::Fixed(Fixed::LowerAmPm) => "%P".to_string(),
+        Item::Fixed(Fixed::RFC3339) => "%+".to_string(),
+        _ => format!("{item:?}"),
+    }
+}
+
 /// SQL dialect.
 ///
 /// This only changes the output for a relatively small subset of features.
@@ -593,6 +628,34 @@ impl DialectHandler for BigQueryDialect {
 
     fn prefers_subquery_parentheses_shorthand(&self) -> bool {
         true
+    }
+
+    // https://cloud.google.com/bigquery/docs/reference/standard-sql/format-elements#format_elements_date_time
+    fn translate_chrono_item<'a>(&self, item: Item) -> Result<String> {
+        Ok(match item {
+            Item::Numeric(Numeric::Year, Pad::Zero) => "%Y".to_string(),
+            Item::Numeric(Numeric::YearMod100, Pad::Zero) => "%y".to_string(),
+            Item::Numeric(Numeric::Month, Pad::Zero) => "%m".to_string(),
+            Item::Numeric(Numeric::Day, Pad::Zero) => "%d".to_string(),
+            Item::Numeric(Numeric::Hour, Pad::Zero) => "%H".to_string(),
+            Item::Numeric(Numeric::Hour12, Pad::Zero) => "%I".to_string(),
+            Item::Numeric(Numeric::Minute, Pad::Zero) => "%M".to_string(),
+            Item::Numeric(Numeric::Second, Pad::Zero) => "%S".to_string(),
+            Item::Fixed(Fixed::ShortMonthName) => "%b".to_string(),
+            Item::Fixed(Fixed::LongMonthName) => "%B".to_string(),
+            Item::Fixed(Fixed::ShortWeekdayName) => "%a".to_string(),
+            Item::Fixed(Fixed::LongWeekdayName) => "%A".to_string(),
+            Item::Fixed(Fixed::UpperAmPm) => "%p".to_string(),
+            Item::Fixed(Fixed::RFC3339) => "%Y-%m-%dT%H:%M:%S%Ez".to_string(),
+            Item::Literal(literal) => literal.replace('\'', "''").replace('%', "%%"),
+            Item::Space(spaces) => spaces.to_string(),
+            item => {
+                return Err(Error::new_simple(format!(
+                    "format specifier `{}` is not supported for BigQuery",
+                    chrono_item_to_strftime(&item),
+                )))
+            }
+        })
     }
 }
 
