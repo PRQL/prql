@@ -21,6 +21,41 @@ use strum::VariantNames;
 
 use crate::{Error, Result};
 
+/// Convert a chrono format `Item` back to its strftime string representation.
+fn chrono_item_to_strftime(item: &Item) -> String {
+    let pad_char = |pad: &Pad| match pad {
+        Pad::None => "-",
+        Pad::Zero => "",
+        Pad::Space => "_",
+    };
+    let numeric_char = |num: &Numeric| -> String {
+        match num {
+            Numeric::Year => "Y",
+            Numeric::YearMod100 => "y",
+            Numeric::Month => "m",
+            Numeric::Day => "d",
+            Numeric::Hour => "H",
+            Numeric::Hour12 => "I",
+            Numeric::Minute => "M",
+            Numeric::Second => "S",
+            Numeric::Nanosecond => "f",
+            _ => return format!("{num:?}"),
+        }
+        .to_string()
+    };
+    match item {
+        Item::Numeric(num, pad) => format!("%{}{}", pad_char(pad), numeric_char(num)),
+        Item::Fixed(Fixed::ShortMonthName) => "%b".to_string(),
+        Item::Fixed(Fixed::LongMonthName) => "%B".to_string(),
+        Item::Fixed(Fixed::ShortWeekdayName) => "%a".to_string(),
+        Item::Fixed(Fixed::LongWeekdayName) => "%A".to_string(),
+        Item::Fixed(Fixed::UpperAmPm) => "%p".to_string(),
+        Item::Fixed(Fixed::LowerAmPm) => "%P".to_string(),
+        Item::Fixed(Fixed::RFC3339) => "%+".to_string(),
+        _ => format!("{item:?}"),
+    }
+}
+
 /// SQL dialect.
 ///
 /// This only changes the output for a relatively small subset of features.
@@ -594,6 +629,34 @@ impl DialectHandler for BigQueryDialect {
     fn prefers_subquery_parentheses_shorthand(&self) -> bool {
         true
     }
+
+    // https://cloud.google.com/bigquery/docs/reference/standard-sql/format-elements#format_elements_date_time
+    fn translate_chrono_item<'a>(&self, item: Item) -> Result<String> {
+        Ok(match item {
+            Item::Numeric(Numeric::Year, Pad::Zero) => "%Y".to_string(),
+            Item::Numeric(Numeric::YearMod100, Pad::Zero) => "%y".to_string(),
+            Item::Numeric(Numeric::Month, Pad::Zero) => "%m".to_string(),
+            Item::Numeric(Numeric::Day, Pad::Zero) => "%d".to_string(),
+            Item::Numeric(Numeric::Hour, Pad::Zero) => "%H".to_string(),
+            Item::Numeric(Numeric::Hour12, Pad::Zero) => "%I".to_string(),
+            Item::Numeric(Numeric::Minute, Pad::Zero) => "%M".to_string(),
+            Item::Numeric(Numeric::Second, Pad::Zero) => "%S".to_string(),
+            Item::Fixed(Fixed::ShortMonthName) => "%b".to_string(),
+            Item::Fixed(Fixed::LongMonthName) => "%B".to_string(),
+            Item::Fixed(Fixed::ShortWeekdayName) => "%a".to_string(),
+            Item::Fixed(Fixed::LongWeekdayName) => "%A".to_string(),
+            Item::Fixed(Fixed::UpperAmPm) => "%p".to_string(),
+            Item::Fixed(Fixed::RFC3339) => "%Y-%m-%dT%H:%M:%S%Ez".to_string(),
+            Item::Literal(literal) => literal.replace('\'', "''").replace('%', "%%"),
+            Item::Space(spaces) => spaces.to_string(),
+            item => {
+                return Err(Error::new_simple(format!(
+                    "format specifier `{}` is not supported for BigQuery",
+                    chrono_item_to_strftime(&item),
+                )))
+            }
+        })
+    }
 }
 
 impl DialectHandler for SnowflakeDialect {
@@ -677,9 +740,10 @@ impl DialectHandler for DuckDbDialect {
 mod tests {
     use std::str::FromStr;
 
-    use insta::assert_debug_snapshot;
+    use chrono::format::{Fixed, Item, Numeric, Pad};
+    use insta::{assert_debug_snapshot, assert_snapshot};
 
-    use super::Dialect;
+    use super::{chrono_item_to_strftime, BigQueryDialect, Dialect, DialectHandler};
 
     #[test]
     fn test_dialect_from_str() {
@@ -694,6 +758,139 @@ mod tests {
             VariantNotFound,
         )
         ");
+    }
+
+    // -- chrono_item_to_strftime tests --
+
+    #[test]
+    fn chrono_item_to_strftime_numerics_zero_pad() {
+        assert_snapshot!(chrono_item_to_strftime(&Item::Numeric(Numeric::Year, Pad::Zero)), @"%Y");
+        assert_snapshot!(chrono_item_to_strftime(&Item::Numeric(Numeric::YearMod100, Pad::Zero)), @"%y");
+        assert_snapshot!(chrono_item_to_strftime(&Item::Numeric(Numeric::Month, Pad::Zero)), @"%m");
+        assert_snapshot!(chrono_item_to_strftime(&Item::Numeric(Numeric::Day, Pad::Zero)), @"%d");
+        assert_snapshot!(chrono_item_to_strftime(&Item::Numeric(Numeric::Hour, Pad::Zero)), @"%H");
+        assert_snapshot!(chrono_item_to_strftime(&Item::Numeric(Numeric::Hour12, Pad::Zero)), @"%I");
+        assert_snapshot!(chrono_item_to_strftime(&Item::Numeric(Numeric::Minute, Pad::Zero)), @"%M");
+        assert_snapshot!(chrono_item_to_strftime(&Item::Numeric(Numeric::Second, Pad::Zero)), @"%S");
+        assert_snapshot!(chrono_item_to_strftime(&Item::Numeric(Numeric::Nanosecond, Pad::Zero)), @"%f");
+    }
+
+    #[test]
+    fn chrono_item_to_strftime_numerics_no_pad() {
+        assert_snapshot!(chrono_item_to_strftime(&Item::Numeric(Numeric::Day, Pad::None)), @"%-d");
+        assert_snapshot!(chrono_item_to_strftime(&Item::Numeric(Numeric::Month, Pad::None)), @"%-m");
+    }
+
+    #[test]
+    fn chrono_item_to_strftime_numerics_space_pad() {
+        assert_snapshot!(chrono_item_to_strftime(&Item::Numeric(Numeric::Day, Pad::Space)), @"%_d");
+        assert_snapshot!(chrono_item_to_strftime(&Item::Numeric(Numeric::Hour, Pad::Space)), @"%_H");
+    }
+
+    #[test]
+    fn chrono_item_to_strftime_numeric_unknown() {
+        // Numeric variants not in the explicit list fall through to Debug format
+        let result = chrono_item_to_strftime(&Item::Numeric(Numeric::Ordinal, Pad::Zero));
+        assert!(result.contains("Ordinal"), "got: {result}");
+    }
+
+    #[test]
+    fn chrono_item_to_strftime_fixed() {
+        assert_snapshot!(chrono_item_to_strftime(&Item::Fixed(Fixed::ShortMonthName)), @"%b");
+        assert_snapshot!(chrono_item_to_strftime(&Item::Fixed(Fixed::LongMonthName)), @"%B");
+        assert_snapshot!(chrono_item_to_strftime(&Item::Fixed(Fixed::ShortWeekdayName)), @"%a");
+        assert_snapshot!(chrono_item_to_strftime(&Item::Fixed(Fixed::LongWeekdayName)), @"%A");
+        assert_snapshot!(chrono_item_to_strftime(&Item::Fixed(Fixed::UpperAmPm)), @"%p");
+        assert_snapshot!(chrono_item_to_strftime(&Item::Fixed(Fixed::LowerAmPm)), @"%P");
+        assert_snapshot!(chrono_item_to_strftime(&Item::Fixed(Fixed::RFC3339)), @"%+");
+    }
+
+    #[test]
+    fn chrono_item_to_strftime_fixed_unknown() {
+        // Fixed variants not in the explicit list fall through to Debug format
+        let result = chrono_item_to_strftime(&Item::Fixed(Fixed::TimezoneOffsetColon));
+        assert!(result.contains("TimezoneOffsetColon"), "got: {result}");
+    }
+
+    #[test]
+    fn chrono_item_to_strftime_non_numeric_non_fixed() {
+        // Literal and Space items fall through to Debug format
+        let result = chrono_item_to_strftime(&Item::Literal("-"));
+        assert!(result.contains("Literal"), "got: {result}");
+
+        let result = chrono_item_to_strftime(&Item::Space(" "));
+        assert!(result.contains("Space"), "got: {result}");
+    }
+
+    // -- BigQueryDialect::translate_chrono_item tests --
+
+    #[test]
+    fn bigquery_translate_numeric_specifiers() {
+        let bq = BigQueryDialect;
+        assert_snapshot!(bq.translate_chrono_item(Item::Numeric(Numeric::Year, Pad::Zero)).unwrap(), @"%Y");
+        assert_snapshot!(bq.translate_chrono_item(Item::Numeric(Numeric::YearMod100, Pad::Zero)).unwrap(), @"%y");
+        assert_snapshot!(bq.translate_chrono_item(Item::Numeric(Numeric::Month, Pad::Zero)).unwrap(), @"%m");
+        assert_snapshot!(bq.translate_chrono_item(Item::Numeric(Numeric::Day, Pad::Zero)).unwrap(), @"%d");
+        assert_snapshot!(bq.translate_chrono_item(Item::Numeric(Numeric::Hour, Pad::Zero)).unwrap(), @"%H");
+        assert_snapshot!(bq.translate_chrono_item(Item::Numeric(Numeric::Hour12, Pad::Zero)).unwrap(), @"%I");
+        assert_snapshot!(bq.translate_chrono_item(Item::Numeric(Numeric::Minute, Pad::Zero)).unwrap(), @"%M");
+        assert_snapshot!(bq.translate_chrono_item(Item::Numeric(Numeric::Second, Pad::Zero)).unwrap(), @"%S");
+    }
+
+    #[test]
+    fn bigquery_translate_fixed_specifiers() {
+        let bq = BigQueryDialect;
+        assert_snapshot!(bq.translate_chrono_item(Item::Fixed(Fixed::ShortMonthName)).unwrap(), @"%b");
+        assert_snapshot!(bq.translate_chrono_item(Item::Fixed(Fixed::LongMonthName)).unwrap(), @"%B");
+        assert_snapshot!(bq.translate_chrono_item(Item::Fixed(Fixed::ShortWeekdayName)).unwrap(), @"%a");
+        assert_snapshot!(bq.translate_chrono_item(Item::Fixed(Fixed::LongWeekdayName)).unwrap(), @"%A");
+        assert_snapshot!(bq.translate_chrono_item(Item::Fixed(Fixed::UpperAmPm)).unwrap(), @"%p");
+        assert_snapshot!(bq.translate_chrono_item(Item::Fixed(Fixed::RFC3339)).unwrap(), @"%Y-%m-%dT%H:%M:%S%Ez");
+    }
+
+    #[test]
+    fn bigquery_translate_literal() {
+        let bq = BigQueryDialect;
+        assert_snapshot!(bq.translate_chrono_item(Item::Literal("-")).unwrap(), @"-");
+        assert_snapshot!(bq.translate_chrono_item(Item::Literal("/")).unwrap(), @"/");
+        // Single quotes are escaped by doubling
+        assert_snapshot!(bq.translate_chrono_item(Item::Literal("'")).unwrap(), @"''");
+        // Percent signs are escaped by doubling
+        assert_snapshot!(bq.translate_chrono_item(Item::Literal("%")).unwrap(), @"%%");
+    }
+
+    #[test]
+    fn bigquery_translate_space() {
+        let bq = BigQueryDialect;
+        assert_snapshot!(bq.translate_chrono_item(Item::Space(" ")).unwrap(), @" ");
+        assert_snapshot!(bq.translate_chrono_item(Item::Space("  ")).unwrap(), @"  ");
+    }
+
+    #[test]
+    fn bigquery_translate_unsupported_specifier() {
+        let bq = BigQueryDialect;
+
+        // Nanosecond (%f) is not supported by BigQuery
+        let err = bq
+            .translate_chrono_item(Item::Numeric(Numeric::Nanosecond, Pad::Zero))
+            .unwrap_err();
+        assert_snapshot!(err.to_string(), @r#"Error { kind: Error, span: None, reason: Simple("format specifier `%f` is not supported for BigQuery"), hints: [], code: None }"#);
+
+        // Non-zero padding is not supported by BigQuery
+        let err = bq
+            .translate_chrono_item(Item::Numeric(Numeric::Day, Pad::None))
+            .unwrap_err();
+        assert_snapshot!(err.to_string(), @r#"Error { kind: Error, span: None, reason: Simple("format specifier `%-d` is not supported for BigQuery"), hints: [], code: None }"#);
+        let err = bq
+            .translate_chrono_item(Item::Numeric(Numeric::Month, Pad::None))
+            .unwrap_err();
+        assert_snapshot!(err.to_string(), @r#"Error { kind: Error, span: None, reason: Simple("format specifier `%-m` is not supported for BigQuery"), hints: [], code: None }"#);
+
+        // LowerAmPm (%P) is not supported by BigQuery
+        let err = bq
+            .translate_chrono_item(Item::Fixed(Fixed::LowerAmPm))
+            .unwrap_err();
+        assert_snapshot!(err.to_string(), @r#"Error { kind: Error, span: None, reason: Simple("format specifier `%P` is not supported for BigQuery"), hints: [], code: None }"#);
     }
 }
 

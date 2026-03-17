@@ -263,25 +263,6 @@ fn date_to_text_generic() {
 }
 
 #[test]
-fn date_to_text_not_supported_dialect() {
-    assert_snapshot!(compile(r#"
-  prql target:sql.bigquery
-
-  from [{d = @2021-01-01}]
-  derive {
-    d_str = (d | date.to_text "%Y/%m/%d")
-  }"#).unwrap_err(), @r#"
-    Error:
-       ╭─[ :6:31 ]
-       │
-     6 │     d_str = (d | date.to_text "%Y/%m/%d")
-       │                               ─────┬────
-       │                                    ╰────── Date formatting is not yet supported for this dialect
-    ───╯
-    "#);
-}
-
-#[test]
 fn date_to_text_with_column_format() {
     assert_snapshot!(compile(r#"
   from dates_to_display
