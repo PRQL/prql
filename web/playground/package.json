@@ -26,9 +26,9 @@
     "yaml": "^2.8.0"
   },
   "devDependencies": {
-    "@vitejs/plugin-react": "^5.1.0",
+    "@vitejs/plugin-react": "^6.0.1",
     "vite": "^8.0.1",
-    "vite-plugin-wasm": "^3.5.0"
+    "vite-plugin-wasm": "^3.6.0"
   },
   "eslintConfig": {
     "extends": [
