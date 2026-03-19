@@ -1,16 +1,30 @@
 # PRQL Changelog
 
-## [unreleased]
+## 0.13.11 — 2026-03-19
 
-**Language**:
+0.13.11 has 75 commits from 7 contributors. Selected changes:
 
 **Features**:
 
+- Add support for `date.to_text` for BigQuery (@segv, #5712)
+
 **Fixes**:
+
+- Prevent panic on bare `*` in `select` (@max-sixty, #5696)
+- Handle partial application of transforms in user-defined functions
+  (@max-sixty, #5663; reported by @Rafferty97)
+- Keep Computes with Aggregate when Filter follows (@max-sixty, #5639; reported
+  by @matiastoro)
+- Preserve sort before take in CTE (@max-sixty, #5638; reported by @lukapeschke)
+- Preserve sort with empty group `{}` (@max-sixty, #5635)
+- Return proper error for bare lambda expressions (@max-sixty, #5634)
+- Prevent DISTINCT ON internal sorting from leaking past joins (@max-sixty,
+  #5633; reported by @annashmatko)
+- Fix invalid MSSQL SQL when DISTINCT and FETCH are combined (@max-sixty, #5630)
 
 **Documentation**:
 
-**Web**:
+- Editorial tweaks (@richb-hanover, #5645)
 
 **Integrations**:
 
@@ -19,7 +33,13 @@
 
 **Internal changes**:
 
+- Use chumsky 0.12.0 for all targets (#5659)
+- Update rust toolchain version (#5673)
+- Fix mdbook admonition syntax for mdBook 0.5 native support (#5649)
+
 **New Contributors**:
+
+- @segv, with #5712
 
 ## 0.13.10 — 2025-12-16
 
