@@ -811,7 +811,7 @@ dependencies = [
 
 [[package]]
 name = "compile-files"
-version = "0.13.11"
+version = "0.13.12"
 dependencies = [
  "prqlc",
 ]
@@ -2316,7 +2316,7 @@ dependencies = [
 
 [[package]]
 name = "mdbook-prql"
-version = "0.13.11"
+version = "0.13.12"
 dependencies = [
  "ansi-to-html",
  "anstream 1.0.0",
@@ -2844,7 +2844,7 @@ dependencies = [
 
 [[package]]
 name = "prql"
-version = "0.13.11"
+version = "0.13.12"
 dependencies = [
  "prqlc",
  "rustler",
@@ -2852,7 +2852,7 @@ dependencies = [
 
 [[package]]
 name = "prql-java"
-version = "0.13.11"
+version = "0.13.12"
 dependencies = [
  "jni",
  "prqlc",
@@ -2860,7 +2860,7 @@ dependencies = [
 
 [[package]]
 name = "prqlc"
-version = "0.13.11"
+version = "0.13.12"
 dependencies = [
  "anstream 1.0.0",
  "anyhow",
@@ -2915,7 +2915,7 @@ dependencies = [
 
 [[package]]
 name = "prqlc-c"
-version = "0.13.11"
+version = "0.13.12"
 dependencies = [
  "libc",
  "prqlc",
@@ -2924,7 +2924,7 @@ dependencies = [
 
 [[package]]
 name = "prqlc-js"
-version = "0.13.11"
+version = "0.13.12"
 dependencies = [
  "console_error_panic_hook",
  "prqlc",
@@ -2934,7 +2934,7 @@ dependencies = [
 
 [[package]]
 name = "prqlc-macros"
-version = "0.13.11"
+version = "0.13.12"
 dependencies = [
  "prqlc",
  "syn 2.0.117",
@@ -2942,7 +2942,7 @@ dependencies = [
 
 [[package]]
 name = "prqlc-parser"
-version = "0.13.11"
+version = "0.13.12"
 dependencies = [
  "chumsky",
  "enum-as-inner",
@@ -2959,7 +2959,7 @@ dependencies = [
 
 [[package]]
 name = "prqlc-python"
-version = "0.13.11"
+version = "0.13.12"
 dependencies = [
  "insta",
  "prqlc",
