@@ -464,6 +464,10 @@ Currently we release in a semi-automated way:
    echo "It has $(git rev-list --count $(git rev-list --tags --max-count=1)..) commits from $(git shortlog --summary $(git rev-list --tags --max-count=1).. | wc -l | tr -d '[:space:]') contributors. Selected changes:"
    ```
 
+   When a fix closes an issue reported by someone other than the PR author,
+   thank them in the changelog entry, e.g.
+   `(@pr-author, #5639; reported by @issue-reporter)`.
+
 2. If the current version is correct, then skip ahead. But if the version needs
    to be changed — for example, we had planned on a patch release, but instead
    require a minor release — then run
