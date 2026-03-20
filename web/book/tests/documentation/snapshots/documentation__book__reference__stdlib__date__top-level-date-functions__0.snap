@@ -1,0 +1,10 @@
+---
+source: web/book/tests/documentation/book.rs
+expression: "from events\nfilter event_time < now\n"
+---
+SELECT
+  *
+FROM
+  events
+WHERE
+  event_time < CURRENT_TIMESTAMP
