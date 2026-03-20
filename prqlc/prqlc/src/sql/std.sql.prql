@@ -130,6 +130,9 @@ module date {
   # Snowflake: https://docs.snowflake.com/en/sql-reference/functions/datediff
   # Redshift: https://docs.aws.amazon.com/redshift/latest/dg/r_DATEDIFF_function.html
   let diff = unit start end -> s"DATEDIFF({unit:0}, {start:0}, {end:0})"
+  
+  # CURRENT_TIMESTAMP is ANSI SQL standard; dialects may override.
+  let now = -> s"CURRENT_TIMESTAMP"
 }
 
 # Source-reading functions, primarily for DuckDB
@@ -217,6 +220,9 @@ module bigquery {
     let diff = unit start end -> s"DATE_DIFF({end:0}, {start:0}, {unit:0})"
   }
 
+  # BigQuery requires parentheses for CURRENT_TIMESTAMP
+  let now = -> s"CURRENT_TIMESTAMP()"
+
   let regex_search = text pattern -> s"REGEXP_CONTAINS({text:0}, {pattern:0})"
 }
 
@@ -235,6 +241,9 @@ module clickhouse {
     # https://clickhouse.com/docs/en/sql-reference/functions/date-time-functions#dateDiff
     let diff = unit start end -> s"dateDiff('{unit:0}', {start:0}, {end:0})"
   }
+
+  # Clickhouse uses now() for current timestamp
+  let now = -> s"now()"
 
   let regex_search = text pattern -> s"match({text:0}, {pattern:0})"
 
@@ -315,6 +324,9 @@ module mysql {
     # https://dev.mysql.com/doc/refman/8.0/en/date-and-time-functions.html#function_timestampdiff
     let diff = unit start end -> s"TIMESTAMPDIFF({unit:0}, {start:0}, {end:0})"
   }
+
+  # MySQL uses NOW() function
+  let now = -> s"NOW()"
 
   # 'c' for case-sensitive
   let regex_search = text pattern -> s"REGEXP_LIKE({text:0}, {pattern:0}, 'c')"

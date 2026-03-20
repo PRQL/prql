@@ -51,6 +51,7 @@ formatting = function (hljs) {
     "_is_null",
     // Misc functions
     "from_text",
+    "now",
     // Window functions
     "lag",
     "lead",
