@@ -5161,53 +5161,53 @@ fn test_datetime_parsing() {
 fn test_now() {
     assert_snapshot!(compile(r#"
     from test_tables
-    filter event_time < now
+    filter test_time < date.now
     "#).unwrap(), @r"
     SELECT
       *
     FROM
       test_tables
     WHERE
-      event_time < CURRENT_TIMESTAMP
+      test_time < CURRENT_TIMESTAMP
     ");
     // MySQL uses NOW()
     assert_snapshot!(compile(r#"
     prql target:sql.mysql
     from test_tables
-    filter event_time < now
+    filter test_time < date.now
     "#).unwrap(), @r"
     SELECT
       *
     FROM
       test_tables
     WHERE
-      event_time < NOW()
+      test_time < NOW()
     ");
     // BigQuery uses CURRENT_TIMESTAMP()
     assert_snapshot!(compile(r#"
     prql target:sql.bigquery
     from test_tables
-    filter event_time < now
+    filter test_time < date.now
     "#).unwrap(), @r"
     SELECT
       *
     FROM
       test_tables
     WHERE
-      event_time < CURRENT_TIMESTAMP()
+      test_time < CURRENT_TIMESTAMP()
     ");
     // Clickhouse uses now()
     assert_snapshot!(compile(r#"
     prql target:sql.clickhouse
     from test_tables
-    filter event_time < now
+    filter test_time < date.now
     "#).unwrap(), @r"
     SELECT
       *
     FROM
       test_tables
     WHERE
-      event_time < now()
+      test_time < now()
     ");
 }
 #[test]

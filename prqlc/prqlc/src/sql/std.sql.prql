@@ -218,10 +218,9 @@ module bigquery {
     let to_text = format column -> s"FORMAT_TIMESTAMP({format:0}, CAST({column:0} AS TIMESTAMP))"
     # https://cloud.google.com/bigquery/docs/reference/standard-sql/date_functions#date_diff
     let diff = unit start end -> s"DATE_DIFF({end:0}, {start:0}, {unit:0})"
+    # BigQuery requires parentheses for CURRENT_TIMESTAMP
+    let now = -> s"CURRENT_TIMESTAMP()"
   }
-
-  # BigQuery requires parentheses for CURRENT_TIMESTAMP
-  let now = -> s"CURRENT_TIMESTAMP()"
 
   let regex_search = text pattern -> s"REGEXP_CONTAINS({text:0}, {pattern:0})"
 }
@@ -240,10 +239,9 @@ module clickhouse {
     let to_text = format column -> s"formatDateTimeInJodaSyntax({column:0}, {format:0})"
     # https://clickhouse.com/docs/en/sql-reference/functions/date-time-functions#dateDiff
     let diff = unit start end -> s"dateDiff('{unit:0}', {start:0}, {end:0})"
+    # Clickhouse uses now() for current timestamp
+    let now = -> s"now()"
   }
-
-  # Clickhouse uses now() for current timestamp
-  let now = -> s"now()"
 
   let regex_search = text pattern -> s"match({text:0}, {pattern:0})"
 
@@ -323,10 +321,9 @@ module mysql {
     let to_text = format column -> s"DATE_FORMAT({column:0}, {format:0})"
     # https://dev.mysql.com/doc/refman/8.0/en/date-and-time-functions.html#function_timestampdiff
     let diff = unit start end -> s"TIMESTAMPDIFF({unit:0}, {start:0}, {end:0})"
+    # MySQL uses NOW() function
+    let now = -> s"NOW()"
   }
-
-  # MySQL uses NOW() function
-  let now = -> s"NOW()"
 
   # 'c' for case-sensitive
   let regex_search = text pattern -> s"REGEXP_LIKE({text:0}, {pattern:0}, 'c')"

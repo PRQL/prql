@@ -27,7 +27,7 @@ from employees
 derive {
   gross_salary = (salary + payroll_tax | as int),
   gross_salary_rounded = (gross_salary | math.round 0),
-  time = s"NOW()",  # an s-string, given no `now` function exists in PRQL
+  time = date.now,  # current timestamp; or use s"NOW()" for a dialect-specific s-string
 }
 ```
 

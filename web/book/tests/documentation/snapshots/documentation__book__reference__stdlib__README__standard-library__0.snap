@@ -1,11 +1,11 @@
 ---
 source: web/book/tests/documentation/book.rs
-expression: "from employees\nderive {\n  gross_salary = (salary + payroll_tax | as int),\n  gross_salary_rounded = (gross_salary | math.round 0),\n  time = s\"NOW()\",  # an s-string, given no `now` function exists in PRQL\n}\n"
+expression: "from employees\nderive {\n  gross_salary = (salary + payroll_tax | as int),\n  gross_salary_rounded = (gross_salary | math.round 0),\n  time = date.now,  # current timestamp; or use s\"NOW()\" for a dialect-specific s-string\n}\n"
 ---
 SELECT
   *,
   CAST(salary + payroll_tax AS int) AS gross_salary,
   ROUND(CAST(salary + payroll_tax AS int), 0) AS gross_salary_rounded,
-  NOW() AS time
+  CURRENT_TIMESTAMP AS time
 FROM
   employees

@@ -225,10 +225,9 @@ module text {
 
 ## Date functions
 
-# Returns the current date and time as a timestamp.
-let now = -> <timestamp> internal std.now
-
 module date {
+  # Returns the current date and time as a timestamp.
+  let now = -> <timestamp> internal std.date.now
   let to_text = format<text> column -> <text> internal std.date.to_text
   let diff = `noresolve.unit` start end -> <int> internal std.date.diff
 }
