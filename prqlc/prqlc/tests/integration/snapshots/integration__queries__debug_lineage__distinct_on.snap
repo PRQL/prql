@@ -10,22 +10,22 @@ frames:
       name:
       - tracks
       - genre_id
-      target_id: 124
-      target_name: null
-    - !Single
-      name:
-      - tracks
-      - media_type_id
       target_id: 125
       target_name: null
     - !Single
       name:
       - tracks
-      - album_id
+      - media_type_id
       target_id: 126
       target_name: null
+    - !Single
+      name:
+      - tracks
+      - album_id
+      target_id: 127
+      target_name: null
     inputs:
-    - id: 122
+    - id: 123
       name: tracks
       table:
       - default_db
@@ -36,22 +36,22 @@ frames:
       name:
       - tracks
       - genre_id
-      target_id: 129
-      target_name: null
-    - !Single
-      name:
-      - tracks
-      - media_type_id
       target_id: 130
       target_name: null
     - !Single
       name:
       - tracks
+      - media_type_id
+      target_id: 131
+      target_name: null
+    - !Single
+      name:
+      - tracks
       - album_id
-      target_id: 126
+      target_id: 127
       target_name: null
     inputs:
-    - id: 122
+    - id: 123
       name: tracks
       table:
       - default_db
@@ -62,35 +62,35 @@ frames:
       name:
       - tracks
       - genre_id
-      target_id: 129
-      target_name: null
-    - !Single
-      name:
-      - tracks
-      - media_type_id
       target_id: 130
       target_name: null
     - !Single
       name:
       - tracks
+      - media_type_id
+      target_id: 131
+      target_name: null
+    - !Single
+      name:
+      - tracks
       - album_id
-      target_id: 126
+      target_id: 127
       target_name: null
     inputs:
-    - id: 122
+    - id: 123
       name: tracks
       table:
       - default_db
       - tracks
 nodes:
-- id: 122
+- id: 123
   kind: Ident
   span: 1:13-24
   ident: !Ident
   - default_db
   - tracks
-  parent: 128
-- id: 124
+  parent: 129
+- id: 125
   kind: Ident
   span: 1:33-41
   ident: !Ident
@@ -98,9 +98,9 @@ nodes:
   - tracks
   - genre_id
   targets:
-  - 122
-  parent: 127
-- id: 125
+  - 123
+  parent: 128
+- id: 126
   kind: Ident
   span: 1:43-56
   ident: !Ident
@@ -108,9 +108,9 @@ nodes:
   - tracks
   - media_type_id
   targets:
-  - 122
-  parent: 127
-- id: 126
+  - 123
+  parent: 128
+- id: 127
   kind: Ident
   span: 1:58-66
   ident: !Ident
@@ -118,24 +118,24 @@ nodes:
   - tracks
   - album_id
   targets:
-  - 122
-  parent: 127
-- id: 127
+  - 123
+  parent: 128
+- id: 128
   kind: Tuple
   span: 1:32-67
   children:
-  - 124
   - 125
   - 126
-  parent: 128
-- id: 128
+  - 127
+  parent: 129
+- id: 129
   kind: 'TransformCall: Select'
   span: 1:25-67
   children:
-  - 122
-  - 127
-  parent: 160
-- id: 129
+  - 123
+  - 128
+  parent: 161
+- id: 130
   kind: Ident
   span: 1:75-83
   ident: !Ident
@@ -143,9 +143,9 @@ nodes:
   - tracks
   - genre_id
   targets:
-  - 124
-  parent: 131
-- id: 130
+  - 125
+  parent: 132
+- id: 131
   kind: Ident
   span: 1:85-98
   ident: !Ident
@@ -153,15 +153,15 @@ nodes:
   - tracks
   - media_type_id
   targets:
-  - 125
-  parent: 131
-- id: 131
+  - 126
+  parent: 132
+- id: 132
   kind: Tuple
   span: 1:74-99
   children:
-  - 129
   - 130
-- id: 156
+  - 131
+- id: 157
   kind: Ident
   span: 1:108-116
   ident: !Ident
@@ -169,18 +169,18 @@ nodes:
   - tracks
   - album_id
   targets:
-  - 126
-- id: 160
+  - 127
+- id: 161
   kind: 'TransformCall: Take'
   span: 1:120-126
   children:
-  - 128
-  - 161
-  parent: 169
-- id: 161
+  - 129
+  - 162
+  parent: 170
+- id: 162
   kind: Literal
-  parent: 160
-- id: 166
+  parent: 161
+- id: 167
   kind: Ident
   span: 1:135-143
   ident: !Ident
@@ -188,9 +188,9 @@ nodes:
   - tracks
   - genre_id
   targets:
-  - 129
-  parent: 169
-- id: 167
+  - 130
+  parent: 170
+- id: 168
   kind: Ident
   span: 1:145-158
   ident: !Ident
@@ -198,15 +198,15 @@ nodes:
   - tracks
   - media_type_id
   targets:
-  - 130
-  parent: 169
-- id: 169
+  - 131
+  parent: 170
+- id: 170
   kind: 'TransformCall: Sort'
   span: 1:128-159
   children:
-  - 160
-  - 166
+  - 161
   - 167
+  - 168
 ast:
   name: Project
   stmts:

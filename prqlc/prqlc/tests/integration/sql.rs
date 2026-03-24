@@ -288,6 +288,81 @@ FROM
     )
 }
 
+#[rstest]
+#[case::generic(sql::Dialect::Generic, "DATEDIFF(day, date_col, date_col2)")]
+#[case::duckdb(sql::Dialect::DuckDb, "datediff('day', date_col, date_col2)")]
+#[case::mssql(sql::Dialect::MsSql, "DATEDIFF(day, date_col, date_col2)")]
+#[case::mysql(sql::Dialect::MySql, "TIMESTAMPDIFF(day, date_col, date_col2)")]
+#[case::clickhouse(sql::Dialect::ClickHouse, "dateDiff('day', date_col, date_col2)")]
+#[case::bigquery(sql::Dialect::BigQuery, "DATE_DIFF(date_col2, date_col, day)")]
+fn date_diff_operator(
+    #[case] dialect: sql::Dialect,
+    #[case] expected_date_diff: &'static str,
+) {
+    let query = r#"
+    from t
+    select {
+      d = (date.diff day date_col date_col2)
+    }"#;
+    let expected = format!(
+        r#"
+SELECT
+  {expected_date_diff} AS d
+FROM
+  t
+"#
+    );
+    assert_eq!(
+        compile_with_sql_dialect(query, dialect).unwrap(),
+        expected.trim_start()
+    )
+}
+
+#[test]
+fn date_diff_snowflake() {
+    // Snowflake quotes all identifiers
+    assert_snapshot!(compile_with_sql_dialect(r#"
+    from t
+    select { d = (date.diff day date_col date_col2) }
+    "#, sql::Dialect::Snowflake).unwrap(), @r#"
+    SELECT
+      DATEDIFF(day, "date_col", "date_col2") AS "d"
+    FROM
+      "t"
+    "#);
+}
+
+#[test]
+fn date_diff_literals() {
+    // date.diff with literal date values
+    assert_snapshot!(compile(r#"
+    from t
+    derive { diff = date.diff month @2021-01-01 @2021-06-30 }
+    "#).unwrap(), @r"
+    SELECT
+      *,
+      DATEDIFF(month, DATE '2021-01-01', DATE '2021-06-30') AS diff
+    FROM
+      t
+    ");
+}
+
+#[test]
+fn date_diff_unsupported_dialects() {
+    // PostgreSQL has no standard DATEDIFF function
+    assert!(compile_with_sql_dialect(
+        "from t | derive { d = date.diff day date_a date_b }",
+        sql::Dialect::Postgres
+    )
+    .is_err());
+    // SQLite has no built-in date diff function
+    assert!(compile_with_sql_dialect(
+        "from t | derive { d = date.diff day date_a date_b }",
+        sql::Dialect::SQLite
+    )
+    .is_err());
+}
+
 #[test]
 fn date_to_text_bigquery_rfc3339() {
     assert_snapshot!(compile(r#"
