@@ -57,6 +57,19 @@ The SQL output varies by dialect: | Dialect | SQL output | | ---------- |
 BigQuery | `CURRENT_TIMESTAMP()` | | Clickhouse | `now()` | | Others |
 `CURRENT_TIMESTAMP` |
 
+
+### `trunc`
+
+Truncates a date or timestamp to a given unit.
+
+```prql
+prql target:sql.postgres
+
+from events
+select (event_time | date.trunc "day")
+
+```
+
 ### Date & time format specifiers
 
 PRQL specifiers for date and time formatting is a subset of specifiers used by

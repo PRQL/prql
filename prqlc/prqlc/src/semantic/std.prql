@@ -230,6 +230,7 @@ module date {
   let now = -> <timestamp> internal std.date.now
   let to_text = format<text> column -> <text> internal std.date.to_text
   let diff = `noresolve.unit` start end -> <int> internal std.date.diff
+  let trunc = unit<text> column -> internal std.date.trunc
 }
 
 ## File-reading functions, primarily for DuckDB

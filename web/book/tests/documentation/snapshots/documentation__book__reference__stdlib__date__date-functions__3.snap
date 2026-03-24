@@ -8,3 +8,11 @@ FROM
   test_tables
 WHERE
   test_time < CURRENT_TIMESTAMP
+---
+source: web/book/tests/documentation/book.rs
+expression: "prql target:sql.postgres\n\nfrom events\nselect (event_time | date.trunc \"day\")\n\n"
+---
+SELECT
+  DATE_TRUNC('day', event_time)
+FROM
+  events

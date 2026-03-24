@@ -130,9 +130,18 @@ module date {
   # Snowflake: https://docs.snowflake.com/en/sql-reference/functions/datediff
   # Redshift: https://docs.aws.amazon.com/redshift/latest/dg/r_DATEDIFF_function.html
   let diff = unit start end -> s"DATEDIFF({unit:0}, {start:0}, {end:0})"
-
   # CURRENT_TIMESTAMP is ANSI SQL standard; dialects may override.
   let now = -> s"CURRENT_TIMESTAMP"
+  # Clickhouse: https://clickhouse.com/docs/en/sql-reference/functions/date-time-functions#date_trunc
+  # DuckDB: https://duckdb.org/docs/sql/functions/timestamp#date_truncdate_part-timestamp
+  # MariaDB: https://mariadb.com/kb/en/date_format/
+  # MySQL: https://dev.mysql.com/doc/refman/8.4/en/date-and-time-functions.html#function_date-trunc
+  # Postgres: https://www.postgresql.org/docs/current/functions-datetime.html#FUNCTIONS-DATETIME-TRUNC
+  # SQLite: https://www.sqlite.org/lang_datefunc.html
+  # MSSQL: https://learn.microsoft.com/en-us/sql/t-sql/functions/datetrunc-transact-sql
+  # BigQuery: https://cloud.google.com/bigquery/docs/reference/standard-sql/date_functions#date_trunc
+  # Snowflake: https://docs.snowflake.com/en/sql-reference/functions/date_trunc
+  let trunc = unit column -> s"DATE_TRUNC({unit:0}, {column:0})"
 }
 
 # Source-reading functions, primarily for DuckDB
@@ -220,6 +229,8 @@ module bigquery {
     let diff = unit start end -> s"DATE_DIFF({end:0}, {start:0}, {unit:0})"
     # BigQuery requires parentheses for CURRENT_TIMESTAMP
     let now = -> s"CURRENT_TIMESTAMP()"
+    # BigQuery DATE_TRUNC uses unquoted date_part keyword: DATE_TRUNC(date, DAY)
+    let trunc = unit column -> s"DATE_TRUNC({column:0}, {unit:0})"
   }
 
   let regex_search = text pattern -> s"REGEXP_CONTAINS({text:0}, {pattern:0})"
@@ -300,6 +311,8 @@ module mssql {
   module date {
     # https://learn.microsoft.com/en-us/sql/t-sql/functions/format-transact-sql
     let to_text = format column -> s"FORMAT({column:0}, {format:0})"
+    # MSSQL DATETRUNC uses unquoted datepart keyword: DATETRUNC(day, column) - SQL Server 2022+
+    let trunc = unit column -> s"DATETRUNC({unit:0}, {column:0})"
   }
 
   let regex_search = text pattern -> null
@@ -323,6 +336,8 @@ module mysql {
     let diff = unit start end -> s"TIMESTAMPDIFF({unit:0}, {start:0}, {end:0})"
     # MySQL uses NOW() function
     let now = -> s"NOW()"
+    # https://dev.mysql.com/doc/refman/8.4/en/date-and-time-functions.html#function_date-trunc
+    let trunc = unit column -> s"DATE_TRUNC({unit:0}, {column:0})"
   }
 
   # 'c' for case-sensitive
