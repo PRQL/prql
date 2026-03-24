@@ -8,186 +8,186 @@ frames:
   - columns:
     - !Single
       name:
-      - _literal_127
+      - _literal_128
       - artist_id
-      target_id: 128
+      target_id: 129
       target_name: null
     - !Single
       name:
       - album_title_count
-      target_id: 147
+      target_id: 148
       target_name: null
     inputs:
-    - id: 127
-      name: _literal_127
+    - id: 128
+      name: _literal_128
       table:
       - default_db
-      - _literal_127
+      - _literal_128
 - - 1:119-164
   - columns:
     - !Single
       name:
-      - _literal_127
+      - _literal_128
       - artist_id
-      target_id: 128
+      target_id: 129
       target_name: null
     - !Single
       name:
       - album_title_count
-      target_id: 147
+      target_id: 148
       target_name: null
     inputs:
-    - id: 127
-      name: _literal_127
+    - id: 128
+      name: _literal_128
       table:
       - default_db
-      - _literal_127
+      - _literal_128
 - - 1:165-214
   - columns:
     - !Single
       name:
-      - _literal_127
+      - _literal_128
       - artist_id
-      target_id: 128
+      target_id: 129
       target_name: null
     - !Single
       name:
       - album_title_count
-      target_id: 147
+      target_id: 148
       target_name: null
     - !Single
       name:
       - new_album_count
-      target_id: 157
+      target_id: 158
       target_name: null
     inputs:
-    - id: 127
-      name: _literal_127
+    - id: 128
+      name: _literal_128
       table:
       - default_db
-      - _literal_127
+      - _literal_128
 - - 1:215-260
   - columns:
     - !Single
       name:
-      - _literal_127
+      - _literal_128
       - artist_id
-      target_id: 160
+      target_id: 161
       target_name: null
     - !Single
       name:
       - new_album_count
-      target_id: 161
+      target_id: 162
       target_name: null
     inputs:
-    - id: 127
-      name: _literal_127
+    - id: 128
+      name: _literal_128
       table:
       - default_db
-      - _literal_127
+      - _literal_128
 - - 1:261-367
   - columns:
     - !Single
       name:
-      - _literal_127
+      - _literal_128
       - artist_id
-      target_id: 160
+      target_id: 161
       target_name: null
     - !Single
       name:
       - new_album_count
-      target_id: 161
+      target_id: 162
       target_name: null
     - !All
-      input_id: 114
+      input_id: 115
       except: []
     inputs:
-    - id: 127
-      name: _literal_127
+    - id: 128
+      name: _literal_128
       table:
       - default_db
-      - _literal_127
-    - id: 114
-      name: _literal_114
+      - _literal_128
+    - id: 115
+      name: _literal_115
       table:
       - default_db
-      - _literal_114
+      - _literal_115
 nodes:
-- id: 114
+- id: 115
   kind: SString
   span: 1:278-330
-  parent: 168
-- id: 127
+  parent: 169
+- id: 128
   kind: SString
   span: 1:0-46
-  parent: 150
-- id: 128
+  parent: 151
+- id: 129
   kind: Ident
   span: 1:54-63
   ident: !Ident
   - this
-  - _literal_127
+  - _literal_128
   - artist_id
   targets:
-  - 127
-  parent: 129
-- id: 129
+  - 128
+  parent: 130
+- id: 130
   kind: Tuple
   span: 1:53-64
   children:
-  - 128
-  parent: 150
-- id: 147
+  - 129
+  parent: 151
+- id: 148
   kind: RqOperator
   span: 1:98-116
   alias: album_title_count
   targets:
-  - 148
-  parent: 149
-- id: 148
-  kind: Literal
+  - 149
+  parent: 150
 - id: 149
+  kind: Literal
+- id: 150
   kind: Tuple
   span: 1:76-117
   children:
-  - 147
-  parent: 150
-- id: 150
+  - 148
+  parent: 151
+- id: 151
   kind: 'TransformCall: Aggregate'
   span: 1:66-117
   children:
-  - 127
-  - 149
-  - 129
-  parent: 156
-- id: 153
+  - 128
+  - 150
+  - 130
+  parent: 157
+- id: 154
   kind: Ident
   span: 1:125-139
   ident: !Ident
   - this
-  - _literal_127
+  - _literal_128
   - artist_id
   targets:
-  - 128
-  parent: 156
-- id: 154
+  - 129
+  parent: 157
+- id: 155
   kind: Ident
   span: 1:141-163
   ident: !Ident
   - this
   - album_title_count
   targets:
-  - 147
-  parent: 156
-- id: 156
+  - 148
+  parent: 157
+- id: 157
   kind: 'TransformCall: Sort'
   span: 1:119-164
   children:
-  - 150
-  - 153
+  - 151
   - 154
-  parent: 159
-- id: 157
+  - 155
+  parent: 160
+- id: 158
   kind: Ident
   span: 1:191-213
   alias: new_album_count
@@ -195,86 +195,86 @@ nodes:
   - this
   - album_title_count
   targets:
-  - 147
-  parent: 158
-- id: 158
+  - 148
+  parent: 159
+- id: 159
   kind: Tuple
   span: 1:172-214
   children:
-  - 157
-  parent: 159
-- id: 159
+  - 158
+  parent: 160
+- id: 160
   kind: 'TransformCall: Derive'
   span: 1:165-214
   children:
-  - 156
-  - 158
-  parent: 163
-- id: 160
+  - 157
+  - 159
+  parent: 164
+- id: 161
   kind: Ident
   span: 1:223-237
   ident: !Ident
   - this
-  - _literal_127
+  - _literal_128
   - artist_id
   targets:
-  - 128
-  parent: 162
-- id: 161
+  - 129
+  parent: 163
+- id: 162
   kind: Ident
   span: 1:239-259
   ident: !Ident
   - this
   - new_album_count
   targets:
-  - 157
-  parent: 162
-- id: 162
+  - 158
+  parent: 163
+- id: 163
   kind: Tuple
   span: 1:222-260
   children:
-  - 160
   - 161
-  parent: 163
-- id: 163
+  - 162
+  parent: 164
+- id: 164
   kind: 'TransformCall: Select'
   span: 1:215-260
   children:
-  - 159
-  - 162
-  parent: 168
-- id: 164
+  - 160
+  - 163
+  parent: 169
+- id: 165
   kind: RqOperator
   span: 1:334-366
   targets:
-  - 166
   - 167
-  parent: 168
-- id: 166
+  - 168
+  parent: 169
+- id: 167
   kind: Ident
   span: 1:334-348
   ident: !Ident
   - this
-  - _literal_127
+  - _literal_128
   - artist_id
   targets:
-  - 160
-- id: 167
+  - 161
+- id: 168
   kind: Ident
   span: 1:352-366
   ident: !Ident
   - that
-  - _literal_114
+  - _literal_115
   - artist_id
   targets:
-  - 114
-- id: 168
+  - 115
+- id: 169
   kind: 'TransformCall: Join'
   span: 1:261-367
   children:
-  - 163
-  - 114
   - 164
+  - 115
+  - 165
 ast:
   name: Project
   stmts:
