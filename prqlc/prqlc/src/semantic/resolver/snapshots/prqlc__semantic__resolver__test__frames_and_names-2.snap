@@ -4,18 +4,18 @@ expression: "resolve_lineage(r#\"\n            from table_1\n            join cu
 ---
 columns:
   - All:
-      input_id: 118
+      input_id: 119
       except: []
   - All:
-      input_id: 115
+      input_id: 116
       except: []
 inputs:
-  - id: 118
+  - id: 119
     name: table_1
     table:
       - default_db
       - table_1
-  - id: 115
+  - id: 116
     name: customers
     table:
       - default_db

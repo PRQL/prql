@@ -5158,6 +5158,59 @@ fn test_datetime_parsing() {
 }
 
 #[test]
+fn test_now() {
+    assert_snapshot!(compile(r#"
+    from test_tables
+    filter test_time < date.now
+    "#).unwrap(), @r"
+    SELECT
+      *
+    FROM
+      test_tables
+    WHERE
+      test_time < CURRENT_TIMESTAMP
+    ");
+    // MySQL uses NOW()
+    assert_snapshot!(compile(r#"
+    prql target:sql.mysql
+    from test_tables
+    filter test_time < date.now
+    "#).unwrap(), @r"
+    SELECT
+      *
+    FROM
+      test_tables
+    WHERE
+      test_time < NOW()
+    ");
+    // BigQuery uses CURRENT_TIMESTAMP()
+    assert_snapshot!(compile(r#"
+    prql target:sql.bigquery
+    from test_tables
+    filter test_time < date.now
+    "#).unwrap(), @r"
+    SELECT
+      *
+    FROM
+      test_tables
+    WHERE
+      test_time < CURRENT_TIMESTAMP()
+    ");
+    // Clickhouse uses now()
+    assert_snapshot!(compile(r#"
+    prql target:sql.clickhouse
+    from test_tables
+    filter test_time < date.now
+    "#).unwrap(), @r"
+    SELECT
+      *
+    FROM
+      test_tables
+    WHERE
+      test_time < now()
+    ");
+}
+#[test]
 fn test_lower() {
     assert_snapshot!(compile(r#"
     from test_tables

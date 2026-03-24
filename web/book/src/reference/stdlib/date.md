@@ -43,6 +43,20 @@ select (invoice_date | date.to_text "%d/%m/%Y")
 
 ```
 
+### `now`
+
+Returns the current date and time as a timestamp.
+
+```prql
+from test_tables
+filter test_time < date.now
+```
+
+The SQL output varies by dialect: | Dialect | SQL output | | ---------- |
+--------------------- | | Generic | `CURRENT_TIMESTAMP` | | MySQL | `NOW()` | |
+BigQuery | `CURRENT_TIMESTAMP()` | | Clickhouse | `now()` | | Others |
+`CURRENT_TIMESTAMP` |
+
 ### Date & time format specifiers
 
 PRQL specifiers for date and time formatting is a subset of specifiers used by
