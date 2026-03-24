@@ -1,0 +1,41 @@
+name: tend-setup
+description: Setup steps for tend CI workflows (Rust toolchain, caching, dev tools)
+
+inputs:
+  github-token:
+    description: GitHub token for API access
+    required: false
+    default: ${{ github.token }}
+
+runs:
+  using: composite
+  steps:
+    - name: Setup Task
+      uses: go-task/setup-task@v1
+      with:
+        repo-token: ${{ inputs.github-token }}
+
+    - uses: baptiste0928/cargo-install@v3
+      with:
+        crate: cargo-insta
+
+    - uses: baptiste0928/cargo-install@v3
+      with:
+        crate: cargo-nextest
+
+    - run: ./.github/workflows/scripts/set_version.sh
+      shell: bash
+
+    - name: Cache
+      uses: Swatinem/rust-cache@v2
+      with:
+        prefix-key: ${{ hashFiles('./Cargo.lock') }}
+        shared-key: rust-x86_64-unknown-linux-gnu
+        save-if: false
+
+    - run: |
+        echo CARGO_TERM_COLOR=always >> $GITHUB_ENV
+        echo CLICOLOR_FORCE=1 >> $GITHUB_ENV
+        echo 'RUSTFLAGS=-C debuginfo=0' >> $GITHUB_ENV
+        echo 'RUSTDOCFLAGS=-Dwarnings' >> $GITHUB_ENV
+      shell: bash
