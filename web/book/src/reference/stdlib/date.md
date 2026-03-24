@@ -1,5 +1,7 @@
 # Date functions
 
+These are all the functions defined in the `date` module:
+
 ### `to_text`
 
 Converts a date into a text.\
