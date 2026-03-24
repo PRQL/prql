@@ -1,5 +1,6 @@
 name: tend-setup
-description: Setup steps for tend CI workflows (Rust toolchain, caching, dev tools)
+description:
+  Setup steps for tend CI workflows (Rust toolchain, caching, dev tools)
 
 inputs:
   github-token:

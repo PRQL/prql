@@ -14,5 +14,5 @@ error conventions, etc. are in `CLAUDE.md` — don't duplicate them here.
 
 - Main CI workflow: `tests` (watched by tend-ci-fix)
 - Dependency management: Dependabot (tend-renovate is disabled)
-- Automerge: `pull-request-target.yaml` auto-merges single-commit `prql-bot`
-  PRs once CI passes
+- Automerge: `pull-request-target.yaml` auto-merges single-commit `prql-bot` PRs
+  once CI passes
