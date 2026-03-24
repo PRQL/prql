@@ -130,7 +130,7 @@ module date {
   # Snowflake: https://docs.snowflake.com/en/sql-reference/functions/datediff
   # Redshift: https://docs.aws.amazon.com/redshift/latest/dg/r_DATEDIFF_function.html
   let diff = unit start end -> s"DATEDIFF({unit:0}, {start:0}, {end:0})"
-  
+
   # CURRENT_TIMESTAMP is ANSI SQL standard; dialects may override.
   let now = -> s"CURRENT_TIMESTAMP"
 }
