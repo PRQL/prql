@@ -295,10 +295,7 @@ FROM
 #[case::mysql(sql::Dialect::MySql, "TIMESTAMPDIFF(day, date_col, date_col2)")]
 #[case::clickhouse(sql::Dialect::ClickHouse, "dateDiff('day', date_col, date_col2)")]
 #[case::bigquery(sql::Dialect::BigQuery, "DATE_DIFF(date_col2, date_col, day)")]
-fn date_diff_operator(
-    #[case] dialect: sql::Dialect,
-    #[case] expected_date_diff: &'static str,
-) {
+fn date_diff_operator(#[case] dialect: sql::Dialect, #[case] expected_date_diff: &'static str) {
     let query = r#"
     from t
     select {
