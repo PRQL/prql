@@ -452,6 +452,24 @@ fn test_precedence_division() {
 }
 
 #[test]
+fn test_sqlite_integer_division() {
+    // Regression test: SQLite div_i formula must produce correct results
+    // when |dividend| < |divisor| (result should be 0).
+    // The old formula ROUND(ABS(l/r) - 0.5) * SIGN(l) * SIGN(r) was wrong
+    // because SQLite integer division gives 0 for |l| < |r|, and
+    // ROUND(ABS(0) - 0.5) = ROUND(-0.5) = -1 in SQLite.
+    assert_snapshot!(compile_with_sql_dialect(r#"
+    from t
+    select { x = a // b }
+    "#, sql::Dialect::SQLite).unwrap(), @r"
+    SELECT
+      CAST(ABS(a * 1.0 / b) AS INTEGER) * SIGN(a) * SIGN(b) AS x
+    FROM
+      t
+    ");
+}
+
+#[test]
 fn test_precedence_01() {
     assert_snapshot!((compile(r###"
     from artists
