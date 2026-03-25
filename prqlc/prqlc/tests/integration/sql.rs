@@ -1576,6 +1576,21 @@ fn test_ranges() {
 }
 
 #[test]
+fn test_between_from_comparison() {
+    assert_snapshot!((compile(r###"
+    from t
+    filter (a >= 5 && a <= 10)
+    "###).unwrap()), @r"
+    SELECT
+      *
+    FROM
+      t
+    WHERE
+      a BETWEEN 5 AND 10
+    ");
+}
+
+#[test]
 fn test_in_values_01() {
     assert_snapshot!((compile(r#"
     from employees
