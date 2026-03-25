@@ -9,6 +9,6 @@ WITH table_0 AS (
 )
 SELECT
   (x * 1.0 / y) AS quotient,
-  ROUND(ABS(x / y) - 0.5) * SIGN(x) * SIGN(y) AS int_quotient
+  CAST(ABS(x * 1.0 / y) AS INTEGER) * SIGN(x) * SIGN(y) AS int_quotient
 FROM
   table_0
