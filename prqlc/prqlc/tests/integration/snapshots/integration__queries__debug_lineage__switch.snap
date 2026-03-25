@@ -7,10 +7,10 @@ frames:
 - - 1:101-118
   - columns:
     - !All
-      input_id: 124
+      input_id: 125
       except: []
     inputs:
-    - id: 124
+    - id: 125
       name: tracks
       table:
       - default_db
@@ -20,10 +20,10 @@ frames:
     - !Single
       name:
       - display
-      target_id: 129
+      target_id: 130
       target_name: null
     inputs:
-    - id: 124
+    - id: 125
       name: tracks
       table:
       - default_db
@@ -33,23 +33,23 @@ frames:
     - !Single
       name:
       - display
-      target_id: 129
+      target_id: 130
       target_name: null
     inputs:
-    - id: 124
+    - id: 125
       name: tracks
       table:
       - default_db
       - tracks
 nodes:
-- id: 124
+- id: 125
   kind: Ident
   span: 1:89-100
   ident: !Ident
   - default_db
   - tracks
-  parent: 128
-- id: 126
+  parent: 129
+- id: 127
   kind: Ident
   span: 1:106-118
   ident: !Ident
@@ -57,34 +57,34 @@ nodes:
   - tracks
   - milliseconds
   targets:
-  - 124
-  parent: 128
-- id: 128
+  - 125
+  parent: 129
+- id: 129
   kind: 'TransformCall: Sort'
   span: 1:101-118
   children:
-  - 124
-  - 126
-  parent: 143
-- id: 129
+  - 125
+  - 127
+  parent: 144
+- id: 130
   kind: Case
   span: 1:136-246
   alias: display
   targets:
-  - 130
-  - 134
+  - 131
   - 135
-  - 139
+  - 136
   - 140
   - 141
-  parent: 142
-- id: 130
+  - 142
+  parent: 143
+- id: 131
   kind: RqOperator
   span: 1:147-163
   targets:
-  - 132
   - 133
-- id: 132
+  - 134
+- id: 133
   kind: Ident
   span: 1:147-155
   ident: !Ident
@@ -92,11 +92,11 @@ nodes:
   - tracks
   - composer
   targets:
-  - 124
-- id: 133
+  - 125
+- id: 134
   kind: Literal
   span: 1:159-163
-- id: 134
+- id: 135
   kind: Ident
   span: 1:167-175
   ident: !Ident
@@ -104,14 +104,14 @@ nodes:
   - tracks
   - composer
   targets:
-  - 124
-- id: 135
+  - 125
+- id: 136
   kind: RqOperator
   span: 1:181-194
   targets:
-  - 137
   - 138
-- id: 137
+  - 139
+- id: 138
   kind: Ident
   span: 1:181-189
   ident: !Ident
@@ -119,41 +119,41 @@ nodes:
   - tracks
   - genre_id
   targets:
-  - 124
-- id: 138
-  kind: Literal
-  span: 1:192-194
+  - 125
 - id: 139
   kind: Literal
-  span: 1:198-211
+  span: 1:192-194
 - id: 140
   kind: Literal
-  span: 1:217-221
+  span: 1:198-211
 - id: 141
+  kind: Literal
+  span: 1:217-221
+- id: 142
   kind: FString
   span: 1:225-244
-- id: 142
+- id: 143
   kind: Tuple
   span: 1:136-246
   children:
-  - 129
-  parent: 143
-- id: 143
+  - 130
+  parent: 144
+- id: 144
   kind: 'TransformCall: Select'
   span: 1:119-246
   children:
-  - 128
-  - 142
-  parent: 145
-- id: 145
+  - 129
+  - 143
+  parent: 146
+- id: 146
   kind: 'TransformCall: Take'
   span: 1:247-254
   children:
-  - 143
-  - 146
-- id: 146
+  - 144
+  - 147
+- id: 147
   kind: Literal
-  parent: 145
+  parent: 146
 ast:
   name: Project
   stmts:

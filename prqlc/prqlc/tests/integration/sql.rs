@@ -381,6 +381,32 @@ fn date_to_text_bigquery_rfc3339() {
     ");
 }
 
+#[rstest]
+#[case::duckdb(sql::Dialect::DuckDb, "DATE_TRUNC('day', event_time)")]
+#[case::postgres(sql::Dialect::Postgres, "DATE_TRUNC('day', event_time)")]
+#[case::mssql(sql::Dialect::MsSql, "DATETRUNC(day, event_time)")]
+#[case::mysql(sql::Dialect::MySql, "DATE_TRUNC('day', event_time)")]
+#[case::bigquery(sql::Dialect::BigQuery, "DATE_TRUNC(event_time, DAY)")]
+fn date_trunc_operator(#[case] dialect: sql::Dialect, #[case] expected_date_trunc: &'static str) {
+    let query = r#"
+    from events
+    select {
+      trunc_day = (event_time | date.trunc "day")
+    }"#;
+    let expected = format!(
+        r#"
+SELECT
+  {expected_date_trunc} AS trunc_day
+FROM
+  events
+"#
+    );
+    assert_eq!(
+        compile_with_sql_dialect(query, dialect).unwrap(),
+        expected.trim_start()
+    )
+}
+
 #[test]
 fn json_of_test() {
     let pl = prqlc::prql_to_pl("from employees | take 10").unwrap();

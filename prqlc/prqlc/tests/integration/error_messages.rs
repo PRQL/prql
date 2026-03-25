@@ -280,6 +280,23 @@ fn date_to_text_with_column_format() {
 }
 
 #[test]
+fn date_trunc_with_column_unit() {
+    assert_snapshot!(compile(r#"
+  from dates_to_display
+  select {my_date, my_unit}
+  select {std.date.trunc my_unit my_date}
+  "#).unwrap_err(), @r"
+    Error:
+       ╭─[ :4:11 ]
+       │
+     4 │   select {std.date.trunc my_unit my_date}
+       │           ───────────────┬──────────────
+       │                          ╰──────────────── `std.date.trunc` only supports a string literal as unit
+    ───╯
+    ");
+}
+
+#[test]
 fn date_to_text_unsupported_chrono_item() {
     assert_snapshot!(compile(r#"
     prql target:sql.duckdb
