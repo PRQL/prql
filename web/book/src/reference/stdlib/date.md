@@ -54,14 +54,13 @@ filter test_time < date.now
 
 The SQL output varies by dialect:
 
-| Dialect    | SQL output          |
-| ---------- | ------------------- |
-| Generic    | `CURRENT_TIMESTAMP` |
-| MySQL      | `NOW()`             |
+| Dialect    | SQL output            |
+| ---------- | --------------------- |
+| Generic    | `CURRENT_TIMESTAMP`   |
+| MySQL      | `NOW()`               |
 | BigQuery   | `CURRENT_TIMESTAMP()` |
-| Clickhouse | `now()`             |
-| Others     | `CURRENT_TIMESTAMP` |
-
+| Clickhouse | `now()`               |
+| Others     | `CURRENT_TIMESTAMP`   |
 
 ### `trunc`
 
