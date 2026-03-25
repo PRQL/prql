@@ -229,8 +229,6 @@ module bigquery {
     let diff = unit start end -> s"DATE_DIFF({end:0}, {start:0}, {unit:0})"
     # BigQuery requires parentheses for CURRENT_TIMESTAMP
     let now = -> s"CURRENT_TIMESTAMP()"
-    # BigQuery DATE_TRUNC uses unquoted date_part keyword: DATE_TRUNC(date, DAY)
-    let trunc = unit column -> s"DATE_TRUNC({column:0}, {unit:0})"
   }
 
   let regex_search = text pattern -> s"REGEXP_CONTAINS({text:0}, {pattern:0})"
@@ -311,8 +309,6 @@ module mssql {
   module date {
     # https://learn.microsoft.com/en-us/sql/t-sql/functions/format-transact-sql
     let to_text = format column -> s"FORMAT({column:0}, {format:0})"
-    # MSSQL DATETRUNC uses unquoted datepart keyword: DATETRUNC(day, column) - SQL Server 2022+
-    let trunc = unit column -> s"DATETRUNC({unit:0}, {column:0})"
   }
 
   let regex_search = text pattern -> null
