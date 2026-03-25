@@ -419,7 +419,7 @@ module sqlite {
   let div_f = l r -> s"({l} * 1.0 / {r:12})"
 
   @{binding_strength=100}
-  let div_i = l r -> s"ROUND(ABS({l:11} / {r:12}) - 0.5) * SIGN({l:0}) * SIGN({r:0})"
+  let div_i = l r -> s"CAST(ABS({l:11} * 1.0 / {r:12}) AS INTEGER) * SIGN({l:0}) * SIGN({r:0})"
 
   # Text functions
   module text {

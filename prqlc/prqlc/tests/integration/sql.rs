@@ -7211,3 +7211,20 @@ fn test_partial_application_of_transform() {
       10
     ");
 }
+
+#[test]
+fn sqlite_div_i_small_dividend() {
+    // Regression test for #5735: SQLite div_i produces wrong results when |dividend| < |divisor|.
+    // The old formula ROUND(ABS(a / b) - 0.5) gives -1 instead of 0 when integer a/b truncates to 0.
+    assert_snapshot!(compile(r#"
+    prql target:sql.sqlite
+
+    from t
+    select { x = 1 // 2 }
+    "#).unwrap(), @"
+    SELECT
+      CAST(ABS(1 * 1.0 / 2) AS INTEGER) * SIGN(1) * SIGN(2) AS x
+    FROM
+      t
+    ");
+}
