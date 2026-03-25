@@ -236,7 +236,7 @@ pub unsafe extern "C" fn result_destroy(res: CompileResult) {
         }
     }
     drop(Vec::from_raw_parts(
-        res.messages as *mut i8,
+        res.messages as *mut Message,
         res.messages_len,
         res.messages_len,
     ));
