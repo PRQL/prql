@@ -434,6 +434,7 @@ module sqlite {
   module date {
     # SQLite has no built-in date diff function
     let diff = unit start end -> null
+    let trunc = unit column -> null
   }
 
   @{binding_strength=9}

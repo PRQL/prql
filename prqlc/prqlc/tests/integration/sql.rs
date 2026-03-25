@@ -361,6 +361,16 @@ fn date_diff_unsupported_dialects() {
 }
 
 #[test]
+fn date_trunc_unsupported_dialects() {
+    // SQLite has no DATE_TRUNC function
+    assert!(compile_with_sql_dialect(
+        r#"from events | select (event_time | date.trunc "day")"#,
+        sql::Dialect::SQLite
+    )
+    .is_err());
+}
+
+#[test]
 fn date_to_text_bigquery_rfc3339() {
     assert_snapshot!(compile(r#"
     prql target:sql.bigquery
