@@ -452,6 +452,22 @@ fn test_precedence_division() {
 }
 
 #[test]
+fn test_between_optimization() {
+    // Regression test: >= and <= on same column should produce BETWEEN
+    assert_snapshot!(compile(r#"
+    from t
+    filter (a >= 5 && a <= 10)
+    "#).unwrap(), @r"
+    SELECT
+      *
+    FROM
+      t
+    WHERE
+      a BETWEEN 5 AND 10
+    ");
+}
+
+#[test]
 fn test_precedence_01() {
     assert_snapshot!((compile(r###"
     from artists
