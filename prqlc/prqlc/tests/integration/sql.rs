@@ -371,6 +371,27 @@ fn date_trunc_unsupported_dialects() {
 }
 
 #[test]
+fn date_to_start_of_interval_unsupported_dialects() {
+    assert!(compile_with_sql_dialect(
+        "from events | select (event_time | date.to_start_of_interval 15 minute)",
+        sql::Dialect::SQLite
+    )
+    .is_err());
+
+    assert!(compile_with_sql_dialect(
+        "from events | select (event_time | date.to_start_of_interval 15 minute)",
+        sql::Dialect::MySql
+    )
+    .is_err());
+
+    assert!(compile_with_sql_dialect(
+        "from events | select (event_time | date.to_start_of_interval 15 minute)",
+        sql::Dialect::MsSql
+    )
+    .is_err());
+}
+
+#[test]
 fn date_to_text_bigquery_rfc3339() {
     assert_snapshot!(compile(r#"
     prql target:sql.bigquery
@@ -414,6 +435,35 @@ FROM
     assert_eq!(
         compile_with_sql_dialect(query, dialect).unwrap(),
         expected.trim_start()
+    )
+}
+
+#[rstest]
+#[case::clickhouse(
+    sql::Dialect::ClickHouse,
+    "SELECT\n  toStartOfInterval(event_time, INTERVAL 15 minute)\nFROM\n  events\n"
+)]
+#[case::duckdb(
+    sql::Dialect::DuckDb,
+    "SELECT\n  time_bucket(INTERVAL '15 minute', event_time)\nFROM\n  events\n"
+)]
+#[case::postgres(
+    sql::Dialect::Postgres,
+    "SELECT\n  date_bin(\n    '15 minute',\n    event_time,\n    TIMESTAMP '1970-01-01 00:00:00'\n  )\nFROM\n  events\n"
+)]
+#[case::bigquery(
+    sql::Dialect::BigQuery,
+    "SELECT\n  TIMESTAMP_BUCKET(\n    CAST(event_time AS TIMESTAMP),\n    INTERVAL 15 minute\n  )\nFROM\n  events\n"
+)]
+fn date_to_start_of_interval_operator(
+    #[case] dialect: sql::Dialect,
+    #[case] expected_sql: &'static str,
+) {
+    let query = "from events | select (event_time | date.to_start_of_interval 15 minute)";
+
+    assert_eq!(
+        compile_with_sql_dialect(query, dialect).unwrap(),
+        expected_sql
     )
 }
 
