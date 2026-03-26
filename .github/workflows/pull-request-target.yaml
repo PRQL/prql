@@ -88,11 +88,14 @@ jobs:
           github.event.pull_request.number }}/commits | jq 'length')"
           >>"$GITHUB_OUTPUT"
       - if:
-          # - It's dependabot
+          # - It's dependabot (either actor or PR author, since a non-bot event
+          #   can be triggered on a Dependabot PR after a recreate/rebase resets
+          #   auto-merge)
           # - or there's only one commit — so nothing has made further changes and
           #   - or it's prql-bot
           #   - or it's a pre-commit-ci update
           github.actor == 'dependabot[bot]' ||
+          github.event.pull_request.user.login == 'dependabot[bot]' ||
           (steps.commit-count.outputs.commit-count == '1' && (github.actor ==
           'prql-bot' || github.actor == 'pre-commit-ci[bot]'))
         run:
