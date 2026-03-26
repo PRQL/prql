@@ -74,6 +74,36 @@ select (event_time | date.trunc "day")
 
 ```
 
+### `to_start_of_interval`
+
+Truncates a timestamp to the start of a fixed interval.
+
+<!-- prettier-ignore -->
+> [!NOTE]
+> Since support and SQL syntax differs by database, PRQL
+> **requires an explicit dialect** to be specified.
+
+<!-- prettier-ignore -->
+> [!NOTE]
+> For now the supported DBs are: BigQuery, ClickHouse, DuckDB and Postgres.
+
+```prql
+prql target:sql.postgres
+
+from events
+select (event_time | date.to_start_of_interval 15 minute)
+
+```
+
+The SQL output varies by dialect:
+
+| Dialect    | SQL output                                                                |
+| ---------- | ------------------------------------------------------------------------- |
+| BigQuery   | `TIMESTAMP_BUCKET(CAST(event_time AS TIMESTAMP), INTERVAL 15 minute)`     |
+| ClickHouse | `toStartOfInterval(event_time, INTERVAL 15 minute)`                       |
+| DuckDB     | `time_bucket(INTERVAL '15 minute', event_time)`                           |
+| Postgres   | `date_bin('15 minute', event_time, TIMESTAMP '1970-01-01 00:00:00')`     |
+
 ### Date & time format specifiers
 
 PRQL specifiers for date and time formatting is a subset of specifiers used by

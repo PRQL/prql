@@ -1,0 +1,13 @@
+---
+source: web/book/tests/documentation/book.rs
+assertion_line: 75
+expression: "prql target:sql.postgres\n\nfrom events\nselect (event_time | date.to_start_of_interval 15 minute)\n\n"
+---
+SELECT
+  date_bin(
+    '15 minute',
+    event_time,
+    TIMESTAMP '1970-01-01 00:00:00'
+  )
+FROM
+  events
