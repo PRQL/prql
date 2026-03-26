@@ -97,12 +97,12 @@ select (event_time | date.to_start_of_interval 15 minute)
 
 The SQL output varies by dialect:
 
-| Dialect    | SQL output                                                                |
-| ---------- | ------------------------------------------------------------------------- |
-| BigQuery   | `TIMESTAMP_BUCKET(CAST(event_time AS TIMESTAMP), INTERVAL 15 minute)`     |
-| ClickHouse | `toStartOfInterval(event_time, INTERVAL 15 minute)`                       |
-| DuckDB     | `time_bucket(INTERVAL '15 minute', event_time)`                           |
-| Postgres   | `date_bin('15 minute', event_time, TIMESTAMP '1970-01-01 00:00:00')`      |
+| Dialect    | SQL output                                                            |
+| ---------- | --------------------------------------------------------------------- |
+| BigQuery   | `TIMESTAMP_BUCKET(CAST(event_time AS TIMESTAMP), INTERVAL 15 minute)` |
+| ClickHouse | `toStartOfInterval(event_time, INTERVAL 15 minute)`                   |
+| DuckDB     | `time_bucket(INTERVAL '15 minute', event_time)`                       |
+| Postgres   | `date_bin('15 minute', event_time, TIMESTAMP '1970-01-01 00:00:00')`  |
 
 ### Date & time format specifiers
 
