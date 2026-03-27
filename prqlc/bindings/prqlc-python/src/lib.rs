@@ -135,7 +135,7 @@ impl CompileOptions {
         color: bool,
         display: String,
     ) -> Self {
-        CompileOptions {
+        Self {
             format,
             target,
             signature_comment,

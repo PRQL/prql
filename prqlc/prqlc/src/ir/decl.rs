@@ -160,13 +160,13 @@ impl std::fmt::Debug for DebugNames<'_> {
 
 impl Default for DeclKind {
     fn default() -> Self {
-        DeclKind::Module(Module::default())
+        Self::Module(Module::default())
     }
 }
 
 impl From<DeclKind> for Decl {
     fn from(kind: DeclKind) -> Self {
-        Decl {
+        Self {
             kind,
             declared_at: None,
             order: 0,
