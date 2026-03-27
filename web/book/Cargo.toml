@@ -23,7 +23,7 @@ anyhow = { workspace = true }
 itertools = { workspace = true }
 mdbook-core = { version = "0.5.2", default-features = false }
 mdbook-preprocessor = { version = "0.5.2", default-features = false }
-prqlc = { path = "../../prqlc/prqlc", default-features = false }
+prqlc = { path = "../../prqlc/prqlc" }
 pulldown-cmark = { version = "0.13.0", default-features = false }
 pulldown-cmark-to-cmark = "22.0.0"
 serde_json = { workspace = true }

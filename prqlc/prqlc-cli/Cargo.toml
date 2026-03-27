@@ -18,6 +18,7 @@ lsp = ["lsp-server", "lsp-types"]
 [[bin]]
 name = "prqlc"
 path = "src/main.rs"
+bench = false
 
 [dependencies]
 prqlc = { path = "../prqlc", features = ["display", "serde_yaml"] }

@@ -102,14 +102,28 @@ fn should_use_color() -> bool {
     }
 }
 
-/// Strip colors, for external libraries which don't yet strip themselves, and
-/// for insta snapshot tests. This will respond to environment variables such as
-/// `CLI_COLOR`.
+/// Unconditionally strip ANSI color codes from a string.
+/// Used by the `Plain` display mode to guarantee clean output regardless of
+/// environment.
+#[cfg(feature = "display")]
+pub fn strip_colors(s: &str) -> String {
+    use anstream::adapter::strip_str;
+    strip_str(s).to_string()
+}
+
+/// When the `display` feature is disabled, no ANSI codes are present.
+#[cfg(not(feature = "display"))]
+pub fn strip_colors(s: &str) -> String {
+    s.to_string()
+}
+
+/// Strip colors conditionally, based on whether the environment supports color.
+/// Used by `compose_display` so that the `display` field respects terminal
+/// settings and env vars like `NO_COLOR` / `CLICOLOR_FORCE`.
 #[cfg(feature = "display")]
 pub fn maybe_strip_colors(s: &str) -> String {
-    use anstream::adapter::strip_str;
     if !should_use_color() {
-        strip_str(s).to_string()
+        strip_colors(s)
     } else {
         s.to_string()
     }
