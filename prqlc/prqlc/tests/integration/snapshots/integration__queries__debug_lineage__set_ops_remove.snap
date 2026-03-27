@@ -10,215 +10,215 @@ frames:
       name:
       - t
       - a
-      target_id: 138
+      target_id: 139
       target_name: null
     inputs:
-    - id: 129
+    - id: 130
       name: t
       table:
       - default_db
-      - _literal_129
+      - _literal_130
 - - 0:3163-3240
   - columns:
     - !Single
       name:
       - t
       - a
-      target_id: 138
+      target_id: 139
       target_name: null
     - !Single
       name:
       - b
       - a
-      target_id: 124
+      target_id: 125
       target_name: a
     inputs:
-    - id: 129
+    - id: 130
       name: t
       table:
       - default_db
-      - _literal_129
-    - id: 124
+      - _literal_130
+    - id: 125
       name: b
       table:
       - default_db
-      - _literal_124
+      - _literal_125
 - - 0:3243-3288
   - columns:
     - !Single
       name:
       - t
       - a
-      target_id: 138
+      target_id: 139
       target_name: null
     - !Single
       name:
       - b
       - a
-      target_id: 124
+      target_id: 125
       target_name: a
     inputs:
-    - id: 129
+    - id: 130
       name: t
       table:
       - default_db
-      - _literal_129
-    - id: 124
+      - _literal_130
+    - id: 125
       name: b
       table:
       - default_db
-      - _literal_124
+      - _literal_125
 - - 1:165-238
   - columns:
     - !Single
       name:
       - t
       - a
-      target_id: 209
+      target_id: 210
       target_name: null
     inputs:
-    - id: 129
+    - id: 130
       name: t
       table:
       - default_db
-      - _literal_129
-    - id: 124
+      - _literal_130
+    - id: 125
       name: b
       table:
       - default_db
-      - _literal_124
+      - _literal_125
 - - 1:239-245
   - columns:
     - !Single
       name:
       - t
       - a
-      target_id: 209
+      target_id: 210
       target_name: null
     inputs:
-    - id: 129
+    - id: 130
       name: t
       table:
       - default_db
-      - _literal_129
-    - id: 124
+      - _literal_130
+    - id: 125
       name: b
       table:
       - default_db
-      - _literal_124
+      - _literal_125
 nodes:
-- id: 124
+- id: 125
   kind: Array
   span: 1:173-237
-  parent: 191
-- id: 129
+  parent: 192
+- id: 130
   kind: Array
   span: 1:36-55
-  parent: 156
-- id: 138
+  parent: 157
+- id: 139
   kind: Ident
   ident: !Ident
   - this
   - t
   - a
   targets:
-  - 129
-  parent: 140
-- id: 140
+  - 130
+  parent: 141
+- id: 141
   kind: Tuple
   span: 1:64-69
   children:
-  - 138
-- id: 156
+  - 139
+- id: 157
   kind: 'TransformCall: Take'
   span: 1:71-77
   children:
-  - 129
-  - 157
-  parent: 191
-- id: 157
+  - 130
+  - 158
+  parent: 192
+- id: 158
   kind: Literal
-  parent: 156
-- id: 180
+  parent: 157
+- id: 181
   kind: Ident
   ident: !Ident
   - this
   - t
   - a
   targets:
-  - 138
-- id: 183
+  - 139
+- id: 184
   kind: Ident
   ident: !Ident
   - that
   - b
   - a
   targets:
-  - 124
-- id: 189
+  - 125
+- id: 190
   kind: RqOperator
   span: 0:3192-3239
   targets:
-  - 180
-  - 183
-  parent: 191
-- id: 191
+  - 181
+  - 184
+  parent: 192
+- id: 192
   kind: 'TransformCall: Join'
   span: 0:3163-3240
   children:
-  - 156
-  - 124
-  - 189
-  parent: 207
-- id: 199
+  - 157
+  - 125
+  - 190
+  parent: 208
+- id: 200
   kind: Ident
-  span: 0:6047-6055
+  span: 0:6110-6118
   ident: !Ident
   - this
   - b
   - a
   targets:
-  - 124
-- id: 203
+  - 125
+- id: 204
   kind: RqOperator
   span: 0:3251-3287
   targets:
-  - 199
-  - 206
-  parent: 207
-- id: 206
-  kind: Literal
-  span: 0:6059-6063
+  - 200
+  - 207
+  parent: 208
 - id: 207
+  kind: Literal
+  span: 0:6122-6126
+- id: 208
   kind: 'TransformCall: Filter'
   span: 0:3243-3288
   children:
-  - 191
-  - 203
-  parent: 211
-- id: 209
+  - 192
+  - 204
+  parent: 212
+- id: 210
   kind: Ident
   ident: !Ident
   - this
   - t
   - a
   targets:
-  - 138
-  parent: 210
-- id: 210
+  - 139
+  parent: 211
+- id: 211
   kind: Tuple
   span: 0:3298-3301
   children:
-  - 209
-  parent: 211
-- id: 211
+  - 210
+  parent: 212
+- id: 212
   kind: 'TransformCall: Select'
   span: 1:165-238
   children:
-  - 207
-  - 210
-  parent: 214
-- id: 212
+  - 208
+  - 211
+  parent: 215
+- id: 213
   kind: Ident
   span: 1:244-245
   ident: !Ident
@@ -226,14 +226,14 @@ nodes:
   - t
   - a
   targets:
-  - 209
-  parent: 214
-- id: 214
+  - 210
+  parent: 215
+- id: 215
   kind: 'TransformCall: Sort'
   span: 1:239-245
   children:
-  - 211
   - 212
+  - 213
 ast:
   name: Project
   stmts:

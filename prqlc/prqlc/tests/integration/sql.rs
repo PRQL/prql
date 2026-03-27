@@ -87,6 +87,75 @@ fn test_array_agg_per_dialect() {
 }
 
 #[test]
+fn test_max_by_per_dialect() {
+    let query = r#"
+    from tracks
+    aggregate {longest_name = max_by name milliseconds}
+    "#;
+
+    assert_snapshot!(compile_with_sql_dialect(query, sql::Dialect::Postgres).unwrap(), @r#"
+    SELECT
+      (
+        ARRAY_AGG(
+          name
+          ORDER BY
+            milliseconds DESC NULLS LAST
+        )
+      ) [1] AS longest_name
+    FROM
+      tracks
+    "#);
+
+    assert_snapshot!(compile_with_sql_dialect(query, sql::Dialect::BigQuery).unwrap(), @r#"
+    SELECT
+      MAX_BY(name, milliseconds) AS longest_name
+    FROM
+      tracks
+    "#);
+
+    assert_snapshot!(compile_with_sql_dialect(query, sql::Dialect::DuckDb).unwrap(), @r#"
+    SELECT
+      arg_max(name, milliseconds) AS longest_name
+    FROM
+      tracks
+    "#);
+
+    assert_snapshot!(compile_with_sql_dialect(query, sql::Dialect::Snowflake).unwrap(), @r#"
+    SELECT
+      MAX_BY("name", "milliseconds") AS "longest_name"
+    FROM
+      "tracks"
+    "#);
+
+    assert_snapshot!(compile_with_sql_dialect(query, sql::Dialect::ClickHouse).unwrap(), @r#"
+    SELECT
+      argMax(name, milliseconds) AS longest_name
+    FROM
+      tracks
+    "#);
+
+    assert_snapshot!(compile_with_sql_dialect(query, sql::Dialect::MySql).unwrap_err(), @r#"
+    Error:
+       ╭─[ :3:31 ]
+       │
+     3 │     aggregate {longest_name = max_by name milliseconds}
+       │                               ────────────┬───────────
+       │                                           ╰───────────── operator std.max_by is not supported for dialect mysql
+    ───╯
+    "#);
+
+    assert_snapshot!(compile(query).unwrap_err(), @r#"
+    Error:
+       ╭─[ :3:31 ]
+       │
+     3 │     aggregate {longest_name = max_by name milliseconds}
+       │                               ────────────┬───────────
+       │                                           ╰───────────── operator std.max_by is not supported for dialect generic
+    ───╯
+    "#);
+}
+
+#[test]
 fn test_stdlib() {
     assert_snapshot!(compile(r###"
     from employees

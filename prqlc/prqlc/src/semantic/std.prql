@@ -156,6 +156,8 @@ let concat_array = column <array> -> <text> internal std.concat_array
 
 let array_agg = column <array> -> <array> internal std.array_agg
 
+let max_by = column <array> by <array> -> internal std.max_by
+
 # Counts number of items in the column.
 # Note that the count will include null values.
 let count = column <array> -> <int> internal count
