@@ -32,6 +32,11 @@ jobs:
     timeout-minutes: 240
     steps:
       - uses: actions/checkout@v5
+      - name: Log in to Docker Hub
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
       - uses: docker/login-action@v3
         with:
           registry: ghcr.io

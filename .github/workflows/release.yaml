@@ -412,5 +412,6 @@ jobs:
   push-devcontainer:
     if: github.event_name == 'release'
     uses: ./.github/workflows/build-devcontainer.yaml
+    secrets: inherit
     with:
       push: true

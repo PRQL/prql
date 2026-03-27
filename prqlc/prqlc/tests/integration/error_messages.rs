@@ -14,7 +14,7 @@ fn test_errors() {
     from x
     derive y = (addadd 4 5 6)
     "###).unwrap_err(),
-        @r"
+        @"
     Error:
        ╭─[ :5:17 ]
        │
@@ -27,7 +27,7 @@ fn test_errors() {
     assert_snapshot!(compile(r###"
     from a select b
     "###).unwrap_err(),
-        @r"
+        @"
     Error:
        ╭─[ :2:5 ]
        │
@@ -42,7 +42,7 @@ fn test_errors() {
     select a
     select b
     "###).unwrap_err(),
-        @r"
+        @"
     Error:
        ╭─[ :4:12 ]
        │
@@ -58,7 +58,7 @@ fn test_errors() {
     from employees
     take 1.8
     "###).unwrap_err(),
-        @r"
+        @"
     Error:
        ╭─[ :3:10 ]
        │
@@ -88,7 +88,7 @@ fn test_errors() {
     "#);
 
     // PARSER output (full compilation error):
-    assert_snapshot!(compile(mississippi).unwrap_err(), @r"
+    assert_snapshot!(compile(mississippi).unwrap_err(), @"
     Error:
        ╭─[ :1:23 ]
        │
@@ -98,7 +98,7 @@ fn test_errors() {
     ───╯
     ");
 
-    assert_snapshot!(compile("Answer: T-H-A-T!").unwrap_err(), @r"
+    assert_snapshot!(compile("Answer: T-H-A-T!").unwrap_err(), @"
     Error:
        ╭─[ :1:16 ]
        │
@@ -117,7 +117,7 @@ fn test_union_all_sqlite() {
 
     from film
     remove film2
-    "###).unwrap_err(), @r"
+    "###).unwrap_err(), @"
     Error: The dialect SQLiteDialect does not support EXCEPT ALL
     ↳ Hint: providing more column information will allow the query to be translated to an anti-join.
     ")
@@ -129,7 +129,7 @@ fn test_regex_dialect() {
     prql target:sql.mssql
     from foo
     filter bar ~= 'love'
-    "###).unwrap_err(), @r"
+    "###).unwrap_err(), @"
     Error:
        ╭─[ :4:12 ]
        │
@@ -147,7 +147,7 @@ fn test_bad_function_type() {
     group foo (take)
     "###,
     )
-    .unwrap_err(), @r"
+    .unwrap_err(), @"
     Error:
        ╭─[ :3:16 ]
        │
@@ -187,7 +187,7 @@ fn test_ambiguous() {
     derive date = x
     select date
     "#)
-    .unwrap_err(), @r"
+    .unwrap_err(), @"
     Error:
        ╭─[ :4:12 ]
        │
@@ -210,7 +210,7 @@ fn test_ambiguous_join() {
     join (from b | select {x}) true
     select x
     "#)
-    .unwrap_err(), @r"
+    .unwrap_err(), @"
     Error:
        ╭─[ :5:12 ]
        │
@@ -232,7 +232,7 @@ fn test_ambiguous_inference() {
     join b(==b_id)
     select x
     "#)
-    .unwrap_err(), @r"
+    .unwrap_err(), @"
     Error:
        ╭─[ :4:12 ]
        │
@@ -268,7 +268,7 @@ fn date_to_text_with_column_format() {
   from dates_to_display
   select {my_date, my_format}
   select {std.date.to_text my_date my_format}
-  "#).unwrap_err(), @r"
+  "#).unwrap_err(), @"
     Error:
        ╭─[ :4:11 ]
        │
@@ -285,7 +285,7 @@ fn date_trunc_with_column_unit() {
   from dates_to_display
   select {my_date, my_unit}
   select {std.date.trunc my_unit my_date}
-  "#).unwrap_err(), @r"
+  "#).unwrap_err(), @"
     Error:
        ╭─[ :4:11 ]
        │
@@ -321,7 +321,7 @@ fn available_columns() {
     from invoices
     select foo
     select bar
-    "#).unwrap_err(), @r"
+    "#).unwrap_err(), @"
     Error:
        ╭─[ :4:12 ]
        │
@@ -350,20 +350,16 @@ fn empty_interpolations() {
 #[test]
 fn no_query_entered() {
     // Empty query
-    assert_snapshot!(compile("").unwrap_err(), @r"
-    [E0001] Error: No PRQL query entered
-    ");
+    assert_snapshot!(compile("").unwrap_err(), @"[E0001] Error: No PRQL query entered");
 
     // Comment-only query
-    assert_snapshot!(compile("# just a comment").unwrap_err(), @r"
-    [E0001] Error: No PRQL query entered
-    ");
+    assert_snapshot!(compile("# just a comment").unwrap_err(), @"[E0001] Error: No PRQL query entered");
 }
 
 #[test]
 fn query_must_begin_with_from() {
     // Query with declaration but no 'from'
-    assert_snapshot!(compile("let x = 5").unwrap_err(), @r"
+    assert_snapshot!(compile("let x = 5").unwrap_err(), @"
     [E0001] Error: PRQL queries must begin with 'from'
     ↳ Hint: A query must start with a 'from' statement to define the main pipeline
     ");
@@ -372,7 +368,7 @@ fn query_must_begin_with_from() {
     assert_snapshot!(compile(r#"
     let x = 5
     let y = 10
-    "#).unwrap_err(), @r"
+    "#).unwrap_err(), @"
     [E0001] Error: PRQL queries must begin with 'from'
     ↳ Hint: A query must start with a 'from' statement to define the main pipeline
     ");
@@ -384,7 +380,7 @@ fn negative_number_in_transform() {
     assert_snapshot!(compile(r###"
     from artists
     sort -name
-    "###).unwrap_err(), @r"
+    "###).unwrap_err(), @"
     Error: expected a pipeline that resolves to a table, but found `internal std.sub`
     ↳ Hint: wrap negative numbers in parentheses, e.g. `sort (-column_name)`
     ");
@@ -392,7 +388,7 @@ fn negative_number_in_transform() {
     assert_snapshot!(compile(r###"
     from pets
     take -10
-    "###).unwrap_err(), @r"
+    "###).unwrap_err(), @"
     Error: expected a pipeline that resolves to a table, but found `internal std.sub`
     ↳ Hint: wrap negative numbers in parentheses, e.g. `sort (-column_name)`
     ");
@@ -402,7 +398,7 @@ fn negative_number_in_transform() {
   group id (
     sort -val
   )
-  "###).unwrap_err(), @r"
+  "###).unwrap_err(), @"
     Error: expected a pipeline that resolves to a table, but found `internal std.sub`
     ↳ Hint: wrap negative numbers in parentheses, e.g. `sort (-column_name)`
     ");
@@ -412,7 +408,7 @@ fn negative_number_in_transform() {
 fn empty_tuple_or_array_from() {
     assert_snapshot!(compile(r###"
     from {}
-    "###).unwrap_err(), @r"
+    "###).unwrap_err(), @"
     Error:
        ╭─[ :2:10 ]
        │
@@ -424,7 +420,7 @@ fn empty_tuple_or_array_from() {
 
     assert_snapshot!(compile(r###"
     from []
-    "###).unwrap_err(), @r"
+    "###).unwrap_err(), @"
     Error:
        ╭─[ :2:10 ]
        │
@@ -437,7 +433,7 @@ fn empty_tuple_or_array_from() {
     assert_snapshot!(compile(r###"
     from {}
     select a
-    "###).unwrap_err(), @r"
+    "###).unwrap_err(), @"
     Error:
        ╭─[ :2:10 ]
        │
@@ -454,7 +450,7 @@ fn window_rows_expects_range() {
     assert_snapshot!(compile(r###"
     from t
     group sid (window rows:2 (sid))
-    "###).unwrap_err(), @r"
+    "###).unwrap_err(), @"
     Error:
        ╭─[ :3:28 ]
        │
@@ -467,7 +463,7 @@ fn window_rows_expects_range() {
     assert_snapshot!(compile(r###"
     from t
     group sid (window range:2 (sid))
-    "###).unwrap_err(), @r"
+    "###).unwrap_err(), @"
     Error:
        ╭─[ :3:29 ]
        │
@@ -484,7 +480,7 @@ fn bare_lambda_expression() {
     // a clear error, not a confusing internal message.
     assert_snapshot!(compile(r###"
     x -> y
-    "###).unwrap_err(), @r"
+    "###).unwrap_err(), @"
     Error:
        ╭─[ :2:5 ]
        │
