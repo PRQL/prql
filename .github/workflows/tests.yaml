@@ -664,7 +664,7 @@ jobs:
               "test-taskfile"
             ]
 
-  build-prqlc:
+  build-prqlc-cli:
     runs-on: ${{ matrix.os }}
     needs: rules
     if: needs.rules.outputs.rust == 'true' || needs.rules.outputs.main == 'true'
@@ -691,7 +691,7 @@ jobs:
     steps:
       - name: 📂 Checkout code
         uses: actions/checkout@v5
-      - uses: ./.github/actions/build-prqlc
+      - uses: ./.github/actions/build-prqlc-cli
         with:
           target: ${{ matrix.target }}
           profile: dev

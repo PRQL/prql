@@ -101,7 +101,7 @@ describe("prqlc-js", () => {
 
   describe("get_targets", () => {
     it("return a list of targets", () => {
-      const targets = new prqlc.get_targets();
+      const targets = prqlc.get_targets();
       assert(targets.length > 0);
       assert(targets.includes("sql.sqlite"));
     });

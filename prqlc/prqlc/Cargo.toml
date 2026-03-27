@@ -16,7 +16,7 @@ build = "build.rs"
 
 [features]
 display = ["dep:ariadne", "dep:anstream"]
-default = []
+default = ["display"]
 serde_yaml = ["prqlc-parser/serde_yaml", "dep:serde_yaml"]
 test-dbs = [
   "rusqlite",
@@ -97,6 +97,7 @@ tokio = { version = "1.50.0", optional = true, features = ["full"] }
 tokio-util = { version = "0.7.18", optional = true, features = ["compat"] }
 
 [dev-dependencies]
+anyhow = { workspace = true }
 glob = { version = "0.3.3" }
 insta = { workspace = true }
 insta-cmd = { workspace = true }

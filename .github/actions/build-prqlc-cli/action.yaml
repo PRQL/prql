@@ -1,6 +1,6 @@
-name: build-prqlc
+name: build-prqlc-cli
 description: >
-  Build prqlc
+  Build prqlc CLI binary
 
   Note that much of this is copy/pasted into build-prqlc-c, so changes here
   should generally be copied into that file.
@@ -76,8 +76,9 @@ runs:
         # even at the cost of slighly less efficiency.)
         args:
           --profile=${{ inputs.profile }} --locked --target=${{ inputs.target }}
-          --package=prqlc-cli --no-default-features --features=${{
-          inputs.features }}
+          --no-default-features --features=${{ inputs.features }} ${{
+          contains(inputs.target, 'musl') && '--package=prqlc-cli' ||
+          '--all-targets' }}
 
     - name: Create artifact for Linux and macOS
       shell: bash

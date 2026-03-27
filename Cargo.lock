@@ -2870,6 +2870,7 @@ name = "prqlc"
 version = "0.13.12"
 dependencies = [
  "anstream 1.0.0",
+ "anyhow",
  "ariadne",
  "chrono",
  "connector_arrow",
