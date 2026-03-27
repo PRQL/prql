@@ -24,6 +24,8 @@ fn prqlc_bin_path() -> PathBuf {
     }
 
     // Locate the target directory from the test binary path.
+    // With --target: target/<triple>/debug/deps/prqlc-<hash>
+    // Without:       target/debug/deps/prqlc-<hash>
     let test_bin = std::env::current_exe().expect("cannot determine test binary path");
     let mut dir = test_bin.parent().unwrap().to_path_buf();
     if dir.ends_with("deps") {
@@ -38,8 +40,38 @@ fn prqlc_bin_path() -> PathBuf {
     if !bin_path.exists() {
         BUILD_PRQLC.call_once(|| {
             let cargo = std::env::var("CARGO").unwrap_or_else(|_| "cargo".to_string());
-            let status = Command::new(cargo)
-                .args(["build", "--bin", "prqlc"])
+            let mut cmd = Command::new(cargo);
+            cmd.args(["build", "--bin", "prqlc"]);
+
+            // When tests are compiled with an explicit --target flag, artifacts
+            // go into target/<triple>/debug/ instead of target/debug/. Detect
+            // this and pass the same --target so the binary lands where we
+            // expect it. Also handle custom --target-dir (e.g. cargo-llvm-cov).
+            //
+            // Path layouts we handle:
+            //   target/debug/                       (default)
+            //   target/<triple>/debug/              (--target)
+            //   <custom-target-dir>/debug/          (--target-dir)
+            //   <custom-target-dir>/<triple>/debug/ (--target + --target-dir)
+            let compile_target = env!("PRQLC_BUILD_TARGET");
+            if let Some(parent) = dir.parent() {
+                let is_target_dir =
+                    parent.file_name().and_then(|n| n.to_str()) == Some(compile_target);
+
+                if is_target_dir {
+                    cmd.args(["--target", compile_target]);
+                    // The target-dir root is the grandparent.
+                    if let Some(target_dir) = parent.parent() {
+                        cmd.arg("--target-dir").arg(target_dir);
+                    }
+                } else {
+                    // No explicit --target, but may be a custom --target-dir
+                    // (e.g. cargo-llvm-cov uses target/llvm-cov-target/).
+                    cmd.arg("--target-dir").arg(parent);
+                }
+            }
+
+            let status = cmd
                 .status()
                 .expect("failed to run `cargo build --bin prqlc`");
             assert!(status.success(), "failed to build prqlc binary");
