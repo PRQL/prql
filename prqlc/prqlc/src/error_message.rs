@@ -190,11 +190,10 @@ fn offset_to_line_col(source: &str, offset: usize) -> Option<(usize, usize)> {
             col += 1;
         }
     }
-    // offset == source.len() (one past the end)
-    if offset == source.len() {
-        return Some((line, col));
-    }
-    None
+    // The guard above ensures offset <= source.len() and the loop handles
+    // all positions < source.len(), so only offset == source.len() remains.
+    debug_assert_eq!(offset, source.len());
+    Some((line, col))
 }
 
 /// Compute source location from a span without ariadne.
