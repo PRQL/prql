@@ -6,7 +6,6 @@ use std::process::Command;
 use std::str::FromStr;
 
 use insta_cmd::assert_cmd_snapshot;
-use insta_cmd::get_cargo_bin;
 use tempfile::TempDir;
 use walkdir::WalkDir;
 
@@ -583,7 +582,19 @@ fn project_path() -> PathBuf {
 }
 
 fn prqlc_command() -> Command {
-    let mut cmd = Command::new(get_cargo_bin("prqlc"));
+    let bin = std::env::var_os("CARGO_BIN_EXE_prqlc")
+        .map(PathBuf::from)
+        .unwrap_or_else(|| {
+            // CARGO_BIN_EXE_* is only set for integration tests. For unit tests
+            // (including nextest), find the binary relative to the test executable.
+            let test_bin = std::env::current_exe().expect("cannot determine test binary path");
+            let mut dir = test_bin.parent().unwrap().to_path_buf();
+            if dir.ends_with("deps") {
+                dir.pop();
+            }
+            dir.join("prqlc")
+        });
+    let mut cmd = Command::new(bin);
     normalize_prqlc(&mut cmd);
     cmd
 }

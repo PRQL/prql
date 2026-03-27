@@ -309,7 +309,7 @@ mod tests {
     #[test]
     fn offset_to_line_col_multibyte() {
         let src = "á\nb"; // á is 2 bytes
-        // offset 0 = 'á'
+                          // offset 0 = 'á'
         assert_eq!(offset_to_line_col(src, 0), Some((0, 0)));
         // offset 1 = mid-character (inside 'á'), maps to same char
         assert_eq!(offset_to_line_col(src, 1), Some((0, 0)));

@@ -213,9 +213,7 @@ pub fn compile(prql: &str, options: &Options) -> Result<String, ErrorMessages> {
                         .inner
                         .into_iter()
                         .map(|e| ErrorMessage {
-                            display: e.display.map(|s| {
-                                utils::maybe_strip_colors(&s)
-                            }),
+                            display: e.display.map(|s| utils::maybe_strip_colors(&s)),
                             ..e
                         })
                         .collect(),

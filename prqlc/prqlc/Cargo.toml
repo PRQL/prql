@@ -100,7 +100,6 @@ tokio-util = { version = "0.7.18", optional = true, features = ["compat"] }
 anyhow = { workspace = true }
 glob = { version = "0.3.3" }
 insta = { workspace = true }
-insta-cmd = { workspace = true }
 rstest = "0.26.1"
 similar = { workspace = true }
 similar-asserts = { workspace = true }

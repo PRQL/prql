@@ -579,7 +579,7 @@ pub fn write_log(path: &std::path::Path) -> Result<()> {
 }
 
 fn drop_module_def(stmts: &mut Vec<pr::Stmt>, name: &str) {
-    stmts.retain(|x| x.kind.as_module_def().map_or(true, |m| m.name != name));
+    stmts.retain(|x| x.kind.as_module_def().is_none_or(|m| m.name != name));
 }
 
 fn read_files(input: &mut clio::ClioPath) -> Result<SourceTree> {
