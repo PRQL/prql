@@ -178,6 +178,7 @@ jobs:
     needs: rules
     if: needs.rules.outputs.rust == 'true' || needs.rules.outputs.main == 'true'
     uses: ./.github/workflows/test-rust.yaml
+    secrets: inherit
     strategy:
       matrix:
         include:
@@ -326,6 +327,7 @@ jobs:
           #   target: aarch64-unknown-linux-musl
 
     uses: ./.github/workflows/test-rust.yaml
+    secrets: inherit
     with:
       os: ${{ matrix.os }}
       target: ${{ matrix.target }}
@@ -534,6 +536,7 @@ jobs:
     needs: rules
     if: needs.rules.outputs.devcontainer-build == 'true'
     uses: ./.github/workflows/build-devcontainer.yaml
+    secrets: inherit
     # One problem with this setup is that if another commit is merged to main,
     # this workflow will cancel existing jobs, and so this won't get pushed. We
     # have another workflow which runs on each release, so the image should get
