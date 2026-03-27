@@ -129,12 +129,6 @@ pub fn maybe_strip_colors(s: &str) -> String {
     }
 }
 
-/// When the `display` feature is disabled, return the string unchanged.
-#[cfg(not(feature = "display"))]
-pub fn maybe_strip_colors(s: &str) -> String {
-    s.to_string()
-}
-
 #[test]
 fn test_write_ident_part() {
     assert!(!valid_ident().is_match(""));

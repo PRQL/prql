@@ -37,6 +37,8 @@ mod jinja;
 mod lsp;
 #[cfg(test)]
 mod test;
+#[cfg(test)]
+mod test_utils;
 mod watch;
 
 /// CLI entrypoint

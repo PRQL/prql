@@ -2,12 +2,13 @@ use std::env::current_dir;
 use std::fs;
 use std::path::Path;
 use std::path::PathBuf;
-use std::process::Command;
 use std::str::FromStr;
 
 use insta_cmd::assert_cmd_snapshot;
 use tempfile::TempDir;
 use walkdir::WalkDir;
+
+use super::test_utils::prqlc_command;
 
 #[cfg(not(windows))] // Windows has slightly different output (e.g. `prqlc.exe`), so we exclude.
 #[test]
@@ -579,37 +580,6 @@ fn project_path() -> PathBuf {
         .canonicalize()
         .unwrap()
         .join("../prqlc/tests/integration/project")
-}
-
-fn prqlc_command() -> Command {
-    let bin = std::env::var_os("CARGO_BIN_EXE_prqlc")
-        .map(PathBuf::from)
-        .unwrap_or_else(|| {
-            // CARGO_BIN_EXE_* is only set for integration tests. For unit tests
-            // (including nextest), find the binary relative to the test executable.
-            let test_bin = std::env::current_exe().expect("cannot determine test binary path");
-            let mut dir = test_bin.parent().unwrap().to_path_buf();
-            if dir.ends_with("deps") {
-                dir.pop();
-            }
-            dir.join("prqlc")
-        });
-    let mut cmd = Command::new(bin);
-    normalize_prqlc(&mut cmd);
-    cmd
-}
-
-fn normalize_prqlc(cmd: &mut Command) -> &mut Command {
-    cmd
-        // We set `CLICOLOR_FORCE` in CI to force color output, but we don't want `prqlc` to
-        // output color for our snapshot tests. And it seems to override the
-        // `--color=never` flag.
-        .env_remove("CLICOLOR_FORCE")
-        .env("NO_COLOR", "1")
-        .args(["--color=never"])
-        // We don't want the tests to be affected by the user's `RUST_BACKTRACE` setting.
-        .env_remove("RUST_BACKTRACE")
-        .env_remove("RUST_LOG")
 }
 
 #[test]
