@@ -16,6 +16,11 @@
 
 **Internal changes**:
 
+- Extract CLI binary into separate `prqlc-cli` crate. The `prqlc` crate is now a
+  pure library; the `cli` feature has been removed and replaced by a `display`
+  feature that gates ariadne/anstream. The CLI binary name remains `prqlc`.
+  Install with `cargo install prqlc-cli`. (@snth)
+
 **New Contributors**:
 
 ## 0.13.11 — 2026-03-19

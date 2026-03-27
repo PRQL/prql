@@ -103,10 +103,9 @@ fn is_transform(ident: &str) -> bool {
 
 #[cfg(test)]
 mod tests {
-    use std::process::Command;
-
     use insta_cmd::assert_cmd_snapshot;
-    use insta_cmd::get_cargo_bin;
+
+    use super::super::test_utils::prqlc_command;
 
     #[test]
     fn highlight() {
@@ -137,25 +136,5 @@ mod tests {
 
         ----- stderr -----
         "#);
-    }
-
-    // TODO: import from existing location, need to adjust visibility
-    fn prqlc_command() -> Command {
-        let mut cmd = Command::new(get_cargo_bin("prqlc"));
-        normalize_prqlc(&mut cmd);
-        cmd
-    }
-
-    fn normalize_prqlc(cmd: &mut Command) -> &mut Command {
-        cmd
-            // We set `CLICOLOR_FORCE` in CI to force color output, but we don't want `prqlc` to
-            // output color for our snapshot tests. And it seems to override the
-            // `--color=never` flag.
-            .env_remove("CLICOLOR_FORCE")
-            .env("NO_COLOR", "1")
-            .args(["--color=never"])
-            // We don't want the tests to be affected by the user's `RUST_BACKTRACE` setting.
-            .env_remove("RUST_BACKTRACE")
-            .env_remove("RUST_LOG")
     }
 }

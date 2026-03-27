@@ -70,7 +70,7 @@
 //! - Compile, format & debug PRQL from command line.
 //!
 //!   ```sh
-//!   $ cargo install --locked prqlc
+//!   $ cargo install --locked prqlc-cli
 //!   $ prqlc compile query.prql
 //!   ```
 //!
@@ -78,8 +78,10 @@
 //!
 //! The following feature flags are available:
 //!
-//! * `cli`: enables the `prqlc` CLI binary. This is enabled by default. When
-//!   consuming this crate from another rust library, it can be disabled.
+//! * `display`: enables pretty-printed error messages with annotated source
+//!   code, using the `ariadne` crate. When disabled, `ErrorMessage.display`
+//!   is always `None` but `ErrorMessage.location` is still populated.
+//!   Library consumers who want pretty errors should enable this feature.
 //! * `test-dbs`: enables the `prqlc` in-process test databases as part of the
 //!   crate's tests. This significantly increases compile times so is not
 //!   enabled by default.
@@ -103,7 +105,6 @@
 use std::sync::OnceLock;
 use std::{collections::HashMap, path::PathBuf, str::FromStr};
 
-use anstream::adapter::strip_str;
 use semver::Version;
 use serde::{Deserialize, Serialize};
 use strum::VariantNames;
@@ -121,9 +122,9 @@ pub mod ir;
 pub mod parser;
 pub mod semantic;
 pub mod sql;
-#[cfg(feature = "cli")]
+#[cfg(feature = "display")]
 pub mod utils;
-#[cfg(not(feature = "cli"))]
+#[cfg(not(feature = "display"))]
 pub(crate) mod utils;
 
 pub type Result<T, E = Error> = core::result::Result<T, E>;
@@ -212,7 +213,7 @@ pub fn compile(prql: &str, options: &Options) -> Result<String, ErrorMessages> {
                         .inner
                         .into_iter()
                         .map(|e| ErrorMessage {
-                            display: e.display.map(|s| strip_str(&s).to_string()),
+                            display: e.display.map(|s| utils::strip_colors(&s)),
                             ..e
                         })
                         .collect(),
@@ -547,6 +548,7 @@ mod tests {
     use crate::Target;
 
     pub fn compile(prql: &str) -> Result<String, super::ErrorMessages> {
+        #[cfg(feature = "display")]
         anstream::ColorChoice::Never.write_global();
         super::compile(prql, &super::Options::default().no_signature())
     }

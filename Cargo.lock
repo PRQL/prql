@@ -2873,11 +2873,6 @@ dependencies = [
  "anyhow",
  "ariadne",
  "chrono",
- "clap",
- "clap_complete_command",
- "clio",
- "color-eyre",
- "colorchoice-clap",
  "connector_arrow",
  "criterion",
  "csv",
@@ -2886,15 +2881,9 @@ dependencies = [
  "futures",
  "glob",
  "insta",
- "insta-cmd",
- "is-terminal",
  "itertools 0.14.0",
  "log",
- "lsp-server",
- "lsp-types",
- "minijinja",
  "mysql",
- "notify",
  "postgres",
  "prqlc-parser",
  "regex",
@@ -2917,7 +2906,6 @@ dependencies = [
  "tokio",
  "tokio-util",
  "vergen-gitcl",
- "walkdir",
 ]
 
 [[package]]
@@ -2927,6 +2915,40 @@ dependencies = [
  "libc",
  "prqlc",
  "serde_json",
+]
+
+[[package]]
+name = "prqlc-cli"
+version = "0.13.12"
+dependencies = [
+ "anstream 1.0.0",
+ "anyhow",
+ "ariadne",
+ "clap",
+ "clap_complete_command",
+ "clio",
+ "color-eyre",
+ "colorchoice-clap",
+ "insta",
+ "insta-cmd",
+ "is-terminal",
+ "itertools 0.14.0",
+ "log",
+ "lsp-server",
+ "lsp-types",
+ "minijinja",
+ "notify",
+ "prqlc",
+ "regex",
+ "schemars",
+ "serde",
+ "serde_json",
+ "serde_yaml",
+ "similar",
+ "similar-asserts",
+ "tempfile",
+ "vergen-gitcl",
+ "walkdir",
 ]
 
 [[package]]
