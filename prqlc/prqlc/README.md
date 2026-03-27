@@ -1,15 +1,17 @@
 # PRQL compiler
 
 `prqlc` is the reference implementation of a compiler from PRQL to SQL, written
-in Rust. It also serves as the CLI.
+in Rust. The CLI is provided by the separate
+[`prqlc-cli`](https://crates.io/crates/prqlc-cli) crate (binary name remains
+`prqlc`).
 
 For more on PRQL, check out the [PRQL website](https://prql-lang.org) or the
 [PRQL repo](https://github.com/PRQL/prql).
 
 ## CLI
 
-`prqlc` serves as a CLI for the PRQL compiler. It is a single, dependency-free
-binary that compiles PRQL into SQL.
+The CLI is provided by the [`prqlc-cli`](https://crates.io/crates/prqlc-cli)
+crate. It is a single, dependency-free binary that compiles PRQL into SQL.
 
 ## Usage
 
@@ -97,12 +99,12 @@ Precompiled binaries are available for Linux, macOS, and Windows on the
 
 ```sh
 # From crates.io
-cargo install prqlc
+cargo install prqlc-cli
 ```
 
 ```sh
 # From a local PRQL repository
-cargo install --path prqlc/prqlc
+cargo install --path prqlc/prqlc-cli
 ```
 
 ### Shell completions
