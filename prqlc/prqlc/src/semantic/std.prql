@@ -231,6 +231,7 @@ module date {
   let to_text = format<text> column -> <text> internal std.date.to_text
   let diff = `noresolve.unit` start end -> <int> internal std.date.diff
   let trunc = unit<text> column -> internal std.date.trunc
+  let to_start_of_interval = amount<int> `noresolve.unit` column -> internal std.date.to_start_of_interval
 }
 
 ## File-reading functions, primarily for DuckDB
