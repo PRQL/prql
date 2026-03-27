@@ -4,6 +4,20 @@ expression: "# mysql:skip\n# clickhouse:skip\n# glaredb:skip (the string_agg fun
 input_file: prqlc/prqlc/tests/integration/queries/aggregation.prql
 ---
 
+--- generic
++++ duckdb
+@@ -1,10 +1,10 @@
+ SELECT
+   COALESCE(SUM(track_id), 0),
+   COALESCE(STRING_AGG(name, ''), ''),
+-  ARRAY_AGG(name),
++  COALESCE(ARRAY_AGG(name), []),
+   COALESCE(BOOL_AND(name = ''), TRUE),
+   COALESCE(BOOL_OR(name = ''), FALSE)
+ FROM
+   tracks
+ WHERE
+   genre_id = 100
 
 
 
@@ -18,7 +32,7 @@ input_file: prqlc/prqlc/tests/integration/queries/aggregation.prql
 -  COALESCE(BOOL_AND(name = ''), TRUE),
 -  COALESCE(BOOL_OR(name = ''), FALSE)
 +  COALESCE(GROUP_CONCAT(name, ''), ''),
-+  json_group_array(name),
++  COALESCE(json_group_array(name), '[]'),
 +  COALESCE(MIN(name = '') > 0, TRUE),
 +  COALESCE(MAX(name = '') > 0, FALSE)
  FROM

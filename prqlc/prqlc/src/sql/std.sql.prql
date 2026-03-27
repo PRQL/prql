@@ -275,6 +275,9 @@ module clickhouse {
 }
 
 module duckdb {
+  @{window_frame=true, coalesce="[]"}
+  let array_agg = column -> s"ARRAY_AGG({column:0})"
+
   @{window_frame=true}
   let max_by = column by -> s"arg_max({column:0}, {by:0})"
 
@@ -439,7 +442,7 @@ module sqlite {
   @{window_frame=true, coalesce="''"}
   let concat_array = column -> s"GROUP_CONCAT({column:0}, '')"
 
-  @{window_frame=true}
+  @{window_frame=true, coalesce="'[]'"}
   let array_agg = column -> s"json_group_array({column:0})"
 
   @{binding_strength=11}

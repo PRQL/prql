@@ -52,7 +52,7 @@ fn test_array_agg_per_dialect() {
 
     assert_snapshot!(compile_with_sql_dialect(query, sql::Dialect::DuckDb).unwrap(), @r#"
     SELECT
-      ARRAY_AGG(name) AS names
+      COALESCE(ARRAY_AGG(name), []) AS names
     FROM
       tracks
     "#);
@@ -73,7 +73,7 @@ fn test_array_agg_per_dialect() {
 
     assert_snapshot!(compile_with_sql_dialect(query, sql::Dialect::SQLite).unwrap(), @r#"
     SELECT
-      json_group_array(name) AS names
+      COALESCE(json_group_array(name), '[]') AS names
     FROM
       tracks
     "#);
