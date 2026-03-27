@@ -154,6 +154,8 @@ let any = column <array> -> <bool> internal std.any
 
 let concat_array = column <array> -> <text> internal std.concat_array
 
+let array_agg = column <array> -> <array> internal std.array_agg
+
 # Counts number of items in the column.
 # Note that the count will include null values.
 let count = column <array> -> <int> internal count

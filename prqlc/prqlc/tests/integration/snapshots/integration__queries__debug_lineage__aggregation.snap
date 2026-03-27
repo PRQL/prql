@@ -1,16 +1,16 @@
 ---
 source: prqlc/prqlc/tests/integration/queries.rs
-expression: "# mysql:skip\n# clickhouse:skip\n# glaredb:skip (the string_agg function is not supported)\nfrom tracks\nfilter genre_id == 100\nderive empty_name = name == ''\naggregate {sum track_id, concat_array name, all empty_name, any empty_name}\n"
+expression: "# mysql:skip\n# clickhouse:skip\n# glaredb:skip (the string_agg function is not supported)\nfrom tracks\nfilter genre_id == 100\nderive empty_name = name == ''\naggregate {sum track_id, concat_array name, array_agg name, all empty_name, any empty_name}\n"
 input_file: prqlc/prqlc/tests/integration/queries/aggregation.prql
 ---
 frames:
 - - 1:101-123
   - columns:
     - !All
-      input_id: 125
+      input_id: 126
       except: []
     inputs:
-    - id: 125
+    - id: 126
       name: tracks
       table:
       - default_db
@@ -18,59 +18,63 @@ frames:
 - - 1:124-154
   - columns:
     - !All
-      input_id: 125
+      input_id: 126
       except: []
     - !Single
       name:
       - empty_name
-      target_id: 132
+      target_id: 133
       target_name: null
     inputs:
-    - id: 125
+    - id: 126
       name: tracks
       table:
       - default_db
       - tracks
-- - 1:155-230
+- - 1:155-246
   - columns:
     - !Single
       name: null
-      target_id: 138
+      target_id: 139
       target_name: null
     - !Single
       name: null
-      target_id: 141
+      target_id: 142
       target_name: null
     - !Single
       name: null
-      target_id: 144
+      target_id: 145
       target_name: null
     - !Single
       name: null
-      target_id: 147
+      target_id: 148
+      target_name: null
+    - !Single
+      name: null
+      target_id: 151
       target_name: null
     inputs:
-    - id: 125
+    - id: 126
       name: tracks
       table:
       - default_db
       - tracks
 nodes:
-- id: 125
+- id: 126
   kind: Ident
   span: 1:89-100
   ident: !Ident
   - default_db
   - tracks
-  parent: 131
-- id: 127
+  parent: 132
+- id: 128
   kind: RqOperator
   span: 1:108-123
   targets:
-  - 129
   - 130
-  parent: 131
-- id: 129
+  - 131
+  parent: 132
+- id: 130
   kind: Ident
   span: 1:108-116
   ident: !Ident
@@ -78,26 +82,26 @@ nodes:
   - tracks
   - genre_id
   targets:
-  - 125
-- id: 130
+  - 126
+- id: 131
   kind: Literal
   span: 1:120-123
-- id: 131
+- id: 132
   kind: 'TransformCall: Filter'
   span: 1:101-123
   children:
-  - 125
-  - 127
-  parent: 137
-- id: 132
+  - 126
+  - 128
+  parent: 138
+- id: 133
   kind: RqOperator
   span: 1:144-154
   alias: empty_name
   targets:
-  - 134
   - 135
-  parent: 136
-- id: 134
+  - 136
+  parent: 137
+- id: 135
   kind: Ident
   span: 1:144-148
   ident: !Ident
@@ -105,30 +109,30 @@ nodes:
   - tracks
   - name
   targets:
-  - 125
-- id: 135
+  - 126
+- id: 136
   kind: Literal
   span: 1:152-154
-- id: 136
+- id: 137
   kind: Tuple
   span: 1:144-154
   children:
-  - 132
-  parent: 137
-- id: 137
+  - 133
+  parent: 138
+- id: 138
   kind: 'TransformCall: Derive'
   span: 1:124-154
   children:
-  - 131
-  - 136
-  parent: 151
-- id: 138
+  - 132
+  - 137
+  parent: 155
+- id: 139
   kind: RqOperator
   span: 1:166-178
   targets:
-  - 140
-  parent: 150
-- id: 140
+  - 141
+  parent: 154
+- id: 141
   kind: Ident
   span: 1:170-178
   ident: !Ident
@@ -136,14 +140,14 @@ nodes:
   - tracks
   - track_id
   targets:
-  - 125
-- id: 141
+  - 126
+- id: 142
   kind: RqOperator
   span: 1:180-197
   targets:
-  - 143
-  parent: 150
-- id: 143
+  - 144
+  parent: 154
+- id: 144
   kind: Ident
   span: 1:193-197
   ident: !Ident
@@ -151,50 +155,66 @@ nodes:
   - tracks
   - name
   targets:
-  - 125
-- id: 144
+  - 126
+- id: 145
   kind: RqOperator
   span: 1:199-213
   targets:
-  - 146
-  parent: 150
-- id: 146
+  - 147
+  parent: 154
+- id: 147
   kind: Ident
-  span: 1:203-213
+  span: 1:209-213
   ident: !Ident
   - this
-  - empty_name
+  - tracks
+  - name
   targets:
-  - 132
-- id: 147
+  - 126
+- id: 148
   kind: RqOperator
   span: 1:215-229
   targets:
-  - 149
-  parent: 150
-- id: 149
+  - 150
+  parent: 154
+- id: 150
   kind: Ident
   span: 1:219-229
   ident: !Ident
   - this
   - empty_name
   targets:
-  - 132
-- id: 150
+  - 133
+- id: 151
+  kind: RqOperator
+  span: 1:231-245
+  targets:
+  - 153
+  parent: 154
+- id: 153
+  kind: Ident
+  span: 1:235-245
+  ident: !Ident
+  - this
+  - empty_name
+  targets:
+  - 133
+- id: 154
   kind: Tuple
-  span: 1:165-230
+  span: 1:165-246
+  children:
+  - 139
+  - 142
+  - 145
+  - 148
+  - 151
+  parent: 155
+- id: 155
+  kind: 'TransformCall: Aggregate'
+  span: 1:155-246
   children:
   - 138
-  - 141
-  - 144
-  - 147
-  parent: 151
-- id: 151
-  kind: 'TransformCall: Aggregate'
-  span: 1:155-230
-  children:
-  - 137
-  - 150
+  - 154
 ast:
   name: Project
   stmts:
@@ -281,24 +301,34 @@ ast:
                 - FuncCall:
                     name:
                       Ident:
-                      - all
-                      span: 1:199-202
+                      - array_agg
+                      span: 1:199-208
                     args:
                     - Ident:
-                      - empty_name
-                      span: 1:203-213
+                      - name
+                      span: 1:209-213
                   span: 1:199-213
                 - FuncCall:
                     name:
                       Ident:
-                      - any
+                      - all
                       span: 1:215-218
                     args:
                     - Ident:
                       - empty_name
                       span: 1:219-229
                   span: 1:215-229
-                span: 1:165-230
-            span: 1:155-230
-        span: 1:89-230
-    span: 1:0-230
+                - FuncCall:
+                    name:
+                      Ident:
+                      - any
+                      span: 1:231-234
+                    args:
+                    - Ident:
+                      - empty_name
+                      span: 1:235-245
+                  span: 1:231-245
+                span: 1:165-246
+            span: 1:155-246
+        span: 1:89-246
+    span: 1:0-246

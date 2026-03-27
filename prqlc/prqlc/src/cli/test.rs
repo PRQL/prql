@@ -434,29 +434,29 @@ fn debug() {
           name:
           - tracks
           - artist
-          target_id: 121
+          target_id: 122
           target_name: null
         - !Single
           name:
           - tracks
           - album
-          target_id: 122
+          target_id: 123
           target_name: null
         inputs:
-        - id: 119
+        - id: 120
           name: tracks
           table:
           - default_db
           - tracks
     nodes:
-    - id: 119
+    - id: 120
       kind: Ident
       span: 1:0-11
       ident: !Ident
       - default_db
       - tracks
-      parent: 124
-    - id: 121
+      parent: 125
+    - id: 122
       kind: Ident
       span: 1:22-28
       ident: !Ident
@@ -464,9 +464,9 @@ fn debug() {
       - tracks
       - artist
       targets:
-      - 119
-      parent: 123
-    - id: 122
+      - 120
+      parent: 124
+    - id: 123
       kind: Ident
       span: 1:30-35
       ident: !Ident
@@ -474,21 +474,21 @@ fn debug() {
       - tracks
       - album
       targets:
-      - 119
-      parent: 123
-    - id: 123
+      - 120
+      parent: 124
+    - id: 124
       kind: Tuple
       span: 1:21-36
       children:
-      - 121
       - 122
-      parent: 124
-    - id: 124
+      - 123
+      parent: 125
+    - id: 125
       kind: 'TransformCall: Select'
       span: 1:14-36
       children:
-      - 119
-      - 123
+      - 120
+      - 124
     ast:
       name: Project
       stmts:

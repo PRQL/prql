@@ -23,6 +23,70 @@ fn compile_with_sql_dialect(prql: &str, dialect: sql::Dialect) -> Result<String,
 }
 
 #[test]
+fn test_array_agg_per_dialect() {
+    let query = r#"
+    from tracks
+    aggregate {names = array_agg name}
+    "#;
+
+    assert_snapshot!(compile(query).unwrap(), @r#"
+    SELECT
+      ARRAY_AGG(name) AS names
+    FROM
+      tracks
+    "#);
+
+    assert_snapshot!(compile_with_sql_dialect(query, sql::Dialect::Postgres).unwrap(), @r#"
+    SELECT
+      ARRAY_AGG(name) AS names
+    FROM
+      tracks
+    "#);
+
+    assert_snapshot!(compile_with_sql_dialect(query, sql::Dialect::BigQuery).unwrap(), @r#"
+    SELECT
+      ARRAY_AGG(name) AS names
+    FROM
+      tracks
+    "#);
+
+    assert_snapshot!(compile_with_sql_dialect(query, sql::Dialect::DuckDb).unwrap(), @r#"
+    SELECT
+      ARRAY_AGG(name) AS names
+    FROM
+      tracks
+    "#);
+
+    assert_snapshot!(compile_with_sql_dialect(query, sql::Dialect::Snowflake).unwrap(), @r#"
+    SELECT
+      ARRAY_AGG("name") AS "names"
+    FROM
+      "tracks"
+    "#);
+
+    assert_snapshot!(compile_with_sql_dialect(query, sql::Dialect::MySql).unwrap(), @r#"
+    SELECT
+      JSON_ARRAYAGG(name) AS names
+    FROM
+      tracks
+    "#);
+
+    assert_snapshot!(compile_with_sql_dialect(query, sql::Dialect::SQLite).unwrap(), @r#"
+    SELECT
+      json_group_array(name) AS names
+    FROM
+      tracks
+    "#);
+
+    assert_snapshot!(compile_with_sql_dialect(query, sql::Dialect::ClickHouse).unwrap(), @r#"
+    SELECT
+      groupArray(name) AS names
+    FROM
+      tracks
+    "#);
+}
+
+#[test]
 fn test_stdlib() {
     assert_snapshot!(compile(r###"
     from employees
