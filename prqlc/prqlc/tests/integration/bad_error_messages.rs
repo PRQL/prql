@@ -24,7 +24,7 @@ fn test_bad_error_messages() {
     assert_snapshot!(compile(r###"
     from film
     group
-    "###).unwrap_err(), @r"
+    "###).unwrap_err(), @"
     Error:
        ╭─[ :3:5 ]
        │
@@ -44,7 +44,7 @@ fn test_bad_error_messages() {
 
     from employees
     filter f location
-    "#).unwrap_err(), @r"
+    "#).unwrap_err(), @"
     Error:
        ╭─[ :5:14 ]
        │
@@ -58,7 +58,7 @@ fn test_bad_error_messages() {
     assert_snapshot!(compile(r###"
     select tracks
     from artists
-    "###).unwrap_err(), @r"
+    "###).unwrap_err(), @"
     Error:
        ╭─[ :3:5 ]
        │
@@ -136,7 +136,7 @@ fn misplaced_type_error() {
     let foo = 123
     from t
     select (true && foo)
-    "###).unwrap_err(), @r"
+    "###).unwrap_err(), @"
     Error:
        ╭─[ :2:15 ]
        │
@@ -152,7 +152,7 @@ fn test_hint_missing_args() {
     assert_snapshot!(compile(r###"
     from film
     select {film_id, lag film_id}
-    "###).unwrap_err(), @r"
+    "###).unwrap_err(), @"
     Error:
        ╭─[ :3:22 ]
        │
@@ -169,7 +169,7 @@ fn test_hint_missing_args() {
 fn test_relation_literal_contains_literals() {
     assert_snapshot!(compile(r###"
     [{a=(1+1)}]
-    "###).unwrap_err(), @r"
+    "###).unwrap_err(), @"
     Error:
        ╭─[ :2:9 ]
        │
@@ -196,7 +196,7 @@ fn nested_groups() {
         }
       )
     )
-    "###).unwrap_err(), @r"
+    "###).unwrap_err(), @"
     Error:
         ╭─[ :9:9 ]
         │
@@ -213,7 +213,7 @@ fn nested_groups() {
 fn just_std() {
     assert_snapshot!(compile(r###"
     std
-    "###).unwrap_err(), @r"
+    "###).unwrap_err(), @"
     Error:
        ╭─[ :1:1 ]
        │
