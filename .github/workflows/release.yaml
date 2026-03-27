@@ -68,7 +68,7 @@ jobs:
         with:
           target: ${{ matrix.target }}
           profile: release
-          features: cli
+          features: default
       - name: Upload release artifact
         if: github.event_name == 'release'
         uses: softprops/action-gh-release@v2

@@ -1,9 +1,14 @@
-use std::collections::HashMap;
 use std::error::Error as StdError;
 use std::fmt::{self, Debug, Display, Formatter};
+
+#[cfg(feature = "display")]
+use std::collections::HashMap;
+#[cfg(feature = "display")]
 use std::ops::Range;
+#[cfg(feature = "display")]
 use std::path::PathBuf;
 
+#[cfg(feature = "display")]
 use ariadne::{Cache, Config, Label, Report, ReportKind, Source};
 use serde::Serialize;
 
@@ -135,8 +140,6 @@ impl ErrorMessages {
 
     /// Computes message location and builds the pretty display.
     pub fn composed(mut self, sources: &SourceTree) -> Self {
-        let mut cache = FileTreeCache::new(sources);
-
         for e in &mut self.inner {
             let Some(span) = e.span else {
                 continue;
@@ -144,24 +147,64 @@ impl ErrorMessages {
             let Some(source_path) = sources.source_ids.get(&span.source_id) else {
                 continue;
             };
-
-            let Ok(source) = cache.fetch(source_path) else {
+            let Some(source_str) = sources.sources.get(source_path) else {
                 continue;
             };
-            e.location = e.compose_location(source);
+
+            e.location = compose_location(span, source_str);
 
             assert!(
                 e.location.is_some(),
                 "span {:?} is out of bounds of the source (len = {})",
                 e.span,
-                source.len()
+                source_str.len()
             );
-            e.display = e.compose_display(source_path.clone(), &mut cache);
+
+            #[cfg(feature = "display")]
+            {
+                let mut cache = FileTreeCache::new(sources);
+                e.display = e.compose_display(source_path.clone(), &mut cache);
+            }
         }
         self
     }
 }
 
+/// Convert a byte offset to (line, col), both 0-based.
+/// Byte offsets that fall inside a multi-byte character are mapped to
+/// that character's position.
+fn offset_to_line_col(source: &str, offset: usize) -> Option<(usize, usize)> {
+    if offset > source.len() {
+        return None;
+    }
+    let mut line = 0;
+    let mut col = 0;
+    for (i, ch) in source.char_indices() {
+        if offset >= i && offset < i + ch.len_utf8() {
+            return Some((line, col));
+        }
+        if ch == '\n' {
+            line += 1;
+            col = 0;
+        } else {
+            col += 1;
+        }
+    }
+    // offset == source.len() (one past the end)
+    if offset == source.len() {
+        return Some((line, col));
+    }
+    None
+}
+
+/// Compute source location from a span without ariadne.
+fn compose_location(span: Span, source: &str) -> Option<SourceLocation> {
+    let start = offset_to_line_col(source, span.start)?;
+    let end = offset_to_line_col(source, span.end)?;
+    Some(SourceLocation { start, end })
+}
+
+#[cfg(feature = "display")]
 impl ErrorMessage {
     fn compose_display(&self, source_path: PathBuf, cache: &mut FileTreeCache) -> Option<String> {
         // We always pass color to ariadne as true, and then (currently) strip later.
@@ -196,23 +239,15 @@ impl ErrorMessage {
             .ok()
             .map(|x| crate::utils::maybe_strip_colors(x.as_str()))
     }
-
-    fn compose_location(&self, source: &Source) -> Option<SourceLocation> {
-        let span = self.span?;
-
-        let start = source.get_offset_line(span.start)?;
-        let end = source.get_offset_line(span.end)?;
-        Some(SourceLocation {
-            start: (start.1, start.2),
-            end: (end.1, end.2),
-        })
-    }
 }
 
+#[cfg(feature = "display")]
 struct FileTreeCache<'a> {
     file_tree: &'a SourceTree,
     cache: HashMap<PathBuf, Source>,
 }
+
+#[cfg(feature = "display")]
 impl<'a> FileTreeCache<'a> {
     fn new(file_tree: &'a SourceTree) -> Self {
         FileTreeCache {
@@ -222,6 +257,7 @@ impl<'a> FileTreeCache<'a> {
     }
 }
 
+#[cfg(feature = "display")]
 impl Cache<PathBuf> for FileTreeCache<'_> {
     type Storage = String;
     fn fetch(&mut self, id: &PathBuf) -> Result<&Source<Self::Storage>, impl fmt::Debug> {
@@ -238,5 +274,59 @@ impl Cache<PathBuf> for FileTreeCache<'_> {
 
     fn display<'b>(&self, id: &'b PathBuf) -> Option<impl fmt::Display + 'b> {
         id.as_os_str().to_str().map(str::to_string)
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn offset_to_line_col_basic() {
+        let src = "hello\nworld";
+        // 'h' at offset 0
+        assert_eq!(offset_to_line_col(src, 0), Some((0, 0)));
+        // 'e' at offset 1
+        assert_eq!(offset_to_line_col(src, 1), Some((0, 1)));
+        // '\n' at offset 5
+        assert_eq!(offset_to_line_col(src, 5), Some((0, 5)));
+        // 'w' at offset 6
+        assert_eq!(offset_to_line_col(src, 6), Some((1, 0)));
+        // 'd' at offset 10
+        assert_eq!(offset_to_line_col(src, 10), Some((1, 4)));
+        // one past end
+        assert_eq!(offset_to_line_col(src, 11), Some((1, 5)));
+        // out of bounds
+        assert_eq!(offset_to_line_col(src, 12), None);
+    }
+
+    #[test]
+    fn offset_to_line_col_empty() {
+        assert_eq!(offset_to_line_col("", 0), Some((0, 0)));
+        assert_eq!(offset_to_line_col("", 1), None);
+    }
+
+    #[test]
+    fn offset_to_line_col_multibyte() {
+        let src = "á\nb"; // á is 2 bytes
+        // offset 0 = 'á'
+        assert_eq!(offset_to_line_col(src, 0), Some((0, 0)));
+        // offset 1 = mid-character (inside 'á'), maps to same char
+        assert_eq!(offset_to_line_col(src, 1), Some((0, 0)));
+        // offset 2 = '\n' (after the 2-byte char)
+        assert_eq!(offset_to_line_col(src, 2), Some((0, 1)));
+        // offset 3 = 'b'
+        assert_eq!(offset_to_line_col(src, 3), Some((1, 0)));
+    }
+
+    #[test]
+    fn offset_to_line_col_curly_quote() {
+        // U+2019 RIGHT SINGLE QUOTATION MARK is 3 bytes in UTF-8
+        let src = "S\u{2019}s";
+        assert_eq!(offset_to_line_col(src, 0), Some((0, 0))); // 'S'
+        assert_eq!(offset_to_line_col(src, 1), Some((0, 1))); // start of '''
+        assert_eq!(offset_to_line_col(src, 2), Some((0, 1))); // mid '''
+        assert_eq!(offset_to_line_col(src, 3), Some((0, 1))); // mid '''
+        assert_eq!(offset_to_line_col(src, 4), Some((0, 2))); // 's'
     }
 }

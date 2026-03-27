@@ -76,9 +76,8 @@ runs:
         # even at the cost of slighly less efficiency.)
         args:
           --profile=${{ inputs.profile }} --locked --target=${{ inputs.target }}
-          --no-default-features --features=${{ inputs.features }} ${{
-          contains(inputs.target, 'musl') && '--package=prqlc' ||
-          '--all-targets' }}
+          --package=prqlc-cli --no-default-features --features=${{
+          inputs.features }}
 
     - name: Create artifact for Linux and macOS
       shell: bash

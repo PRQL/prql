@@ -1,9 +1,8 @@
 mod id_gen;
 mod toposort;
 
-use std::{io::stderr, sync::OnceLock};
+use std::sync::OnceLock;
 
-use anstream::adapter::strip_str;
 pub use id_gen::{IdGenerator, NameGenerator};
 use itertools::Itertools;
 use regex::Regex;
@@ -92,7 +91,9 @@ pub(crate) fn valid_ident() -> &'static Regex {
     })
 }
 
+#[cfg(feature = "display")]
 fn should_use_color() -> bool {
+    use std::io::stderr;
     match anstream::AutoStream::choice(&stderr()) {
         anstream::ColorChoice::Auto => true,
         anstream::ColorChoice::Always => true,
@@ -104,7 +105,9 @@ fn should_use_color() -> bool {
 /// Strip colors, for external libraries which don't yet strip themselves, and
 /// for insta snapshot tests. This will respond to environment variables such as
 /// `CLI_COLOR`.
+#[cfg(feature = "display")]
 pub fn maybe_strip_colors(s: &str) -> String {
+    use anstream::adapter::strip_str;
     if !should_use_color() {
         strip_str(s).to_string()
     } else {
@@ -112,7 +115,24 @@ pub fn maybe_strip_colors(s: &str) -> String {
     }
 }
 
+/// When the `display` feature is disabled, return the string unchanged.
+#[cfg(not(feature = "display"))]
+pub fn maybe_strip_colors(s: &str) -> String {
+    s.to_string()
+}
+
 #[test]
 fn test_write_ident_part() {
     assert!(!valid_ident().is_match(""));
+}
+
+#[cfg(all(test, feature = "display"))]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_maybe_strip_colors_no_ansi() {
+        let plain = "hello world";
+        assert_eq!(maybe_strip_colors(plain), "hello world");
+    }
 }

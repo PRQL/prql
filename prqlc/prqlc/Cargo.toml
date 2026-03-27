@@ -15,21 +15,8 @@ metadata.msrv = "1.75.0"
 build = "build.rs"
 
 [features]
-cli = [
-  "anyhow",
-  "clap_complete_command",
-  "clap",
-  "clio",
-  "color-eyre",
-  "colorchoice-clap",
-  "is-terminal",
-  "minijinja",
-  "notify",
-  "serde_yaml",
-  "walkdir",
-]
-default = ["cli"]
-lsp = ["lsp-server", "lsp-types"] # Just a stub without any real functionality
+display = ["dep:ariadne", "dep:anstream"]
+default = []
 serde_yaml = ["prqlc-parser/serde_yaml", "dep:serde_yaml"]
 test-dbs = [
   "rusqlite",
@@ -56,8 +43,8 @@ test-dbs-external = [
 [dependencies]
 prqlc-parser = { path = "../prqlc-parser", version = "0.13.12" }
 
-anstream = { version = "1.0.0", features = ["auto"] }
-ariadne = "0.5.1"
+anstream = { version = "1.0.0", features = ["auto"], optional = true }
+ariadne = { version = "0.5.1", optional = true }
 chrono = "0.4.44"
 csv = "1.4.0"
 enum-as-inner = { workspace = true }
@@ -78,35 +65,11 @@ sqlparser = { version = "0.60.0", features = [
 ], default-features = false }
 strum = { workspace = true }
 strum_macros = { workspace = true }
-lsp-server = { version = "0.7.9", optional = true }
-lsp-types = { version = "0.97.0", optional = true }
 
 [build-dependencies]
 vergen-gitcl = { version = "1.0.0", features = ["build"] }
 
 [target.'cfg(not(target_family="wasm"))'.dependencies]
-
-# unique dependencies from the CLI, marked as optional and included in the 'cli'
-# feature
-anyhow = { version = "1.0.102", features = ["backtrace"], optional = true }
-clap = { version = "4.5.53", features = [
-  "derive",
-  "env",
-  "wrap_help",
-], optional = true }
-clap_complete_command = { version = "0.5.1", optional = true }
-clio = { version = "0.3.3", features = ['clap-parse'], optional = true }
-color-eyre = { version = "0.6.5", optional = true }
-colorchoice-clap = { version = "1.0.0", optional = true }
-is-terminal = { version = "0.4.17", optional = true }
-notify = { version = "7.0.0", optional = true }
-walkdir = { version = "2.5.0", optional = true }
-
-# We use minijinja just for the Jinja lexer, which is not part of the
-# public interface which is covered by semver guarantees.
-minijinja = { version = "2.18.0", features = [
-  "unstable_machinery",
-], optional = true }
 
 # For integration tests. These are gated by the `test-dbs` and `test-dbs-external` features,
 # rather than dev-dependencies, because dev-dependencies can't be optional.
@@ -152,9 +115,6 @@ criterion = { version = "0.8.2", default-features = false }
 # https://bheisler.github.io/criterion.rs/book/faq.html#cargo-bench-gives-unrecognized-option-errors-for-valid-command-line-options
 [lib]
 bench = false
-[[bin]]
-bench = false
-name = "prqlc"
 [[bench]]
 harness = false
 name = "bench"

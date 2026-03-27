@@ -1,5 +1,3 @@
-#![cfg(not(target_family = "wasm"))]
-
 use std::collections::HashMap;
 use std::env;
 use std::fs::File;
@@ -41,7 +39,7 @@ mod lsp;
 mod test;
 mod watch;
 
-/// Entrypoint called by [`crate::main`]
+/// CLI entrypoint
 pub fn main() -> color_eyre::eyre::Result<()> {
     let cli = Cli::parse();
 
@@ -84,6 +82,7 @@ pub fn main() -> color_eyre::eyre::Result<()> {
 }
 
 #[derive(Parser, Debug, Clone)]
+#[command(name = "prqlc")]
 struct Cli {
     #[command(subcommand)]
     command: Option<Command>,
@@ -100,7 +99,7 @@ pub fn compiler_version_str() -> &'static str {
 }
 
 #[derive(Subcommand, Debug, Clone)]
-#[command(name = env!("CARGO_PKG_NAME"), about, version=compiler_version_str())]
+#[command(name = "prqlc", about, version=compiler_version_str())]
 enum Command {
     /// Parse into PL AST
     Parse {

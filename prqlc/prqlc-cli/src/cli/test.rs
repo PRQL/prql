@@ -579,7 +579,7 @@ fn project_path() -> PathBuf {
         // We canonicalize so that it doesn't matter where the cwd is.
         .canonicalize()
         .unwrap()
-        .join("tests/integration/project")
+        .join("../prqlc/tests/integration/project")
 }
 
 fn prqlc_command() -> Command {
@@ -603,7 +603,7 @@ fn normalize_prqlc(cmd: &mut Command) -> &mut Command {
 
 #[test]
 fn compile_no_prql_files() {
-    assert_cmd_snapshot!(prqlc_command().args(["compile", "README.md"]), @r"
+    assert_cmd_snapshot!(prqlc_command().args(["compile", "Cargo.toml"]), @r"
     success: false
     exit_code: 1
     ----- stdout -----
