@@ -40,6 +40,12 @@ let any = column -> s"BOOL_OR({column:0})"
 let concat_array = column -> s"STRING_AGG({column:0}, '')"
 
 @{window_frame=true}
+let array_agg = column -> s"ARRAY_AGG({column:0})"
+
+@{window_frame=true}
+let max_by = column by -> null
+
+@{window_frame=true}
 let count = column -> s"COUNT(*)"
 
 @{window_frame=true}
@@ -213,6 +219,9 @@ module ansi {
 }
 
 module bigquery {
+  @{window_frame=true}
+  let max_by = column by -> s"MAX_BY({column:0}, {by:0})"
+
   @{binding_strength=11}
   let div_f = l r -> s"({l} * 1.0 / {r:12})"
 
@@ -235,6 +244,12 @@ module bigquery {
 }
 
 module clickhouse {
+  @{window_frame=true}
+  let array_agg = column -> s"groupArray({column:0})"
+
+  @{window_frame=true}
+  let max_by = column by -> s"argMax({column:0}, {by:0})"
+
   # https://clickhouse.com/docs/en/sql-reference/functions/arithmetic-functions#divide
   @{binding_strength=11}
   let div_f = l r -> s"({l} / {r:12})"
@@ -260,6 +275,12 @@ module clickhouse {
 }
 
 module duckdb {
+  @{window_frame=true, coalesce="[]"}
+  let array_agg = column -> s"ARRAY_AGG({column:0})"
+
+  @{window_frame=true}
+  let max_by = column by -> s"arg_max({column:0}, {by:0})"
+
   @{binding_strength=11}
   let div_f = l r -> s"({l} / {r:12})"
 
@@ -315,6 +336,9 @@ module mssql {
 }
 
 module mysql {
+  @{window_frame=true}
+  let array_agg = column -> s"JSON_ARRAYAGG({column:0})"
+
   @{binding_strength=11}
   let div_f = l r -> s"({l} / {r:12})"
 
@@ -341,6 +365,9 @@ module mysql {
 }
 
 module postgres {
+  @{window_frame=true}
+  let max_by = column by -> s"(ARRAY_AGG({column:0} ORDER BY {by:0} DESC NULLS LAST))[1]"
+
   @{binding_strength=11}
   let div_f = l r -> s"({l} * 1.0 / {r:12})"
 
@@ -415,6 +442,9 @@ module sqlite {
   @{window_frame=true, coalesce="''"}
   let concat_array = column -> s"GROUP_CONCAT({column:0}, '')"
 
+  @{window_frame=true, coalesce="'[]'"}
+  let array_agg = column -> s"json_group_array({column:0})"
+
   @{binding_strength=11}
   let div_f = l r -> s"({l} * 1.0 / {r:12})"
 
@@ -442,6 +472,9 @@ module sqlite {
 }
 
 module snowflake {
+  @{window_frame=true}
+  let max_by = column by -> s"MAX_BY({column:0}, {by:0})"
+
   # https://docs.snowflake.com/en/sql-reference/operators-arithmetic#division
   @{binding_strength=11}
   let div_f = l r -> s"({l} / {r:12})"

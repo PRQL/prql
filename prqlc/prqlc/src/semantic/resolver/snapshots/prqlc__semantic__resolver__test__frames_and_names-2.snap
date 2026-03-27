@@ -1,22 +1,21 @@
 ---
 source: prqlc/prqlc/src/semantic/resolver/mod.rs
-assertion_line: 190
 expression: "resolve_lineage(r#\"\n            from table_1\n            join customers (==customer_no)\n            \"#).unwrap()"
 ---
 columns:
   - All:
-      input_id: 120
+      input_id: 122
       except: []
   - All:
-      input_id: 117
+      input_id: 119
       except: []
 inputs:
-  - id: 120
+  - id: 122
     name: table_1
     table:
       - default_db
       - table_1
-  - id: 117
+  - id: 119
     name: customers
     table:
       - default_db
