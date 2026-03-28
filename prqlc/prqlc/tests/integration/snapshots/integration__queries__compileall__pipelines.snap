@@ -3,7 +3,6 @@ source: prqlc/prqlc/tests/integration/queries.rs
 expression: "# sqlite:skip (Only works on Sqlite implementations which have the extension\n# installed\n# https://stackoverflow.com/questions/24037982/how-to-use-regexp-in-sqlite)\n\nfrom tracks\n\nfilter (name ~= \"Love\")\nfilter ((milliseconds / 1000 / 60) | in 3..4)\nsort track_id\ntake 1..15\nselect {name, composer}\n"
 input_file: prqlc/prqlc/tests/integration/queries/pipelines.prql
 ---
-
 --- generic
 +++ clickhouse
 @@ -1,20 +1,20 @@
@@ -55,7 +54,6 @@ input_file: prqlc/prqlc/tests/integration/queries/pipelines.prql
    composer
  FROM
    table_0
-
 
 --- generic
 +++ glaredb
