@@ -82,7 +82,7 @@ mod compileall {
         let generic_sql = prqlc::compile(&prql, &options).unwrap();
 
         // next compile with each dialect
-        let mut diffsnap = "".to_owned();
+        let mut diffs = Vec::new();
         for dialect in Dialect::iter() {
             if !should_run_query(dialect, &prql) {
                 continue;
@@ -96,13 +96,16 @@ mod compileall {
             let dialect_sql = prqlc::compile(&prql, &dialect_options).unwrap();
 
             let diff = TextDiff::from_lines(&generic_sql, &dialect_sql);
-            diffsnap = format!(
-                "{diffsnap}\n{}",
-                diff.unified_diff()
-                    .context_radius(10)
-                    .header("generic", &dialect.to_string())
-            );
+            let udiff = diff
+                .unified_diff()
+                .context_radius(10)
+                .header("generic", &dialect.to_string())
+                .to_string();
+            if !udiff.is_empty() {
+                diffs.push(udiff);
+            }
         }
+        let diffsnap = diffs.join("\n");
         with_settings!({ input_file => prql_path }, {
             assert_snapshot!(test_name, diffsnap, &prql)
         });

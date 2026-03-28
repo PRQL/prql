@@ -3,7 +3,6 @@ source: prqlc/prqlc/tests/integration/queries.rs
 expression: "from albums\nselect { AA=album_id, artist_id }\nsort AA\nfilter AA >= 25\njoin artists (==artist_id)\n"
 input_file: prqlc/prqlc/tests/integration/queries/sort_2.prql
 ---
-
 --- generic
 +++ clickhouse
 @@ -1,25 +1,25 @@
@@ -37,9 +36,6 @@ input_file: prqlc/prqlc/tests/integration/queries/sort_2.prql
  ORDER BY
 -  table_0."AA"
 +  table_0.`AA`
-
-
-
 
 --- generic
 +++ mysql
