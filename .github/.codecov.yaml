@@ -2,6 +2,8 @@ comment: false
 
 ignore:
   - "**/tests/**"
+  - "**/test_utils.rs"
+  - "**/build.rs"
 
 coverage:
   status:

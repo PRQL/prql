@@ -1,7 +1,7 @@
-#[cfg(all(not(target_family = "wasm"), feature = "cli"))]
+#[cfg(not(target_family = "wasm"))]
 mod cli;
 
-#[cfg(all(not(target_family = "wasm"), feature = "cli"))]
+#[cfg(not(target_family = "wasm"))]
 fn main() -> color_eyre::eyre::Result<()> {
     // Use a larger stack size (8 MiB) to avoid stack overflows on Windows,
     // where the default stack is only 1 MiB.
@@ -16,7 +16,7 @@ fn main() -> color_eyre::eyre::Result<()> {
     Ok(())
 }
 
-#[cfg(any(target_family = "wasm", not(feature = "cli")))]
+#[cfg(target_family = "wasm")]
 fn main() {
-    panic!("Crate is not built with the `cli` feature enabled, or was built for a wasm target.");
+    panic!("prqlc-cli cannot be built for wasm targets.");
 }

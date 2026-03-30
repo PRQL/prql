@@ -21,7 +21,7 @@ pyo3 = {workspace = true}
 
 [dependencies]
 # Renamed to avoid conflicts in lib.rs
-prqlc_lib = {package = "prqlc", path = "../../prqlc", default-features = false}
+prqlc_lib = {package = "prqlc", path = "../../prqlc"}
 
 [dev-dependencies]
 insta = {workspace = true}

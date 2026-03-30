@@ -153,12 +153,12 @@ tools_section:
 
         `pip install pyprql`
 
-    - link: https://crates.io/crates/prqlc
+    - link: https://crates.io/crates/prqlc-cli
       label: "prqlc"
       text: |
         A CLI for PRQL compiler, written in Rust.
 
-        `cargo install prqlc`
+        `cargo install prqlc-cli`
 
         `brew install prqlc`
 

@@ -17,7 +17,7 @@ test = false
 
 [dependencies]
 jni = "0.21.1"
-prqlc = {path = "../../prqlc", default-features = false}
+prqlc = {path = "../../prqlc"}
 
 [package.metadata.release]
 tag-name = "{{version}}"

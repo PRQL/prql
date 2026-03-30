@@ -2,13 +2,13 @@ use std::env::current_dir;
 use std::fs;
 use std::path::Path;
 use std::path::PathBuf;
-use std::process::Command;
 use std::str::FromStr;
 
 use insta_cmd::assert_cmd_snapshot;
-use insta_cmd::get_cargo_bin;
 use tempfile::TempDir;
 use walkdir::WalkDir;
+
+use super::test_utils::prqlc_command;
 
 #[cfg(not(windows))] // Windows has slightly different output (e.g. `prqlc.exe`), so we exclude.
 #[test]
@@ -579,31 +579,12 @@ fn project_path() -> PathBuf {
         // We canonicalize so that it doesn't matter where the cwd is.
         .canonicalize()
         .unwrap()
-        .join("tests/integration/project")
-}
-
-fn prqlc_command() -> Command {
-    let mut cmd = Command::new(get_cargo_bin("prqlc"));
-    normalize_prqlc(&mut cmd);
-    cmd
-}
-
-fn normalize_prqlc(cmd: &mut Command) -> &mut Command {
-    cmd
-        // We set `CLICOLOR_FORCE` in CI to force color output, but we don't want `prqlc` to
-        // output color for our snapshot tests. And it seems to override the
-        // `--color=never` flag.
-        .env_remove("CLICOLOR_FORCE")
-        .env("NO_COLOR", "1")
-        .args(["--color=never"])
-        // We don't want the tests to be affected by the user's `RUST_BACKTRACE` setting.
-        .env_remove("RUST_BACKTRACE")
-        .env_remove("RUST_LOG")
+        .join("../prqlc/tests/integration/project")
 }
 
 #[test]
 fn compile_no_prql_files() {
-    assert_cmd_snapshot!(prqlc_command().args(["compile", "README.md"]), @r"
+    assert_cmd_snapshot!(prqlc_command().args(["compile", "Cargo.toml"]), @r"
     success: false
     exit_code: 1
     ----- stdout -----

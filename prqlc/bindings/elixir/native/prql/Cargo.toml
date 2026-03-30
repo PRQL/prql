@@ -20,5 +20,5 @@ path = "src/lib.rs"
 test = false
 
 [target.'cfg(not(any(target_family="wasm")))'.dependencies]
-prqlc = { path = "../../../../prqlc", default-features = false, version = "0.13.12" }
+prqlc = { path = "../../../../prqlc", version = "0.13.12" }
 rustler = "0.37.0"

@@ -40,7 +40,7 @@ jobs:
               }
             })
 
-  build-prqlc:
+  build-prqlc-cli:
     runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: false
@@ -57,18 +57,17 @@ jobs:
           # Intel macOS build
           - os: macos-15-intel
             target: x86_64-apple-darwin
-            features: default,test-dbs
     permissions:
       contents: write
     steps:
       - name: 📂 Checkout code
         uses: actions/checkout@v5
-      - uses: ./.github/actions/build-prqlc
+      - uses: ./.github/actions/build-prqlc-cli
         id: build-artifact
         with:
           target: ${{ matrix.target }}
           profile: release
-          features: cli
+          features: default
       - name: Upload release artifact
         if: github.event_name == 'release'
         uses: softprops/action-gh-release@v2
@@ -91,7 +90,7 @@ jobs:
           ./temp_path/prqlc --help
 
   build-prqlc-c:
-    # Mostly a copy/paste of `build-prqlc`.
+    # Mostly a copy/paste of `build-prqlc-cli`.
     runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: false
@@ -124,7 +123,7 @@ jobs:
 
   publish-winget:
     runs-on: ubuntu-24.04
-    needs: build-prqlc
+    needs: build-prqlc-cli
     if: github.event_name == 'release'
     steps:
       - name: publish
@@ -144,7 +143,7 @@ jobs:
         target:
           - x86_64-unknown-linux-musl
           - aarch64-unknown-linux-musl
-    needs: build-prqlc
+    needs: build-prqlc-cli
     permissions:
       contents: write
     steps:
@@ -199,7 +198,7 @@ jobs:
         target:
           - x86_64-unknown-linux-musl
           #- aarch64-unknown-linux-musl # https://github.com/jiro4989/build-rpm-action/issues/6
-    needs: build-prqlc
+    needs: build-prqlc-cli
     permissions:
       contents: write
     steps:

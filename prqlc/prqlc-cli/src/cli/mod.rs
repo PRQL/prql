@@ -1,5 +1,3 @@
-#![cfg(not(target_family = "wasm"))]
-
 use std::collections::HashMap;
 use std::env;
 use std::fs::File;
@@ -39,9 +37,11 @@ mod jinja;
 mod lsp;
 #[cfg(test)]
 mod test;
+#[cfg(test)]
+mod test_utils;
 mod watch;
 
-/// Entrypoint called by [`crate::main`]
+/// CLI entrypoint
 pub fn main() -> color_eyre::eyre::Result<()> {
     let cli = Cli::parse();
 
@@ -84,6 +84,7 @@ pub fn main() -> color_eyre::eyre::Result<()> {
 }
 
 #[derive(Parser, Debug, Clone)]
+#[command(name = "prqlc")]
 struct Cli {
     #[command(subcommand)]
     command: Option<Command>,
@@ -100,7 +101,7 @@ pub fn compiler_version_str() -> &'static str {
 }
 
 #[derive(Subcommand, Debug, Clone)]
-#[command(name = env!("CARGO_PKG_NAME"), about, version=compiler_version_str())]
+#[command(name = "prqlc", about, version=compiler_version_str())]
 enum Command {
     /// Parse into PL AST
     Parse {
@@ -580,7 +581,7 @@ pub fn write_log(path: &std::path::Path) -> Result<()> {
 }
 
 fn drop_module_def(stmts: &mut Vec<pr::Stmt>, name: &str) {
-    stmts.retain(|x| x.kind.as_module_def().map_or(true, |m| m.name != name));
+    stmts.retain(|x| x.kind.as_module_def().is_none_or(|m| m.name != name));
 }
 
 fn read_files(input: &mut clio::ClioPath) -> Result<SourceTree> {
