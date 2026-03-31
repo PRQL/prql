@@ -3,7 +3,7 @@
 name: tend-nightly
 on:
   schedule:
-    - cron: '17 6 * * *'
+    - cron: "17 6 * * *"
   workflow_dispatch:
 
 jobs:
@@ -19,7 +19,6 @@ jobs:
     steps:
       - uses: actions/checkout@v6
         with:
-          ref: main
           fetch-depth: 0
           fetch-tags: true
           token: ${{ secrets.PRQL_BOT_GITHUB_TOKEN }}
@@ -32,4 +31,4 @@ jobs:
           claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
           bot_name: prql-bot
           prompt: |
-            /tend:tend-nightly
+            /tend-ci-runner:nightly
