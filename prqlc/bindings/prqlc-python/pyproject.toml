@@ -30,7 +30,7 @@ python-source = "python"
 [dependency-groups]
 dev = [
   "pytest >= 7",
-  "mypy == 1.18.1",
+  "mypy==1.19.1",
 ]
 
 [tool.ruff]
