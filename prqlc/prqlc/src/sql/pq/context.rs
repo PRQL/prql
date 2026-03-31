@@ -79,8 +79,8 @@ pub struct RelationInstance {
 
 impl RelationStatus {
     /// Analogous to [Option::take]
-    pub fn take_to_define(&mut self) -> RelationStatus {
-        std::mem::replace(self, RelationStatus::Defined)
+    pub fn take_to_define(&mut self) -> Self {
+        std::mem::replace(self, Self::Defined)
     }
 }
 
@@ -94,13 +94,13 @@ pub enum RelationAdapter {
 
 impl From<SqlRelation> for RelationAdapter {
     fn from(rel: SqlRelation) -> Self {
-        RelationAdapter::Pq(rel)
+        Self::Pq(rel)
     }
 }
 
 impl From<Relation> for RelationAdapter {
     fn from(rel: Relation) -> Self {
-        RelationAdapter::Rq(rel)
+        Self::Rq(rel)
     }
 }
 
@@ -110,7 +110,7 @@ pub struct RIId(usize);
 
 impl From<usize> for RIId {
     fn from(id: usize) -> Self {
-        RIId(id)
+        Self(id)
     }
 }
 
@@ -127,7 +127,7 @@ impl AnchorContext {
     pub fn of(query: RelationalQuery) -> (Self, Relation) {
         let (cid, tid, query) = IdGenerator::load(query);
 
-        let context = AnchorContext {
+        let context = Self {
             cid,
             tid,
             riid: IdGenerator::new(),
@@ -290,7 +290,7 @@ struct QueryLoader {
 
 impl QueryLoader {
     fn load(context: AnchorContext, query: RelationalQuery) -> (AnchorContext, Relation) {
-        let mut loader = QueryLoader { context };
+        let mut loader = Self { context };
 
         for t in query.tables {
             loader.load_table(t).unwrap();
