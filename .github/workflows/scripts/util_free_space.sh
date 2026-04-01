@@ -55,8 +55,8 @@ if [ "${GITHUB_ACTIONS}" = "true" ]; then
         /usr/local/bin/stack \
         /usr/local/bin/terraform || :
     # 142M
-    sudo rm -rf /usr/local/bin/oc || : \
-        echo "::group::/usr/local/share/*"
+    sudo rm -rf /usr/local/bin/oc || :
+    echo "::group::/usr/local/share/*"
     du -hsc /usr/local/share/*
     echo "::endgroup::"
     # 506MB
