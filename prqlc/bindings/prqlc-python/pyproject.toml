@@ -33,6 +33,10 @@ dev = [
   "ty>=0.0.27",
 ]
 
+[tool.ty.src]
+# noxfile.py is build infrastructure, not part of the package
+exclude = ["noxfile.py"]
+
 [tool.ruff]
 fix = true
 ignore = [
