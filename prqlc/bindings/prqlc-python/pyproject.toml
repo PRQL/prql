@@ -39,7 +39,7 @@ exclude = ["noxfile.py"]
 
 [tool.ty.rules]
 # prqlc.debug is a native PyO3 submodule, not a Python subpackage
-ignore = ["possibly-missing-submodule"]
+possibly-missing-submodule = "ignore"
 
 [tool.ruff]
 fix = true
