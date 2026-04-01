@@ -37,6 +37,10 @@ dev = [
 # noxfile.py is build infrastructure, not part of the package
 exclude = ["noxfile.py"]
 
+[tool.ty.rules]
+# prqlc.debug is a native PyO3 submodule, not a Python subpackage
+ignore = ["possibly-missing-submodule"]
+
 [tool.ruff]
 fix = true
 ignore = [

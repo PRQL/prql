@@ -1,7 +1,6 @@
 import json
 
 import prqlc
-import prqlc.debug
 
 
 def test_all() -> None:
