@@ -130,7 +130,7 @@ For development, we use `uv` for fast dependency management:
 uv run pytest
 
 # Run type checking
-uv run mypy
+uv run ty check
 
 # Or use the task runner
 task test
