@@ -7,7 +7,7 @@
 > compiler currently uses these techniques to compile the `std`, `date`, `text`,
 > and `math` modules into the language.
 >
-> However, at this time (Spring 2024), the `module` facility does not work
+> Currently, the `module` facility does not work
 > within a PRQL query itself. That is, a `module` statement in a query cannot
 > import files from the local file system.
 
