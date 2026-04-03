@@ -171,8 +171,7 @@ jobs:
         run:
           echo "run=${{ steps.devcontainer-push.outputs.run == 'true' ||
           steps.changes.outputs.devcontainer-build == 'true' ||
-          steps.nightly-upstream.outputs.run == 'true' }}" >>
-          "$GITHUB_OUTPUT"
+          steps.nightly-upstream.outputs.run == 'true' }}" >> "$GITHUB_OUTPUT"
 
   test-rust:
     needs: rules
