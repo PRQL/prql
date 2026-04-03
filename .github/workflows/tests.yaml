@@ -1,4 +1,4 @@
-# This file has transitioning to run almost everything, with rules defined in
+# This file has transitioned to run almost everything, with rules defined in
 # this file rather than across lots of workflow files.
 name: tests
 
@@ -171,7 +171,7 @@ jobs:
         run:
           echo "run=${{ steps.devcontainer-push.outputs.run == 'true' ||
           steps.changes.outputs.devcontainer-build == 'true' ||
-          steps.changes.outputs.nightly-upstream == 'true' }}" >>
+          steps.nightly-upstream.outputs.run == 'true' }}" >>
           "$GITHUB_OUTPUT"
 
   test-rust:
