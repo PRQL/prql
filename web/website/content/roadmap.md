@@ -5,7 +5,7 @@ url: roadmap
 
 > We're excited and inspired by the level of enthusiasm behind the project, both
 > from individual contributors and the broader community of users who are
-> unsatisfied with SQL. We currently have an working version for the intrepid
+> unsatisfied with SQL. We currently have a working version for the intrepid
 > users.
 >
 > We're hoping we can build a beautiful language, integrations that are
