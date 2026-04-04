@@ -1,8 +1,6 @@
 # Bindings
 
-PRQL has bindings for many languages. These include:
-
-We have three tiers of bindings:
+PRQL has bindings for many languages, in three tiers:
 
 - Supported
 - Unsupported
