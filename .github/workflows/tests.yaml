@@ -754,7 +754,10 @@ jobs:
         uses: actions/checkout@v5
       - uses: JasonEtco/create-an-issue@v2
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          # Use prql-bot PAT so that opening the issue triggers downstream
+          # workflows (notably tend-triage). Events from the default
+          # GITHUB_TOKEN do not cascade to other workflows.
+          GITHUB_TOKEN: ${{ secrets.PRQL_BOT_GITHUB_TOKEN }}
           LINK:
             ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{
             github.run_id }}
