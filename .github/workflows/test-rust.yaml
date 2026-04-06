@@ -137,12 +137,12 @@ jobs:
           # - Skip doc tests on Windows due to LNK1318 PDB errors
           args: >
             test --dnd --target=${{ inputs.target }} --no-default-features
-            --features=${{ inputs.features }} ${{
-            contains(inputs.features, 'test-dbs') && inputs.target ==
-            'x86_64-unknown-linux-gnu' && '--unreferenced=auto' || '' }} ${{
-            inputs.target != 'wasm32-unknown-unknown' && '--test-runner=nextest'
-            || '' }} ${{ inputs.os == 'windows-latest' && '--lib --bins --tests
-            --examples' || '' }}
+            --features=${{ inputs.features }} ${{ contains(inputs.features,
+            'test-dbs') && inputs.target == 'x86_64-unknown-linux-gnu' &&
+            '--unreferenced=auto' || '' }} ${{ inputs.target !=
+            'wasm32-unknown-unknown' && '--test-runner=nextest' || '' }} ${{
+            inputs.os == 'windows-latest' && '--lib --bins --tests --examples'
+            || '' }}
       - name: 📋 Doctest
         # Skip doctests on Windows (LNK1318 PDB errors) and wasm32
         if:
@@ -181,8 +181,8 @@ jobs:
           # we haven't seen any errors.
           args:
             --target=${{ inputs.target }} --no-default-features --features=${{
-            inputs.features }} ${{ inputs.nightly != 'true' &&
-            '--no-deps' || '' }}
+            inputs.features }} ${{ inputs.nightly != 'true' && '--no-deps' || ''
+            }}
       - name: Build extra targets for cache
         # When building the cache, we also run with `--all-targets` so that
         # prqlc builds can use the same cache.
