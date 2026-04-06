@@ -206,8 +206,8 @@ jobs:
           # we haven't seen any errors.
           args:
             --target=${{ inputs.target }} --no-default-features --features=${{
-            env.EFFECTIVE_FEATURES }} ${{ inputs.nightly != 'true' && '--no-deps'
-            || '' }}
+            env.EFFECTIVE_FEATURES }} ${{ inputs.nightly != 'true' &&
+            '--no-deps' || '' }}
       - name: Build extra targets for cache
         # When building the cache, we also run with `--all-targets` so that
         # prqlc builds can use the same cache.
