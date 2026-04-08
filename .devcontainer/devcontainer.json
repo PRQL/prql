@@ -40,7 +40,7 @@
   ],
   "postCreateCommand": {
     "set-ownership": "sudo chown vscode target /usr/local/cargo/registry/",
-    "install-python-deps": "pip install uv && task install-maturin && uv tool install pre-commit",
+    "install-python-deps": "pipx install uv && task install-maturin && uv tool install pre-commit",
     "install-npm-dependencies": "task install-npm-dependencies"
   }
 }
