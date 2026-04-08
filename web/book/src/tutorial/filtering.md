@@ -38,7 +38,8 @@ from invoices
 take 4..7
 ```
 
-Of course, it is possible to combine all these transforms into a single pipeline:
+Of course, it is possible to combine all these transforms into a single
+pipeline:
 
 ```prql no-eval
 from invoices
