@@ -13,6 +13,6 @@ error conventions, etc. are in `CLAUDE.md` — don't duplicate them here.
 ## CI structure
 
 - Main CI workflow: `tests` (watched by tend-ci-fix)
-- Dependency management: Dependabot (tend-renovate is disabled)
+- Dependency management: Dependabot (tend-weekly is disabled)
 - Automerge: `pull-request-target.yaml` auto-merges single-commit `prql-bot` PRs
   once CI passes
