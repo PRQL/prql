@@ -25,6 +25,7 @@ jobs:
     steps:
       - uses: actions/checkout@v6
         with:
+          ref: main
           fetch-depth: 0
           fetch-tags: true
           token: ${{ secrets.PRQL_BOT_GITHUB_TOKEN }}
