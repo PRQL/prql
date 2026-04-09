@@ -6,16 +6,14 @@
 # https://github.com/max-sixty/tend/issues for changes that need to
 # happen upstream in the tend-ci-runner plugin.
 
-name: tend-ci-fix
+name: tend-review-runs
 on:
-  workflow_run:
-    workflows: ["tests"]
-    types: [completed]
-    branches: ["main"]
+  schedule:
+    - cron: "47 7 * * *"
+  workflow_dispatch:
 
 jobs:
-  fix-ci:
-    if: github.event.workflow_run.conclusion == 'failure'
+  review-runs:
     runs-on: ubuntu-24.04
     timeout-minutes: 60
     permissions:
@@ -23,6 +21,7 @@ jobs:
       pull-requests: write
       id-token: write
       actions: read
+      issues: write
     steps:
       - uses: actions/checkout@v6
         with:
@@ -40,7 +39,4 @@ jobs:
           bot_name: prql-bot
           model: opus
           prompt: |
-            /tend-ci-runner:ci-fix ${{ github.event.workflow_run.id }}
-            - Run URL: ${{ github.event.workflow_run.html_url }}
-            - Commit: ${{ github.event.workflow_run.head_sha }}
-            - Commit message: ${{ github.event.workflow_run.head_commit.message }}
+            /tend-ci-runner:review-runs
