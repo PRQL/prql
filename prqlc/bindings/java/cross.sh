@@ -41,8 +41,8 @@ cp -f ../target/x86_64-pc-windows-gnu/release/prql_java.dll java/src/main/resour
 echo "compiling for aarch64-unknown-linux-gnu"
 rustup target add aarch64-unknown-linux-gnu
 cross build --release --target aarch64-unknown-linux-gnu
-ls -la ../target/x86_64-unknown-linux-gnu/release
-cp -f ../target/x86_64-unknown-linux-gnu/release/libprql_java.so java/src/main/resources/libprql_java-linux-aarch64.so
+ls -la ../target/aarch64-unknown-linux-gnu/release
+cp -f ../target/aarch64-unknown-linux-gnu/release/libprql_java.so java/src/main/resources/libprql_java-linux-aarch64.so
 
 # aarch64-unknown-linux-musl
 #echo "compiling for aarch64-unknown-linux-musl"
@@ -55,7 +55,7 @@ cp -f ../target/x86_64-unknown-linux-gnu/release/libprql_java.so java/src/main/r
 #echo "compiling for aarch64-apple-darwin"
 #rustup target add aarch64-apple-darwin
 #cross build --release --target aarch64-apple-darwin
-#ls -la ../target/x86_64-apple-darwin/release
-#cp -f ../target/x86_64-apple-darwin/release/libprql_java.dylib java/src/main/resources/libprql_java-osx-arm64.dylib
+#ls -la ../target/aarch64-apple-darwin/release
+#cp -f ../target/aarch64-apple-darwin/release/libprql_java.dylib java/src/main/resources/libprql_java-osx-arm64.dylib
 
 cd "${CONTEXT_PATH}" || exit 1

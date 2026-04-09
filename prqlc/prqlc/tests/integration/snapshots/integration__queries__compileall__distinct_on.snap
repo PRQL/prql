@@ -3,7 +3,6 @@ source: prqlc/prqlc/tests/integration/queries.rs
 expression: "# mssql:test\nfrom tracks\nselect {genre_id, media_type_id, album_id}\ngroup {genre_id, media_type_id} (sort {-album_id} | take 1)\nsort {-genre_id, media_type_id}\n"
 input_file: prqlc/prqlc/tests/integration/queries/distinct_on.prql
 ---
-
 --- generic
 +++ clickhouse
 @@ -1,25 +1,21 @@
@@ -73,10 +72,6 @@ input_file: prqlc/prqlc/tests/integration/queries/distinct_on.prql
  ORDER BY
    genre_id DESC,
    media_type_id
-
-
-
-
 
 --- generic
 +++ postgres

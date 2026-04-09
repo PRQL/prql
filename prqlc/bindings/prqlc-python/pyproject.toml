@@ -30,8 +30,16 @@ python-source = "python"
 [dependency-groups]
 dev = [
   "pytest >= 7",
-  "mypy == 1.18.1",
+  "ty>=0.0.27",
 ]
+
+[tool.ty.src]
+# noxfile.py is build infrastructure, not part of the package
+exclude = ["noxfile.py"]
+
+[tool.ty.rules]
+# prqlc.debug is a native PyO3 submodule, not a Python subpackage
+possibly-missing-submodule = "ignore"
 
 [tool.ruff]
 fix = true
@@ -40,17 +48,4 @@ ignore = [
   "E5", #
   # No lambdas — too strict
   "E731",
-]
-
-[tool.mypy]
-files = "."
-show_error_codes = true
-strict = true
-warn_unused_ignores = true
-
-[[tool.mypy.overrides]]
-ignore_missing_imports = true
-module = [
-  "pytest.*",
-  "nox.*",
 ]

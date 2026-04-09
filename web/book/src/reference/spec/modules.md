@@ -7,7 +7,7 @@
 > compiler currently uses these techniques to compile the `std`, `date`, `text`,
 > and `math` modules into the language.
 >
-> However, at this time (Spring 2024), the `module` facility does not work
+> Currently, the `module` facility does not work
 > within a PRQL query itself. That is, a `module` statement in a query cannot
 > import files from the local file system.
 
@@ -123,9 +123,9 @@ let album_titles = my_playlists
 
 <!-- prettier-ignore -->
 > [!WARNING]
-> The examples below do **not** work. At this time (Spring 2024), the
-> `module` facility does not work within a PRQL query itself. That is, a
-> `module` statement in a query cannot import files from the local file system.
+> The examples below do **not** work. Currently, the `module` facility does
+> not work within a PRQL query itself. That is, a `module` statement in a
+> query cannot import files from the local file system.
 
 To include PRQL source code from other files, we can use the following syntax:
 
@@ -277,9 +277,9 @@ module project {
 
 <!-- prettier-ignore -->
 > [!WARNING]
-> The examples below do **not** work. At this time (Spring 2024), the
-> `module` facility does not work within a PRQL query itself. That is, a
-> `module` statement in a query cannot import files from the local file system.
+> The examples below do **not** work. Currently, the `module` facility does
+> not work within a PRQL query itself. That is, a `module` statement in a
+> query cannot import files from the local file system.
 
 This is an example project, where each of code block is a separate file.
 
