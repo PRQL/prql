@@ -20,13 +20,18 @@ on:
 
 jobs:
   verify:
+    # Filter out bot's own reviews/comments at the job level. This is required
+    # (not just an optimization) because pull_request_review events on fork PRs
+    # do not have access to secrets, so the verify step's API calls would fail.
     if: |
       (github.event_name == 'issues' &&
         contains(github.event.issue.body, '@prql-bot')) ||
       (github.event_name == 'issue_comment' &&
         github.event.comment.user.login != 'prql-bot') ||
-      github.event_name == 'pull_request_review_comment' ||
-      github.event_name == 'pull_request_review'
+      (github.event_name == 'pull_request_review_comment' &&
+        github.event.comment.user.login != 'prql-bot') ||
+      (github.event_name == 'pull_request_review' &&
+        github.event.review.user.login != 'prql-bot')
     runs-on: ubuntu-24.04
     outputs:
       should_run: ${{ steps.check.outputs.should_run }}
@@ -88,7 +93,7 @@ jobs:
 
           echo "should_run=false" >> "$GITHUB_OUTPUT"
         env:
-          GH_TOKEN: ${{ secrets.PRQL_BOT_GITHUB_TOKEN }}
+          GH_TOKEN: ${{ github.token }}
           EVENT_NAME: ${{ github.event_name }}
           COMMENT_BODY: ${{ github.event.comment.body || github.event.review.body }}
           ISSUE_BODY: ${{ github.event.issue.body }}
