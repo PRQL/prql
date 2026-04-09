@@ -6,18 +6,14 @@
 # https://github.com/max-sixty/tend/issues for changes that need to
 # happen upstream in the tend-ci-runner plugin.
 
-name: tend-review
+name: tend-review-runs
 on:
-  pull_request_target:
-    types: [opened, synchronize, ready_for_review, reopened]
+  schedule:
+    - cron: "47 7 * * *"
+  workflow_dispatch:
 
 jobs:
-  review:
-    if: >-
-      github.event.pull_request.draft == false
-    concurrency:
-      group: ${{ github.workflow }}-${{ github.event.pull_request.number }}
-      cancel-in-progress: true
+  review-runs:
     runs-on: ubuntu-24.04
     timeout-minutes: 60
     permissions:
@@ -29,7 +25,7 @@ jobs:
     steps:
       - uses: actions/checkout@v6
         with:
-          ref: refs/pull/${{ github.event.pull_request.number }}/merge
+          ref: main
           fetch-depth: 0
           fetch-tags: true
           token: ${{ secrets.PRQL_BOT_GITHUB_TOKEN }}
@@ -42,6 +38,5 @@ jobs:
           claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
           bot_name: prql-bot
           model: opus
-          use_sticky_comment: true
-          prompt: >-
-            ${{ format('/tend-ci-runner:review {0}', github.event.pull_request.number) }}
+          prompt: |
+            /tend-ci-runner:review-runs
