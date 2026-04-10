@@ -8,11 +8,11 @@ These are all the functions defined in the `math` module:
 | acos     | `col`      | Arccosine of `col`                 |
 | asin     | `col`      | Arcsine of `col`                   |
 | atan     | `col`      | Arctangent of `col`                |
-| ceil     | `col`      | Rounds the number up of `col`      |
+| ceil     | `col`      | Rounds `col` up                    |
 | cos      | `col`      | Cosine of `col`                    |
 | degrees  | `col`      | Converts radians to degrees        |
 | exp      | `col`      | Exponential of `col`               |
-| floor    | `col`      | Rounds the number down             |
+| floor    | `col`      | Rounds `col` down                  |
 | ln       | `col`      | Natural logarithm of `col`         |
 | log      | `b` `col`  | `b`-log of `col`                   |
 | log10    | `col`      | 10-log of `col`                    |
