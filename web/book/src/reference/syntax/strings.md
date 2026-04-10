@@ -47,13 +47,11 @@ derive turtle = "\u{01F422}"                              # "🐢"
   query. Use when PRQL doesn't have an equivalent facility.
 
 <!-- prettier-ignore -->
-<!-- prettier-ignore -->
 > [!WARNING]
 > Currently PRQL allows multiline strings with either a single
 > character or multiple character quotes. This may change for strings using a
 > single character quote in future versions.
 
-<!-- prettier-ignore -->
 <!-- prettier-ignore -->
 > [!NOTE]
 > These escape rules specify how PRQL interprets escape characters when

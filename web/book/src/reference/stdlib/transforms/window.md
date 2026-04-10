@@ -23,7 +23,7 @@ For ease of use, there are two flags that override `rows` or `range`:
   known as "cumulative sum".
 - `rolling:n` is an alias for `rows:(-n+1)..0`, where `n` is an integer. This
   will include `n` last values, including current row. An average using this
-  window is also knows as a Simple Moving Average.
+  window is also known as a Simple Moving Average.
 
 Some examples:
 
@@ -36,7 +36,7 @@ Some examples:
 | `rows:..0`       | all rows from the start of the table up to & including current row |
 | `expanding:true` | (same as previous)                                                 |
 | `rows:0..`       | current row and all following rows until the end of the table      |
-| `rows:..`        | all rows, which same as not having window at all                   |
+| `rows:..`        | all rows, which is the same as not having a window at all          |
 
 ## Example
 
