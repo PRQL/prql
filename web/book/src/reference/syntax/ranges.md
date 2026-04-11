@@ -1,7 +1,7 @@
 # Ranges
 
-Range `start..end` represents as set of values between `start` and `end`,
-inclusive (greater of equal to `start` and less than or equal to `end`).
+Range `start..end` represents a set of values between `start` and `end`,
+inclusive (greater than or equal to `start` and less than or equal to `end`).
 
 To express a range that is open on one side, either `start` or `end` can be
 omitted.
