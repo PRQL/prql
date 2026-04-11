@@ -84,7 +84,7 @@ pub fn compute_positional_mappings(
 
     log::trace!("traversing pipeline to obtain positional mapping:");
 
-    // Only process selected columns to avoid surnumerary one
+    // Only process selected columns to avoid supernumerary ones
     let add_columns = |columns: &mut Vec<CId>, cids: &[CId]| {
         if let Some(requirements) = requirements {
             columns.extend(cids.iter().filter(|cid| requirements.is_selected(cid)));
