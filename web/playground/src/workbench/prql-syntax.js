@@ -6,11 +6,13 @@ const TRANSFORMS = [
   "from_text",
   "from",
   "group",
+  "intersect",
   "join",
+  "loop",
+  "remove",
   "select",
   "sort",
   "take",
-  "union",
   "window",
 ];
 const MODULES = ["date", "math", "text"];
@@ -82,7 +84,7 @@ const def = {
       // We allow underscores, a bit more liberally than PRQL, which doesn't
       // allow them at the start or end (but that's difficult to express with
       // regex; contributions welcome).
-      [/[+-]?[^\w](([\d_]+(\.[\d_]+])?)|(\.[\d_]+))/, "number"],
+      [/[+-]?[^\w](([\d_]+(\.[\d_]+)?)|(\.[\d_]+))/, "number"],
 
       // strings
       [/"([^"\\]|\\.)*$/, "string.invalid"], // non-terminated string
