@@ -14,6 +14,9 @@
 
 **Integrations**:
 
+- [Kakoune](https://kakoune.org/) 2026.04.12 has syntax highlighting for PRQL.
+  (@vanillajonathan)
+
 **Internal changes**:
 
 **New Contributors**:
