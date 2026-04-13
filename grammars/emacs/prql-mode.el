@@ -40,11 +40,11 @@
   '("0o[0-7]+"
     "0x[0-9a-fA-F]+"
     "0b[01]+"
-    "[0-9]+*")
+    "[0-9]+")
   "Regex for matching PRQL numbers.")
 
 (defconst prql-other-keywords
-  '("prql" "case" "let" "type" "alias" "in" "loop" "module")
+  '("let" "into" "case" "prql" "type" "module" "internal" "func" "import" "enum")
   "List of other PRQL keywords.")
 
 (defvar prql-font-lock-keywords

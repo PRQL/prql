@@ -8,7 +8,7 @@ comment "#"
 color green "\<(int(8|16|32|64|128)?|float(32|64)|bool|text|date|time|timestamp)\>"
 
 # Keywords.
-color yellow "\<let|module|prql\>"
+color yellow "\<(let|into|case|prql|type|module|internal|func|import|enum)\>"
 
 # Transforms.
 color brightcyan "\<(aggregate|derive|filter|from|group|join|select|sort|take|window)\>"
