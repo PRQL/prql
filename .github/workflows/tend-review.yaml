@@ -19,7 +19,6 @@ jobs:
       group: ${{ github.workflow }}-${{ github.event.pull_request.number }}
       cancel-in-progress: true
     runs-on: ubuntu-24.04
-    timeout-minutes: 60
     permissions:
       contents: write
       pull-requests: write

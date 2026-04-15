@@ -15,18 +15,36 @@ on:
   # Works for same-repo PRs only; secrets unavailable on fork PRs (no _target variant exists)
   pull_request_review:
     types: [submitted]
+  # `created` is intentionally absent. Modern GitHub fires *both*
+  # pull_request_review and pull_request_review_comment for every newly-created
+  # inline comment (the standalone POST /pulls/PR/comments endpoint, the
+  # /replies endpoint, the "Add single comment" UI button, and reviews
+  # submitted with inline comments — all empirically verified). Subscribing to
+  # `created` would produce a duplicate workflow run that collides on the
+  # tend-mention-handle-PR concurrency group, with the loser cancelled and
+  # posted as a CANCELLED check_run on the PR head SHA — which renders the
+  # PR's statusCheckRollup as FAILURE even though the bot did its job from the
+  # sibling run. Edits have no sibling event (review submissions don't fire on
+  # edits), so we still need to listen for `edited` to catch edit-to-summon
+  # ("@bot" added to an existing comment after the fact).
   pull_request_review_comment:
-    types: [created, edited]
+    types: [edited]
 
 jobs:
   verify:
     # Filter out fork PRs for review events — secrets are unavailable there
     # (no _target variant exists). The notifications workflow polls for these.
+    # Skip comments on `tend-outage` issues: the action's Report-failure step
+    # auto-comments on those when Claude invocation fails, and without this
+    # guard those comments re-trigger tend-mention during a persistent outage
+    # (e.g. Anthropic 401), producing a self-sustaining ~1 run/minute loop
+    # until the outage clears. The prompt's self-loop guard can't help here
+    # because the model never executes — the action fails before Claude starts.
     if: |
       (github.event_name == 'issues' &&
         contains(github.event.issue.body, '@prql-bot')) ||
       (github.event_name == 'issue_comment' &&
-        github.event.comment.user.login != 'prql-bot') ||
+        !contains(github.event.issue.labels.*.name, 'tend-outage')) ||
       (github.event_name == 'pull_request_review_comment' &&
         github.event.pull_request.head.repo.full_name == github.repository) ||
       (github.event_name == 'pull_request_review' &&
@@ -49,6 +67,18 @@ jobs:
             exit 0
           fi
 
+          # pull_request_review payloads include review.body (checked above)
+          # but NOT the bodies of inline comments attached to the review.
+          # Fetch them so a first-contact @-mention inside an inline comment
+          # is detected on PRs where the bot has no prior engagement.
+          if [ "$EVENT_NAME" = "pull_request_review" ] && [ -n "$REVIEW_ID" ]; then
+            if gh api --paginate "repos/$GITHUB_REPOSITORY/pulls/$EVENT_PR_NUMBER/reviews/$REVIEW_ID/comments" \
+                 --jq '.[].body' | grep -qF '@prql-bot'; then
+              echo "should_run=true" >> "$GITHUB_OUTPUT"
+              exit 0
+            fi
+          fi
+
           # Non-mention: check bot engagement
           if [ "$EVENT_NAME" = "issue_comment" ]; then
             ISSUE_NUMBER="$ISSUE_OR_PR_NUMBER"
@@ -60,7 +90,7 @@ jobs:
               if printf '%s\n' "$ISSUE_BODY" | grep -qF '@prql-bot'; then
                 echo "should_run=true" >> "$GITHUB_OUTPUT"; exit 0
               fi
-              BOT_COMMENTS=$(gh api "repos/$GITHUB_REPOSITORY/issues/$ISSUE_NUMBER/comments" \
+              BOT_COMMENTS=$(gh api --paginate "repos/$GITHUB_REPOSITORY/issues/$ISSUE_NUMBER/comments" \
                 --jq '[.[] | select(.user.login == "prql-bot")] | length')
               if [ "$BOT_COMMENTS" -gt "0" ]; then
                 echo "should_run=true" >> "$GITHUB_OUTPUT"; exit 0
@@ -78,13 +108,13 @@ jobs:
             echo "should_run=true" >> "$GITHUB_OUTPUT"; exit 0
           fi
 
-          BOT_REVIEWS=$(gh api "repos/$GITHUB_REPOSITORY/pulls/$PR_NUMBER/reviews" \
+          BOT_REVIEWS=$(gh api --paginate "repos/$GITHUB_REPOSITORY/pulls/$PR_NUMBER/reviews" \
             --jq '[.[] | select(.user.login == "prql-bot")] | length')
           if [ "$BOT_REVIEWS" -gt "0" ]; then
             echo "should_run=true" >> "$GITHUB_OUTPUT"; exit 0
           fi
 
-          BOT_COMMENTS=$(gh api "repos/$GITHUB_REPOSITORY/issues/$PR_NUMBER/comments" \
+          BOT_COMMENTS=$(gh api --paginate "repos/$GITHUB_REPOSITORY/issues/$PR_NUMBER/comments" \
             --jq '[.[] | select(.user.login == "prql-bot")] | length')
           if [ "$BOT_COMMENTS" -gt "0" ]; then
             echo "should_run=true" >> "$GITHUB_OUTPUT"; exit 0
@@ -100,6 +130,7 @@ jobs:
           ISSUE_AUTHOR: ${{ github.event.issue.user.login }}
           PR_URL: ${{ github.event.issue.pull_request.url }}
           EVENT_PR_NUMBER: ${{ github.event.pull_request.number }}
+          REVIEW_ID: ${{ github.event.review.id }}
 
       - name: React to mention
         if: |
@@ -121,7 +152,6 @@ jobs:
       group: ${{ github.workflow }}-handle-${{ github.event.issue.number || github.event.pull_request.number }}
       cancel-in-progress: false
     runs-on: ubuntu-24.04
-    timeout-minutes: 60
     permissions:
       contents: write
       pull-requests: write
@@ -181,18 +211,14 @@ jobs:
             ${{ github.event_name == 'issues'
               && format('An issue was updated with a mention of you ({0}). Read it and respond.', github.event.issue.html_url)
               || (github.event_name == 'pull_request_review_comment' && contains(github.event.comment.body, '@prql-bot')
-                && format('You were mentioned in an inline review comment on PR #{0} ({1}, review comment ID {2}). Read the full PR context (description, diff, recent comments, CI status) and respond. If they are requesting changes, make the changes, commit, and push. Reply in the review thread using `gh api repos/{3}/pulls/{0}/comments/{2}/replies -f body="..."` — do not create a new top-level comment.', (github.event_name == 'issue_comment' && github.event.issue.number || github.event.pull_request.number), github.event.comment.html_url, github.event.comment.id, github.repository))
+                && format('You were mentioned in an inline review comment on PR #{0} ({1}, comment ID {2}). Read the full context, then respond. If changes are requested, make them, commit, and push.', (github.event_name == 'issue_comment' && github.event.issue.number || github.event.pull_request.number), github.event.comment.html_url, github.event.comment.id))
               || (github.event_name == 'pull_request_review_comment'
-                && format('A user left an inline review comment on a PR where you previously participated (PR #{0}, {1}, review comment ID {2}). Read the full context. Only respond if the comment is directed at you or requests changes. Reply in the review thread using `gh api repos/{3}/pulls/{0}/comments/{2}/replies -f body="..."`.', (github.event_name == 'issue_comment' && github.event.issue.number || github.event.pull_request.number), github.event.comment.html_url, github.event.comment.id, github.repository))
+                && format('An inline review comment was posted on a PR where you previously participated (PR #{0}, {1}, comment ID {2}). Read the full context. Only respond if the comment is directed at you or requests changes.', (github.event_name == 'issue_comment' && github.event.issue.number || github.event.pull_request.number), github.event.comment.html_url, github.event.comment.id))
               || (github.event_name == 'pull_request_review' && contains(github.event.review.body, '@prql-bot')
-                && format('A review was submitted on PR #{0} that mentions you ({1}). Read the review and full PR context (description, diff, comments, CI status), then respond. If changes were requested, make them, commit, and push.', github.event.pull_request.number, github.event.review.html_url))
+                && format('A review was submitted on PR #{0} that mentions you ({1}, review ID {2}). Read the review and full context, then respond. If changes were requested, make them, commit, and push.', github.event.pull_request.number, github.event.review.html_url, github.event.review.id))
               || (github.event_name == 'pull_request_review'
-                && format('A review was submitted on a PR where you previously participated (PR #{0}, {1}). Read the review and full PR context. If the review requests changes or asks questions, respond appropriately. If the review approves or is between humans, exit silently.', github.event.pull_request.number, github.event.review.html_url))
+                && format('A review was submitted on a PR where you previously participated (PR #{0}, {1}, review ID {2}). Read the review and full context. If the review requests changes or asks questions, respond appropriately. If the review approves or is between humans, exit silently.', github.event.pull_request.number, github.event.review.html_url, github.event.review.id))
               || (contains(github.event.comment.body, '@prql-bot')
-                && format('You were mentioned in a comment ({0}). Read the full issue or PR (description, diff, recent comments, CI status) and respond. If they are requesting changes, make the changes, commit, and push.', github.event.comment.html_url))
-              || format('A user commented on an issue/PR where you previously participated ({0}). Read the full context. Only respond if the comment is directed at you, asks a question you can help with, or requests changes you can make. A comment that responds to concerns you raised in a review is directed at you — briefly acknowledge that the concerns are resolved (or explain why they are not). If the conversation is between other participants, exit silently. In multi-way conversations (other participants besides you and the commenter are active), apply a higher bar: only respond if you have something genuinely new to add — a code fix, reproduction, or specific technical detail no one else provided. Do not restate, agree with, or summarize what a maintainer said.', github.event.comment.html_url)
+                && format('You were mentioned in a comment ({0}). Read the full context and respond. If changes are requested, make them, commit, and push.', github.event.comment.html_url))
+              || format('A user commented on an issue/PR where you previously participated ({0}). Read the full context. Only respond if the comment is directed at you, asks a question you can help with, or requests changes you can make. If the conversation is between other participants, exit silently.', github.event.comment.html_url)
             }}
-
-            If you are responding to your own prior comment or review (not a human's reply to it), be cautious — only respond if there is a distinct role boundary (e.g., you are the reviewer on your own PR and need to address review feedback). If there is no such role distinction, exit silently to avoid self-conversation loops.
-
-            If you are going to propose a code fix for a bug, load /tend-ci-runner:triage first — it contains reproduction and testing gates that apply to all fix attempts, not just initial triage.
