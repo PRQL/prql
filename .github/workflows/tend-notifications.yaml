@@ -15,7 +15,6 @@ on:
 jobs:
   notifications:
     runs-on: ubuntu-24.04
-    timeout-minutes: 60
     permissions:
       contents: write
       pull-requests: write
@@ -27,11 +26,64 @@ jobs:
         id: check
         run: |
           COUNT=$(gh api notifications --jq 'length')
+          if [ "$COUNT" = "0" ]; then
+            echo "count=0" >> "$GITHUB_OUTPUT"
+            echo "No unread notifications — skipping"
+            exit 0
+          fi
+
+          # --- Layer B: drop notifications shadowed by recent dedicated runs ---
+          # Event workflows mark their own notifications read via action.yaml's
+          # post-step on success; this sweeps the case where Claude failed
+          # (post-step is gated by `if: success()`) so the notification still
+          # gets cleared without burning Claude turns to rediscover it.
+          SINCE=$(date -u -d '30 minutes ago' +%Y-%m-%dT%H:%M:%SZ)
+          RECENT_PRS=$(gh api "repos/$GITHUB_REPOSITORY/actions/runs?created=>=$SINCE&per_page=50" --jq '[.workflow_runs[] | select(.name | test("^(tend-review|tend-mention|tend-triage|tend-ci-fix)$")) | .pull_requests[]?.number] | unique | .[]' || true)
+
+          if [ -n "$RECENT_PRS" ]; then
+            NOTIFS=$(gh api notifications)
+            for pr in $RECENT_PRS; do
+              echo "$NOTIFS" | jq -r --arg repo "$GITHUB_REPOSITORY" --arg pr "$pr" '.[] | select(.subject.url == "https://api.github.com/repos/" + $repo + "/pulls/" + $pr or .subject.url == "https://api.github.com/repos/" + $repo + "/issues/" + $pr) | .id' | while read -r tid; do
+                [ -n "$tid" ] || continue
+                gh api "notifications/threads/$tid" -X PATCH || true
+              done
+            done
+          fi
+
+          # --- Layer C: drop notifications on bot-authored closed PRs ---
+          # The bot auto-subscribes to its own PRs. After merge/close, leftover
+          # subscription notifications are pure noise — no action needed.
+          NOTIFS=$(gh api notifications)
+          echo "$NOTIFS" | jq -r --arg repo "$GITHUB_REPOSITORY" '.[] | select(.repository.full_name == $repo and .subject.type == "PullRequest") | .id' | while read -r tid; do
+            [ -n "$tid" ] || continue
+            PR_NUM=$(echo "$NOTIFS" | jq -r --arg tid "$tid" '.[] | select(.id == $tid) | .subject.url | split("/") | last')
+            PR_INFO=$(gh api "repos/$GITHUB_REPOSITORY/pulls/$PR_NUM" --jq '"\(.user.login) \(.state)"' 2>/dev/null) || continue
+            PR_AUTHOR=${PR_INFO%% *}
+            PR_STATE=${PR_INFO##* }
+            if [ "$PR_AUTHOR" = "prql-bot" ] && [ "$PR_STATE" = "closed" ]; then
+              gh api "notifications/threads/$tid" -X PATCH || true
+            fi
+          done
+
+          # --- Layer D: count processable notifications ---
+          # Same-repo notifications younger than 10 minutes are deferred: a
+          # dedicated workflow (tend-review/mention/triage/ci-fix) is likely
+          # still starting up or mid-flight and hasn't posted its response yet.
+          # Processing them now risks duplicating work. Cross-repo notifications
+          # are exempt — no dedicated workflow handles them.
+          CUTOFF=$(date -u -d '10 minutes ago' +%Y-%m-%dT%H:%M:%SZ)
+          REMAINING=$(gh api notifications)
+          COUNT=$(echo "$REMAINING" | jq --arg repo "$GITHUB_REPOSITORY" --arg cutoff "$CUTOFF" '[.[] | select(.repository.full_name != $repo or .updated_at <= $cutoff)] | length')
           echo "count=$COUNT" >> "$GITHUB_OUTPUT"
           if [ "$COUNT" = "0" ]; then
-            echo "No unread notifications — skipping"
+            TOTAL=$(echo "$REMAINING" | jq 'length')
+            if [ "$TOTAL" = "0" ]; then
+              echo "All notifications handled by pre-checks — skipping"
+            else
+              echo "$TOTAL notification(s) remain but all are fresh same-repo (deferred) — skipping"
+            fi
           else
-            echo "$COUNT unread notification(s) — proceeding"
+            echo "$COUNT processable notification(s) — proceeding"
           fi
         env:
           GH_TOKEN: ${{ secrets.PRQL_BOT_GITHUB_TOKEN }}
