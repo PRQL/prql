@@ -4,7 +4,7 @@ Tuple is a container type, composed of multiple fields. Each field can have a
 different type. Number of fields and their types must be known at compile time.
 
 Tuple is represented by `{}`. It can span multiple lines. Fields can be assigned
-a name. Fields are separated by commas, trailing trailing comma is optional.
+a name. Fields are separated by commas, a trailing comma is optional.
 
 ```prql no-eval
 let var1 = {x = 1, y = 2}
