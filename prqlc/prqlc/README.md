@@ -46,7 +46,7 @@ $ echo 'from `albums.csv` | take 3' | prqlc compile | duckdb
 
 Executing this command without any argument will start interactive mode,
 allowing a PRQL query to be written interactively. In this mode, after writing
-PRQL and press `Ctrl-d` (Linux, macOS) or `Ctrl-z` (Windows) to display the
+PRQL, press `Ctrl-d` (Linux, macOS) or `Ctrl-z` (Windows) to display the
 compiled SQL.
 
 ```sh
