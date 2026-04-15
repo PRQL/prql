@@ -42,10 +42,5 @@ jobs:
           repo-token: ${{ secrets.GITHUB_TOKEN }}
       - name: 🔧 Setup Zig
         uses: mlugg/setup-zig@v2
-        with:
-          # Pinned because zig 0.16 removed `addIncludePath`/etc. from
-          # `Build.Step.Compile` (they now live on Module), breaking the
-          # minimal-zig example's build.zig.
-          version: 0.15.2
       - name: Run example minimal-zig
         run: task zig

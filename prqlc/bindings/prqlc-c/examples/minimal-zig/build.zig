@@ -23,13 +23,13 @@ pub fn build(b: *std.Build) void {
             .root_source_file = b.path("src/main.zig"),
             .target = target,
             .optimize = optimize,
+            .link_libc = true,
         }),
     });
-    exe.addIncludePath(b.path("src"));
-    exe.addLibraryPath(b.path("c"));
+    exe.root_module.addIncludePath(b.path("src"));
+    exe.root_module.addLibraryPath(b.path("c"));
     exe.installHeader(b.path("c/prqlc.h"), "prqlc.h");
-    exe.linkSystemLibrary("prqlc_c");
-    exe.linkLibC();
+    exe.root_module.linkSystemLibrary("prqlc_c", .{});
 
     // This declares intent for the executable to be installed into the
     // standard location when the user invokes the "install" step (the default
@@ -66,13 +66,13 @@ pub fn build(b: *std.Build) void {
             .root_source_file = b.path("src/main.zig"),
             .target = target,
             .optimize = optimize,
+            .link_libc = true,
         }),
     });
-    unit_tests.addIncludePath(b.path("src"));
-    unit_tests.addLibraryPath(b.path("c"));
+    unit_tests.root_module.addIncludePath(b.path("src"));
+    unit_tests.root_module.addLibraryPath(b.path("c"));
     unit_tests.installHeader(b.path("c/prqlc.h"), "prqlc.h");
-    unit_tests.linkSystemLibrary("prqlc_c");
-    unit_tests.linkLibC();
+    unit_tests.root_module.linkSystemLibrary("prqlc_c", .{});
 
     const run_unit_tests = b.addRunArtifact(unit_tests);
 
