@@ -97,7 +97,7 @@ pub struct CompileOptions {
 
     /// Target dialect to compile to.
     ///
-    /// This is only changes the output for a relatively small subset of
+    /// This only changes the output for a relatively small subset of
     /// features.
     ///
     /// If something does not work in a specific dialect, please raise in a

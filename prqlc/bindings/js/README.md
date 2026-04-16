@@ -99,7 +99,7 @@ console.log(sql);
 
 ## Errors
 
-Errors are returned as following object, serialized as a JSON array:
+Errors are returned as the following object, serialized as a JSON array:
 
 ```typescript
 interface ErrorMessage {

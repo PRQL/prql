@@ -35,7 +35,7 @@ select {artists.artist_id, albums.title}
 
 ## `from_text`
 
-`from_text` takes a string in a common format, and converts it to table. It
+`from_text` takes a string in a common format, and converts it to a table. It
 accepts a few formats:
 
 - `format:csv` parses CSV (default),
