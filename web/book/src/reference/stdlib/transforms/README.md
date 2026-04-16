@@ -29,7 +29,7 @@ These are the currently available transforms:
 | `sort`      | [Order rows based on the values of columns](./sort.md)                          | `ORDER BY`                  |
 | `join`      | [Add columns from another table, matching rows based on a condition](./join.md) | `JOIN`                      |
 | `take`      | [Pick rows based on their position](./take.md)                                  | `TOP`, `LIMIT`, `OFFSET`    |
-| `group`     | [Partition rows into groups and applies a pipeline to each of them](./group.md) | `GROUP BY`, `PARTITION BY`  |
+| `group`     | [Partition rows into groups and apply a pipeline to each of them](./group.md)   | `GROUP BY`, `PARTITION BY`  |
 | `aggregate` | [Summarize many rows into one row](./aggregate.md)                              | `SELECT foo(...)`           |
 | `window`    | [Apply a pipeline to overlapping segments of rows](./window.md)                 | `OVER`, `ROWS`, `RANGE`     |
 | `loop`      | [Iteratively apply a function to a relation until it's empty](./loop.md)        | `WITH RECURSIVE ...`        |
