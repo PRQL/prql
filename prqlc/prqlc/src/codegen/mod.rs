@@ -194,7 +194,7 @@ impl<T: WriteSource> SeparatedExprs<'_, T> {
             exprs.push(expr);
         }
 
-        let separators = self.inline.len() * (exprs.len().checked_sub(1).unwrap_or_default());
+        let separators = self.inline.len() * exprs.len().saturating_sub(1);
         opt.consume_width(separators as u16)?;
 
         Some(exprs.join(self.inline))
