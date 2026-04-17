@@ -4,6 +4,9 @@
 
 **Language**:
 
+- Remove the deprecated `std.prql_version` function. Use `prql.version` instead,
+  which has been the supported replacement since 0.11.1. (#5806)
+
 **Features**:
 
 **Fixes**:

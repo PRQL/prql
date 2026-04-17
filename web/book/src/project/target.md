@@ -101,8 +101,3 @@ function `std.prql.version` in PRQL.
 ```prql
 [{version = prql.version}]
 ```
-
-<!-- prettier-ignore -->
-> [!NOTE]
-> This function was renamed from `std.prql_version` to `prql.version` in
-> PRQL 0.11.1. `std.prql_version` will be removed in PRQL 0.12.0.
