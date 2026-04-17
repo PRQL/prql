@@ -249,6 +249,3 @@ let read_json = source<text> -> <relation> internal std.read_json
 module `prql` {
   let version = -> <text> internal prql_version
 }
-
-# Deprecated in favour of `prql.version`.
-let prql_version = -> <text> internal prql_version
