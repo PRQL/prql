@@ -250,5 +250,5 @@ module `prql` {
   let version = -> <text> internal prql_version
 }
 
-# Deprecated, will be removed in 0.12.0
+# Deprecated in favour of `prql.version`.
 let prql_version = -> <text> internal prql_version

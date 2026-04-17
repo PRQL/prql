@@ -105,4 +105,5 @@ function `std.prql.version` in PRQL.
 <!-- prettier-ignore -->
 > [!NOTE]
 > This function was renamed from `std.prql_version` to `prql.version` in
-> PRQL 0.11.1. `std.prql_version` will be removed in PRQL 0.12.0.
+> PRQL 0.11.1. `std.prql_version` is deprecated and will be removed in a
+> future release.
