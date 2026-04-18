@@ -101,7 +101,7 @@ describe("prqlc-js", () => {
 
   describe("get_targets", () => {
     it("return a list of targets", () => {
-      const targets = new prqlc.get_targets();
+      const targets = prqlc.get_targets();
       assert(targets.length > 0);
       assert(targets.includes("sql.sqlite"));
     });
@@ -109,25 +109,27 @@ describe("prqlc-js", () => {
 
   describe("compile error", () => {
     it("should contain json", () => {
-      try {
-        prqlc.compile("from x | select a | select b");
-      } catch (error) {
-        const errorMessages = JSON.parse(error.message).inner;
-
-        assert(errorMessages.length > 0);
-        assert(errorMessages[0].display.includes("\n"));
-        assert(!errorMessages[0].reason.includes("\n"));
-      }
+      assert.throws(
+        () => prqlc.compile("from x | select a | select b"),
+        (error) => {
+          const errorMessages = JSON.parse(error.message).inner;
+          assert(errorMessages.length > 0);
+          assert(errorMessages[0].display.includes("\n"));
+          assert(!errorMessages[0].reason.includes("\n"));
+          return true;
+        },
+      );
     });
 
     it("should contain error code", () => {
-      try {
-        prqlc.compile("let a = (from x)");
-      } catch (error) {
-        const errorMessages = JSON.parse(error.message).inner;
-
-        assert(errorMessages[0].code == "E0001");
-      }
+      assert.throws(
+        () => prqlc.compile("let a = (from x)"),
+        (error) => {
+          const errorMessages = JSON.parse(error.message).inner;
+          assert(errorMessages[0].code == "E0001");
+          return true;
+        },
+      );
     });
   });
 });
