@@ -85,6 +85,7 @@ jobs:
               - Taskfile.yaml
             devcontainer-build:
               - .devcontainer/**/*Dockerfile
+              - .devcontainer/devcontainer.json
               - .github/workflows/build-devcontainer.yaml
               - Taskfile.yaml
             grammars:
@@ -546,6 +547,23 @@ jobs:
       # This needs to compare to the string `'true'`, because of GHA awkwardness
       push: ${{ needs.rules.outputs.devcontainer-push == 'true' }}
 
+  test-devcontainer:
+    runs-on: ubuntu-24.04
+    needs: rules
+    if: needs.rules.outputs.devcontainer-build == 'true'
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v5
+      - name: Build and run devcontainer
+        uses: devcontainers/ci@v0.3
+        with:
+          runCmd: |
+            set -euxo pipefail
+            task --version
+            pre-commit --version
+            cargo --version
+            node --version
+
   test-msrv:
     runs-on: ubuntu-24.04
     needs: rules
@@ -601,6 +619,7 @@ jobs:
     needs:
       - build-devcontainer
       - build-web
+      - test-devcontainer
       - check-links-book
       - check-links-markdown
       - lint-megalinter
@@ -646,6 +665,7 @@ jobs:
             [
               "build-devcontainer",
               "build-web",
+              "test-devcontainer",
               "check-links-book",
               "check-links-markdown",
               "lint-megalinter",
