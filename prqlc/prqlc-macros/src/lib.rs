@@ -21,7 +21,7 @@ pub fn prql_to_sql(input: TokenStream) -> TokenStream {
             lit: Lit::Str(lit_str),
             ..
         }) => lit_str.value(),
-        _ => panic!("prql! proc macro expected a string"),
+        _ => panic!("prql_to_sql! proc macro expected a string"),
     };
 
     let opts = prqlc::Options::default().no_format().no_signature();
