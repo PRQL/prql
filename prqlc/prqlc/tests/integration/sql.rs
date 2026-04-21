@@ -4355,7 +4355,7 @@ fn test_group_all() {
         r###"
     from e=albums
     group !{genre_id} (aggregate {count this})
-        "###).unwrap_err(), @"Error: Excluding columns not supported as this position");
+        "###).unwrap_err(), @"Error: Excluding columns not supported in this position");
 }
 
 #[test]

@@ -88,7 +88,7 @@ JOIN artists USING (artist_id)
 standard doesn't guarantee an order, although most implementations will respect
 it).
 
-<!-- We rolling this back. Waiting on the outcome of https://github.com/PRQL/prql/issues/2622 -->
+<!-- We're rolling this back. Waiting on the outcome of https://github.com/PRQL/prql/issues/2622 -->
 
 <!-- ## Nulls
 
