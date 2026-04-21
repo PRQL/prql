@@ -16,6 +16,7 @@ defmodule PRQL do
           | :ansi
           | :bigquery
           | :clickhouse
+          | :duckdb
           | :glaredb
           | :redshift
           | :sqlite
@@ -38,7 +39,7 @@ defmodule PRQL do
 
     * `:target` - Dialect used for generate SQL. Accepted values are
     `:generic`, `:mssql`, `:mysql`, `:postgres`, `:ansi`, `:bigquery`,
-    `:clickhouse`, `:glaredb`, `:redshift`, `:sqlite`, `:snowflake`
+    `:clickhouse`, `:duckdb`, `:glaredb`, `:redshift`, `:sqlite`, `:snowflake`
 
     * `:format` - Formats the output, defaults to `true`
 
