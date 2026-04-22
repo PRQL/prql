@@ -51,7 +51,9 @@ additional dialects.
 - `sql.ansi`
 - `sql.bigquery`
 - `sql.snowflake`
-- `sql.oracle`
+- `sql.oracle` — very early; currently only ensures identifiers are quoted to
+  accommodate Oracle's case-folding rules. Most other language features fall
+  back to generic SQL and may not execute correctly against Oracle.
 
 ## Priority of targets
 
