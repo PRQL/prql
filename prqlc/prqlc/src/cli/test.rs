@@ -86,6 +86,7 @@ fn get_targets() {
     sql.glaredb
     sql.mssql
     sql.mysql
+    sql.oracle_sql
     sql.postgres
     sql.redshift
     sql.sqlite
@@ -144,18 +145,18 @@ fn compile_help() {
 
       -t, --target <TARGET>
               Target to compile to
-              
+
               [env: PRQLC_TARGET=]
               [default: sql.any]
 
           --debug-log <DEBUG_LOG>
               File path into which to write the debug log to
-              
+
               [env: PRQLC_DEBUG_LOG=]
 
           --color <WHEN>
               Controls when to use color
-              
+
               [default: auto]
               [possible values: auto, always, never]
 

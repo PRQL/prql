@@ -18,6 +18,7 @@ defmodule PRQL do
           | :clickhouse
           | :duckdb
           | :glaredb
+          | :oracle_sql
           | :redshift
           | :sqlite
           | :snowflake

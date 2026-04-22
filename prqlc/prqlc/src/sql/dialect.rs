@@ -89,6 +89,7 @@ pub enum Dialect {
     GlareDb,
     MsSql,
     MySql,
+    OracleSql,
     Postgres,
     Redshift,
     SQLite,
@@ -112,6 +113,7 @@ impl Dialect {
             Dialect::Postgres => Box::new(PostgresDialect),
             Dialect::Redshift => Box::new(RedshiftDialect),
             Dialect::GlareDb => Box::new(GlareDbDialect),
+            Dialect::OracleSql => Box::new(OracleSqlDialect),
             Dialect::Ansi | Dialect::Generic => Box::new(GenericDialect),
         }
     }
@@ -126,9 +128,11 @@ impl Dialect {
             | Dialect::Generic
             | Dialect::GlareDb
             | Dialect::ClickHouse => SupportLevel::Supported,
-            Dialect::MsSql | Dialect::Ansi | Dialect::BigQuery | Dialect::Snowflake => {
-                SupportLevel::Unsupported
-            }
+            Dialect::MsSql
+            | Dialect::Ansi
+            | Dialect::BigQuery
+            | Dialect::Snowflake
+            | Dialect::OracleSql => SupportLevel::Unsupported,
         }
     }
 
@@ -166,6 +170,8 @@ pub struct PostgresDialect;
 pub struct RedshiftDialect;
 #[derive(Debug)]
 pub struct GlareDbDialect;
+#[derive(Debug)]
+pub struct OracleSqlDialect;
 
 pub(super) enum ColumnExclude {
     Exclude,
@@ -733,6 +739,14 @@ impl DialectHandler for DuckDbDialect {
                 ))
             }
         })
+    }
+}
+
+impl DialectHandler for OracleSqlDialect {
+    fn ident_quoting_style(&self) -> IdentQuotingStyle {
+        // Due to oraclesql identifier casing rules, identifiers are always quoted
+        // https://docs.oracle.com/en/database/oracle/oracle-database/26/sqlrf/Database-Object-Names-and-Qualifiers.html
+        IdentQuotingStyle::AlwaysQuoted
     }
 }
 
