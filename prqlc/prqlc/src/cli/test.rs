@@ -86,7 +86,7 @@ fn get_targets() {
     sql.glaredb
     sql.mssql
     sql.mysql
-    sql.oracle_sql
+    sql.oracle
     sql.postgres
     sql.redshift
     sql.sqlite

@@ -51,6 +51,7 @@ additional dialects.
 - `sql.ansi`
 - `sql.bigquery`
 - `sql.snowflake`
+- `sql.oracle`
 
 ## Priority of targets
 
