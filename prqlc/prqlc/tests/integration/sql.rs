@@ -240,8 +240,8 @@ FROM
   "employees"
 "#
 )]
-#[case::oracle_sql(
-    sql::Dialect::OracleSql,
+#[case::oracle(
+    sql::Dialect::Oracle,
     r#"
 SELECT
   "a",
