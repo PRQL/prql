@@ -9,6 +9,10 @@
 
 **Features**:
 
+- Add a very early `sql.oracle` dialect. It currently only forces identifier
+  quoting to accommodate Oracle's case-folding rules; most other features fall
+  back to generic SQL. (@julien-pinchelimouroux, #5821)
+
 **Fixes**:
 
 **Documentation**:

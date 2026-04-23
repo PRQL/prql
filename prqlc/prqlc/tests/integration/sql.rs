@@ -240,6 +240,17 @@ FROM
   "employees"
 "#
 )]
+#[case::oracle(
+    sql::Dialect::Oracle,
+    r#"
+SELECT
+  "a",
+  "b",
+  "col space"
+FROM
+  "employees"
+"#
+)]
 fn test_quoting_style(#[case] dialect: sql::Dialect, #[case] expected_sql: &'static str) {
     let query = r#"
   from employees

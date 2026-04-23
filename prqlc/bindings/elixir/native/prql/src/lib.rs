@@ -22,6 +22,7 @@ mod atoms {
       generic,
       mssql,
       mysql,
+      oracle,
       postgres,
       redshift,
       sqlite,
@@ -63,6 +64,8 @@ fn target_from_atom(a: Atom) -> prqlc::Target {
         MsSql
     } else if a == atoms::mysql() {
         MySql
+    } else if a == atoms::oracle() {
+        Oracle
     } else if a == atoms::postgres() {
         Postgres
     } else if a == atoms::redshift() {
