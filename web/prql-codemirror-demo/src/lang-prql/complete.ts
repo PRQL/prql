@@ -85,7 +85,7 @@ const globals: readonly Completion[] = ["false", "null", "true"]
 
 export const snippets: readonly Completion[] = [
   snip(
-    "from ${table_table}\nselect {${column_name}}\nfilter ${column_name} == ${condition}\ntake {amount}",
+    "from ${table_name}\nselect {${column_name}}\nfilter ${column_name} == ${condition}\ntake ${amount}",
     {
       label: "from-select-filter-take",
       detail: "snippet",
