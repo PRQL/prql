@@ -14,8 +14,11 @@ error conventions, etc. are in `CLAUDE.md` — don't duplicate them here.
 
 - Main CI workflow: `tests` (watched by tend-ci-fix)
 - Dependency management: Dependabot (tend-weekly is disabled)
-- Automerge: `pull-request-target.yaml` auto-merges single-commit `prql-bot` PRs
-  once CI passes
+- Automerge: not configured — `pull-request-target.yaml` only validates
+  PR titles and handles `pr-backport-web` backports. The automerge job
+  was removed in #5753, so bot PRs must be merged manually by a
+  maintainer (or via repo branch-protection auto-merge if a maintainer
+  enables it on the PR).
 
 ## Issue management
 
