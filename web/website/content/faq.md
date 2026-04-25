@@ -173,7 +173,7 @@ PRQL clearly delineates two operations with two transforms:
 
   ```prql
   from employees
-  aggregate [total_salary = sum salary]
+  aggregate {total_salary = sum salary}
   ```
 
 `aggregate` can then be used in a `group` transform, where it has exactly the
@@ -183,7 +183,7 @@ PRQL's orthogonality.
 ```prql
 from employees
 group department (
-  aggregate [total_salary = sum salary]
+  aggregate {total_salary = sum salary}
 )
 ```
 

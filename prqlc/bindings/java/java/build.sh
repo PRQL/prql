@@ -35,7 +35,7 @@ elif [ "$KERNEL_NAME" = 'Darwin' ]; then
   elif [ "$ARCH" = 'x86_64' ]; then
     target='libprql_java-osx-x86_64.dylib'
   else
-    echo [ERROR] have not support $ARCH:$$KERNEL_NAME yet
+    echo [ERROR] have not support $ARCH:$KERNEL_NAME yet
     exit 1
   fi
   cp -f ../../../target/release/libprql_java.dylib java/src/test/resources/${target}
