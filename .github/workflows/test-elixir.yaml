@@ -58,7 +58,7 @@ jobs:
         env:
           cache-name: cache-elixir-deps
         with:
-          path: prqlc/bindings/elixir/deps
+          path: elixir/deps
           key:
             ${{ runner.os }}-mix-${{ env.cache-name }}-${{
             hashFiles('**/mix.lock') }}
@@ -74,7 +74,7 @@ jobs:
         env:
           cache-name: cache-compiled-build
         with:
-          path: prqlc/bindings/elixir/_build
+          path: elixir/_build
           key:
             ${{ runner.os }}-mix-${{ env.cache-name }}-${{
             hashFiles('**/mix.lock') }}
