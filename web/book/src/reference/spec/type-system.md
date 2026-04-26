@@ -220,7 +220,7 @@ dependent on representation of that type in the target STS.
 PTS logical type  --->  STS logical type  ---> STS physical layout
 ```
 
-Note that not all STS types do not have a single physical layout. Postgres has a
+Note that not all STS types have a single physical layout. Postgres has a
 logical (pseudo)type `anyelement`, which is a super type of any data type. It
 can be used as a function parameter type, but does not have a single physical
 layout so it cannot be used in a column declaration.

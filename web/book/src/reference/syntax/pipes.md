@@ -28,7 +28,7 @@ In almost all situations, a line break acts as a pipe. But there are a few cases
 where a line break doesn't act as a pipe.
 
 - before or after tuple items
-- before or after list items
+- before or after array items
 - before a new statement, which starts with `let` or `from` (or `func`)
 - within a [line wrap](./operators.md#wrapping-lines)
 
@@ -36,7 +36,7 @@ For example:
 
 ```prql
 [
-  {a=2}      # No pipe from line break before & after this list item
+  {a=2}      # No pipe from line break before & after this array item
 ]
 derive {
   c = 2 * a, # No pipe from line break before & after this tuple item
