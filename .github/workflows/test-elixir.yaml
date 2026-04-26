@@ -58,29 +58,35 @@ jobs:
         env:
           cache-name: cache-elixir-deps
         with:
-          path: elixir/deps
+          path: prqlc/bindings/elixir/deps
           key:
             ${{ runner.os }}-mix-${{ env.cache-name }}-${{
             hashFiles('**/mix.lock') }}
           restore-keys: |
             ${{ runner.os }}-mix-${{ env.cache-name }}-
 
-      # Step: Define how to cache the `_build` directory. After the first run,
-      # this speeds up tests runs a lot. This includes not re-compiling our
-      # project's downloaded deps every run.
+      # Step: Cache `_build` and `priv`. Rustler builds the NIF via cargo into
+      # the workspace `target/` and copies it to `priv/native/prql.so`; without
+      # caching `priv`, the cache restores beam files (which look up-to-date to
+      # mix) but the .so is missing, so `mix compile` skips Rustler and tests
+      # fail to load the NIF.
+      #
+      # The key includes Cargo.lock and Rust sources so the .so is rebuilt when
+      # any prqlc Rust code changes. Restore-keys are intentionally absent —
+      # a partial-prefix restore would deliver a stale .so on Rust changes.
       - name: Cache compiled build
         id: cache-build
         uses: actions/cache@v4
         env:
-          cache-name: cache-compiled-build
+          cache-name: cache-compiled-build-v2
         with:
-          path: elixir/_build
+          path: |
+            prqlc/bindings/elixir/_build
+            prqlc/bindings/elixir/priv
           key:
             ${{ runner.os }}-mix-${{ env.cache-name }}-${{
-            hashFiles('**/mix.lock') }}
-          restore-keys: |
-            ${{ runner.os }}-mix-${{ env.cache-name }}-
-            ${{ runner.os }}-mix-
+            hashFiles('**/mix.lock', '**/Cargo.lock', 'prqlc/**/*.rs',
+            'prqlc/**/Cargo.toml') }}
 
       # Step: Download project dependencies. If unchanged, uses
       # the cached version.
