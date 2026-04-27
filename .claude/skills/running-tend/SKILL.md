@@ -13,7 +13,8 @@ error conventions, etc. are in `CLAUDE.md` — don't duplicate them here.
 ## CI structure
 
 - Main CI workflow: `tests` (watched by tend-ci-fix)
-- Dependency management: Dependabot (tend-weekly is disabled in `.config/tend.toml`)
+- Dependency management: Dependabot (tend-weekly is disabled in
+  `.config/tend.toml`)
 - Automerge: not configured — `pull-request-target.yaml` only validates PR
   titles and handles `pr-backport-web` backports. The automerge job was removed
   in #5753, so bot PRs must be merged manually by a maintainer (or via repo
@@ -25,11 +26,11 @@ These tasks run as Step 3 of the bundled weekly skill (only when
 `workflows.weekly` is enabled in `.config/tend.toml`).
 
 - **Bump pinned `go-task/setup-task` version.** The action is invoked with a
-  concrete `version:` input to avoid the intermittent `unable to get latest
-  version` failure from `version: 3.x` (see #5836). Dependabot does not update
-  `with:` inputs, so this needs a manual weekly bump. Find the latest release
-  at <https://github.com/go-task/task/releases/latest>; if the current pin is
-  older, update `version: X.Y.Z` in:
+  concrete `version:` input to avoid the intermittent
+  `unable to get latest version` failure from `version: 3.x` (see #5836).
+  Dependabot does not update `with:` inputs, so this needs a manual weekly bump.
+  Find the latest release at <https://github.com/go-task/task/releases/latest>;
+  if the current pin is older, update `version: X.Y.Z` in:
   - `.github/actions/tend-setup/action.yaml`
   - `.github/workflows/build-web.yaml`
   - `.github/workflows/test-php.yaml`
