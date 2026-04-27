@@ -4,14 +4,7 @@
 
 **Language**:
 
-- Remove the deprecated `std.prql_version` function. Use `prql.version` instead,
-  which has been the supported replacement since 0.11.1. (#5806)
-
 **Features**:
-
-- Add a very early `sql.oracle` dialect. It currently only forces identifier
-  quoting to accommodate Oracle's case-folding rules; most other features fall
-  back to generic SQL. (@julien-pinchelimouroux, #5821)
 
 **Fixes**:
 
@@ -21,12 +14,72 @@
 
 **Integrations**:
 
+**Internal changes**:
+
+**New Contributors**:
+
+## 0.13.12 — 2026-04-27
+
+0.13.12 has 81 commits from 10 contributors. Selected changes:
+
+**Language**:
+
+- Remove the deprecated `std.prql_version` function. Use `prql.version` instead,
+  which has been the supported replacement since 0.11.1. (@prql-bot, #5806)
+
+**Features**:
+
+- Add a very early `sql.oracle` dialect. It currently only forces identifier
+  quoting to accommodate Oracle's case-folding rules; most other features fall
+  back to generic SQL. (@julien-pinchelimouroux, #5821)
+- Add `date.trunc` function for date truncation. (@happyso, #5729)
+- Add `date.now` function for current timestamp. (@happyso, #5721)
+- Add `date.diff` function for date differences. (@happyso, #5726)
+- Add DuckDB target to the Elixir bindings. (@prql-bot, #5817)
+
+**Fixes**:
+
+- Loosen the `chrono` constraint from `0.4.44` to `0.4` to avoid version
+  conflicts with downstream crates such as polars. (@lukapeschke, #5834)
+- Correct the SQLite `div_i` formula so integer division returns the right
+  result when `|dividend| < |divisor|` (e.g., `1 // 2` now returns `0` instead
+  of `-1`). (@queelius, #5736)
+- Return an error rather than emitting invalid SQL when `date.trunc` is used
+  against SQLite. (@prql-bot, #5733)
+- Sync `:duckdb` into the Elixir `PRQL.Native.CompileOptions` target typespec so
+  `target: :duckdb` actually reaches the DuckDB dialect. (@prql-bot, #5823)
+- Correct the `Vec::from_raw_parts` element type in `prqlc-c` to fix undefined
+  behavior in `result_destroy`. (@prql-bot, #5732)
+- Prevent panic in `prqlc-macros` by correcting a stale macro name in the panic
+  message. (@prql-bot, #5811)
+- Align Emacs grammar keywords and regex with the lexer. (@prql-bot, #5795)
+- Correct the playground's decimal regex and transforms list in syntax
+  highlighting. (@prql-bot, #5788)
+- Correct the `aarch64` target path in the Java cross-compilation script.
+  (@prql-bot, #5781)
+
+**Documentation**:
+
+- Numerous typo, grammar, and stale-content fixes across the book, tutorials,
+  bindings docs, and code comments.
+
+**Integrations**:
+
 - [Kakoune](https://kakoune.org/) 2026.04.12 has syntax highlighting for PRQL.
   (@vanillajonathan)
 
 **Internal changes**:
 
+- Add tend (Claude-powered CI) workflows for autonomous PR review, issue triage,
+  CI-failure fixes, and a nightly code-quality sweep. Most of this release's
+  bot-authored fixes were filed by tend. (#5727)
+- Update the Rust toolchain version. (#5807)
+- Switch from mypy to ty for Python type checking. (#5761)
+
 **New Contributors**:
+
+- @happyso, with #5721
+- @queelius, with #5736
 
 ## 0.13.11 — 2026-03-19
 
