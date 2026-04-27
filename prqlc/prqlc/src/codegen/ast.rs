@@ -61,8 +61,8 @@ fn needs_parenthesis(this: &pr::Expr, opt: &WriteOpt) -> bool {
     }
 
     if opt.context_strength < binding_strength {
-        // parent has higher binding strength, which means it would "steal" operand of this expr
-        // => parenthesis are needed
+        // parent has lower binding strength, so it won't "steal" operand of this expr
+        // => no parenthesis needed
         return false;
     }
 
@@ -277,7 +277,6 @@ fn binding_strength(expr: &pr::ExprKind) -> u8 {
         // Weaker than a child assign, since `select x = 1`
         // Weaker than a binary operator, since `filter x == 1`
         pr::ExprKind::FuncCall(_) => 10,
-        // ExprKind::FuncCall(_) if !is_parent => 2,
         pr::ExprKind::Func(_) => 7,
 
         // other nodes should not contain any inner exprs
