@@ -15,6 +15,7 @@ runs:
       uses: go-task/setup-task@v1
       with:
         repo-token: ${{ inputs.github-token }}
+        version: 3.50.0
 
     - uses: baptiste0928/cargo-install@v3
       with:
