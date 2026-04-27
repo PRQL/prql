@@ -58,7 +58,7 @@ prqlc-parser = { path = "../prqlc-parser", version = "0.13.12" }
 
 anstream = { version = "1.0.0", features = ["auto"] }
 ariadne = "0.5.1"
-chrono = "0.4.44"
+chrono = "0.4"
 csv = "1.4.0"
 enum-as-inner = { workspace = true }
 itertools = { workspace = true }
