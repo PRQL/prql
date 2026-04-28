@@ -1,16 +1,18 @@
-namespace Prql.Compiler
-{
-    internal struct NativePrqlCompilerOptions
-    {
-        public bool Format;
-        public string Target;
-        public bool SignatureComment;
+using System.Runtime.InteropServices;
 
-        public NativePrqlCompilerOptions(PrqlCompilerOptions options)
-        {
-            Format = options.Format;
-            Target = options.Target;
-            SignatureComment = options.SignatureComment;
-        }
+namespace Prql.Compiler;
+
+[StructLayout(LayoutKind.Sequential)]
+internal struct NativePrqlCompilerOptions
+{
+    public byte Format;
+    public IntPtr Target;
+    public byte SignatureComment;
+
+    public NativePrqlCompilerOptions(PrqlCompilerOptions options, IntPtr targetPtr)
+    {
+        Format = options.Format ? (byte)1 : (byte)0;
+        Target = targetPtr;
+        SignatureComment = options.SignatureComment ? (byte)1 : (byte)0;
     }
 }

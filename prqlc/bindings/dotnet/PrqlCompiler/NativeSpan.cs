@@ -1,12 +1,10 @@
-using System;
 using System.Runtime.InteropServices;
 
-namespace Prql.Compiler
+namespace Prql.Compiler;
+
+[StructLayout(LayoutKind.Sequential)]
+internal struct NativeSpan
 {
-    [StructLayout(LayoutKind.Sequential)]
-    internal struct NativeSpan
-    {
-        public UIntPtr Start;
-        public UIntPtr End;
-    }
+    public UIntPtr Start;
+    public UIntPtr End;
 }
