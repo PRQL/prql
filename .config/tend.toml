@@ -10,5 +10,4 @@ uses = "./.github/actions/tend-setup"
 watched_workflows = ["tests"]
 
 [workflows.weekly]
-# Dependabot already handles dependency updates for this project.
-enabled = false
+enabled = true
