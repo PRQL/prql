@@ -3,8 +3,8 @@ using System.Runtime.InteropServices;
 namespace Prql.Compiler;
 
 [StructLayout(LayoutKind.Sequential)]
-internal struct NativeSpan
+internal readonly struct NativeSpan
 {
-    public UIntPtr Start;
-    public UIntPtr End;
+    public readonly UIntPtr Start;
+    public readonly UIntPtr End;
 }

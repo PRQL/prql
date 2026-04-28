@@ -3,11 +3,11 @@ using System.Runtime.InteropServices;
 namespace Prql.Compiler;
 
 [StructLayout(LayoutKind.Sequential)]
-internal struct NativePrqlCompilerOptions
+internal readonly struct NativePrqlCompilerOptions
 {
-    public byte Format;
-    public IntPtr Target;
-    public byte SignatureComment;
+    public readonly byte Format;
+    public readonly IntPtr Target;
+    public readonly byte SignatureComment;
 
     public NativePrqlCompilerOptions(PrqlCompilerOptions options, IntPtr targetPtr)
     {

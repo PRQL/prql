@@ -3,13 +3,13 @@ using System.Runtime.InteropServices;
 namespace Prql.Compiler;
 
 [StructLayout(LayoutKind.Sequential)]
-internal struct NativeMessage
+internal readonly struct NativeMessage
 {
-    public MessageKind Kind;
-    public IntPtr Code;
-    public IntPtr Reason;
-    public IntPtr Hint;
-    public IntPtr Span;
-    public IntPtr Display;
-    public IntPtr Location;
+    public readonly MessageKind Kind;
+    public readonly IntPtr Code;
+    public readonly IntPtr Reason;
+    public readonly IntPtr Hint;
+    public readonly IntPtr Span;
+    public readonly IntPtr Display;
+    public readonly IntPtr Location;
 }

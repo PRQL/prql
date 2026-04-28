@@ -58,6 +58,21 @@ public sealed class CompilerTest
     }
 
     [Fact]
+    public void Compile_HandlesNonAsciiInput()
+    {
+        // Guards the UTF-8 marshalling path. Default `DllImport` ANSI
+        // marshalling silently corrupts non-ASCII bytes; LibraryImport with
+        // `StringMarshalling.Utf8` round-trips them correctly.
+        var query = "from employees | filter name == 'Café'";
+        var options = new PrqlCompilerOptions { SignatureComment = false };
+
+        var result = PrqlCompiler.Compile(query, options);
+
+        Assert.Empty(result.Messages);
+        Assert.Contains("Café", result.Output);
+    }
+
+    [Fact]
     public void TestOtherFunctions()
     {
         // Arrange
