@@ -9,7 +9,7 @@ Website: https://prql-lang.org/
 // Syntax highlighting for PRQL.
 
 // Keep consistent with
-// https://github.com/PRQL/prql/blob/main/web/website/themes/prql-theme/static/highlight/prql.js
+// https://github.com/PRQL/prql/blob/main/web/website/themes/prql-theme/static/plugins/highlight/prql.js
 // TODO: can we import one from the other at build time?
 
 // Inspired by [Pest's book](https://github.com/pest-parser/book)
