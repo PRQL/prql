@@ -13,8 +13,8 @@ error conventions, etc. are in `CLAUDE.md` — don't duplicate them here.
 ## CI structure
 
 - Main CI workflow: `tests` (watched by tend-ci-fix)
-- Dependency management: Dependabot (tend-weekly is disabled in
-  `.config/tend.toml`)
+- Dependency management: Dependabot opens dependency PRs; tend-weekly reviews
+  them and runs the tasks under Weekly maintenance below.
 - Automerge: not configured — `pull-request-target.yaml` only validates PR
   titles and handles `pr-backport-web` backports. The automerge job was removed
   in #5753, so bot PRs must be merged manually by a maintainer (or via repo
