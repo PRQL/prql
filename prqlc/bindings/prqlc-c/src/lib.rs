@@ -212,35 +212,39 @@ pub unsafe extern "C" fn result_destroy(res: CompileResult) {
     // For strings and vectors this is required, but options may be
     // able to live entirely within the struct, instead of the heap.
 
-    for i in 0..res.messages_len {
-        let e = &*res.messages.add(i);
+    if !res.messages.is_null() {
+        for i in 0..res.messages_len {
+            let e = &*res.messages.add(i);
 
-        if !e.code.is_null() {
-            drop(CString::from_raw(*e.code as *mut libc::c_char));
-            drop(Box::from_raw(e.code as *mut *const libc::c_char));
+            if !e.code.is_null() {
+                drop(CString::from_raw(*e.code as *mut libc::c_char));
+                drop(Box::from_raw(e.code as *mut *const libc::c_char));
+            }
+            drop(CString::from_raw(e.reason as *mut libc::c_char));
+            if !e.hint.is_null() {
+                drop(CString::from_raw(*e.hint as *mut libc::c_char));
+                drop(Box::from_raw(e.hint as *mut *const libc::c_char));
+            }
+            if !e.span.is_null() {
+                drop(Box::from_raw(e.span as *mut Span));
+            }
+            if !e.display.is_null() {
+                drop(CString::from_raw(*e.display as *mut libc::c_char));
+                drop(Box::from_raw(e.display as *mut *const libc::c_char));
+            }
+            if !e.location.is_null() {
+                drop(Box::from_raw(e.location as *mut SourceLocation));
+            }
         }
-        drop(CString::from_raw(e.reason as *mut libc::c_char));
-        if !e.hint.is_null() {
-            drop(CString::from_raw(*e.hint as *mut libc::c_char));
-            drop(Box::from_raw(e.hint as *mut *const libc::c_char));
-        }
-        if !e.span.is_null() {
-            drop(Box::from_raw(e.span as *mut Span));
-        }
-        if !e.display.is_null() {
-            drop(CString::from_raw(*e.display as *mut libc::c_char));
-            drop(Box::from_raw(e.display as *mut *const libc::c_char));
-        }
-        if !e.location.is_null() {
-            drop(Box::from_raw(e.location as *mut SourceLocation));
-        }
+        drop(Vec::from_raw_parts(
+            res.messages as *mut Message,
+            res.messages_len,
+            res.messages_len,
+        ));
     }
-    drop(Vec::from_raw_parts(
-        res.messages as *mut Message,
-        res.messages_len,
-        res.messages_len,
-    ));
-    drop(CString::from_raw(res.output as *mut libc::c_char));
+    if !res.output.is_null() {
+        drop(CString::from_raw(res.output as *mut libc::c_char));
+    }
 }
 
 unsafe fn result_into_c_str(result: Result<String, ErrorMessages>) -> CompileResult {
