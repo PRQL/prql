@@ -14,6 +14,14 @@
 
 **Integrations**:
 
+- Fix several FFI defects in the .NET binding that prevented it from working
+  correctly on 64-bit platforms or returning more than one diagnostic: map
+  `size_t` as `UIntPtr` (was `int`), advance the pointer when iterating the
+  messages array, dereference indirect string fields and `Span` / `Location`
+  pointers, call `result_destroy` to free native memory, and tighten exception
+  types and doc references. Also guard `result_destroy` in `prqlc-c` against a
+  null `messages` pointer, which is set on the success path. (@prql-bot, #5847)
+
 **Internal changes**:
 
 **New Contributors**:

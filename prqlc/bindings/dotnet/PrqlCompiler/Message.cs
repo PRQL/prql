@@ -1,12 +1,9 @@
-using System.Runtime.InteropServices;
-
 namespace Prql.Compiler
 {
     /// <summary>
     /// Compile result message.
     /// </summary>
-    [StructLayout(LayoutKind.Sequential, CharSet = CharSet.Ansi)]
-    public struct Message
+    public class Message
     {
         /// <summary>
         /// Message kind. Currently only Error is implemented.
@@ -14,7 +11,7 @@ namespace Prql.Compiler
         public MessageKind Kind { get; set; }
 
         /// <summary>
-        /// Machine-readable identifier of the error.
+        /// Machine-readable identifier of the error. May be null.
         /// </summary>
         public string Code { get; set; }
 
@@ -24,23 +21,23 @@ namespace Prql.Compiler
         public string Reason { get; set; }
 
         /// <summary>
-        /// A list of suggestions of how to fix the error.
+        /// A suggestion of how to fix the error. May be null.
         /// </summary>
         public string Hint { get; set; }
 
         /// <summary>
-        /// Character offset of error origin within a source file.
+        /// Character offset of error origin within a source file. May be null.
         /// </summary>
-        public Span Span { get; set; }
+        public Span? Span { get; set; }
 
         /// <summary>
-        /// Annotated code, containing cause and hints.
+        /// Annotated code, containing cause and hints. May be null.
         /// </summary>
         public string Display { get; set; }
 
         /// <summary>
-        /// Line and column number of error origin within a source file.
+        /// Line and column number of error origin within a source file. May be null.
         /// </summary>
-        public SourceLocation Location { get; set; }
+        public SourceLocation? Location { get; set; }
     }
 }
