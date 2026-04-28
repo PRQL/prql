@@ -23,6 +23,7 @@ jobs:
       - uses: go-task/setup-task@v1
         with:
           repo-token: ${{ secrets.GITHUB_TOKEN }}
+          version: 3.50.0
       - run: ./.github/workflows/scripts/set_version.sh
       - name: 💰 Cache
         uses: Swatinem/rust-cache@v2
