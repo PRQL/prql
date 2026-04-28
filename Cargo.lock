@@ -792,7 +792,7 @@ dependencies = [
 
 [[package]]
 name = "compile-files"
-version = "0.13.12"
+version = "0.13.13"
 dependencies = [
  "prqlc",
 ]
@@ -2135,9 +2135,9 @@ dependencies = [
 
 [[package]]
 name = "libc"
-version = "0.2.185"
+version = "0.2.186"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "52ff2c0fe9bc6cb6b14a0592c2ff4fa9ceb83eea9db979b0487cd054946a2b8f"
+checksum = "68ab91017fe16c622486840e4c83c9a37afeff978bd239b5293d61ece587de66"
 
 [[package]]
 name = "libduckdb-sys"
@@ -2308,7 +2308,7 @@ dependencies = [
 
 [[package]]
 name = "mdbook-prql"
-version = "0.13.12"
+version = "0.13.13"
 dependencies = [
  "ansi-to-html",
  "anstream",
@@ -2807,7 +2807,7 @@ dependencies = [
 
 [[package]]
 name = "prql"
-version = "0.13.12"
+version = "0.13.13"
 dependencies = [
  "prqlc",
  "rustler",
@@ -2815,7 +2815,7 @@ dependencies = [
 
 [[package]]
 name = "prql-java"
-version = "0.13.12"
+version = "0.13.13"
 dependencies = [
  "jni",
  "prqlc",
@@ -2823,7 +2823,7 @@ dependencies = [
 
 [[package]]
 name = "prqlc"
-version = "0.13.12"
+version = "0.13.13"
 dependencies = [
  "anstream",
  "anyhow",
@@ -2878,7 +2878,7 @@ dependencies = [
 
 [[package]]
 name = "prqlc-c"
-version = "0.13.12"
+version = "0.13.13"
 dependencies = [
  "libc",
  "prqlc",
@@ -2887,7 +2887,7 @@ dependencies = [
 
 [[package]]
 name = "prqlc-js"
-version = "0.13.12"
+version = "0.13.13"
 dependencies = [
  "console_error_panic_hook",
  "prqlc",
@@ -2897,7 +2897,7 @@ dependencies = [
 
 [[package]]
 name = "prqlc-macros"
-version = "0.13.12"
+version = "0.13.13"
 dependencies = [
  "prqlc",
  "syn 2.0.117",
@@ -2905,7 +2905,7 @@ dependencies = [
 
 [[package]]
 name = "prqlc-parser"
-version = "0.13.12"
+version = "0.13.13"
 dependencies = [
  "chumsky",
  "enum-as-inner",
@@ -2922,7 +2922,7 @@ dependencies = [
 
 [[package]]
 name = "prqlc-python"
-version = "0.13.12"
+version = "0.13.13"
 dependencies = [
  "insta",
  "prqlc",
