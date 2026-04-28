@@ -22,7 +22,7 @@ variable names cannot.
 When processing a query, a scope is maintained and updated for each point in the
 query.
 
-It start with only namespace `std`, which is the standard library. It contains
+It starts with only namespace `std`, which is the standard library. It contains
 common functions like `sum` or `count`, along with all transform functions such
 as `derive` and `group`.
 
@@ -47,7 +47,7 @@ three things can happen:
   there's a single namespace, the matched namespace is also updated to contain
   this new variable name.
 
-- Otherwise, the nothing is matched and an error is raised.
+- Otherwise, nothing is matched and an error is raised.
 
 ## Translating to SQL
 
