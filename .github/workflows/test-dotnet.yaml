@@ -22,7 +22,7 @@ jobs:
       - name: 🔧 Setup dotnet
         uses: actions/setup-dotnet@v5
         with:
-          dotnet-version: 7
+          dotnet-version: 10
       - name: 🧪 Build and test
         working-directory: prqlc/bindings
         run: |

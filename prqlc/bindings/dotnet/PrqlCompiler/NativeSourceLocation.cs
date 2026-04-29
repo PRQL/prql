@@ -1,14 +1,12 @@
-using System;
 using System.Runtime.InteropServices;
 
-namespace Prql.Compiler
+namespace Prql.Compiler;
+
+[StructLayout(LayoutKind.Sequential)]
+internal readonly struct NativeSourceLocation
 {
-    [StructLayout(LayoutKind.Sequential)]
-    internal struct NativeSourceLocation
-    {
-        public UIntPtr StartLine;
-        public UIntPtr StartCol;
-        public UIntPtr EndLine;
-        public UIntPtr EndCol;
-    }
+    public readonly UIntPtr StartLine;
+    public readonly UIntPtr StartCol;
+    public readonly UIntPtr EndLine;
+    public readonly UIntPtr EndCol;
 }

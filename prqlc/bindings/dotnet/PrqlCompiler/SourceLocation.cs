@@ -1,28 +1,14 @@
-namespace Prql.Compiler
-{
-    /// <summary>
-    /// Location within a source file.
-    /// </summary>
-    public struct SourceLocation
-    {
-        /// <summary>
-        /// Start line.
-        /// </summary>
-        public ulong StartLine { get; set; }
+namespace Prql.Compiler;
 
-        /// <summary>
-        /// Start column.
-        /// </summary>
-        public ulong StartCol { get; set; }
-
-        /// <summary>
-        /// End line.
-        /// </summary>
-        public ulong EndLine { get; set; }
-
-        /// <summary>
-        /// End column.
-        /// </summary>
-        public ulong EndCol { get; set; }
-    }
-}
+/// <summary>
+/// Location within a source file.
+/// </summary>
+/// <param name="StartLine">Start line.</param>
+/// <param name="StartCol">Start column.</param>
+/// <param name="EndLine">End line.</param>
+/// <param name="EndCol">End column.</param>
+public readonly record struct SourceLocation(
+    ulong StartLine,
+    ulong StartCol,
+    ulong EndLine,
+    ulong EndCol);
