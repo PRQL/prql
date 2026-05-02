@@ -179,7 +179,7 @@ enum Command {
     },
 }
 
-/// Commands for meant for debugging, prone to change
+/// Commands meant for debugging, prone to change
 #[derive(Subcommand, Debug, Clone)]
 enum DebugCommand {
     /// Parse, resolve & combine source with comments annotating relation type

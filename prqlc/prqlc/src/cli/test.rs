@@ -24,7 +24,7 @@ fn help() {
       lex               Lex into Lexer Representation
       fmt               Parse & generate PRQL code back
       collect           Parse the whole project and collect it into a single PRQL source file
-      debug             Commands for meant for debugging, prone to change
+      debug             Commands meant for debugging, prone to change
       experimental      Experimental commands are prone to change
       compile           Parse, resolve, lower into RQ & compile to SQL
       watch             Watch a directory and compile .prql files to .sql files
@@ -53,7 +53,7 @@ fn help() {
       lex               Lex into Lexer Representation
       fmt               Parse & generate PRQL code back
       collect           Parse the whole project and collect it into a single PRQL source file
-      debug             Commands for meant for debugging, prone to change
+      debug             Commands meant for debugging, prone to change
       experimental      Experimental commands are prone to change
       compile           Parse, resolve, lower into RQ & compile to SQL
       watch             Watch a directory and compile .prql files to .sql files
