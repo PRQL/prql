@@ -34,7 +34,7 @@ an index.
   - The book:
     [`book/highlight-prql.js`](https://github.com/PRQL/prql/blob/main/web/book/highlight-prql.js)
   - The website (outside of the book & playground):
-    [`website/themes/prql-theme/static/plugins/highlight/prql.js`](https://github.com/PRQL/prql/blob/main/web/book/highlight-prql.js)
+    [`web/website/themes/prql-theme/static/plugins/highlight/prql.js`](https://github.com/PRQL/prql/blob/main/web/website/themes/prql-theme/static/plugins/highlight/prql.js)
 
 - [Helix](https://helix-editor.com/) — supported. The grammar is
   [upstream](https://github.com/helix-editor/helix/tree/master/runtime/queries/prql).
