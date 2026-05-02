@@ -43,12 +43,11 @@ pub unsafe extern "C" fn compile(
     result_into_c_str(result)
 }
 
-/// Build PL AST from a PRQL string. PL in documented in the
+/// Build PL AST from a PRQL string. PL is documented in the
 /// [prqlc Rust crate](https://docs.rs/prqlc/latest/prqlc/ir/pl).
 ///
-/// Takes PRQL source buffer and writes PL serialized as JSON to `out` buffer.
-///
-/// Returns 0 on success and a negative number -1 on failure.
+/// Takes a PRQL source buffer and returns PL serialized as JSON in
+/// `CompileResult.output`.
 ///
 /// # Safety
 ///
@@ -69,9 +68,8 @@ pub unsafe extern "C" fn prql_to_pl(prql_query: *const c_char) -> CompileResult 
 /// PL and RQ are documented in the
 /// [prqlc Rust crate](https://docs.rs/prqlc/latest/prqlc).
 ///
-/// Takes PL serialized as JSON buffer and writes RQ serialized as JSON to `out` buffer.
-///
-/// Returns 0 on success and a negative number -1 on failure.
+/// Takes a PL JSON buffer and returns RQ serialized as JSON in
+/// `CompileResult.output`.
 ///
 /// # Safety
 ///
@@ -92,9 +90,8 @@ pub unsafe extern "C" fn pl_to_rq(pl_json: *const c_char) -> CompileResult {
 /// Convert RQ AST into an SQL string. RQ is documented in the
 /// [prqlc Rust crate](https://docs.rs/prqlc/latest/prqlc/ir/rq).
 ///
-/// Takes RQ serialized as JSON buffer and writes SQL source to `out` buffer.
-///
-/// Returns 0 on success and a negative number -1 on failure.
+/// Takes an RQ JSON buffer and returns the SQL source in
+/// `CompileResult.output`.
 ///
 /// # Safety
 ///
