@@ -27,7 +27,7 @@ Website: https://prql-lang.org/
 // - Aliases seem a bit strong?
 // - Can we represent the inner s & f string items?
 
-formatting = function (hljs) {
+const formatting = function (hljs) {
   const BUILTIN_FUNCTIONS = [
     // Aggregate functions
     "any",
