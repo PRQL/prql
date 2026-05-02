@@ -48,13 +48,13 @@ The `select` function picks the columns to pass through based on a list and
 discards all others. Formally, that list is a _tuple_ of comma-separated
 expressions wrapped in `{ ... }`.
 
-Suppose we only need the `order_id` and `total` columns. Use `select` to choose
-the columns to pass through. _(Try it in the
+Suppose we only need the `invoice_id` and `total` columns. Use `select` to
+choose the columns to pass through. _(Try it in the
 [Playground.](https://prql-lang.org/playground/))_
 
 ```prql no-eval
 from invoices
-select { order_id, total }
+select { invoice_id, total }
 ```
 
 We can write the items in the tuple on one or several lines: trailing commas are
