@@ -942,7 +942,7 @@ impl Lineage {
 
         // special case: include a tuple
         if expr.ty.as_ref().is_some_and(|x| x.kind.is_tuple()) && expr.kind.is_ident() {
-            // this ident is a tuple, which means it much point to an input
+            // this ident is a tuple, which means it must point to an input
             let input_id = expr.target_id.unwrap();
 
             self.columns.push(LineageColumn::All {
