@@ -84,7 +84,6 @@ impl Ident {
     }
 
     pub fn starts_with_path<S: AsRef<str>>(&self, prefix: &[S]) -> bool {
-        // self is an I
         if prefix.len() > self.len() {
             return false;
         }
