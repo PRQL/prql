@@ -49,7 +49,7 @@ derive t = this.time
 ## Quoting
 
 To use characters that would be otherwise invalid, identifiers can be surrounded
-by with backticks.
+with backticks.
 
 When compiling to SQL, these identifiers will use dialect-specific quotes and
 quoting rules.

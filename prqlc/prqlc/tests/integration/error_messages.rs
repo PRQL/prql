@@ -1,6 +1,6 @@
 //! Test error messages. As of 2023-03, this can hopefully be expanded significantly.
 //! It's also fine to put errors by the things that they're testing.
-//! See also [test_bad_error_messages.rs](test_bad_error_messages.rs) for error
+//! See also [bad_error_messages.rs](bad_error_messages.rs) for error
 //! messages which need to be improved.
 use insta::assert_snapshot;
 
