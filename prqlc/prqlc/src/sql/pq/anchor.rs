@@ -16,7 +16,7 @@ use crate::sql::pq::positional_mapping::compute_positional_mappings;
 use crate::Result;
 
 /// Extract last part of pipeline that is able to "fit" into a single SELECT statement.
-/// Remaining proceeding pipeline is declared as a table and stored in AnchorContext.
+/// Remaining preceding pipeline is declared as a table and stored in AnchorContext.
 pub(super) fn extract_atomic(
     pipeline: Vec<SqlTransform>,
     ctx: &mut AnchorContext,
@@ -221,7 +221,7 @@ fn can_materialize(compute: &Compute, inputs_required: &[Requirement]) -> (bool,
 }
 
 /// Applies adjustments to second part of a pipeline when it's split:
-/// - append Select to proceeding pipeline
+/// - append Select to preceding pipeline
 /// - prepend From to atomic pipeline
 /// - redefine columns materialized in atomic pipeline
 /// - redirect all references to original columns to the new ones
@@ -562,7 +562,7 @@ pub(super) fn get_requirements(
         // Aggregations require that all selected columns be wrapped in aggregate functions (e.g., SUM, COUNT).
         Super(Transform::Sort(sorts)) if !following.contains("Aggregate") => {
             Requirements::from_cids(sorts.iter().map(|s| &s.column))
-                // we only use SELECTTed columns in ORDER BY, so the columns can have high complexity
+                // we only use SELECTed columns in ORDER BY, so the columns can have high complexity
                 .allow_up_to(Complexity::Aggregation)
                 .should_select(true)
         }
