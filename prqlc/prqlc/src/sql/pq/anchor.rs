@@ -562,7 +562,7 @@ pub(super) fn get_requirements(
         // Aggregations require that all selected columns be wrapped in aggregate functions (e.g., SUM, COUNT).
         Super(Transform::Sort(sorts)) if !following.contains("Aggregate") => {
             Requirements::from_cids(sorts.iter().map(|s| &s.column))
-                // we only use SELECTTed columns in ORDER BY, so the columns can have high complexity
+                // we only use selected columns in ORDER BY, so the columns can have high complexity
                 .allow_up_to(Complexity::Aggregation)
                 .should_select(true)
         }
