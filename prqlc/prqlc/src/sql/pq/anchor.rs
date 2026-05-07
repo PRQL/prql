@@ -425,7 +425,7 @@ pub struct Requirement {
     /// Maximum complexity with which this column can be expressed in this transform
     pub max_complexity: Complexity,
 
-    /// True iff this column needs to be SELECTTed so it can be referenced in this transform
+    /// True iff this column needs to be selected so it can be referenced in this transform
     pub selected: bool,
 }
 
