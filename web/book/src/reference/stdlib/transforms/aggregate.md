@@ -14,7 +14,7 @@ aggregate {expression or assign operations}
 <!-- prettier-ignore -->
 > [!NOTE]
 > Currently, all declared aggregation functions are `min`, `max`,
-> `count`, `average`, `stddev`, `avg`, `sum` and `count_distinct`. We are in the
+> `count`, `average`, `stddev`, `avg` and `sum`. We are in the
 > process of filling out [std lib](../).
 
 ## Examples
