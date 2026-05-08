@@ -328,10 +328,16 @@ impl Resolver<'_> {
                 let list_items = list_items
                     .into_iter()
                     .map(|item| {
-                        Expr::new(ExprKind::FuncCall(FuncCall::new_simple(
+                        let expr = Expr::new(ExprKind::FuncCall(FuncCall::new_simple(
                             func.clone(),
                             vec![item],
-                        )))
+                        )));
+
+                        // fold the map item now
+                        match self.fold_expr(expr.clone()) {
+                            Ok(result) => result,
+                            Err(_) => expr,
+                        }
                     })
                     .collect_vec();
 
