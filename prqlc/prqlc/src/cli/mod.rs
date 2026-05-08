@@ -471,12 +471,12 @@ impl Command {
 
                 // catch any panic during compilation so that we can still produce a debug log
                 let res = panic::catch_unwind(|| {
-                    return prql_to_pl_tree(sources)
+                    prql_to_pl_tree(sources)
                         .and_then(|pl| {
                             pl_to_rq_tree(pl, &main_path, &[semantic::NS_DEFAULT_DB.to_string()])
                         })
                         .and_then(|rq| rq_to_sql(rq, &opts))
-                        .map_err(|e| e.composed(sources));
+                        .map_err(|e| e.composed(sources))
                 });
 
                 if let Some(path) = debug_log {
@@ -485,7 +485,7 @@ impl Command {
 
                 match res {
                     Ok(r) => r?.as_bytes().to_vec(),
-                    Err(_) => Vec::new(),
+                    Err(payload) => panic::resume_unwind(payload),
                 }
             }
             _ => unreachable!("Other commands shouldn't reach `execute`"),
