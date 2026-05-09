@@ -1,10 +1,10 @@
 # Worktrunk configuration for PRQL
 #
 # Available template variables:
-#   {{ repo }}      - Repository name
-#   {{ branch }}    - Branch name (slashes replaced with dashes)
-#   {{ worktree }}  - Path to the new worktree
-#   {{ repo_root }} - Path to the main repository root
+#   {{ repo }}           - Repository name
+#   {{ branch }}         - Branch name (slashes replaced with dashes)
+#   {{ worktree_path }}  - Path to the new worktree
+#   {{ repo_path }}      - Path to the main repository root
 
 # Post-start commands run in parallel after switching to a worktree
 [post-start]
