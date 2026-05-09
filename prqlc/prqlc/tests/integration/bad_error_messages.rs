@@ -7,7 +7,7 @@
 //! - Add `` macros to the code to see what's going on.
 //! - Write a better message / find a better place to raise a message.
 //! - Run `cargo insta test --accept`, and move the test out of this file into
-//!   `test_error_messages.rs`. If it's only partially solved, add a TODO and
+//!   `error_messages.rs`. If it's only partially solved, add a TODO and
 //!   make a call for where it should go.
 //!
 //! Adding bad error messages here is also a welcome contribution. Probably
