@@ -127,7 +127,7 @@ fn select_with_extra_fstr() {
     "#);
 }
 
-// See also test_error_messages::test_type_error_placement
+// See also sql::test_type_error_placement
 #[test]
 fn misplaced_type_error() {
     // This one should point at `foo` in `select (... foo)`
