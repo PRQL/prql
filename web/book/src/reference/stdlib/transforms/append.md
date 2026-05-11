@@ -46,5 +46,5 @@ let except = `default_db.bottom` top -> (top | distinct | remove bottom)
 let intersect_distinct = `default_db.bottom` top -> (top | intersect bottom | distinct)
 ```
 
-Don't mind the `default_db.` and `noop`, these are compiler implementation
-detail for now.
+Don't mind the `default_db.`; this is a compiler implementation detail for
+now.
