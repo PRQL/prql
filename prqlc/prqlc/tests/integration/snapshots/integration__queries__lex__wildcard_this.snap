@@ -1,0 +1,27 @@
+---
+source: prqlc/prqlc/tests/integration/queries.rs
+expression: tokens
+input_file: prqlc/prqlc/tests/integration/queries/wildcard_this.prql
+---
+Tokens(
+    [
+        0..0: Start,
+        0..4: Ident("from"),
+        5..11: Ident("albums"),
+        11..12: NewLine,
+        12..18: Ident("select"),
+        19..20: Control('{'),
+        20..28: Ident("album_id"),
+        28..29: Control(','),
+        30..35: Ident("title"),
+        35..36: Control(','),
+        37..46: Ident("artist_id"),
+        46..47: Control('}'),
+        47..48: NewLine,
+        48..52: Ident("sort"),
+        53..57: Ident("this"),
+        57..58: Control('.'),
+        58..59: Control('*'),
+        59..60: NewLine,
+    ],
+)

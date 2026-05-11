@@ -1,0 +1,3 @@
+from albums
+select {album_id, title, artist_id}
+sort this.*
