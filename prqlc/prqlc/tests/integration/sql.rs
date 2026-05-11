@@ -6231,6 +6231,54 @@ fn test_import() {
 }
 
 #[test]
+fn test_tuple_reduce() {
+    assert_snapshot!(compile(
+        r###"
+from foo
+select {
+  with_initial = tuple_reduce initial:4 add {1, 2, 3},
+  with_initial_one = tuple_reduce initial:4 add {3},
+  with_initial_zero = tuple_reduce initial:4 add {},
+  no_initial = tuple_reduce add {1, 2, 3},
+  no_initial_one = tuple_reduce add {3},
+}
+        "###,
+    )
+    .unwrap(), @"
+SELECT
+  4 + 1 + 2 + 3 AS with_initial,
+  4 + 3 AS with_initial_one,
+  4 AS with_initial_zero,
+  1 + 2 + 3 AS no_initial,
+  3 AS no_initial_one
+FROM
+  foo
+    ");
+}
+
+#[test]
+fn test_tuple_reduce_err() {
+    assert_snapshot!(compile(
+        r###"
+from foo
+select {
+  no_initial_err = tuple_reduce add {}
+}
+"###,
+    ).unwrap_err(), @r###"
+    Error:
+       ╭─[ :4:37 ]
+       │
+     4 │   no_initial_err = tuple_reduce add {}
+       │                                     ─┬
+       │                                      ╰── tuple expected to have at least one entry when initial value is not provided, but found empty tuple
+       │
+       │ Help: try adding an initial:<value> parameter
+    ───╯
+    "###);
+}
+
+#[test]
 fn unstable_ordering() {
     // https://github.com/PRQL/prql/issues/5053
     assert_snapshot!(compile(r###"

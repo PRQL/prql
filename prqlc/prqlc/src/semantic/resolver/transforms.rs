@@ -303,18 +303,45 @@ impl Resolver<'_> {
                 .with_span(pattern.span));
             }
 
-            "tuple_every" => {
+            "tuple_reduce" => {
                 // yes, this is not a transform, but this is the most appropriate place for it
 
-                let [list] = unpack::<1>(func.args);
-                let list = list.kind.into_tuple().unwrap();
+                let [init, func, list] = unpack::<3>(func.args);
+                let list_items = list.kind.into_tuple().unwrap();
+                let num_items = list_items.len();
+                let mut list_iter = list_items.into_iter();
 
-                let mut res = None;
-                for item in list {
-                    res = maybe_binop(res, &["std", "and"], Some(item));
+                let mut res = init.clone();
+
+                if let Ok(init_val) = init.kind.into_literal() {
+                    if init_val.to_string().as_str() == "\"__missing\"" {
+                        match num_items {
+                            0 => return Err(Error::new(Reason::Expected {
+                                who: Some("tuple".to_string()),
+                                expected:
+                                    "to have at least one entry when initial value is not provided"
+                                        .to_string(),
+                                found: "empty tuple".to_string(),
+                            })
+                            .with_span(list.span)
+                            .push_hint("try adding an initial:<value> parameter")),
+                            1 => {
+                                let item = list_iter.next().unwrap();
+                                return Ok(item);
+                            }
+                            _ => {
+                                res = list_iter.next().unwrap();
+                            }
+                        }
+                    }
                 }
-                let res =
-                    res.unwrap_or_else(|| Expr::new(ExprKind::Literal(Literal::Boolean(true))));
+
+                for item in list_iter {
+                    res = self.fold_expr(Expr::new(ExprKind::FuncCall(FuncCall::new_simple(
+                        func.clone(),
+                        vec![res, item],
+                    ))))?;
+                }
 
                 return Ok(res);
             }
