@@ -5996,11 +5996,7 @@ fn test_relation_var_name_clashes_02() {
 }
 
 #[test]
-#[ignore]
 fn test_select_this() {
-    // Currently broken for a few reasons:
-    // - type of `this` is not resolved as tuple, but an union?
-    // - lineage is not computed correctly
     assert_snapshot!(compile(
         r###"
     from x
@@ -6014,6 +6010,45 @@ fn test_select_this() {
       b
     FROM
       x
+    "###);
+}
+
+#[test]
+fn test_select_this_wildcard() {
+    assert_snapshot!(compile(
+        r###"
+    from x
+    select {a, b}
+    select this.*
+        "###,
+    )
+    .unwrap(), @r###"
+    SELECT
+      a,
+      b
+    FROM
+      x
+    "###);
+}
+
+#[test]
+fn test_sort_this_wildcard() {
+    assert_snapshot!(compile(
+        r###"
+    from x
+    select {a, b}
+    sort this.*
+        "###,
+    )
+    .unwrap(), @r###"
+    SELECT
+      a,
+      b
+    FROM
+      x
+    ORDER BY
+      a,
+      b
     "###);
 }
 

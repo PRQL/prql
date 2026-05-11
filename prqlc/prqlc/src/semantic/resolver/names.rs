@@ -98,9 +98,7 @@ impl Resolver<'_> {
                 (true, Some(ns)) => ident.clone().prepend(vec![ns.clone()]),
                 _ => ident.clone(),
             };
-            return self
-                .resolve_ident_wildcard(&wildcard_ident)
-                .map_err(Error::new_simple);
+            return self.resolve_ident_wildcard(&wildcard_ident);
         }
 
         // base case: direct lookup
@@ -214,37 +212,41 @@ impl Resolver<'_> {
         Ok(module_ident + Ident::from_name(original.name.clone()))
     }
 
-    fn resolve_ident_wildcard(&mut self, ident: &Ident) -> Result<Ident, String> {
+    fn resolve_ident_wildcard(&mut self, ident: &Ident) -> Result<Ident, Error> {
         let ident_self = ident.clone().pop().ok_or_else(|| {
-            "Column wildcard `*` must be qualified, e.g. `table_name.*`".to_string()
+            Error::new_simple("Column wildcard `*` must be qualified, e.g. `table_name.*`")
         })? + Ident::from_name(NS_SELF);
-        let mut res = self.root_mod.module.lookup(&ident_self);
-        if res.contains(&ident_self) {
-            res = HashSet::from_iter([ident_self]);
+
+        let decls = self.root_mod.module.lookup(&ident_self);
+        log::trace!("resolve_ident_wildcard decls: {decls:?}");
+
+        match decls.len() {
+            1 => {
+                let module_fq_self = decls.into_iter().next().unwrap();
+
+                // Materialize into a tuple literal, containing idents.
+                let fields = self.construct_wildcard_include(&module_fq_self);
+                log::trace!("resolve_ident_wildcard fields: {fields:?}");
+
+                // This is just a workaround to return an Expr from this function.
+                // We wrap the expr into DeclKind::Expr and save it into the root module.
+                let cols_expr = Expr {
+                    flatten: true,
+                    ..Expr::new(ExprKind::Tuple(fields))
+                };
+                let cols_expr = DeclKind::Expr(Box::new(cols_expr));
+                let save_as = "_wildcard_match";
+                self.root_mod
+                    .module
+                    .names
+                    .insert(save_as.to_string(), cols_expr.into());
+
+                // Then we can return ident to that decl.
+                Ok(Ident::from_name(save_as))
+            }
+            0 => Err(Error::new_simple(format!("Unknown relation {ident}"))),
+            _ => Err(ambiguous_error(decls, Some(&ident.name))),
         }
-        if res.len() != 1 {
-            return Err(format!("Unknown relation {ident}"));
-        }
-        let module_fq_self = res.into_iter().next().unwrap();
-
-        // Materialize into a tuple literal, containing idents.
-        let fields = self.construct_wildcard_include(&module_fq_self);
-
-        // This is just a workaround to return an Expr from this function.
-        // We wrap the expr into DeclKind::Expr and save it into the root module.
-        let cols_expr = Expr {
-            flatten: true,
-            ..Expr::new(ExprKind::Tuple(fields))
-        };
-        let cols_expr = DeclKind::Expr(Box::new(cols_expr));
-        let save_as = "_wildcard_match";
-        self.root_mod
-            .module
-            .names
-            .insert(save_as.to_string(), cols_expr.into());
-
-        // Then we can return ident to that decl.
-        Ok(Ident::from_name(save_as))
     }
 }
 
