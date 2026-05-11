@@ -313,8 +313,8 @@ impl Resolver<'_> {
 
                 let mut res = init.clone();
 
-                if let Ok(init_val) = init.kind.into_literal() {
-                    if init_val.to_string().as_str() == "\"__missing\"" {
+                if let ExprKind::Literal(Literal::String(init_val)) = &init.kind {
+                    if init_val == "__missing" {
                         match num_items {
                             0 => return Err(Error::new(Reason::Expected {
                                 who: Some("tuple".to_string()),
