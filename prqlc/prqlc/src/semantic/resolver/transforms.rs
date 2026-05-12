@@ -328,12 +328,12 @@ impl Resolver<'_> {
                 let list_items = list_items
                     .into_iter()
                     .map(|item| {
-                        Expr::new(ExprKind::FuncCall(FuncCall::new_simple(
+                        self.fold_expr(Expr::new(ExprKind::FuncCall(FuncCall::new_simple(
                             func.clone(),
                             vec![item],
-                        )))
+                        ))))
                     })
-                    .collect_vec();
+                    .collect::<Result<Vec<_>>>()?;
 
                 return Ok(Expr {
                     kind: ExprKind::Tuple(list_items),

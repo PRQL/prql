@@ -7275,3 +7275,22 @@ fn test_partial_application_of_transform() {
       10
     ");
 }
+
+#[test]
+fn test_tuple_map() {
+    assert_snapshot!(compile(r###"
+    let add_four = func a -> a + 4
+
+    from foo
+    select {x, y}
+    derive (tuple_map add_four foo.*)
+    "###).unwrap(), @"
+    SELECT
+      x,
+      y,
+      x + 4,
+      y + 4
+    FROM
+      foo
+    ");
+}
