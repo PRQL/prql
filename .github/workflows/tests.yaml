@@ -533,7 +533,12 @@ jobs:
 
   build-devcontainer:
     needs: rules
-    if: needs.rules.outputs.devcontainer-build == 'true'
+    # Skip on dependabot PRs — they don't get access to the DOCKERHUB_*
+    # secrets, so the docker login step fails before the bumped action can be
+    # exercised.
+    if:
+      needs.rules.outputs.devcontainer-build == 'true' && github.actor !=
+      'dependabot[bot]'
     uses: ./.github/workflows/build-devcontainer.yaml
     secrets: inherit
     # One problem with this setup is that if another commit is merged to main,
