@@ -17,6 +17,7 @@ DISABLE_LINTERS:
   - YAML_V8R # Slow (70+ seconds). We don't use YAML schema.
   - JSON_V8R # Failing for vscode-style syntax (comments).
   - REPOSITORY_GITLEAKS # False positive on codecov token, which according to codecov is fine to have hardcoded
+  - REPOSITORY_KINGFISHER # Same false positives as TRUFFLEHOG/GITLEAKS: .git/config token, codecov token, and localhost test DB URI
 DISABLE_ERRORS_LINTERS:
   - COPYPASTE_JSCPD
   - REPOSITORY_TRIVY
