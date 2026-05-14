@@ -49,6 +49,10 @@ jobs:
           save-if:
             ${{ github.ref == 'refs/heads/web' || github.ref ==
             'refs/heads/main' }}
+          # Caching `~/.cargo/bin/` breaks the rustup `cargo`/`rustc` symlinks
+          # on the new macos-15 runner image — see
+          # https://github.com/Swatinem/rust-cache/issues/341.
+          cache-bin: "false"
 
       - uses: go-task/setup-task@v2
         with:

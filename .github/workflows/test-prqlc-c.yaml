@@ -24,6 +24,10 @@ jobs:
           prefix-key: ${{ env.version }}-${{ hashFiles('./Cargo.lock') }}
           save-if: ${{ github.ref == 'refs/heads/main' }}
           shared-key: lib
+          # Caching `~/.cargo/bin/` breaks the rustup `cargo`/`rustc` symlinks
+          # on the new macos-15 runner image — see
+          # https://github.com/Swatinem/rust-cache/issues/341.
+          cache-bin: "false"
       - name: Build
         uses: clechasseur/rs-cargo@v4
         with:
