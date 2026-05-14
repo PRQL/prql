@@ -62,6 +62,10 @@ jobs:
           # we're out of cache space.
           shared-key: web
           save-if: false
+          # Caching `~/.cargo/bin/` breaks the rustup `cargo`/`rustc` symlinks
+          # on the new macos-15 runner image — see
+          # https://github.com/Swatinem/rust-cache/issues/341.
+          cache-bin: "false"
 
       - run: npm cit
         working-directory: prqlc/bindings/js

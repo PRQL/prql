@@ -34,6 +34,10 @@ runs:
         prefix-key: ${{ hashFiles('./Cargo.lock') }}
         shared-key: rust-x86_64-unknown-linux-gnu
         save-if: false
+        # Caching `~/.cargo/bin/` breaks the rustup `cargo`/`rustc` symlinks
+        # on the new macos-15 runner image — see
+        # https://github.com/Swatinem/rust-cache/issues/341.
+        cache-bin: "false"
 
     - run: |
         echo CARGO_TERM_COLOR=always >> $GITHUB_ENV

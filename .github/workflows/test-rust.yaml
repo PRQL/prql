@@ -95,6 +95,10 @@ jobs:
           # the comma seemed over the top.
           save-if:
             ${{ github.ref == 'refs/heads/main' && inputs.features != '' }}
+          # Caching `~/.cargo/bin/` breaks the rustup `cargo`/`rustc` symlinks
+          # on the new macos-15 runner image — see
+          # https://github.com/Swatinem/rust-cache/issues/341.
+          cache-bin: "false"
       - uses: actions/setup-python@v6
         # python isn't natively installed on macos-15, so we need to install it
         if: ${{ inputs.os == 'macos-15' }}

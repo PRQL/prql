@@ -351,6 +351,10 @@ jobs:
           # Share key with the `build-web` job
           shared-key: web
           save-if: false
+          # Caching `~/.cargo/bin/` breaks the rustup `cargo`/`rustc` symlinks
+          # on the new macos-15 runner image — see
+          # https://github.com/Swatinem/rust-cache/issues/341.
+          cache-bin: "false"
 
       # This is only required in order to have `cross-env` installed, since `npx
       # cross-env` doesn't seem to work in CI (https://github.com/PRQL/prql/pull/3728)
