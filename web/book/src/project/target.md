@@ -58,7 +58,7 @@ additional dialects.
 ## Priority of targets
 
 The compile target of a query is defined in the query's header or as an argument
-to the compiler. option. The argument to the compiler takes precedence.
+to the compiler. The argument to the compiler takes precedence.
 
 For example, the following shell example specifies `sql.generic` in the query
 and `sql.duckdb` in the `--target` option of the `prqlc compile` command. In
