@@ -1,0 +1,11 @@
+bot_name: prql-bot
+secrets:
+  bot_token: PRQL_BOT_GITHUB_TOKEN
+setup:
+  - uses: ./.github/actions/tend-setup
+workflows:
+  ci-fix:
+    watched_workflows:
+      - tests
+  weekly:
+    enabled: true
