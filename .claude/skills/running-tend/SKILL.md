@@ -23,7 +23,7 @@ error conventions, etc. are in `CLAUDE.md` — don't duplicate them here.
 ## Weekly maintenance
 
 These tasks run as Step 3 of the bundled weekly skill (only when
-`workflows.weekly` is enabled in `.config/tend.toml`).
+`workflows.weekly` is enabled in `.config/tend.yaml`).
 
 - **Bump pinned `go-task/setup-task` version.** The action is invoked with a
   concrete `version:` input to avoid the intermittent
