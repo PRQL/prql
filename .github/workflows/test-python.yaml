@@ -59,7 +59,7 @@ jobs:
             echo "pyproject_hash=$(shasum -a 256 prqlc/bindings/prqlc-python/pyproject.toml | cut -d' ' -f1)" >> "$GITHUB_ENV"
           fi
       - name: Cache uv and Nox
-        uses: actions/cache@v4
+        uses: actions/cache@v5
         with:
           path: |
             .nox

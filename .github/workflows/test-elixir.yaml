@@ -54,7 +54,7 @@ jobs:
       # Step: Define how to cache deps. Restores existing cache if present.
       - name: Cache deps
         id: cache-deps
-        uses: actions/cache@v4
+        uses: actions/cache@v5
         env:
           cache-name: cache-elixir-deps
         with:
@@ -76,7 +76,7 @@ jobs:
       # a partial-prefix restore would deliver a stale .so on Rust changes.
       - name: Cache compiled build
         id: cache-build
-        uses: actions/cache@v4
+        uses: actions/cache@v5
         env:
           cache-name: cache-compiled-build-v2
         with:
