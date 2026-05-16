@@ -253,6 +253,7 @@ jobs:
 
   build-and-publish-snap:
     runs-on: ubuntu-24.04
+    environment: release
     if: ${{ github.event_name == 'release' }}
     steps:
       - name: 📂 Checkout code
@@ -268,6 +269,9 @@ jobs:
         env:
           SNAPCRAFT_STORE_CREDENTIALS:
             ${{ secrets.SNAPCRAFT_STORE_CREDENTIALS }}
+          # Credentials are Candid-format (`snapcraft export-login`); snapcraft
+          # requires this to use them.
+          SNAPCRAFT_STORE_AUTH: candid
         with:
           snap: ${{ steps.build.outputs.snap }}
           release: stable
@@ -369,6 +373,11 @@ jobs:
 
   publish-to-cargo:
     runs-on: ubuntu-24.04
+    # This job runs unconditionally as a `--no-verify` dry-run smoke test when
+    # `release.yaml` is reused from `nightly.yaml` on PRs; only apply the
+    # `release` environment (and its tag-restricted secret) on actual releases,
+    # otherwise the deployment-branch policy denies the dry-run on branch refs.
+    environment: ${{ github.event_name == 'release' && 'release' || '' }}
     steps:
       - name: 📂 Checkout code
         uses: actions/checkout@v5
