@@ -373,7 +373,11 @@ jobs:
 
   publish-to-cargo:
     runs-on: ubuntu-24.04
-    environment: release
+    # This job runs unconditionally as a `--no-verify` dry-run smoke test when
+    # `release.yaml` is reused from `nightly.yaml` on PRs; only apply the
+    # `release` environment (and its tag-restricted secret) on actual releases,
+    # otherwise the deployment-branch policy denies the dry-run on branch refs.
+    environment: ${{ github.event_name == 'release' && 'release' || '' }}
     steps:
       - name: 📂 Checkout code
         uses: actions/checkout@v5
