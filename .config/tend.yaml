@@ -1,6 +1,5 @@
 bot_name: prql-bot
 secrets:
-  bot_token: PRQL_BOT_GITHUB_TOKEN
   # Docker Hub login is needed by test-rust.yaml on internal PRs (external-DB
   # tests); it's a low-value pull token, so it's intentionally repo-level.
   # Release secrets (cargo/snapcraft) live in the `release` environment instead.
@@ -13,5 +12,3 @@ workflows:
   ci-fix:
     watched_workflows:
       - tests
-  weekly:
-    enabled: true
