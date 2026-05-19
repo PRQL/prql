@@ -83,12 +83,12 @@ checksum = "4b46cbb362ab8752921c97e041f5e366ee6297bd428a31275b9fcf1e380f7299"
 
 [[package]]
 name = "ansi-to-html"
-version = "0.2.2"
+version = "0.2.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "12e283a4fc285735ef99577e81a125f738429516161ac33977e466d0d8d40764"
+checksum = "1747e9bde0e06cdfa780fcba909df1fa220f82421ead1fd4a93427763d2cbda6"
 dependencies = [
+ "memchr",
  "regex",
- "thiserror 1.0.69",
 ]
 
 [[package]]
