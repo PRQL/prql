@@ -218,10 +218,18 @@ fn translate_exclude(
         .collect_vec();
 
     Some(match supported {
-        ColumnExclude::Exclude => WildcardAdditionalOptions {
-            opt_exclude: Some(ExcludeSelectItem::Multiple(excluded)),
-            ..Default::default()
-        },
+        ColumnExclude::Exclude => {
+            let excluded_object_names = excluded
+                .into_iter()
+                .map(|ident| {
+                    ObjectName(vec![sqlparser::ast::ObjectNamePart::Identifier(ident)])
+                })
+                .collect();
+            WildcardAdditionalOptions {
+                opt_exclude: Some(ExcludeSelectItem::Multiple(excluded_object_names)),
+                ..Default::default()
+            }
+        }
         ColumnExclude::Except => WildcardAdditionalOptions {
             opt_except: Some(ExceptSelectItem {
                 first_element: excluded.remove(0),
