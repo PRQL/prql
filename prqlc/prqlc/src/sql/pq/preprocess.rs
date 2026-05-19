@@ -32,9 +32,8 @@ pub(in crate::sql) fn preprocess(
         .and_then(|p| except(p, ctx))
         .and_then(|p| intersect(p, ctx))
         .map(reorder)
-        .map(|p| {
+        .inspect(|p| {
             debug::log_entry(|| debug::DebugEntryKind::ReprPqEarly(p.clone()));
-            p
         })
 }
 
