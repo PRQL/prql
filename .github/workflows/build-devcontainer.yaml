@@ -51,7 +51,7 @@ jobs:
 
       - name: Build and push by digest
         id: build
-        uses: docker/build-push-action@v6
+        uses: docker/build-push-action@v7
         timeout-minutes: 240
         with:
           context: .devcontainer/base-image
@@ -65,7 +65,7 @@ jobs:
 
       # Smoke test: build local image and verify tools work
       - name: Build local image for smoke test
-        uses: docker/build-push-action@v6
+        uses: docker/build-push-action@v7
         with:
           context: .devcontainer/base-image
           build-args: cargo_crates=${{ env.cargo_crates }}
