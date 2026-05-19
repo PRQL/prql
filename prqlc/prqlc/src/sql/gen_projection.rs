@@ -221,9 +221,7 @@ fn translate_exclude(
         ColumnExclude::Exclude => {
             let excluded_object_names = excluded
                 .into_iter()
-                .map(|ident| {
-                    ObjectName(vec![sqlparser::ast::ObjectNamePart::Identifier(ident)])
-                })
+                .map(|ident| ObjectName(vec![sqlparser::ast::ObjectNamePart::Identifier(ident)]))
                 .collect();
             WildcardAdditionalOptions {
                 opt_exclude: Some(ExcludeSelectItem::Multiple(excluded_object_names)),
