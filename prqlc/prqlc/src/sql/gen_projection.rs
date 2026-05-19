@@ -219,10 +219,7 @@ fn translate_exclude(
 
     Some(match supported {
         ColumnExclude::Exclude => {
-            let excluded_object_names = excluded
-                .into_iter()
-                .map(|ident| ObjectName(vec![sqlparser::ast::ObjectNamePart::Identifier(ident)]))
-                .collect();
+            let excluded_object_names = excluded.into_iter().map(ObjectName::from).collect();
             WildcardAdditionalOptions {
                 opt_exclude: Some(ExcludeSelectItem::Multiple(excluded_object_names)),
                 ..Default::default()
