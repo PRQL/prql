@@ -1,4 +1,3 @@
-# Testing Claude commit capability
 defmodule PRQL.MixProject do
   use Mix.Project
 
