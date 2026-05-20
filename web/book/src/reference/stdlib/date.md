@@ -74,7 +74,7 @@ select (event_time | date.trunc "day")
 
 ```
 
-### `to_start_of_interval`
+### `floor`
 
 Truncates a timestamp to the start of a fixed interval.
 
@@ -91,7 +91,7 @@ Truncates a timestamp to the start of a fixed interval.
 prql target:sql.postgres
 
 from events
-select (event_time | date.to_start_of_interval 15 minute)
+select (event_time | date.floor 15 minute)
 
 ```
 

@@ -1,7 +1,7 @@
 ---
 source: web/book/tests/documentation/book.rs
 assertion_line: 75
-expression: "prql target:sql.postgres\n\nfrom events\nselect (event_time | date.to_start_of_interval 15 minute)\n\n"
+expression: "prql target:sql.postgres\n\nfrom events\nselect (event_time | date.floor 15 minute)\n\n"
 ---
 SELECT
   date_bin(

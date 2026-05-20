@@ -382,21 +382,21 @@ fn date_trunc_unsupported_dialects() {
 }
 
 #[test]
-fn date_to_start_of_interval_unsupported_dialects() {
+fn date_floor_unsupported_dialects() {
     assert!(compile_with_sql_dialect(
-        "from events | select (event_time | date.to_start_of_interval 15 minute)",
+    "from events | select (event_time | date.floor 15 minute)",
         sql::Dialect::SQLite
     )
     .is_err());
 
     assert!(compile_with_sql_dialect(
-        "from events | select (event_time | date.to_start_of_interval 15 minute)",
+    "from events | select (event_time | date.floor 15 minute)",
         sql::Dialect::MySql
     )
     .is_err());
 
     assert!(compile_with_sql_dialect(
-        "from events | select (event_time | date.to_start_of_interval 15 minute)",
+    "from events | select (event_time | date.floor 15 minute)",
         sql::Dialect::MsSql
     )
     .is_err());
@@ -466,11 +466,11 @@ FROM
     sql::Dialect::BigQuery,
     "SELECT\n  TIMESTAMP_BUCKET(\n    CAST(event_time AS TIMESTAMP),\n    INTERVAL 15 minute\n  )\nFROM\n  events\n"
 )]
-fn date_to_start_of_interval_operator(
+fn date_floor_operator(
     #[case] dialect: sql::Dialect,
     #[case] expected_sql: &'static str,
 ) {
-    let query = "from events | select (event_time | date.to_start_of_interval 15 minute)";
+  let query = "from events | select (event_time | date.floor 15 minute)";
 
     assert_eq!(
         compile_with_sql_dialect(query, dialect).unwrap(),
