@@ -26,7 +26,7 @@ fn line_wrap() {
 
     // Basic line wrap test
     assert_debug_snapshot!(test_line_wrap_tokens(r"5 +
-    \ 3 "), @r"
+    \ 3 "), @"
     Tokens(
         [
             0..1: Literal(Integer(5)),
@@ -77,7 +77,7 @@ fn debug_display() {
         Tokens(lexer().parse(input).output().unwrap().to_vec())
     }
 
-    assert_debug_snapshot!(test_tokens("5 + 3"), @r"
+    assert_debug_snapshot!(test_tokens("5 + 3"), @"
     Tokens(
         [
             0..1: Literal(Integer(5)),
@@ -221,7 +221,7 @@ fn range() {
         Tokens(lexer().parse(input).output().unwrap().to_vec())
     }
 
-    assert_debug_snapshot!(test_range_tokens("1..2"), @r"
+    assert_debug_snapshot!(test_range_tokens("1..2"), @"
     Tokens(
         [
             0..1: Literal(Integer(1)),
@@ -231,7 +231,7 @@ fn range() {
     )
     ");
 
-    assert_debug_snapshot!(test_range_tokens("..2"), @r"
+    assert_debug_snapshot!(test_range_tokens("..2"), @"
     Tokens(
         [
             0..2: Range { bind_left: true, bind_right: true },
@@ -240,7 +240,7 @@ fn range() {
     )
     ");
 
-    assert_debug_snapshot!(test_range_tokens("1.."), @r"
+    assert_debug_snapshot!(test_range_tokens("1.."), @"
     Tokens(
         [
             0..1: Literal(Integer(1)),
@@ -267,7 +267,7 @@ fn range() {
 fn test_lex_source() {
     use insta::assert_debug_snapshot;
 
-    assert_debug_snapshot!(lex_source("5 + 3"), @r"
+    assert_debug_snapshot!(lex_source("5 + 3"), @"
     Ok(
         Tokens(
             [
@@ -291,20 +291,20 @@ fn test_annotation_tokens() {
     // Test basic annotation token
     let result = super::lex_source("@{binding_strength=1}");
     assert_debug_snapshot!(result, @r#"
-        Ok(
-            Tokens(
-                [
-                    0..0: Start,
-                    0..1: Annotate,
-                    1..2: Control('{'),
-                    2..18: Ident("binding_strength"),
-                    18..19: Control('='),
-                    19..20: Literal(Integer(1)),
-                    20..21: Control('}'),
-                ],
-            ),
-        )
-        "#);
+    Ok(
+        Tokens(
+            [
+                0..0: Start,
+                0..1: Annotate,
+                1..2: Control('{'),
+                2..18: Ident("binding_strength"),
+                18..19: Control('='),
+                19..20: Literal(Integer(1)),
+                20..21: Control('}'),
+            ],
+        ),
+    )
+    "#);
 
     // Test multi-line annotation
     let result = super::lex_source(
@@ -314,32 +314,32 @@ fn test_annotation_tokens() {
         "#,
     );
     assert_debug_snapshot!(result, @r#"
-        Ok(
-            Tokens(
-                [
-                    0..0: Start,
-                    0..1: NewLine,
-                    9..10: Annotate,
-                    10..11: Control('{'),
-                    11..27: Ident("binding_strength"),
-                    27..28: Control('='),
-                    28..29: Literal(Integer(1)),
-                    29..30: Control('}'),
-                    30..31: NewLine,
-                    39..42: Keyword("let"),
-                    43..46: Ident("add"),
-                    47..48: Control('='),
-                    49..50: Ident("a"),
-                    51..52: Ident("b"),
-                    53..55: ArrowThin,
-                    56..57: Ident("a"),
-                    58..59: Control('+'),
-                    60..61: Ident("b"),
-                    61..62: NewLine,
-                ],
-            ),
-        )
-        "#);
+    Ok(
+        Tokens(
+            [
+                0..0: Start,
+                0..1: NewLine,
+                9..10: Annotate,
+                10..11: Control('{'),
+                11..27: Ident("binding_strength"),
+                27..28: Control('='),
+                28..29: Literal(Integer(1)),
+                29..30: Control('}'),
+                30..31: NewLine,
+                39..42: Keyword("let"),
+                43..46: Ident("add"),
+                47..48: Control('='),
+                49..50: Ident("a"),
+                51..52: Ident("b"),
+                53..55: ArrowThin,
+                56..57: Ident("a"),
+                58..59: Control('+'),
+                60..61: Ident("b"),
+                61..62: NewLine,
+            ],
+        ),
+    )
+    "#);
 }
 
 #[test]

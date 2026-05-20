@@ -778,7 +778,7 @@ mod test {
 
         let sql_ast = crate::tests::compile(query).unwrap();
 
-        assert_snapshot!(sql_ast, @r"
+        assert_snapshot!(sql_ast, @"
         WITH table_0 AS (
           SELECT
             title,
@@ -819,7 +819,7 @@ mod test {
 
         let sql_ast = crate::tests::compile(query).unwrap();
 
-        assert_snapshot!(sql_ast, @r"
+        assert_snapshot!(sql_ast, @"
         WITH table_0 AS (
           SELECT
             *,
@@ -845,7 +845,7 @@ mod test {
         filter (average bar) > 3
         "#;
 
-        assert_snapshot!(crate::tests::compile(query).unwrap(), @r"
+        assert_snapshot!(crate::tests::compile(query).unwrap(), @"
         WITH table_0 AS (
           SELECT
             *,
@@ -873,7 +873,7 @@ mod test {
         aggregate {c=count this}
         "#;
 
-        assert_snapshot!(crate::tests::compile(query).unwrap(), @r"
+        assert_snapshot!(crate::tests::compile(query).unwrap(), @"
         WITH table_0 AS (
           SELECT
             DISTINCT ON (id, name) *

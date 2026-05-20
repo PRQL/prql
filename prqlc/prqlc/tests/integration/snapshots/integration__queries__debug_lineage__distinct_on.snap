@@ -10,22 +10,22 @@ frames:
       name:
       - tracks
       - genre_id
-      target_id: 128
+      target_id: 127
       target_name: null
     - !Single
       name:
       - tracks
       - media_type_id
-      target_id: 129
+      target_id: 128
       target_name: null
     - !Single
       name:
       - tracks
       - album_id
-      target_id: 130
+      target_id: 129
       target_name: null
     inputs:
-    - id: 126
+    - id: 125
       name: tracks
       table:
       - default_db
@@ -36,22 +36,22 @@ frames:
       name:
       - tracks
       - genre_id
-      target_id: 133
+      target_id: 132
       target_name: null
     - !Single
       name:
       - tracks
       - media_type_id
-      target_id: 134
+      target_id: 133
       target_name: null
     - !Single
       name:
       - tracks
       - album_id
-      target_id: 130
+      target_id: 129
       target_name: null
     inputs:
-    - id: 126
+    - id: 125
       name: tracks
       table:
       - default_db
@@ -62,35 +62,35 @@ frames:
       name:
       - tracks
       - genre_id
-      target_id: 133
+      target_id: 132
       target_name: null
     - !Single
       name:
       - tracks
       - media_type_id
-      target_id: 134
+      target_id: 133
       target_name: null
     - !Single
       name:
       - tracks
       - album_id
-      target_id: 130
+      target_id: 129
       target_name: null
     inputs:
-    - id: 126
+    - id: 125
       name: tracks
       table:
       - default_db
       - tracks
 nodes:
-- id: 126
+- id: 125
   kind: Ident
   span: 1:13-24
   ident: !Ident
   - default_db
   - tracks
-  parent: 132
-- id: 128
+  parent: 131
+- id: 127
   kind: Ident
   span: 1:33-41
   ident: !Ident
@@ -98,9 +98,9 @@ nodes:
   - tracks
   - genre_id
   targets:
-  - 126
-  parent: 131
-- id: 129
+  - 125
+  parent: 130
+- id: 128
   kind: Ident
   span: 1:43-56
   ident: !Ident
@@ -108,9 +108,9 @@ nodes:
   - tracks
   - media_type_id
   targets:
-  - 126
-  parent: 131
-- id: 130
+  - 125
+  parent: 130
+- id: 129
   kind: Ident
   span: 1:58-66
   ident: !Ident
@@ -118,24 +118,24 @@ nodes:
   - tracks
   - album_id
   targets:
-  - 126
-  parent: 131
-- id: 131
+  - 125
+  parent: 130
+- id: 130
   kind: Tuple
   span: 1:32-67
   children:
+  - 127
   - 128
   - 129
-  - 130
-  parent: 132
-- id: 132
+  parent: 131
+- id: 131
   kind: 'TransformCall: Select'
   span: 1:25-67
   children:
-  - 126
-  - 131
-  parent: 164
-- id: 133
+  - 125
+  - 130
+  parent: 163
+- id: 132
   kind: Ident
   span: 1:75-83
   ident: !Ident
@@ -143,9 +143,9 @@ nodes:
   - tracks
   - genre_id
   targets:
-  - 128
-  parent: 135
-- id: 134
+  - 127
+  parent: 134
+- id: 133
   kind: Ident
   span: 1:85-98
   ident: !Ident
@@ -153,15 +153,15 @@ nodes:
   - tracks
   - media_type_id
   targets:
-  - 129
-  parent: 135
-- id: 135
+  - 128
+  parent: 134
+- id: 134
   kind: Tuple
   span: 1:74-99
   children:
+  - 132
   - 133
-  - 134
-- id: 160
+- id: 159
   kind: Ident
   span: 1:108-116
   ident: !Ident
@@ -169,18 +169,18 @@ nodes:
   - tracks
   - album_id
   targets:
-  - 130
-- id: 164
+  - 129
+- id: 163
   kind: 'TransformCall: Take'
   span: 1:120-126
   children:
-  - 132
-  - 165
-  parent: 173
-- id: 165
+  - 131
+  - 164
+  parent: 172
+- id: 164
   kind: Literal
-  parent: 164
-- id: 170
+  parent: 163
+- id: 169
   kind: Ident
   span: 1:135-143
   ident: !Ident
@@ -188,9 +188,9 @@ nodes:
   - tracks
   - genre_id
   targets:
-  - 133
-  parent: 173
-- id: 171
+  - 132
+  parent: 172
+- id: 170
   kind: Ident
   span: 1:145-158
   ident: !Ident
@@ -198,15 +198,15 @@ nodes:
   - tracks
   - media_type_id
   targets:
-  - 134
-  parent: 173
-- id: 173
+  - 133
+  parent: 172
+- id: 172
   kind: 'TransformCall: Sort'
   span: 1:128-159
   children:
-  - 164
+  - 163
+  - 169
   - 170
-  - 171
 ast:
   name: Project
   stmts:

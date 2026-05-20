@@ -320,13 +320,14 @@ fn test_admonition() -> Result<()> {
 > This is a warning.
 "#;
 
-    assert_snapshot!(replace_examples(md)?, @r#"
+    assert_snapshot!(replace_examples(md)?, @"
+
     > [!NOTE]
     > This is a note.
 
     > [!WARNING]
     > This is a warning.
-    "#);
+    ");
 
     Ok(())
 }

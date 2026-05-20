@@ -708,7 +708,7 @@ sort full
             "",
         );
 
-        assert_snapshot!(&result.unwrap_err().to_string(), @r"
+        assert_snapshot!(&result.unwrap_err().to_string(), @"
         Error:
            ╭─[ :1:1 ]
            │
@@ -742,7 +742,7 @@ sort full
             "main",
         )
         .unwrap();
-        assert_snapshot!(String::from_utf8(result).unwrap().trim(), @r"
+        assert_snapshot!(String::from_utf8(result).unwrap().trim(), @"
         WITH x AS (
           SELECT
             y,
@@ -769,7 +769,7 @@ sort full
         )
         .unwrap();
 
-        assert_snapshot!(String::from_utf8(output).unwrap().trim(), @r"
+        assert_snapshot!(String::from_utf8(output).unwrap().trim(), @"
         name: Project
         stmts:
         - VarDef:
@@ -816,7 +816,7 @@ sort full
 
         // TODO: terser output; maybe serialize span as `0..4`? Remove the
         // `!Ident` complication?
-        assert_snapshot!(String::from_utf8(output).unwrap().trim(), @r"
+        assert_snapshot!(String::from_utf8(output).unwrap().trim(), @"
         - kind: Start
           span:
             start: 0
@@ -859,7 +859,7 @@ sort full
         )
         .unwrap();
 
-        assert_snapshot!(String::from_utf8(output).unwrap().trim(), @r"
+        assert_snapshot!(String::from_utf8(output).unwrap().trim(), @"
         - kind: Start
           span:
             start: 0

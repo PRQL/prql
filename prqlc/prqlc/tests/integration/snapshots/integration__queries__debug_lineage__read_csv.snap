@@ -7,77 +7,77 @@ frames:
 - - 1:92-144
   - columns:
     - !All
-      input_id: 126
+      input_id: 125
       except: []
     inputs:
-    - id: 126
-      name: _literal_126
+    - id: 125
+      name: _literal_125
       table:
       - default_db
-      - _literal_126
-    - id: 121
-      name: _literal_121
+      - _literal_125
+    - id: 120
+      name: _literal_120
       table:
       - default_db
-      - _literal_121
+      - _literal_120
 - - 1:145-163
   - columns:
     - !All
-      input_id: 126
+      input_id: 125
       except: []
     inputs:
-    - id: 126
-      name: _literal_126
+    - id: 125
+      name: _literal_125
       table:
       - default_db
-      - _literal_126
-    - id: 121
-      name: _literal_121
+      - _literal_125
+    - id: 120
+      name: _literal_120
       table:
       - default_db
-      - _literal_121
+      - _literal_120
 nodes:
-- id: 121
+- id: 120
   kind: RqOperator
   span: 1:100-143
   targets:
-  - 123
-  parent: 130
-- id: 123
+  - 122
+  parent: 129
+- id: 122
   kind: Literal
   span: 1:110-143
-- id: 126
+- id: 125
   kind: RqOperator
   span: 1:43-91
   targets:
-  - 128
-  parent: 130
-- id: 128
+  - 127
+  parent: 129
+- id: 127
   kind: Literal
   span: 1:58-90
-- id: 130
+- id: 129
   kind: 'TransformCall: Append'
   span: 1:92-144
   children:
-  - 126
-  - 121
-  parent: 133
-- id: 131
+  - 125
+  - 120
+  parent: 132
+- id: 130
   kind: Ident
   span: 1:150-163
   ident: !Ident
   - this
-  - _literal_126
+  - _literal_125
   - media_type_id
   targets:
-  - 126
-  parent: 133
-- id: 133
+  - 125
+  parent: 132
+- id: 132
   kind: 'TransformCall: Sort'
   span: 1:145-163
   children:
+  - 129
   - 130
-  - 131
 ast:
   name: Project
   stmts:

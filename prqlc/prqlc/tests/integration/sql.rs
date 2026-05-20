@@ -6054,13 +6054,13 @@ fn test_select_this() {
     select this
         "###,
     )
-    .unwrap(), @r###"
+    .unwrap(), @"
     SELECT
       a,
       b
     FROM
       x
-    "###);
+    ");
 }
 
 #[test]
@@ -6072,13 +6072,13 @@ fn test_select_this_wildcard() {
     select this.*
         "###,
     )
-    .unwrap(), @r###"
+    .unwrap(), @"
     SELECT
       a,
       b
     FROM
       x
-    "###);
+    ");
 }
 
 #[test]
@@ -6090,7 +6090,7 @@ fn test_sort_this_wildcard() {
     sort this.*
         "###,
     )
-    .unwrap(), @r###"
+    .unwrap(), @"
     SELECT
       a,
       b
@@ -6099,7 +6099,7 @@ fn test_sort_this_wildcard() {
     ORDER BY
       a,
       b
-    "###);
+    ");
 }
 
 #[test]
@@ -6295,14 +6295,14 @@ select {
         "###,
     )
     .unwrap(), @"
-SELECT
-  4 + 1 + 2 + 3 AS with_initial,
-  4 + 3 AS with_initial_one,
-  4 AS with_initial_zero,
-  1 + 2 + 3 AS no_initial,
-  3 AS no_initial_one
-FROM
-  foo
+    SELECT
+      4 + 1 + 2 + 3 AS with_initial,
+      4 + 3 AS with_initial_one,
+      4 AS with_initial_zero,
+      1 + 2 + 3 AS no_initial,
+      3 AS no_initial_one
+    FROM
+      foo
     ");
 }
 
@@ -6315,7 +6315,7 @@ select {
   no_initial_err = tuple_reduce add {}
 }
 "###,
-    ).unwrap_err(), @r###"
+    ).unwrap_err(), @"
     Error:
        ╭─[ :4:37 ]
        │
@@ -6325,7 +6325,7 @@ select {
        │
        │ Help: try adding an initial:<value> parameter
     ───╯
-    "###);
+    ");
 }
 
 #[test]
