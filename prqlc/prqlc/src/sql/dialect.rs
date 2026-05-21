@@ -316,7 +316,7 @@ impl DialectHandler for PostgresDialect {
     }
 
     // https://www.postgresql.org/docs/current/functions-formatting.html
-    fn translate_chrono_item<'a>(&self, item: Item) -> Result<String> {
+    fn translate_chrono_item(&self, item: Item) -> Result<String> {
         Ok(match item {
             Item::Numeric(Numeric::Year, Pad::Zero) => "YYYY".to_string(),
             Item::Numeric(Numeric::YearMod100, Pad::Zero) => "YY".to_string(),
@@ -385,7 +385,7 @@ impl DialectHandler for RedshiftDialect {
     }
 
     // https://docs.aws.amazon.com/redshift/latest/dg/r_FORMAT_strings.html
-    fn translate_chrono_item<'a>(&self, item: Item) -> Result<String> {
+    fn translate_chrono_item(&self, item: Item) -> Result<String> {
         Ok(match item {
             Item::Numeric(Numeric::Year, Pad::Zero) => "YYYY".to_string(),
             Item::Numeric(Numeric::YearMod100, Pad::Zero) => "YY".to_string(),
@@ -480,7 +480,7 @@ impl DialectHandler for MsSqlDialect {
     }
 
     // https://learn.microsoft.com/en-us/dotnet/standard/base-types/custom-date-and-time-format-strings
-    fn translate_chrono_item<'a>(&self, item: Item) -> Result<String> {
+    fn translate_chrono_item(&self, item: Item) -> Result<String> {
         Ok(match item {
             Item::Numeric(Numeric::Year, Pad::Zero) => "yyyy".to_string(),
             Item::Numeric(Numeric::YearMod100, Pad::Zero) => "yy".to_string(),
@@ -536,7 +536,7 @@ impl DialectHandler for MySqlDialect {
     }
 
     // https://dev.mysql.com/doc/refman/8.0/en/date-and-time-functions.html#function_date-format
-    fn translate_chrono_item<'a>(&self, item: Item) -> Result<String> {
+    fn translate_chrono_item(&self, item: Item) -> Result<String> {
         Ok(match item {
             Item::Numeric(Numeric::Year, Pad::Zero) => "%Y".to_string(),
             Item::Numeric(Numeric::YearMod100, Pad::Zero) => "%y".to_string(),
@@ -577,7 +577,7 @@ impl DialectHandler for ClickHouseDialect {
     }
 
     // https://clickhouse.com/docs/en/sql-reference/functions/date-time-functions#formatDateTimeInJodaSyntax
-    fn translate_chrono_item<'a>(&self, item: Item) -> Result<String> {
+    fn translate_chrono_item(&self, item: Item) -> Result<String> {
         Ok(match item {
             Item::Numeric(Numeric::Year, Pad::Zero) => "yyyy".to_string(),
             Item::Numeric(Numeric::YearMod100, Pad::Zero) => "yy".to_string(),
@@ -637,7 +637,7 @@ impl DialectHandler for BigQueryDialect {
     }
 
     // https://cloud.google.com/bigquery/docs/reference/standard-sql/format-elements#format_elements_date_time
-    fn translate_chrono_item<'a>(&self, item: Item) -> Result<String> {
+    fn translate_chrono_item(&self, item: Item) -> Result<String> {
         Ok(match item {
             Item::Numeric(Numeric::Year, Pad::Zero) => "%Y".to_string(),
             Item::Numeric(Numeric::YearMod100, Pad::Zero) => "%y".to_string(),
@@ -711,7 +711,7 @@ impl DialectHandler for DuckDbDialect {
     }
 
     // https://duckdb.org/docs/sql/functions/dateformat
-    fn translate_chrono_item<'a>(&self, item: Item) -> Result<String> {
+    fn translate_chrono_item(&self, item: Item) -> Result<String> {
         Ok(match item {
             Item::Numeric(Numeric::Year, Pad::Zero) => "%Y".to_string(),
             Item::Numeric(Numeric::YearMod100, Pad::Zero) => "%y".to_string(),
