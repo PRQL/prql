@@ -13,7 +13,7 @@ use walkdir::WalkDir;
 #[cfg(not(windows))] // Windows has slightly different output (e.g. `prqlc.exe`), so we exclude.
 #[test]
 fn help() {
-    assert_cmd_snapshot!(prqlc_command().arg("--help"), @r"
+    assert_cmd_snapshot!(prqlc_command().arg("--help"), @"
     success: true
     exit_code: 0
     ----- stdout -----
@@ -42,7 +42,7 @@ fn help() {
     ");
 
     // without arguments
-    assert_cmd_snapshot!(prqlc_command(), @r"
+    assert_cmd_snapshot!(prqlc_command(), @"
     success: true
     exit_code: 0
     ----- stdout -----
@@ -73,7 +73,7 @@ fn help() {
 
 #[test]
 fn get_targets() {
-    assert_cmd_snapshot!(prqlc_command().arg("list-targets"), @r"
+    assert_cmd_snapshot!(prqlc_command().arg("list-targets"), @"
     success: true
     exit_code: 0
     ----- stdout -----
@@ -100,7 +100,7 @@ fn get_targets() {
 fn compile() {
     assert_cmd_snapshot!(prqlc_command()
         .args(["compile", "--hide-signature-comment"])
-        .pass_stdin("from tracks"), @r"
+        .pass_stdin("from tracks"), @"
     success: true
     exit_code: 0
     ----- stdout -----
@@ -116,7 +116,7 @@ fn compile() {
 #[cfg(not(windows))] // Windows has slightly different output (e.g. `prqlc.exe`), so we exclude.
 #[test]
 fn compile_help() {
-    assert_cmd_snapshot!(prqlc_command().args(["compile", "--help"]), @r"
+    assert_cmd_snapshot!(prqlc_command().args(["compile", "--help"]), @"
     success: true
     exit_code: 0
     ----- stdout -----
@@ -194,7 +194,7 @@ let long_query = (
   take 20
 )
 from long_query
-  "#), @r"
+  "#), @"
     success: true
     exit_code: 0
     ----- stdout -----
@@ -278,7 +278,7 @@ fn compile_project() {
         "main",
     ]);
 
-    assert_cmd_snapshot!(cmd, @r"
+    assert_cmd_snapshot!(cmd, @"
     success: true
     exit_code: 0
     ----- stdout -----
@@ -332,7 +332,7 @@ fn compile_project() {
         project_path().to_str().unwrap(),
         "-",
         "favorite_artists",
-    ]), @r"
+    ]), @"
     success: true
     exit_code: 0
     ----- stdout -----
@@ -359,7 +359,7 @@ fn compile_project() {
 #[test]
 fn format() {
     // Test stdin formatting
-    assert_cmd_snapshot!(prqlc_command().args(["fmt"]).pass_stdin("from tracks | take 20"), @r"
+    assert_cmd_snapshot!(prqlc_command().args(["fmt"]).pass_stdin("from tracks | take 20"), @"
     success: true
     exit_code: 0
     ----- stdout -----
@@ -604,7 +604,7 @@ fn normalize_prqlc(cmd: &mut Command) -> &mut Command {
 
 #[test]
 fn compile_no_prql_files() {
-    assert_cmd_snapshot!(prqlc_command().args(["compile", "README.md"]), @r"
+    assert_cmd_snapshot!(prqlc_command().args(["compile", "README.md"]), @"
     success: false
     exit_code: 1
     ----- stdout -----
@@ -616,7 +616,7 @@ fn compile_no_prql_files() {
 
 #[test]
 fn lex() {
-    assert_cmd_snapshot!(prqlc_command().args(["lex"]).pass_stdin("from tracks"), @r"
+    assert_cmd_snapshot!(prqlc_command().args(["lex"]).pass_stdin("from tracks"), @"
     success: true
     exit_code: 0
     ----- stdout -----

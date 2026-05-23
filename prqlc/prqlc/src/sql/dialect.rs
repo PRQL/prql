@@ -761,13 +761,13 @@ mod tests {
 
     #[test]
     fn test_dialect_from_str() {
-        assert_debug_snapshot!(Dialect::from_str("postgres"), @r"
+        assert_debug_snapshot!(Dialect::from_str("postgres"), @"
         Ok(
             Postgres,
         )
         ");
 
-        assert_debug_snapshot!(Dialect::from_str("foo"), @r"
+        assert_debug_snapshot!(Dialect::from_str("foo"), @"
         Err(
             VariantNotFound,
         )
@@ -876,8 +876,8 @@ mod tests {
     #[test]
     fn bigquery_translate_space() {
         let bq = BigQueryDialect;
-        assert_snapshot!(bq.translate_chrono_item(Item::Space(" ")).unwrap(), @" ");
-        assert_snapshot!(bq.translate_chrono_item(Item::Space("  ")).unwrap(), @"  ");
+        assert_snapshot!(bq.translate_chrono_item(Item::Space(" ")).unwrap(), @"");
+        assert_snapshot!(bq.translate_chrono_item(Item::Space("  ")).unwrap(), @"");
     }
 
     #[test]
