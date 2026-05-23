@@ -23,8 +23,8 @@ way is with our integrations:
   enables querying pandas dataframes, CSVs & Parquet files, and writing the
   output to a dataframe.
 - **[DuckDB extension](https://duckdb.org/community_extensions/extensions/prql)**
-  — is a DuckDB community extension which allows querying a DuckDB instance
-  with PRQL.
+  — is a DuckDB community extension which allows querying a DuckDB instance with
+  PRQL.
 
 It's also possible to query PRQL from your code with our [bindings](/#bindings)
 for R, Rust, Python & JS. For an example of using PRQL with DuckDB, check out
