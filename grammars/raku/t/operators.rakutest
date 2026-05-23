@@ -11,11 +11,11 @@ ok PRQL.parse('filter foo == bar');
 ok PRQL.parse('filter foo != bar');
 #query(pipeline(call-expression(identifier,arg-list(binary-expression(identifier,compare-op,identifier)))))
 
-# >= Greater than
+# >= Greater than or equal
 ok PRQL.parse('filter foo >= bar');
 #query(pipeline(call-expression(identifier,arg-list(binary-expression(identifier,compare-op,identifier)))))
 
-# <= Less than
+# <= Less than or equal
 ok PRQL.parse('filter foo <= bar');
 #query(pipeline(call-expression(identifier,arg-list(binary-expression(identifier,compare-op,identifier)))))
 
