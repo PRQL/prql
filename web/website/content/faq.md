@@ -22,8 +22,9 @@ way is with our integrations:
   magic. As well as connecting to existing DBs, our integration with DuckDB
   enables querying pandas dataframes, CSVs & Parquet files, and writing the
   output to a dataframe.
-- **[DuckDB extension](https://github.com/ywelsch/duckdb-prql)** — is a DuckDB
-  extension which allows querying a DuckDB instance with PRQL.
+- **[DuckDB extension](https://duckdb.org/community_extensions/extensions/prql)**
+  — is a DuckDB community extension which allows querying a DuckDB instance with
+  PRQL.
 
 It's also possible to query PRQL from your code with our [bindings](/#bindings)
 for R, Rust, Python & JS. For an example of using PRQL with DuckDB, check out
