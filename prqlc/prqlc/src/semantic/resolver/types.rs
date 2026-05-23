@@ -33,7 +33,6 @@ impl Resolver<'_> {
             ExprKind::TransformCall(_) => return Ok(None), // TODO
             ExprKind::Tuple(fields) => {
                 let mut ty_fields: Vec<TyTupleField> = Vec::with_capacity(fields.len());
-                let has_other = false;
 
                 for field in fields {
                     let ty = Resolver::infer_type(field)?;
@@ -55,9 +54,6 @@ impl Resolver<'_> {
                     ty_fields.push(TyTupleField::Single(name, ty));
                 }
 
-                if has_other {
-                    ty_fields.push(TyTupleField::Wildcard(None));
-                }
                 ty_tuple_kind(ty_fields)
             }
             ExprKind::Array(items) => {

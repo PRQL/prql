@@ -1027,7 +1027,9 @@ impl Lowerer {
                 if let Some((cid, _)) = input_columns.get(&name) {
                     *cid
                 } else {
-                    panic!("cannot find cid by id={id} and name={name:?}");
+                    return Err(Error::new_assert(format!(
+                        "cannot find cid by id={id} and name={name:?}"
+                    )));
                 }
             }
             None => {
