@@ -183,8 +183,8 @@ integrations_section:
         with a pandas DataFrame."
 
     - label: "DuckDB"
-      link: https://github.com/ywelsch/duckdb-prql
-      text: A DuckDB extension to execute PRQL
+      link: https://duckdb.org/community_extensions/extensions/prql
+      text: A DuckDB community extension to execute PRQL
 
     - label: "QStudio"
       link: https://www.timestored.com/qstudio/prql-ide
