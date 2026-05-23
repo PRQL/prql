@@ -1182,7 +1182,7 @@ mod tests {
         group invoice_no (
             take 1
         )
-        ").unwrap(), @r"
+        ").unwrap(), @"
         def:
           version: ~
           other: {}
@@ -1271,7 +1271,7 @@ mod tests {
         sort (-issued_at)
         sort {issued_at}
         sort {-issued_at}
-        ").unwrap(), @r"
+        ").unwrap(), @"
         def:
           version: ~
           other: {}

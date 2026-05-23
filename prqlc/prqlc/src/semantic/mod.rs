@@ -191,7 +191,7 @@ pub mod test {
         window range:-4..4 (
             derive {next_four_days = sum b}
         )
-        "###).unwrap().relation.columns, @r"
+        "###).unwrap().relation.columns, @"
         - Single: day
         - Single: b
         - Wildcard
@@ -205,7 +205,7 @@ pub mod test {
         from a=albums
         filter is_sponsored
         select {a.*}
-        "###).unwrap().relation.columns, @r"
+        "###).unwrap().relation.columns, @"
         - Single: is_sponsored
         - Wildcard
         ")
@@ -216,7 +216,7 @@ pub mod test {
         assert_yaml_snapshot!(parse_resolve_and_lower(r###"
         from x
         select {a, a, a = a + 1}
-        "###).unwrap().relation.columns, @r"
+        "###).unwrap().relation.columns, @"
         - Single: ~
         - Single: ~
         - Single: a
@@ -229,7 +229,7 @@ pub mod test {
         prql target:sql.mssql version:"0"
 
         from employees
-        "#).unwrap(), @r"
+        "#).unwrap(), @"
         def:
           version: ^0
           other:

@@ -570,7 +570,7 @@ mod tests {
 
     #[test]
     fn test_target_from_str() {
-        assert_debug_snapshot!(Target::from_str("sql.postgres"), @r"
+        assert_debug_snapshot!(Target::from_str("sql.postgres"), @"
         Ok(
             Sql(
                 Some(
