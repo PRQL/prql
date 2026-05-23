@@ -1,5 +1,6 @@
 package org.prql.prql4j;
 
+import org.junit.Assert;
 import org.junit.Test;
 
 public class PrqlCompilerTest {
@@ -14,7 +15,7 @@ public class PrqlCompilerTest {
                 "  *\n" +
                 "FROM\n" +
                 "  my_table";
-        assert expected.equalsIgnoreCase(found);
+        Assert.assertTrue(expected.equalsIgnoreCase(found));
     }
 
     @Test(expected = Exception.class)
