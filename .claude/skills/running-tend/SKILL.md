@@ -30,18 +30,19 @@ permission first) still applies when the target shows no agent signals.
 ## Background tasks
 
 When a Bash command exceeds its tool timeout, the harness auto-backgrounds it
-and the tool result reads `Command running in background with ID: bgXXXX.
-Output is being written to: …/bgXXXX.output. You will be notified when it
-completes.` The notification arrives as a `<task-notification>` user message
-— there is **no `.completed` marker file**, only the `.output` file.
+and the tool result reads
+`Command running in background with ID: bgXXXX. Output is being written to: …/bgXXXX.output. You will be notified when it completes.`
+The notification arrives as a `<task-notification>` user message — there is **no
+`.completed` marker file**, only the `.output` file.
 
-Do not start a `run_in_background: true` `until [ -f …/bgXXXX.completed ]; do
-sleep N; done` loop to wait for it. That loop polls forever (the marker never
-appears), and because it's running in background the session can't reap it.
-When the session ends, the orphan shell + sleep keep the runner alive until
-the workflow's `timeout-minutes` cap, which converts an otherwise successful
-run into `cancelled` (see [max-sixty/tend#594](https://github.com/max-sixty/tend/issues/594)
-for a 5h40m incident on this repo).
+Do not start a `run_in_background: true`
+`until [ -f …/bgXXXX.completed ]; do sleep N; done` loop to wait for it. That
+loop polls forever (the marker never appears), and because it's running in
+background the session can't reap it. When the session ends, the orphan shell +
+sleep keep the runner alive until the workflow's `timeout-minutes` cap, which
+converts an otherwise successful run into `cancelled` (see
+[max-sixty/tend#594](https://github.com/max-sixty/tend/issues/594) for a 5h40m
+incident on this repo).
 
 Instead: continue with other work after the auto-background. The task
 notification re-enters the session; act on it then.
