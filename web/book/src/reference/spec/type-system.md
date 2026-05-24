@@ -305,7 +305,7 @@ table foo {
 ```
 
 A similar example is an "array of strings type" in PTS that could be represented
-by a `text[]` (if DBMS supports arrays) or `json` or it's variant `jsonb` in
+by a `text[]` (if DBMS supports arrays) or `json` or its variant `jsonb` in
 Postgres. Again, the representation would affect operators: in Postgres, arrays
 would be accessed with `my_array[1]` and json arrays would use
 `my_json_array -> 1`. This example may not be applicable, if we decide that we
