@@ -9,6 +9,13 @@ disableKinds:
 
 enableGitInfo: true
 
+# Hugo v0.162.0 denies text/html content by default. Opt back in so
+# content/demos/ace-demo.html (a hand-authored standalone editor page)
+# continues to build. ['.*'] is the documented opt-in from the release notes.
+security:
+  allowContent:
+    - ".*"
+
 menu:
   nav:
     # TODO: Can we use the info from pages directly? https://gohugo.io/templates/menu-templates/#menu-entries-from-the-pages-front-matter
