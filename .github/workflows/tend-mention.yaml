@@ -195,7 +195,7 @@ jobs:
         env:
           EVENT_TS: ${{ github.event.comment.created_at || github.event.review.submitted_at || github.event.issue.updated_at }}
 
-      - uses: max-sixty/tend@0.1.1
+      - uses: max-sixty/tend@0.1.2
         with:
           github_token: ${{ secrets.TEND_BOT_TOKEN }}
           claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
