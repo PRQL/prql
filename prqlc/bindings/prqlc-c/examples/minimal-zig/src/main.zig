@@ -9,8 +9,7 @@ pub fn main() !void {
     const options = prql.Options{
         .format = false,
         .signature_comment = false,
-        //.target = &target,
-        .target = &target
+        .target = &target,
     };
 
     // Compile the PRQL query

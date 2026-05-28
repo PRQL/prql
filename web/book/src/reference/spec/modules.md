@@ -90,7 +90,7 @@ module my_playlists {
     module upbeat_rock {
         let decl_3 = ...
 
-        from decl_1 | join soundtracks.decl2 | join decl_3
+        from decl_1 | join soundtracks.decl_2 | join decl_3
     }
 }
 ```

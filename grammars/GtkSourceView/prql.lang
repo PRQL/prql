@@ -307,7 +307,7 @@
 
     <context id="single-quoted-r-string" style-ref="string" end-at-line-end="true" class="string" class-disabled="no-spell-check">
       <start>r'</start>
-      <end>r'</end>
+      <end>'</end>
       <include>
         <context ref="def:line-continue"/>
       </include>

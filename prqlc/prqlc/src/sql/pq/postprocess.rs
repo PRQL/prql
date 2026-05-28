@@ -1,6 +1,7 @@
 //! An AST pass after compilation to PQ.
 //!
-//! Currently only moves [SqlTransform::Sort]s.
+//! Infers and propagates [SqlTransform::Sort]s through pipelines and assigns
+//! human-readable names to CTEs and relation variables.
 
 use std::collections::{HashMap, HashSet, VecDeque};
 
