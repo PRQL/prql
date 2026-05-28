@@ -76,7 +76,7 @@ jobs:
               - .github/workflows/check-links-book.yaml
               - web/book/**
             dotnet:
-              - prqlc/bindings/prql-dotnet/**
+              - prqlc/bindings/dotnet/**
               - prqlc/bindings/prqlc-c/**
               - .github/workflows/test-dotnet.yaml
             devcontainer-push:
