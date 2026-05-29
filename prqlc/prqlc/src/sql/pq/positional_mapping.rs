@@ -96,10 +96,8 @@ pub fn compute_positional_mappings(
     for transform in pipeline {
         match transform {
             SqlTransform::Super(s) => match s {
-                Transform::Compute(Compute { id, .. }) => {
-                    if !columns.contains(id) {
-                        add_columns(&mut columns, &[*id]);
-                    }
+                Transform::Compute(Compute { id, .. }) if !columns.contains(id) => {
+                    add_columns(&mut columns, &[*id]);
                 }
                 Transform::Select(cids) => {
                     columns.clear();
