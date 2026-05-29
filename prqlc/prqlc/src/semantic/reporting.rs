@@ -322,7 +322,7 @@ impl PlFold for FrameCollector {
             });
         }
 
-        self.nodes.sort_by(|a, b| a.id.cmp(&b.id));
+        self.nodes.sort_by_key(|a| a.id);
         self.nodes.dedup();
 
         if matches!(expr.kind, pl::ExprKind::TransformCall(_)) {
