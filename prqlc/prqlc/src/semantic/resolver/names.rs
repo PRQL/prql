@@ -16,15 +16,14 @@ impl Resolver<'_> {
         let mut res = if let Some(default_namespace) = self.default_namespace.clone() {
             self.resolve_ident_core(ident, Some(&default_namespace))
         } else {
-            let mut ident = ident.clone().prepend(self.current_module_path.clone());
-
-            let mut res = self.resolve_ident_core(&ident, None);
-            for _ in 0..self.current_module_path.len() {
-                if res.is_ok() {
-                    break;
-                }
-                ident = ident.pop_front().1.unwrap();
-                res = self.resolve_ident_core(&ident, None);
+            // Walk up the module hierarchy: start with the fully-qualified
+            // path (current_module_path + ident), then strip the innermost
+            // ancestor segment on each retry until the prefix is empty.
+            let mut prefix = self.current_module_path.clone();
+            let mut res = self.resolve_ident_core(&ident.clone().prepend(prefix.clone()), None);
+            while res.is_err() && !prefix.is_empty() {
+                prefix.pop();
+                res = self.resolve_ident_core(&ident.clone().prepend(prefix.clone()), None);
             }
             res
         };

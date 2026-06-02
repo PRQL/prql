@@ -6176,6 +6176,67 @@ fn test_table_declarations() {
 }
 
 #[test]
+fn test_module_resolves_bare_name_from_ancestor() {
+    // https://github.com/PRQL/prql/issues/5975
+    // Bare references inside a nested module should resolve against ancestor
+    // modules, per the spec's "step up the parent module" rule.
+    assert_snapshot!(compile(
+        r###"
+    module a {
+      module b {
+        let bar = 3
+        module c {
+          let scaled = bar * 2
+        }
+      }
+    }
+    from u | derive {x = a.b.c.scaled}
+        "###,
+    )
+    .unwrap(), @"
+    SELECT
+      *,
+      3 * 2 AS x
+    FROM
+      u
+    ");
+}
+
+#[test]
+fn test_module_does_not_pick_up_unrelated_root_sibling() {
+    // https://github.com/PRQL/prql/issues/5975
+    // A bare name inside `a.b.c` must not silently resolve to a root-level
+    // `b.c.bar` just because the path tail matches.
+    assert_snapshot!(compile(
+        r###"
+    module b {
+      module c {
+        let bar = 99
+      }
+    }
+    module a {
+      module b {
+        module c {
+          let scaled = bar * 2
+        }
+      }
+    }
+    from u | derive {x = a.b.c.scaled}
+        "###,
+    )
+    .unwrap_err()
+    .to_string(), @r"
+    Error:
+        ╭─[ :10:24 ]
+        │
+     10 │           let scaled = bar * 2
+        │                        ─┬─
+        │                         ╰─── Unknown name `bar`
+    ────╯
+    ");
+}
+
+#[test]
 fn test_param_declarations() {
     assert_snapshot!(compile(
         r###"
