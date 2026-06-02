@@ -19,11 +19,15 @@ impl Resolver<'_> {
             // Walk up the module hierarchy: start with the fully-qualified
             // path (current_module_path + ident), then strip the innermost
             // ancestor segment on each retry until the prefix is empty.
-            let mut prefix = self.current_module_path.clone();
-            let mut res = self.resolve_ident_core(&ident.clone().prepend(prefix.clone()), None);
-            while res.is_err() && !prefix.is_empty() {
-                prefix.pop();
-                res = self.resolve_ident_core(&ident.clone().prepend(prefix.clone()), None);
+            let prefix_len = self.current_module_path.len();
+            let mut full = ident.clone().prepend(self.current_module_path.clone());
+            let mut res = self.resolve_ident_core(&full, None);
+            for i in (0..prefix_len).rev() {
+                if res.is_ok() {
+                    break;
+                }
+                full.path.remove(i);
+                res = self.resolve_ident_core(&full, None);
             }
             res
         };
