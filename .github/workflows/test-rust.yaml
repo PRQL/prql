@@ -183,12 +183,9 @@ jobs:
         uses: clechasseur/rs-cargo@v4
         with:
           command: doc
-          # Only run with deps on nightly, since it's much slower, and so far™
-          # we haven't seen any errors.
           args:
             --target=${{ inputs.target }} --no-default-features --features=${{
-            inputs.features }} ${{ inputs.nightly != 'true' && '--no-deps' || ''
-            }}
+            inputs.features }}
       - name: Build extra targets for cache
         # When building the cache, we also run with `--all-targets` so that
         # prqlc builds can use the same cache.
