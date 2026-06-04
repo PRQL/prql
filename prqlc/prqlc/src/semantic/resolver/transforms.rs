@@ -356,7 +356,7 @@ impl Resolver<'_> {
                     .into_iter()
                     .map(|item| {
                         self.fold_expr(Expr {
-                            alias: item.clone().alias,
+                            alias: item.alias.clone(),
                             ..Expr::new(ExprKind::FuncCall(FuncCall::new_simple(
                                 func.clone(),
                                 vec![item],
