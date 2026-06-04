@@ -355,10 +355,13 @@ impl Resolver<'_> {
                 let list_items = list_items
                     .into_iter()
                     .map(|item| {
-                        self.fold_expr(Expr::new(ExprKind::FuncCall(FuncCall::new_simple(
-                            func.clone(),
-                            vec![item],
-                        ))))
+                        self.fold_expr(Expr {
+                            alias: item.clone().alias,
+                            ..Expr::new(ExprKind::FuncCall(FuncCall::new_simple(
+                                func.clone(),
+                                vec![item],
+                            )))
+                        })
                     })
                     .collect::<Result<Vec<_>>>()?;
 
