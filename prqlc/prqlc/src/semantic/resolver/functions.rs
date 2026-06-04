@@ -123,10 +123,13 @@ impl Resolver<'_> {
             // Get the missing params (params that don't have args yet)
             let missing = inner_closure.params[inner_closure.args.len()..].to_vec();
 
-            // Create wrapper params and add references to them as args to the inner closure
+            // Create wrapper params and add references to them as args to the inner closure.
+            // The param names must be globally unique: nested partial applications share the
+            // NS_PARAM namespace, so a per-materialization index would collide and resolve to
+            // the wrong binding (issue #5978).
             let mut wrapper_params = Vec::with_capacity(missing.len());
-            for (i, param) in missing.iter().enumerate() {
-                let param_name = format!("_partial_{i}");
+            for param in missing.iter() {
+                let param_name = format!("_partial_{}", self.id.gen());
                 let substitute_arg = Expr::new(Ident::from_path(vec![
                     NS_PARAM.to_string(),
                     param_name.clone(),

@@ -7385,6 +7385,33 @@ fn test_partial_application_of_transform() {
     ");
 }
 
+/// Regression test for issue #5978: currying a function through more than two
+/// `let`-bound wrappers produced the wrong result, because the wrapper params
+/// synthesized during partial-application materialization were named by a
+/// per-materialization index (`_partial_0`, `_partial_1`, …) and collided
+/// across nested partial applications sharing the `NS_PARAM` namespace.
+#[test]
+fn test_nested_currying() {
+    // `y` (curried one arg at a time) must match `z` (curried directly).
+    assert_snapshot!(compile(r#"
+    let f1 = func a b c -> a + b + c
+    let f2 = func a b -> f1 a b
+    let f3 = func a -> f2 a
+
+    from t | derive {
+      y = (((f3 100) 20) 3),
+      z = ((f2 100 20) 3),
+    }
+    "#).unwrap(), @"
+    SELECT
+      *,
+      100 + 20 + 3 AS y,
+      100 + 20 + 3 AS z
+    FROM
+      t
+    ");
+}
+
 #[test]
 fn test_tuple_map() {
     assert_snapshot!(compile(r###"
