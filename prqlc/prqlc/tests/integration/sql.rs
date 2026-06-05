@@ -7403,3 +7403,22 @@ fn test_tuple_map() {
       foo
     ");
 }
+
+#[test]
+fn test_tuple_map_aliases() {
+    assert_snapshot!(compile(r###"
+    let add_four = func a -> a + 4
+
+    from foo
+    select {x, y}
+    derive (tuple_map add_four {c = x, d = y})
+    "###).unwrap(), @r###"
+    SELECT
+      x,
+      y,
+      x + 4 AS c,
+      y + 4 AS d
+    FROM
+      foo
+    "###);
+}
