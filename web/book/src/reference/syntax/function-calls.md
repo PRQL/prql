@@ -30,10 +30,10 @@ function_name arg1 named_param:arg2 arg3
 
 ## Pipeline
 
-There is an alternative way of calling functions: using a pipeline. Regardless of
-whether the pipeline is delimited by pipe symbol `|` or a new line, the pipeline
-is equivalent to applying each of functions as the last argument of the next
-function.
+There is an alternative way of calling functions: using a pipeline. Regardless
+of whether the pipeline is delimited by pipe symbol `|` or a new line, the
+pipeline is equivalent to applying each of functions as the last argument of the
+next function.
 
 ```prql no-eval
 a | foo 3 | bar 'hello' 'world' | baz
