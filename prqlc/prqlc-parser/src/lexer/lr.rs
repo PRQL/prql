@@ -114,11 +114,15 @@ impl std::fmt::Display for Literal {
             Literal::Float(i) => write!(f, "{i}")?,
 
             Literal::String(s) => {
-                write!(f, "{}", quote_string(escape_all_except_quotes(s).as_str()))?;
+                write!(
+                    f,
+                    "{}",
+                    quote_string(escape_all_except_quotes(s).as_str(), true)
+                )?;
             }
 
             Literal::RawString(s) => {
-                write!(f, "r{}", quote_string(s))?;
+                write!(f, "r{}", quote_string(s, false))?;
             }
 
             Literal::Boolean(b) => {
@@ -137,7 +141,12 @@ impl std::fmt::Display for Literal {
     }
 }
 
-fn quote_string(s: &str) -> String {
+/// Wrap `s` in quotes, choosing a delimiter that avoids escaping where possible.
+///
+/// When `allow_escape` is set (normal strings, but not raw strings, which have
+/// no escape mechanism), the function falls back to escaping double-quotes for
+/// content that can't be represented with any bare delimiter.
+fn quote_string(s: &str, allow_escape: bool) -> String {
     if !s.contains('"') {
         return format!(r#""{s}""#);
     }
@@ -146,16 +155,25 @@ fn quote_string(s: &str) -> String {
         return format!("'{s}'");
     }
 
-    // If the string starts or ends with a quote, use the other quote to delimit
-    // the string. Otherwise default to double quotes.
+    // The string contains both quote characters. A delimiter quote that appears
+    // at the start or end of the string merges with the delimiter (the lexer
+    // counts opening/closing quotes greedily), so pick a delimiter that doesn't
+    // occur at either boundary. Default to double quotes.
+    let double_safe = !s.starts_with('"') && !s.ends_with('"');
+    let single_safe = !s.starts_with('\'') && !s.ends_with('\'');
 
-    // TODO: this doesn't cover a string that starts with a single quote and
-    // ends with a double quote; I think in that case it's necessary to escape
-    // the quote. We need to add tests here.
-
-    let quote = if s.starts_with('"') || s.ends_with('"') {
+    let quote = if double_safe {
+        '"'
+    } else if single_safe {
         '\''
+    } else if allow_escape {
+        // Both quote characters appear at a boundary, so no bare delimiter
+        // round-trips. Escape the double-quotes instead.
+        return format!("\"{}\"", s.replace('"', "\\\""));
     } else {
+        // Raw strings can't escape; fall back to double quotes. This case can't
+        // arise from valid raw-string input, since such content has no
+        // raw-string representation in the first place.
         '"'
     };
 
@@ -313,6 +331,50 @@ mod test {
             make_str(r#""Starts with a double quote and ' contains a single quote"#).to_string(),
             @r#"'''"Starts with a double quote and ' contains a single quote'''"#
         );
+    }
+
+    /// Strings that contain both quote characters at their boundaries can't be
+    /// represented with a bare delimiter (the boundary quote would merge with
+    /// the delimiter), so they fall back to escaping double-quotes.
+    #[test]
+    fn test_string_quoting_both_boundary_quotes() {
+        assert_snapshot!(
+            Literal::String(r#""x'"#.to_string()).to_string(),
+            @r#""\"x'""#
+        );
+        assert_snapshot!(
+            Literal::String(r#"'x""#.to_string()).to_string(),
+            @r#""'x\"""#
+        );
+    }
+
+    /// Round-trips quoted strings through the lexer to ensure `Display` produces
+    /// output the lexer parses back to the original value.
+    #[test]
+    fn test_string_roundtrip_boundary() {
+        use crate::lexer::lex_source;
+        for original in [
+            r#""x'"#,  // starts with double, ends with single
+            r#"'x""#,  // starts with single, ends with double
+            r#"a"b'"#, // ends with single, contains double
+            r#"a'b""#, // ends with double, contains single
+        ] {
+            let formatted = Literal::String(original.to_string()).to_string();
+            let toks = lex_source(&formatted).unwrap();
+            let lexed: Vec<_> = toks
+                .0
+                .iter()
+                .filter_map(|t| match &t.kind {
+                    TokenKind::Literal(Literal::String(s)) => Some(s.clone()),
+                    _ => None,
+                })
+                .collect();
+            assert_eq!(
+                lexed,
+                vec![original.to_string()],
+                "roundtrip failed for {original:?}: formatted={formatted:?}, lexed={lexed:?}"
+            );
+        }
     }
 
     #[test]
