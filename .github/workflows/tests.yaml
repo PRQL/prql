@@ -794,7 +794,7 @@ jobs:
           # Use prql-bot PAT so that opening the issue triggers downstream
           # workflows (notably tend-triage). Events from the default
           # GITHUB_TOKEN do not cascade to other workflows.
-          GITHUB_TOKEN: ${{ secrets.PRQL_BOT_GITHUB_TOKEN }}
+          GITHUB_TOKEN: ${{ secrets.TEND_BOT_TOKEN }}
           LINK:
             ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{
             github.run_id }}
@@ -820,4 +820,4 @@ jobs:
           minor-version-delta: 1
           toolchain-path: "./rust-toolchain.toml"
           pr-title: "build: Update rust toolchain version"
-          token: ${{ secrets.PRQL_BOT_GITHUB_TOKEN }}
+          token: ${{ secrets.TEND_BOT_TOKEN }}
