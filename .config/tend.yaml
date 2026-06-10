@@ -6,6 +6,17 @@ secrets:
   allowed:
     - DOCKERHUB_TOKEN
     - DOCKERHUB_USERNAME
+    # Org-level secrets (visibility: all org repos) — administered at the org,
+    # so this repo can't environment-scope them. PRQL_BOT_GITHUB_TOKEN is the
+    # 2023 org bot token still used by tests.yaml, pull-request-target.yaml,
+    # release.yaml, and other PRQL repos (tend itself uses the repo-scoped
+    # TEND_BOT_TOKEN). SNAPCRAFT_STORE_CREDENTIALS is used by release.yaml;
+    # HEX_API_KEY is unused here (other org repos). Narrowing these requires
+    # org-admin action: scope visibility to selected repos or migrate to
+    # environment-scoped repo secrets.
+    - HEX_API_KEY
+    - PRQL_BOT_GITHUB_TOKEN
+    - SNAPCRAFT_STORE_CREDENTIALS
 setup:
   - uses: ./.github/actions/tend-setup
 workflows:
