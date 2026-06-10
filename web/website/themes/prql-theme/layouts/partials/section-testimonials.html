@@ -54,14 +54,31 @@
                       ></path>
                     </svg>
                     {{/* The Firefox tracking protection blocks images hosted on pbs.twitter.com, see https://bugzilla.mozilla.org/show_bug.cgi?id=1458915
-                      So we just download the images when building the website.
+                      So we download the images when building the website. The
+                      fetches are wrapped in `try` so a slow or unreachable
+                      Twitter CDN degrades to a fallback image rather than
+                      failing the whole build — resources.GetRemote otherwise
+                      fails the build on a request error such as a timeout, see
+                      https://gohugo.io/functions/resources/getremote/#error-handling
                     */}}
-                    {{ $imageSrc := (resources.GetRemote "https://abs.twimg.com/sticky/default_profile_images/default_profile_normal.png" | resources.Copy "default.png").RelPermalink }}
+                    {{ $profileImg := .profile_image_url_https }}
                     {{ $localImgPath := printf "cached-avatars/%s.png" .screen_name }}
-                    {{ with resources.GetRemote .profile_image_url_https }}
-                      {{ $imageSrc = (resources.Copy $localImgPath .).RelPermalink }}
-                    {{ else }}
-                      {{ warnf "[section-testimonials.html] couldn't fetch remote image %v" .profile_image_url_https }}
+                    {{/* Transparent 1x1 GIF as the ultimate fallback, so the
+                      build never hard-depends on the network being up. */}}
+                    {{ $imageSrc := "data:image/gif;base64,R0lGODlhAQABAAAAACH5BAEKAAEALAAAAAABAAEAAAICTAEAOw==" }}
+                    {{ with try (resources.GetRemote "https://abs.twimg.com/sticky/default_profile_images/default_profile_normal.png") }}
+                      {{ with .Err }}
+                        {{ warnf "[section-testimonials.html] couldn't fetch default image: %s" . }}
+                      {{ else with .Value }}
+                        {{ $imageSrc = (resources.Copy "default.png" .).RelPermalink }}
+                      {{ end }}
+                    {{ end }}
+                    {{ with try (resources.GetRemote $profileImg) }}
+                      {{ with .Err }}
+                        {{ warnf "[section-testimonials.html] couldn't fetch remote image %v: %s" $profileImg . }}
+                      {{ else with .Value }}
+                        {{ $imageSrc = (resources.Copy $localImgPath .).RelPermalink }}
+                      {{ end }}
                     {{ end }}
                     <img class="tweet-author-image" src="{{ $imageSrc }}" />
                     <div class="tweet-author-info">
