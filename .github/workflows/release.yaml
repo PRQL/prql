@@ -27,7 +27,7 @@ jobs:
     steps:
       - uses: actions/github-script@v9
         with:
-          github-token: ${{ secrets.PRQL_BOT_GITHUB_TOKEN }}
+          github-token: ${{ secrets.TEND_BOT_TOKEN }}
           script: |
             await github.rest.actions.createWorkflowDispatch({
               owner: 'prql',
@@ -133,7 +133,7 @@ jobs:
           identifier: PRQL.prqlc
           version: ${{ github.ref_name }}
           installers-regex: '^prqlc-.*-windows-.*\.zip$'
-          token: ${{ secrets.PRQL_BOT_GITHUB_TOKEN }}
+          token: ${{ secrets.TEND_BOT_TOKEN }}
           fork-user: prql-bot
 
   build-deb-package:
@@ -419,7 +419,7 @@ jobs:
       - name: 📂 Checkout code
         uses: actions/checkout@v6
         with:
-          token: ${{ secrets.PRQL_BOT_GITHUB_TOKEN }}
+          token: ${{ secrets.TEND_BOT_TOKEN }}
       - run: git push origin HEAD:web --force
 
   push-devcontainer:
