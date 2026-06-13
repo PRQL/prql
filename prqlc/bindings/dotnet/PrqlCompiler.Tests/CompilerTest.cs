@@ -58,6 +58,38 @@ public sealed class CompilerTest
     }
 
     [Fact]
+    public void Compile_ThrowsArgumentException_WhenQueryIsEmpty()
+    {
+        // Regression: previously `new ArgumentException(nameof(prqlQuery))`
+        // passed the parameter name into the message slot, leaving ParamName
+        // unset and the exception message as just "prqlQuery".
+        var ex = Assert.Throws<ArgumentException>(() => PrqlCompiler.Compile(""));
+        Assert.Equal("prqlQuery", ex.ParamName);
+    }
+
+    [Fact]
+    public void PrqlToPl_ThrowsArgumentException_WhenQueryIsEmpty()
+    {
+        var ex = Assert.Throws<ArgumentException>(() => PrqlCompiler.PrqlToPl(""));
+        Assert.Equal("prqlQuery", ex.ParamName);
+    }
+
+    [Fact]
+    public void PlToRq_ThrowsArgumentException_WhenJsonIsEmpty()
+    {
+        var ex = Assert.Throws<ArgumentException>(() => PrqlCompiler.PlToRq(""));
+        Assert.Equal("plJson", ex.ParamName);
+    }
+
+    [Fact]
+    public void RqToSql_ThrowsArgumentException_WhenJsonIsEmpty()
+    {
+        var ex = Assert.Throws<ArgumentException>(
+            () => PrqlCompiler.RqToSql("", new PrqlCompilerOptions()));
+        Assert.Equal("rqJson", ex.ParamName);
+    }
+
+    [Fact]
     public void Compile_HandlesNonAsciiInput()
     {
         // Guards the UTF-8 marshalling path. Default `DllImport` ANSI
