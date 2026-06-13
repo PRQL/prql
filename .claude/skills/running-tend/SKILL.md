@@ -27,6 +27,14 @@ permission first) still applies when the target shows no agent signals.
   in #5753, so bot PRs must be merged manually by a maintainer (or via repo
   branch-protection auto-merge if a maintainer enables it on the PR).
 
+## tend workflow-update PRs
+
+When the nightly skill opens or refreshes the `tend/update-workflows` PR, its
+**Notable changes** list should cover only entries that change how tend behaves
+**in this repo** — harness permissions, skill behavior, CI guidance, workflow
+generation. Drop entries that only affect tend's own internals (e.g. how tend
+publishes its GitHub Releases). Maintainer feedback on #5986.
+
 ## Weekly maintenance
 
 These tasks run as Step 3 of the bundled weekly skill (only when
