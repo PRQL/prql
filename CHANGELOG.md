@@ -60,7 +60,7 @@
 
 - Update the tend (Claude-powered CI) workflows; most of this release's
   bot-authored fixes were filed by tend.
-- Scope release secrets to a protected GitHub environment. (@prql-bot, #5910)
+- Scope release secrets to a protected GitHub environment. (@max-sixty, #5910)
 - Replace the internal `tuple_every` helper with a more general `tuple_reduce`.
   (@kgutwin, #5878)
 - Update the Rust toolchain version. (#5966)
