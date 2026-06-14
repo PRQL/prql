@@ -715,3 +715,61 @@ fn lsp() {
     shutting down server
     "###);
 }
+
+/// A non-`exit` notification must not terminate the server — only `exit`
+/// should. Before the fix, the loop returned on the first notification, so
+/// the `exit` notification below was never reached and never logged.
+#[cfg(feature = "lsp")]
+#[test]
+fn lsp_ignores_non_exit_notification() {
+    let init = serde_json::to_string(&lsp_server::Message::Request(lsp_server::Request {
+        method: "initialize".into(),
+        id: lsp_server::RequestId::from(1),
+        params: serde_json::json!({"capabilities": {}}),
+    }))
+    .unwrap();
+    let initialized = serde_json::to_string(&lsp_server::Message::Notification(
+        lsp_server::Notification {
+            method: "initialized".into(),
+            params: serde_json::json!({}),
+        },
+    ))
+    .unwrap();
+    let set_trace = serde_json::to_string(&lsp_server::Message::Notification(
+        lsp_server::Notification {
+            method: "$/setTrace".into(),
+            params: serde_json::json!({"value": "off"}),
+        },
+    ))
+    .unwrap();
+    let exit = serde_json::to_string(&lsp_server::Message::Notification(
+        lsp_server::Notification {
+            method: "exit".into(),
+            params: serde_json::Value::Null,
+        },
+    ))
+    .unwrap();
+
+    assert_cmd_snapshot!(prqlc_command().args(["lsp"])
+        .pass_stdin(format!("Content-Length: {}\r\n\r\n{}Content-Length: {}\r\n\r\n{}Content-Length: {}\r\n\r\n{}Content-Length: {}\r\n\r\n{}",
+            init.len(), init,
+            initialized.len(), initialized,
+            set_trace.len(), set_trace,
+            exit.len(), exit))
+        , @r###"
+    success: true
+    exit_code: 0
+    ----- stdout -----
+    Content-Length: 78
+
+    {"jsonrpc":"2.0","id":1,"result":{"capabilities":{"definitionProvider":true}}}
+    ----- stderr -----
+    starting PRQL LSP server
+    starting main loop
+    got msg: Notification(Notification { method: "$/setTrace", params: Object {"value": String("off")} })
+    got notification: Notification { method: "$/setTrace", params: Object {"value": String("off")} }
+    got msg: Notification(Notification { method: "exit", params: Null })
+    got notification: Notification { method: "exit", params: Null }
+    shutting down server
+    "###);
+}
