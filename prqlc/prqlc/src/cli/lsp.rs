@@ -75,7 +75,13 @@ fn main_loop(
             }
             Message::Notification(not) => {
                 eprintln!("got notification: {not:?}");
-                return Ok(());
+                // Only the `exit` notification should stop the loop. Other
+                // notifications (e.g. `textDocument/didOpen`, `$/setTrace`)
+                // are logged and ignored — returning on any notification
+                // would shut the server down as soon as a client sends one.
+                if not.method == "exit" {
+                    return Ok(());
+                }
             }
         }
     }
