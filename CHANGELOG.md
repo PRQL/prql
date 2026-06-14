@@ -14,17 +14,56 @@
 
 **Integrations**:
 
+**Internal changes**:
+
+**New Contributors**:
+
+## 0.13.13 — 2026-06-14
+
+0.13.13 has 127 commits from 5 contributors. Selected changes:
+
+**Fixes**:
+
+- Correctly resolve wildcards on `this` and carry column aliases through natural
+  joins, by fixing how the compiler's internal `tuple_map` applies redirects,
+  folds expressions, and propagates aliases. (@kgutwin, #5875, #5877, #5980)
+- Resolve identifiers up the parent module chain. (@prql-bot, #5976)
+- Return a compiler error instead of panicking in `lookup_cid`. (@prql-bot,
+  #5938)
+- Catch a panic in the CLI's compile path so the debug log is still written.
+  (@kgutwin, #5869)
+- Set the minimum `chrono` version to `0.4.40` for compatibility with
+  `arrow-arith`. (@prql-bot, #5841)
+
+**Documentation**:
+
+- Numerous typo, grammar, and stale-content fixes across the book, tutorials,
+  bindings docs, and code comments.
+
+**Integrations**:
+
 - Fix several FFI defects in the .NET binding that prevented it from working
   correctly on 64-bit platforms or returning more than one diagnostic: map
   `size_t` as `UIntPtr` (was `int`), advance the pointer when iterating the
   messages array, dereference indirect string fields and `Span` / `Location`
   pointers, call `result_destroy` to free native memory, and tighten exception
   types and doc references. Also guard `result_destroy` in `prqlc-c` against a
-  null `messages` pointer, which is set on the success path. (@prql-bot, #5847)
+  null `messages` pointer, which is set on the success path. (@prql-bot, #5848)
+- Modernize the .NET binding to net10.0 using `LibraryImport` source generators.
+  (@prql-bot, #5850)
+- Throw a Java exception instead of panicking in the JNI bindings. (@prql-bot,
+  #5934)
+- Exit the LSP server only on the `exit` notification, matching the LSP spec.
+  (@prql-bot, #6001)
 
 **Internal changes**:
 
-**New Contributors**:
+- Update the tend (Claude-powered CI) workflows; most of this release's
+  bot-authored fixes were filed by tend.
+- Scope release secrets to a protected GitHub environment. (@prql-bot, #5910)
+- Replace the internal `tuple_every` helper with a more general `tuple_reduce`.
+  (@kgutwin, #5878)
+- Update the Rust toolchain version. (#5966)
 
 ## 0.13.12 — 2026-04-27
 
