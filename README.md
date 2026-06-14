@@ -64,7 +64,7 @@ For more on the language, more examples & comparisons with SQL, visit
 [prql-lang.org][prql website]. To experiment with PRQL in the browser, check out
 [PRQL Playground][prql playground].
 
-## Current Status - December 2025
+## Current Status - June 2026
 
 PRQL is ready to use by the intrepid, either with our supported integrations, or
 within your own tools, using one of our supported language bindings.
@@ -72,9 +72,9 @@ within your own tools, using one of our supported language bindings.
 PRQL still has some bugs and some missing features, and is probably only ready
 to be rolled out to non-technical teams for fairly simple queries.
 
-Development has slowed in the past few months as we decide how to work on a new
-resolver, which will let us squash many bugs and simplify our code a lot. It'll
-also let us scale the language without scaling the complexity of the compiler.
+Development has slowed as we decide how to work on a new resolver, which will
+let us squash many bugs and simplify our code a lot. It'll also let us scale the
+language without scaling the complexity of the compiler.
 
 While we figure that out, we're also thinking about:
 
@@ -85,13 +85,13 @@ While we figure that out, we're also thinking about:
 - Filling remaining feature gaps, so that PRQL is possible to use for almost all
   standard SQL queries.
 - Expanding our set of supported features — we are working to add experimental
-  support for modules / multi-file projects, and for auto-formatting.
+  support for modules / multi-file projects.
 
 And:
 
 - Making it really easy to start using PRQL. We're doing that by building
   integrations with tools that folks already use; for example a VS Code
-  extension, Jupyter integration, and the recent
+  extension, Jupyter integration, and the
   [QStudio](https://www.timestored.com/qstudio/prql-ide) integration. If there
   are tools you're familiar with that you think would be open to integrating
   with PRQL, please let us know in an issue.
