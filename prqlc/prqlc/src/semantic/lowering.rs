@@ -1027,7 +1027,9 @@ impl Lowerer {
                 if let Some((cid, _)) = input_columns.get(&name) {
                     *cid
                 } else {
-                    panic!("cannot find cid by id={id} and name={name:?}");
+                    return Err(Error::new_assert(format!(
+                        "cannot find cid by id={id} and name={name:?}"
+                    )));
                 }
             }
             None => {
@@ -1078,6 +1080,10 @@ fn try_extract_sql_columns(
                                     }
                                 }
                                 ast::SelectItem::ExprWithAlias { alias, .. } => Ok(alias.value), // Store alias
+                                ast::SelectItem::ExprWithAliases { .. } => Err(
+                                    "Multi-alias projection (`expr AS (a, b)`) is not supported"
+                                        .into(),
+                                ),
                                 ast::SelectItem::QualifiedWildcard(_, _)
                                 | ast::SelectItem::Wildcard(_) => {
                                     has_wildcard = true;

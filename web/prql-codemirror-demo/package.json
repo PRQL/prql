@@ -10,7 +10,7 @@
   },
   "devDependencies": {
     "typescript": "^5.3.2",
-    "vite": "^6.4.2"
+    "vite": "^8.0.16"
   },
   "dependencies": {
     "@codemirror/autocomplete": "^6.11.0",

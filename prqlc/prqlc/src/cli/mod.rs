@@ -5,6 +5,7 @@ use std::env;
 use std::fs::File;
 use std::io::{self, BufWriter, Read, Write};
 use std::ops::Range;
+use std::panic;
 use std::path::{Path, PathBuf};
 use std::process::exit;
 use std::str::FromStr;
@@ -179,7 +180,7 @@ enum Command {
     },
 }
 
-/// Commands for meant for debugging, prone to change
+/// Commands meant for debugging, prone to change
 #[derive(Subcommand, Debug, Clone)]
 enum DebugCommand {
     /// Parse, resolve & combine source with comments annotating relation type
@@ -468,18 +469,24 @@ impl Command {
                     .with_signature_comment(*signature_comment)
                     .with_format(*format);
 
-                let res = prql_to_pl_tree(sources)
-                    .and_then(|pl| {
-                        pl_to_rq_tree(pl, &main_path, &[semantic::NS_DEFAULT_DB.to_string()])
-                    })
-                    .and_then(|rq| rq_to_sql(rq, &opts))
-                    .map_err(|e| e.composed(sources));
+                // catch any panic during compilation so that we can still produce a debug log
+                let res = panic::catch_unwind(|| {
+                    prql_to_pl_tree(sources)
+                        .and_then(|pl| {
+                            pl_to_rq_tree(pl, &main_path, &[semantic::NS_DEFAULT_DB.to_string()])
+                        })
+                        .and_then(|rq| rq_to_sql(rq, &opts))
+                        .map_err(|e| e.composed(sources))
+                });
 
                 if let Some(path) = debug_log {
                     write_log(path)?;
                 }
 
-                res?.as_bytes().to_vec()
+                match res {
+                    Ok(r) => r?.as_bytes().to_vec(),
+                    Err(payload) => panic::resume_unwind(payload),
+                }
             }
             _ => unreachable!("Other commands shouldn't reach `execute`"),
         })
@@ -701,7 +708,7 @@ sort full
             "",
         );
 
-        assert_snapshot!(&result.unwrap_err().to_string(), @r"
+        assert_snapshot!(&result.unwrap_err().to_string(), @"
         Error:
            ╭─[ :1:1 ]
            │
@@ -735,7 +742,7 @@ sort full
             "main",
         )
         .unwrap();
-        assert_snapshot!(String::from_utf8(result).unwrap().trim(), @r"
+        assert_snapshot!(String::from_utf8(result).unwrap().trim(), @"
         WITH x AS (
           SELECT
             y,
@@ -762,7 +769,7 @@ sort full
         )
         .unwrap();
 
-        assert_snapshot!(String::from_utf8(output).unwrap().trim(), @r"
+        assert_snapshot!(String::from_utf8(output).unwrap().trim(), @"
         name: Project
         stmts:
         - VarDef:
@@ -809,7 +816,7 @@ sort full
 
         // TODO: terser output; maybe serialize span as `0..4`? Remove the
         // `!Ident` complication?
-        assert_snapshot!(String::from_utf8(output).unwrap().trim(), @r"
+        assert_snapshot!(String::from_utf8(output).unwrap().trim(), @"
         - kind: Start
           span:
             start: 0
@@ -852,7 +859,7 @@ sort full
         )
         .unwrap();
 
-        assert_snapshot!(String::from_utf8(output).unwrap().trim(), @r"
+        assert_snapshot!(String::from_utf8(output).unwrap().trim(), @"
         - kind: Start
           span:
             start: 0

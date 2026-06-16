@@ -1,6 +1,7 @@
 //! An AST pass after compilation to PQ.
 //!
-//! Currently only moves [SqlTransform::Sort]s.
+//! Infers and propagates [SqlTransform::Sort]s through pipelines and assigns
+//! human-readable names to CTEs and relation variables.
 
 use std::collections::{HashMap, HashSet, VecDeque};
 
@@ -376,11 +377,9 @@ impl PqMapper<RelationExpr, RelationExpr, (), ()> for SortingInference<'_> {
                 // DISTINCT ON sorting is internal to the group (for row selection),
                 // so it must not propagate past joins. Explicit user sorts are preserved.
                 // See issue #4633.
-                SqlTransform::Join { .. } => {
-                    if sorting_from_distinct_on {
-                        sorting.clear();
-                        sorting_from_distinct_on = false;
-                    }
+                SqlTransform::Join { .. } if sorting_from_distinct_on => {
+                    sorting.clear();
+                    sorting_from_distinct_on = false;
                 }
 
                 // emit Sort before Take

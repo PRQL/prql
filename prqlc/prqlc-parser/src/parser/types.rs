@@ -1,4 +1,3 @@
-use chumsky;
 use chumsky::input::BorrowInput;
 
 use super::expr::ident;

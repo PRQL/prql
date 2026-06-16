@@ -90,7 +90,7 @@ function getSnippets(content, file) {
   let minDepth = 1e10;
   for await (const file of getAllFiles(dir)) {
     files.push(file);
-    minDepth = Math.min(depth(file));
+    minDepth = Math.min(minDepth, depth(file));
   }
 
   for (const filePath of files) {

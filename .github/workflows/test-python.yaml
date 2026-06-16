@@ -27,14 +27,14 @@ jobs:
         os: ${{ fromJSON(inputs.oss) }}
     steps:
       - name: 📂 Checkout code
-        uses: actions/checkout@v5
+        uses: actions/checkout@v6
       - name: Build wheel
         uses: ./.github/actions/build-python
         with:
           target: ${{ matrix.os == 'ubuntu-24.04' && 'x86_64' || '' }}
           package: prqlc-python
           profile: dev
-      - uses: actions/download-artifact@v6
+      - uses: actions/download-artifact@v8
         with:
           # `*` covers all targets (we could make this explicit...)
           pattern: prqlc-python-${{ runner.os }}-*-dev
@@ -59,7 +59,7 @@ jobs:
             echo "pyproject_hash=$(shasum -a 256 prqlc/bindings/prqlc-python/pyproject.toml | cut -d' ' -f1)" >> "$GITHUB_ENV"
           fi
       - name: Cache uv and Nox
-        uses: actions/cache@v4
+        uses: actions/cache@v5
         with:
           path: |
             .nox

@@ -183,7 +183,7 @@ mod test {
 
         assert_snapshot!(
             compile("from employees | filter (age | in 20..30)", opts).unwrap(),
-            @r"
+            @"
         SELECT
           *
         FROM
@@ -206,7 +206,7 @@ mod test {
 
         let prql = r#"from artists | select {name, id} | filter (id | in [1, 2, 3])"#;
         assert_snapshot!(
-             prql_to_pl(prql).and_then(|x| pl_to_rq(x.as_str())).and_then(|x|rq_to_sql(x.as_str(), opts)).unwrap(), @r"
+             prql_to_pl(prql).and_then(|x| pl_to_rq(x.as_str())).and_then(|x|rq_to_sql(x.as_str(), opts)).unwrap(), @"
         SELECT
           name,
           id
@@ -221,7 +221,7 @@ mod test {
     fn prql_pl_prql_roundtrip() {
         let prql = r#"from artists | select {name, id} | filter (id | in [1, 2, 3])"#;
         assert_snapshot!(
-             prql_to_pl(prql).and_then(|x| pl_to_prql(x.as_str())).unwrap(), @r"
+             prql_to_pl(prql).and_then(|x| pl_to_prql(x.as_str())).unwrap(), @"
         from artists
         select {name, id}
         filter (id | in [1, 2, 3])

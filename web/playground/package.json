@@ -22,8 +22,8 @@
     "react": "^19.2.0",
     "react-dom": "^19.2.0",
     "react-syntax-highlighter": "^16.1.0",
-    "web-vitals": "^5.2.0",
-    "yaml": "^2.8.3"
+    "web-vitals": "^5.3.0",
+    "yaml": "^2.9.0"
   },
   "devDependencies": {
     "@vitejs/plugin-react": "^6.0.1",
@@ -46,5 +46,5 @@
     "prepare": "rsync -ai --checksum --delete ../../prqlc/prqlc/tests/integration/data/ public/data/ && node generateBook.cjs",
     "preview": "vite preview"
   },
-  "version": "0.13.12"
+  "version": "0.13.14"
 }

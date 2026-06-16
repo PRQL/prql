@@ -7,7 +7,7 @@ Website: https://prql-lang.org/
 */
 
 // !!keep consistent with
-// https://github.com/PRQL/prql/blob/main/reference/highlight-prql.js
+// https://github.com/PRQL/prql/blob/main/web/book/highlight-prql.js
 //
 // TODO: can we import one from the other at build time?
 
@@ -15,7 +15,7 @@ Website: https://prql-lang.org/
 // https://github.com/highlightjs/highlightjs-tsql/tree/main/src/languages.
 // Possibly we can even import parts at runtime, simplifying this file?
 
-formatting = function (hljs) {
+const formatting = function (hljs) {
   const BUILTIN_FUNCTIONS = [
     // Aggregate functions
     "any",

@@ -138,15 +138,6 @@ impl AnchorContext {
         QueryLoader::load(context, query)
     }
 
-    // /// Generates a new ID and name for a wildcard column and registers it in the
-    // /// AnchorContext's column_decls HashMap.
-    // pub fn register_wildcard(&mut self, riid: RIId) -> CId {
-    //     let id = self.cid.gen();
-    //     let kind = ColumnDecl::RelationColumn(riid, id, RelationColumn::Wildcard);
-    //     self.column_decls.insert(id, kind);
-    //     id
-    // }
-
     pub fn register_compute(&mut self, compute: Compute) {
         let id = compute.id;
         let decl = ColumnDecl::Compute(Box::new(compute));
@@ -242,24 +233,6 @@ impl AnchorContext {
             Vec::new()
         }
     }
-
-    // /// Returns a set of all columns of all tables in a pipeline
-    // pub(super) fn collect_pipeline_inputs(
-    //     &self,
-    //     pipeline: &[SqlTransform],
-    // ) -> Result<(Vec<RIId>, HashSet<CId>)> {
-    //     let mut tables = Vec::new();
-    //     let mut columns = HashSet::new();
-    //     for t in pipeline {
-    //         if let SqlTransform::From(riid) | SqlTransform::Join { with: riid, .. } = t {
-    //             tables.push(*riid);
-
-    //             let rel = self.relation_instances.get(riid).unwrap();
-    //             columns.extend(rel.table_ref.columns.iter().map(|(_, cid)| cid));
-    //         }
-    //     }
-    //     Ok((tables, columns))
-    // }
 
     pub(super) fn contains_wildcard(&self, cids: &[CId]) -> bool {
         for cid in cids {

@@ -43,12 +43,11 @@ pub unsafe extern "C" fn compile(
     result_into_c_str(result)
 }
 
-/// Build PL AST from a PRQL string. PL in documented in the
+/// Build PL AST from a PRQL string. PL is documented in the
 /// [prqlc Rust crate](https://docs.rs/prqlc/latest/prqlc/ir/pl).
 ///
-/// Takes PRQL source buffer and writes PL serialized as JSON to `out` buffer.
-///
-/// Returns 0 on success and a negative number -1 on failure.
+/// Takes a PRQL source buffer and returns PL serialized as JSON in
+/// `CompileResult.output`.
 ///
 /// # Safety
 ///
@@ -69,9 +68,8 @@ pub unsafe extern "C" fn prql_to_pl(prql_query: *const c_char) -> CompileResult 
 /// PL and RQ are documented in the
 /// [prqlc Rust crate](https://docs.rs/prqlc/latest/prqlc).
 ///
-/// Takes PL serialized as JSON buffer and writes RQ serialized as JSON to `out` buffer.
-///
-/// Returns 0 on success and a negative number -1 on failure.
+/// Takes a PL JSON buffer and returns RQ serialized as JSON in
+/// `CompileResult.output`.
 ///
 /// # Safety
 ///
@@ -92,9 +90,8 @@ pub unsafe extern "C" fn pl_to_rq(pl_json: *const c_char) -> CompileResult {
 /// Convert RQ AST into an SQL string. RQ is documented in the
 /// [prqlc Rust crate](https://docs.rs/prqlc/latest/prqlc/ir/rq).
 ///
-/// Takes RQ serialized as JSON buffer and writes SQL source to `out` buffer.
-///
-/// Returns 0 on success and a negative number -1 on failure.
+/// Takes an RQ JSON buffer and returns the SQL source in
+/// `CompileResult.output`.
 ///
 /// # Safety
 ///
@@ -212,35 +209,39 @@ pub unsafe extern "C" fn result_destroy(res: CompileResult) {
     // For strings and vectors this is required, but options may be
     // able to live entirely within the struct, instead of the heap.
 
-    for i in 0..res.messages_len {
-        let e = &*res.messages.add(i);
+    if !res.messages.is_null() {
+        for i in 0..res.messages_len {
+            let e = &*res.messages.add(i);
 
-        if !e.code.is_null() {
-            drop(CString::from_raw(*e.code as *mut libc::c_char));
-            drop(Box::from_raw(e.code as *mut *const libc::c_char));
+            if !e.code.is_null() {
+                drop(CString::from_raw(*e.code as *mut libc::c_char));
+                drop(Box::from_raw(e.code as *mut *const libc::c_char));
+            }
+            drop(CString::from_raw(e.reason as *mut libc::c_char));
+            if !e.hint.is_null() {
+                drop(CString::from_raw(*e.hint as *mut libc::c_char));
+                drop(Box::from_raw(e.hint as *mut *const libc::c_char));
+            }
+            if !e.span.is_null() {
+                drop(Box::from_raw(e.span as *mut Span));
+            }
+            if !e.display.is_null() {
+                drop(CString::from_raw(*e.display as *mut libc::c_char));
+                drop(Box::from_raw(e.display as *mut *const libc::c_char));
+            }
+            if !e.location.is_null() {
+                drop(Box::from_raw(e.location as *mut SourceLocation));
+            }
         }
-        drop(CString::from_raw(e.reason as *mut libc::c_char));
-        if !e.hint.is_null() {
-            drop(CString::from_raw(*e.hint as *mut libc::c_char));
-            drop(Box::from_raw(e.hint as *mut *const libc::c_char));
-        }
-        if !e.span.is_null() {
-            drop(Box::from_raw(e.span as *mut Span));
-        }
-        if !e.display.is_null() {
-            drop(CString::from_raw(*e.display as *mut libc::c_char));
-            drop(Box::from_raw(e.display as *mut *const libc::c_char));
-        }
-        if !e.location.is_null() {
-            drop(Box::from_raw(e.location as *mut SourceLocation));
-        }
+        drop(Vec::from_raw_parts(
+            res.messages as *mut Message,
+            res.messages_len,
+            res.messages_len,
+        ));
     }
-    drop(Vec::from_raw_parts(
-        res.messages as *mut Message,
-        res.messages_len,
-        res.messages_len,
-    ));
-    drop(CString::from_raw(res.output as *mut libc::c_char));
+    if !res.output.is_null() {
+        drop(CString::from_raw(res.output as *mut libc::c_char));
+    }
 }
 
 unsafe fn result_into_c_str(result: Result<String, ErrorMessages>) -> CompileResult {

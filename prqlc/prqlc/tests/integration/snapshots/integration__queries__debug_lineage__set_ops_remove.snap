@@ -18,7 +18,7 @@ frames:
       table:
       - default_db
       - _literal_127
-- - 0:3163-3240
+- - 0:3172-3258
   - columns:
     - !Single
       name:
@@ -43,7 +43,7 @@ frames:
       table:
       - default_db
       - _literal_122
-- - 0:3243-3288
+- - 0:3261-3315
   - columns:
     - !Single
       name:
@@ -74,7 +74,7 @@ frames:
       name:
       - t
       - a
-      target_id: 207
+      target_id: 213
       target_name: null
     inputs:
     - id: 127
@@ -93,7 +93,7 @@ frames:
       name:
       - t
       - a
-      target_id: 207
+      target_id: 213
       target_name: null
     inputs:
     - id: 127
@@ -110,7 +110,7 @@ nodes:
 - id: 122
   kind: Array
   span: 1:173-237
-  parent: 189
+  parent: 192
 - id: 127
   kind: Array
   span: 1:36-55
@@ -135,11 +135,11 @@ nodes:
   children:
   - 127
   - 155
-  parent: 189
+  parent: 192
 - id: 155
   kind: Literal
   parent: 154
-- id: 178
+- id: 181
   kind: Ident
   ident: !Ident
   - this
@@ -147,7 +147,7 @@ nodes:
   - a
   targets:
   - 136
-- id: 181
+- id: 184
   kind: Ident
   ident: !Ident
   - that
@@ -155,48 +155,48 @@ nodes:
   - a
   targets:
   - 122
-- id: 187
+- id: 190
   kind: RqOperator
-  span: 0:3192-3239
+  span: 0:3201-3257
   targets:
-  - 178
   - 181
-  parent: 189
-- id: 189
+  - 184
+  parent: 192
+- id: 192
   kind: 'TransformCall: Join'
-  span: 0:3163-3240
+  span: 0:3172-3258
   children:
   - 154
   - 122
-  - 187
-  parent: 205
-- id: 197
+  - 190
+  parent: 211
+- id: 203
   kind: Ident
-  span: 0:5981-5989
+  span: 0:6033-6041
   ident: !Ident
   - this
   - b
   - a
   targets:
   - 122
-- id: 201
-  kind: RqOperator
-  span: 0:3251-3287
-  targets:
-  - 197
-  - 204
-  parent: 205
-- id: 204
-  kind: Literal
-  span: 0:5993-5997
-- id: 205
-  kind: 'TransformCall: Filter'
-  span: 0:3243-3288
-  children:
-  - 189
-  - 201
-  parent: 209
 - id: 207
+  kind: RqOperator
+  span: 0:3269-3314
+  targets:
+  - 203
+  - 210
+  parent: 211
+- id: 210
+  kind: Literal
+  span: 0:6045-6049
+- id: 211
+  kind: 'TransformCall: Filter'
+  span: 0:3261-3315
+  children:
+  - 192
+  - 207
+  parent: 215
+- id: 213
   kind: Ident
   ident: !Ident
   - this
@@ -204,21 +204,21 @@ nodes:
   - a
   targets:
   - 136
-  parent: 208
-- id: 208
+  parent: 214
+- id: 214
   kind: Tuple
-  span: 0:3298-3301
+  span: 0:3325-3328
   children:
-  - 207
-  parent: 209
-- id: 209
+  - 213
+  parent: 215
+- id: 215
   kind: 'TransformCall: Select'
   span: 1:165-238
   children:
-  - 205
-  - 208
-  parent: 212
-- id: 210
+  - 211
+  - 214
+  parent: 218
+- id: 216
   kind: Ident
   span: 1:244-245
   ident: !Ident
@@ -226,14 +226,14 @@ nodes:
   - t
   - a
   targets:
-  - 207
-  parent: 212
-- id: 212
+  - 213
+  parent: 218
+- id: 218
   kind: 'TransformCall: Sort'
   span: 1:239-245
   children:
-  - 209
-  - 210
+  - 215
+  - 216
 ast:
   name: Project
   stmts:

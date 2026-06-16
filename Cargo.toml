@@ -20,8 +20,8 @@ license = "Apache-2.0"
 repository = "https://github.com/PRQL/prql"
 # This isn't tested since `cargo-msrv` doesn't support workspaces; instead we
 # test `metadata.msrv` in `prqlc`
-rust-version = "1.75.0"
-version = "0.13.12"
+rust-version = "1.81.0"
+version = "0.13.14"
 
 [profile.release]
 lto = true

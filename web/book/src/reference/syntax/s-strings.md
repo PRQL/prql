@@ -48,7 +48,7 @@ f-string of `f"average({col})"` would produce `"average(salary)"`, with quotes;
 while in PRQL, `s"average({col})"` produces `average(salary)`, without quotes.
 
 Note that interpolations can only contain plain variable names and not whole
-expression like Python.
+expressions like in Python.
 
 We can also use s-strings to produce a full table:
 

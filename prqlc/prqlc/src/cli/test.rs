@@ -13,7 +13,7 @@ use walkdir::WalkDir;
 #[cfg(not(windows))] // Windows has slightly different output (e.g. `prqlc.exe`), so we exclude.
 #[test]
 fn help() {
-    assert_cmd_snapshot!(prqlc_command().arg("--help"), @r"
+    assert_cmd_snapshot!(prqlc_command().arg("--help"), @"
     success: true
     exit_code: 0
     ----- stdout -----
@@ -24,7 +24,7 @@ fn help() {
       lex               Lex into Lexer Representation
       fmt               Parse & generate PRQL code back
       collect           Parse the whole project and collect it into a single PRQL source file
-      debug             Commands for meant for debugging, prone to change
+      debug             Commands meant for debugging, prone to change
       experimental      Experimental commands are prone to change
       compile           Parse, resolve, lower into RQ & compile to SQL
       watch             Watch a directory and compile .prql files to .sql files
@@ -42,7 +42,7 @@ fn help() {
     ");
 
     // without arguments
-    assert_cmd_snapshot!(prqlc_command(), @r"
+    assert_cmd_snapshot!(prqlc_command(), @"
     success: true
     exit_code: 0
     ----- stdout -----
@@ -53,7 +53,7 @@ fn help() {
       lex               Lex into Lexer Representation
       fmt               Parse & generate PRQL code back
       collect           Parse the whole project and collect it into a single PRQL source file
-      debug             Commands for meant for debugging, prone to change
+      debug             Commands meant for debugging, prone to change
       experimental      Experimental commands are prone to change
       compile           Parse, resolve, lower into RQ & compile to SQL
       watch             Watch a directory and compile .prql files to .sql files
@@ -73,7 +73,7 @@ fn help() {
 
 #[test]
 fn get_targets() {
-    assert_cmd_snapshot!(prqlc_command().arg("list-targets"), @r"
+    assert_cmd_snapshot!(prqlc_command().arg("list-targets"), @"
     success: true
     exit_code: 0
     ----- stdout -----
@@ -100,7 +100,7 @@ fn get_targets() {
 fn compile() {
     assert_cmd_snapshot!(prqlc_command()
         .args(["compile", "--hide-signature-comment"])
-        .pass_stdin("from tracks"), @r"
+        .pass_stdin("from tracks"), @"
     success: true
     exit_code: 0
     ----- stdout -----
@@ -116,7 +116,7 @@ fn compile() {
 #[cfg(not(windows))] // Windows has slightly different output (e.g. `prqlc.exe`), so we exclude.
 #[test]
 fn compile_help() {
-    assert_cmd_snapshot!(prqlc_command().args(["compile", "--help"]), @r"
+    assert_cmd_snapshot!(prqlc_command().args(["compile", "--help"]), @"
     success: true
     exit_code: 0
     ----- stdout -----
@@ -194,7 +194,7 @@ let long_query = (
   take 20
 )
 from long_query
-  "#), @r"
+  "#), @"
     success: true
     exit_code: 0
     ----- stdout -----
@@ -278,7 +278,7 @@ fn compile_project() {
         "main",
     ]);
 
-    assert_cmd_snapshot!(cmd, @r"
+    assert_cmd_snapshot!(cmd, @"
     success: true
     exit_code: 0
     ----- stdout -----
@@ -332,7 +332,7 @@ fn compile_project() {
         project_path().to_str().unwrap(),
         "-",
         "favorite_artists",
-    ]), @r"
+    ]), @"
     success: true
     exit_code: 0
     ----- stdout -----
@@ -359,7 +359,7 @@ fn compile_project() {
 #[test]
 fn format() {
     // Test stdin formatting
-    assert_cmd_snapshot!(prqlc_command().args(["fmt"]).pass_stdin("from tracks | take 20"), @r"
+    assert_cmd_snapshot!(prqlc_command().args(["fmt"]).pass_stdin("from tracks | take 20"), @"
     success: true
     exit_code: 0
     ----- stdout -----
@@ -604,7 +604,7 @@ fn normalize_prqlc(cmd: &mut Command) -> &mut Command {
 
 #[test]
 fn compile_no_prql_files() {
-    assert_cmd_snapshot!(prqlc_command().args(["compile", "README.md"]), @r"
+    assert_cmd_snapshot!(prqlc_command().args(["compile", "README.md"]), @"
     success: false
     exit_code: 1
     ----- stdout -----
@@ -616,7 +616,7 @@ fn compile_no_prql_files() {
 
 #[test]
 fn lex() {
-    assert_cmd_snapshot!(prqlc_command().args(["lex"]).pass_stdin("from tracks"), @r"
+    assert_cmd_snapshot!(prqlc_command().args(["lex"]).pass_stdin("from tracks"), @"
     success: true
     exit_code: 0
     ----- stdout -----
@@ -710,6 +710,64 @@ fn lsp() {
     ----- stderr -----
     starting PRQL LSP server
     starting main loop
+    got msg: Notification(Notification { method: "exit", params: Null })
+    got notification: Notification { method: "exit", params: Null }
+    shutting down server
+    "###);
+}
+
+/// A non-`exit` notification must not terminate the server — only `exit`
+/// should. Before the fix, the loop returned on the first notification, so
+/// the `exit` notification below was never reached and never logged.
+#[cfg(feature = "lsp")]
+#[test]
+fn lsp_ignores_non_exit_notification() {
+    let init = serde_json::to_string(&lsp_server::Message::Request(lsp_server::Request {
+        method: "initialize".into(),
+        id: lsp_server::RequestId::from(1),
+        params: serde_json::json!({"capabilities": {}}),
+    }))
+    .unwrap();
+    let initialized = serde_json::to_string(&lsp_server::Message::Notification(
+        lsp_server::Notification {
+            method: "initialized".into(),
+            params: serde_json::json!({}),
+        },
+    ))
+    .unwrap();
+    let set_trace = serde_json::to_string(&lsp_server::Message::Notification(
+        lsp_server::Notification {
+            method: "$/setTrace".into(),
+            params: serde_json::json!({"value": "off"}),
+        },
+    ))
+    .unwrap();
+    let exit = serde_json::to_string(&lsp_server::Message::Notification(
+        lsp_server::Notification {
+            method: "exit".into(),
+            params: serde_json::Value::Null,
+        },
+    ))
+    .unwrap();
+
+    assert_cmd_snapshot!(prqlc_command().args(["lsp"])
+        .pass_stdin(format!("Content-Length: {}\r\n\r\n{}Content-Length: {}\r\n\r\n{}Content-Length: {}\r\n\r\n{}Content-Length: {}\r\n\r\n{}",
+            init.len(), init,
+            initialized.len(), initialized,
+            set_trace.len(), set_trace,
+            exit.len(), exit))
+        , @r###"
+    success: true
+    exit_code: 0
+    ----- stdout -----
+    Content-Length: 78
+
+    {"jsonrpc":"2.0","id":1,"result":{"capabilities":{"definitionProvider":true}}}
+    ----- stderr -----
+    starting PRQL LSP server
+    starting main loop
+    got msg: Notification(Notification { method: "$/setTrace", params: Object {"value": String("off")} })
+    got notification: Notification { method: "$/setTrace", params: Object {"value": String("off")} }
     got msg: Notification(Notification { method: "exit", params: Null })
     got notification: Notification { method: "exit", params: Null }
     shutting down server

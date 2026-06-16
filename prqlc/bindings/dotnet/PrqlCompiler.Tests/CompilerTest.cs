@@ -2,12 +2,12 @@ using Prql.Compiler;
 
 namespace Prql.Compiler.Tests;
 
-sealed public class CompilerTest
+public sealed class CompilerTest
 {
     [Fact]
     public void ToCompile_Works()
     {
-    	// Arrange
+        // Arrange
         var expected = "SELECT * FROM employees";
         var options = new PrqlCompilerOptions
         {
@@ -21,6 +21,55 @@ sealed public class CompilerTest
 
         // Assert
         Assert.Equal(expected, result.Output);
+    }
+
+    [Fact]
+    public void Compile_ReportsErrorMessages()
+    {
+        // Arrange — `unknown_function` is not defined, producing an error
+        // message whose optional fields (Span, Display, Location) get
+        // populated. This validates pointer dereferencing for indirect
+        // string fields and Span/Location pointers in the FFI struct layout.
+        var query = "from employees | unknown_function col";
+
+        // Act
+        var result = PrqlCompiler.Compile(query);
+
+        // Assert
+        Assert.NotEmpty(result.Messages);
+        var message = result.Messages.First();
+        Assert.Equal(MessageKind.Error, message.Kind);
+        Assert.False(string.IsNullOrEmpty(message.Reason));
+        Assert.NotNull(message.Span);
+        Assert.NotNull(message.Location);
+        Assert.False(string.IsNullOrEmpty(message.Display));
+    }
+
+    [Fact]
+    public void Compile_ThrowsArgumentNullException_WhenOptionsNull()
+    {
+        Assert.Throws<ArgumentNullException>(() => PrqlCompiler.Compile("from x", null!));
+    }
+
+    [Fact]
+    public void RqToSql_ThrowsArgumentNullException_WhenOptionsNull()
+    {
+        Assert.Throws<ArgumentNullException>(() => PrqlCompiler.RqToSql("{}", null!));
+    }
+
+    [Fact]
+    public void Compile_HandlesNonAsciiInput()
+    {
+        // Guards the UTF-8 marshalling path. Default `DllImport` ANSI
+        // marshalling silently corrupts non-ASCII bytes; LibraryImport with
+        // `StringMarshalling.Utf8` round-trips them correctly.
+        var query = "from employees | filter name == 'Café'";
+        var options = new PrqlCompilerOptions { SignatureComment = false };
+
+        var result = PrqlCompiler.Compile(query, options);
+
+        Assert.Empty(result.Messages);
+        Assert.Contains("Café", result.Output);
     }
 
     [Fact]

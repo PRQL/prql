@@ -391,6 +391,7 @@ fn translate_relation_expr(relation_expr: RelationExpr, ctx: &mut Context) -> Re
                 lateral: false,
                 subquery: Box::new(query),
                 alias,
+                sample: None,
             }
         }
     })
@@ -658,9 +659,11 @@ fn default_select() -> Select {
         qualify: None,
         value_table_mode: None,
         window_before_qualify: false,
-        connect_by: None,
+        connect_by: Vec::new(),
         prewhere: None,
         exclude: None,
+        optimizer_hints: Vec::new(),
+        select_modifiers: None,
         select_token: sqlparser::ast::helpers::attached_token::AttachedToken::empty(),
         flavor: sqlparser::ast::SelectFlavor::Standard,
     }
@@ -671,6 +674,7 @@ fn simple_table_alias(name: sql_ast::Ident) -> TableAlias {
         name,
         columns: Vec::new(),
         explicit: true,
+        at: None,
     }
 }
 
@@ -679,6 +683,7 @@ fn cte_table_alias(name: sql_ast::Ident) -> TableAlias {
         name,
         columns: Vec::new(),
         explicit: false,
+        at: None,
     }
 }
 
@@ -715,6 +720,7 @@ fn query_to_set_expr(query: sql_ast::Query, context: &mut Context) -> Box<SetExp
                     alias: Some(simple_table_alias(sql_ast::Ident::new(
                         context.anchor.table_name.gen(),
                     ))),
+                    sample: None,
                 },
                 joins: vec![],
             }],
@@ -746,6 +752,9 @@ fn first_expr_from_projection(projection: &[SelectItem]) -> Option<sql_ast::Expr
                 return Some(sql_ast::Expr::Identifier(alias.clone()));
             }
             SelectItem::Wildcard(_) | SelectItem::QualifiedWildcard(_, _) => continue,
+            SelectItem::ExprWithAliases { .. } => {
+                unreachable!("prqlc does not construct SelectItem::ExprWithAliases")
+            }
         }
     }
     None
@@ -769,7 +778,7 @@ mod test {
 
         let sql_ast = crate::tests::compile(query).unwrap();
 
-        assert_snapshot!(sql_ast, @r"
+        assert_snapshot!(sql_ast, @"
         WITH table_0 AS (
           SELECT
             title,
@@ -810,7 +819,7 @@ mod test {
 
         let sql_ast = crate::tests::compile(query).unwrap();
 
-        assert_snapshot!(sql_ast, @r"
+        assert_snapshot!(sql_ast, @"
         WITH table_0 AS (
           SELECT
             *,
@@ -836,7 +845,7 @@ mod test {
         filter (average bar) > 3
         "#;
 
-        assert_snapshot!(crate::tests::compile(query).unwrap(), @r"
+        assert_snapshot!(crate::tests::compile(query).unwrap(), @"
         WITH table_0 AS (
           SELECT
             *,
@@ -864,7 +873,7 @@ mod test {
         aggregate {c=count this}
         "#;
 
-        assert_snapshot!(crate::tests::compile(query).unwrap(), @r"
+        assert_snapshot!(crate::tests::compile(query).unwrap(), @"
         WITH table_0 AS (
           SELECT
             DISTINCT ON (id, name) *

@@ -1,6 +1,6 @@
 //! Partitioned Query
 //!
-//! This in an internal intermediate representation between RQ and SQL AST.
+//! This is an internal intermediate representation between RQ and SQL AST.
 //!
 //! For example, RQ does not have a separate node for DISTINCT, but uses [crate::pr::rq::Take] 1 with
 //! `partition`. In [super::pq::preprocess] module, [crate::pr::rq::Transform] take is wrapped into

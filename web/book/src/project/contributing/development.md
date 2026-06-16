@@ -453,26 +453,28 @@ for when we use the main prql repo vs separate repos for bindings:
 
 Currently we release in a semi-automated way:
 
-1. PR & merge an updated
-   [Changelog](https://github.com/PRQL/prql/blob/main/CHANGELOG.md). GitHub will
-   produce a draft version at <https://github.com/PRQL/prql/releases/new>,
-   including "New Contributors".
+1. If the version needs changing (for example, a planned patch release that
+   should instead be a minor release), run
+   `cargo release $version --no-publish --no-push --execute --no-verify --no-confirm --no-tag && task prqlc:test-all`
+   to set it, then PR the resulting commit. Otherwise the version is already
+   correct, set by the previous release's patch bump.
 
-   Use this script to generate a line introducing the enumerated changes:
+2. PR & merge an updated
+   [Changelog](https://github.com/PRQL/prql/blob/main/CHANGELOG.md). Rename the
+   `## [unreleased]` heading to the new version and date (matching the format of
+   the entries below it) and curate its entries. Leave no `## [unreleased]`
+   section; step 5 recreates it. GitHub will produce a draft at
+   <https://github.com/PRQL/prql/releases/new>, including "New Contributors".
+
+   Generate the line that introduces the enumerated changes with:
 
    ```sh
-   echo "It has $(git rev-list --count $(git rev-list --tags --max-count=1)..) commits from $(git shortlog --summary $(git rev-list --tags --max-count=1).. | wc -l | tr -d '[:space:]') contributors. Selected changes:"
+   echo "$version has $(git rev-list --count $(git rev-list --tags --max-count=1)..) commits from $(git shortlog --summary $(git rev-list --tags --max-count=1).. | wc -l | tr -d '[:space:]') contributors. Selected changes:"
    ```
 
    When a fix closes an issue reported by someone other than the PR author,
    thank them in the changelog entry, e.g.
    `(@pr-author, #5639; reported by @issue-reporter)`.
-
-2. If the current version is correct, then skip ahead. But if the version needs
-   to be changed — for example, we had planned on a patch release, but instead
-   require a minor release — then run
-   `cargo release version $version -x && cargo release replace -x && task prqlc:test-all`
-   to bump the version, and PR the resulting commit.
 
 3. Ensure all changes intended for the release are merged to `main`. Then create
    the release (which creates the tag on the latest commit on `main`):
@@ -502,11 +504,11 @@ Currently we release in a semi-automated way:
 
 5. Run
    `cargo release patch --no-publish --no-push --execute --no-verify --no-confirm --no-tag && task prqlc:test-all`
-   to bump the versions and add a new Changelog section; then PR the resulting
-   commit. Note this currently contains `task prqlc:test-all` to update snapshot
-   tests which contain the version.
+   to bump to the next development version, then PR the resulting commit. This
+   recreates the `## [unreleased]` section for the next cycle, and
+   `task prqlc:test-all` refreshes the snapshot tests that embed the version.
 
-<!-- Note we used to have `cargo release version patch -x --no-confirm && cargo release replace -x --no-confirm && task prqlc:test-all`, which was simpler, but in order for `prev_version` to work, we can't separate the `patch` and `replace`, and we need `prev_version` for the prqlc version constraint (search for `prev_version` if unclear). If we moved back to upgrading the tags at the time of release rather than after, we could go back to that. -->
+<!-- `version` and `replace` must run in one `cargo release` invocation (not separate `cargo release version` + `cargo release replace` steps) so the `prev_version` replacement for the prqlc version constraint in target.md resolves. -->
 
 6. Check whether there are [milestones](https://github.com/PRQL/prql/milestones)
    that need to be pushed out.

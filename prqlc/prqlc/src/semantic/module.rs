@@ -186,7 +186,10 @@ impl Module {
             log::trace!("... following redirect {redirect}");
             let r = lookup_in(self, redirect.clone() + ident.clone());
             log::trace!("... result of redirect {redirect}: {r:?}");
-            res.extend(r);
+            if !r.is_empty() {
+                res.remove(ident);
+                res.extend(r);
+            }
         }
         res
     }

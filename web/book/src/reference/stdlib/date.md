@@ -105,7 +105,7 @@ Here is the list of the specifiers currently supported:
 | `%I`  | `12`                          | Hour number in 12-hour clocks (01--12), zero-padded to 2 digits. |
 | `%p`  | `AM`                          | `AM` or `PM` in 12-hour clocks.                                  |
 | `%M`  | `34`                          | Minute number (00-59), zero-padded to 2 digits.                  |
-| `%S`  | `60`                          | Second number (00-59), zero-padded to 2 digits.                  |
+| `%S`  | `60`                          | Second number (00-60), zero-padded to 2 digits.                  |
 | `%f`  | `264900`                      | Number of microseconds[^1] since last whole second               |
 | `%R`  | `00:34`                       | Hour-minute format. Same as `%H:%M`.                             |
 | `%T`  | `00:34:60`                    | Hour-minute-second format. Same as `%H:%M:%S`.                   |

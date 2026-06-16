@@ -12,8 +12,6 @@
 //! compile the query and inject interpolations back in.
 //!
 //! Unfortunately, this requires parsing Jinja.
-//!
-//! use `crate::compiler::tokens::{Span`, Token};
 
 use std::collections::HashMap;
 

@@ -26,7 +26,7 @@ final class Message
      */
     public ?string $hint = null;
     /**
-     * Character offset of error origin within a source file.
+     * Source span (character offset range) of error origin within a source file.
      */
     public ?Span $span = null;
     /**

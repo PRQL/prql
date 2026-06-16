@@ -32,7 +32,7 @@ manually:
    cargo test --features=test-dbs-external -- --nocapture
    ```
 
-   (The `--no-capture` option isn't required, but shows all the dialects tested
+   (The `--nocapture` option isn't required, but shows all the dialects tested
    per query.)
 
 3. After it's done, remove the containers:

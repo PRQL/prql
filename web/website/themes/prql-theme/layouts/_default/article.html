@@ -9,7 +9,7 @@
               <span>{{ . }}</span>&middot;
             {{ end }}
             {{ if .Date }}
-              <time datetime="{{ .Date.Format " 2006-01-02T15:04:05Z07:00" }}"
+              <time datetime="{{ .Date.Format "2006-01-02T15:04:05Z07:00" }}"
                 >{{ .Date.Format "January 02, 2006" }}</time
               >
             {{ end }}
@@ -18,7 +18,7 @@
               <div>
                 Updated
                 <time
-                  datetime="{{ .Lastmod.Format " 2006-01-02T15:04:05Z07:00" }}"
+                  datetime="{{ .Lastmod.Format "2006-01-02T15:04:05Z07:00" }}"
                   >{{ .Lastmod.Format "January 02, 2006" }}</time
                 >
               </div>

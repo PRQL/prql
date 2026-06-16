@@ -14,12 +14,10 @@ name = "prqlc"
 requires-python = ">=3.9"
 
 [tool.maturin]
-# This is required because of https://github.com/PyO3/pyo3/pull/2135. Instead of
-# the suggestions there to run tests with `--no-default-features`, we instead
-# disable by default and then enable in the build, given that we're going to be
-# testing more often than building.
-
-# When https://github.com/PyO3/pyo3/pull/2135 merges, we can remove this config.
+# This is required because of https://github.com/PyO3/pyo3/pull/2135 (closed
+# without merging on 2025-04-14). Instead of the suggestions there to run tests
+# with `--no-default-features`, we instead disable by default and then enable in
+# the build, given that we're going to be testing more often than building.
 
 features = ["pyo3/extension-module"]
 

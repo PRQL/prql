@@ -32,14 +32,14 @@ jobs:
     runs-on: ${{ inputs.os }}
     steps:
       - name: 📂 Checkout code
-        uses: actions/checkout@v5
+        uses: actions/checkout@v6
         with:
           fetch-tags: true
       - name: Log in to Docker Hub
         if:
           ${{ contains(inputs.features, 'test-dbs-external') &&
           env.DOCKERHUB_USERNAME != '' }}
-        uses: docker/login-action@v3
+        uses: docker/login-action@v4
         with:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
@@ -95,6 +95,10 @@ jobs:
           # the comma seemed over the top.
           save-if:
             ${{ github.ref == 'refs/heads/main' && inputs.features != '' }}
+          # Caching `~/.cargo/bin/` breaks the rustup `cargo`/`rustc` symlinks
+          # on the new macos-15 runner image — see
+          # https://github.com/Swatinem/rust-cache/issues/341.
+          cache-bin: "false"
       - uses: actions/setup-python@v6
         # python isn't natively installed on macos-15, so we need to install it
         if: ${{ inputs.os == 'macos-15' }}
@@ -179,12 +183,9 @@ jobs:
         uses: clechasseur/rs-cargo@v4
         with:
           command: doc
-          # Only run with deps on nightly, since it's much slower, and so far™
-          # we haven't seen any errors.
           args:
             --target=${{ inputs.target }} --no-default-features --features=${{
-            inputs.features }} ${{ inputs.nightly != 'true' && '--no-deps' || ''
-            }}
+            inputs.features }}
       - name: Build extra targets for cache
         # When building the cache, we also run with `--all-targets` so that
         # prqlc builds can use the same cache.

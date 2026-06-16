@@ -5996,11 +5996,7 @@ fn test_relation_var_name_clashes_02() {
 }
 
 #[test]
-#[ignore]
 fn test_select_this() {
-    // Currently broken for a few reasons:
-    // - type of `this` is not resolved as tuple, but an union?
-    // - lineage is not computed correctly
     assert_snapshot!(compile(
         r###"
     from x
@@ -6008,13 +6004,52 @@ fn test_select_this() {
     select this
         "###,
     )
-    .unwrap(), @r###"
+    .unwrap(), @"
     SELECT
       a,
       b
     FROM
       x
-    "###);
+    ");
+}
+
+#[test]
+fn test_select_this_wildcard() {
+    assert_snapshot!(compile(
+        r###"
+    from x
+    select {a, b}
+    select this.*
+        "###,
+    )
+    .unwrap(), @"
+    SELECT
+      a,
+      b
+    FROM
+      x
+    ");
+}
+
+#[test]
+fn test_sort_this_wildcard() {
+    assert_snapshot!(compile(
+        r###"
+    from x
+    select {a, b}
+    sort this.*
+        "###,
+    )
+    .unwrap(), @"
+    SELECT
+      a,
+      b
+    FROM
+      x
+    ORDER BY
+      a,
+      b
+    ");
 }
 
 #[test]
@@ -6141,6 +6176,67 @@ fn test_table_declarations() {
 }
 
 #[test]
+fn test_module_resolves_bare_name_from_ancestor() {
+    // https://github.com/PRQL/prql/issues/5975
+    // Bare references inside a nested module should resolve against ancestor
+    // modules, per the spec's "step up the parent module" rule.
+    assert_snapshot!(compile(
+        r###"
+    module a {
+      module b {
+        let bar = 3
+        module c {
+          let scaled = bar * 2
+        }
+      }
+    }
+    from u | derive {x = a.b.c.scaled}
+        "###,
+    )
+    .unwrap(), @"
+    SELECT
+      *,
+      3 * 2 AS x
+    FROM
+      u
+    ");
+}
+
+#[test]
+fn test_module_does_not_pick_up_unrelated_root_sibling() {
+    // https://github.com/PRQL/prql/issues/5975
+    // A bare name inside `a.b.c` must not silently resolve to a root-level
+    // `b.c.bar` just because the path tail matches.
+    assert_snapshot!(compile(
+        r###"
+    module b {
+      module c {
+        let bar = 99
+      }
+    }
+    module a {
+      module b {
+        module c {
+          let scaled = bar * 2
+        }
+      }
+    }
+    from u | derive {x = a.b.c.scaled}
+        "###,
+    )
+    .unwrap_err()
+    .to_string(), @r"
+    Error:
+        ╭─[ :10:24 ]
+        │
+     10 │           let scaled = bar * 2
+        │                        ─┬─
+        │                         ╰─── Unknown name `bar`
+    ────╯
+    ");
+}
+
+#[test]
 fn test_param_declarations() {
     assert_snapshot!(compile(
         r###"
@@ -6192,6 +6288,54 @@ fn test_import() {
       1
     FROM
       x
+    ");
+}
+
+#[test]
+fn test_tuple_reduce() {
+    assert_snapshot!(compile(
+        r###"
+from foo
+select {
+  with_initial = tuple_reduce initial:4 add {1, 2, 3},
+  with_initial_one = tuple_reduce initial:4 add {3},
+  with_initial_zero = tuple_reduce initial:4 add {},
+  no_initial = tuple_reduce add {1, 2, 3},
+  no_initial_one = tuple_reduce add {3},
+}
+        "###,
+    )
+    .unwrap(), @"
+    SELECT
+      4 + 1 + 2 + 3 AS with_initial,
+      4 + 3 AS with_initial_one,
+      4 AS with_initial_zero,
+      1 + 2 + 3 AS no_initial,
+      3 AS no_initial_one
+    FROM
+      foo
+    ");
+}
+
+#[test]
+fn test_tuple_reduce_err() {
+    assert_snapshot!(compile(
+        r###"
+from foo
+select {
+  no_initial_err = tuple_reduce add {}
+}
+"###,
+    ).unwrap_err(), @"
+    Error:
+       ╭─[ :4:37 ]
+       │
+     4 │   no_initial_err = tuple_reduce add {}
+       │                                     ─┬
+       │                                      ╰── tuple expected to have at least one entry when initial value is not provided, but found empty tuple
+       │
+       │ Help: try adding an initial:<value> parameter
+    ───╯
     ");
 }
 
@@ -7239,4 +7383,42 @@ fn test_partial_application_of_transform() {
     LIMIT
       10
     ");
+}
+
+#[test]
+fn test_tuple_map() {
+    assert_snapshot!(compile(r###"
+    let add_four = func a -> a + 4
+
+    from foo
+    select {x, y}
+    derive (tuple_map add_four foo.*)
+    "###).unwrap(), @"
+    SELECT
+      x,
+      y,
+      x + 4,
+      y + 4
+    FROM
+      foo
+    ");
+}
+
+#[test]
+fn test_tuple_map_aliases() {
+    assert_snapshot!(compile(r###"
+    let add_four = func a -> a + 4
+
+    from foo
+    select {x, y}
+    derive (tuple_map add_four {c = x, d = y})
+    "###).unwrap(), @r###"
+    SELECT
+      x,
+      y,
+      x + 4 AS c,
+      y + 4 AS d
+    FROM
+      foo
+    "###);
 }
