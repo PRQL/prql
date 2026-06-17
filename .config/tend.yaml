@@ -1,5 +1,4 @@
 bot_name: prql-bot
-harness: claude-interactive
 secrets:
   # Docker Hub login is needed by test-rust.yaml on internal PRs (external-DB
   # tests); it's a low-value pull token, so it's intentionally repo-level.
