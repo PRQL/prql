@@ -32,7 +32,7 @@ jobs:
 
       - uses: ./.github/actions/tend-setup
 
-      - uses: max-sixty/tend/interactive@0.1.4
+      - uses: max-sixty/tend@0.1.4
         with:
           github_token: ${{ secrets.TEND_BOT_TOKEN }}
           claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
