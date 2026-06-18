@@ -97,7 +97,7 @@ jobs:
 
       - uses: ./.github/actions/tend-setup
         if: steps.check.outputs.count != '0' || github.event_name == 'workflow_dispatch'
-      - uses: max-sixty/tend/interactive@0.1.4
+      - uses: max-sixty/tend@0.1.4
         if: steps.check.outputs.count != '0' || github.event_name == 'workflow_dispatch'
         with:
           github_token: ${{ secrets.TEND_BOT_TOKEN }}

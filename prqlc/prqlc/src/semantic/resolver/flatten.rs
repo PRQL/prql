@@ -142,7 +142,27 @@ impl PlFold for Flattener {
                             ..pipeline
                         });
                     }
-                    kind => (self.fold_expr(*t.input)?, fold_transform_kind(self, kind)?),
+                    kind => {
+                        let input = self.fold_expr(*t.input)?;
+
+                        // For join/append, folding the `with` sub-pipeline (which happens
+                        // inside `fold_transform_kind`) may set `self.sort` to the sub-pipeline's
+                        // sort. That sort references columns of the joined relation, which are not
+                        // in scope for downstream transforms in the outer pipeline. Per the PRQL
+                        // spec a join retains the left (input) side's order, so snapshot the
+                        // input's sort and restore it after folding the kind.
+                        let input_sort =
+                            matches!(kind, TransformKind::Join { .. } | TransformKind::Append(_))
+                                .then(|| self.sort.clone());
+
+                        let kind = fold_transform_kind(self, kind)?;
+
+                        if let Some(input_sort) = input_sort {
+                            self.sort = input_sort;
+                        }
+
+                        (input, kind)
+                    }
                 };
 
                 // In case we're appending or joining another pipeline, we do not want to apply the

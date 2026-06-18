@@ -904,4 +904,87 @@ mod test {
         let err = crate::tests::compile(query).unwrap_err();
         assert!(err.to_string().contains("not accessible in this context"));
     }
+
+    #[test]
+    fn test_sort_both_branches_join_take() {
+        // A `sort` on both the left and the joined branch (both wrapped in CTEs
+        // by a preceding `group`), followed by `take`, must not leak the joined
+        // branch's sort column into the implicit ORDER BY synthesized for the
+        // LIMIT. The ORDER BY must reference the left CTE alias, not the joined
+        // branch's out-of-scope source table.
+        let query = r#"
+        from foo.bar
+        group {a} (aggregate {x = count c})
+        sort {a}
+        join side:left (
+          from foo.bar
+          group {a} (aggregate {y = count c})
+          sort {a}
+          derive {a_r = a}
+          select {a_r, y}
+        ) (this.a == that.a_r)
+        derive {g = a}
+        take 10
+        select {g, x, y}
+        "#;
+
+        assert_snapshot!(crate::tests::compile(query).unwrap(), @r"
+        WITH table_1 AS (
+          SELECT
+            COUNT(*) AS x,
+            a
+          FROM
+            foo.bar
+          GROUP BY
+            a
+        ),
+        table_3 AS (
+          SELECT
+            COUNT(*) AS y,
+            a
+          FROM
+            foo.bar
+          GROUP BY
+            a
+        ),
+        table_4 AS (
+          SELECT
+            a AS a_r,
+            y,
+            a
+          FROM
+            table_3
+        ),
+        table_0 AS (
+          SELECT
+            a_r,
+            y,
+            a
+          FROM
+            table_4
+        ),
+        table_2 AS (
+          SELECT
+            table_1.a AS g,
+            table_1.x,
+            table_0.y,
+            table_1.a
+          FROM
+            table_1
+            LEFT OUTER JOIN table_0 ON table_1.a = table_0.a_r
+          ORDER BY
+            table_1.a
+          LIMIT
+            10
+        )
+        SELECT
+          g,
+          x,
+          y
+        FROM
+          table_2
+        ORDER BY
+          g
+        ");
+    }
 }

@@ -600,11 +600,13 @@ impl DialectHandler for ClickHouseDialect {
             Item::Literal(literal) => {
                 // literals are split at every non alphanumeric character
                 if literal.chars().any(|c| c.is_ascii_alphanumeric()) {
-                    // If the literal contains alphanumeric characters, we need to quote it
-                    // to avoid it being interpreted as a pattern understood by Clickhouse.
-                    // Clickhouse uses backticks around
+                    // Wrap alphanumeric literals in single quotes so Joda treats
+                    // them as literal text rather than pattern letters.
                     format!("'{literal}'")
                 } else {
+                    // Punctuation is literal in a Joda pattern, but an apostrophe
+                    // would otherwise open a quoted section. Escape it as a pair
+                    // so it reaches the pattern as `''` (Joda's literal apostrophe).
                     literal.replace('\'', "\\'\\'")
                 }
             }
@@ -757,7 +759,9 @@ mod tests {
     use chrono::format::{Fixed, Item, Numeric, Pad};
     use insta::{assert_debug_snapshot, assert_snapshot};
 
-    use super::{chrono_item_to_strftime, BigQueryDialect, Dialect, DialectHandler};
+    use super::{
+        chrono_item_to_strftime, BigQueryDialect, ClickHouseDialect, Dialect, DialectHandler,
+    };
 
     #[test]
     fn test_dialect_from_str() {
@@ -905,6 +909,60 @@ mod tests {
             .translate_chrono_item(Item::Fixed(Fixed::LowerAmPm))
             .unwrap_err();
         assert_snapshot!(err.to_string(), @r#"Error { kind: Error, span: None, reason: Simple("format specifier `%P` is not supported for BigQuery"), hints: [], code: None }"#);
+    }
+
+    // -- ClickHouseDialect::translate_chrono_item tests --
+    //
+    // ClickHouse formats dates with `formatDateTimeInJodaSyntax`, so specifiers
+    // map to Joda pattern letters rather than strftime `%` codes.
+
+    #[test]
+    fn clickhouse_translate_numeric_specifiers() {
+        let ch = ClickHouseDialect;
+        assert_snapshot!(ch.translate_chrono_item(Item::Numeric(Numeric::Year, Pad::Zero)).unwrap(), @"yyyy");
+        assert_snapshot!(ch.translate_chrono_item(Item::Numeric(Numeric::YearMod100, Pad::Zero)).unwrap(), @"yy");
+        assert_snapshot!(ch.translate_chrono_item(Item::Numeric(Numeric::Month, Pad::None)).unwrap(), @"M");
+        assert_snapshot!(ch.translate_chrono_item(Item::Numeric(Numeric::Month, Pad::Zero)).unwrap(), @"MM");
+        assert_snapshot!(ch.translate_chrono_item(Item::Numeric(Numeric::Day, Pad::None)).unwrap(), @"d");
+        assert_snapshot!(ch.translate_chrono_item(Item::Numeric(Numeric::Day, Pad::Zero)).unwrap(), @"dd");
+        assert_snapshot!(ch.translate_chrono_item(Item::Numeric(Numeric::Hour, Pad::Zero)).unwrap(), @"HH");
+        assert_snapshot!(ch.translate_chrono_item(Item::Numeric(Numeric::Hour12, Pad::Zero)).unwrap(), @"hh");
+        assert_snapshot!(ch.translate_chrono_item(Item::Numeric(Numeric::Minute, Pad::Zero)).unwrap(), @"mm");
+        assert_snapshot!(ch.translate_chrono_item(Item::Numeric(Numeric::Second, Pad::Zero)).unwrap(), @"ss");
+        assert_snapshot!(ch.translate_chrono_item(Item::Numeric(Numeric::Nanosecond, Pad::Zero)).unwrap(), @"SSSSSS");
+    }
+
+    #[test]
+    fn clickhouse_translate_fixed_specifiers() {
+        let ch = ClickHouseDialect;
+        assert_snapshot!(ch.translate_chrono_item(Item::Fixed(Fixed::ShortMonthName)).unwrap(), @"MMM");
+        assert_snapshot!(ch.translate_chrono_item(Item::Fixed(Fixed::LongMonthName)).unwrap(), @"MMMM");
+        assert_snapshot!(ch.translate_chrono_item(Item::Fixed(Fixed::ShortWeekdayName)).unwrap(), @"EEE");
+        assert_snapshot!(ch.translate_chrono_item(Item::Fixed(Fixed::LongWeekdayName)).unwrap(), @"EEEE");
+        assert_snapshot!(ch.translate_chrono_item(Item::Fixed(Fixed::UpperAmPm)).unwrap(), @"aa");
+        assert_snapshot!(ch.translate_chrono_item(Item::Fixed(Fixed::RFC3339)).unwrap(), @"yyyy-MM-dd'T'HH:mm:ss.SSSSSS'Z'");
+    }
+
+    #[test]
+    fn clickhouse_translate_literal() {
+        let ch = ClickHouseDialect;
+        // Punctuation passes through unchanged (it's literal in a Joda pattern).
+        assert_snapshot!(ch.translate_chrono_item(Item::Literal("-")).unwrap(), @"-");
+        assert_snapshot!(ch.translate_chrono_item(Item::Literal("/")).unwrap(), @"/");
+        // Alphanumeric runs are wrapped in single quotes so Joda treats them as
+        // literal text rather than pattern letters.
+        assert_snapshot!(ch.translate_chrono_item(Item::Literal("foo")).unwrap(), @"'foo'");
+        // A literal apostrophe is rendered as an escaped pair so it survives,
+        // through the single-quoted SQL string literal it's embedded in, into
+        // the Joda pattern as `''` (Joda's escape for a literal apostrophe).
+        assert_snapshot!(ch.translate_chrono_item(Item::Literal("'")).unwrap(), @r"\'\'");
+    }
+
+    #[test]
+    fn clickhouse_translate_space() {
+        let ch = ClickHouseDialect;
+        assert_snapshot!(ch.translate_chrono_item(Item::Space(" ")).unwrap(), @" ");
+        assert_snapshot!(ch.translate_chrono_item(Item::Space("  ")).unwrap(), @"  ");
     }
 }
 
