@@ -89,7 +89,7 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.TEND_BOT_TOKEN }}
 
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
         if: steps.check.outputs.count != '0' || github.event_name == 'workflow_dispatch'
         with:
           ref: main
