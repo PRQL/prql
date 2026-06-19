@@ -43,8 +43,9 @@ auto-backgrounded poll and posted no review at all.
 
 Until #694 is fixed upstream, run the poll in chunks that each stay under the
 cap: cap the loop at **8 iterations** (`seq 1 8`) per Bash call, and if checks
-are still pending when it returns, issue another Bash call to keep polling. Every
-poll stays in the foreground — never wait on a backgrounded poll to notify you.
+are still pending when it returns, issue another Bash call to keep polling.
+Every poll stays in the foreground — never wait on a backgrounded poll to notify
+you.
 
 ## Weekly maintenance
 
