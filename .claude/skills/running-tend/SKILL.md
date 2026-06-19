@@ -27,6 +27,25 @@ permission first) still applies when the target shows no agent signals.
   in #5753, so bot PRs must be merged manually by a maintainer (or via repo
   branch-protection auto-merge if a maintainer enables it on the PR).
 
+## CI monitoring: poll in sub-cap chunks
+
+The bundled `running-in-ci` CI-monitoring recipe runs a single foreground loop
+of 15 one-minute iterations (`for i in $(seq 1 15); do sleep 60`). That
+15-minute loop exceeds the Bash tool's 10-minute cap, so the harness
+auto-backgrounds it — and a backgrounded poll's completion notification is not
+reliably delivered to a CI session (see
+[max-sixty/tend#694](https://github.com/max-sixty/tend/issues/694), still open
+as of tend 0.1.6). When the wait is gated (a review approval/dismissal, a
+pushed-fix verification), the session then waits on the backgrounded task for a
+notification that never arrives and ends without posting the gated action. This
+already cost a deliverable: the #6022 dependabot review deadlocked on the
+auto-backgrounded poll and posted no review at all.
+
+Until #694 is fixed upstream, run the poll in chunks that each stay under the
+cap: cap the loop at **8 iterations** (`seq 1 8`) per Bash call, and if checks
+are still pending when it returns, issue another Bash call to keep polling. Every
+poll stays in the foreground — never wait on a backgrounded poll to notify you.
+
 ## Weekly maintenance
 
 These tasks run as Step 3 of the bundled weekly skill (only when
