@@ -604,7 +604,7 @@ impl Resolver<'_> {
                 let top = transform_call.input.ty.clone().unwrap();
                 let bottom = bottom.ty.clone().unwrap();
 
-                Some(type_intersection(top, bottom))
+                Some(type_intersection(top, bottom).with_span(transform_call.input.span)?)
             }
         })
     }
@@ -1171,9 +1171,48 @@ mod from_text {
 
 #[cfg(test)]
 mod tests {
-    use insta::assert_yaml_snapshot;
+    use insta::{assert_snapshot, assert_yaml_snapshot};
 
     use crate::semantic::test::parse_resolve_and_lower;
+
+    // `append` of relations with a different number of columns must produce a
+    // graceful error rather than panicking (was `todo!()` in
+    // `type_intersection`).
+    #[test]
+    fn test_append_different_column_count() {
+        assert_snapshot!(crate::tests::compile(
+            "from a | select {x, y} | append (from b | select {x})"
+        )
+        .unwrap_err(), @r"
+        Error:
+           ╭─[ :1:10 ]
+           │
+         1 │ from a | select {x, y} | append (from b | select {x})
+           │          ──────┬──────
+           │                ╰──────── cannot combine relations with different numbers of columns
+           │
+           │ Help: `append` requires both tables to have matching columns
+        ───╯
+        ");
+    }
+
+    // `append` of relations whose columns have incompatible types must also
+    // error rather than panic (the catch-all `todo!()` arm).
+    #[test]
+    fn test_append_incompatible_column_types() {
+        assert_snapshot!(crate::tests::compile(
+            "from a | select {x = 1} | append (from b | select {x = 1.0})"
+        )
+        .unwrap_err(), @r"
+        Error:
+           ╭─[ :1:10 ]
+           │
+         1 │ from a | select {x = 1} | append (from b | select {x = 1.0})
+           │          ───────┬──────
+           │                 ╰──────── cannot combine types `int` and `float`
+        ───╯
+        ");
+    }
 
     #[test]
     fn test_aggregate_positional_arg() {
