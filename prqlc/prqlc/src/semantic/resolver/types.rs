@@ -375,32 +375,38 @@ fn is_not_super_type_of(sup: Option<&Ty>, sub: Option<&Ty>) -> bool {
     false
 }
 
-fn maybe_type_intersection(a: Option<Ty>, b: Option<Ty>) -> Option<Ty> {
-    match (a, b) {
-        (Some(a), Some(b)) => Some(type_intersection(a, b)),
+fn maybe_type_intersection(a: Option<Ty>, b: Option<Ty>) -> Result<Option<Ty>> {
+    Ok(match (a, b) {
+        (Some(a), Some(b)) => Some(type_intersection(a, b)?),
         (x, None) | (None, x) => x,
-    }
+    })
 }
 
-pub fn type_intersection(a: Ty, b: Ty) -> Ty {
-    match (a.kind, b.kind) {
+pub fn type_intersection(a: Ty, b: Ty) -> Result<Ty> {
+    Ok(match (a.kind, b.kind) {
         (a_kind, b_kind) if a_kind == b_kind => Ty { kind: a_kind, ..a },
 
         // tuple
         (TyKind::Tuple(a_fields), TyKind::Tuple(b_fields)) => {
-            type_intersection_of_tuples(a_fields, b_fields)
+            type_intersection_of_tuples(a_fields, b_fields)?
         }
 
         // array
         (TyKind::Array(Some(a)), TyKind::Array(Some(b))) => {
-            Ty::new(TyKind::Array(Some(Box::new(type_intersection(*a, *b)))))
+            Ty::new(TyKind::Array(Some(Box::new(type_intersection(*a, *b)?))))
         }
 
-        _ => todo!(),
-    }
+        (a_kind, b_kind) => {
+            return Err(Error::new_simple(format!(
+                "cannot combine types `{}` and `{}`",
+                write_ty_kind(&a_kind),
+                write_ty_kind(&b_kind)
+            )))
+        }
+    })
 }
 
-fn type_intersection_of_tuples(a: Vec<TyTupleField>, b: Vec<TyTupleField>) -> Ty {
+fn type_intersection_of_tuples(a: Vec<TyTupleField>, b: Vec<TyTupleField>) -> Result<Ty> {
     let a_has_other = a.iter().any(|f| f.is_wildcard());
     let b_has_other = b.iter().any(|f| f.is_wildcard());
 
@@ -414,14 +420,14 @@ fn type_intersection_of_tuples(a: Vec<TyTupleField>, b: Vec<TyTupleField>) -> Ty
             (None, None) => break,
             (None, Some(b_field)) => {
                 if !a_has_other {
-                    todo!();
+                    return Err(different_column_count_error());
                 }
                 has_other = true;
                 fields.push(TyTupleField::Single(b_field.0, b_field.1));
             }
             (Some(a_field), None) => {
                 if !b_has_other {
-                    todo!();
+                    return Err(different_column_count_error());
                 }
                 has_other = true;
                 fields.push(TyTupleField::Single(a_field.0, a_field.1));
@@ -432,7 +438,7 @@ fn type_intersection_of_tuples(a: Vec<TyTupleField>, b: Vec<TyTupleField>) -> Ty
                     (None, None) | (Some(_), Some(_)) => None,
                     (None, Some(n)) | (Some(n), None) => Some(n),
                 };
-                let ty = maybe_type_intersection(a_ty, b_ty);
+                let ty = maybe_type_intersection(a_ty, b_ty)?;
 
                 fields.push(TyTupleField::Single(name, ty));
             }
@@ -442,5 +448,10 @@ fn type_intersection_of_tuples(a: Vec<TyTupleField>, b: Vec<TyTupleField>) -> Ty
         fields.push(TyTupleField::Wildcard(None));
     }
 
-    Ty::new(TyKind::Tuple(fields))
+    Ok(Ty::new(TyKind::Tuple(fields)))
+}
+
+fn different_column_count_error() -> Error {
+    Error::new_simple("cannot combine relations with different numbers of columns")
+        .push_hint("`append` requires both tables to have matching columns")
 }
