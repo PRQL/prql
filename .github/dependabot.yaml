@@ -49,6 +49,14 @@ updates:
       prefix: "chore: "
     schedule:
       interval: daily
+    ignore:
+      # tend's own action is updated by the nightly `tend/update-workflows`
+      # regen (`uvx tend init`), which follows structural changes a version-only
+      # Dependabot bump can't — e.g. the 0.1.7 move that split the action into
+      # `claude/` / `codex/` subdirectories, leaving the bare `max-sixty/tend@0.1.7`
+      # ref with no `action.yaml` and breaking every workflow (see #6031).
+      # Excluding it here avoids redundant (and sometimes broken) duplicate PRs.
+      - dependency-name: "max-sixty/tend"
     labels: []
 
   - package-ecosystem: uv
