@@ -18,7 +18,7 @@ frames:
       table:
       - default_db
       - _literal_127
-- - 0:3212-3298
+- - 0:3210-3296
   - columns:
     - !Single
       name:
@@ -43,7 +43,7 @@ frames:
       table:
       - default_db
       - _literal_122
-- - 0:3301-3355
+- - 0:3299-3353
   - columns:
     - !Single
       name:
@@ -157,14 +157,14 @@ nodes:
   - 122
 - id: 190
   kind: RqOperator
-  span: 0:3241-3297
+  span: 0:3239-3295
   targets:
   - 181
   - 184
   parent: 192
 - id: 192
   kind: 'TransformCall: Join'
-  span: 0:3212-3298
+  span: 0:3210-3296
   children:
   - 154
   - 122
@@ -172,7 +172,7 @@ nodes:
   parent: 211
 - id: 203
   kind: Ident
-  span: 0:6073-6081
+  span: 0:6071-6079
   ident: !Ident
   - this
   - b
@@ -181,17 +181,17 @@ nodes:
   - 122
 - id: 207
   kind: RqOperator
-  span: 0:3309-3354
+  span: 0:3307-3352
   targets:
   - 203
   - 210
   parent: 211
 - id: 210
   kind: Literal
-  span: 0:6085-6089
+  span: 0:6083-6087
 - id: 211
   kind: 'TransformCall: Filter'
-  span: 0:3301-3355
+  span: 0:3299-3353
   children:
   - 192
   - 207
@@ -207,7 +207,7 @@ nodes:
   parent: 214
 - id: 214
   kind: Tuple
-  span: 0:3365-3368
+  span: 0:3363-3366
   children:
   - 213
   parent: 215

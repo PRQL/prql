@@ -490,3 +490,10 @@ fn bare_lambda_expression() {
     ───╯
     ");
 }
+
+#[test]
+fn append_by_name_unsupported_dialect() {
+    assert_snapshot!(compile(r###"
+    from foo | append by:name bar
+    "###).unwrap_err(), @"Error: The dialect GenericDialect does not support UNION BY NAME");
+}
