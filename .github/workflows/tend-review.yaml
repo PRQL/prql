@@ -47,6 +47,12 @@ jobs:
           fetch-depth: 0
           fetch-tags: true
           token: ${{ secrets.TEND_BOT_TOKEN }}
+          # actions/checkout@v7 refuses fork-PR checkout under
+          # pull_request_target unless this opts in. Matches the upstream tend
+          # fix (max-sixty/tend#725, shipped in 0.1.7). Without it, every fork
+          # PR's `review` check goes red before the review runs. This stopgap
+          # will be superseded by the next tend 0.1.7 workflow regen.
+          allow-unsafe-pr-checkout: true
 
       - uses: ./.github/actions/tend-setup
 
