@@ -497,3 +497,18 @@ fn append_by_name_unsupported_dialect() {
     from foo | append by:name bar
     "###).unwrap_err(), @"Error: The dialect GenericDialect does not support UNION BY NAME");
 }
+
+#[test]
+fn append_by_name_bad_arg() {
+    assert_snapshot!(compile(r###"
+    from foo | append by:jove bar
+    "###).unwrap_err(), @r###"
+    Error:
+       ╭─[ :2:26 ]
+       │
+     2 │     from foo | append by:jove bar
+       │                          ──┬─
+       │                            ╰─── `by` expected position or name, but found jove
+    ───╯
+    "###);
+}

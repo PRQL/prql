@@ -7470,3 +7470,67 @@ fn test_append_by_name() {
       bar
     "###);
 }
+
+#[test]
+fn test_append_by_name_distinct() {
+    assert_snapshot!(compile(r###"
+    prql target:sql.duckdb
+    let distinct = rel -> (_param.rel | group this (take 1))
+
+    from foo
+    append by:name bar
+    distinct
+    "###).unwrap(), @r###"
+    SELECT
+      *
+    FROM
+      foo
+    UNION
+    DISTINCT BY NAME
+    SELECT
+      *
+    FROM
+      bar
+    "###);
+
+    assert_snapshot!(compile(r###"
+    prql target:sql.snowflake
+    let distinct = rel -> (_param.rel | group this (take 1))
+
+    from foo
+    append by:name bar
+    distinct
+    "###).unwrap(), @r###"
+    SELECT
+      *
+    FROM
+      "foo"
+    UNION
+    BY NAME
+    SELECT
+      *
+    FROM
+      "bar"
+    "###);
+}
+
+#[test]
+#[ignore]
+fn test_append_by_name_fallback() {
+    assert_snapshot!(compile(r###"
+    from foo
+    select {x, y}
+    append by:name (from bar | select {y, b})
+    "###).unwrap(), @r###"
+    SELECT
+      x, y, NULL AS b
+    FROM
+      foo
+    UNION
+    ALL
+    SELECT
+      NULL AS x, y, b
+    FROM
+      bar
+    "###);
+}
