@@ -161,7 +161,7 @@ impl PqMapper<RIId, pq::RelationExpr, rq::Transform, ()> for TransformCompiler<'
                             rq::Transform::Sort(v) => pq::SqlTransform::Sort(v),
                             rq::Transform::Take(v) => pq::SqlTransform::Take(v),
                             rq::Transform::Compute(_)
-                            | rq::Transform::Append(_)
+                            | rq::Transform::Append { .. }
                             | rq::Transform::Loop(_) => {
                                 // these are not used from here on
                                 return Ok(None);

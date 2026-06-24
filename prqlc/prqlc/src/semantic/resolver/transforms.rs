@@ -254,9 +254,35 @@ impl Resolver<'_> {
                 (transform_kind, tbl)
             }
             "append" => {
-                let [bottom, top] = unpack::<2>(func.args);
+                let [by, bottom, top] = unpack::<3>(func.args);
 
-                (TransformKind::Append(Box::new(bottom)), top)
+                let by = {
+                    let span = by.span;
+                    let ident = by
+                        .clone()
+                        .try_cast(ExprKind::into_ident, Some("by"), "ident")?;
+
+                    match ident.to_string().as_str() {
+                        "position" => AppendBy::Position,
+                        "name" => AppendBy::Name,
+                        _ => {
+                            return Err(Error::new(Reason::Expected {
+                                who: Some("`by`".to_string()),
+                                expected: "position or name".to_string(),
+                                found: ident.to_string(),
+                            })
+                            .with_span(span))
+                        }
+                    }
+                };
+
+                (
+                    TransformKind::Append {
+                        by,
+                        bottom: Box::new(bottom),
+                    },
+                    top,
+                )
             }
             "loop" => {
                 let [pipeline, tbl] = unpack::<2>(func.args);
@@ -600,7 +626,7 @@ impl Resolver<'_> {
                 let pipeline = pipeline.kind.into_function().unwrap().unwrap();
                 pipeline.return_ty.map(|x| *x)
             }
-            TransformKind::Append(bottom) => {
+            TransformKind::Append { bottom, .. } => {
                 let top = transform_call.input.ty.clone().unwrap();
                 let bottom = bottom.ty.clone().unwrap();
 
@@ -757,7 +783,7 @@ impl TransformCall {
                 let right = lineage_or_default(with)?;
                 join(left, right)
             }
-            Append(bottom) => {
+            Append { bottom, .. } => {
                 let top = lineage_or_default(&self.input)?;
                 let bottom = lineage_or_default(bottom)?;
                 append(top, bottom)?

@@ -216,6 +216,11 @@ pub(super) trait DialectHandler: Any + Debug {
         true
     }
 
+    /// Support for UNION [..] BY NAME.
+    fn union_by_name(&self) -> bool {
+        false
+    }
+
     /// Support or EXCEPT ALL.
     /// When not supported, fallback to anti join.
     fn except_all(&self) -> bool {
@@ -243,6 +248,7 @@ pub(super) trait DialectHandler: Any + Debug {
         true
     }
 
+    /// Support for SELECT DISTINCT ON(partition)
     fn supports_distinct_on(&self) -> bool {
         false
     }
@@ -634,6 +640,11 @@ impl DialectHandler for BigQueryDialect {
         true
     }
 
+    fn union_by_name(&self) -> bool {
+        // https://docs.cloud.google.com/bigquery/docs/reference/standard-sql/query-syntax#union
+        true
+    }
+
     fn prefers_subquery_parentheses_shorthand(&self) -> bool {
         true
     }
@@ -684,6 +695,11 @@ impl DialectHandler for SnowflakeDialect {
         false
     }
 
+    fn union_by_name(&self) -> bool {
+        // https://docs.snowflake.com/en/sql-reference/operators-query
+        true
+    }
+
     fn interval_quoting_style(&self, _dtf: &DateTimeField) -> IntervalQuotingStyle {
         // Snowflake requires quotes around value and unit together
         // https://docs.snowflake.com/en/sql-reference/data-types-datetime#interval-constants
@@ -709,6 +725,11 @@ impl DialectHandler for DuckDbDialect {
     }
 
     fn supports_distinct_on(&self) -> bool {
+        // https://duckdb.org/docs/current/sql/query_syntax/select#distinct-on-clause
+        true
+    }
+
+    fn union_by_name(&self) -> bool {
         true
     }
 

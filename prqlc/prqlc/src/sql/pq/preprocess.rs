@@ -7,7 +7,7 @@ use super::anchor::{infer_complexity, CidCollector, Complexity};
 use super::ast::*;
 
 use crate::ir::generic::{ColumnSort, SortDirection, WindowFrame, WindowKind};
-use crate::ir::pl::{JoinSide, Literal};
+use crate::ir::pl::{AppendBy, JoinSide, Literal};
 use crate::ir::rq::{
     self, maybe_binop, new_binop, CId, Compute, Expr, ExprKind, RqFold, Transform, Window,
 };
@@ -284,7 +284,7 @@ pub(in crate::sql) fn union(
     let mut res = Vec::with_capacity(pipeline.len());
     let mut pipeline = pipeline.into_iter().peekable();
     while let Some(t) = pipeline.next() {
-        let Super(Append(bottom)) = t else {
+        let Super(Append { by, bottom }) = t else {
             res.push(t);
             continue;
         };
@@ -297,7 +297,18 @@ pub(in crate::sql) fn union(
             false
         };
 
-        res.push(SqlTransform::Union { bottom, distinct });
+        if by == AppendBy::Name && !ctx.dialect.union_by_name() {
+            return Err(Error::new_simple(format!(
+                "The dialect {:?} does not support UNION BY NAME",
+                ctx.dialect
+            )));
+        }
+
+        res.push(SqlTransform::Union {
+            bottom,
+            distinct,
+            by,
+        });
     }
     Ok(res)
 }

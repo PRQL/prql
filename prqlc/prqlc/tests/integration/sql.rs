@@ -7449,3 +7449,24 @@ fn test_tuple_map_aliases() {
       foo
     "###);
 }
+
+#[test]
+fn test_append_by_name() {
+    assert_snapshot!(compile(r###"
+    prql target:sql.duckdb
+
+    from foo
+    append by:name bar
+    "###).unwrap(), @r###"
+    SELECT
+      *
+    FROM
+      foo
+    UNION
+    ALL BY NAME
+    SELECT
+      *
+    FROM
+      bar
+    "###);
+}

@@ -90,7 +90,10 @@ pub enum TransformKind {
         range: Range,
         pipeline: Box<Expr>,
     },
-    Append(Box<Expr>),
+    Append {
+        by: AppendBy,
+        bottom: Box<Expr>,
+    },
     Loop(Box<Expr>),
 }
 
@@ -113,6 +116,12 @@ pub enum JoinSide {
     Left,
     Right,
     Full,
+}
+
+#[derive(Debug, PartialEq, Eq, Clone, Serialize, Deserialize, JsonSchema)]
+pub enum AppendBy {
+    Name,
+    Position,
 }
 
 impl Expr {
