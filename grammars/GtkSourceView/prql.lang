@@ -59,7 +59,6 @@
       <keyword>int16</keyword>
       <keyword>int32</keyword>
       <keyword>int64</keyword>
-      <keyword>int128</keyword>
       <keyword>text</keyword>
       <keyword>date</keyword>
       <keyword>time</keyword>
