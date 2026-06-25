@@ -7451,7 +7451,7 @@ fn test_tuple_map_aliases() {
 }
 
 #[test]
-fn test_append_by_name() {
+fn test_append_by_name_1() {
     assert_snapshot!(compile(r###"
     prql target:sql.duckdb
 
@@ -7466,6 +7466,30 @@ fn test_append_by_name() {
     ALL BY NAME
     SELECT
       *
+    FROM
+      bar
+    "###);
+}
+
+#[test]
+fn test_append_by_name_2() {
+    assert_snapshot!(compile(r###"
+    prql target:sql.duckdb
+
+    from foo
+    select {x, y}
+    append by:name (from bar | select {y, z})
+    "###).unwrap(), @r###"
+    SELECT
+      x,
+      y
+    FROM
+      foo
+    UNION
+    ALL BY NAME
+    SELECT
+      y,
+      z
     FROM
       bar
     "###);
@@ -7515,7 +7539,6 @@ fn test_append_by_name_distinct() {
 }
 
 #[test]
-#[ignore]
 fn test_append_by_name_fallback() {
     assert_snapshot!(compile(r###"
     from foo

@@ -4,6 +4,7 @@ use crate::ir::pl::*;
 use crate::pr::{PrimitiveSet, Ty, TyKind, TyTupleField};
 use crate::Result;
 use crate::{Error, Reason, WithErrorInfo};
+use itertools::Itertools;
 
 impl Resolver<'_> {
     pub fn infer_type(expr: &Expr) -> Result<Option<Ty>> {
@@ -454,4 +455,40 @@ fn type_intersection_of_tuples(a: Vec<TyTupleField>, b: Vec<TyTupleField>) -> Re
 fn different_column_count_error() -> Error {
     Error::new_simple("cannot combine relations with different numbers of columns")
         .push_hint("`append` requires both tables to have matching columns")
+}
+
+pub fn type_union_of_tuples(a: Vec<TyTupleField>, b: Vec<TyTupleField>) -> Result<Ty> {
+    let has_other = a.iter().any(|f| f.is_wildcard()) || b.iter().any(|f| f.is_wildcard());
+
+    let mut fields: Vec<TyTupleField> = a.into_iter().filter(|f| f.is_single()).collect_vec();
+
+    for b_field in b.into_iter().filter(|f| f.is_single()) {
+        match b_field {
+            TyTupleField::Single(b_name, b_ty) => {
+                match fields
+                    .iter()
+                    .position(|f| f.clone().into_single().ok().unwrap().0 == b_name)
+                {
+                    Some(i) => {
+                        let TyTupleField::Single(a_name, a_ty) = fields[i].clone() else {
+                            unreachable!()
+                        };
+                        if let (Some(a_ty), Some(b_ty)) = (a_ty, b_ty) {
+                            fields[i] =
+                                TyTupleField::Single(a_name, Some(type_intersection(a_ty, b_ty)?));
+                        }
+                    }
+                    None => {
+                        fields.push(TyTupleField::Single(b_name, b_ty));
+                    }
+                }
+            }
+            _ => unreachable!(),
+        }
+    }
+    if has_other {
+        fields.push(TyTupleField::Wildcard(None));
+    }
+
+    Ok(Ty::new(TyKind::Tuple(fields)))
 }

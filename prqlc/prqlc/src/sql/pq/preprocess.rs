@@ -285,6 +285,7 @@ pub(in crate::sql) fn union(
     let mut pipeline = pipeline.into_iter().peekable();
     while let Some(t) = pipeline.next() {
         let Super(Append { by, bottom }) = t else {
+            log::trace!("seen {t:#?}");
             res.push(t);
             continue;
         };
@@ -298,17 +299,87 @@ pub(in crate::sql) fn union(
         };
 
         if by == AppendBy::Name && !ctx.dialect.union_by_name() {
-            return Err(Error::new_simple(format!(
-                "The dialect {:?} does not support UNION BY NAME",
-                ctx.dialect
-            )));
-        }
+            let top_cols = ctx.anchor.determine_select_columns(&res[0..res.len()]);
+            let bottom_cols = ctx
+                .anchor
+                .relation_instances
+                .get(&bottom)
+                .unwrap()
+                .table_ref
+                .columns
+                .iter()
+                .map(|(_, c)| *c)
+                .collect_vec();
 
-        res.push(SqlTransform::Union {
-            bottom,
-            distinct,
-            by,
-        });
+            if ctx.anchor.contains_wildcard(&top_cols) || ctx.anchor.contains_wildcard(&bottom_cols)
+            {
+                return Err(Error::new_simple(format!(
+                    "Target dialect does not support UNION BY NAME"
+                ))
+                .push_hint(
+                    "providing more column information may allow the query to be translated.",
+                ));
+            }
+
+            // fallback mode: determine the union of both sets of columns, then add
+            // selects to both top and bottom that align the columns and add nulls
+            let mut union_cols: HashMap<String, (Option<CId>, Option<CId>)> = HashMap::new();
+            let mut union_col_names: Vec<String> = Vec::new();
+            for cid in top_cols {
+                let cname = ctx.anchor.ensure_column_name(cid).unwrap();
+                union_col_names.push(cname.clone());
+                union_cols.insert(cname.clone(), (Some(cid), None));
+            }
+            for cid in bottom_cols {
+                let cname = ctx.anchor.ensure_column_name(cid).unwrap();
+                match union_cols.get(cname) {
+                    Some((Some(top_cid), None)) => {
+                        union_cols.insert(cname.clone(), (Some(*top_cid), Some(cid)));
+                    }
+                    None => {
+                        union_col_names.push(cname.clone());
+                        union_cols.insert(cname.clone(), (None, Some(cid)));
+                    }
+                    _ => unreachable!(),
+                }
+            }
+
+            let null_expr = Expr {
+                span: None,
+                kind: ExprKind::Literal(Literal::Null),
+            };
+            let null_cid = ctx.anchor.cid.gen();
+            ctx.anchor.register_compute(rq::Compute {
+                id: null_cid,
+                expr: null_expr,
+                window: None,
+                is_aggregation: false,
+            });
+
+            log::trace!("push select {union_col_names:#?}");
+
+            // res.push(SqlTransform::Super(Transform::Select(
+            //     union_col_names
+            //         .iter()
+            //         .map(|cname| match union_cols.get(cname) {
+            //             Some((Some(cid), _)) => cid.clone(),
+            //             _ => null_cid.clone(),
+            //         })
+            //         .collect_vec(),
+            // )));
+
+            res.push(SqlTransform::Union {
+                bottom,
+                distinct,
+                by: AppendBy::Position,
+            });
+        } else {
+            res.push(SqlTransform::Union {
+                bottom,
+                distinct,
+                by,
+            });
+        }
     }
     Ok(res)
 }
