@@ -28,6 +28,19 @@ permission first) still applies when the target shows no agent signals.
   follows structural changes a version-only bump can't — e.g. the 0.1.7 move
   that split the action into `claude/`/`codex/` subdirectories broke the naive
   Dependabot bump #6031. Don't re-add `max-sixty/tend` to Dependabot.
+- **Don't hand-edit a generated `tend-*.yaml` workflow file when a regen PR is
+  open.** The nightly `tend/update-workflows` regen bundles individual fixes
+  under the generic title `chore: update tend workflows`, so a title-keyword
+  dedup before `gh pr create` won't surface it — the change you're about to make
+  by hand may already be in that open PR. Before opening a manual stopgap edit
+  to a generated workflow, diff the file against the open regen PR (compare by
+  the *file path* it touches, not the title) or route the change through
+  `.config/tend.yaml` so the regen carries it. Landing both independently
+  double-applies the change: on 2026-06-24 a manual `allow-unsafe-pr-checkout`
+  stopgap (#6038) collided with the same line in the open 0.1.7 regen (#6033,
+  titled "update tend workflows"); both merged, leaving a duplicate `with:` key
+  that broke `lint-megalinter`/`actionlint` on `main` and required a ci-fix PR
+  (#6039).
 - Automerge: not configured — `pull-request-target.yaml` only validates PR
   titles and handles `pr-backport-web` backports. The automerge job was removed
   in #5753, so bot PRs must be merged manually by a maintainer (or via repo
