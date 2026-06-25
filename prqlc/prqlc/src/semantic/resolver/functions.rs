@@ -1,7 +1,7 @@
 use std::collections::HashMap;
 use std::iter::zip;
 
-use itertools::{Itertools, Position};
+use itertools::Itertools;
 
 use super::Resolver;
 use crate::ir::decl::{Decl, DeclKind, Module};
@@ -248,7 +248,7 @@ impl Resolver<'_> {
             // First, resolve all relational arguments
             let mut resolved_relations = Vec::new();
             for (pos, (index, (param, mut arg))) in relations.into_iter().with_position() {
-                let is_last = matches!(pos, Position::Last | Position::Only);
+                let is_last = pos.is_last;
 
                 // just fold the argument alone
                 if partial_application_position.is_none() {
