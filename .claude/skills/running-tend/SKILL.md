@@ -34,7 +34,7 @@ permission first) still applies when the target shows no agent signals.
   dedup before `gh pr create` won't surface it — the change you're about to make
   by hand may already be in that open PR. Before opening a manual stopgap edit
   to a generated workflow, diff the file against the open regen PR (compare by
-  the *file path* it touches, not the title) or route the change through
+  the _file path_ it touches, not the title) or route the change through
   `.config/tend.yaml` so the regen carries it. Landing both independently
   double-applies the change: on 2026-06-24 a manual `allow-unsafe-pr-checkout`
   stopgap (#6038) collided with the same line in the open 0.1.7 regen (#6033,
