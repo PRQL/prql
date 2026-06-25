@@ -59,7 +59,6 @@
       <keyword>int16</keyword>
       <keyword>int32</keyword>
       <keyword>int64</keyword>
-      <keyword>int128</keyword>
       <keyword>text</keyword>
       <keyword>date</keyword>
       <keyword>time</keyword>
@@ -164,7 +163,10 @@
     </context>
 
     <context id="date-functions" style-ref="function">
+      <keyword>now</keyword>
       <keyword>to_text</keyword>
+      <keyword>diff</keyword>
+      <keyword>trunc</keyword>
     </context>
 
     <context id="math-functions" style-ref="function">

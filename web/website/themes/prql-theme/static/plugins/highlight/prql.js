@@ -60,6 +60,8 @@ const formatting = function (hljs) {
     "int32",
     "int64",
     "text",
+    "date",
+    "time",
     "timestamp",
   ];
 
