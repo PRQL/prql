@@ -44,7 +44,7 @@ impl Resolver<'_> {
 pub(super) mod test {
     use insta::assert_yaml_snapshot;
 
-    use crate::ir::pl::{Expr, Lineage, PlFold};
+    use crate::ir::pl::{AppendBy, Expr, Lineage, PlFold};
     use crate::{Errors, Result};
 
     pub fn erase_ids(expr: Expr) -> Expr {
@@ -463,7 +463,10 @@ pub(super) mod test {
         bottom_expr.lineage = Some(bottom_lineage);
 
         let transform_call = TransformCall {
-            kind: Box::new(TransformKind::Append(Box::new(bottom_expr))),
+            kind: Box::new(TransformKind::Append {
+                by: AppendBy::Position,
+                bottom: Box::new(bottom_expr),
+            }),
             input: Box::new(top_expr),
             partition: None,
             frame: crate::ir::pl::WindowFrame::default(),

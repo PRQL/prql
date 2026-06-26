@@ -10,7 +10,7 @@ use serde::Serialize;
 
 use super::context::RIId;
 use crate::ir::generic::ColumnSort;
-use crate::ir::pl::JoinSide;
+use crate::ir::pl::{AppendBy, JoinSide};
 use crate::ir::rq::{self, fold_column_sorts, RelationLiteral, RqFold};
 use crate::Result;
 
@@ -111,6 +111,7 @@ pub enum SqlTransform<Rel = RIId, Super = rq::Transform> {
     Union {
         bottom: Rel,
         distinct: bool,
+        by: AppendBy,
     },
 }
 
@@ -176,9 +177,14 @@ pub fn fold_sql_transform<
 
         SqlTransform::Distinct => SqlTransform::Distinct,
         SqlTransform::DistinctOn(ids) => SqlTransform::DistinctOn(fold.fold_cids(ids)?),
-        SqlTransform::Union { bottom, distinct } => SqlTransform::Union {
+        SqlTransform::Union {
+            bottom,
+            distinct,
+            by,
+        } => SqlTransform::Union {
             bottom: fold.fold_rel(bottom)?,
             distinct,
+            by,
         },
         SqlTransform::Except { bottom, distinct } => SqlTransform::Except {
             bottom: fold.fold_rel(bottom)?,

@@ -185,7 +185,10 @@ pub fn fold_transform<T: ?Sized + RqFold>(
             with: fold.fold_table_ref(with)?,
             filter: fold.fold_expr(filter)?,
         },
-        Append(bottom) => Append(fold.fold_table_ref(bottom)?),
+        Append { by, bottom } => Append {
+            by,
+            bottom: fold.fold_table_ref(bottom)?,
+        },
         Loop(transforms) => Loop(fold_transforms(fold, transforms)?),
     };
     Ok(transform)

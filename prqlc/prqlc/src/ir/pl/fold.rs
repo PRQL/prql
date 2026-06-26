@@ -256,7 +256,10 @@ pub fn fold_transform_kind<T: ?Sized + PlFold>(
             with: Box::new(fold.fold_expr(*with)?),
             filter: Box::new(fold.fold_expr(*filter)?),
         },
-        Append(bottom) => Append(Box::new(fold.fold_expr(*bottom)?)),
+        Append { by, bottom } => Append {
+            by,
+            bottom: Box::new(fold.fold_expr(*bottom)?),
+        },
         Group { by, pipeline } => Group {
             by: Box::new(fold.fold_expr(*by)?),
             pipeline: Box::new(fold.fold_expr(*pipeline)?),

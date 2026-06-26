@@ -612,11 +612,11 @@ impl Lowerer {
                 };
                 self.pipeline.push(transform);
             }
-            pl::TransformKind::Append(bottom) => {
+            pl::TransformKind::Append { by, bottom } => {
                 let mut bottom = self.lower_table_ref(*bottom)?;
                 bottom.prefer_cte = false;
 
-                self.pipeline.push(Transform::Append(bottom));
+                self.pipeline.push(Transform::Append { by, bottom });
             }
             pl::TransformKind::Loop(pipeline) => {
                 let relation = self.lower_relation(*pipeline)?;
