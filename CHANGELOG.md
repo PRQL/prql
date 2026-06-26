@@ -8,6 +8,10 @@
 
 **Fixes**:
 
+- Allow a derived column to share its name with the source relation (e.g.
+  `from sales.sales | derive {sales = ...}`), which previously failed to resolve
+  the remaining columns.
+
 **Documentation**:
 
 **Web**:

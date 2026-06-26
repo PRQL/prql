@@ -111,6 +111,13 @@ pub const NS_INFER: &str = "_infer";
 // implies we can infer new module declarations in the containing module
 pub const NS_INFER_MODULE: &str = "_infer_module";
 
+// when a column shadows a source relation's name (e.g.
+// `from bar | derive {bar = ...}`), the shadowing column is nested inside the
+// input namespace under this key. This keeps the input's inference template and
+// qualified `bar.col` access intact, while leaf access to `bar` resolves to the
+// shadowing column (see `Module::lookup` and the ident resolver).
+pub const NS_SHADOWING_COL: &str = "_shadowing_col";
+
 impl Stmt {
     pub fn new(kind: StmtKind) -> Stmt {
         Stmt {
