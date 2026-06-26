@@ -134,17 +134,47 @@ impl Module {
         ns.names.get(&fq_ident.name)
     }
 
+    /// Recursively list all idents within this module. Useful for debugging.
+    pub fn all_names(&self, prefix: Option<&Ident>) -> Vec<Ident> {
+        let mut rv = Vec::new();
+
+        for (name, decl) in &self.names {
+            let name = match prefix {
+                Some(p) => p.clone() + Ident::from_name(name),
+                None => Ident::from_name(name),
+            };
+            rv.push(name.clone());
+
+            match &decl.kind {
+                DeclKind::Module(inner) => {
+                    rv.extend(inner.all_names(Some(&name)));
+                }
+                DeclKind::LayeredModules(stack) => {
+                    for inner in stack {
+                        rv.extend(inner.all_names(Some(&name)));
+                    }
+                }
+                _ => {}
+            }
+        }
+
+        rv
+    }
+
     pub fn lookup(&self, ident: &Ident) -> HashSet<Ident> {
         fn lookup_in(module: &Module, ident: Ident) -> HashSet<Ident> {
             let (prefix, ident) = ident.pop_front();
 
             if let Some(ident) = ident {
+                // log::trace!("lookup_in: prefix={prefix} names={:#?}", module.names.keys());
                 if let Some(entry) = module.names.get(&prefix) {
+                    // log::trace!("lookup_in: entry={entry:#?}");
                     let redirected = match &entry.kind {
                         DeclKind::Module(ns) => ns.lookup(&ident),
                         DeclKind::LayeredModules(stack) => {
                             let mut r = HashSet::new();
                             for ns in stack.iter().rev() {
+                                // log::trace!("lookup_in recurse to ns={ns:#?}");
                                 r = ns.lookup(&ident);
 
                                 if !r.is_empty() {
@@ -217,6 +247,7 @@ impl Module {
                     None => {
                         namespace.redirects.push(Ident::from_name(input_name));
 
+                        log::trace!("find_input_by_name {input_name} {:#?}", lineage.inputs);
                         let input = lineage.find_input_by_name(input_name).unwrap();
                         let order = lineage.inputs.iter().position(|i| i.id == input.id);
                         let order = order.unwrap();

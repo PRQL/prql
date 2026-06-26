@@ -1,4 +1,4 @@
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 use std::iter::zip;
 
 use itertools::Itertools;
@@ -384,6 +384,40 @@ impl Resolver<'_> {
                 }
 
                 return Ok(Expr::new(ExprKind::Tuple(res)));
+            }
+
+            "tuple_uniq" => {
+                let [list] = unpack::<1>(func.args);
+                let list_items = list.kind.into_tuple().unwrap();
+
+                log::trace!("tuple_uniq before: {list_items:#?}");
+
+                let mut names: HashSet<String> = HashSet::new();
+
+                let list_items = list_items
+                    .into_iter()
+                    .filter(|item| match (&item.alias, &item.kind) {
+                        (Some(name), _) => names.insert(name.to_string()),
+                        (None, ExprKind::Ident(ident)) => {
+                            let name = &ident.name;
+                            names.insert(name.to_string())
+                        }
+                        _ => false,
+                    })
+                    .collect();
+
+                log::trace!("tuple_uniq after: {list_items:#?}");
+
+                return Ok(Expr::new(ExprKind::Tuple(list_items)));
+            }
+
+            "tuple_reverse" => {
+                let [list] = unpack::<1>(func.args);
+                let list_items = list.kind.into_tuple().unwrap();
+
+                return Ok(Expr::new(ExprKind::Tuple(
+                    list_items.into_iter().rev().collect(),
+                )));
             }
 
             "_eq" => {
