@@ -254,9 +254,34 @@ impl Resolver<'_> {
                 (transform_kind, tbl)
             }
             "append" => {
-                let [bottom, top] = unpack::<2>(func.args);
+                let [by, bottom, top] = unpack::<3>(func.args);
 
-                (TransformKind::Append(Box::new(bottom)), top)
+                let by_name = {
+                    let span = by.span;
+                    let ident = by
+                        .clone()
+                        .try_cast(ExprKind::into_ident, Some("by"), "ident")?;
+
+                    match ident.to_string().as_str() {
+                        "position" => false,
+                        "name" => true,
+                        _ => {
+                            return Err(Error::new(Reason::Expected {
+                                who: Some("`by`".to_string()),
+                                expected: "position or name".to_string(),
+                                found: ident.to_string(),
+                            })
+                            .with_span(span))
+                        }
+                    }
+                };
+
+                // TODO: support database engine-level UNION ALL BY NAME in PR #6037
+                if by_name {
+                    return Ok(new_binop(bottom, &["std", "_append_by_name"], top));
+                } else {
+                    (TransformKind::Append(Box::new(bottom)), top)
+                }
             }
             "loop" => {
                 let [pipeline, tbl] = unpack::<2>(func.args);

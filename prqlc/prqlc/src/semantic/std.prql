@@ -118,8 +118,13 @@ let window = func
   tbl <relation>
   -> <relation> internal window
 
-let append = `default_db.bottom`<relation> top<relation> -> <relation> internal append
-let append_by_name = func
+let append = func
+  `noresolve.by`:position
+  `default_db.bottom`<relation>
+  top<relation>
+  -> <relation> internal append
+
+let _append_by_name = func
   `default_db.bottom` <relation>
   top <relation>
   -> <relation> (

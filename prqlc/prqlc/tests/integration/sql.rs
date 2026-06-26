@@ -7518,7 +7518,7 @@ fn test_append_by_name() {
     assert_snapshot!(compile(r###"
     from foo
     select {x, y, b = 4}
-    append_by_name (from bar | select {y, z, b = 5, c = 7})
+    append by:name (from bar | select {y, z, b = 5, c = 7})
     "###).unwrap(), @r###"
     SELECT
       x,
