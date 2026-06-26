@@ -415,6 +415,8 @@ impl Resolver<'_> {
                 let [list] = unpack::<1>(func.args);
                 let list_items = list.kind.into_tuple().unwrap();
 
+                log::trace!("tuple_reverse: {list_items:#?}");
+
                 return Ok(Expr::new(ExprKind::Tuple(
                     list_items.into_iter().rev().collect(),
                 )));

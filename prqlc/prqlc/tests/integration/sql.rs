@@ -7449,3 +7449,35 @@ fn test_tuple_map_aliases() {
       foo
     "###);
 }
+
+#[test]
+fn test_tuple_reverse() {
+    assert_snapshot!(compile(r###"
+    from foo
+    select {x, y, z}
+    select (tuple_reverse this.*)
+    "###).unwrap(), @r###"
+    SELECT
+      z,
+      y,
+      x
+    FROM
+      foo
+    "###);
+}
+
+#[test]
+fn test_tuple_uniq() {
+    assert_snapshot!(compile(r###"
+    from foo
+    select {x, y, z}
+    select (tuple_uniq {z = 5, this.*})
+    "###).unwrap(), @r###"
+    SELECT
+      5 AS z,
+      x,
+      y
+    FROM
+      foo
+    "###);
+}

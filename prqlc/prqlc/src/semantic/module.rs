@@ -166,15 +166,12 @@ impl Module {
             let (prefix, ident) = ident.pop_front();
 
             if let Some(ident) = ident {
-                // log::trace!("lookup_in: prefix={prefix} names={:#?}", module.names.keys());
                 if let Some(entry) = module.names.get(&prefix) {
-                    // log::trace!("lookup_in: entry={entry:#?}");
                     let redirected = match &entry.kind {
                         DeclKind::Module(ns) => ns.lookup(&ident),
                         DeclKind::LayeredModules(stack) => {
                             let mut r = HashSet::new();
                             for ns in stack.iter().rev() {
-                                // log::trace!("lookup_in recurse to ns={ns:#?}");
                                 r = ns.lookup(&ident);
 
                                 if !r.is_empty() {
