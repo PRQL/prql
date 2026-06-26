@@ -254,9 +254,34 @@ impl Resolver<'_> {
                 (transform_kind, tbl)
             }
             "append" => {
-                let [bottom, top] = unpack::<2>(func.args);
+                let [by, bottom, top] = unpack::<3>(func.args);
 
-                (TransformKind::Append(Box::new(bottom)), top)
+                let by_name = {
+                    let span = by.span;
+                    let ident = by
+                        .clone()
+                        .try_cast(ExprKind::into_ident, Some("by"), "ident")?;
+
+                    match ident.to_string().as_str() {
+                        "position" => false,
+                        "name" => true,
+                        _ => {
+                            return Err(Error::new(Reason::Expected {
+                                who: Some("`by`".to_string()),
+                                expected: "position or name".to_string(),
+                                found: ident.to_string(),
+                            })
+                            .with_span(span))
+                        }
+                    }
+                };
+
+                // TODO: support database engine-level UNION ALL BY NAME in PR #6037
+                if by_name {
+                    return Ok(new_binop(bottom, &["std", "_append_by_name"], top));
+                } else {
+                    (TransformKind::Append(Box::new(bottom)), top)
+                }
             }
             "loop" => {
                 let [pipeline, tbl] = unpack::<2>(func.args);
@@ -384,6 +409,75 @@ impl Resolver<'_> {
                 }
 
                 return Ok(Expr::new(ExprKind::Tuple(res)));
+            }
+
+            "tuple_uniq" => {
+                let [take, list] = unpack::<2>(func.args);
+
+                let take_late = {
+                    let span = take.span;
+                    let ident =
+                        take.clone()
+                            .try_cast(ExprKind::into_ident, Some("take"), "ident")?;
+
+                    match ident.to_string().as_str() {
+                        "early" => false,
+                        "late" => true,
+                        _ => {
+                            return Err(Error::new(Reason::Expected {
+                                who: Some("`take`".to_string()),
+                                expected: "early or late".to_string(),
+                                found: ident.to_string(),
+                            })
+                            .with_span(span))
+                        }
+                    }
+                };
+
+                let list_items = list.kind.into_tuple().unwrap();
+
+                log::trace!("tuple_uniq before: {list_items:#?}");
+
+                let mut list_names: Vec<String> = Vec::new();
+                let mut list_out: HashMap<String, Expr> = HashMap::new();
+
+                for item in list_items {
+                    let Some(name) = (match (&item.alias, &item.kind) {
+                        (Some(name), _) => Some(name.to_string()),
+                        (None, ExprKind::Ident(ident)) => Some(&ident.name).cloned(),
+                        _ => None,
+                    }) else {
+                        continue;
+                    };
+
+                    if !list_out.contains_key(&name.to_string()) {
+                        list_names.push(name.to_string());
+                    }
+
+                    if !list_out.contains_key(&name.to_string()) || take_late {
+                        list_out.insert(name.to_string(), item);
+                    }
+                }
+
+                let list_items = list_names
+                    .into_iter()
+                    .map(|name| list_out.get(&name).unwrap().clone())
+                    .collect();
+
+                log::trace!("tuple_uniq after: {list_items:#?}");
+
+                return Ok(Expr::new(ExprKind::Tuple(list_items)));
+            }
+
+            "tuple_reverse" => {
+                let [list] = unpack::<1>(func.args);
+                let list_items = list.kind.into_tuple().unwrap();
+
+                log::trace!("tuple_reverse: {list_items:#?}");
+
+                return Ok(Expr::new(ExprKind::Tuple(
+                    list_items.into_iter().rev().collect(),
+                )));
             }
 
             "_eq" => {
