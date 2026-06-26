@@ -178,31 +178,18 @@ impl Module {
 
         log::trace!("lookup: {ident}");
 
-        let mut res = HashSet::new();
-
-        res.extend(lookup_in(self, ident.clone()));
-
-        // `_self` is a per-module marker present at every level. When this
-        // module already has its own `_self`, a redirect into an input's
-        // `_self` must not shadow it — otherwise `this.*` would resolve to the
-        // first input's module and enumerate only its columns, dropping
-        // computed columns (https://github.com/PRQL/prql/issues/6044). In that
-        // case the redirects can't contribute anything we'd want, so return the
-        // direct match without following them.
-        let keep_direct_self =
-            ident.path.is_empty() && ident.name == NS_SELF && res.contains(ident);
-        if keep_direct_self {
+        // A direct hit in this module always wins over redirects.
+        let mut res = lookup_in(self, ident.clone());
+        if !res.is_empty() {
             return res;
         }
 
+        // Otherwise fall back to following redirects into the module's inputs.
         for redirect in &self.redirects {
             log::trace!("... following redirect {redirect}");
             let r = lookup_in(self, redirect.clone() + ident.clone());
             log::trace!("... result of redirect {redirect}: {r:?}");
-            if !r.is_empty() {
-                res.remove(ident);
-                res.extend(r);
-            }
+            res.extend(r);
         }
         res
     }
