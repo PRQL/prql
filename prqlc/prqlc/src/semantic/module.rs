@@ -186,15 +186,20 @@ impl Module {
         // module already has its own `_self`, a redirect into an input's
         // `_self` must not shadow it — otherwise `this.*` would resolve to the
         // first input's module and enumerate only its columns, dropping
-        // computed columns (https://github.com/PRQL/prql/issues/6044).
+        // computed columns (https://github.com/PRQL/prql/issues/6044). In that
+        // case the redirects can't contribute anything we'd want, so return the
+        // direct match without following them.
         let keep_direct_self =
             ident.path.is_empty() && ident.name == NS_SELF && res.contains(ident);
+        if keep_direct_self {
+            return res;
+        }
 
         for redirect in &self.redirects {
             log::trace!("... following redirect {redirect}");
             let r = lookup_in(self, redirect.clone() + ident.clone());
             log::trace!("... result of redirect {redirect}: {r:?}");
-            if !r.is_empty() && !keep_direct_self {
+            if !r.is_empty() {
                 res.remove(ident);
                 res.extend(r);
             }
