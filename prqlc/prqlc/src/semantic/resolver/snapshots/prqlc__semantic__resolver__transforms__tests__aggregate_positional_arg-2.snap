@@ -21,10 +21,10 @@ TransformCall:
     lineage:
       columns:
         - All:
-            input_id: 120
+            input_id: 121
             except: []
       inputs:
-        - id: 120
+        - id: 121
           name: c_invoice
           table:
             - default_db
@@ -94,14 +94,14 @@ lineage:
         name:
           - c_invoice
           - issued_at
-        target_id: 122
+        target_id: 123
         target_name: ~
     - Single:
         name: ~
-        target_id: 138
+        target_id: 139
         target_name: ~
   inputs:
-    - id: 120
+    - id: 121
       name: c_invoice
       table:
         - default_db
