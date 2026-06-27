@@ -324,7 +324,7 @@ impl Resolver<'_> {
     pub fn construct_wildcard_from_lineage(
         &mut self,
         prefix: &[&String],
-        expr: &Box<pl::Expr>,
+        expr: &pl::Expr,
     ) -> Vec<pl::Expr> {
         let Some(lineage) = &expr.lineage else {
             return vec![];

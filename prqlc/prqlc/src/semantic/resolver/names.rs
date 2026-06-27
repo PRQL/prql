@@ -308,7 +308,7 @@ impl Resolver<'_> {
             _ => return Err(ambiguous_error(decls, Some(&ident.name))),
         }
 
-        return Err(Error::new_simple(format!("Unknown relation {ident}")));
+        Err(Error::new_simple(format!("Unknown relation {ident}")))
     }
 }
 
