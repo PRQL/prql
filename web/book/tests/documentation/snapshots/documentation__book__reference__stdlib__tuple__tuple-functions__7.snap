@@ -1,10 +1,9 @@
 ---
 source: web/book/tests/documentation/book.rs
-expression: "from test\nselect (tuple_reverse {x, y, z})\n"
+expression: "from test\nselect (tuple_uniq {x, 5, y})\n"
 ---
 SELECT
-  z,
-  y,
-  x
+  x,
+  y
 FROM
   test

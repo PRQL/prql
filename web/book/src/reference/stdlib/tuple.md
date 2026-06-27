@@ -102,6 +102,13 @@ join shipments (this.id == that.invoice_id)
 select (tuple_uniq take:early {invoices.*, shipments.*})
 ```
 
+Items in a tuple without a name or an alias will be dropped.
+
+```prql
+from test
+select (tuple_uniq {x, 5, y})
+```
+
 ### `tuple_reverse`
 
 Reverses the order of a tuple.

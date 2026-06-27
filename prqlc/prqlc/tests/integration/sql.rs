@@ -7496,6 +7496,19 @@ fn test_tuple_uniq() {
 }
 
 #[test]
+fn test_tuple_uniq_no_alias() {
+    assert_snapshot!(compile(r###"
+    from foo
+    select (tuple_uniq {x, 4, 5})
+    "###).unwrap(), @r###"
+    SELECT
+      x
+    FROM
+      foo
+    "###);
+}
+
+#[test]
 fn test_wildcard_func_param() {
     assert_snapshot!(compile(r###"
     let _my_func = func top <relation> -> select {top.*, b = 4} top
