@@ -1865,7 +1865,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "4b0f83760fb341a774ed326568e19f5a863af4a952def8c39f9ab92fd95b88e5"
 dependencies = [
  "equivalent",
- "hashbrown 0.15.5",
+ "hashbrown 0.16.1",
 ]
 
 [[package]]
@@ -1916,9 +1916,9 @@ dependencies = [
 
 [[package]]
 name = "insta-cmd"
-version = "0.6.0"
+version = "0.7.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "ffeeefa927925cced49ccb01bf3e57c9d4cd132df21e576eb9415baeab2d3de6"
+checksum = "bffdf4af1db390cf0401535d7c1303cd079a074d28d8473b026fdb6559c41403"
 dependencies = [
  "insta",
  "serde",
@@ -1999,6 +1999,15 @@ name = "itertools"
 version = "0.14.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "2b192c782037fadd9cfa75548310488aabdbf3d2da73885b31bd0abd03351285"
+dependencies = [
+ "either",
+]
+
+[[package]]
+name = "itertools"
+version = "0.15.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "8b4baf93f58d4425749ca49a51c50ebab072c5df6994d08fed93541c331481dc"
 dependencies = [
  "either",
 ]
@@ -2317,7 +2326,7 @@ dependencies = [
  "anyhow",
  "globset",
  "insta",
- "itertools 0.14.0",
+ "itertools 0.15.0",
  "log",
  "mdbook-core",
  "mdbook-preprocessor",
@@ -2871,7 +2880,7 @@ dependencies = [
  "insta",
  "insta-cmd",
  "is-terminal",
- "itertools 0.14.0",
+ "itertools 0.15.0",
  "log",
  "lsp-server",
  "lsp-types",
@@ -2937,7 +2946,7 @@ dependencies = [
  "chumsky",
  "enum-as-inner",
  "insta",
- "itertools 0.14.0",
+ "itertools 0.15.0",
  "log",
  "schemars",
  "semver",

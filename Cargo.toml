@@ -51,8 +51,8 @@ arrow = { version = "53", features = [
 ], default-features = false }
 enum-as-inner = "0.7.0"
 insta = { version = "1.47.2", features = ["colors", "glob", "yaml", "filters"] }
-insta-cmd = "0.6.0"
-itertools = "0.14.0"
+insta-cmd = "0.7.0"
+itertools = "0.15.0"
 log = "0.4.29"
 pyo3 = { version = "0.27.1", features = ["abi3-py37", "anyhow"] }
 pyo3-build-config = "0.27.1"

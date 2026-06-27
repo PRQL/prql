@@ -2,7 +2,7 @@ use std::collections::HashSet;
 use std::fmt::{Debug, Display, Formatter};
 
 use enum_as_inner::EnumAsInner;
-use itertools::{Itertools, Position};
+use itertools::Itertools;
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize, Serializer};
 
@@ -74,7 +74,7 @@ impl Display for Lineage {
 fn display_lineage(lineage: &Lineage, f: &mut Formatter, display_ids: bool) -> std::fmt::Result {
     write!(f, "[")?;
     for (pos, col) in lineage.columns.iter().with_position() {
-        let is_last = matches!(pos, Position::Last | Position::Only);
+        let is_last = pos.is_last;
         display_lineage_column(col, f, display_ids)?;
         if !is_last {
             write!(f, ", ")?;
