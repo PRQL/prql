@@ -85,8 +85,6 @@ from invoices
 derive { VAT = total * 0.19 }
 ```
 
-<!-- todo: make sure that the new column is unnamed -->
-
 The value of the new column can be a constant (such as a number or a string), or
 can be computed from the value of an existing column. Note that the value of the
 new column is assigned the name `VAT`.
@@ -141,5 +139,3 @@ select {
   VAT,
 }
 ```
-
-<!-- PRQL uses the data from... _Where does our data come from? Do we use some canonical version?_ -->
