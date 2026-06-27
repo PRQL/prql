@@ -1,0 +1,22 @@
+---
+source: web/book/tests/documentation/book.rs
+expression: "let shipments = (from shipments | select {id, invoice_id, date_of, shipped_on})\n\nfrom invoices\nselect {id, date_of, processed}\njoin shipments (this.id == that.invoice_id)\nselect (tuple_uniq take:late {invoices.*, shipments.*})\n"
+---
+WITH table_0 AS (
+  SELECT
+    id,
+    invoice_id,
+    date_of,
+    shipped_on
+  FROM
+    shipments
+)
+SELECT
+  shipments.id,
+  shipments.date_of,
+  invoices.processed,
+  shipments.invoice_id,
+  shipments.shipped_on
+FROM
+  invoices
+  INNER JOIN table_0 AS shipments ON invoices.id = shipments.invoice_id
