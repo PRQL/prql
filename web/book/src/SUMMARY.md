@@ -68,6 +68,7 @@ language design decisions and formal specifications for parts of the language.
   - [Date functions](./reference/stdlib/date.md)
   - [Mathematical functions](./reference/stdlib/math.md)
   - [Text functions](./reference/stdlib/text.md)
+  - [Tuple functions](./reference/stdlib/tuple.md)
   - [Removing duplicates](./reference/stdlib/distinct.md)
 
 - [Specification](./reference/spec/README.md)
