@@ -17,6 +17,18 @@ permission first) still applies when the target shows no agent signals.
 - No scope required (e.g., `fix: resolve date parsing` not `fix(parser): ...`)
 - Dependabot PRs use `chore:` prefix
 
+## PR review
+
+Reviewing a PR includes a `/code-review` pass, at an effort matched to how core
+the change is:
+
+- Peripheral or mechanical changes (docs, config, dependency bumps, test-only):
+  `low` or `medium`.
+- Core compiler changes (the `prqlc` parser; the semantic resolver, covering
+  name resolution and the type system; SQL generation; `std.prql`): `high` or
+  `max`. Bugs there corrupt query results silently rather than failing loudly,
+  so the broader-coverage tiers earn their cost.
+
 ## CI structure
 
 - Main CI workflow: `tests` (watched by tend-ci-fix)
