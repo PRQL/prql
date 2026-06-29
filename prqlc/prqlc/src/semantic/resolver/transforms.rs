@@ -278,6 +278,35 @@ impl Resolver<'_> {
 
                 // TODO: support database engine-level UNION ALL BY NAME in PR #6037
                 if by_name {
+                    // input validation for PRQL-native implementation
+                    for (name, rel) in vec![("top", top.clone()), ("bottom", bottom.clone())] {
+                        let lineage = rel.lineage.clone().ok_or_else(|| {
+                            Error::new(Reason::Expected {
+                                who: Some(format!("`{name}`")),
+                                expected: "relation".to_string(),
+                                found: write_pl(rel.clone()),
+                            })
+                            .with_span(top.span)
+                        })?;
+
+                        lineage.columns.iter().try_for_each(|c| match c {
+                            LineageColumn::All { .. } => Err(Error::new(Reason::Simple(format!(
+                                "{name} input to append by:name must have all columns defined"
+                            )))
+                            .push_hint("try adding a select earlier in the pipeline")
+                            .with_span(rel.span)),
+                            LineageColumn::Single {
+                                name: None,
+                                target_name: None,
+                                ..
+                            } => Err(Error::new(Reason::Simple(format!(
+                                "{name} input to append by:name must not have any unnamed columns"
+                            )))
+                            .with_span(rel.span)),
+                            _ => Ok(()),
+                        })?;
+                    }
+
                     return Ok(new_binop(bottom, &["std", "_append_by_name"], top));
                 } else {
                     (TransformKind::Append(Box::new(bottom)), top)
