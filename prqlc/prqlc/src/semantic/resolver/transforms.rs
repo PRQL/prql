@@ -286,7 +286,7 @@ impl Resolver<'_> {
                                 expected: "relation".to_string(),
                                 found: write_pl(rel.clone()),
                             })
-                            .with_span(top.span)
+                            .with_span(rel.span)
                         })?;
 
                         lineage.columns.iter().try_for_each(|c| match c {
