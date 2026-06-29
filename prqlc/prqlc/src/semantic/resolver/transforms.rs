@@ -279,7 +279,7 @@ impl Resolver<'_> {
                 // TODO: support database engine-level UNION ALL BY NAME in PR #6037
                 if by_name {
                     // input validation for PRQL-native implementation
-                    for (name, rel) in vec![("top", top.clone()), ("bottom", bottom.clone())] {
+                    for (name, rel) in [("top", top.clone()), ("bottom", bottom.clone())] {
                         let lineage = rel.lineage.clone().ok_or_else(|| {
                             Error::new(Reason::Expected {
                                 who: Some(format!("`{name}`")),
