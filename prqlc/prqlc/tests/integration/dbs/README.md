@@ -13,9 +13,9 @@ cargo test --features=test-dbs
 
 ## External DBs
 
-To run tests against external databases — currently Postgres, MySQL, SQL Server,
-ClickHouse and GlareDB are tested using `docker compose` to create the
-databases.
+To run tests against external databases — currently Postgres, MySQL and SQL
+Server are tested using `docker compose` to create the databases. (ClickHouse
+and GlareDB runners exist but are currently disabled in `mod.rs`.)
 
 The steps are all covered by `task test-rust-external-dbs`; to run them
 manually:
