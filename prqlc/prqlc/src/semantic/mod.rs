@@ -212,6 +212,21 @@ pub mod test {
     }
 
     #[test]
+    fn test_resolve_this_wildcard() {
+        // `this.*` should include computed columns, matching bare `this`
+        // (https://github.com/PRQL/prql/issues/6044).
+        assert_yaml_snapshot!(parse_resolve_and_lower(r###"
+        from foo
+        select { a, b, c = a + b }
+        select this.*
+        "###).unwrap().relation.columns, @"
+        - Single: a
+        - Single: b
+        - Single: c
+        ")
+    }
+
+    #[test]
     fn test_resolve_04() {
         assert_yaml_snapshot!(parse_resolve_and_lower(r###"
         from x
