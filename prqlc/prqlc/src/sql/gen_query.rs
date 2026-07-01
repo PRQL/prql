@@ -15,7 +15,7 @@ use super::operators::translate_operator;
 use super::pq::ast::{Cte, CteKind, RelationExpr, RelationExprKind, SqlRelation, SqlTransform};
 use super::{Context, Dialect};
 use crate::debug;
-use crate::ir::pl::{JoinSide, Literal};
+use crate::ir::pl::{AppendBy, JoinSide, Literal};
 use crate::ir::rq::{CId, Expr, ExprKind, RelationLiteral, RelationalQuery};
 use crate::utils::{BreakUp, Pluck};
 use crate::{Error, Result, WithErrorInfo};
@@ -292,10 +292,15 @@ fn translate_set_ops_pipeline(
             _ => unreachable!(),
         };
 
-        let (distinct, bottom) = match transform {
-            Union { distinct, bottom }
-            | Except { distinct, bottom }
-            | Intersect { distinct, bottom } => (distinct, bottom),
+        let (distinct, bottom, by) = match transform {
+            Union {
+                distinct,
+                bottom,
+                by,
+            } => (distinct, bottom, by),
+            Except { distinct, bottom } | Intersect { distinct, bottom } => {
+                (distinct, bottom, AppendBy::Position)
+            }
             _ => unreachable!(),
         };
 
@@ -330,14 +335,13 @@ fn translate_set_ops_pipeline(
         top = default_query(SetExpr::SetOperation {
             left,
             right,
-            set_quantifier: if distinct {
-                if context.dialect.set_ops_distinct() {
-                    sql_ast::SetQuantifier::Distinct
-                } else {
-                    sql_ast::SetQuantifier::None
-                }
-            } else {
-                sql_ast::SetQuantifier::All
+            set_quantifier: match (distinct, context.dialect.set_ops_distinct(), by) {
+                (false, _, AppendBy::Position) => sql_ast::SetQuantifier::All,
+                (false, _, AppendBy::Name) => sql_ast::SetQuantifier::AllByName,
+                (true, true, AppendBy::Position) => sql_ast::SetQuantifier::Distinct,
+                (true, true, AppendBy::Name) => sql_ast::SetQuantifier::DistinctByName,
+                (true, false, AppendBy::Position) => sql_ast::SetQuantifier::None,
+                (true, false, AppendBy::Name) => sql_ast::SetQuantifier::ByName,
             },
             op,
         });

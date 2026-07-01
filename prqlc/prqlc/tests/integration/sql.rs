@@ -7449,3 +7449,111 @@ fn test_tuple_map_aliases() {
       foo
     "###);
 }
+
+#[test]
+fn test_append_by_name_1() {
+    assert_snapshot!(compile(r###"
+    prql target:sql.duckdb
+
+    from foo
+    append by:name bar
+    "###).unwrap(), @r###"
+    SELECT
+      *
+    FROM
+      foo
+    UNION
+    ALL BY NAME
+    SELECT
+      *
+    FROM
+      bar
+    "###);
+}
+
+#[test]
+fn test_append_by_name_2() {
+    assert_snapshot!(compile(r###"
+    prql target:sql.duckdb
+
+    from foo
+    select {x, y}
+    append by:name (from bar | select {y, z})
+    "###).unwrap(), @r###"
+    SELECT
+      x,
+      y
+    FROM
+      foo
+    UNION
+    ALL BY NAME
+    SELECT
+      y,
+      z
+    FROM
+      bar
+    "###);
+}
+
+#[test]
+fn test_append_by_name_distinct() {
+    assert_snapshot!(compile(r###"
+    prql target:sql.duckdb
+    let distinct = rel -> (_param.rel | group this (take 1))
+
+    from foo
+    append by:name bar
+    distinct
+    "###).unwrap(), @r###"
+    SELECT
+      *
+    FROM
+      foo
+    UNION
+    DISTINCT BY NAME
+    SELECT
+      *
+    FROM
+      bar
+    "###);
+
+    assert_snapshot!(compile(r###"
+    prql target:sql.snowflake
+    let distinct = rel -> (_param.rel | group this (take 1))
+
+    from foo
+    append by:name bar
+    distinct
+    "###).unwrap(), @r###"
+    SELECT
+      *
+    FROM
+      "foo"
+    UNION
+    BY NAME
+    SELECT
+      *
+    FROM
+      "bar"
+    "###);
+}
+
+#[test]
+fn test_append_by_name_fallback() {
+    assert_snapshot!(compile(r###"
+    from foo
+    select {x, y}
+    append by:name (from bar | select {y, b})
+    "###).unwrap(), @r###"
+    SELECT
+      x, y, NULL AS b
+    FROM
+      foo
+    UNION
+    ALL
+    SELECT
+      NULL AS x, y, b
+    FROM
+      bar
+    "###);
+}

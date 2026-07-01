@@ -5,7 +5,7 @@ use serde::{Deserialize, Serialize};
 use super::*;
 use crate::ir::generic::ColumnSort;
 use crate::ir::generic::WindowFrame;
-use crate::ir::pl::JoinSide;
+use crate::ir::pl::{AppendBy, JoinSide};
 
 /// Transformation of a table.
 #[derive(
@@ -27,7 +27,10 @@ pub enum Transform {
         with: TableRef,
         filter: Expr,
     },
-    Append(TableRef),
+    Append {
+        by: AppendBy,
+        bottom: TableRef,
+    },
     Loop(Vec<Transform>),
 }
 
