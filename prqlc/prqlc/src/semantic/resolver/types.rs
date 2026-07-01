@@ -413,6 +413,8 @@ fn type_intersection_of_tuples(a: Vec<TyTupleField>, b: Vec<TyTupleField>) -> Re
     let mut a_fields = a.into_iter().filter_map(|f| f.into_single().ok());
     let mut b_fields = b.into_iter().filter_map(|f| f.into_single().ok());
 
+    log::trace!("tuple intersection: {a_fields:#?} {b_fields:#?}");
+
     let mut fields = Vec::new();
     let mut has_other = false;
     loop {

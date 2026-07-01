@@ -1,0 +1,9 @@
+---
+source: web/book/tests/documentation/book.rs
+expression: "prql target:sql.duckdb\n\nfrom invoices\nselect (\n  tuple_map (date.to_text \"%d/%m/%Y\") {\n    rcv_txt = received_on,\n    prc_txt = processed_on,\n  }\n)\n"
+---
+SELECT
+  strftime(received_on, '%d/%m/%Y') AS rcv_txt,
+  strftime(processed_on, '%d/%m/%Y') AS prc_txt
+FROM
+  invoices

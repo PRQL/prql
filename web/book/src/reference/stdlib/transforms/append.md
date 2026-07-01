@@ -2,14 +2,38 @@
 
 Concatenates two tables together.
 
+```prql no-eval
+append by:{position|name} rel
+```
+
 Equivalent to `UNION ALL` in SQL. The number of rows is always the sum of the
-number of rows from the two input tables. To replicate `UNION DISTINCT`, see
-[set operations](#set-operations).
+number of rows from the two input tables. The number of columns in each input
+table must be the same, and the columns will align by position by default.
 
 ```prql
 from employees_1
 append employees_2
 ```
+
+To replicate `UNION DISTINCT`, see [set operations](#set-operations).
+
+Tables can also be combined by column name rather than column position by adding
+the `by:name` argument to `append`. When appending by name, the number of
+columns in each table does not need to be the same; columns present in one
+relation but missing from the other will have NULL values added. This mode
+currently only works if the set of columns on both sides is fully defined.
+
+```prql
+from employees_1
+select {id, name, dob, zip}
+append by:name (
+  from employees_2
+  select {id, name, email, zip}
+)
+```
+
+> Support for generating dialect-specific `UNION ALL BY NAME` queries is
+> pending.
 
 ## Remove
 

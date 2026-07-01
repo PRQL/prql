@@ -490,3 +490,67 @@ fn bare_lambda_expression() {
     ───╯
     ");
 }
+
+#[test]
+fn append_by_wrong() {
+    assert_snapshot!(compile(r###"
+    from foo
+    append by:bar baz
+    "###).unwrap_err(), @"
+    Error:
+       ╭─[ :3:15 ]
+       │
+     3 │     append by:bar baz
+       │               ─┬─
+       │                ╰─── `by` expected position or name, but found bar
+    ───╯
+    ");
+}
+
+#[test]
+fn tuple_uniq_take_wrong() {
+    assert_snapshot!(compile(r###"
+    from foo
+    select (tuple_uniq take:bar this)
+    "###).unwrap_err(), @"
+    Error:
+       ╭─[ :3:29 ]
+       │
+     3 │     select (tuple_uniq take:bar this)
+       │                             ─┬─
+       │                              ╰─── `take` expected early or late, but found bar
+    ───╯
+    ");
+}
+
+#[test]
+fn append_by_name_wildcard() {
+    assert_snapshot!(compile(r"from foo | append by:name (from bar)").unwrap_err(), @"
+    Error:
+       ╭─[ :1:1 ]
+       │
+     1 │ from foo | append by:name (from bar)
+       │ ────┬───
+       │     ╰───── top input to append by:name must have all columns defined
+       │
+       │ Help: try adding a select earlier in the pipeline
+    ───╯
+    ");
+}
+
+#[test]
+fn append_by_name_unnamed() {
+    assert_snapshot!(compile(r###"
+    from foo
+    select {x, y}
+    append by:name (from bar | select {x, y+3})
+    "###).unwrap_err(), @"
+    Error:
+       ╭─[ :4:32 ]
+       │
+     4 │     append by:name (from bar | select {x, y+3})
+       │                                ───────┬───────
+       │                                       ╰───────── bottom input to append by:name must not have any unnamed columns
+    ───╯
+    ");
+}

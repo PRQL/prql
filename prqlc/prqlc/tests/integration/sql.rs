@@ -7449,3 +7449,107 @@ fn test_tuple_map_aliases() {
       foo
     "###);
 }
+
+#[test]
+fn test_tuple_reverse() {
+    assert_snapshot!(compile(r###"
+    from foo
+    select {x, y, z}
+    select (tuple_reverse this.*)
+    "###).unwrap(), @r###"
+    SELECT
+      z,
+      y,
+      x
+    FROM
+      foo
+    "###);
+}
+
+#[test]
+fn test_tuple_uniq() {
+    assert_snapshot!(compile(r###"
+    from foo
+    select {x, y, z}
+    select (tuple_uniq {z = 5, this.*})
+    "###).unwrap(), @r###"
+    SELECT
+      5 AS z,
+      x,
+      y
+    FROM
+      foo
+    "###);
+
+    assert_snapshot!(compile(r###"
+    from foo
+    select {x, y, z}
+    select (tuple_uniq take:late {z = 5, this.*})
+    "###).unwrap(), @r###"
+    SELECT
+      z,
+      x,
+      y
+    FROM
+      foo
+    "###);
+}
+
+#[test]
+fn test_tuple_uniq_no_alias() {
+    assert_snapshot!(compile(r###"
+    from foo
+    select (tuple_uniq {x, 4, 5})
+    "###).unwrap(), @r###"
+    SELECT
+      x
+    FROM
+      foo
+    "###);
+}
+
+#[test]
+fn test_wildcard_func_param() {
+    assert_snapshot!(compile(r###"
+    let _my_func = func top <relation> -> select {top.*, b = 4} top
+
+    from foo
+    select {x, y}
+    _my_func
+    "###).unwrap(), @r###"
+    SELECT
+      x,
+      y,
+      4 AS b
+    FROM
+      foo
+    "###);
+}
+
+#[test]
+fn test_append_by_name() {
+    assert_snapshot!(compile(r###"
+    from foo
+    select {x, y, b = 4}
+    append by:name (from bar | select {y, z, b = 5, c = 7})
+    "###).unwrap(), @r###"
+    SELECT
+      x,
+      y,
+      4 AS b,
+      NULL AS z,
+      NULL AS c
+    FROM
+      foo
+    UNION
+    ALL
+    SELECT
+      NULL AS x,
+      y,
+      5 AS b,
+      z,
+      7 AS c
+    FROM
+      bar
+    "###);
+}
