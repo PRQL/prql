@@ -21,20 +21,20 @@ operations and for function calls (see the discussion below.)
 
 <!-- markdownlint-disable MD033 — the `|` characters need to be escaped, and surrounded with tags rather than backticks   -->
 
-|          Group | Operators                   | Precedence | Associativity |
-| -------------: | --------------------------- | :--------: | :-----------: |
-|    parentheses | `()`                        |     0      |   see below   |
-| identifier dot | `.`                         |     1      |               |
-|          unary | `-` `+` `!` `==`            |     2      |               |
-|          range | `..`                        |     3      |               |
-|            pow | `**`                        |     4      | right-to-left |
-|            mul | `*` `/` `//` `%`            |     5      | left-to-right |
-|            add | `+` `-`                     |     6      | left-to-right |
-|        compare | `==` `!=` `<=` `>=` `<` `>` |     7      | left-to-right |
-|       coalesce | `??`                        |     8      | left-to-right |
-|            and | `&&`                        |     9      | left-to-right |
-|             or | <code>\|\|</code>           |     10     | left-to-right |
-|  function call |                             |     11     |               |
+|          Group | Operators                        | Precedence | Associativity |
+| -------------: | -------------------------------- | :--------: | :-----------: |
+|    parentheses | `()`                             |     0      |   see below   |
+| identifier dot | `.`                              |     1      |               |
+|          unary | `-` `+` `!` `==`                 |     2      |               |
+|          range | `..`                             |     3      |               |
+|            pow | `**`                             |     4      | right-to-left |
+|            mul | `*` `/` `//` `%`                 |     5      | left-to-right |
+|            add | `+` `-`                          |     6      | left-to-right |
+|        compare | `==` `!=` `<=` `>=` `~=` `<` `>` |     7      | left-to-right |
+|       coalesce | `??`                             |     8      | left-to-right |
+|            and | `&&`                             |     9      | left-to-right |
+|             or | <code>\|\|</code>                |     10     | left-to-right |
+|  function call |                                  |     11     |               |
 
 ## Division and integer division
 
