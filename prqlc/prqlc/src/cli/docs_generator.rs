@@ -1,5 +1,13 @@
 use prqlc::pr::{ExprKind, Stmt, StmtKind, TyKind, VarDefKind};
 
+/// Whether a statement is a `let` function definition that gets its own
+/// documentation section. The Functions index and the detail sections must
+/// agree on this predicate; otherwise the index links to anchors that the
+/// detail loop never emits (dangling links for `main` pipelines etc.).
+fn is_documented_function(stmt: &Stmt) -> bool {
+    matches!(&stmt.kind, StmtKind::VarDef(var_def) if var_def.kind == VarDefKind::Let)
+}
+
 /// Generate HTML documentation.
 pub fn generate_html_docs(stmts: Vec<Stmt>) -> String {
     let html = format!(
@@ -36,11 +44,7 @@ pub fn generate_html_docs(stmts: Vec<Stmt>) -> String {
 
     docs.push_str("<h2>Functions</h2>\n");
     docs.push_str("<ul>\n");
-    for stmt in stmts
-        .clone()
-        .into_iter()
-        .filter(|stmt| matches!(stmt.kind, StmtKind::VarDef(_)))
-    {
+    for stmt in stmts.iter().filter(|stmt| is_documented_function(stmt)) {
         let var_def = stmt.kind.as_var_def().unwrap();
         docs.push_str(&format!(
             "  <li><a href=\"#fn-{}\">{}</a></li>\n",
@@ -48,13 +52,7 @@ pub fn generate_html_docs(stmts: Vec<Stmt>) -> String {
         ));
     }
     docs.push_str("</ul>\n\n");
-    if stmts
-        .clone()
-        .into_iter()
-        .filter(|stmt| matches!(stmt.kind, StmtKind::VarDef(_)))
-        .count()
-        == 0
-    {
+    if !stmts.iter().any(is_documented_function) {
         docs.push_str("<p>None.</p>\n\n");
     }
 
@@ -101,15 +99,8 @@ pub fn generate_html_docs(stmts: Vec<Stmt>) -> String {
         docs.push_str("</ul>\n");
     }
 
-    for stmt in stmts
-        .clone()
-        .into_iter()
-        .filter(|stmt| matches!(stmt.kind, StmtKind::VarDef(_)))
-    {
+    for stmt in stmts.iter().filter(|stmt| is_documented_function(stmt)) {
         let var_def = stmt.kind.as_var_def().unwrap();
-        if var_def.kind != VarDefKind::Let {
-            continue;
-        }
 
         docs.push_str("<section>\n");
         docs.push_str(&format!(
@@ -119,7 +110,7 @@ pub fn generate_html_docs(stmts: Vec<Stmt>) -> String {
 
         docs.push_str("<div class=\"ms-3\">\n");
 
-        if let Some(doc_comment) = stmt.doc_comment {
+        if let Some(doc_comment) = &stmt.doc_comment {
             docs.push_str(&format!("  <p>{doc_comment}</p>\n"));
         }
 
@@ -186,23 +177,13 @@ Generated with [prqlc](https://prql-lang.org/) {}.
     let mut docs = String::new();
 
     docs.push_str("## Functions\n");
-    for stmt in stmts
-        .clone()
-        .into_iter()
-        .filter(|stmt| matches!(stmt.kind, StmtKind::VarDef(_)))
-    {
+    for stmt in stmts.iter().filter(|stmt| is_documented_function(stmt)) {
         let var_def = stmt.kind.as_var_def().unwrap();
         docs.push_str(&format!("* [{}](#{})\n", var_def.name, var_def.name));
     }
     docs.push('\n');
 
-    if stmts
-        .clone()
-        .into_iter()
-        .filter(|stmt| matches!(stmt.kind, StmtKind::VarDef(_)))
-        .count()
-        == 0
-    {
+    if !stmts.iter().any(is_documented_function) {
         docs.push_str("None.\n\n");
     }
 
@@ -247,19 +228,12 @@ Generated with [prqlc](https://prql-lang.org/) {}.
         docs.push('\n');
     }
 
-    for stmt in stmts
-        .clone()
-        .into_iter()
-        .filter(|stmt| matches!(stmt.kind, StmtKind::VarDef(_)))
-    {
+    for stmt in stmts.iter().filter(|stmt| is_documented_function(stmt)) {
         let var_def = stmt.kind.as_var_def().unwrap();
-        if var_def.kind != VarDefKind::Let {
-            continue;
-        }
 
         docs.push_str(&format!("### {}\n", var_def.name));
 
-        if let Some(doc_comment) = stmt.doc_comment {
+        if let Some(doc_comment) = &stmt.doc_comment {
             docs.push_str(&format!("{}\n", doc_comment.trim_start()));
         }
         docs.push('\n');
@@ -500,6 +474,41 @@ mod tests {
 
         #### Returns
         `text`
+
+
+
+        Generated with [prqlc](https://prql-lang.org/) 0.13.14.
+
+        ----- stderr -----
+        ");
+    }
+
+    /// A `main` pipeline (or any non-`let` var-def) must not appear in the
+    /// Functions index, since no detail section / anchor is generated for it.
+    /// Regression test for the dangling `#fn-main` link.
+    #[test]
+    fn generate_docs_excludes_main_pipeline() {
+        std::env::set_var("PRQL_VERSION_OVERRIDE", env!("CARGO_PKG_VERSION"));
+
+        let input = r"
+        let f = a -> a
+        from employees | select {name}
+        ";
+
+        assert_cmd_snapshot!(prqlc_command().args(["experimental", "doc"]).pass_stdin(input), @"
+        success: true
+        exit_code: 0
+        ----- stdout -----
+        # Documentation
+
+        ## Functions
+        * [f](#f)
+
+        ### f
+
+        #### Parameters
+        * *a*
+
 
 
 

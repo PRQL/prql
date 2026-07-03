@@ -1,0 +1,86 @@
+version: 2
+updates:
+  - package-ecosystem: cargo
+    directory: "/"
+    schedule:
+      # Running daily means the GHA cache will be cycling much faster, and we're
+      # not in a great rush. So trying weekly, and we can iterate.
+      interval: weekly
+    commit-message:
+      prefix: "chore: "
+    # Bump all patch versions of rust dependencies as a single PR
+    groups:
+      patch:
+        update-types:
+          - patch
+    # We exclude labels throughout because of https://github.com/dependabot/dependabot-core/issues/7645#issuecomment-1986212847
+    labels: []
+
+  - package-ecosystem: "npm"
+    directories:
+      - "/prqlc/bindings/js"
+      - "/web/playground"
+    schedule:
+      interval: daily
+    ignore:
+      - dependency-name: "*"
+        update-types:
+          - version-update:semver-patch
+    commit-message:
+      prefix: "chore: "
+    labels: []
+
+  - package-ecosystem: docker
+    directory: .devcontainer/base-image
+    schedule:
+      interval: daily
+    commit-message:
+      prefix: "chore: "
+    labels: []
+
+  - package-ecosystem: "github-actions"
+    directories:
+      - "/"
+      - ".github/actions/build-python"
+      - ".github/actions/build-prqlc"
+      - ".github/actions/build-prqlc-c"
+      - ".github/actions/time-compilation"
+    commit-message:
+      prefix: "chore: "
+    schedule:
+      interval: daily
+    ignore:
+      # tend's own action is updated by the nightly `tend/update-workflows`
+      # regen (`uvx tend init`), which follows structural changes a version-only
+      # Dependabot bump can't — e.g. the 0.1.7 move that split the action into
+      # `claude/` / `codex/` subdirectories, leaving the bare `max-sixty/tend@0.1.7`
+      # ref with no `action.yaml` and breaking every workflow (see #6031).
+      # Excluding it here avoids redundant (and sometimes broken) duplicate PRs.
+      - dependency-name: "max-sixty/tend"
+    labels: []
+
+  - package-ecosystem: uv
+    directory: "prqlc/bindings/prqlc-python"
+    schedule:
+      interval: daily
+    commit-message:
+      prefix: "chore: "
+    ignore:
+      - dependency-name: "*"
+        update-types:
+          - version-update:semver-patch
+    labels: []
+
+  - package-ecosystem: "devcontainers"
+    directory: "/"
+    schedule:
+      interval: daily
+    labels: []
+
+  - package-ecosystem: "mix"
+    directory: "prqlc/bindings/elixir"
+    schedule:
+      interval: daily
+    commit-message:
+      prefix: "chore: "
+    labels: []

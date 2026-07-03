@@ -604,7 +604,7 @@ impl Resolver<'_> {
                 let top = transform_call.input.ty.clone().unwrap();
                 let bottom = bottom.ty.clone().unwrap();
 
-                Some(type_intersection(top, bottom))
+                Some(type_intersection(top, bottom).with_span(transform_call.input.span)?)
             }
         })
     }
@@ -707,7 +707,8 @@ impl TransformCall {
 
         fn lineage_or_default(expr: &Expr) -> Result<Lineage> {
             expr.lineage.clone().ok_or_else(|| {
-                Error::new_simple("expected {expr:?} to have table type").with_span(expr.span)
+                Error::new_simple(format!("expected {expr:?} to have table type"))
+                    .with_span(expr.span)
             })
         }
 
@@ -733,7 +734,7 @@ impl TransformCall {
                 // pipeline's body is resolved, just use its type
                 let Func { body, .. } = pipeline.kind.as_func().unwrap().as_ref();
 
-                let partition_lin = lineage_or_default(body).unwrap();
+                let partition_lin = lineage_or_default(body)?;
                 lineage.columns.extend(partition_lin.columns);
 
                 log::debug!(".. type={lineage}");
@@ -743,7 +744,7 @@ impl TransformCall {
                 // pipeline's body is resolved, just use its type
                 let Func { body, .. } = pipeline.kind.as_func().unwrap().as_ref();
 
-                lineage_or_default(body).unwrap()
+                lineage_or_default(body)?
             }
             Aggregate { assigns } => {
                 let mut lineage = lineage_or_default(&self.input)?;
@@ -1171,9 +1172,77 @@ mod from_text {
 
 #[cfg(test)]
 mod tests {
-    use insta::assert_yaml_snapshot;
+    use insta::{assert_snapshot, assert_yaml_snapshot};
 
     use crate::semantic::test::parse_resolve_and_lower;
+
+    // `infer_lineage` errors when an input expr has no lineage. The error
+    // message must interpolate the expr rather than emitting the literal
+    // placeholder `{expr:?}` — the message was built with `new_simple` on a
+    // plain string literal, so the placeholder was never substituted.
+    #[test]
+    fn test_infer_lineage_missing_lineage_message() {
+        use crate::ir::pl::{Expr, ExprKind, Literal, TransformCall, TransformKind, WindowFrame};
+
+        // An input with `lineage: None` (e.g. a non-relational expr) drives
+        // `lineage_or_default` down its error branch.
+        let call = TransformCall {
+            input: Box::new(Expr::new(ExprKind::Literal(Literal::Null))),
+            kind: Box::new(TransformKind::Select {
+                assigns: Box::new(Expr::new(ExprKind::Tuple(vec![]))),
+            }),
+            partition: None,
+            frame: WindowFrame::default(),
+            sort: vec![],
+        };
+
+        let err = call.infer_lineage().unwrap_err();
+        let msg = err.reason.to_string();
+        assert!(
+            !msg.contains("{expr:?}"),
+            "error message should interpolate the expr, got: {msg}"
+        );
+        assert!(msg.contains("to have table type"), "got: {msg}");
+    }
+
+    // `append` of relations with a different number of columns must produce a
+    // graceful error rather than panicking (was `todo!()` in
+    // `type_intersection`).
+    #[test]
+    fn test_append_different_column_count() {
+        assert_snapshot!(crate::tests::compile(
+            "from a | select {x, y} | append (from b | select {x})"
+        )
+        .unwrap_err(), @r"
+        Error:
+           ╭─[ :1:10 ]
+           │
+         1 │ from a | select {x, y} | append (from b | select {x})
+           │          ──────┬──────
+           │                ╰──────── cannot combine relations with different numbers of columns
+           │
+           │ Help: `append` requires both tables to have matching columns
+        ───╯
+        ");
+    }
+
+    // `append` of relations whose columns have incompatible types must also
+    // error rather than panic (the catch-all `todo!()` arm).
+    #[test]
+    fn test_append_incompatible_column_types() {
+        assert_snapshot!(crate::tests::compile(
+            "from a | select {x = 1} | append (from b | select {x = 1.0})"
+        )
+        .unwrap_err(), @r"
+        Error:
+           ╭─[ :1:10 ]
+           │
+         1 │ from a | select {x = 1} | append (from b | select {x = 1.0})
+           │          ───────┬──────
+           │                 ╰──────── cannot combine types `int` and `float`
+        ───╯
+        ");
+    }
 
     #[test]
     fn test_aggregate_positional_arg() {

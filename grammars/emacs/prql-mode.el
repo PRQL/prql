@@ -23,7 +23,7 @@
   "List of PRQL constants.")
 
 (defconst prql-data-types
-  '("bool" "float" "int" "int8" "int16" "int32" "int64" "int128" "text" "date" "time" "timestamp")
+  '("bool" "float" "int" "int8" "int16" "int32" "int64" "text" "date" "time" "timestamp")
   "List of PRQL data types.")
 
 (defconst prql-builtin-functions
