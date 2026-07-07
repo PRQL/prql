@@ -4945,6 +4945,28 @@ fn test_from_text_07() {
 }
 
 #[test]
+fn test_from_text_08() {
+    assert_snapshot!(compile(r#"
+    from foo | join m=(from_text format:csv 'key,value') this.bar == that.key
+    "#).unwrap(), @r#"
+    WITH table_0 AS (
+      SELECT
+        NULL AS "key",
+        NULL AS value
+      WHERE
+        false
+    )
+    SELECT
+      foo.*,
+      table_0."key",
+      table_0.value
+    FROM
+      foo
+      INNER JOIN table_0 ON foo.bar = table_0."key"
+    "#);
+}
+
+#[test]
 fn test_header() {
     // Test both target & version at the same time
     let header = format!(
