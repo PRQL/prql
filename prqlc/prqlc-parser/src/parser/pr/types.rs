@@ -3,7 +3,6 @@ use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 use strum::AsRefStr;
 
-use crate::error::Error;
 use crate::parser::pr::ident::Ident;
 use crate::span::Span;
 
@@ -146,11 +145,5 @@ impl From<PrimitiveSet> for TyKind {
 impl From<TyFunc> for TyKind {
     fn from(value: TyFunc) -> Self {
         TyKind::Function(Some(value))
-    }
-}
-
-impl From<TyKind> for Error {
-    fn from(value: TyKind) -> Error {
-        Error::new_simple(format!("unexpected type {value:#?}"))
     }
 }
