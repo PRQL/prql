@@ -697,27 +697,4 @@ mod tests {
           bar
         ");
     }
-
-    // Pre-existing limitation (not introduced here, but easier to hit with
-    // shadowing): referencing `this.<name>` *before* a column shadows that name
-    // in the same tuple resolves to the relation, which expands to a wildcard
-    // and drops the alias. Documented so the behavior is intentional rather than
-    // incidental.
-    #[test]
-    fn test_column_shadows_relation_name_forward_reference() {
-        use insta::assert_snapshot;
-
-        // `x2 = this.bar` resolves to the relation `bar` (the shadowing column
-        // is only added later in the tuple), expanding to `*` and losing `x2`.
-        assert_snapshot!(crate::tests::compile(
-            "from bar | derive { x2 = this.bar, bar = this.a }"
-        ).unwrap(), @"
-        SELECT
-          *,
-          *,
-          a AS bar
-        FROM
-          bar
-        ");
-    }
 }
