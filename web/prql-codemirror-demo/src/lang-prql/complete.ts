@@ -25,7 +25,6 @@ const globals: readonly Completion[] = ["false", "null", "true"]
       "int16",
       "int32",
       "int64",
-      "int128",
       "text",
       "date",
       "time",

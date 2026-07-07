@@ -22,6 +22,12 @@ permission first) still applies when the target shows no agent signals.
 - Main CI workflow: `tests` (watched by tend-ci-fix)
 - Dependency management: Dependabot opens dependency PRs; tend-weekly reviews
   them and runs the tasks under Weekly maintenance below.
+- **tend's own action is excluded from Dependabot** (`max-sixty/tend` is in the
+  github-actions `ignore` list in `.github/dependabot.yaml`). Tend updates flow
+  through the nightly `tend/update-workflows` regen (`uvx tend init`), which
+  follows structural changes a version-only bump can't — e.g. the 0.1.7 move
+  that split the action into `claude/`/`codex/` subdirectories broke the naive
+  Dependabot bump #6031. Don't re-add `max-sixty/tend` to Dependabot.
 - Automerge: not configured — `pull-request-target.yaml` only validates PR
   titles and handles `pr-backport-web` backports. The automerge job was removed
   in #5753, so bot PRs must be merged manually by a maintainer (or via repo

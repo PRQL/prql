@@ -12,10 +12,6 @@ on:
   push:
     branches:
       - main
-  schedule:
-    # Pick a random time, something that others won't pick, to be good citizens
-    # and reduce GH's demand variance.
-    - cron: "49 10 * * *"
   workflow_dispatch:
   workflow_call:
 
@@ -65,7 +61,7 @@ jobs:
 
     steps:
       - name: 📂 Checkout code
-        uses: actions/checkout@v6
+        uses: actions/checkout@v7
         with:
           fetch-tags: true
       - uses: dorny/paths-filter@v4
@@ -276,7 +272,7 @@ jobs:
   #   runs-on: macos-15
   #   steps:
   #     - name: 📂 Checkout code
-  #       uses: actions/checkout@v6
+  #       uses: actions/checkout@v7
   #     - run: ./.github/workflows/scripts/set_version.sh
   #     - uses: actions/setup-python@v6
   #       with:
@@ -358,7 +354,7 @@ jobs:
     runs-on: ubuntu-24.04
     steps:
       - name: 📂 Checkout code
-        uses: actions/checkout@v6
+        uses: actions/checkout@v7
 
       - uses: baptiste0928/cargo-install@v3
         with:
@@ -372,7 +368,7 @@ jobs:
         run: pip install pre-commit
 
       - name: Cache lychee results
-        uses: actions/cache@v5
+        uses: actions/cache@v6
         with:
           path: .lycheecache
           key: lychee-${{ github.sha }}
@@ -415,7 +411,7 @@ jobs:
 
     steps:
       - name: 📂 Checkout code
-        uses: actions/checkout@v6
+        uses: actions/checkout@v7
       - uses: baptiste0928/cargo-install@v3
         with:
           crate: mdbook
@@ -449,7 +445,7 @@ jobs:
     needs: rules
     steps:
       - name: 📂 Checkout code
-        uses: actions/checkout@v6
+        uses: actions/checkout@v7
       - run: ./.github/workflows/scripts/set_version.sh
       - uses: actions/setup-python@v6
         with:
@@ -525,7 +521,7 @@ jobs:
       'true'
     steps:
       - name: 📂 Checkout code
-        uses: actions/checkout@v6
+        uses: actions/checkout@v7
       - name: 🧅 Setup Bun
         uses: oven-sh/setup-bun@v2
         with:
@@ -566,7 +562,7 @@ jobs:
     if: needs.rules.outputs.devcontainer-build == 'true'
     timeout-minutes: 30
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
       - name: Build and run devcontainer
         uses: devcontainers/ci@v0.3
         with:
@@ -583,7 +579,7 @@ jobs:
     if: needs.rules.outputs.nightly == 'true'
     steps:
       - name: 📂 Checkout code
-        uses: actions/checkout@v6
+        uses: actions/checkout@v7
       - uses: baptiste0928/cargo-install@v3
         with:
           crate: cargo-msrv
@@ -604,7 +600,7 @@ jobs:
     if: needs.rules.outputs.nightly == 'true'
     steps:
       - name: 📂 Checkout code
-        uses: actions/checkout@v6
+        uses: actions/checkout@v7
       - run: rustup override set nightly-2025-11-10
       - uses: actions/setup-python@v6
         with:
@@ -729,7 +725,7 @@ jobs:
             features: default
     steps:
       - name: 📂 Checkout code
-        uses: actions/checkout@v6
+        uses: actions/checkout@v7
       - uses: ./.github/actions/build-prqlc
         with:
           target: ${{ matrix.target }}
@@ -762,7 +758,7 @@ jobs:
             features: default
     steps:
       - name: 📂 Checkout code
-        uses: actions/checkout@v6
+        uses: actions/checkout@v7
       - uses: ./.github/actions/build-prqlc-c
         with:
           target: ${{ matrix.target }}
@@ -788,7 +784,7 @@ jobs:
       issues: write
     steps:
       - name: 📂 Checkout code
-        uses: actions/checkout@v6
+        uses: actions/checkout@v7
       - uses: JasonEtco/create-an-issue@v2
         env:
           # Use prql-bot PAT so that opening the issue triggers downstream
@@ -813,7 +809,7 @@ jobs:
     # such as debian & winget are updated.
     steps:
       - name: 📂 Checkout code
-        uses: actions/checkout@v6
+        uses: actions/checkout@v7
       - uses: a-kenji/update-rust-toolchain@main
         with:
           # Discussion in #1561

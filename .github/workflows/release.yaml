@@ -62,7 +62,7 @@ jobs:
       contents: write
     steps:
       - name: 📂 Checkout code
-        uses: actions/checkout@v6
+        uses: actions/checkout@v7
       - uses: ./.github/actions/build-prqlc
         id: build-artifact
         with:
@@ -109,7 +109,7 @@ jobs:
       contents: write
     steps:
       - name: 📂 Checkout code
-        uses: actions/checkout@v6
+        uses: actions/checkout@v7
       - uses: ./.github/actions/build-prqlc-c
         id: build-artifact
         with:
@@ -257,7 +257,7 @@ jobs:
     if: ${{ github.event_name == 'release' }}
     steps:
       - name: 📂 Checkout code
-        uses: actions/checkout@v6
+        uses: actions/checkout@v7
       - name: Move Snap to project root directory
         run: cp -r prqlc/packages/snap/ .
       - name: 📦 Build Snap
@@ -299,7 +299,7 @@ jobs:
             target: source
     steps:
       - name: 📂 Checkout code
-        uses: actions/checkout@v6
+        uses: actions/checkout@v7
       - uses: ./.github/actions/build-python
         with:
           target: ${{ matrix.target }}
@@ -335,7 +335,7 @@ jobs:
       id-token: write
     steps:
       - name: 📂 Checkout code
-        uses: actions/checkout@v6
+        uses: actions/checkout@v7
       - uses: baptiste0928/cargo-install@v3
         with:
           crate: wasm-pack
@@ -380,7 +380,7 @@ jobs:
     environment: ${{ github.event_name == 'release' && 'release' || '' }}
     steps:
       - name: 📂 Checkout code
-        uses: actions/checkout@v6
+        uses: actions/checkout@v7
       - uses: baptiste0928/cargo-install@v3
         with:
           crate: cargo-release
@@ -398,7 +398,7 @@ jobs:
   #   runs-on: ubuntu-24.04
   #   steps:
   #     - name: Checkout code
-  #       uses: actions/checkout@v6
+  #       uses: actions/checkout@v7
   #     - name: Install Java and Maven
   #       uses: actions/setup-java@v3
   #       with:
@@ -417,7 +417,7 @@ jobs:
     if: github.event_name == 'release'
     steps:
       - name: 📂 Checkout code
-        uses: actions/checkout@v6
+        uses: actions/checkout@v7
         with:
           token: ${{ secrets.TEND_BOT_TOKEN }}
       - run: git push origin HEAD:web --force
