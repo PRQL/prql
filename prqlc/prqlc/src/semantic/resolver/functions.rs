@@ -213,7 +213,7 @@ impl Resolver<'_> {
         Ok(closure)
     }
 
-    /// Resolves function arguments. Will return `Err(func)` is partial application is required.
+    /// Resolves function arguments. Will return `Err(func)` if partial application is required.
     fn resolve_function_args(
         &mut self,
         #[allow(clippy::boxed_local)] to_resolve: Box<Func>,
@@ -492,7 +492,7 @@ pub fn expr_of_func(func: Box<Func>, span: Option<Span>) -> Box<Expr> {
         return_ty: func
             .return_ty
             .clone()
-            .or_else(|| func.clone().body.ty)
+            .or_else(|| func.body.ty.clone())
             .map(Box::new),
         name_hint: func.name_hint.clone(),
     };
