@@ -10,7 +10,7 @@ Copy the `prql-mode.el` file to:
 
 Then, edit your `~/.emacs.d/init.el` file and add the following:
 
-```emacs
+```elisp
 (add-to-list 'load-path "~/.emacs.d/custom-modes/")
 (require 'prql-mode)
 
