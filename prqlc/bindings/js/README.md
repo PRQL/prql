@@ -110,7 +110,7 @@ interface ErrorMessage {
   /// Plain text of the error
   reason: string;
   /// A list of suggestions of how to fix the error
-  hint: string | null;
+  hints: string[];
   /// Character offset of error origin within a source file
   span: [number, number] | null;
 
@@ -161,11 +161,11 @@ npm test
 ```
 
 By default the `wasm` binaries are optimized on each run, even if the underlying
-code hasn't changed, which can be slow. For a lower-latency dev loop, pass
-`--profile=dev` to `npm install` for a faster, less optimized build.
+code hasn't changed, which can be slow. For a lower-latency dev loop, set the
+`PROFILE` environment variable to `dev` for a faster, less optimized build.
 
 ```sh
-npm install prqlc --profile=dev
+PROFILE=dev npm run build
 ```
 
 ## Notes
