@@ -1,10 +1,10 @@
 ---
 source: web/book/tests/documentation/book.rs
-expression: "from tracks\njoin side:inner artists (\n  this.id==that.artist_id\n)\n"
+expression: "from shirts\njoin hats true\n"
 ---
 SELECT
-  tracks.*,
-  artists.*
+  shirts.*,
+  hats.*
 FROM
-  tracks
-  INNER JOIN artists ON tracks.id = artists.artist_id
+  shirts
+  INNER JOIN hats ON true

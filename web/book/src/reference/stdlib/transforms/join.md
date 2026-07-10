@@ -53,7 +53,7 @@ with all rows from the second relation. To accomplish this, we can use condition
 `true`, which will return all rows of the cartesian product of the input
 relations:
 
-```
+```prql
 from shirts
 join hats true
 ```
