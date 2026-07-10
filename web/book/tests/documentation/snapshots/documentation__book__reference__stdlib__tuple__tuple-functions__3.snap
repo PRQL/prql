@@ -1,0 +1,10 @@
+---
+source: web/book/tests/documentation/book.rs
+expression: "from invoices\nderive (\n  tuple_zip {x, y} {u, v}\n  tuple_map (tuple_reduce (func a b -> a + b))\n)\n"
+---
+SELECT
+  *,
+  x + u,
+  y + v
+FROM
+  invoices

@@ -1,0 +1,9 @@
+---
+source: web/book/tests/documentation/book.rs
+expression: "from test\nderive {\n  mysum = tuple_reduce initial:0 add {1, 2, 3}\n}\n"
+---
+SELECT
+  *,
+  0 + 1 + 2 + 3 AS mysum
+FROM
+  test

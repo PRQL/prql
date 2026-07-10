@@ -75,6 +75,15 @@ impl pl::PlFold for Resolver<'_> {
         let r = match node.kind {
             pl::ExprKind::Ident(ident) => {
                 log::debug!("resolving ident {ident}...");
+                log::trace!(
+                    "... candidates: {:#?}",
+                    self.root_mod
+                        .module
+                        .all_names(None)
+                        .into_iter()
+                        .map(|i| i.to_string())
+                        .collect::<Vec<_>>()
+                );
                 let fq_ident = self
                     .resolve_ident(&ident)
                     .map_err(|e| e.with_span(node.span))?;
@@ -310,6 +319,55 @@ impl Resolver<'_> {
             });
         }
         res
+    }
+
+    pub fn construct_wildcard_from_lineage(
+        &mut self,
+        prefix: &[&String],
+        expr: &pl::Expr,
+    ) -> Vec<pl::Expr> {
+        let Some(lineage) = &expr.lineage else {
+            return vec![];
+        };
+
+        log::trace!("construct_wildcard_from_lineage: {lineage:#?}");
+
+        lineage
+            .columns
+            .iter()
+            .filter_map(|col| match col {
+                pl::LineageColumn::All { input_id, .. } => Some(pl::Expr {
+                    id: Some(self.id.gen()),
+                    target_id: Some(*input_id),
+                    flatten: true,
+                    ty: Some(Ty::new(TyKind::Tuple(vec![TyTupleField::Wildcard(None)]))),
+                    ..pl::Expr::new(pl::Ident::from_name(NS_SELF))
+                }),
+                pl::LineageColumn::Single {
+                    target_id,
+                    target_name: Some(target_name),
+                    ..
+                } => Some(pl::Expr {
+                    id: Some(self.id.gen()),
+                    target_id: Some(*target_id),
+                    alias: Some(target_name.to_string()),
+                    ..pl::Expr::new(pl::Ident::from_path(
+                        [prefix.to_vec(), vec![target_name]].concat(),
+                    ))
+                }),
+                pl::LineageColumn::Single {
+                    target_id,
+                    name: Some(ident),
+                    ..
+                } => Some(pl::Expr {
+                    id: Some(self.id.gen()),
+                    target_id: Some(*target_id),
+                    alias: Some(ident.name.to_string()),
+                    ..pl::Expr::new(ident.clone())
+                }),
+                _ => None,
+            })
+            .collect()
     }
 }
 

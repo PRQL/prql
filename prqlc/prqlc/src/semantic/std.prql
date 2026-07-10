@@ -118,7 +118,23 @@ let window = func
   tbl <relation>
   -> <relation> internal window
 
-let append = `default_db.bottom`<relation> top<relation> -> <relation> internal append
+let append = func
+  `noresolve.by`:position
+  `default_db.bottom`<relation>
+  top<relation>
+  -> <relation> internal append
+
+let _append_by_name = func
+  `default_db.bottom` <relation>
+  top <relation>
+  -> <relation> (
+    top
+    select (tuple_uniq take:early {top.*, (tuple_map (func _ -> null) _param.bottom.*)})
+    append (b = bottom | select (
+      tuple_uniq take:late {(tuple_map (func _ -> null) _param.top.*), b.*}
+    ))
+)
+
 let intersect = `default_db.bottom`<relation> top<relation> -> <relation> (
   t = top
   join (b = bottom) (tuple_reduce std.and (tuple_map _eq (tuple_zip t.* b.*)))
@@ -202,6 +218,8 @@ let in = pattern value -> <bool> internal in
 let tuple_reduce = func initial:"__missing" fn <func> list -> internal tuple_reduce
 let tuple_map = func fn <func> list -> internal tuple_map
 let tuple_zip = func a b -> internal tuple_zip
+let tuple_uniq = func `noresolve.take`:early list -> internal tuple_uniq
+let tuple_reverse = func list -> internal tuple_reverse
 let _eq = func a -> internal _eq
 let _is_null = func a -> _param.a == null
 

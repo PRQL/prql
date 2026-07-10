@@ -1,0 +1,22 @@
+---
+source: web/book/tests/documentation/book.rs
+expression: "from employees_1\nselect {id, name, dob, zip}\nappend by:name (\n  from employees_2\n  select {id, name, email, zip}\n)\n"
+---
+SELECT
+  id,
+  name,
+  dob,
+  zip,
+  NULL AS email
+FROM
+  employees_1
+UNION
+ALL
+SELECT
+  id,
+  name,
+  NULL AS dob,
+  zip,
+  email
+FROM
+  employees_2
