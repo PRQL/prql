@@ -84,6 +84,28 @@ def test_compile_options() -> None:
     )
 
 
+def test_rq_to_sql_options() -> None:
+    """
+    `rq_to_sql` accepts an optional `CompileOptions`, and `CompileOptions`
+    accepts `color` and `display`. These calls exercise the full public
+    signatures so the type stub stays in sync with the binding (checked by
+    `ty` in CI).
+    """
+    rq = prqlc.pl_to_rq(prqlc.prql_to_pl("from employees | take 3"))
+
+    options = prqlc.CompileOptions(
+        format=False,
+        signature_comment=False,
+        target="sql.sqlite",
+        color=False,
+        display="plain",
+    )
+    assert prqlc.rq_to_sql(rq, options) == "SELECT * FROM employees LIMIT 3"
+
+    # `options` is optional and defaults to None.
+    assert prqlc.rq_to_sql(rq)
+
+
 def test_debug_functions() -> None:
     prql_query = "from invoices | select { id, customer_id }"
 
