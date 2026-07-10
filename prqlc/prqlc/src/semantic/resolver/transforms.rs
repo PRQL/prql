@@ -446,6 +446,7 @@ impl Resolver<'_> {
                     .map(|x| TyTupleField::Single(Some(x), None))
                     .collect();
 
+                let frame_ty = Ty::relation(columns.clone());
                 let frame =
                     self.declare_table_for_literal(expr_id, Some(columns), Some(input_name));
 
@@ -464,6 +465,7 @@ impl Resolver<'_> {
                 let res = Expr {
                     lineage: Some(frame),
                     id: text_expr.id,
+                    ty: Some(frame_ty),
                     ..res
                 };
                 return Ok(res);
@@ -546,6 +548,8 @@ impl Resolver<'_> {
         // In other words, I hope to make our type system powerful enough to express return
         // type of all std module functions.
 
+        let bad_type = |t| Error::new_assert(format!("unexpected type {t:#?}"));
+
         Ok(match transform_call.kind.as_ref() {
             TransformKind::Select { assigns } => assigns
                 .ty
@@ -556,7 +560,7 @@ impl Resolver<'_> {
                 let input = input.into_relation().unwrap();
 
                 let derived = assigns.ty.clone().unwrap();
-                let derived = derived.kind.into_tuple().unwrap();
+                let derived = derived.kind.into_tuple().map_err(bad_type)?;
 
                 Some(Ty::new(TyKind::Array(Some(Box::new(Ty::new(
                     ty_tuple_kind([input, derived].concat()),
@@ -575,8 +579,11 @@ impl Resolver<'_> {
                 let input = input.into_relation().unwrap();
 
                 let with_name = with.alias.clone();
+                let with_span = with.span;
                 let with = with.ty.clone().unwrap();
-                let with = with.kind.into_array().unwrap().unwrap();
+                let with = with.kind.into_array().map_err(bad_type)?.ok_or(
+                    Error::new_assert("no columns found in joining relation").with_span(with_span),
+                )?;
                 let with = TyTupleField::Single(with_name, Some(*with));
 
                 Some(Ty::new(TyKind::Array(Some(Box::new(Ty::new(
@@ -585,19 +592,31 @@ impl Resolver<'_> {
             }
             TransformKind::Group { pipeline, by } => {
                 let by = by.ty.clone().unwrap();
-                let by = by.kind.into_tuple().unwrap();
+                let by = by.kind.into_tuple().map_err(bad_type)?;
 
+                let pipeline_span = pipeline.span;
                 let pipeline = pipeline.ty.clone().unwrap();
-                let pipeline = pipeline.kind.into_function().unwrap().unwrap();
-                let pipeline = pipeline.return_ty.unwrap().into_relation().unwrap();
+                let pipeline = pipeline
+                    .kind
+                    .into_function()
+                    .map_err(bad_type)?
+                    .ok_or(Error::new_assert("expected function").with_span(pipeline_span))?;
+                let pipeline = pipeline.return_ty.unwrap().into_relation().ok_or(
+                    Error::new_assert("function must return relation").with_span(pipeline_span),
+                )?;
 
                 Some(Ty::new(TyKind::Array(Some(Box::new(Ty::new(
                     ty_tuple_kind([by, pipeline].concat()),
                 ))))))
             }
             TransformKind::Window { pipeline, .. } | TransformKind::Loop(pipeline) => {
+                let pipeline_span = pipeline.span;
                 let pipeline = pipeline.ty.clone().unwrap();
-                let pipeline = pipeline.kind.into_function().unwrap().unwrap();
+                let pipeline = pipeline
+                    .kind
+                    .into_function()
+                    .map_err(bad_type)?
+                    .ok_or(Error::new_assert("expected function").with_span(pipeline_span))?;
                 pipeline.return_ty.map(|x| *x)
             }
             TransformKind::Append(bottom) => {
