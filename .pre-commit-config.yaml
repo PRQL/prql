@@ -20,7 +20,6 @@ repos:
     hooks:
       - id: prettier
         additional_dependencies:
-          - prettier
           # TODO: This doesn't seem to work, would be great to fix.
           # https://github.com/PRQL/prql/issues/3078
           - prettier-plugin-go-template
