@@ -1,11 +1,12 @@
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 use std::iter::zip;
 
 use itertools::Itertools;
 use serde::Deserialize;
 
-use super::types::{ty_tuple_kind, type_intersection};
+use super::types::{ty_tuple_kind, type_intersection, type_union_of_tuples};
 use super::Resolver;
+use crate::codegen::write_ty_kind;
 use crate::ir::decl::{Decl, DeclKind, Module};
 use crate::ir::generic::{SortDirection, WindowKind};
 use crate::ir::pl::*;
@@ -254,9 +255,35 @@ impl Resolver<'_> {
                 (transform_kind, tbl)
             }
             "append" => {
-                let [bottom, top] = unpack::<2>(func.args);
+                let [by, bottom, top] = unpack::<3>(func.args);
 
-                (TransformKind::Append(Box::new(bottom)), top)
+                let by = {
+                    let span = by.span;
+                    let ident = by
+                        .clone()
+                        .try_cast(ExprKind::into_ident, Some("by"), "ident")?;
+
+                    match ident.to_string().as_str() {
+                        "position" => AppendBy::Position,
+                        "name" => AppendBy::Name,
+                        _ => {
+                            return Err(Error::new(Reason::Expected {
+                                who: Some("`by`".to_string()),
+                                expected: "position or name".to_string(),
+                                found: ident.to_string(),
+                            })
+                            .with_span(span))
+                        }
+                    }
+                };
+
+                (
+                    TransformKind::Append {
+                        by,
+                        bottom: Box::new(bottom),
+                    },
+                    top,
+                )
             }
             "loop" => {
                 let [pipeline, tbl] = unpack::<2>(func.args);
@@ -600,11 +627,26 @@ impl Resolver<'_> {
                 let pipeline = pipeline.kind.into_function().unwrap().unwrap();
                 pipeline.return_ty.map(|x| *x)
             }
-            TransformKind::Append(bottom) => {
+            TransformKind::Append { bottom, by } => {
                 let top = transform_call.input.ty.clone().unwrap();
+                let bottom_span = bottom.span;
                 let bottom = bottom.ty.clone().unwrap();
 
-                Some(type_intersection(top, bottom).with_span(transform_call.input.span)?)
+                if *by == AppendBy::Position {
+                    Some(type_intersection(top, bottom).with_span(bottom_span)?)
+                } else if top.clone().is_relation() && bottom.clone().is_relation() {
+                    Some(type_union_of_tuples(
+                        top.into_relation().unwrap(),
+                        bottom.into_relation().unwrap(),
+                    )?)
+                } else {
+                    return Err(Error::new_simple(format!(
+                        "cannot append type `{}` to `{}`",
+                        write_ty_kind(&bottom.kind),
+                        write_ty_kind(&top.kind)
+                    )))
+                    .with_span(bottom_span);
+                }
             }
         })
     }
@@ -758,10 +800,13 @@ impl TransformCall {
                 let right = lineage_or_default(with)?;
                 join(left, right)
             }
-            Append(bottom) => {
+            Append { bottom, by } => {
                 let top = lineage_or_default(&self.input)?;
-                let bottom = lineage_or_default(bottom)?;
-                append(top, bottom)?
+                let bot = lineage_or_default(bottom)?;
+                match by {
+                    AppendBy::Position => append(top, bot).with_span(bottom.span)?,
+                    AppendBy::Name => append_by_name(top, bot).with_span(bottom.span)?,
+                }
             }
             Loop(_) => lineage_or_default(&self.input)?,
             Sort { .. } | Filter { .. } | Take { .. } => lineage_or_default(&self.input)?,
@@ -852,6 +897,41 @@ fn append(mut top: Lineage, bottom: Lineage) -> Result<Lineage, Error> {
         });
     }
 
+    top.columns = columns;
+    Ok(top)
+}
+
+fn append_by_name(mut top: Lineage, bottom: Lineage) -> Result<Lineage, Error> {
+    // Merge inputs from both relations so lineage can track both sources
+    // This is similar to how `join` handles inputs
+    top.inputs.extend(bottom.inputs);
+
+    // start with all the columns from top
+    let mut columns = top.columns.clone();
+    let top_names: HashSet<String> = top
+        .columns
+        .into_iter()
+        .filter_map(|c| match c {
+            LineageColumn::Single { name, .. } => Some(name?.name),
+            _ => None,
+        })
+        .collect();
+
+    // add columns from bottom that aren't already in top
+    for column in bottom.columns {
+        match column {
+            LineageColumn::Single { ref name, .. } => {
+                if let Some(name) = name.clone() {
+                    if !top_names.contains(&name.name) {
+                        columns.push(column);
+                    }
+                }
+            }
+            LineageColumn::All { .. } => todo!(),
+        }
+    }
+
+    log::trace!("append_by_name columns: {columns:#?}");
     top.columns = columns;
     Ok(top)
 }
@@ -1213,17 +1293,17 @@ mod tests {
         assert_snapshot!(crate::tests::compile(
             "from a | select {x, y} | append (from b | select {x})"
         )
-        .unwrap_err(), @r"
+        .unwrap_err(), @r###"
         Error:
-           ╭─[ :1:10 ]
+           ╭─[ :1:43 ]
            │
          1 │ from a | select {x, y} | append (from b | select {x})
-           │          ──────┬──────
-           │                ╰──────── cannot combine relations with different numbers of columns
+           │                                           ─────┬────
+           │                                                ╰────── cannot combine relations with different numbers of columns
            │
            │ Help: `append` requires both tables to have matching columns
         ───╯
-        ");
+        "###);
     }
 
     // `append` of relations whose columns have incompatible types must also
@@ -1233,15 +1313,15 @@ mod tests {
         assert_snapshot!(crate::tests::compile(
             "from a | select {x = 1} | append (from b | select {x = 1.0})"
         )
-        .unwrap_err(), @r"
+        .unwrap_err(), @r###"
         Error:
-           ╭─[ :1:10 ]
+           ╭─[ :1:44 ]
            │
          1 │ from a | select {x = 1} | append (from b | select {x = 1.0})
-           │          ───────┬──────
-           │                 ╰──────── cannot combine types `int` and `float`
+           │                                            ────────┬───────
+           │                                                    ╰───────── cannot combine types `int` and `float`
         ───╯
-        ");
+        "###);
     }
 
     #[test]

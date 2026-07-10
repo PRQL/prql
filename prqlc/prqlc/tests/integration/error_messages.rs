@@ -490,3 +490,28 @@ fn bare_lambda_expression() {
     ───╯
     ");
 }
+
+#[test]
+fn append_by_name_unsupported_dialect() {
+    assert_snapshot!(compile(r###"
+    from foo | append by:name bar
+    "###).unwrap_err(), @r###"
+    Error: Target dialect does not support UNION BY NAME
+    ↳ Hint: providing more column information may allow the query to be translated.
+    "###);
+}
+
+#[test]
+fn append_by_name_bad_arg() {
+    assert_snapshot!(compile(r###"
+    from foo | append by:jove bar
+    "###).unwrap_err(), @r###"
+    Error:
+       ╭─[ :2:26 ]
+       │
+     2 │     from foo | append by:jove bar
+       │                          ──┬─
+       │                            ╰─── `by` expected position or name, but found jove
+    ───╯
+    "###);
+}
