@@ -13,9 +13,9 @@ aggregate {expression or assign operations}
 
 <!-- prettier-ignore -->
 > [!NOTE]
-> Currently, all declared aggregation functions are `min`, `max`,
-> `count`, `count_distinct`, `average`, `stddev` and `sum`. We are in the
-> process of filling out [std lib](../).
+> Currently, all declared aggregation functions are `min`, `max`, `count`,
+> `count_distinct`, `average`, `stddev`, `sum`, `all`, `any` and
+> `concat_array`. We are in the process of filling out [std lib](../).
 
 ## Examples
 
@@ -41,7 +41,7 @@ group {title, country} (
 
 Unlike in SQL, using an aggregation function in `derive` or `select` (or any
 other transform except `aggregate`) will not trigger aggregation. By default,
-PRQL will interpret such attempts functions as window functions:
+PRQL will interpret such attempts as window functions:
 
 ```prql
 from employees
