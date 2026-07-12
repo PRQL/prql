@@ -12,6 +12,10 @@ on:
   push:
     branches:
       - main
+  schedule:
+    # Pick a random time, something that others won't pick, to be good citizens
+    # and reduce GH's demand variance.
+    - cron: "49 10 * * *"
   workflow_dispatch:
   workflow_call:
 

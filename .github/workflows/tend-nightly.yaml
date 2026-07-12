@@ -8,6 +8,8 @@
 
 name: tend-nightly
 on:
+  schedule:
+    - cron: "17 6 * * *"
   workflow_dispatch:
 
 jobs:

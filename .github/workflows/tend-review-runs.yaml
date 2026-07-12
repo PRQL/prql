@@ -8,6 +8,8 @@
 
 name: tend-review-runs
 on:
+  schedule:
+    - cron: "47 7 * * *"
   workflow_dispatch:
 
 jobs:
