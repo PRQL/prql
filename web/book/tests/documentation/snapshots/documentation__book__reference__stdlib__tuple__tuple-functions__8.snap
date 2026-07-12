@@ -1,0 +1,10 @@
+---
+source: web/book/tests/documentation/book.rs
+expression: "from test\nselect (tuple_reverse {x, y, z})\n"
+---
+SELECT
+  z,
+  y,
+  x
+FROM
+  test

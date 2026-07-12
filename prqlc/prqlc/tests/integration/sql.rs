@@ -481,6 +481,22 @@ fn test_sqlite_integer_division() {
 }
 
 #[test]
+fn test_between_optimization() {
+    // Regression test: >= and <= on same column should produce BETWEEN
+    assert_snapshot!(compile(r#"
+    from t
+    filter (a >= 5 && a <= 10)
+    "#).unwrap(), @r"
+    SELECT
+      *
+    FROM
+      t
+    WHERE
+      a BETWEEN 5 AND 10
+    ");
+}
+
+#[test]
 fn test_precedence_01() {
     assert_snapshot!((compile(r###"
     from artists
@@ -4945,6 +4961,28 @@ fn test_from_text_07() {
 }
 
 #[test]
+fn test_from_text_08() {
+    assert_snapshot!(compile(r#"
+    from foo | join m=(from_text format:csv 'key,value') this.bar == that.key
+    "#).unwrap(), @r#"
+    WITH table_0 AS (
+      SELECT
+        NULL AS "key",
+        NULL AS value
+      WHERE
+        false
+    )
+    SELECT
+      foo.*,
+      table_0."key",
+      table_0.value
+    FROM
+      foo
+      INNER JOIN table_0 ON foo.bar = table_0."key"
+    "#);
+}
+
+#[test]
 fn test_header() {
     // Test both target & version at the same time
     let header = format!(
@@ -7447,5 +7485,109 @@ fn test_tuple_map_aliases() {
       y + 4 AS d
     FROM
       foo
+    "###);
+}
+
+#[test]
+fn test_tuple_reverse() {
+    assert_snapshot!(compile(r###"
+    from foo
+    select {x, y, z}
+    select (tuple_reverse this.*)
+    "###).unwrap(), @r###"
+    SELECT
+      z,
+      y,
+      x
+    FROM
+      foo
+    "###);
+}
+
+#[test]
+fn test_tuple_uniq() {
+    assert_snapshot!(compile(r###"
+    from foo
+    select {x, y, z}
+    select (tuple_uniq {z = 5, this.*})
+    "###).unwrap(), @r###"
+    SELECT
+      5 AS z,
+      x,
+      y
+    FROM
+      foo
+    "###);
+
+    assert_snapshot!(compile(r###"
+    from foo
+    select {x, y, z}
+    select (tuple_uniq take:late {z = 5, this.*})
+    "###).unwrap(), @r###"
+    SELECT
+      z,
+      x,
+      y
+    FROM
+      foo
+    "###);
+}
+
+#[test]
+fn test_tuple_uniq_no_alias() {
+    assert_snapshot!(compile(r###"
+    from foo
+    select (tuple_uniq {x, 4, 5})
+    "###).unwrap(), @r###"
+    SELECT
+      x
+    FROM
+      foo
+    "###);
+}
+
+#[test]
+fn test_wildcard_func_param() {
+    assert_snapshot!(compile(r###"
+    let _my_func = func top <relation> -> select {top.*, b = 4} top
+
+    from foo
+    select {x, y}
+    _my_func
+    "###).unwrap(), @r###"
+    SELECT
+      x,
+      y,
+      4 AS b
+    FROM
+      foo
+    "###);
+}
+
+#[test]
+fn test_append_by_name() {
+    assert_snapshot!(compile(r###"
+    from foo
+    select {x, y, b = 4}
+    append by:name (from bar | select {y, z, b = 5, c = 7})
+    "###).unwrap(), @r###"
+    SELECT
+      x,
+      y,
+      4 AS b,
+      NULL AS z,
+      NULL AS c
+    FROM
+      foo
+    UNION
+    ALL
+    SELECT
+      NULL AS x,
+      y,
+      5 AS b,
+      z,
+      7 AS c
+    FROM
+      bar
     "###);
 }

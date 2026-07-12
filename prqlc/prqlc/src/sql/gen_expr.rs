@@ -432,7 +432,9 @@ fn try_into_between(expr: rq::Expr, ctx: &mut Context) -> Result<Option<sql_ast:
 
                     // We need for the values on each arm to be the same; e.g. x
                     // > 3 and x < 5
-                    if a_l == b_l {
+                    // Compare only `kind` (not `span`) since the same column
+                    // referenced at two source positions has different spans.
+                    if a_l.kind == b_l.kind {
                         return Ok(Some(sql_ast::Expr::Between {
                             expr: Box::new(
                                 translate_operand(a_l, true, 0, Associativity::Both, ctx)?

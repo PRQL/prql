@@ -7,26 +7,26 @@ frames:
 - - 1:521-614
   - columns:
     - !All
-      input_id: 127
+      input_id: 130
       except:
       - genre_id
     - !Single
       name:
       - num
-      target_id: 165
+      target_id: 168
       target_name: null
     - !Single
       name:
       - total
-      target_id: 173
+      target_id: 176
       target_name: null
     - !Single
       name:
       - last_val
-      target_id: 175
+      target_id: 178
       target_name: null
     inputs:
-    - id: 127
+    - id: 130
       name: tracks
       table:
       - default_db
@@ -37,29 +37,29 @@ frames:
       name:
       - tracks
       - genre_id
-      target_id: 129
+      target_id: 132
       target_name: null
     - !All
-      input_id: 127
+      input_id: 130
       except:
       - genre_id
     - !Single
       name:
       - num
-      target_id: 165
+      target_id: 168
       target_name: null
     - !Single
       name:
       - total
-      target_id: 173
+      target_id: 176
       target_name: null
     - !Single
       name:
       - last_val
-      target_id: 175
+      target_id: 178
       target_name: null
     inputs:
-    - id: 127
+    - id: 130
       name: tracks
       table:
       - default_db
@@ -70,29 +70,29 @@ frames:
       name:
       - tracks
       - genre_id
-      target_id: 129
+      target_id: 132
       target_name: null
     - !All
-      input_id: 127
+      input_id: 130
       except:
       - genre_id
     - !Single
       name:
       - num
-      target_id: 165
+      target_id: 168
       target_name: null
     - !Single
       name:
       - total
-      target_id: 173
+      target_id: 176
       target_name: null
     - !Single
       name:
       - last_val
-      target_id: 175
+      target_id: 178
       target_name: null
     inputs:
-    - id: 127
+    - id: 130
       name: tracks
       table:
       - default_db
@@ -103,31 +103,31 @@ frames:
       name:
       - tracks
       - track_id
-      target_id: 189
+      target_id: 192
       target_name: null
     - !Single
       name:
       - tracks
       - genre_id
-      target_id: 190
+      target_id: 193
       target_name: null
     - !Single
       name:
       - num
-      target_id: 191
+      target_id: 194
       target_name: null
     - !Single
       name:
       - total
-      target_id: 192
+      target_id: 195
       target_name: null
     - !Single
       name:
       - last_val
-      target_id: 193
+      target_id: 196
       target_name: null
     inputs:
-    - id: 127
+    - id: 130
       name: tracks
       table:
       - default_db
@@ -138,44 +138,44 @@ frames:
       name:
       - tracks
       - track_id
-      target_id: 189
+      target_id: 192
       target_name: null
     - !Single
       name:
       - tracks
       - genre_id
-      target_id: 190
+      target_id: 193
       target_name: null
     - !Single
       name:
       - num
-      target_id: 191
+      target_id: 194
       target_name: null
     - !Single
       name:
       - total
-      target_id: 192
+      target_id: 195
       target_name: null
     - !Single
       name:
       - last_val
-      target_id: 193
+      target_id: 196
       target_name: null
     inputs:
-    - id: 127
+    - id: 130
       name: tracks
       table:
       - default_db
       - tracks
 nodes:
-- id: 127
+- id: 130
   kind: Ident
   span: 1:470-481
   ident: !Ident
   - default_db
   - tracks
-  parent: 179
-- id: 129
+  parent: 182
+- id: 132
   kind: Ident
   span: 1:488-496
   ident: !Ident
@@ -183,14 +183,14 @@ nodes:
   - tracks
   - genre_id
   targets:
-  - 127
-  parent: 138
-- id: 138
+  - 130
+  parent: 141
+- id: 141
   kind: Tuple
   span: 1:488-496
   children:
-  - 129
-- id: 157
+  - 132
+- id: 160
   kind: Ident
   span: 1:506-518
   ident: !Ident
@@ -198,33 +198,33 @@ nodes:
   - tracks
   - milliseconds
   targets:
-  - 127
-- id: 165
+  - 130
+- id: 168
   kind: RqOperator
   span: 1:540-555
   alias: num
   targets:
-  - 166
-  parent: 178
-- id: 166
+  - 169
+  parent: 181
+- id: 169
   kind: Literal
-- id: 173
+- id: 176
   kind: RqOperator
   span: 1:569-579
   alias: total
   targets:
-  - 174
-  parent: 178
-- id: 174
+  - 177
+  parent: 181
+- id: 177
   kind: Literal
-- id: 175
+- id: 178
   kind: RqOperator
   span: 1:596-609
   alias: last_val
   targets:
-  - 177
-  parent: 178
-- id: 177
+  - 180
+  parent: 181
+- id: 180
   kind: Ident
   span: 1:601-609
   ident: !Ident
@@ -232,33 +232,33 @@ nodes:
   - tracks
   - track_id
   targets:
-  - 127
-- id: 178
+  - 130
+- id: 181
   kind: Tuple
   span: 1:528-614
   children:
-  - 165
-  - 173
-  - 175
-  parent: 179
-- id: 179
+  - 168
+  - 176
+  - 178
+  parent: 182
+- id: 182
   kind: 'TransformCall: Derive'
   span: 1:521-614
   children:
-  - 127
-  - 178
-  parent: 181
-- id: 181
+  - 130
+  - 181
+  parent: 184
+- id: 184
   kind: 'TransformCall: Take'
   span: 1:617-624
   children:
-  - 179
   - 182
-  parent: 188
-- id: 182
-  kind: Literal
-  parent: 181
+  - 185
+  parent: 191
 - id: 185
+  kind: Literal
+  parent: 184
+- id: 188
   kind: Ident
   span: 1:633-641
   ident: !Ident
@@ -266,9 +266,9 @@ nodes:
   - tracks
   - genre_id
   targets:
-  - 129
-  parent: 188
-- id: 186
+  - 132
+  parent: 191
+- id: 189
   kind: Ident
   span: 1:643-655
   ident: !Ident
@@ -276,17 +276,17 @@ nodes:
   - tracks
   - milliseconds
   targets:
-  - 127
-  parent: 188
-- id: 188
+  - 130
+  parent: 191
+- id: 191
   kind: 'TransformCall: Sort'
   span: 1:627-656
   children:
-  - 181
-  - 185
-  - 186
-  parent: 195
-- id: 189
+  - 184
+  - 188
+  - 189
+  parent: 198
+- id: 192
   kind: Ident
   span: 1:665-673
   ident: !Ident
@@ -294,9 +294,9 @@ nodes:
   - tracks
   - track_id
   targets:
-  - 127
-  parent: 194
-- id: 190
+  - 130
+  parent: 197
+- id: 193
   kind: Ident
   span: 1:675-683
   ident: !Ident
@@ -304,60 +304,60 @@ nodes:
   - tracks
   - genre_id
   targets:
-  - 129
-  parent: 194
-- id: 191
+  - 132
+  parent: 197
+- id: 194
   kind: Ident
   span: 1:685-688
   ident: !Ident
   - this
   - num
   targets:
-  - 165
-  parent: 194
-- id: 192
+  - 168
+  parent: 197
+- id: 195
   kind: Ident
   span: 1:690-695
   ident: !Ident
   - this
   - total
   targets:
-  - 173
-  parent: 194
-- id: 193
+  - 176
+  parent: 197
+- id: 196
   kind: Ident
   span: 1:697-705
   ident: !Ident
   - this
   - last_val
   targets:
-  - 175
-  parent: 194
-- id: 194
+  - 178
+  parent: 197
+- id: 197
   kind: Tuple
   span: 1:664-706
   children:
-  - 189
-  - 190
-  - 191
   - 192
   - 193
-  parent: 195
-- id: 195
+  - 194
+  - 195
+  - 196
+  parent: 198
+- id: 198
   kind: 'TransformCall: Select'
   span: 1:657-706
   children:
-  - 188
-  - 194
-  parent: 200
-- id: 196
+  - 191
+  - 197
+  parent: 203
+- id: 199
   kind: RqOperator
   span: 1:714-728
   targets:
-  - 198
-  - 199
-  parent: 200
-- id: 198
+  - 201
+  - 202
+  parent: 203
+- id: 201
   kind: Ident
   span: 1:714-722
   ident: !Ident
@@ -365,16 +365,16 @@ nodes:
   - tracks
   - genre_id
   targets:
-  - 190
-- id: 199
+  - 193
+- id: 202
   kind: Literal
   span: 1:726-728
-- id: 200
+- id: 203
   kind: 'TransformCall: Filter'
   span: 1:707-728
   children:
-  - 195
-  - 196
+  - 198
+  - 199
 ast:
   name: Project
   stmts:

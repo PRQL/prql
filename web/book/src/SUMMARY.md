@@ -45,7 +45,7 @@ language design decisions and formal specifications for parts of the language.
   - [Reading files](./reference/data/read-files.md)
   - [Ad-hoc data](./reference/data/relation-literals.md)
 
-- [Declarations]()
+- [Declarations](<>)
   <!-- I don't know what to call this section. -->
   - [Variables — `let` & `into`](./reference/declarations/variables.md)
   - [Functions](./reference/declarations/functions.md)
@@ -64,10 +64,11 @@ language design decisions and formal specifications for parts of the language.
     - [Take](./reference/stdlib/transforms/take.md)
     - [Window](./reference/stdlib/transforms/window.md)
 
-  - [Aggregation functions]()
+  - [Aggregation functions](<>)
   - [Date functions](./reference/stdlib/date.md)
   - [Mathematical functions](./reference/stdlib/math.md)
   - [Text functions](./reference/stdlib/text.md)
+  - [Tuple functions](./reference/stdlib/tuple.md)
   - [Removing duplicates](./reference/stdlib/distinct.md)
 
 - [Specification](./reference/spec/README.md)

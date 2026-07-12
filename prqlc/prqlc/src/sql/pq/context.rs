@@ -1,6 +1,6 @@
-//! Transform the parsed AST into a "materialized" AST, by executing functions and
-//! replacing variables. The materialized AST is "flat", in the sense that it
-//! contains no query-specific logic.
+//! Context for the PQ anchoring stage: tracks table, column, and relation-instance
+//! declarations, and generates fresh IDs and names for tables and columns as RQ is
+//! lowered towards SQL.
 use std::collections::HashMap;
 use std::iter::zip;
 
