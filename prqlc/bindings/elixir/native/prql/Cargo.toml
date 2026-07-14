@@ -21,4 +21,4 @@ test = false
 
 [target.'cfg(not(any(target_family="wasm")))'.dependencies]
 prqlc = { path = "../../../../prqlc", default-features = false, version = "0.13.14" }
-rustler = "0.37.0"
+rustler = "0.38.0"
