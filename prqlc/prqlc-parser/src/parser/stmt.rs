@@ -141,7 +141,7 @@ where
                     if let ExprKind::Ident(name) = v.kind {
                         Some(name.to_string())
                     } else {
-                        emit.emit(Rich::custom(span, "target must be a string literal"));
+                        emit.emit(Rich::custom(span, "target must be an identifier"));
                         None
                     }
                 })
@@ -271,6 +271,34 @@ mod tests {
 
     fn parse_module_contents_complete(source: &str) -> Result<Vec<Stmt>, Vec<Error>> {
         crate::parse_test!(source, module_contents().then_ignore(end()))
+    }
+
+    fn parse_query_def(source: &str) -> Result<Stmt, Vec<Error>> {
+        crate::parse_test!(source, query_def().then_ignore(end()))
+    }
+
+    #[test]
+    fn query_def_target_string_literal() {
+        // A `target` given as a string literal rather than an identifier
+        // should report that it must be an identifier (the valid form is
+        // `target:sql.duckdb`, not `target:"sql.duckdb"`).
+        assert_debug_snapshot!(parse_query_def(r#"
+        prql target:"sql.duckdb"
+        "#).unwrap_err(), @r#"
+        [
+            Error {
+                kind: Error,
+                span: Some(
+                    0:0-34,
+                ),
+                reason: Simple(
+                    "target must be an identifier",
+                ),
+                hints: [],
+                code: None,
+            },
+        ]
+        "#);
     }
 
     #[test]
