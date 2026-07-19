@@ -3,8 +3,8 @@
 #include <prqlc.h>
 
 void print_result(CompileResult res) {
-  printf("---- [ Compiled with %ld errors ]----\n", res.messages_len);
-  for (int i = 0; i < res.messages_len; i++) {
+  printf("---- [ Compiled with %zu errors ]----\n", res.messages_len);
+  for (size_t i = 0; i < res.messages_len; i++) {
     Message const *e = &res.messages[i];
     if (e->display != NULL) {
       printf("%s", *e->display);
