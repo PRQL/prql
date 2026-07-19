@@ -341,7 +341,7 @@ jobs:
           crate: wasm-pack
 
       - name: Setup Node
-        uses: actions/setup-node@v6
+        uses: actions/setup-node@v7
         with:
           # Node 24+ includes npm 11.5.1+ required for OIDC trusted publishing
           node-version: "24.x"
