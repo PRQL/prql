@@ -92,7 +92,7 @@ public static partial class PrqlCompiler
     /// </summary>
     /// <param name="rqJson">RQ string in JSON format.</param>
     /// <param name="options">PRQL compiler options.</param>
-    /// <returns>JSON.</returns>
+    /// <returns>SQL.</returns>
     /// <exception cref="ArgumentException"><paramref name="rqJson"/> is null or empty.</exception>
     /// <exception cref="ArgumentNullException"><paramref name="options"/> is <c>null</c>.</exception>
     /// <exception cref="FormatException"><paramref name="rqJson"/> cannot be compiled.</exception>
