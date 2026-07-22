@@ -6,7 +6,7 @@ use chumsky::prelude::*;
 use itertools::Itertools;
 use semver::VersionReq;
 
-use super::expr::{expr, expr_call, ident, pipeline};
+use super::expr::{expr, expr_call, ident, literal_tuple, pipeline};
 use super::{ctrl, ident_part, into_stmt, keyword, new_line, pipe, with_doc_comment};
 use crate::lexer::lr;
 use crate::lexer::lr::{Literal, TokenKind};
@@ -226,9 +226,26 @@ where
     I: Input<'a, Token = lr::Token, Span = Span> + BorrowInput<'a> + chumsky::input::ValueInput<'a>,
 {
     keyword("type")
-        .ignore_then(ident_part())
-        .then(ctrl('=').ignore_then(type_expr()))
-        .map(|(name, value)| StmtKind::TypeDef(TypeDef { name, value }))
+        .ignore_then({
+            let _type_expr = ident_part()
+                .then(ctrl('=').ignore_then(type_expr()))
+                .map(|(name, value)| StmtKind::TypeDef(TypeDef { name, value }));
+
+            let enum_expr = ident_part()
+                .then(ctrl('=').ignore_then(keyword("enum").ignore_then(literal_tuple())))
+                .map(|(name, value)| {
+                    StmtKind::TypeDef(TypeDef {
+                        name: name.clone(),
+                        value: Ty {
+                            span: value.span.clone(),
+                            kind: TyKind::Enum(value),
+                            name: Some(name),
+                        },
+                    })
+                });
+
+            _type_expr.or(enum_expr)
+        })
         .labelled("type definition")
 }
 
@@ -669,5 +686,101 @@ mod tests {
                 span: "0:77-133"
           span: "0:0-139"
         "#);
+    }
+
+    #[test]
+    fn enums() {
+        assert_yaml_snapshot!(parse_module_contents(r#"
+        type foo = enum { First = 0, Second = 1 }
+        "#).unwrap(), @r#"
+        - TypeDef:
+            name: foo
+            value:
+              kind:
+                Enum:
+                  Tuple:
+                    - Literal:
+                        Integer: 0
+                      span: "0:35-36"
+                      alias: First
+                    - Literal:
+                        Integer: 1
+                      span: "0:47-48"
+                      alias: Second
+                  span: "0:25-50"
+              span: "0:25-50"
+              name: foo
+          span: "0:0-50"
+        "#)
+    }
+
+    #[test]
+    fn enum_tuple_literal() {
+        assert_debug_snapshot!(parse_module_contents(r#"
+        type foo = enum 4
+        "#).unwrap_err(), @r#"
+	[
+	    Error {
+	        kind: Error,
+	        span: Some(
+	            0:25-26,
+	        ),
+	        reason: Expected {
+	            who: None,
+	            expected: "literal tuple",
+	            found: "4",
+	        },
+	        hints: [],
+	        code: None,
+	    },
+	]
+	"#);
+
+        assert_debug_snapshot!(parse_module_contents(r#"
+        type foo = enum { "First", "Second" }
+        "#).unwrap_err(), @r#"
+	[
+	    Error {
+	        kind: Error,
+	        span: Some(
+	            0:27-34,
+	        ),
+	        reason: Simple(
+	            "must specify an alias for this value",
+	        ),
+	        hints: [],
+	        code: None,
+	    },
+	    Error {
+	        kind: Error,
+	        span: Some(
+	            0:36-44,
+	        ),
+	        reason: Simple(
+	            "must specify an alias for this value",
+	        ),
+	        hints: [],
+	        code: None,
+	    },
+	]
+	"#);
+
+        assert_debug_snapshot!(parse_module_contents(r#"
+        type foo = enum { First = 4 + 5 }
+        "#).unwrap_err(), @r#"
+        [
+            Error {
+                kind: Error,
+                span: Some(
+                    0:27-40,
+                ),
+                reason: Simple(
+                    "expected a literal value",
+                ),
+                hints: [],
+                code: None,
+            },
+        ]
+        "#)
     }
 }
