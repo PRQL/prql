@@ -7,18 +7,18 @@ frames:
 - - 1:147-183
   - columns:
     - !All
-      input_id: 145
+      input_id: 146
       except: []
     - !All
-      input_id: 142
+      input_id: 143
       except: []
     inputs:
-    - id: 145
+    - id: 146
       name: i
       table:
       - default_db
       - invoices
-    - id: 142
+    - id: 143
       name: ii
       table:
       - default_db
@@ -26,28 +26,28 @@ frames:
 - - 1:184-253
   - columns:
     - !All
-      input_id: 145
+      input_id: 146
       except: []
     - !All
-      input_id: 142
+      input_id: 143
       except: []
     - !Single
       name:
       - city
-      target_id: 154
+      target_id: 155
       target_name: null
     - !Single
       name:
       - street
-      target_id: 155
+      target_id: 156
       target_name: null
     inputs:
-    - id: 145
+    - id: 146
       name: i
       table:
       - default_db
       - invoices
-    - id: 142
+    - id: 143
       name: ii
       table:
       - default_db
@@ -55,23 +55,23 @@ frames:
 - - 1:281-323
   - columns:
     - !All
-      input_id: 145
+      input_id: 146
       except: []
     - !All
-      input_id: 142
+      input_id: 143
       except: []
     - !Single
       name:
       - total
-      target_id: 185
+      target_id: 186
       target_name: null
     inputs:
-    - id: 145
+    - id: 146
       name: i
       table:
       - default_db
       - invoices
-    - id: 142
+    - id: 143
       name: ii
       table:
       - default_db
@@ -81,35 +81,35 @@ frames:
     - !Single
       name:
       - city
-      target_id: 158
-      target_name: null
-    - !Single
-      name:
-      - street
       target_id: 159
       target_name: null
     - !Single
       name:
+      - street
+      target_id: 160
+      target_name: null
+    - !Single
+      name:
       - num_orders
-      target_id: 191
+      target_id: 192
       target_name: null
     - !Single
       name:
       - num_tracks
-      target_id: 194
+      target_id: 195
       target_name: null
     - !Single
       name:
       - total_price
-      target_id: 197
+      target_id: 198
       target_name: null
     inputs:
-    - id: 145
+    - id: 146
       name: i
       table:
       - default_db
       - invoices
-    - id: 142
+    - id: 143
       name: ii
       table:
       - default_db
@@ -119,40 +119,40 @@ frames:
     - !Single
       name:
       - city
-      target_id: 204
+      target_id: 205
       target_name: null
     - !Single
       name:
       - street
-      target_id: 159
+      target_id: 160
       target_name: null
     - !Single
       name:
       - num_orders
-      target_id: 191
+      target_id: 192
       target_name: null
     - !Single
       name:
       - num_tracks
-      target_id: 194
+      target_id: 195
       target_name: null
     - !Single
       name:
       - total_price
-      target_id: 197
+      target_id: 198
       target_name: null
     - !Single
       name:
       - running_total_num_tracks
-      target_id: 250
+      target_id: 251
       target_name: null
     inputs:
-    - id: 145
+    - id: 146
       name: i
       table:
       - default_db
       - invoices
-    - id: 142
+    - id: 143
       name: ii
       table:
       - default_db
@@ -162,40 +162,40 @@ frames:
     - !Single
       name:
       - city
-      target_id: 204
+      target_id: 205
       target_name: null
     - !Single
       name:
       - street
-      target_id: 159
+      target_id: 160
       target_name: null
     - !Single
       name:
       - num_orders
-      target_id: 191
+      target_id: 192
       target_name: null
     - !Single
       name:
       - num_tracks
-      target_id: 194
+      target_id: 195
       target_name: null
     - !Single
       name:
       - total_price
-      target_id: 197
+      target_id: 198
       target_name: null
     - !Single
       name:
       - running_total_num_tracks
-      target_id: 250
+      target_id: 251
       target_name: null
     inputs:
-    - id: 145
+    - id: 146
       name: i
       table:
       - default_db
       - invoices
-    - id: 142
+    - id: 143
       name: ii
       table:
       - default_db
@@ -205,45 +205,45 @@ frames:
     - !Single
       name:
       - city
-      target_id: 204
+      target_id: 205
       target_name: null
     - !Single
       name:
       - street
-      target_id: 159
+      target_id: 160
       target_name: null
     - !Single
       name:
       - num_orders
-      target_id: 191
+      target_id: 192
       target_name: null
     - !Single
       name:
       - num_tracks
-      target_id: 194
+      target_id: 195
       target_name: null
     - !Single
       name:
       - total_price
-      target_id: 197
+      target_id: 198
       target_name: null
     - !Single
       name:
       - running_total_num_tracks
-      target_id: 250
+      target_id: 251
       target_name: null
     - !Single
       name:
       - num_tracks_last_week
-      target_id: 264
+      target_id: 265
       target_name: null
     inputs:
-    - id: 145
+    - id: 146
       name: i
       table:
       - default_db
       - invoices
-    - id: 142
+    - id: 143
       name: ii
       table:
       - default_db
@@ -253,40 +253,40 @@ frames:
     - !Single
       name:
       - city
-      target_id: 270
-      target_name: null
-    - !Single
-      name:
-      - street
       target_id: 271
       target_name: null
     - !Single
       name:
-      - num_orders
+      - street
       target_id: 272
       target_name: null
     - !Single
       name:
-      - num_tracks
+      - num_orders
       target_id: 273
       target_name: null
     - !Single
       name:
-      - running_total_num_tracks
+      - num_tracks
       target_id: 274
       target_name: null
     - !Single
       name:
-      - num_tracks_last_week
+      - running_total_num_tracks
       target_id: 275
       target_name: null
+    - !Single
+      name:
+      - num_tracks_last_week
+      target_id: 276
+      target_name: null
     inputs:
-    - id: 145
+    - id: 146
       name: i
       table:
       - default_db
       - invoices
-    - id: 142
+    - id: 143
       name: ii
       table:
       - default_db
@@ -296,67 +296,67 @@ frames:
     - !Single
       name:
       - city
-      target_id: 270
-      target_name: null
-    - !Single
-      name:
-      - street
       target_id: 271
       target_name: null
     - !Single
       name:
-      - num_orders
+      - street
       target_id: 272
       target_name: null
     - !Single
       name:
-      - num_tracks
+      - num_orders
       target_id: 273
       target_name: null
     - !Single
       name:
-      - running_total_num_tracks
+      - num_tracks
       target_id: 274
       target_name: null
     - !Single
       name:
-      - num_tracks_last_week
+      - running_total_num_tracks
       target_id: 275
       target_name: null
+    - !Single
+      name:
+      - num_tracks_last_week
+      target_id: 276
+      target_name: null
     inputs:
-    - id: 145
+    - id: 146
       name: i
       table:
       - default_db
       - invoices
-    - id: 142
+    - id: 143
       name: ii
       table:
       - default_db
       - invoice_items
 nodes:
-- id: 142
+- id: 143
   kind: Ident
   span: 1:155-168
   ident: !Ident
   - default_db
   - invoice_items
-  parent: 153
-- id: 145
+  parent: 154
+- id: 146
   kind: Ident
   span: 1:131-146
   ident: !Ident
   - default_db
   - invoices
-  parent: 153
-- id: 149
+  parent: 154
+- id: 150
   kind: RqOperator
   span: 1:170-182
   targets:
-  - 151
   - 152
-  parent: 153
-- id: 151
+  - 153
+  parent: 154
+- id: 152
   kind: Ident
   span: 1:172-182
   ident: !Ident
@@ -364,8 +364,8 @@ nodes:
   - i
   - invoice_id
   targets:
-  - 145
-- id: 152
+  - 146
+- id: 153
   kind: Ident
   span: 1:172-182
   ident: !Ident
@@ -373,16 +373,16 @@ nodes:
   - ii
   - invoice_id
   targets:
-  - 142
-- id: 153
+  - 143
+- id: 154
   kind: 'TransformCall: Join'
   span: 1:147-183
   children:
-  - 145
-  - 142
-  - 149
-  parent: 157
-- id: 154
+  - 146
+  - 143
+  - 150
+  parent: 158
+- id: 155
   kind: Ident
   span: 1:204-218
   alias: city
@@ -391,9 +391,9 @@ nodes:
   - i
   - billing_city
   targets:
-  - 145
-  parent: 156
-- id: 155
+  - 146
+  parent: 157
+- id: 156
   kind: Ident
   span: 1:233-250
   alias: street
@@ -402,56 +402,56 @@ nodes:
   - i
   - billing_address
   targets:
-  - 145
-  parent: 156
-- id: 156
+  - 146
+  parent: 157
+- id: 157
   kind: Tuple
   span: 1:191-253
   children:
-  - 154
   - 155
-  parent: 157
-- id: 157
+  - 156
+  parent: 158
+- id: 158
   kind: 'TransformCall: Derive'
   span: 1:184-253
   children:
-  - 153
-  - 156
-  parent: 190
-- id: 158
+  - 154
+  - 157
+  parent: 191
+- id: 159
   kind: Ident
   span: 1:261-265
   ident: !Ident
   - this
   - city
   targets:
-  - 154
-  parent: 160
-- id: 159
+  - 155
+  parent: 161
+- id: 160
   kind: Ident
   span: 1:267-273
   ident: !Ident
   - this
   - street
   targets:
-  - 155
-  parent: 160
-- id: 160
+  - 156
+  parent: 161
+- id: 161
   kind: Tuple
   span: 1:260-274
   children:
-  - 158
   - 159
-  parent: 201
-- id: 185
+  - 160
+  parent: 202
+- id: 186
   kind: RqOperator
   span: 1:296-323
   alias: total
   targets:
-  - 187
   - 188
-  parent: 189
-- id: 187
+  - 189
+  parent: 190
+- id: 188
   kind: Ident
   span: 1:296-309
   ident: !Ident
@@ -459,8 +459,8 @@ nodes:
   - ii
   - unit_price
   targets:
-  - 142
-- id: 188
+  - 143
+- id: 189
   kind: Ident
   span: 1:312-323
   ident: !Ident
@@ -468,28 +468,28 @@ nodes:
   - ii
   - quantity
   targets:
-  - 142
-- id: 189
+  - 143
+- id: 190
   kind: Tuple
   span: 1:296-323
   children:
-  - 185
-  parent: 190
-- id: 190
+  - 186
+  parent: 191
+- id: 191
   kind: 'TransformCall: Derive'
   span: 1:281-323
   children:
-  - 157
-  - 189
-  parent: 201
-- id: 191
+  - 158
+  - 190
+  parent: 202
+- id: 192
   kind: RqOperator
   span: 1:361-388
   alias: num_orders
   targets:
-  - 193
-  parent: 200
-- id: 193
+  - 194
+  parent: 201
+- id: 194
   kind: Ident
   span: 1:376-388
   ident: !Ident
@@ -497,15 +497,15 @@ nodes:
   - i
   - invoice_id
   targets:
-  - 145
-- id: 194
+  - 146
+- id: 195
   kind: RqOperator
   span: 1:411-426
   alias: num_tracks
   targets:
-  - 196
-  parent: 200
-- id: 196
+  - 197
+  parent: 201
+- id: 197
   kind: Ident
   span: 1:415-426
   ident: !Ident
@@ -513,229 +513,229 @@ nodes:
   - ii
   - quantity
   targets:
-  - 142
-- id: 197
+  - 143
+- id: 198
   kind: RqOperator
   span: 1:450-459
   alias: total_price
   targets:
-  - 199
-  parent: 200
-- id: 199
+  - 200
+  parent: 201
+- id: 200
   kind: Ident
   span: 1:454-459
   ident: !Ident
   - this
   - total
   targets:
-  - 185
-- id: 200
+  - 186
+- id: 201
   kind: Tuple
   span: 1:338-466
   children:
-  - 191
-  - 194
-  - 197
-  parent: 201
-- id: 201
+  - 192
+  - 195
+  - 198
+  parent: 202
+- id: 202
   kind: 'TransformCall: Aggregate'
   span: 1:328-466
   children:
-  - 190
-  - 200
-  - 160
-  parent: 254
-- id: 204
+  - 191
+  - 201
+  - 161
+  parent: 255
+- id: 205
   kind: Ident
   span: 1:476-480
   ident: !Ident
   - this
   - city
   targets:
-  - 158
-  parent: 205
-- id: 205
+  - 159
+  parent: 206
+- id: 206
   kind: Tuple
   span: 1:475-481
   children:
-  - 204
-- id: 229
+  - 205
+- id: 230
   kind: Ident
   span: 1:493-499
   ident: !Ident
   - this
   - street
   targets:
-  - 159
-- id: 250
+  - 160
+- id: 251
   kind: RqOperator
   span: 1:571-585
   alias: running_total_num_tracks
   targets:
-  - 252
-  parent: 253
-- id: 252
+  - 253
+  parent: 254
+- id: 253
   kind: Ident
   span: 1:575-585
   ident: !Ident
   - this
   - num_tracks
   targets:
-  - 194
-- id: 253
+  - 195
+- id: 254
   kind: Tuple
   span: 1:543-586
   children:
-  - 250
-  parent: 254
-- id: 254
+  - 251
+  parent: 255
+- id: 255
   kind: 'TransformCall: Derive'
   span: 1:536-586
   children:
-  - 201
-  - 253
-  parent: 263
-- id: 256
+  - 202
+  - 254
+  parent: 264
+- id: 257
   kind: Literal
-- id: 260
+- id: 261
   kind: Ident
   span: 1:601-605
   ident: !Ident
   - this
   - city
   targets:
-  - 204
-  parent: 263
-- id: 261
+  - 205
+  parent: 264
+- id: 262
   kind: Ident
   span: 1:607-613
   ident: !Ident
   - this
   - street
   targets:
-  - 159
-  parent: 263
-- id: 263
+  - 160
+  parent: 264
+- id: 264
   kind: 'TransformCall: Sort'
   span: 1:595-614
   children:
-  - 254
-  - 260
+  - 255
   - 261
-  parent: 269
-- id: 264
+  - 262
+  parent: 270
+- id: 265
   kind: RqOperator
   span: 1:646-662
   alias: num_tracks_last_week
   targets:
-  - 266
   - 267
-  parent: 268
-- id: 266
+  - 268
+  parent: 269
+- id: 267
   kind: Literal
   span: 1:650-651
-- id: 267
+- id: 268
   kind: Ident
   span: 1:652-662
   ident: !Ident
   - this
   - num_tracks
   targets:
-  - 194
-- id: 268
+  - 195
+- id: 269
   kind: Tuple
   span: 1:622-663
   children:
-  - 264
-  parent: 269
-- id: 269
+  - 265
+  parent: 270
+- id: 270
   kind: 'TransformCall: Derive'
   span: 1:615-663
   children:
-  - 263
-  - 268
-  parent: 277
-- id: 270
+  - 264
+  - 269
+  parent: 278
+- id: 271
   kind: Ident
   span: 1:677-681
   ident: !Ident
   - this
   - city
   targets:
-  - 204
-  parent: 276
-- id: 271
+  - 205
+  parent: 277
+- id: 272
   kind: Ident
   span: 1:687-693
   ident: !Ident
   - this
   - street
   targets:
-  - 159
-  parent: 276
-- id: 272
+  - 160
+  parent: 277
+- id: 273
   kind: Ident
   span: 1:699-709
   ident: !Ident
   - this
   - num_orders
   targets:
-  - 191
-  parent: 276
-- id: 273
+  - 192
+  parent: 277
+- id: 274
   kind: Ident
   span: 1:715-725
   ident: !Ident
   - this
   - num_tracks
   targets:
-  - 194
-  parent: 276
-- id: 274
+  - 195
+  parent: 277
+- id: 275
   kind: Ident
   span: 1:731-755
   ident: !Ident
   - this
   - running_total_num_tracks
   targets:
-  - 250
-  parent: 276
-- id: 275
+  - 251
+  parent: 277
+- id: 276
   kind: Ident
   span: 1:761-781
   ident: !Ident
   - this
   - num_tracks_last_week
   targets:
-  - 264
-  parent: 276
-- id: 276
+  - 265
+  parent: 277
+- id: 277
   kind: Tuple
   span: 1:671-783
   children:
-  - 270
   - 271
   - 272
   - 273
   - 274
   - 275
-  parent: 277
-- id: 277
+  - 276
+  parent: 278
+- id: 278
   kind: 'TransformCall: Select'
   span: 1:664-783
   children:
-  - 269
-  - 276
-  parent: 279
-- id: 279
+  - 270
+  - 277
+  parent: 280
+- id: 280
   kind: 'TransformCall: Take'
   span: 1:784-791
   children:
-  - 277
-  - 280
-- id: 280
+  - 278
+  - 281
+- id: 281
   kind: Literal
-  parent: 279
+  parent: 280
 ast:
   name: Project
   stmts:

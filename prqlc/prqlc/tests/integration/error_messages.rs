@@ -580,7 +580,7 @@ fn tuple_uniq_take_wrong() {
        │
      3 │     select (tuple_uniq take:bar this)
        │                             ─┬─
-       │                              ╰─── `take` expected early or late, but found bar
+       │                              ╰─── Unknown name `TupleUniqTake.bar`
     ───╯
     ");
 }

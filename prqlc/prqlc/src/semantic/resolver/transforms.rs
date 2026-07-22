@@ -427,13 +427,15 @@ impl Resolver<'_> {
 
                 let take_late = {
                     let span = take.span;
-                    let ident =
-                        take.clone()
-                            .try_cast(ExprKind::into_ident, Some("take"), "ident")?;
+                    let ident = take.clone().try_cast(
+                        ExprKind::into_ident,
+                        Some("take"),
+                        "TupleUniqTake",
+                    )?;
 
                     match ident.to_string().as_str() {
-                        "early" => false,
-                        "late" => true,
+                        "\"early\"" => false,
+                        "\"late\"" => true,
                         _ => {
                             return Err(Error::new(Reason::Expected {
                                 who: Some("`take`".to_string()),
