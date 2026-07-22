@@ -7487,3 +7487,84 @@ fn test_enum_2() {
       status = 'unpaid'
     ");
 }
+
+#[test]
+fn test_enum_3() {
+    assert_snapshot!(compile(r###"
+    type InvoiceStatus = enum { Paid = "paid", Unpaid = "unpaid", Canceled = "canceled" }
+
+    let filter_status = func status <InvoiceStatus> tbl <relation> -> (
+        filter (this.status == _param.status) tbl
+    )
+
+    from invoices
+    filter_status Canceled
+    "###).unwrap(), @"
+    SELECT
+      *
+    FROM
+      invoices
+    WHERE
+      status = 'canceled'
+    ");
+}
+
+#[test]
+fn test_enum_4() {
+    assert_snapshot!(compile(r###"
+    type InvoiceStatus = enum { Paid = "paid", Unpaid = "unpaid", Canceled = "canceled" }
+
+    let filter_status = func status <InvoiceStatus> tbl <relation> -> (
+        filter (this.status == _param.status) tbl
+    )
+
+    let expected_status = InvoiceStatus.Paid
+
+    from invoices
+    filter_status expected_status
+    "###).unwrap(), @"
+    SELECT
+      *
+    FROM
+      invoices
+    WHERE
+      status = 'paid'
+    ");
+}
+
+#[test]
+fn test_enum_5() {
+    assert_snapshot!(compile(r###"
+    type InvoiceStatus = enum { Paid = "paid", Unpaid = "unpaid", Canceled = "canceled" }
+
+    let filter_status = func status <InvoiceStatus> tbl <relation> -> (
+        filter (this.status == _param.status) tbl
+    )
+
+    from invoices
+    select { id, status }
+    join (
+      from invoice_history
+      select { id, hist_stat }
+    ) (==id)
+    filter_status hist_stat
+    "###).unwrap(), @"
+    WITH table_0 AS (
+      SELECT
+        id,
+        hist_stat
+      FROM
+        invoice_history
+    )
+    SELECT
+      invoices.id,
+      invoices.status,
+      table_0.id,
+      table_0.hist_stat
+    FROM
+      invoices
+      INNER JOIN table_0 ON invoices.id = table_0.id
+    WHERE
+      invoices.status = table_0.hist_stat
+    ");
+}

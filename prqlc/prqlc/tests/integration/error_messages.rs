@@ -530,3 +530,25 @@ fn enum_type_2() {
     ───╯
     ");
 }
+
+#[test]
+fn enum_type_3() {
+    assert_snapshot!(compile(r###"
+    type InvoiceStatus = enum { Paid = 0, Unpaid = 1, Canceled = 2 }
+
+    let filter_status = func status <InvoiceStatus> tbl <relation> -> (
+        filter (this.status == _param.status) tbl
+    )
+
+    from invoices
+    filter_status NotPresent
+    "###).unwrap_err(), @"
+    Error:
+       ╭─[ :9:19 ]
+       │
+     9 │     filter_status NotPresent
+       │                   ─────┬────
+       │                        ╰────── Unknown name `InvoiceStatus.NotPresent`
+    ───╯
+    ");
+}

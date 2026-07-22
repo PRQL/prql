@@ -6,7 +6,7 @@ use itertools::Itertools;
 use super::Resolver;
 use crate::ir::decl::{Decl, DeclKind, Module};
 use crate::ir::pl::*;
-use crate::pr::{Ty, TyFunc};
+use crate::pr::{Ty, TyFunc, TyKind};
 use crate::semantic::resolver::types;
 use crate::semantic::{NS_PARAM, NS_THAT, NS_THIS};
 use crate::Result;
@@ -306,7 +306,7 @@ impl Resolver<'_> {
 
                     let mut fields_new = Vec::with_capacity(fields.len());
                     for field in fields {
-                        let field = self.fold_within_namespace(field, &param.name)?;
+                        let field = self.fold_within_namespace(field, &param)?;
 
                         // add aliased columns into scope
                         if let Some(alias) = field.alias.clone() {
@@ -356,7 +356,7 @@ impl Resolver<'_> {
         param: &FuncParam,
         func_name: &Option<Ident>,
     ) -> Result<Result<Expr, Expr>> {
-        let mut arg = self.fold_within_namespace(arg, &param.name)?;
+        let mut arg = self.fold_within_namespace(arg, &param)?;
 
         // don't validate types of unresolved exprs
         if arg.id.is_some() {
@@ -382,11 +382,21 @@ impl Resolver<'_> {
         Ok(Ok(arg))
     }
 
-    fn fold_within_namespace(&mut self, expr: Expr, param_name: &str) -> Result<Expr> {
+    fn fold_within_namespace(&mut self, expr: Expr, param: &FuncParam) -> Result<Expr> {
         let prev_namespace = self.default_namespace.take();
+        let param_name = &param.name;
 
         if param_name.starts_with("noresolve.") {
             return Ok(expr);
+        } else if let Some(Ty {
+            name,
+            kind: TyKind::Enum(_),
+            ..
+        }) = &param.ty
+        {
+            // function parameters with a declared enum type will
+            // automatically have that namespace searched first
+            self.default_namespace = name.clone();
         } else if let Some((ns, _)) = param_name.split_once('.') {
             self.default_namespace = Some(ns.to_string());
         } else {

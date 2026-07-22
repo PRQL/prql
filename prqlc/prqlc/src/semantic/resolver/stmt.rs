@@ -34,7 +34,6 @@ impl super::Resolver<'_> {
                 StmtKind::TypeDef(ty_def) => {
                     let mut ty = self.fold_type(ty_def.value)?;
                     ty.name = Some(ident.name.clone());
-                    log::debug!("type def: {:#?}", ty);
 
                     if let TyKind::Enum(crate::pr::Expr {
                         kind: crate::pr::ExprKind::Tuple(enum_tuple),
@@ -81,8 +80,6 @@ impl super::Resolver<'_> {
                             kind: DeclKind::Module(module),
                             ..Default::default()
                         };
-
-                        log::debug!("enum module: {:#?}", decl);
 
                         let ident = Ident::from_path(self.current_module_path.clone());
                         self.root_mod
