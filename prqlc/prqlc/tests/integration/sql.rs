@@ -7449,3 +7449,41 @@ fn test_tuple_map_aliases() {
       foo
     "###);
 }
+
+#[test]
+fn test_enum_1() {
+    assert_snapshot!(compile(r###"
+    type InvoiceStatus = enum { Paid = 0, Unpaid = 1, Canceled = 2 }
+
+    from invoices
+    filter status == InvoiceStatus.Paid
+    "###).unwrap(), @"
+    SELECT
+      *
+    FROM
+      invoices
+    WHERE
+      status = 0
+    ");
+}
+
+#[test]
+fn test_enum_2() {
+    assert_snapshot!(compile(r###"
+    type InvoiceStatus = enum { Paid = "paid", Unpaid = "unpaid", Canceled = "canceled" }
+
+    let filter_status = func status <InvoiceStatus> tbl <relation> -> (
+        filter (this.status == _param.status) tbl
+    )
+
+    from invoices
+    filter_status InvoiceStatus.Unpaid
+    "###).unwrap(), @"
+    SELECT
+      *
+    FROM
+      invoices
+    WHERE
+      status = 'unpaid'
+    ");
+}

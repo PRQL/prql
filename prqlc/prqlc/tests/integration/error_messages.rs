@@ -490,3 +490,43 @@ fn bare_lambda_expression() {
     ───╯
     ");
 }
+
+#[test]
+fn enum_type_1() {
+    assert_snapshot!(compile(r#"
+    type Status = enum { Paid = "paid", Unpaid = "unpaid" }
+    from invoices | filter status = Status.Canceled
+    "#).unwrap_err(), @"
+    Error:
+       ╭─[ :3:37 ]
+       │
+     3 │     from invoices | filter status = Status.Canceled
+       │                                     ───────┬───────
+       │                                            ╰───────── Unknown name `Status.Canceled`
+    ───╯
+    ");
+}
+
+#[test]
+fn enum_type_2() {
+    assert_snapshot!(compile(r###"
+    type InvoiceStatus = enum { Paid = 0, Unpaid = 1, Canceled = 2 }
+
+    let filter_status = func status <InvoiceStatus> tbl <relation> -> (
+        filter (this.status == _param.status) tbl
+    )
+
+    from invoices
+    filter_status 1
+    "###).unwrap_err(), @"
+    Error:
+       ╭─[ :9:19 ]
+       │
+     9 │     filter_status 1
+       │                   ┬
+       │                   ╰── function filter_status, param `status` expected type `InvoiceStatus`, but found type `int`
+       │
+       │ Help: Type `InvoiceStatus` expands to `enum {Paid = 0, Unpaid = 1, Canceled = 2}`
+    ───╯
+    ");
+}

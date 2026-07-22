@@ -58,7 +58,7 @@ impl WriteSource for pr::TyKind {
                 r += &func.return_ty.as_deref().write(opt)?;
                 Some(r)
             }
-            Enum(_) => Some("enum?".to_string()),
+            Enum(tuple) => Some(format!("enum {}", tuple.write(opt)?)),
         }
     }
 }

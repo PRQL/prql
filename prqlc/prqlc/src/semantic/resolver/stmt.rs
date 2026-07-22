@@ -3,6 +3,8 @@ use std::collections::HashMap;
 use crate::ir::decl::{Decl, DeclKind, Module, TableDecl, TableExpr};
 use crate::ir::pl::*;
 use crate::pr::{Ty, TyKind, TyTupleField};
+use crate::semantic::ast_expand::expand_expr;
+use crate::semantic::NS_SELF;
 use crate::Result;
 use crate::WithErrorInfo;
 
@@ -32,12 +34,69 @@ impl super::Resolver<'_> {
                 StmtKind::TypeDef(ty_def) => {
                     let mut ty = self.fold_type(ty_def.value)?;
                     ty.name = Some(ident.name.clone());
+                    log::debug!("type def: {:#?}", ty);
 
-                    let decl = DeclKind::Ty(ty);
+                    if let TyKind::Enum(crate::pr::Expr {
+                        kind: crate::pr::ExprKind::Tuple(enum_tuple),
+                        ..
+                    }) = ty.kind.clone()
+                    {
+                        // Enums get their own module definition, with NS_SELF pointing to the original type and a
+                        // name entry in the module for each alias in the enum's tuple.
 
-                    self.root_mod
-                        .declare(ident, decl, stmt.id, stmt.annotations)
-                        .with_span(stmt.span)?;
+                        self.current_module_path.push(ident.name);
+
+                        let mut module = Module {
+                            names: HashMap::new(),
+                            redirects: Vec::new(),
+                            shadowed: None,
+                        };
+
+                        for expr in enum_tuple {
+                            let name = expr.alias.clone().unwrap();
+                            let mut expr = expand_expr(expr)?;
+                            expr.ty = Some(ty.clone());
+
+                            module.names.insert(
+                                name,
+                                Decl {
+                                    declared_at: stmt.id.clone(),
+                                    kind: DeclKind::Expr(Box::new(expr)),
+                                    ..Default::default()
+                                },
+                            );
+                        }
+                        module.names.insert(
+                            NS_SELF.to_string(),
+                            Decl {
+                                declared_at: stmt.id.clone(),
+                                kind: DeclKind::Ty(ty),
+                                annotations: stmt.annotations,
+                                ..Default::default()
+                            },
+                        );
+
+                        let decl = Decl {
+                            declared_at: stmt.id,
+                            kind: DeclKind::Module(module),
+                            ..Default::default()
+                        };
+
+                        log::debug!("enum module: {:#?}", decl);
+
+                        let ident = Ident::from_path(self.current_module_path.clone());
+                        self.root_mod
+                            .module
+                            .insert(ident, decl)
+                            .with_span(stmt.span)?;
+                        self.current_module_path.pop();
+                    } else {
+                        let decl = DeclKind::Ty(ty);
+                        self.root_mod
+                            .declare(ident, decl, stmt.id, stmt.annotations)
+                            .with_span(stmt.span)?;
+                    };
+
                     continue;
                 }
                 StmtKind::ModuleDef(module_def) => {
