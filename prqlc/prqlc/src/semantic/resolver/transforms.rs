@@ -101,40 +101,22 @@ impl Resolver<'_> {
                     let span = side.span;
                     let ident =
                         side.clone()
-                            .try_cast(ExprKind::into_ident, Some("side"), "ident")?;
+                            .try_cast(ExprKind::into_literal, Some("side"), "JoinSide")?;
 
-                    // first try to match the raw ident string as a bare word
+                    // these must match the values of JoinSide defined in std.prql
                     match ident.to_string().as_str() {
-                        "inner" => JoinSide::Inner,
-                        "left" => JoinSide::Left,
-                        "right" => JoinSide::Right,
-                        "full" => JoinSide::Full,
+                        "\"inner\"" => JoinSide::Inner,
+                        "\"left\"" => JoinSide::Left,
+                        "\"right\"" => JoinSide::Right,
+                        "\"full\"" => JoinSide::Full,
 
-                        _ => {
-                            // if that fails, fold the ident and try treating the result as a literal
-                            // this allows the join side to be passed as a function parameter
-                            // NOTE: this is temporary, pending discussions and implementation, tracked in #4501
-                            let folded = self.fold_expr(side)?.try_cast(
-                                ExprKind::into_literal,
-                                Some("side"),
-                                "string literal",
-                            )?;
-
-                            match folded.to_string().as_str() {
-                                "\"inner\"" => JoinSide::Inner,
-                                "\"left\"" => JoinSide::Left,
-                                "\"right\"" => JoinSide::Right,
-                                "\"full\"" => JoinSide::Full,
-
-                                _ => {
-                                    return Err(Error::new(Reason::Expected {
-                                        who: Some("`side`".to_string()),
-                                        expected: "inner, left, right or full".to_string(),
-                                        found: folded.to_string(),
-                                    })
-                                    .with_span(span))
-                                }
-                            }
+                        val => {
+                            return Err(Error::new(Reason::Expected {
+                                who: Some("`side`".to_string()),
+                                expected: "inner, left, right or full".to_string(),
+                                found: val.to_string(),
+                            })
+                            .with_span(span))
                         }
                     }
                 };
@@ -417,12 +399,12 @@ impl Resolver<'_> {
                 let res = {
                     let span = format.span;
                     let format = format
-                        .try_cast(ExprKind::into_ident, Some("format"), "ident")?
+                        .try_cast(ExprKind::into_literal, Some("format"), "FromTextFormat")?
                         .to_string();
                     match format.as_str() {
-                        "csv" => from_text::parse_csv(&text)
+                        "\"csv\"" => from_text::parse_csv(&text)
                             .map_err(|r| Error::new_simple(r).with_span(span))?,
-                        "json" => from_text::parse_json(&text)
+                        "\"json\"" => from_text::parse_json(&text)
                             .map_err(|r| Error::new_simple(r).with_span(span))?,
 
                         _ => {

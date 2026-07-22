@@ -2950,7 +2950,7 @@ fn test_join() {
 #[test]
 fn test_join_side_literal() {
     assert_snapshot!((compile(r###"
-    let my_side = "right"
+    let my_side = JoinSide.right
 
     from x
     join y (==id) side:my_side
@@ -2971,26 +2971,28 @@ fn test_join_side_literal_err() {
 
     from x
     join y (==id) side:my_side
-    "###).unwrap_err()), @"
+    "###).unwrap_err()), @r#"
     Error:
-       ╭─[ :5:24 ]
+       ╭─[ :2:19 ]
        │
-     5 │     join y (==id) side:my_side
-       │                        ───┬───
-       │                           ╰───── `side` expected inner, left, right or full, but found 42
+     2 │     let my_side = 42
+       │                   ─┬
+       │                    ╰── function std.join, param `side` expected type `JoinSide`, but found type `int`
+       │
+       │ Help: Type `JoinSide` expands to `enum {inner = "inner", left = "left", right = "right", full = "full"}`
     ───╯
-    ");
+    "#);
 }
 
 #[test]
 fn test_join_side_literal_via_func() {
     assert_snapshot!((compile(r###"
-    let my_join = func m <relation> c s <text>:"right" tbl <relation> -> (
+    let my_join = func m <relation> c s <JoinSide>:right tbl <relation> -> (
         join side:_param.s m (c == that.k) tbl
     )
 
     from x
-    my_join default_db.y this.id s:"left"
+    my_join default_db.y this.id s:left
     "###).unwrap()), @"
     SELECT
       x.*,
@@ -3004,7 +3006,7 @@ fn test_join_side_literal_via_func() {
 #[test]
 fn test_join_side_literal_via_func_err() {
     assert_snapshot!((compile(r###"
-    let my_join = func m <relation> c s <text>:"right" tbl <relation> -> (
+    let my_join = func m <relation> c s <JoinSide>:right tbl <relation> -> (
         join side:_param.s m (c == that.k) tbl
     )
 
@@ -3012,11 +3014,13 @@ fn test_join_side_literal_via_func_err() {
     my_join default_db.y this.id s:"four"
     "###).unwrap_err()), @r#"
     Error:
-       ╭─[ :3:19 ]
+       ╭─[ :7:36 ]
        │
-     3 │         join side:_param.s m (c == that.k) tbl
-       │                   ────┬───
-       │                       ╰───── `side` expected inner, left, right or full, but found "four"
+     7 │     my_join default_db.y this.id s:"four"
+       │                                    ───┬──
+       │                                       ╰──── function my_join, param `s` expected type `JoinSide`, but found type `text`
+       │
+       │ Help: Type `JoinSide` expands to `enum {inner = "inner", left = "left", right = "right", full = "full"}`
     ───╯
     "#);
 }
@@ -7566,5 +7570,26 @@ fn test_enum_5() {
       INNER JOIN table_0 ON invoices.id = table_0.id
     WHERE
       invoices.status = table_0.hist_stat
+    ");
+}
+
+#[test]
+fn test_enum_6() {
+    assert_snapshot!(compile(r###"
+    type InvoiceStatus = enum { Paid = "paid", Unpaid = "unpaid", Canceled = "canceled" }
+
+    let filter_status = func status <InvoiceStatus>:Paid tbl <relation> -> (
+        filter (this.status == _param.status) tbl
+    )
+
+    from invoices
+    filter_status
+    "###).unwrap(), @"
+    SELECT
+      *
+    FROM
+      invoices
+    WHERE
+      status = 'paid'
     ");
 }

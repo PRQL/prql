@@ -783,4 +783,36 @@ mod tests {
         ]
         "#)
     }
+
+    #[test]
+    fn func_named_arg_type() {
+        assert_yaml_snapshot!(parse_module_contents(r#"
+        let f = func x <int>:0 -> x
+        "#).unwrap(), @r#"
+        - VarDef:
+            kind: Let
+            name: f
+            value:
+              Func:
+                return_ty: ~
+                body:
+                  Ident:
+                    - x
+                  span: "0:35-36"
+                params: []
+                named_params:
+                  - name: x
+                    ty:
+                      kind:
+                        Primitive: Int
+                      span: "0:25-28"
+                      name: ~
+                    default_value:
+                      Literal:
+                        Integer: 0
+                      span: "0:30-31"
+              span: "0:17-36"
+          span: "0:0-36"
+        "#)
+    }
 }
