@@ -34,7 +34,7 @@ jobs:
           crate: wasm-pack
 
       - name: Setup Node
-        uses: actions/setup-node@v6
+        uses: actions/setup-node@v7
         with:
           node-version: "20.x"
           cache: "npm"
@@ -57,7 +57,7 @@ jobs:
       - uses: go-task/setup-task@v2
         with:
           repo-token: ${{ secrets.GITHUB_TOKEN }}
-          version: 3.51.1
+          version: 3.52.0
 
       - name: 🕷️ Build web
         run: task web:build

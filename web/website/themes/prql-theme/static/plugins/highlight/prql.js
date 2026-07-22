@@ -197,12 +197,6 @@ const formatting = function (hljs) {
         ],
         contains: [
           CHAR_ESCAPE,
-          {
-            scope: "variable",
-            begin: "f",
-            end: '"',
-            // excludesEnd: true,
-          },
           // TODO: would be nice to have this be a different color, but I don't
           // think it's possible to have a subscope within the begin / end.
           // {

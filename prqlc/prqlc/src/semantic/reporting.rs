@@ -145,6 +145,13 @@ pub fn collect_frames(expr: pl::Expr) -> FrameCollector {
 
     collector.fold_expr(expr).unwrap();
 
+    // Sort and dedup once after the full traversal. Doing this inside
+    // `fold_expr` (which runs once per node) re-sorted the entire vector on
+    // every visit, making collection O(n² log n); the result is identical
+    // since nothing reads `nodes` mid-traversal.
+    collector.nodes.sort_by_key(|a| a.id);
+    collector.nodes.dedup();
+
     collector.frames.reverse();
 
     let mut parent_updates = Vec::new();
@@ -321,9 +328,6 @@ impl PlFold for FrameCollector {
                 parent: None,
             });
         }
-
-        self.nodes.sort_by_key(|a| a.id);
-        self.nodes.dedup();
 
         if matches!(expr.kind, pl::ExprKind::TransformCall(_)) {
             let lineage = expr.lineage.clone();

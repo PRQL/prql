@@ -18,10 +18,7 @@ public static partial class PrqlCompiler
     /// <exception cref="FormatException"><paramref name="prqlQuery"/> cannot be compiled.</exception>
     public static Result Compile(string prqlQuery)
     {
-        if (string.IsNullOrEmpty(prqlQuery))
-        {
-            throw new ArgumentException(nameof(prqlQuery));
-        }
+        ArgumentException.ThrowIfNullOrEmpty(prqlQuery);
 
         return Compile(prqlQuery, new PrqlCompilerOptions());
     }
@@ -37,11 +34,7 @@ public static partial class PrqlCompiler
     /// <exception cref="FormatException"><paramref name="prqlQuery"/> cannot be compiled.</exception>
     public static Result Compile(string prqlQuery, PrqlCompilerOptions options)
     {
-        if (string.IsNullOrEmpty(prqlQuery))
-        {
-            throw new ArgumentException(nameof(prqlQuery));
-        }
-
+        ArgumentException.ThrowIfNullOrEmpty(prqlQuery);
         ArgumentNullException.ThrowIfNull(options);
 
         var targetPtr = options.Target is null
@@ -72,10 +65,7 @@ public static partial class PrqlCompiler
     /// <remarks>https://docs.rs/prqlc/latest/</remarks>
     public static Result PrqlToPl(string prqlQuery)
     {
-        if (string.IsNullOrEmpty(prqlQuery))
-        {
-            throw new ArgumentException(nameof(prqlQuery));
-        }
+        ArgumentException.ThrowIfNullOrEmpty(prqlQuery);
 
         var nativeResult = PrqlToPlExtern(prqlQuery);
         return new Result(nativeResult);
@@ -91,10 +81,7 @@ public static partial class PrqlCompiler
     /// <remarks>https://docs.rs/prqlc/latest/</remarks>
     public static Result PlToRq(string plJson)
     {
-        if (string.IsNullOrEmpty(plJson))
-        {
-            throw new ArgumentException(nameof(plJson));
-        }
+        ArgumentException.ThrowIfNullOrEmpty(plJson);
 
         var nativeResult = PlToRqExtern(plJson);
         return new Result(nativeResult);
@@ -105,18 +92,14 @@ public static partial class PrqlCompiler
     /// </summary>
     /// <param name="rqJson">RQ string in JSON format.</param>
     /// <param name="options">PRQL compiler options.</param>
-    /// <returns>JSON.</returns>
+    /// <returns>SQL.</returns>
     /// <exception cref="ArgumentException"><paramref name="rqJson"/> is null or empty.</exception>
     /// <exception cref="ArgumentNullException"><paramref name="options"/> is <c>null</c>.</exception>
     /// <exception cref="FormatException"><paramref name="rqJson"/> cannot be compiled.</exception>
     /// <remarks>https://docs.rs/prqlc/latest/</remarks>
     public static Result RqToSql(string rqJson, PrqlCompilerOptions options)
     {
-        if (string.IsNullOrEmpty(rqJson))
-        {
-            throw new ArgumentException(nameof(rqJson));
-        }
-
+        ArgumentException.ThrowIfNullOrEmpty(rqJson);
         ArgumentNullException.ThrowIfNull(options);
 
         var targetPtr = options.Target is null

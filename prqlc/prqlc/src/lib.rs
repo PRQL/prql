@@ -149,11 +149,6 @@ pub fn compiler_version() -> Version {
     static COMPILER_VERSION: OnceLock<Version> = OnceLock::new();
     COMPILER_VERSION
         .get_or_init(|| {
-            if let Ok(prql_version_override) = std::env::var("PRQL_VERSION_OVERRIDE") {
-                return Version::parse(&prql_version_override).unwrap_or_else(|e| {
-                    panic!("Could not parse PRQL version {prql_version_override}\n{e}")
-                });
-            }
             let git_version = env!("VERGEN_GIT_DESCRIBE");
             let cargo_version = env!("CARGO_PKG_VERSION");
             Version::parse(git_version)

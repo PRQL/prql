@@ -7,10 +7,10 @@ frames:
 - - 1:27-34
   - columns:
     - !All
-      input_id: 130
+      input_id: 133
       except: []
     inputs:
-    - id: 130
+    - id: 133
       name: a
       table:
       - default_db
@@ -18,18 +18,18 @@ frames:
 - - 1:35-59
   - columns:
     - !All
-      input_id: 130
+      input_id: 133
       except: []
     - !All
-      input_id: 124
+      input_id: 127
       except: []
     inputs:
-    - id: 130
+    - id: 133
       name: a
       table:
       - default_db
       - albums
-    - id: 124
+    - id: 127
       name: tracks
       table:
       - default_db
@@ -40,26 +40,26 @@ frames:
       name:
       - a
       - album_id
-      target_id: 142
+      target_id: 145
       target_name: null
     - !Single
       name:
       - a
       - title
-      target_id: 143
+      target_id: 146
       target_name: null
     - !Single
       name:
       - price
-      target_id: 161
+      target_id: 164
       target_name: null
     inputs:
-    - id: 130
+    - id: 133
       name: a
       table:
       - default_db
       - albums
-    - id: 124
+    - id: 127
       name: tracks
       table:
       - default_db
@@ -70,63 +70,63 @@ frames:
       name:
       - a
       - album_id
-      target_id: 142
+      target_id: 145
       target_name: null
     - !Single
       name:
       - a
       - title
-      target_id: 143
+      target_id: 146
       target_name: null
     - !Single
       name:
       - price
-      target_id: 161
+      target_id: 164
       target_name: null
     inputs:
-    - id: 130
+    - id: 133
       name: a
       table:
       - default_db
       - albums
-    - id: 124
+    - id: 127
       name: tracks
       table:
       - default_db
       - tracks
 nodes:
-- id: 124
+- id: 127
   kind: Ident
   span: 1:40-46
   ident: !Ident
   - default_db
   - tracks
-  parent: 141
-- id: 130
+  parent: 144
+- id: 133
   kind: Ident
   span: 1:13-26
   ident: !Ident
   - default_db
   - albums
-  parent: 133
-- id: 133
+  parent: 136
+- id: 136
   kind: 'TransformCall: Take'
   span: 1:27-34
   children:
-  - 130
-  - 134
-  parent: 141
-- id: 134
-  kind: Literal
-  parent: 133
+  - 133
+  - 137
+  parent: 144
 - id: 137
+  kind: Literal
+  parent: 136
+- id: 140
   kind: RqOperator
   span: 1:48-58
   targets:
-  - 139
-  - 140
-  parent: 141
-- id: 139
+  - 142
+  - 143
+  parent: 144
+- id: 142
   kind: Ident
   span: 1:50-58
   ident: !Ident
@@ -134,8 +134,8 @@ nodes:
   - a
   - album_id
   targets:
-  - 130
-- id: 140
+  - 133
+- id: 143
   kind: Ident
   span: 1:50-58
   ident: !Ident
@@ -143,16 +143,16 @@ nodes:
   - tracks
   - album_id
   targets:
-  - 124
-- id: 141
+  - 127
+- id: 144
   kind: 'TransformCall: Join'
   span: 1:35-59
   children:
-  - 133
-  - 124
-  - 137
-  parent: 169
-- id: 142
+  - 136
+  - 127
+  - 140
+  parent: 172
+- id: 145
   kind: Ident
   span: 1:67-77
   ident: !Ident
@@ -160,9 +160,9 @@ nodes:
   - a
   - album_id
   targets:
-  - 130
-  parent: 144
-- id: 143
+  - 133
+  parent: 147
+- id: 146
   kind: Ident
   span: 1:79-86
   ident: !Ident
@@ -170,32 +170,32 @@ nodes:
   - a
   - title
   targets:
-  - 130
-  parent: 144
-- id: 144
+  - 133
+  parent: 147
+- id: 147
   kind: Tuple
   span: 1:66-87
   children:
-  - 142
-  - 143
-  parent: 169
-- id: 161
+  - 145
+  - 146
+  parent: 172
+- id: 164
   kind: RqOperator
   span: 1:132-144
   alias: price
   targets:
-  - 164
-  - 165
-  parent: 168
-- id: 164
+  - 167
+  - 168
+  parent: 171
+- id: 167
   kind: Literal
   span: 1:143-144
-- id: 165
+- id: 168
   kind: RqOperator
   span: 1:108-129
   targets:
-  - 167
-- id: 167
+  - 170
+- id: 170
   kind: Ident
   span: 1:112-129
   ident: !Ident
@@ -203,22 +203,22 @@ nodes:
   - tracks
   - unit_price
   targets:
-  - 124
-- id: 168
+  - 127
+- id: 171
   kind: Tuple
   span: 1:132-144
   children:
-  - 161
-  parent: 169
-- id: 169
+  - 164
+  parent: 172
+- id: 172
   kind: 'TransformCall: Aggregate'
   span: 1:89-145
   children:
-  - 141
-  - 168
   - 144
-  parent: 174
-- id: 172
+  - 171
+  - 147
+  parent: 177
+- id: 175
   kind: Ident
   span: 1:152-160
   ident: !Ident
@@ -226,14 +226,14 @@ nodes:
   - a
   - album_id
   targets:
-  - 142
-  parent: 174
-- id: 174
+  - 145
+  parent: 177
+- id: 177
   kind: 'TransformCall: Sort'
   span: 1:147-160
   children:
-  - 169
   - 172
+  - 175
 ast:
   name: Project
   stmts:

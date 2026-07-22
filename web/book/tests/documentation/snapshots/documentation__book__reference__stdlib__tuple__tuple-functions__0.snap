@@ -1,0 +1,12 @@
+---
+source: web/book/tests/documentation/book.rs
+expression: "from invoices\nderive {\n  cleared = tuple_reduce std.and {\n    received, processed, packed, shipped\n  }\n}\n"
+---
+SELECT
+  *,
+  received
+  AND processed
+  AND packed
+  AND shipped AS cleared
+FROM
+  invoices
