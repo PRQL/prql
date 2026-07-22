@@ -14,14 +14,6 @@ Website: https://prql-lang.org/
 
 // Inspired by [Pest's book](https://github.com/pest-parser/book)
 
-// mdBook exposes a minified version of highlight.js, so the language
-// definition objects below have abbreviated property names:
-//     "b"  => begin
-//     "e"  => end
-//     "c"  => contains
-//     "k"  => keywords
-//     "cN" => className
-
 // TODO:
 // - Can we represent strings with the actual rule of >= 3 quotes?
 // - Aliases seem a bit strong?
@@ -209,12 +201,6 @@ const formatting = function (hljs) {
         ],
         contains: [
           CHAR_ESCAPE,
-          {
-            scope: "variable",
-            begin: "f",
-            end: '"',
-            // excludesEnd: true,
-          },
           // TODO: would be nice to have this be a different color, but I don't
           // think it's possible to have a subscope within the begin / end.
           // {
