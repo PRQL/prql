@@ -98,7 +98,9 @@ fn find_span(source: &str, spans: Vec<Span>) -> &str {
 
     let mut line = 1;
     let mut col = 0;
-    for (index, char) in source.chars().enumerate() {
+    // `char_indices` yields byte offsets, so the slice below stays on char
+    // boundaries even when `source` contains multi-byte characters.
+    for (index, char) in source.char_indices() {
         if char == '\n' {
             line += 1;
             col = 0;
@@ -111,7 +113,7 @@ fn find_span(source: &str, spans: Vec<Span>) -> &str {
             start_index = index;
         }
         if line == end.end_line && col == end.end_col {
-            end_index = index + 1;
+            end_index = index + char.len_utf8();
         }
     }
     &source[start_index..end_index]
@@ -196,6 +198,17 @@ mod test {
         let (pre_proc_text, ctx) = pre_process(src).unwrap();
         let post_proc_text = post_process(&pre_proc_text, ctx);
         insta::assert_yaml_snapshot!(post_proc_text, @r#""from in_process =  {{ source('salesforce', 'in_process') }}""#);
+    }
+
+    #[test]
+    fn test_non_ascii_before_interpolation() {
+        // Non-ASCII bytes before an interpolation must not cause a panic or a
+        // mis-sliced span. `é` is two bytes but one char, so a char-indexed
+        // slice would land mid-character.
+        let src = r###"from café = {{ source('salesforce', 'in_process') }}"###;
+        let (pre_proc_text, ctx) = pre_process(src).unwrap();
+        insta::assert_yaml_snapshot!(pre_proc_text, @"from café = _jinja_0");
+        insta::assert_yaml_snapshot!(ctx.anchor_map["_jinja_0"], @r#"" {{ source('salesforce', 'in_process') }}""#);
     }
 
     #[test]
