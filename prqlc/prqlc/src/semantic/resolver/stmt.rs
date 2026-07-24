@@ -59,7 +59,7 @@ impl super::Resolver<'_> {
                             module.names.insert(
                                 name,
                                 Decl {
-                                    declared_at: stmt.id.clone(),
+                                    declared_at: stmt.id,
                                     kind: DeclKind::Expr(Box::new(expr)),
                                     ..Default::default()
                                 },
@@ -68,7 +68,7 @@ impl super::Resolver<'_> {
                         module.names.insert(
                             NS_SELF.to_string(),
                             Decl {
-                                declared_at: stmt.id.clone(),
+                                declared_at: stmt.id,
                                 kind: DeclKind::Ty(ty),
                                 annotations: stmt.annotations,
                                 ..Default::default()

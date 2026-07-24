@@ -306,7 +306,7 @@ impl Resolver<'_> {
 
                     let mut fields_new = Vec::with_capacity(fields.len());
                     for field in fields {
-                        let field = self.fold_within_namespace(field, &param)?;
+                        let field = self.fold_within_namespace(field, param)?;
 
                         // add aliased columns into scope
                         if let Some(alias) = field.alias.clone() {
@@ -356,7 +356,7 @@ impl Resolver<'_> {
         param: &FuncParam,
         func_name: &Option<Ident>,
     ) -> Result<Result<Expr, Expr>> {
-        let mut arg = self.fold_within_namespace(arg, &param)?;
+        let mut arg = self.fold_within_namespace(arg, param)?;
 
         // don't validate types of unresolved exprs
         if arg.id.is_some() {

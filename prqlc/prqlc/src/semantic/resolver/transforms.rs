@@ -428,7 +428,7 @@ impl Resolver<'_> {
                 let take_late = {
                     let span = take.span;
                     let ident = take.clone().try_cast(
-                        ExprKind::into_ident,
+                        ExprKind::into_literal,
                         Some("take"),
                         "TupleUniqTake",
                     )?;

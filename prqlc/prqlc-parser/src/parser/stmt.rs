@@ -237,7 +237,7 @@ where
                     StmtKind::TypeDef(TypeDef {
                         name: name.clone(),
                         value: Ty {
-                            span: value.span.clone(),
+                            span: value.span,
                             kind: TyKind::Enum(value),
                             name: Some(name),
                         },
