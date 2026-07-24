@@ -375,15 +375,27 @@ jobs:
     runs-on: ubuntu-24.04
     # This job runs unconditionally as a `--no-verify` dry-run smoke test when
     # `release.yaml` is reused from `nightly.yaml` on PRs; only apply the
-    # `release` environment (and its tag-restricted secret) on actual releases,
-    # otherwise the deployment-branch policy denies the dry-run on branch refs.
+    # `release` environment on actual releases, otherwise the deployment-branch
+    # policy denies the dry-run on branch refs.
     environment: ${{ github.event_name == 'release' && 'release' || '' }}
+    permissions:
+      contents: read
+      id-token: write
     steps:
       - name: 📂 Checkout code
         uses: actions/checkout@v7
       - uses: baptiste0928/cargo-install@v3
         with:
           crate: cargo-release
+      # Auth is via crates.io Trusted Publishing (GitHub Actions OIDC). One
+      # exchange covers prqlc, prqlc-parser and prqlc-macros: crates.io scopes
+      # the minted token to every crate whose config matches this repo,
+      # workflow and environment. Dry runs publish nothing and have no
+      # environment to match, so they skip it.
+      - name: Authenticate with crates.io
+        id: auth
+        if: github.event_name == 'release'
+        uses: rust-lang/crates-io-auth-action@v1
       # Currently, we can only check prqlc-parser which is not dependent other local crates with --dry-run.
       # https://github.com/crate-ci/cargo-release/issues/691
       # --no-verify is required to prevent build.
@@ -391,7 +403,7 @@ jobs:
           cargo release publish --no-confirm ${{ github.event_name == 'release'
           && '--execute' || '--no-verify --package prqlc-parser'}}
         env:
-          CARGO_REGISTRY_TOKEN: ${{ secrets.CARGO_REGISTRY_TOKEN }}
+          CARGO_REGISTRY_TOKEN: ${{ steps.auth.outputs.token }}
 
   # Requires another pass: https://github.com/PRQL/prql/issues/850
   # publish-prql-java:
