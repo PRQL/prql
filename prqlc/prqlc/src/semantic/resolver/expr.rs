@@ -5,7 +5,7 @@ use crate::ir::pl;
 use crate::ir::pl::PlFold;
 use crate::pr::{Ty, TyKind, TyTupleField};
 use crate::semantic::resolver::{flatten, types, Resolver};
-use crate::semantic::{NS_INFER, NS_SELF, NS_THAT, NS_THIS};
+use crate::semantic::{NS_INFER, NS_SELF, NS_SHADOWING_COL, NS_THAT, NS_THIS};
 use crate::utils::IdGenerator;
 use crate::Result;
 use crate::{Error, Reason, Span, WithErrorInfo};
@@ -102,6 +102,24 @@ impl pl::PlFold for Resolver<'_> {
                         target_id: Some(*target_id),
                         ..node
                     },
+
+                    // A relation whose name is shadowed by a column: leaf
+                    // resolution yields the bare relation ident, and the
+                    // shadowing column is nested under `NS_SHADOWING_COL`. Unwrap
+                    // to that column, keeping `fq_ident` for a clean emitted name.
+                    DeclKind::Module(inner)
+                        if matches!(
+                            inner.names.get(NS_SHADOWING_COL).map(|d| &d.kind),
+                            Some(DeclKind::Column(_))
+                        ) =>
+                    {
+                        let target_id = *inner.names[NS_SHADOWING_COL].kind.as_column().unwrap();
+                        pl::Expr {
+                            kind: pl::ExprKind::Ident(fq_ident),
+                            target_id: Some(target_id),
+                            ..node
+                        }
+                    }
 
                     DeclKind::TableDecl(_) => {
                         let input_name = ident.name.clone();
@@ -299,6 +317,11 @@ impl Resolver<'_> {
         }
 
         for (name, decl) in module.names.iter().sorted_by_key(|(_, d)| d.order) {
+            // a column nested here only to shadow the relation's name is not
+            // part of the relation's own wildcard expansion
+            if name == NS_SHADOWING_COL {
+                continue;
+            }
             res.push(match &decl.kind {
                 DeclKind::Module(submodule) => {
                     let prefix = [prefix.to_vec(), vec![name]].concat();

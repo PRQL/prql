@@ -7,7 +7,7 @@ use crate::ir::decl::{Decl, DeclKind, Module};
 use crate::ir::pl::{Expr, ExprKind};
 use crate::pr::Ident;
 use crate::pr::TyKind;
-use crate::semantic::{NS_INFER, NS_INFER_MODULE, NS_SELF, NS_THAT, NS_THIS};
+use crate::semantic::{NS_INFER, NS_INFER_MODULE, NS_SELF, NS_SHADOWING_COL, NS_THAT, NS_THIS};
 use crate::Error;
 use crate::Result;
 use crate::WithErrorInfo;
@@ -73,7 +73,16 @@ impl Resolver<'_> {
 
         for (ident, decl) in this.as_decls().into_iter().sorted_by_key(|x| x.1.order) {
             if let DeclKind::Column(_) = decl.kind {
-                cols.push(ident);
+                // A column shadowing a relation's name is nested under
+                // `NS_SHADOWING_COL`; present it under the relation's own name
+                // rather than leaking the internal key.
+                if ident.name == NS_SHADOWING_COL {
+                    if let Some(parent) = ident.pop() {
+                        cols.push(parent);
+                    }
+                } else {
+                    cols.push(ident);
+                }
             }
         }
         cols

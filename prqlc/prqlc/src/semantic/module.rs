@@ -1,8 +1,8 @@
 use std::collections::{HashMap, HashSet};
 
 use super::{
-    NS_DEFAULT_DB, NS_INFER, NS_INFER_MODULE, NS_MAIN, NS_PARAM, NS_QUERY_DEF, NS_SELF, NS_STD,
-    NS_THAT, NS_THIS,
+    NS_DEFAULT_DB, NS_INFER, NS_INFER_MODULE, NS_MAIN, NS_PARAM, NS_QUERY_DEF, NS_SELF,
+    NS_SHADOWING_COL, NS_STD, NS_THAT, NS_THIS,
 };
 use crate::ir::decl::{Decl, DeclKind, Module, RootModule, TableDecl, TableExpr};
 use crate::ir::pl::{Annotation, Expr, Ident, Lineage, LineageColumn};
@@ -190,6 +190,19 @@ impl Module {
                 }
             } else if let Some(decl) = module.names.get(&prefix) {
                 if let DeclKind::Module(inner) = &decl.kind {
+                    // A column shadowing this relation's name (nested under
+                    // `NS_SHADOWING_COL`) takes precedence for leaf access. We
+                    // return the bare relation ident; the ident resolver then
+                    // unwraps it to the nested column (keeping the emitted name
+                    // clean). Qualified `prefix.col` access still recurses into
+                    // the relation below. Gate on it being a `Column` to match
+                    // the resolver's unwrap site, keeping the invariant explicit.
+                    if matches!(
+                        inner.names.get(NS_SHADOWING_COL).map(|d| &d.kind),
+                        Some(DeclKind::Column(_))
+                    ) {
+                        return HashSet::from([Ident::from_name(prefix)]);
+                    }
                     if inner.names.contains_key(NS_SELF) {
                         return HashSet::from([Ident::from_path(vec![
                             prefix,
@@ -312,7 +325,7 @@ impl Module {
                         order: col_index + 1,
                         ..Default::default()
                     };
-                    ns.names.insert(name.name.clone(), decl);
+                    insert_possibly_shadowing_col(ns, &name.name, decl);
                 }
                 _ => {}
             }
@@ -329,7 +342,7 @@ impl Module {
         let namespace = self.names.entry(namespace.to_string()).or_default();
         let namespace = namespace.kind.as_module_mut().unwrap();
 
-        namespace.names.insert(name, DeclKind::Column(id).into());
+        insert_possibly_shadowing_col(namespace, &name, DeclKind::Column(id).into());
     }
 
     pub fn shadow(&mut self, ident: &str) {
@@ -497,6 +510,29 @@ impl RootModule {
     }
 }
 
+/// Insert a column into `namespace`. If the column's name collides with a
+/// source input namespace (e.g. `from bar | derive {bar = ...}`), nest it
+/// inside that namespace under [`NS_SHADOWING_COL`] rather than overwriting it.
+/// The input namespace holds the `NS_INFER` template and is the redirect target
+/// used to infer every other column, so clobbering it would break resolution of
+/// all sibling columns, and removing it would break qualified `bar.col` access.
+/// Leaf access to `bar` resolves to the nested shadowing column (see
+/// [`Module::lookup`] and the ident resolver).
+fn insert_possibly_shadowing_col(namespace: &mut Module, name: &str, decl: Decl) {
+    if let Some(Decl {
+        kind: DeclKind::Module(input),
+        ..
+    }) = namespace.names.get_mut(name)
+    {
+        // Last writer wins on a repeated shadow. This is safe because each
+        // pipeline step rebuilds the frame from lineage, so a single namespace
+        // never accumulates two shadows of the same name.
+        input.names.insert(NS_SHADOWING_COL.to_string(), decl);
+    } else {
+        namespace.names.insert(name.to_string(), decl);
+    }
+}
+
 pub fn ty_of_lineage(lineage: &Lineage) -> Ty {
     Ty::relation(
         lineage
@@ -553,5 +589,140 @@ mod tests {
 
         module.unshadow("test_name");
         assert_eq!(module.get(&ident).unwrap(), &decl);
+    }
+
+    // A column that shares its name with the source relation used to clobber
+    // the relation's input namespace, breaking inference of every other
+    // column. See the `insert_frame` collision handling above.
+    #[test]
+    fn test_column_shadows_relation_name() {
+        use insta::assert_snapshot;
+
+        // minimal repro: derived column `bar` shadows source `bar`
+        assert_snapshot!(crate::tests::compile(
+            "from bar | derive { bar = this.a } | select { this.x, this.bar }"
+        ).unwrap(), @"
+        SELECT
+          x,
+          a AS bar
+        FROM
+          bar
+        ");
+
+        // original source columns are still inferable after the collision
+        assert_snapshot!(crate::tests::compile(
+            "from bar | derive { bar = this.a } | select { this.a }"
+        ).unwrap(), @r"
+        SELECT
+          a
+        FROM
+          bar
+        ");
+
+        // collision against a relation alias (not the table name)
+        assert_snapshot!(crate::tests::compile(
+            "from b=bar | derive { b = this.a } | select { this.x, this.b }"
+        ).unwrap(), @"
+        SELECT
+          x,
+          a AS b
+        FROM
+          bar AS b
+        ");
+
+        // full real-world shape: group/aggregate/sort then a column named
+        // after the source relation
+        assert_snapshot!(crate::tests::compile(
+            "from sales.sales \
+             | group { this.category } ( aggregate { col1 = sum this.amount } ) \
+             | sort { this.category } \
+             | derive { sales = this.col1 } \
+             | select { this.category, this.sales }"
+        ).unwrap(), @"
+        WITH table_0 AS (
+          SELECT
+            category,
+            COALESCE(SUM(amount), 0) AS _expr_0
+          FROM
+            sales.sales
+          GROUP BY
+            category
+        )
+        SELECT
+          category,
+          _expr_0 AS sales
+        FROM
+          table_0
+        ORDER BY
+          category
+        ");
+    }
+
+    // References to *other* columns of the shadowed relation within the *same*
+    // tuple must still resolve: nesting the shadowing column inside the input
+    // namespace (rather than overwriting it) keeps the input's inference
+    // template available for siblings resolved later in the tuple.
+    #[test]
+    fn test_column_shadows_relation_name_intra_tuple() {
+        use insta::assert_snapshot;
+
+        // `this.x` should still resolve after `bar` shadows the source `bar`
+        // within the same `derive`.
+        assert_snapshot!(crate::tests::compile(
+            "from bar | derive { bar = this.a, x2 = this.x }"
+        ).unwrap(), @r"
+        SELECT
+          *,
+          a AS bar,
+          x AS x2
+        FROM
+          bar
+        ");
+    }
+
+    // Explicit qualified access to a *different* column of the shadowed input
+    // (e.g. `bar.x`) keeps resolving to the relation, while the bare name
+    // (`this.bar`) resolves to the shadowing column. Both can appear in the
+    // same `select` without one being dropped during SQL projection.
+    #[test]
+    fn test_column_shadows_relation_name_qualified_access() {
+        use insta::assert_snapshot;
+
+        assert_snapshot!(crate::tests::compile(
+            "from bar | join foo (==id) | derive { bar = bar.a } | select { bar.x, this.bar }"
+        ).unwrap(), @"
+        SELECT
+          bar.x,
+          bar.a AS bar
+        FROM
+          bar
+          INNER JOIN foo ON bar.id = foo.id
+        ");
+    }
+
+    // Wildcard expansion over a shadowed relation must not crash: `this.*` and
+    // `bar.*` need the relation *module*, which is preserved alongside the
+    // nested shadowing column.
+    #[test]
+    fn test_column_shadows_relation_name_wildcard() {
+        use insta::assert_snapshot;
+
+        assert_snapshot!(crate::tests::compile(
+            "from bar | derive { bar = this.a } | select this.*"
+        ).unwrap(), @"
+        SELECT
+          *
+        FROM
+          bar
+        ");
+
+        assert_snapshot!(crate::tests::compile(
+            "from bar | derive { bar = this.a } | select bar.*"
+        ).unwrap(), @"
+        SELECT
+          *
+        FROM
+          bar
+        ");
     }
 }
