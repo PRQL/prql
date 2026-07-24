@@ -35,58 +35,60 @@ impl super::Resolver<'_> {
                     let mut ty = self.fold_type(ty_def.value)?;
                     ty.name = Some(ident.name.clone());
 
-                    if let TyKind::Enum(crate::pr::Expr {
-                        kind: crate::pr::ExprKind::Tuple(enum_tuple),
-                        ..
-                    }) = ty.kind.clone()
-                    {
-                        // Enums get their own module definition, with NS_SELF pointing to the original type and a
-                        // name entry in the module for each alias in the enum's tuple.
+                    if let TyKind::Enum(enum_expr) = ty.kind.clone() {
+                        if let crate::pr::Expr {
+                            kind: crate::pr::ExprKind::Tuple(enum_tuple),
+                            ..
+                        } = *enum_expr
+                        {
+                            // Enums get their own module definition, with NS_SELF pointing to the original type and a
+                            // name entry in the module for each alias in the enum's tuple.
 
-                        self.current_module_path.push(ident.name);
+                            self.current_module_path.push(ident.name);
 
-                        let mut module = Module {
-                            names: HashMap::new(),
-                            redirects: Vec::new(),
-                            shadowed: None,
-                        };
+                            let mut module = Module {
+                                names: HashMap::new(),
+                                redirects: Vec::new(),
+                                shadowed: None,
+                            };
 
-                        for expr in enum_tuple {
-                            let name = expr.alias.clone().unwrap();
-                            let mut expr = expand_expr(expr)?;
-                            expr.ty = Some(ty.clone());
+                            for expr in enum_tuple {
+                                let name = expr.alias.clone().unwrap();
+                                let mut expr = expand_expr(expr)?;
+                                expr.ty = Some(ty.clone());
 
+                                module.names.insert(
+                                    name,
+                                    Decl {
+                                        declared_at: stmt.id,
+                                        kind: DeclKind::Expr(Box::new(expr)),
+                                        ..Default::default()
+                                    },
+                                );
+                            }
                             module.names.insert(
-                                name,
+                                NS_SELF.to_string(),
                                 Decl {
                                     declared_at: stmt.id,
-                                    kind: DeclKind::Expr(Box::new(expr)),
+                                    kind: DeclKind::Ty(ty),
+                                    annotations: stmt.annotations,
                                     ..Default::default()
                                 },
                             );
-                        }
-                        module.names.insert(
-                            NS_SELF.to_string(),
-                            Decl {
+
+                            let decl = Decl {
                                 declared_at: stmt.id,
-                                kind: DeclKind::Ty(ty),
-                                annotations: stmt.annotations,
+                                kind: DeclKind::Module(module),
                                 ..Default::default()
-                            },
-                        );
+                            };
 
-                        let decl = Decl {
-                            declared_at: stmt.id,
-                            kind: DeclKind::Module(module),
-                            ..Default::default()
-                        };
-
-                        let ident = Ident::from_path(self.current_module_path.clone());
-                        self.root_mod
-                            .module
-                            .insert(ident, decl)
-                            .with_span(stmt.span)?;
-                        self.current_module_path.pop();
+                            let ident = Ident::from_path(self.current_module_path.clone());
+                            self.root_mod
+                                .module
+                                .insert(ident, decl)
+                                .with_span(stmt.span)?;
+                            self.current_module_path.pop();
+                        }
                     } else {
                         let decl = DeclKind::Ty(ty);
                         self.root_mod

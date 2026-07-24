@@ -35,7 +35,7 @@ pub enum TyKind {
     Function(Option<TyFunc>),
 
     /// Simple enumeration type
-    Enum(Expr),
+    Enum(Box<Expr>),
 }
 
 impl TyKind {

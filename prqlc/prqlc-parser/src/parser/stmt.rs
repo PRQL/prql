@@ -238,7 +238,7 @@ where
                         name: name.clone(),
                         value: Ty {
                             span: value.span,
-                            kind: TyKind::Enum(value),
+                            kind: TyKind::Enum(Box::new(value)),
                             name: Some(name),
                         },
                     })

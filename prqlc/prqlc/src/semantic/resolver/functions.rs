@@ -391,26 +391,28 @@ impl Resolver<'_> {
 
         if let Some(Ty {
             name: Some(name),
-            kind:
-                TyKind::Enum(crate::pr::Expr {
-                    kind: crate::pr::ExprKind::Tuple(enum_tuple),
-                    ..
-                }),
+            kind: TyKind::Enum(enum_expr),
             ..
         }) = &param.ty
         {
-            // function parameters with a declared enum type will
-            // automatically have that namespace module searched first
-            self.current_module_path.push(name.to_string());
-            let res = self.fold_expr(expr).push_hint(format!(
-                "perhaps you meant one of: {}",
-                enum_tuple
-                    .into_iter()
-                    .filter_map(|expr| expr.alias.clone())
-                    .join(", ")
-            ));
-            self.current_module_path.pop();
-            return res;
+            if let crate::pr::Expr {
+                kind: crate::pr::ExprKind::Tuple(enum_tuple),
+                ..
+            } = &**enum_expr
+            {
+                // function parameters with a declared enum type will
+                // automatically have that namespace module searched first
+                self.current_module_path.push(name.to_string());
+                let res = self.fold_expr(expr).push_hint(format!(
+                    "perhaps you meant one of: {}",
+                    enum_tuple
+                        .iter()
+                        .filter_map(|expr| expr.alias.clone())
+                        .join(", ")
+                ));
+                self.current_module_path.pop();
+                return res;
+            }
         }
 
         let prev_namespace = self.default_namespace.take();
