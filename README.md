@@ -64,7 +64,7 @@ For more on the language, more examples & comparisons with SQL, visit
 [prql-lang.org][prql website]. To experiment with PRQL in the browser, check out
 [PRQL Playground][prql playground].
 
-## Current Status - June 2026
+## Current Status - July 2026
 
 PRQL is ready to use by the intrepid, either with our supported integrations, or
 within your own tools, using one of our supported language bindings.
