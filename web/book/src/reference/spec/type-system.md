@@ -1,8 +1,9 @@
 # Type system
 
-> Status: under development
-
-> The type system determines the allowed values of a term.
+<!-- prettier-ignore -->
+> [!WARNING]
+> The PRQL type system is currently in flux. Not all intended features are
+> currently implemented.
 
 ## Purpose
 
@@ -164,11 +165,23 @@ at compile-time. All fields are of the same type and cannot be named.
 type array_of_int = [int]
 ```
 
+### Simple Enumerations
+
+A simple enumeration is a type with an associated "literal tuple" (a tuple with
+all fields having names and literal values).
+
+```
+type Status = enum { Paid = 0, Unpaid = 1, Cancelled = 2 }
+```
+
 ### Functions
 
 ```
 type floor_signature = func float -> int
 ```
+
+<!--
+> Type unions were removed in #5111.
 
 ### Union
 
@@ -181,28 +194,71 @@ type status = (
 ```
 
 This is "a sum type".
+-->
 
 ## Type annotations
 
 Variable annotations and function parameters may specify type annotations:
 
+The value of `x` (and thus `a`) must be an element of `t`.
+
 ```
 let a <t> = x
 ```
 
-The value of `x` (and thus `a`) must be an element of `t`.
+The value of argument supplied to `x` and `y` (named argument with a default)
+must be an element of `t`.
 
 ```
-let my_func = func x <t> -> y
+let my_func = func x <t> y <t>:default -> z
 ```
 
-The value of argument supplied to `x` must be an element of `t`.
+The value of function body `y` must be an element of `t`.
 
 ```
 let my_func = func x -> <t> y
 ```
 
-The value of function body `y` must be an element of `t`.
+### Simple enumeration function parameters
+
+When a simple enumeration is used as a type on a function parameter, the value
+of the parameter will be required to be a member of the enumeration.
+
+```prql
+type Status = enum {
+    Paid = 0,
+    Unpaid = 1,
+    Cancelled = 2
+}
+
+let filter_status = func
+    status <Status>
+    tbl <relation> -> (
+    filter (this.status == _param.status) tbl
+)
+
+from invoices
+filter_status Status.Paid
+```
+
+You can also specify just the name of the enumeration member.
+
+```prql
+type Status = enum {
+    Paid = 0,
+    Unpaid = 1,
+    Cancelled = 2
+}
+
+let filter_status = func
+    status <Status>
+    tbl <relation> -> (
+    filter (this.status == _param.status) tbl
+)
+
+from invoices
+filter_status Unpaid
+```
 
 ## Physical layout
 
@@ -235,7 +291,12 @@ DBMSs, since the physical layout of the result will vary.
 In the future, PRQL may define a common physical layout of types, probably using
 Apache Arrow.
 
-## Examples
+## Design Examples
+
+<!-- prettier-ignore -->
+> [!WARNING]
+> The examples below are not currently supported, and are retained for design
+> intent. Future implementations may or may not conform to this design.
 
 ```
 type my_relation = [{
