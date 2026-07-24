@@ -7510,6 +7510,21 @@ fn test_enum_1() {
 }
 
 #[test]
+fn test_enum_1b() {
+    assert_snapshot!(compile(r###"
+    type InvoiceStatus = enum { Paid = 0, Unpaid = 1, Canceled = 2 }
+
+    from invoices
+    select { status = InvoiceStatus.Paid }
+    "###).unwrap(), @"
+    SELECT
+      0 AS status
+    FROM
+      invoices
+    ");
+}
+
+#[test]
 fn test_enum_2() {
     assert_snapshot!(compile(r###"
     type InvoiceStatus = enum { Paid = "paid", Unpaid = "unpaid", Canceled = "canceled" }

@@ -6,6 +6,9 @@
 
 **Features**:
 
+- Add simple enumeration type, and dedicated support for name resolution when an
+  enum is used as a function parameter. (@kgutwin, #6104)
+
 **Fixes**:
 
 **Documentation**:
