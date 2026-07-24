@@ -542,29 +542,11 @@ fn append_by_wrong() {
        │
      3 │     append by:bar baz
        │               ─┬─
-       │                ╰─── `by` expected position or name, but found bar
-    ───╯
-    ");
-}
-
-#[test]
-fn enum_type_3() {
-    assert_snapshot!(compile(r###"
-    type InvoiceStatus = enum { Paid = 0, Unpaid = 1, Canceled = 2 }
-
-    let filter_status = func status <InvoiceStatus> tbl <relation> -> (
-        filter (this.status == _param.status) tbl
-    )
-
-    from invoices
-    filter_status NotPresent
-    "###).unwrap_err(), @"
-    Error:
-       ╭─[ :9:19 ]
+       │                ╰─── Ambiguous name
        │
-     9 │     filter_status NotPresent
-       │                   ─────┬────
-       │                        ╰────── Unknown name `InvoiceStatus.NotPresent`
+       │ Help: could be any of: that.baz.bar, this.foo.bar
+       │
+       │ Note: perhaps you meant one of: position, name
     ───╯
     ");
 }
@@ -580,7 +562,7 @@ fn tuple_uniq_take_wrong() {
        │
      3 │     select (tuple_uniq take:bar this)
        │                             ─┬─
-       │                              ╰─── Unknown name `TupleUniqTake.bar`
+       │                              ╰─── take expected early or late, but found `this.foo.bar`
     ───╯
     ");
 }

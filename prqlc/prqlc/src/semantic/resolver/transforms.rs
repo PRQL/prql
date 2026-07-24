@@ -99,9 +99,11 @@ impl Resolver<'_> {
 
                 let side = {
                     let span = side.span;
-                    let ident =
-                        side.clone()
-                            .try_cast(ExprKind::into_literal, Some("side"), "JoinSide")?;
+                    let ident = side.clone().try_cast(
+                        ExprKind::into_literal,
+                        Some("side"),
+                        "inner, left, right or full",
+                    )?;
 
                     // these must match the values of JoinSide defined in std.prql
                     match ident.to_string().as_str() {
@@ -240,9 +242,11 @@ impl Resolver<'_> {
 
                 let by_name = {
                     let span = by.span;
-                    let ident =
-                        by.clone()
-                            .try_cast(ExprKind::into_literal, Some("by"), "AppendBy")?;
+                    let ident = by.clone().try_cast(
+                        ExprKind::into_literal,
+                        Some("by"),
+                        "position or name",
+                    )?;
 
                     match ident.to_string().as_str() {
                         "\"position\"" => false,
@@ -430,7 +434,7 @@ impl Resolver<'_> {
                     let ident = take.clone().try_cast(
                         ExprKind::into_literal,
                         Some("take"),
-                        "TupleUniqTake",
+                        "early or late",
                     )?;
 
                     match ident.to_string().as_str() {
@@ -524,7 +528,7 @@ impl Resolver<'_> {
                 let res = {
                     let span = format.span;
                     let format = format
-                        .try_cast(ExprKind::into_literal, Some("format"), "FromTextFormat")?
+                        .try_cast(ExprKind::into_literal, Some("format"), "csv or json")?
                         .to_string();
                     match format.as_str() {
                         "\"csv\"" => from_text::parse_csv(&text)

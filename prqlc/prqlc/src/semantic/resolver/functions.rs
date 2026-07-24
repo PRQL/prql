@@ -383,21 +383,38 @@ impl Resolver<'_> {
     }
 
     fn fold_within_namespace(&mut self, expr: Expr, param: &FuncParam) -> Result<Expr> {
-        let prev_namespace = self.default_namespace.take();
         let param_name = &param.name;
 
         if param_name.starts_with("noresolve.") {
             return Ok(expr);
-        } else if let Some(Ty {
-            name,
-            kind: TyKind::Enum(_),
+        }
+
+        if let Some(Ty {
+            name: Some(name),
+            kind:
+                TyKind::Enum(crate::pr::Expr {
+                    kind: crate::pr::ExprKind::Tuple(enum_tuple),
+                    ..
+                }),
             ..
         }) = &param.ty
         {
             // function parameters with a declared enum type will
-            // automatically have that namespace searched first
-            self.default_namespace = name.clone();
-        } else if let Some((ns, _)) = param_name.split_once('.') {
+            // automatically have that namespace module searched first
+            self.current_module_path.push(name.to_string());
+            let res = self.fold_expr(expr).push_hint(format!(
+                "perhaps you meant one of: {}",
+                enum_tuple
+                    .into_iter()
+                    .filter_map(|expr| expr.alias.clone())
+                    .join(", ")
+            ));
+            self.current_module_path.pop();
+            return res;
+        }
+
+        let prev_namespace = self.default_namespace.take();
+        if let Some((ns, _)) = param_name.split_once('.') {
             self.default_namespace = Some(ns.to_string());
         } else {
             self.default_namespace = None;
