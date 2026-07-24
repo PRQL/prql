@@ -240,13 +240,13 @@ impl Resolver<'_> {
 
                 let by_name = {
                     let span = by.span;
-                    let ident = by
-                        .clone()
-                        .try_cast(ExprKind::into_ident, Some("by"), "ident")?;
+                    let ident =
+                        by.clone()
+                            .try_cast(ExprKind::into_literal, Some("by"), "AppendBy")?;
 
                     match ident.to_string().as_str() {
-                        "position" => false,
-                        "name" => true,
+                        "\"position\"" => false,
+                        "\"name\"" => true,
                         _ => {
                             return Err(Error::new(Reason::Expected {
                                 who: Some("`by`".to_string()),

@@ -125,8 +125,10 @@ let window = func
   tbl <relation>
   -> <relation> internal window
 
+type AppendBy = enum { position = "position", name = "name" }
+
 let append = func
-  `noresolve.by`:position
+  by <AppendBy>:position
   `default_db.bottom`<relation>
   top<relation>
   -> <relation> internal append
