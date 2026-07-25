@@ -54,8 +54,8 @@ impl super::Resolver<'_> {
 
                             for expr in enum_tuple {
                                 let name = expr.alias
-				    .clone()
-				    .expect("enum literal tuples should always have all fields with aliases");
+                                    .clone()
+                                    .expect("enum literal tuples should always have all fields with aliases");
                                 let mut expr = expand_expr(expr)?;
                                 expr.ty = Some(ty.clone());
                                 // here, the expr needs to have no alias, so that it doesn't clobber an alias
