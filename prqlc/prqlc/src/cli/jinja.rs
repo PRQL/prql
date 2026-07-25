@@ -203,7 +203,7 @@ mod test {
     #[test]
     fn test_non_ascii_before_interpolation() {
         // Non-ASCII bytes before an interpolation must not cause a panic or a
-        // mis-sliced span. `é` is two bytes but one char, so a char-indexed
+        // corrupted span. `é` is two bytes but one char, so a char-indexed
         // slice would land mid-character.
         let src = r###"from café = {{ source('salesforce', 'in_process') }}"###;
         let (pre_proc_text, ctx) = pre_process(src).unwrap();
