@@ -1,6 +1,6 @@
 ---
 source: web/book/tests/documentation/book.rs
-expression: "type Status = enum {\n    Paid = 0,\n    Unpaid = 1,\n    Cancelled = 2\n}\n\nlet filter_status = func\n    status <Status>\n    tbl <relation> -> (\n    filter (this.status == _param.status) tbl\n)\n\nfrom invoices\nfilter_status Status.Paid\n"
+expression: "enum Status {\n    Paid = 0,\n    Unpaid = 1,\n    Cancelled = 2\n}\n\nlet filter_status = func\n    status <Status>\n    tbl <relation> -> (\n    filter (this.status == _param.status) tbl\n)\n\nfrom invoices\nfilter_status Status.Paid\n"
 ---
 SELECT
   *

@@ -7495,7 +7495,7 @@ fn test_tuple_map_aliases() {
 #[test]
 fn test_enum_1() {
     assert_snapshot!(compile(r###"
-    type InvoiceStatus = enum { Paid = 0, Unpaid = 1, Canceled = 2 }
+    enum InvoiceStatus { Paid = 0, Unpaid = 1, Canceled = 2 }
 
     from invoices
     filter status == InvoiceStatus.Paid
@@ -7512,7 +7512,7 @@ fn test_enum_1() {
 #[test]
 fn test_enum_1b() {
     assert_snapshot!(compile(r###"
-    type InvoiceStatus = enum { Paid = 0, Unpaid = 1, Canceled = 2 }
+    enum InvoiceStatus { Paid = 0, Unpaid = 1, Canceled = 2 }
 
     from invoices
     select { status = InvoiceStatus.Paid }
@@ -7527,7 +7527,7 @@ fn test_enum_1b() {
 #[test]
 fn test_enum_2() {
     assert_snapshot!(compile(r###"
-    type InvoiceStatus = enum { Paid = "paid", Unpaid = "unpaid", Canceled = "canceled" }
+    enum InvoiceStatus { Paid = "paid", Unpaid = "unpaid", Canceled = "canceled" }
 
     let filter_status = func status <InvoiceStatus> tbl <relation> -> (
         filter (this.status == _param.status) tbl
@@ -7548,7 +7548,7 @@ fn test_enum_2() {
 #[test]
 fn test_enum_3() {
     assert_snapshot!(compile(r###"
-    type InvoiceStatus = enum { Paid = "paid", Unpaid = "unpaid", Canceled = "canceled" }
+    enum InvoiceStatus { Paid = "paid", Unpaid = "unpaid", Canceled = "canceled" }
 
     let filter_status = func status <InvoiceStatus> tbl <relation> -> (
         filter (this.status == _param.status) tbl
@@ -7569,7 +7569,7 @@ fn test_enum_3() {
 #[test]
 fn test_enum_4() {
     assert_snapshot!(compile(r###"
-    type InvoiceStatus = enum { Paid = "paid", Unpaid = "unpaid", Canceled = "canceled" }
+    enum InvoiceStatus { Paid = "paid", Unpaid = "unpaid", Canceled = "canceled" }
 
     let filter_status = func status <InvoiceStatus> tbl <relation> -> (
         filter (this.status == _param.status) tbl
@@ -7592,7 +7592,7 @@ fn test_enum_4() {
 #[test]
 fn test_enum_5() {
     assert_snapshot!(compile(r###"
-    type InvoiceStatus = enum { Paid = "paid", Unpaid = "unpaid", Canceled = "canceled" }
+    enum InvoiceStatus { Paid = "paid", Unpaid = "unpaid", Canceled = "canceled" }
 
     let filter_status = func status <InvoiceStatus> tbl <relation> -> (
         filter (this.status == _param.status) tbl
@@ -7629,7 +7629,7 @@ fn test_enum_5() {
 #[test]
 fn test_enum_6() {
     assert_snapshot!(compile(r###"
-    type InvoiceStatus = enum { Paid = "paid", Unpaid = "unpaid", Canceled = "canceled" }
+    enum InvoiceStatus { Paid = "paid", Unpaid = "unpaid", Canceled = "canceled" }
 
     let filter_status = func status <InvoiceStatus>:Paid tbl <relation> -> (
         filter (this.status == _param.status) tbl

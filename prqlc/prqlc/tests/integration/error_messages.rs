@@ -494,7 +494,7 @@ fn bare_lambda_expression() {
 #[test]
 fn enum_type_1() {
     assert_snapshot!(compile(r#"
-    type Status = enum { Paid = "paid", Unpaid = "unpaid" }
+    enum Status { Paid = "paid", Unpaid = "unpaid" }
     from invoices | filter status = Status.Canceled
     "#).unwrap_err(), @"
     Error:
@@ -510,7 +510,7 @@ fn enum_type_1() {
 #[test]
 fn enum_type_2() {
     assert_snapshot!(compile(r###"
-    type InvoiceStatus = enum { Paid = 0, Unpaid = 1, Canceled = 2 }
+    enum InvoiceStatus { Paid = 0, Unpaid = 1, Canceled = 2 }
 
     let filter_status = func status <InvoiceStatus> tbl <relation> -> (
         filter (this.status == _param.status) tbl

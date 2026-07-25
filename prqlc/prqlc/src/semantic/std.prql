@@ -96,7 +96,7 @@ let take = func
   tbl <relation>
   -> <relation> internal take
 
-type JoinSide = enum {
+enum JoinSide {
   inner = "inner",
   left = "left",
   right = "right",
@@ -125,7 +125,7 @@ let window = func
   tbl <relation>
   -> <relation> internal window
 
-type AppendBy = enum { position = "position", name = "name" }
+enum AppendBy { position = "position", name = "name" }
 
 let append = func
   by <AppendBy>:position
@@ -227,14 +227,14 @@ let in = pattern value -> <bool> internal in
 let tuple_reduce = func initial:"__missing" fn <func> list -> internal tuple_reduce
 let tuple_map = func fn <func> list -> internal tuple_map
 let tuple_zip = func a b -> internal tuple_zip
-type TupleUniqTake = enum { early = "early", late = "late" }
+enum TupleUniqTake { early = "early", late = "late" }
 let tuple_uniq = func take <TupleUniqTake>:early list -> internal tuple_uniq
 let tuple_reverse = func list -> internal tuple_reverse
 let _eq = func a -> internal _eq
 let _is_null = func a -> _param.a == null
 
 ## Misc
-type FromTextFormat = enum { csv = "csv", json = "json" }
+enum FromTextFormat { csv = "csv", json = "json" }
 
 let from_text = input<text> format <FromTextFormat>:csv -> <relation> internal from_text
 

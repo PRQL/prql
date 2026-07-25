@@ -171,7 +171,7 @@ A simple enumeration is a type with an associated "literal tuple" (a tuple with
 all fields having names and literal values).
 
 ```
-type Status = enum { Paid = 0, Unpaid = 1, Cancelled = 2 }
+enum Status { Paid = 0, Unpaid = 1, Cancelled = 2 }
 ```
 
 ### Functions
@@ -225,7 +225,7 @@ When a simple enumeration is used as a type on a function parameter, the value
 of the parameter will be required to be a member of the enumeration.
 
 ```prql
-type Status = enum {
+enum Status {
     Paid = 0,
     Unpaid = 1,
     Cancelled = 2
@@ -244,7 +244,7 @@ filter_status Status.Paid
 You can also specify just the name of the enumeration member.
 
 ```prql
-type Status = enum {
+enum Status {
     Paid = 0,
     Unpaid = 1,
     Cancelled = 2

@@ -74,7 +74,13 @@ where
         let stmt_kind = new_line()
             .repeated()
             .collect::<Vec<_>>()
-            .ignore_then(choice((module_def, type_def(), import_def(), var_def())));
+            .ignore_then(choice((
+                module_def,
+                type_def(),
+                enum_def(),
+                import_def(),
+                var_def(),
+            )));
 
         // Currently doc comments need to be before the annotation; probably
         // should relax this?
@@ -226,27 +232,30 @@ where
     I: Input<'a, Token = lr::Token, Span = Span> + BorrowInput<'a> + chumsky::input::ValueInput<'a>,
 {
     keyword("type")
-        .ignore_then({
-            let _type_expr = ident_part()
+        .ignore_then(
+            ident_part()
                 .then(ctrl('=').ignore_then(type_expr()))
-                .map(|(name, value)| StmtKind::TypeDef(TypeDef { name, value }));
-
-            let enum_expr = ident_part()
-                .then(ctrl('=').ignore_then(keyword("enum").ignore_then(literal_tuple())))
-                .map(|(name, value)| {
-                    StmtKind::TypeDef(TypeDef {
-                        name: name.clone(),
-                        value: Ty {
-                            span: value.span,
-                            kind: TyKind::Enum(Box::new(value)),
-                            name: Some(name),
-                        },
-                    })
-                });
-
-            _type_expr.or(enum_expr)
-        })
+                .map(|(name, value)| StmtKind::TypeDef(TypeDef { name, value })),
+        )
         .labelled("type definition")
+}
+
+fn enum_def<'a, I>() -> impl Parser<'a, I, StmtKind, ParserError<'a>> + Clone
+where
+    I: Input<'a, Token = lr::Token, Span = Span> + BorrowInput<'a> + chumsky::input::ValueInput<'a>,
+{
+    keyword("enum")
+        .ignore_then(ident_part().then(literal_tuple()).map(|(name, value)| {
+            StmtKind::TypeDef(TypeDef {
+                name: name.clone(),
+                value: Ty {
+                    span: value.span,
+                    kind: TyKind::Enum(Box::new(value)),
+                    name: Some(name),
+                },
+            })
+        }))
+        .labelled("enum definition")
 }
 
 fn import_def<'a, I>() -> impl Parser<'a, I, StmtKind, ParserError<'a>> + Clone
@@ -414,7 +423,7 @@ mod tests {
                     0:0-73,
                 ),
                 reason: Simple(
-                    "Expected one of import statement, module definition, new line, pipeline, something else, type definition or variable definition, but didn't find anything before the end.",
+                    "Expected one of enum definition, import statement, module definition, new line, pipeline, something else, type definition or variable definition, but didn't find anything before the end.",
                 ),
                 hints: [],
                 code: None,
@@ -719,7 +728,7 @@ mod tests {
     #[test]
     fn enums() {
         assert_yaml_snapshot!(parse_module_contents(r#"
-        type foo = enum { First = 0, Second = 1 }
+        enum foo { First = 0, Second = 1 }
         "#).unwrap(), @r#"
         - TypeDef:
             name: foo
@@ -729,78 +738,98 @@ mod tests {
                   Tuple:
                     - Literal:
                         Integer: 0
-                      span: "0:35-36"
+                      span: "0:28-29"
                       alias: First
                     - Literal:
                         Integer: 1
-                      span: "0:47-48"
+                      span: "0:40-41"
                       alias: Second
-                  span: "0:25-50"
-              span: "0:25-50"
+                  span: "0:18-43"
+              span: "0:18-43"
               name: foo
-          span: "0:0-50"
+          span: "0:0-43"
         "#)
     }
 
     #[test]
-    fn enum_tuple_literal() {
+    fn enum_must_be_tuple_literal() {
         assert_debug_snapshot!(parse_module_contents(r#"
-        type foo = enum 4
-        "#).unwrap_err(), @r#"
-	[
-	    Error {
-	        kind: Error,
-	        span: Some(
-	            0:25-26,
-	        ),
-	        reason: Expected {
-	            who: None,
-	            expected: "literal tuple",
-	            found: "4",
-	        },
-	        hints: [],
-	        code: None,
-	    },
-	]
-	"#);
-
-        assert_debug_snapshot!(parse_module_contents(r#"
-        type foo = enum { "First", "Second" }
-        "#).unwrap_err(), @r#"
-	[
-	    Error {
-	        kind: Error,
-	        span: Some(
-	            0:27-34,
-	        ),
-	        reason: Simple(
-	            "must specify an alias for this value",
-	        ),
-	        hints: [],
-	        code: None,
-	    },
-	    Error {
-	        kind: Error,
-	        span: Some(
-	            0:36-44,
-	        ),
-	        reason: Simple(
-	            "must specify an alias for this value",
-	        ),
-	        hints: [],
-	        code: None,
-	    },
-	]
-	"#);
-
-        assert_debug_snapshot!(parse_module_contents(r#"
-        type foo = enum { First = 4 + 5 }
+        enum foo
         "#).unwrap_err(), @r#"
         [
             Error {
                 kind: Error,
                 span: Some(
-                    0:27-40,
+                    0:17-18,
+                ),
+                reason: Expected {
+                    who: None,
+                    expected: "literal tuple",
+                    found: "new line",
+                },
+                hints: [],
+                code: None,
+            },
+        ]
+        "#);
+
+        assert_debug_snapshot!(parse_module_contents(r#"
+        enum foo 4
+        "#).unwrap_err(), @r#"
+        [
+            Error {
+                kind: Error,
+                span: Some(
+                    0:18-19,
+                ),
+                reason: Expected {
+                    who: None,
+                    expected: "literal tuple",
+                    found: "4",
+                },
+                hints: [],
+                code: None,
+            },
+        ]
+        "#);
+
+        assert_debug_snapshot!(parse_module_contents(r#"
+        enum foo { "First", "Second" }
+        "#).unwrap_err(), @r#"
+        [
+            Error {
+                kind: Error,
+                span: Some(
+                    0:20-27,
+                ),
+                reason: Simple(
+                    "must specify an alias for this value",
+                ),
+                hints: [],
+                code: None,
+            },
+            Error {
+                kind: Error,
+                span: Some(
+                    0:29-37,
+                ),
+                reason: Simple(
+                    "must specify an alias for this value",
+                ),
+                hints: [],
+                code: None,
+            },
+        ]
+        "#);
+
+        assert_debug_snapshot!(parse_module_contents(r#"
+        enum foo { First = 4 + 5 }
+        "#).unwrap_err(), @r#"
+        [
+            Error {
+                kind: Error,
+                span: Some(
+                    0:20-33,
                 ),
                 reason: Simple(
                     "expected a literal value",
