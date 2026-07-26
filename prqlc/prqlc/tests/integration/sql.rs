@@ -6091,6 +6091,70 @@ fn test_sort_this_wildcard() {
 }
 
 #[test]
+fn test_this_wildcard_computed_column() {
+    // `this.*` should reflect the current columns of the pipeline, including
+    // computed ones, matching bare `this` (#6044).
+    assert_snapshot!(compile(
+        r###"
+    from foo
+    select {a, b, c = a + b}
+    select this.*
+        "###,
+    )
+    .unwrap(), @"
+    SELECT
+      a,
+      b,
+      a + b AS c
+    FROM
+      foo
+    ");
+
+    assert_snapshot!(compile(
+        r###"
+    from foo
+    select {a, b, c = a + b}
+    sort this.*
+        "###,
+    )
+    .unwrap(), @"
+    SELECT
+      a,
+      b,
+      a + b AS c
+    FROM
+      foo
+    ORDER BY
+      a,
+      b,
+      c
+    ");
+}
+
+#[test]
+fn test_this_wildcard_ignores_sibling_alias() {
+    // `this.*` covers the columns entering the transform, not the ones the
+    // enclosing tuple is still defining — so the sibling `z = 5` doesn't add a
+    // second `z` to the expansion.
+    assert_snapshot!(compile(
+        r###"
+    from foo
+    select {x, y, z}
+    select {z = 5, this.*}
+        "###,
+    )
+    .unwrap(), @"
+    SELECT
+      5,
+      x,
+      y,
+      z
+    FROM
+      foo
+    ");
+}
+
+#[test]
 fn test_select_bare_wildcard() {
     // Regression test for #5694: bare `*` in `select` should produce
     // a helpful error, not panic.
