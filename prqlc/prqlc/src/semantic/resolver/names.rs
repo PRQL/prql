@@ -229,8 +229,25 @@ impl Resolver<'_> {
                 let module_fq_self = decls.into_iter().next().unwrap();
 
                 // Materialize into a tuple literal, containing idents.
-                let fields = self.construct_wildcard_include(&module_fq_self);
+                let mut fields = self.construct_wildcard_include(&module_fq_self);
                 log::trace!("resolve_ident_wildcard fields: {fields:?}");
+
+                // The enclosing tuple inserts each of its aliases into the `this`
+                // frame as it resolves them, so later fields can refer to earlier
+                // ones. `this.*` must not pick those up: it means the columns
+                // entering the transform, not the ones the tuple is in the middle
+                // of defining. Including them duplicates a shadowed column, and
+                // `{z = 5, this.*}` under `tuple_uniq take:late` would resolve `z`
+                // to a field that `tuple_uniq` then discards.
+                if module_fq_self.path == [NS_THIS] {
+                    fields.retain(|field| match &field.kind {
+                        ExprKind::Ident(ident) => !self
+                            .in_flight_tuple_aliases
+                            .iter()
+                            .any(|tuple| tuple.contains(&ident.name)),
+                        _ => true,
+                    });
+                }
 
                 // `construct_wildcard_include` groups each input's columns into
                 // a nested, aliased tuple. For a wildcard we want a flat list of
