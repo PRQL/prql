@@ -54,3 +54,6 @@ vendor
 
 # Lychee link checker cache
 .lycheecache
+
+# Claude Code local settings (per-developer, never committed)
+.claude/settings.local.json
