@@ -2,12 +2,11 @@
 
 import os
 from pathlib import Path
-from typing import List
 
 import nox
 from nox.sessions import Session
 
-VERSIONS: List[str] = [
+VERSIONS: list[str] = [
     "3.10",
     "3.12",
 ]
