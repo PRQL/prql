@@ -26,8 +26,8 @@ select {
 }
 ```
 
-Strings can contain any escape character sequences defined by the
-[JSON standard](https://www.ecma-international.org/publications-and-standards/standards/ecma-404/).
+Strings can contain [escape sequences](#escape-sequences), interpreted
+according to rules similar to those used by Standard C.
 
 ```prql
 from artists
