@@ -26,8 +26,8 @@ select {
 }
 ```
 
-Strings can contain [escape sequences](#escape-sequences), interpreted
-according to rules similar to those used by Standard C.
+Strings can contain [escape sequences](#escape-sequences), interpreted according
+to rules similar to those used by Standard C.
 
 ```prql
 from artists
