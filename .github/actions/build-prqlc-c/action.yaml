@@ -83,9 +83,9 @@ runs:
       shell: bash
       if: runner.os != 'Windows'
       run: |
-        export ARTIFACT_NAME="prqlc_c-${{ github.ref_type == 'tag' && github.ref_name || 0 }}-${{ matrix.target }}.tar.gz"
+        export ARTIFACT_NAME="prqlc_c-${{ github.ref_type == 'tag' && github.ref_name || 0 }}-${{ inputs.target }}.tar.gz"
         echo "ARTIFACT_NAME=${ARTIFACT_NAME}" >>"$GITHUB_ENV"
-        cd target/${{ matrix.target }}/${{ inputs.profile == 'release' && 'release' || 'debug' }}
+        cd target/${{ inputs.target }}/${{ inputs.profile == 'release' && 'release' || 'debug' }}
         ls -al
         tar czf "../../../${ARTIFACT_NAME}" *prqlc_c*
 
@@ -93,9 +93,9 @@ runs:
       shell: bash
       if: runner.os == 'Windows'
       run: |
-        export ARTIFACT_NAME="prqlc_c-${{ github.ref_type == 'tag' && github.ref_name || 0 }}-${{ matrix.target }}.zip"
+        export ARTIFACT_NAME="prqlc_c-${{ github.ref_type == 'tag' && github.ref_name || 0 }}-${{ inputs.target }}.zip"
         echo "ARTIFACT_NAME=${ARTIFACT_NAME}" >>"$GITHUB_ENV"
-        cd target/${{ matrix.target }}/${{ inputs.profile == 'release' && 'release' || 'debug' }}
+        cd target/${{ inputs.target }}/${{ inputs.profile == 'release' && 'release' || 'debug' }}
         ls -al
         7z a "../../../${ARTIFACT_NAME}" *prqlc_c*
 
