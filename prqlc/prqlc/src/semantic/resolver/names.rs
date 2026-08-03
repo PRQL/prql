@@ -229,8 +229,33 @@ impl Resolver<'_> {
                 let module_fq_self = decls.into_iter().next().unwrap();
 
                 // Materialize into a tuple literal, containing idents.
-                let fields = self.construct_wildcard_include(&module_fq_self);
+                let mut fields = self.construct_wildcard_include(&module_fq_self);
                 log::trace!("resolve_ident_wildcard fields: {fields:?}");
+
+                // The enclosing tuple inserts each of its aliases into the `this`
+                // frame as it resolves them, so later fields can refer to earlier
+                // ones. `this.*` must not pick those up: it means the columns
+                // entering the transform, not the ones the tuple is in the middle
+                // of defining. Including them duplicates a shadowed column, and
+                // `{z = 5, this.*}` under `tuple_uniq take:late` would resolve `z`
+                // to a field that `tuple_uniq` then discards.
+                if module_fq_self.path == [NS_THIS] {
+                    fields.retain(|field| match &field.kind {
+                        ExprKind::Ident(ident) => !self
+                            .in_flight_tuple_aliases
+                            .iter()
+                            .any(|tuple| tuple.contains(&ident.name)),
+                        _ => true,
+                    });
+                }
+
+                // `construct_wildcard_include` groups each input's columns into
+                // a nested, aliased tuple. For a wildcard we want a flat list of
+                // column references so that transforms consuming the expansion
+                // (e.g. `sort`) receive scalar columns rather than tuples.
+                // Without flattening, `this.*` over a relation with computed
+                // columns yields nested tuples that fail to lower (#6044).
+                let fields = flatten_wildcard_fields(fields);
 
                 // This is just a workaround to return an Expr from this function.
                 // We wrap the expr into DeclKind::Expr and save it into the root module.
@@ -310,6 +335,21 @@ impl Resolver<'_> {
 
         Err(Error::new_simple(format!("Unknown relation {ident}")))
     }
+}
+
+/// Recursively splice the per-input nested tuples produced by
+/// [`Resolver::construct_wildcard_include`] into a flat list of column
+/// references. Leaf columns carry their full path and inferred wildcards carry
+/// a `target_id`, so the input association survives the flattening.
+fn flatten_wildcard_fields(fields: Vec<Expr>) -> Vec<Expr> {
+    let mut res = Vec::new();
+    for field in fields {
+        match field.kind {
+            ExprKind::Tuple(inner) => res.extend(flatten_wildcard_fields(inner)),
+            _ => res.push(field),
+        }
+    }
+    res
 }
 
 fn ambiguous_error(idents: HashSet<Ident>, replace_name: Option<&String>) -> Error {

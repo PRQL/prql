@@ -775,34 +775,6 @@ jobs:
       RUSTFLAGS: "-C debuginfo=0"
       RUSTDOCFLAGS: "-Dwarnings"
 
-  create-issue-on-nightly-failure:
-    runs-on: ubuntu-24.04
-    needs:
-      - check-ok-to-merge
-      - rules
-    if:
-      ${{ always() && contains(needs.*.result, 'failure') &&
-      needs.rules.outputs.nightly-upstream == 'true' }}
-    permissions:
-      contents: read
-      issues: write
-    steps:
-      - name: 📂 Checkout code
-        uses: actions/checkout@v7
-      - uses: JasonEtco/create-an-issue@v2
-        env:
-          # Use prql-bot PAT so that opening the issue triggers downstream
-          # workflows (notably tend-triage). Events from the default
-          # GITHUB_TOKEN do not cascade to other workflows.
-          GITHUB_TOKEN: ${{ secrets.TEND_BOT_TOKEN }}
-          LINK:
-            ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{
-            github.run_id }}
-        with:
-          filename: .github/nightly-failure.md
-          update_existing: true
-          search_existing: open
-
   update-rust-toolchain:
     runs-on: ubuntu-24.04
     needs: rules

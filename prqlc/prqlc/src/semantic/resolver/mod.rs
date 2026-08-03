@@ -22,6 +22,18 @@ pub struct Resolver<'a> {
     /// Sometimes ident closures must be resolved and sometimes not. See [test::test_func_call_resolve].
     in_func_call_name: bool,
 
+    /// Aliases declared by the tuples currently being resolved, innermost last.
+    ///
+    /// Tuple fields are resolved one at a time and each alias is inserted into
+    /// the `this` frame so later fields can reference it (`{b = a + 1, c = b * 2}`).
+    /// A `this.*` in a later field must not pick those up — the wildcard means the
+    /// columns of the relation entering the transform, not the ones this tuple is
+    /// in the middle of defining.
+    ///
+    /// A field that fails to resolve leaves its entry on the stack, since the
+    /// first error aborts the whole resolve and drops the resolver.
+    in_flight_tuple_aliases: Vec<Vec<String>>,
+
     pub id: IdGenerator<usize>,
 }
 
@@ -35,6 +47,7 @@ impl Resolver<'_> {
             current_module_path: Vec::new(),
             default_namespace: None,
             in_func_call_name: false,
+            in_flight_tuple_aliases: Vec::new(),
             id: IdGenerator::new(),
         }
     }

@@ -1,4 +1,3 @@
-use chumsky;
 use chumsky::input::BorrowInput;
 use chumsky::prelude::*;
 use chumsky::span::SimpleSpan;

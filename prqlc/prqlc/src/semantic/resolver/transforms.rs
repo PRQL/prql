@@ -237,8 +237,6 @@ impl Resolver<'_> {
                 } else {
                     (WindowKind::Rows, None, None)
                 };
-                // let start = Expr::new(start.map_or(Literal::Null, Literal::Integer));
-                // let end = Expr::new(end.map_or(Literal::Null, Literal::Integer));
                 let range = Range {
                     start: start.map(Literal::Integer).map(Expr::new).map(Box::new),
                     end: end.map(Literal::Integer).map(Expr::new).map(Box::new),

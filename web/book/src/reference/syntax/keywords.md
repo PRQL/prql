@@ -81,7 +81,7 @@ Identifiers of database tables can be prefixed with schema and databases names.
 from my_database.chinook.albums
 ```
 
-Note that all of following identifiers will be treated as separate table
+Note that all of the following identifiers will be treated as separate table
 definitions: `tracks`, `public.tracks`, `my_database.public.tracks`.
 
 ## Keywords
