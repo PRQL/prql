@@ -217,7 +217,7 @@ where
         };
         let to_what = func_name
             .map(|n| format!("to function {n}"))
-            .unwrap_or_else(|| "in this function call?".to_string());
+            .unwrap_or_else(|| "in this function call".to_string());
 
         e = e.push_hint(format!("Argument might be missing {to_what}?"));
     }
