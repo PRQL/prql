@@ -577,4 +577,7 @@ fn not_with_extra_args() {
        │                         ╰───────── Too many arguments to function `not`
     ───╯
     ");
+    // A named argument isn't exclusion syntax either; it used to be dropped
+    // silently, compiling as though it weren't there.
+    assert_snapshot!(compile(r"from x | select (std.not {a} b:1)").unwrap_err(), @r#"Error: unknown named argument `b` to closure Some(["std", "not"])"#);
 }
