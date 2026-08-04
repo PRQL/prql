@@ -580,4 +580,7 @@ fn not_with_extra_args() {
     // A named argument isn't exclusion syntax either; it used to be dropped
     // silently, compiling as though it weren't there.
     assert_snapshot!(compile(r"from x | select (std.not {a} b:1)").unwrap_err(), @r#"Error: unknown named argument `b` to closure Some(["std", "not"])"#);
+    // With no positional args at all, the guard used to index `args[0]` and
+    // panic before it got as far as `exactly_one`.
+    assert_snapshot!(compile(r"from x | select (std.not b:1)").unwrap_err(), @r#"Error: unknown named argument `b` to closure Some(["std", "not"])"#);
 }
