@@ -160,8 +160,12 @@ impl pl::PlFold for Resolver<'_> {
                 }
             }
 
+            // `select !{a, b}` — column exclusion. Only a single tuple argument
+            // is exclusion syntax; anything else is an ordinary `std.not` call
+            // and falls through to the arity checks below.
             pl::ExprKind::FuncCall(pl::FuncCall { name, args, .. })
                 if (name.kind.as_ident()).is_some_and(|i| i.to_string() == "std.not")
+                    && args.len() == 1
                     && matches!(args[0].kind, pl::ExprKind::Tuple(_)) =>
             {
                 let arg = args.into_iter().exactly_one().unwrap();
