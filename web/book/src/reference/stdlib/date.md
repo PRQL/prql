@@ -92,7 +92,7 @@ Here is the list of the specifiers currently supported:
 | `%b`  | `Jul`                         | Abbreviated month name. Always 3 letters.                        |
 | `%B`  | `July`                        | Full month name                                                  |
 | `%d`  | `08`                          | Day number (01-31), zero-padded to 2 digits                      |
-| `%-d` | ` 8`                          | Day number (1-31)                                                |
+| `%-d` | `8`                           | Day number (1-31)                                                |
 | `%a`  | `Sun`                         | Abbreviated weekday name. Always 3 letters                       |
 | `%A`  | `Sunday`                      | Full weekday name                                                |
 | `%D`  | `07/08/01`                    | Month-day-year format. Same as `%m/%d/%y`                        |
