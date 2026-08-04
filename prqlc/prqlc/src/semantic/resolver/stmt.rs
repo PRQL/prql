@@ -20,113 +20,131 @@ impl super::Resolver<'_> {
                 name: stmt.name().to_string(),
             };
 
-            let mut def = match stmt.kind {
-                StmtKind::QueryDef(d) => {
-                    let decl = DeclKind::QueryDef(*d);
-                    self.root_mod
-                        .declare(ident, decl, stmt.id, Vec::new())
-                        .with_span(stmt.span)?;
-                    continue;
-                }
-                StmtKind::VarDef(var_def) => self.fold_var_def(var_def)?,
-                StmtKind::TypeDef(ty_def) => {
-                    let mut ty = self.fold_type(ty_def.value)?;
-                    ty.name = Some(ident.name.clone());
-
-                    let decl = DeclKind::Ty(ty);
-
-                    self.root_mod
-                        .declare(ident, decl, stmt.id, stmt.annotations)
-                        .with_span(stmt.span)?;
-                    continue;
-                }
-                StmtKind::ModuleDef(module_def) => {
-                    self.current_module_path.push(ident.name);
-
-                    let decl = Decl {
-                        declared_at: stmt.id,
-                        kind: DeclKind::Module(Module {
-                            names: HashMap::new(),
-                            redirects: Vec::new(),
-                            shadowed: None,
-                        }),
-                        annotations: stmt.annotations,
-                        ..Default::default()
-                    };
-                    let ident = Ident::from_path(self.current_module_path.clone());
-                    self.root_mod
-                        .module
-                        .insert(ident, decl)
-                        .with_span(stmt.span)?;
-
-                    self.fold_statements(module_def.stmts)?;
-                    self.current_module_path.pop();
-                    continue;
-                }
-                StmtKind::ImportDef(target) => {
-                    let decl = Decl {
-                        declared_at: stmt.id,
-                        kind: DeclKind::Import(target.name),
-                        annotations: stmt.annotations,
-                        ..Default::default()
-                    };
-
-                    self.root_mod
-                        .module
-                        .insert(ident, decl)
-                        .with_span(stmt.span)?;
-                    continue;
-                }
+            match stmt.kind {
+                StmtKind::QueryDef(_) => self.fold_query_def_stmt(stmt, ident)?,
+                StmtKind::VarDef(_) => self.fold_var_def_stmt(stmt, ident)?,
+                StmtKind::TypeDef(_) => self.fold_type_def_stmt(stmt, ident)?,
+                StmtKind::ModuleDef(_) => self.fold_module_def_stmt(stmt, ident)?,
+                StmtKind::ImportDef(_) => self.fold_import_def_stmt(stmt, ident)?,
             };
-
-            if def.name == "main" {
-                def.ty = Some(Ty::new(TyKind::Ident(Ident::from_path(vec![
-                    "std", "relation",
-                ]))));
-            }
-
-            if let Some(ExprKind::Func(closure)) = def.value.as_mut().map(|x| &mut x.kind) {
-                if closure.name_hint.is_none() {
-                    closure.name_hint = Some(ident.clone());
-                }
-            }
-
-            let expected_ty = fold_type_opt(self, def.ty)?;
-
-            let decl = match def.value {
-                Some(mut def_value) => {
-                    // var value is provided
-
-                    // validate type
-                    if expected_ty.is_some() {
-                        let who = || Some(def.name.clone());
-                        self.validate_expr_type(&mut def_value, expected_ty.as_ref(), &who)?;
-                    }
-
-                    prepare_expr_decl(def_value)
-                }
-                None => {
-                    // var value is not provided
-
-                    // is this a relation?
-                    if expected_ty.as_ref().is_some_and(|t| t.is_relation()) {
-                        // treat this var as a TableDecl
-                        DeclKind::TableDecl(TableDecl {
-                            ty: expected_ty,
-                            expr: TableExpr::LocalTable,
-                        })
-                    } else {
-                        // treat this var as a param
-                        let mut expr = Box::new(Expr::new(ExprKind::Param(def.name)));
-                        expr.ty = expected_ty;
-                        DeclKind::Expr(expr)
-                    }
-                }
-            };
-            self.root_mod
-                .declare(ident, decl, stmt.id, stmt.annotations)
-                .with_span(stmt.span)?;
         }
+        Ok(())
+    }
+
+    fn fold_query_def_stmt(&mut self, stmt: Stmt, ident: Ident) -> Result<()> {
+        let query_def = stmt.kind.into_query_def().unwrap();
+        let decl = DeclKind::QueryDef(*query_def);
+        self.root_mod
+            .declare(ident, decl, stmt.id, Vec::new())
+            .with_span(stmt.span)?;
+        Ok(())
+    }
+
+    fn fold_type_def_stmt(&mut self, stmt: Stmt, ident: Ident) -> Result<()> {
+        let type_def = stmt.kind.into_type_def().unwrap();
+        let mut ty = self.fold_type(type_def.value)?;
+        ty.name = Some(ident.name.clone());
+
+        let decl = DeclKind::Ty(ty);
+
+        self.root_mod
+            .declare(ident, decl, stmt.id, stmt.annotations)
+            .with_span(stmt.span)?;
+        Ok(())
+    }
+
+    fn fold_module_def_stmt(&mut self, stmt: Stmt, ident: Ident) -> Result<()> {
+        let module_def = stmt.kind.into_module_def().unwrap();
+        self.current_module_path.push(ident.name);
+
+        let decl = Decl {
+            declared_at: stmt.id,
+            kind: DeclKind::Module(Module {
+                names: HashMap::new(),
+                redirects: Vec::new(),
+                shadowed: None,
+            }),
+            annotations: stmt.annotations,
+            ..Default::default()
+        };
+        let ident = Ident::from_path(self.current_module_path.clone());
+        self.root_mod
+            .module
+            .insert(ident, decl)
+            .with_span(stmt.span)?;
+
+        self.fold_statements(module_def.stmts)?;
+        self.current_module_path.pop();
+        Ok(())
+    }
+
+    fn fold_import_def_stmt(&mut self, stmt: Stmt, ident: Ident) -> Result<()> {
+        let target = stmt.kind.into_import_def().unwrap();
+        let decl = Decl {
+            declared_at: stmt.id,
+            kind: DeclKind::Import(target.name),
+            annotations: stmt.annotations,
+            ..Default::default()
+        };
+
+        self.root_mod
+            .module
+            .insert(ident, decl)
+            .with_span(stmt.span)?;
+        Ok(())
+    }
+
+    fn fold_var_def_stmt(&mut self, stmt: Stmt, ident: Ident) -> Result<()> {
+        let var_def = stmt.kind.into_var_def().unwrap();
+        let mut def = self.fold_var_def(var_def)?;
+
+        if def.name == "main" {
+            def.ty = Some(Ty::new(TyKind::Ident(Ident::from_path(vec![
+                "std", "relation",
+            ]))));
+        }
+
+        if let Some(ExprKind::Func(closure)) = def.value.as_mut().map(|x| &mut x.kind) {
+            if closure.name_hint.is_none() {
+                closure.name_hint = Some(ident.clone());
+            }
+        }
+
+        let expected_ty = fold_type_opt(self, def.ty)?;
+
+        let decl = match def.value {
+            Some(mut def_value) => {
+                // var value is provided
+
+                // validate type
+                if expected_ty.is_some() {
+                    let who = || Some(def.name.clone());
+                    self.validate_expr_type(&mut def_value, expected_ty.as_ref(), &who)?;
+                }
+
+                prepare_expr_decl(def_value)
+            }
+            None => {
+                // var value is not provided
+
+                // is this a relation?
+                if expected_ty.as_ref().is_some_and(|t| t.is_relation()) {
+                    // treat this var as a TableDecl
+                    DeclKind::TableDecl(TableDecl {
+                        ty: expected_ty,
+                        expr: TableExpr::LocalTable,
+                    })
+                } else {
+                    // treat this var as a param
+                    let mut expr = Box::new(Expr::new(ExprKind::Param(def.name)));
+                    expr.ty = expected_ty;
+                    DeclKind::Expr(expr)
+                }
+            }
+        };
+        self.root_mod
+            .declare(ident, decl, stmt.id, stmt.annotations)
+            .with_span(stmt.span)?;
         Ok(())
     }
 }

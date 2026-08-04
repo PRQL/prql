@@ -63,10 +63,10 @@ impl pl::PlFold for Resolver<'_> {
         }
 
         let id = self.id.gen();
-        let alias = Box::new(node.alias.clone());
-        let span = Box::new(node.span);
+        let alias = node.alias.clone();
+        let span = node.span;
 
-        if let Some(span) = *span {
+        if let Some(span) = span {
             self.root_mod.span_map.insert(id, span);
         }
 
@@ -150,7 +150,7 @@ impl pl::PlFold for Resolver<'_> {
                             expected: "a value".to_string(),
                             found: "a type".to_string(),
                         })
-                        .with_span(*span));
+                        .with_span(span));
                     }
 
                     _ => pl::Expr {
@@ -160,9 +160,7 @@ impl pl::PlFold for Resolver<'_> {
                 }
             }
 
-            // `select !{a, b}` — column exclusion. Only a single tuple argument
-            // and no named args is exclusion syntax; anything else is an ordinary
-            // `std.not` call and falls through to the argument checks below.
+            // special case: handle the syntax !{tuple..} via resolve_column_exclusion
             pl::ExprKind::FuncCall(pl::FuncCall {
                 name,
                 args,
@@ -192,10 +190,10 @@ impl pl::PlFold for Resolver<'_> {
 
                 // fold function
                 let func = self.apply_args_to_closure(func, args, named_args)?;
-                self.fold_function(func, *span)?
+                self.fold_function(func, span)?
             }
 
-            pl::ExprKind::Func(closure) => self.fold_function(closure, *span)?,
+            pl::ExprKind::Func(closure) => self.fold_function(closure, span)?,
 
             pl::ExprKind::Tuple(exprs) => {
                 let exprs = self.fold_exprs(exprs)?;
@@ -220,7 +218,7 @@ impl pl::PlFold for Resolver<'_> {
                 ..node
             },
         };
-        self.finish_expr_resolve(r, id, *alias, *span)
+        self.finish_expr_resolve(r, id, alias, span)
     }
 }
 
