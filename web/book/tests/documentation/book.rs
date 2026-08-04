@@ -9,6 +9,7 @@ use itertools::Itertools;
 use mdbook_prql::{code_block_lang_tags, LangTag};
 use prqlc::{pl_to_prql, pl_to_rq, prql_to_pl};
 use pulldown_cmark::Tag;
+use regex::Regex;
 use walkdir::WalkDir;
 
 use super::compile;
@@ -161,6 +162,53 @@ Remove `no-fmt` as a language label to assert successfully compiling the formatt
         Ok(())
     } else {
         Err(anyhow!(errs.join("")))
+    }
+}
+
+/// The date & time format specifier table in `reference/stdlib/date.md` is
+/// introduced as "the list of the specifiers currently supported", so assert
+/// that each row does compile — otherwise the table silently drifts from the
+/// dialect implementations in `sql/dialect.rs`.
+///
+/// We check against Postgres, matching the other examples on that page; which
+/// specifiers are supported varies by dialect.
+#[test]
+fn test_date_format_specifiers_compile() -> Result<()> {
+    let text = fs::read_to_string("./src/reference/stdlib/date.md")?;
+    // The first cell of each row of the specifier table, e.g. ``| `%Y` |``.
+    let specifier_cell = Regex::new(r"(?m)^\| `(%[^`]+)` *\|")?;
+
+    let specifiers: Vec<&str> = specifier_cell
+        .captures_iter(&text)
+        .map(|c| c.get(1).unwrap().as_str())
+        .collect();
+    // Guard against the test passing vacuously if the table's formatting
+    // changes and the regex stops matching.
+    if specifiers.len() < 20 {
+        bail!(
+            "Expected to find the date specifier table; only matched {} rows",
+            specifiers.len()
+        );
+    }
+
+    let mut errs = Vec::new();
+    for specifier in specifiers {
+        let prql = format!(
+            r#"prql target:sql.postgres
+from tbl
+select {{ a = (tbl.col | date.to_text "{specifier}") }}
+"#
+        );
+        if let Err(e) = compile(&prql) {
+            errs.push(format!(
+                "`{specifier}` is documented as supported, but fails to compile:\n{e}"
+            ));
+        }
+    }
+    if errs.is_empty() {
+        Ok(())
+    } else {
+        Err(anyhow!(errs.join("\n")))
     }
 }
 
