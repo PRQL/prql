@@ -33,6 +33,20 @@ permission first) still applies when the target shows no agent signals.
   in #5753, so bot PRs must be merged manually by a maintainer (or via repo
   branch-protection auto-merge if a maintainer enables it on the PR).
 
+## CI polling during the Dependabot batch
+
+Dependabot opens its whole batch within the same second (~17:14 UTC daily), so
+five or six `tests` matrices compete for runners at once. The surviving `tests`
+run on each PR then sits in `QUEUED` for a long time before it starts — run
+`30835855220` on #6130 took 73 minutes end to end (17:14:37 → 18:27:46), far
+past the 9-minute cap on the poll loop in **CI Monitoring** in `running-in-ci`.
+
+**Stop after one poll round if the pending checks are still `QUEUED`.** A
+`QUEUED` check has not been allocated a runner, so another round changes
+nothing: post the verdict, name the unverified checks, and end. Keep polling
+across further rounds only while pending checks are actually `IN_PROGRESS` —
+those are advancing and may still settle.
+
 ## Weekly maintenance
 
 These tasks run as Step 3 of the bundled weekly skill (only when
