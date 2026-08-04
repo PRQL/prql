@@ -554,3 +554,22 @@ fn append_by_name_unnamed() {
     ───╯
     ");
 }
+
+#[test]
+fn missing_argument_hint_without_function_name() {
+    // The hint's fallback branch (no name hint on the function type) shouldn't
+    // end up with a doubled `?`.
+    assert_snapshot!(compile(r"from x | select (std.not)").unwrap_err(), @"
+    Error:
+       ╭─[ :1:10 ]
+       │
+     1 │ from x | select (std.not)
+       │          ────────┬───────
+       │                  ╰───────── main expected type `relation`, but found type `func ? -> ?`
+       │
+       │ Help: Argument might be missing in this function call?
+       │
+       │ Note: Type `relation` expands to `[{..}]`
+    ───╯
+    ");
+}
