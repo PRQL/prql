@@ -35,17 +35,26 @@ permission first) still applies when the target shows no agent signals.
 
 ## CI polling during the Dependabot batch
 
-Dependabot opens its whole batch within the same second (~17:14 UTC daily), so
-five or six `tests` matrices compete for runners at once. The surviving `tests`
-run on each PR then sits in `QUEUED` for a long time before it starts — run
-`30835855220` on #6130 took 73 minutes end to end (17:14:37 → 18:27:46), far
-past the 9-minute cap on the poll loop in **CI Monitoring** in `running-in-ci`.
+Dependabot opens its whole batch over a couple of minutes (the 2026-08-03 batch
+ran 17:14:32 → 17:16:45; across 2026-06 to 2026-08 every batch has landed in
+17:12–17:19 UTC), so five or six `tests` matrices compete for runners at once.
+The surviving `tests` run on each PR then sits in `QUEUED` for a long time
+before it starts — run `30835855220` on #6130 took 73 minutes end to end
+(17:14:37 → 18:27:46), far past the 9-minute cap on the poll loop in **CI
+Monitoring** in `running-in-ci`.
 
-**Stop after one poll round if the pending checks are still `QUEUED`.** A
-`QUEUED` check has not been allocated a runner, so another round changes
-nothing: post the verdict, name the unverified checks, and end. Keep polling
-across further rounds only while pending checks are actually `IN_PROGRESS` —
-those are advancing and may still settle.
+**Stop after one poll round when every pending check is `QUEUED`.** A `QUEUED`
+check has not been allocated a runner, so another round changes nothing: post
+the verdict, name the unverified checks, and end. If any pending check is
+`IN_PROGRESS`, keep polling — that work is advancing and may still settle.
+
+The `pending()` helper in **CI Monitoring** returns a count without the states,
+so it can't tell those two cases apart. Project the states alongside it:
+
+```sh
+gh pr view <n> --json statusCheckRollup \
+  --jq '[.statusCheckRollup[] | {name: (.name // .context), status: (.status // .state)}]'
+```
 
 ## Weekly maintenance
 
