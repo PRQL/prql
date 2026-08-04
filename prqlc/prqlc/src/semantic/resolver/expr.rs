@@ -161,9 +161,14 @@ impl pl::PlFold for Resolver<'_> {
             }
 
             // special case: handle the syntax !{tuple..} via resolve_column_exclusion
-            pl::ExprKind::FuncCall(pl::FuncCall { name, args, .. })
-                if (name.kind.as_ident()).is_some_and(|i| i.to_string() == "std.not")
-                    && matches!(args[0].kind, pl::ExprKind::Tuple(_)) =>
+            pl::ExprKind::FuncCall(pl::FuncCall {
+                name,
+                args,
+                named_args,
+            }) if (name.kind.as_ident()).is_some_and(|i| i.to_string() == "std.not")
+                && args.len() == 1
+                && named_args.is_empty()
+                && matches!(args[0].kind, pl::ExprKind::Tuple(_)) =>
             {
                 let arg = args.into_iter().exactly_one().unwrap();
                 self.resolve_column_exclusion(arg)?

@@ -554,3 +554,29 @@ fn append_by_name_unnamed() {
     ───╯
     ");
 }
+
+#[test]
+fn not_with_extra_args() {
+    // A tuple argument to `std.not` is column-exclusion syntax, but only when
+    // it's the sole argument — extra args used to panic on `exactly_one`. The
+    // named-argument forms are in `bad_error_messages::not_with_named_arg`,
+    // since the message they produce still needs improving.
+    assert_snapshot!(compile(r"from x | select (std.not {a} b)").unwrap_err(), @"
+    Error:
+       ╭─[ :1:18 ]
+       │
+     1 │ from x | select (std.not {a} b)
+       │                  ──────┬──────
+       │                        ╰──────── Too many arguments to function `not`
+    ───╯
+    ");
+    assert_snapshot!(compile(r"from x | select (std.not {a} {b})").unwrap_err(), @"
+    Error:
+       ╭─[ :1:18 ]
+       │
+     1 │ from x | select (std.not {a} {b})
+       │                  ───────┬───────
+       │                         ╰───────── Too many arguments to function `not`
+    ───╯
+    ");
+}

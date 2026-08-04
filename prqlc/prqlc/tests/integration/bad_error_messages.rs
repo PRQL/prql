@@ -210,6 +210,16 @@ fn nested_groups() {
 }
 
 #[test]
+fn not_with_named_arg() {
+    // A named argument to `std.not` isn't column-exclusion syntax. Both of these
+    // used to panic — the first on `exactly_one`, the second on indexing
+    // `args[0]` with no positional args at all. They're errors now, but the
+    // message has no span and `Debug`-prints the ident.
+    assert_snapshot!(compile(r"from x | select (std.not {a} b:1)").unwrap_err(), @r#"Error: unknown named argument `b` to closure Some(["std", "not"])"#);
+    assert_snapshot!(compile(r"from x | select (std.not b:1)").unwrap_err(), @r#"Error: unknown named argument `b` to closure Some(["std", "not"])"#);
+}
+
+#[test]
 fn just_std() {
     assert_snapshot!(compile(r###"
     std
