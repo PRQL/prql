@@ -25,6 +25,22 @@ runs:
       with:
         crate: cargo-nextest
 
+    # `baptiste0928/cargo-install` installs into `$HOME/.cargo-install/<crate>/bin`
+    # and exposes it through `$GITHUB_PATH`, which only affects the runner user.
+    # Tend's agent session runs as a separate user (`tend-sandbox`) with its own
+    # `$HOME` and its own PATH, so `cargo insta` / `cargo nextest` — the commands
+    # CLAUDE.md tells the bot to use — resolve to `no such command` there, and the
+    # session either rebuilds both crates from source mid-run or silently falls
+    # back to plain `cargo test`. `/usr/local/bin` is shared between the two users
+    # and already on the sandbox PATH, so symlinking makes them visible to both.
+    - name: Expose cargo-install binaries to the tend sandbox
+      run: |
+        for bin in "$HOME"/.cargo-install/*/bin/*; do
+          [ -x "$bin" ] || continue
+          ln -sf "$bin" "/usr/local/bin/$(basename "$bin")"
+        done
+      shell: bash
+
     - run: ./.github/workflows/scripts/set_version.sh
       shell: bash
 
