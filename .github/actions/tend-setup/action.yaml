@@ -66,7 +66,20 @@ runs:
         # checks out the base tree, runs this action, then checks out the PR on
         # top, so a PR that changes the step count here makes the runner's
         # post-phase lookup miss and the review job fails with `Index was out of
-        # range`.
+        # range` (max-sixty/tend#846).
+        #
+        # tend's own `sandbox_path:` lever prepends directories to the sandbox
+        # PATH and names `cargo-nextest` as its motivating case, so it is the
+        # supported alternative to this block. Two reasons it lost here. Its
+        # `~` expands to the *sandbox* home, so reaching these binaries means
+        # hardcoding `/home/runner/.cargo-install/<crate>/bin` per crate; and
+        # adopter entries are prepended verbatim without an existence test, so
+        # an install-layout change degrades silently — the failure this block's
+        # post-check exists to make loud. It would also put a `/home/runner`
+        # directory on the sandbox PATH, which tend's PATH derivation otherwise
+        # refuses to do (it calls that rewrite "the SOLE credential boundary");
+        # symlinking two named binaries into an already-shared `/usr/local/bin`
+        # doesn't cross it. Revisit if `sandbox_path:` grows a guard.
         for bin in "$HOME"/.cargo-install/*/bin/*; do
           [ -x "$bin" ] || continue
           ln -sf "$bin" "/usr/local/bin/$(basename "$bin")"
