@@ -25,32 +25,6 @@ runs:
       with:
         crate: cargo-nextest
 
-    # `baptiste0928/cargo-install` installs into `$HOME/.cargo-install/<crate>/bin`
-    # and exposes it through `$GITHUB_PATH`, which only affects the runner user.
-    # Tend's agent session runs as a separate user (`tend-sandbox`) with its own
-    # `$HOME` and its own PATH, so `cargo insta` / `cargo nextest` — the commands
-    # CLAUDE.md tells the bot to use — resolve to `no such command` there, and the
-    # session either rebuilds both crates from source mid-run or silently falls
-    # back to plain `cargo test`. `/usr/local/bin` is shared between the two users
-    # and already on the sandbox PATH, so symlinking makes them visible to both.
-    #
-    # The loop is generic over whatever `cargo-install` produced, so it silently
-    # becomes a no-op if that action ever changes its install layout — and a
-    # no-op reinstates the exact silent degradation this step exists to remove.
-    # The post-check turns that into a red step instead. `-x` follows symlinks,
-    # so it covers the missing, dangling, and non-executable cases together.
-    - name: Expose cargo-install binaries to the tend sandbox
-      run: |
-        for bin in "$HOME"/.cargo-install/*/bin/*; do
-          [ -x "$bin" ] || continue
-          ln -sf "$bin" "/usr/local/bin/$(basename "$bin")"
-        done
-        for required in cargo-insta cargo-nextest; do
-          [ -x "/usr/local/bin/$required" ] ||
-            { echo "::error::$required was not exposed to /usr/local/bin"; exit 1; }
-        done
-      shell: bash
-
     - run: ./.github/workflows/scripts/set_version.sh
       shell: bash
 
@@ -69,4 +43,36 @@ runs:
         echo CARGO_TERM_COLOR=always >> $GITHUB_ENV
         echo 'RUSTFLAGS=-C debuginfo=0' >> $GITHUB_ENV
         echo 'RUSTDOCFLAGS=-Dwarnings' >> $GITHUB_ENV
+
+        # Expose the `cargo-install` binaries to the tend sandbox.
+        # `baptiste0928/cargo-install` installs into
+        # `$HOME/.cargo-install/<crate>/bin` and exposes it through
+        # `$GITHUB_PATH`, which only affects the runner user. Tend's agent
+        # session runs as a separate user (`tend-sandbox`) with its own `$HOME`
+        # and its own PATH, so `cargo insta` / `cargo nextest` — the commands
+        # CLAUDE.md tells the bot to use — resolve to `no such command` there,
+        # and the session either rebuilds both crates from source mid-run or
+        # silently falls back to plain `cargo test`. `/usr/local/bin` is shared
+        # between the two users and already on the sandbox PATH.
+        #
+        # The loop is generic over whatever `cargo-install` produced, so it
+        # silently becomes a no-op if that action ever changes its install
+        # layout — and a no-op reinstates the exact silent degradation this
+        # exists to remove. The post-check turns that into a red step instead.
+        # `-x` follows symlinks, so it covers the missing, dangling, and
+        # non-executable cases together.
+        #
+        # This shares an existing step rather than adding its own: `tend-review`
+        # checks out the base tree, runs this action, then checks out the PR on
+        # top, so a PR that changes the step count here makes the runner's
+        # post-phase lookup miss and the review job fails with `Index was out of
+        # range`.
+        for bin in "$HOME"/.cargo-install/*/bin/*; do
+          [ -x "$bin" ] || continue
+          ln -sf "$bin" "/usr/local/bin/$(basename "$bin")"
+        done
+        for required in cargo-insta cargo-nextest; do
+          [ -x "/usr/local/bin/$required" ] ||
+            { echo "::error::$required was not exposed to /usr/local/bin"; exit 1; }
+        done
       shell: bash
