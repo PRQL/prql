@@ -203,8 +203,8 @@ impl Resolver<'_> {
         if let Some((name, _)) = named_args.into_iter().next() {
             // TODO: report all remaining named_args as separate errors
             return Err(Error::new_simple(format!(
-                "unknown named argument `{name}` to closure {:?}",
-                closure.name_hint
+                "unknown named argument `{name}` to function `{}`",
+                closure.as_debug_name()
             )));
         }
 

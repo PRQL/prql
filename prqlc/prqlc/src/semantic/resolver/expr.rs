@@ -189,7 +189,9 @@ impl pl::PlFold for Resolver<'_> {
                 let func = name.try_cast(|n| n.into_func(), None, "a function")?;
 
                 // fold function
-                let func = self.apply_args_to_closure(func, args, named_args)?;
+                let func = self
+                    .apply_args_to_closure(func, args, named_args)
+                    .with_span_fallback(span)?;
                 self.fold_function(func, span)?
             }
 

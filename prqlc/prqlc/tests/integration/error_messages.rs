@@ -558,9 +558,7 @@ fn append_by_name_unnamed() {
 #[test]
 fn not_with_extra_args() {
     // A tuple argument to `std.not` is column-exclusion syntax, but only when
-    // it's the sole argument — extra args used to panic on `exactly_one`. The
-    // named-argument forms are in `bad_error_messages::not_with_named_arg`,
-    // since the message they produce still needs improving.
+    // it's the sole argument — extra args used to panic on `exactly_one`.
     assert_snapshot!(compile(r"from x | select (std.not {a} b)").unwrap_err(), @"
     Error:
        ╭─[ :1:18 ]
@@ -577,6 +575,39 @@ fn not_with_extra_args() {
      1 │ from x | select (std.not {a} {b})
        │                  ───────┬───────
        │                         ╰───────── Too many arguments to function `not`
+    ───╯
+    ");
+}
+
+#[test]
+fn unknown_named_arg() {
+    // A named argument that no parameter matches names the function and points
+    // at the call site.
+    assert_snapshot!(compile(r"from x | select (std.not {a} b:1)").unwrap_err(), @"
+    Error:
+       ╭─[ :1:18 ]
+       │
+     1 │ from x | select (std.not {a} b:1)
+       │                  ───────┬───────
+       │                         ╰───────── unknown named argument `b` to function `not`
+    ───╯
+    ");
+    assert_snapshot!(compile(r"from x | select (std.not b:1)").unwrap_err(), @"
+    Error:
+       ╭─[ :1:18 ]
+       │
+     1 │ from x | select (std.not b:1)
+       │                  ─────┬─────
+       │                       ╰─────── unknown named argument `b` to function `not`
+    ───╯
+    ");
+    assert_snapshot!(compile(r"from x | take 1 b:2").unwrap_err(), @"
+    Error:
+       ╭─[ :1:10 ]
+       │
+     1 │ from x | take 1 b:2
+       │          ─────┬────
+       │               ╰────── unknown named argument `b` to function `take`
     ───╯
     ");
 }
