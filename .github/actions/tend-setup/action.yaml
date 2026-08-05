@@ -33,11 +33,21 @@ runs:
     # session either rebuilds both crates from source mid-run or silently falls
     # back to plain `cargo test`. `/usr/local/bin` is shared between the two users
     # and already on the sandbox PATH, so symlinking makes them visible to both.
+    #
+    # The loop is generic over whatever `cargo-install` produced, so it silently
+    # becomes a no-op if that action ever changes its install layout — and a
+    # no-op reinstates the exact silent degradation this step exists to remove.
+    # The post-check turns that into a red step instead. `-x` follows symlinks,
+    # so it covers the missing, dangling, and non-executable cases together.
     - name: Expose cargo-install binaries to the tend sandbox
       run: |
         for bin in "$HOME"/.cargo-install/*/bin/*; do
           [ -x "$bin" ] || continue
           ln -sf "$bin" "/usr/local/bin/$(basename "$bin")"
+        done
+        for required in cargo-insta cargo-nextest; do
+          [ -x "/usr/local/bin/$required" ] ||
+            { echo "::error::$required was not exposed to /usr/local/bin"; exit 1; }
         done
       shell: bash
 
