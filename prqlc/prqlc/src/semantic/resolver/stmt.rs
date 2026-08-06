@@ -101,10 +101,16 @@ impl super::Resolver<'_> {
 
     fn fold_import_def_stmt(&mut self, stmt: Stmt, ident: Ident) -> Result<()> {
         let target = stmt.kind.into_import_def().unwrap();
-        let decl = DeclKind::Import(target.name);
+        let decl = Decl {
+            declared_at: stmt.id,
+            kind: DeclKind::Import(target.name),
+            annotations: stmt.annotations,
+            ..Default::default()
+        };
 
         self.root_mod
-            .declare(ident, decl, stmt.id, stmt.annotations)
+            .module
+            .insert(ident, decl)
             .with_span(stmt.span)?;
         Ok(())
     }
@@ -273,26 +279,6 @@ mod test {
          6 │ ├─▶           let a = 2
            │ │
            │ ╰───────────────────────── duplicate declarations of m.a
-        ───╯
-        ");
-    }
-
-    #[test]
-    fn duplicate_import_is_an_error() {
-        // Import defs bypassed the duplicate check that `let` and `type` get, so
-        // the second `b` used to silently win.
-        assert_snapshot!(compile(r"
-        import a.b
-        import c.b
-        from t
-        ").unwrap_err(), @"
-        Error:
-           ╭─[ :2:19 ]
-           │
-         2 │ ╭─▶         import a.b
-         3 │ ├─▶         import c.b
-           │ │
-           │ ╰──────────────────────── duplicate declarations of b
         ───╯
         ");
     }

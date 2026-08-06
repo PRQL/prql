@@ -48,6 +48,30 @@ module my_playlists {
 > modules. If a significant upside of this syntax is found, it may be added in
 > the future.
 
+### Repeated definitions
+
+Defining a module whose name already holds a module contributes to that module,
+rather than replacing it:
+
+```
+module my_playlists {
+    let bangers = ...
+}
+
+module my_playlists {
+    let deep_cuts = ...
+}
+```
+
+Both `my_playlists.bangers` and `my_playlists.deep_cuts` resolve. A name
+declared by both blocks is a duplicate declaration error, exactly as it would be
+within a single block, so point 4 of the design goals still holds — each
+declaration has a single fully-qualified name.
+
+This is what allows a file and a `module` block to contribute to the same module
+path: `my_playlists.prql` and a `module my_playlists { ... }` in the root file
+merge into one `my_playlists`.
+
 ## Name resolution
 
 Any declarations within a module can be referenced from the outside of the
