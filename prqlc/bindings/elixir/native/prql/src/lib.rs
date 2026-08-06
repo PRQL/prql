@@ -109,10 +109,11 @@ pub struct CompileOptions {
     /// If something does not work in a specific dialect, please raise in a
     /// GitHub issue.
     ///
-    /// An atom that names no known dialect falls back to
-    /// [`prqlc::sql::Dialect::Generic`]. Note that the dialect named here always
-    /// wins over a `target:sql.…` argument in the query header — unlike
-    /// [`prqlc::Options::target`], there is no value that defers to the header.
+    /// Defaults to `:generic`; an atom that names no known dialect also falls
+    /// back to [`prqlc::sql::Dialect::Generic`]. Note that the dialect named
+    /// here always wins over a `target:sql.…` argument in the query header —
+    /// unlike [`prqlc::Options::target`], there is no value that defers to the
+    /// header.
     pub target: Atom,
 
     /// Emits the compiler signature as a comment after generated SQL
