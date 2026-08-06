@@ -223,10 +223,13 @@ mod test {
         ");
     }
 
-    /// A column named after a `_self` module is still an ordinary column: in
-    /// expression position `date` means the column, not the type.
+    /// In expression position a bare `date` / `text` still resolves to the std
+    /// module, exactly as it did before `type _self` existed — it must not
+    /// resolve to the type, which would fail with "expected a value, but found
+    /// a type". (Resolving to the module rather than to a column of `t` is a
+    /// separate, pre-existing quirk; the emitted SQL is the same either way.)
     #[test]
-    fn test_module_self_type_does_not_shadow_columns() {
+    fn test_module_self_type_not_used_in_expression_position() {
         assert_snapshot!(crate::tests::compile(
             "from t | filter date > @2020-01-01 | select {text}"
         ).unwrap(), @"

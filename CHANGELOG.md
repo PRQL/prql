@@ -8,6 +8,12 @@
 
 **Fixes**:
 
+- Make `std.text` and `std.date` reachable as types. Each name declared both a
+  type alias and a module of functions, and the module definition replaced the
+  alias, so `<std.text>` failed with an internal dump of the module rather than
+  resolving to the primitive type. The aliases now live inside their modules as
+  `type _self`. (@prql-bot, #6151)
+
 **Documentation**:
 
 **Web**:
