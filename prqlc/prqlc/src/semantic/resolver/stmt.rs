@@ -223,6 +223,39 @@ mod test {
         ");
     }
 
+    /// A column named after a `_self` module is still an ordinary column: in
+    /// expression position `date` means the column, not the type.
+    #[test]
+    fn test_module_self_type_does_not_shadow_columns() {
+        assert_snapshot!(crate::tests::compile(
+            "from t | filter date > @2020-01-01 | select {text}"
+        ).unwrap(), @"
+        SELECT
+          text AS text
+        FROM
+          t
+        WHERE
+          date > DATE '2020-01-01'
+        ");
+    }
+
+    /// A `_self` type is not a relation, so `text.*` is no more a wildcard than
+    /// `math.*` is.
+    #[test]
+    fn test_module_self_type_is_not_a_wildcard_target() {
+        assert_snapshot!(crate::tests::compile(
+            "from t | select text.*"
+        ).unwrap_err(), @"
+        Error:
+           ╭─[ :1:17 ]
+           │
+         1 │ from t | select text.*
+           │                 ───┬──
+           │                    ╰──── Unknown relation text
+        ───╯
+        ");
+    }
+
     /// The module keeps working as a namespace of functions.
     #[test]
     fn test_module_self_does_not_shadow_functions() {

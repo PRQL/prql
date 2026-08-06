@@ -190,7 +190,11 @@ impl Module {
                 }
             } else if let Some(decl) = module.names.get(&prefix) {
                 if let DeclKind::Module(inner) = &decl.kind {
-                    if inner.names.contains_key(NS_SELF) {
+                    if inner
+                        .names
+                        .get(NS_SELF)
+                        .is_some_and(|s| !matches!(s.kind, DeclKind::Ty(_)))
+                    {
                         return HashSet::from([Ident::from_path(vec![
                             prefix,
                             NS_SELF.to_string(),

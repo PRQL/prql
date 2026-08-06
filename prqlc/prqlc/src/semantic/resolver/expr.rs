@@ -23,6 +23,20 @@ impl pl::PlFold for Resolver<'_> {
 
                 let fq_ident = self.resolve_ident(&ident)?;
 
+                // `module m { type _self = … }` makes `m` usable as a type;
+                // in expression position `m` still means the module.
+                let fq_ident = match &self.root_mod.module.get(&fq_ident).unwrap().kind {
+                    DeclKind::Module(inner)
+                        if matches!(
+                            inner.names.get(NS_SELF).map(|d| &d.kind),
+                            Some(DeclKind::Ty(_))
+                        ) =>
+                    {
+                        fq_ident + pl::Ident::from_name(NS_SELF)
+                    }
+                    _ => fq_ident,
+                };
+
                 let decl = self.root_mod.module.get(&fq_ident).unwrap();
                 let decl_ty = decl.kind.as_ty().ok_or_else(|| {
                     Error::new(Reason::Expected {

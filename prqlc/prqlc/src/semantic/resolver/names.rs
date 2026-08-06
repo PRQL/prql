@@ -221,7 +221,20 @@ impl Resolver<'_> {
             Error::new_simple("Column wildcard `*` must be qualified, e.g. `table_name.*`")
         })? + Ident::from_name(NS_SELF);
 
-        let decls = self.root_mod.module.lookup(&ident_self);
+        // A `type _self` (`module text { type _self = text }`) names a type, not
+        // a relation, so `text.*` is no more a wildcard than `math.*` is.
+        let decls: HashSet<Ident> = self
+            .root_mod
+            .module
+            .lookup(&ident_self)
+            .into_iter()
+            .filter(|fq| {
+                !matches!(
+                    self.root_mod.module.get(fq).map(|d| &d.kind),
+                    Some(DeclKind::Ty(_))
+                )
+            })
+            .collect();
         log::trace!("resolve_ident_wildcard decls: {decls:?}");
 
         match decls.len() {
@@ -363,14 +376,6 @@ fn ambiguous_error(idents: HashSet<Ident>, replace_name: Option<&String>) -> Err
                 ident = rem;
             } else {
                 continue;
-            }
-        }
-
-        // `module m { type _self = … }` makes `m` itself resolvable, but the
-        // candidate the user recognises is `m`, not the internal `_self`.
-        if ident.name == NS_SELF {
-            if let Some(parent) = ident.clone().pop() {
-                ident = parent;
             }
         }
 
