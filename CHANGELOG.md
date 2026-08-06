@@ -8,6 +8,13 @@
 
 **Fixes**:
 
+- Merge repeated `module` definitions of the same name rather than replacing
+  them. A second `module m { … }` block used to discard everything the first one
+  declared, with no error. This mostly bit multi-file projects, where a root
+  file that also wrote `module a { … }` silently dropped every declaration
+  `a.prql` contributed to module `a`. Duplicate `import` definitions now report
+  an error too, instead of silently keeping the last one. (@prql-bot, #6147)
+
 **Documentation**:
 
 **Web**:

@@ -62,10 +62,11 @@ impl super::Resolver<'_> {
         // the same `m` vanished without a word — including the ones a sibling
         // source file contributed to that module path.
         //
-        // Merging is also what makes `module std` in std.prql work at all: the
-        // name is already occupied by the placeholder `Module::new_root` puts
-        // there. Names that clash *within* the merged module are still caught,
-        // by the `declare` of each inner statement.
+        // Merging is also why this can't just call `declare` like the other
+        // statement kinds do: `Module::new_root` already seeds an empty `std`
+        // placeholder, so `module std { … }` in std.prql would be rejected as a
+        // duplicate. Names that clash *within* the merged module are still
+        // caught, by the `declare` of each inner statement.
         match self.root_mod.module.get_mut(&ident) {
             Some(existing) if existing.kind.is_module() => {
                 existing.annotations.extend(stmt.annotations);
@@ -73,7 +74,7 @@ impl super::Resolver<'_> {
             // A non-module declaration under the same name is still replaced,
             // as std.prql relies on it: `type text` (a type primitive) and
             // `module text` (the string functions) both declare `std.text`.
-            // See the follow-up issue linked from the PR.
+            // See #6146.
             _ => {
                 let decl = Decl {
                     declared_at: stmt.id,
@@ -200,9 +201,13 @@ mod test {
                 .map(|(path, content)| (PathBuf::from(path), content.to_string())),
             None,
         );
-        let pl = crate::prql_to_pl_tree(&sources)?;
-        let rq = crate::pl_to_rq_tree(pl, &[], &[crate::semantic::NS_DEFAULT_DB.to_string()])?;
-        crate::rq_to_sql(rq, &crate::Options::default().no_signature())
+        crate::prql_to_pl_tree(&sources)
+            .and_then(|pl| {
+                crate::pl_to_rq_tree(pl, &[], &[crate::semantic::NS_DEFAULT_DB.to_string()])
+            })
+            .and_then(|rq| crate::rq_to_sql(rq, &crate::Options::default().no_signature()))
+            // Compose the whole chain, not just the SQL stage — resolver errors
+            // carry no source context until they're composed.
             .map_err(|e| e.composed(&sources))
     }
 
