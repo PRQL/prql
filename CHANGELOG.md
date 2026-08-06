@@ -4,6 +4,10 @@
 
 **Language**:
 
+- Move all standard types into a dedicated `std.types` submodule in order to
+  disambiguate between `type text` - `module text` and `type date` -
+  `module date`. (@kgutwin, #6155)
+
 **Features**:
 
 **Fixes**:
