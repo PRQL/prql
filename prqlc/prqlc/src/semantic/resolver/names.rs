@@ -221,18 +221,22 @@ impl Resolver<'_> {
             Error::new_simple("Column wildcard `*` must be qualified, e.g. `table_name.*`")
         })? + Ident::from_name(NS_SELF);
 
-        // A `type _self` (`module text { type _self = text }`) names a type, not
-        // a relation, so `text.*` is no more a wildcard than `math.*` is.
+        // A module whose `_self` is a type (`module text { type _self = text }`)
+        // names a type, not a relation, so `text.*` is no more a wildcard than
+        // `math.*` is. This path appends `_self` itself, bypassing the same
+        // check in `Module::lookup`, so repeat it on each resolved ident.
         let decls: HashSet<Ident> = self
             .root_mod
             .module
             .lookup(&ident_self)
             .into_iter()
             .filter(|fq| {
-                !matches!(
-                    self.root_mod.module.get(fq).map(|d| &d.kind),
-                    Some(DeclKind::Ty(_))
-                )
+                let module = fq
+                    .clone()
+                    .pop()
+                    .and_then(|parent| self.root_mod.module.get(&parent))
+                    .and_then(|decl| decl.kind.as_module());
+                module.map_or(true, |module| module.self_ty().is_none())
             })
             .collect();
         log::trace!("resolve_ident_wildcard decls: {decls:?}");

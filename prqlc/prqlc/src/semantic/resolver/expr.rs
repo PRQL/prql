@@ -23,15 +23,14 @@ impl pl::PlFold for Resolver<'_> {
 
                 let fq_ident = self.resolve_ident(&ident)?;
 
+                // The type is named after what was written, so capture the name
+                // before the `_self` redirect below rewrites it.
+                let ty_name = fq_ident.name.clone();
+
                 // `module m { type _self = … }` makes `m` usable as a type;
                 // in expression position `m` still means the module.
                 let fq_ident = match &self.root_mod.module.get(&fq_ident).unwrap().kind {
-                    DeclKind::Module(inner)
-                        if matches!(
-                            inner.names.get(NS_SELF).map(|d| &d.kind),
-                            Some(DeclKind::Ty(_))
-                        ) =>
-                    {
+                    DeclKind::Module(inner) if inner.self_ty().is_some() => {
                         fq_ident + pl::Ident::from_name(NS_SELF)
                     }
                     _ => fq_ident,
@@ -46,7 +45,7 @@ impl pl::PlFold for Resolver<'_> {
                     })
                 })?;
                 let mut ty = decl_ty.clone();
-                ty.name = ty.name.or(Some(fq_ident.name));
+                ty.name = ty.name.or(Some(ty_name));
 
                 self.root_mod.module.unshadow(NS_THIS);
                 self.root_mod.module.unshadow(NS_THAT);

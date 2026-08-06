@@ -134,6 +134,16 @@ impl Module {
         ns.names.get(&fq_ident.name)
     }
 
+    /// The type that this module itself names, if it has one.
+    ///
+    /// `module m { type _self = … }` makes `m` usable as a type: `<m>` resolves
+    /// to that type, while `m` in expression position keeps meaning the module.
+    /// Modules whose `_self` holds a value instead — table instances, `this`,
+    /// `that` — return `None`, and `m` resolves to that value.
+    pub fn self_ty(&self) -> Option<&Ty> {
+        self.names.get(NS_SELF)?.kind.as_ty()
+    }
+
     /// Recursively list all idents within this module. Useful for debugging.
     pub fn all_names(&self, prefix: Option<&Ident>) -> Vec<Ident> {
         let mut rv = Vec::new();
@@ -190,11 +200,7 @@ impl Module {
                 }
             } else if let Some(decl) = module.names.get(&prefix) {
                 if let DeclKind::Module(inner) = &decl.kind {
-                    if inner
-                        .names
-                        .get(NS_SELF)
-                        .is_some_and(|s| !matches!(s.kind, DeclKind::Ty(_)))
-                    {
+                    if inner.names.contains_key(NS_SELF) && inner.self_ty().is_none() {
                         return HashSet::from([Ident::from_path(vec![
                             prefix,
                             NS_SELF.to_string(),
