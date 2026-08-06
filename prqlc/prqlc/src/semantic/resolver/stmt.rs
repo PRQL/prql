@@ -55,24 +55,44 @@ impl super::Resolver<'_> {
 
     fn fold_module_def_stmt(&mut self, stmt: Stmt, ident: Ident) -> Result<()> {
         let module_def = stmt.kind.into_module_def().unwrap();
+
+        // A module def for a name that's already a module merges into it rather
+        // than replacing it. Inserting a fresh module used to discard whatever
+        // was there, so the declarations of every earlier `module m` block for
+        // the same `m` vanished without a word — including the ones a sibling
+        // source file contributed to that module path.
+        //
+        // Merging is also what makes `module std` in std.prql work at all: the
+        // name is already occupied by the placeholder `Module::new_root` puts
+        // there. Names that clash *within* the merged module are still caught,
+        // by the `declare` of each inner statement.
+        match self.root_mod.module.get_mut(&ident) {
+            Some(existing) if existing.kind.is_module() => {
+                existing.annotations.extend(stmt.annotations);
+            }
+            // A non-module declaration under the same name is still replaced,
+            // as std.prql relies on it: `type text` (a type primitive) and
+            // `module text` (the string functions) both declare `std.text`.
+            // See the follow-up issue linked from the PR.
+            _ => {
+                let decl = Decl {
+                    declared_at: stmt.id,
+                    kind: DeclKind::Module(Module {
+                        names: HashMap::new(),
+                        redirects: Vec::new(),
+                        shadowed: None,
+                    }),
+                    annotations: stmt.annotations,
+                    ..Default::default()
+                };
+                self.root_mod
+                    .module
+                    .insert(ident.clone(), decl)
+                    .with_span(stmt.span)?;
+            }
+        }
+
         self.current_module_path.push(ident.name);
-
-        let decl = Decl {
-            declared_at: stmt.id,
-            kind: DeclKind::Module(Module {
-                names: HashMap::new(),
-                redirects: Vec::new(),
-                shadowed: None,
-            }),
-            annotations: stmt.annotations,
-            ..Default::default()
-        };
-        let ident = Ident::from_path(self.current_module_path.clone());
-        self.root_mod
-            .module
-            .insert(ident, decl)
-            .with_span(stmt.span)?;
-
         self.fold_statements(module_def.stmts)?;
         self.current_module_path.pop();
         Ok(())
@@ -80,16 +100,10 @@ impl super::Resolver<'_> {
 
     fn fold_import_def_stmt(&mut self, stmt: Stmt, ident: Ident) -> Result<()> {
         let target = stmt.kind.into_import_def().unwrap();
-        let decl = Decl {
-            declared_at: stmt.id,
-            kind: DeclKind::Import(target.name),
-            annotations: stmt.annotations,
-            ..Default::default()
-        };
+        let decl = DeclKind::Import(target.name);
 
         self.root_mod
-            .module
-            .insert(ident, decl)
+            .declare(ident, decl, stmt.id, stmt.annotations)
             .with_span(stmt.span)?;
         Ok(())
     }
@@ -166,5 +180,115 @@ fn prepare_expr_decl(value: Box<Expr>) -> DeclKind {
             DeclKind::TableDecl(TableDecl { ty, expr })
         }
         _ => DeclKind::Expr(value),
+    }
+}
+
+#[cfg(test)]
+mod test {
+    use std::path::PathBuf;
+
+    use insta::assert_snapshot;
+
+    use crate::tests::compile;
+
+    /// Compile a multi-file project, the way `prqlc compile <dir>` does.
+    fn compile_tree(files: &[(&str, &str)]) -> Result<String, crate::ErrorMessages> {
+        anstream::ColorChoice::Never.write_global();
+        let sources = crate::SourceTree::new(
+            files
+                .iter()
+                .map(|(path, content)| (PathBuf::from(path), content.to_string())),
+            None,
+        );
+        let pl = crate::prql_to_pl_tree(&sources)?;
+        let rq = crate::pl_to_rq_tree(pl, &[], &[crate::semantic::NS_DEFAULT_DB.to_string()])?;
+        crate::rq_to_sql(rq, &crate::Options::default().no_signature())
+            .map_err(|e| e.composed(&sources))
+    }
+
+    #[test]
+    fn module_def_merges_with_earlier_block() {
+        // A second `module m` block used to replace the first outright, so `m.a`
+        // silently disappeared.
+        assert_snapshot!(compile(r"
+        module m {
+          let a = 1
+        }
+        module m {
+          let b = 2
+        }
+        from t
+        derive {x = m.a, y = m.b}
+        ").unwrap(), @r"
+        SELECT
+          *,
+          1 AS x,
+          2 AS y
+        FROM
+          t
+        ");
+    }
+
+    #[test]
+    fn module_def_merges_across_files() {
+        // `a.prql` contributes to module `a`, and so does a `module a` block in
+        // the root file. Both sets of declarations have to survive.
+        assert_snapshot!(compile_tree(&[
+            ("a.prql", "let y = 2\n"),
+            (
+                "Main.prql",
+                "module a {\n  let x = 1\n}\nfrom t\nderive {p = a.x, q = a.y}\n",
+            ),
+        ]).unwrap(), @r"
+        SELECT
+          *,
+          1 AS p,
+          2 AS q
+        FROM
+          t
+        ");
+    }
+
+    #[test]
+    fn duplicate_name_in_merged_module_is_an_error() {
+        // Merging must not paper over a genuine clash between the two blocks.
+        assert_snapshot!(compile(r"
+        module m {
+          let a = 1
+        }
+        module m {
+          let a = 2
+        }
+        from t
+        ").unwrap_err(), @"
+        Error:
+           ╭─[ :5:19 ]
+           │
+         5 │ ╭─▶         module m {
+         6 │ ├─▶           let a = 2
+           │ │
+           │ ╰───────────────────────── duplicate declarations of m.a
+        ───╯
+        ");
+    }
+
+    #[test]
+    fn duplicate_import_is_an_error() {
+        // Import defs bypassed the duplicate check that `let` and `type` get, so
+        // the second `b` used to silently win.
+        assert_snapshot!(compile(r"
+        import a.b
+        import c.b
+        from t
+        ").unwrap_err(), @"
+        Error:
+           ╭─[ :2:19 ]
+           │
+         2 │ ╭─▶         import a.b
+         3 │ ├─▶         import c.b
+           │ │
+           │ ╰──────────────────────── duplicate declarations of b
+        ───╯
+        ");
     }
 }
