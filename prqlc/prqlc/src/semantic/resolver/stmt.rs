@@ -191,4 +191,20 @@ mod test {
         ───╯
         ");
     }
+
+    #[test]
+    fn aliased_import_avoids_duplicate() {
+        // `import d = …` is the documented way to bring in two targets that
+        // would otherwise land on the same name.
+        assert_snapshot!(compile(r"
+        import a.b
+        import d = c.b
+        from t
+        ").unwrap(), @"
+        SELECT
+          *
+        FROM
+          t
+        ");
+    }
 }
