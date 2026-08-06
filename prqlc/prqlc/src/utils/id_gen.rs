@@ -3,9 +3,12 @@ use std::marker::PhantomData;
 use crate::ir::rq::{fold_table, CId, RelationalQuery, RqFold, TId, TableDecl};
 use crate::Result;
 
+pub const SYS_ID_START: usize = 4_000_000_000;
+
 #[derive(Debug, Clone)]
 pub struct IdGenerator<T: From<usize>> {
     next_id: usize,
+    next_id_sys: usize,
     phantom: PhantomData<T>,
 }
 
@@ -18,9 +21,18 @@ impl<T: From<usize>> IdGenerator<T> {
         self.next_id = self.next_id.max(id + 1);
     }
 
+    pub fn gen_sys(&mut self) -> T {
+        let id = self.next_id_sys;
+        self.next_id_sys += 1;
+        T::from(id)
+    }
+
     pub fn gen(&mut self) -> T {
         let id = self.next_id;
         self.next_id += 1;
+        if self.next_id >= SYS_ID_START {
+            panic!("too many generated ids!");
+        }
         T::from(id)
     }
 }
@@ -29,6 +41,7 @@ impl<T: From<usize>> Default for IdGenerator<T> {
     fn default() -> IdGenerator<T> {
         IdGenerator {
             next_id: 0,
+            next_id_sys: SYS_ID_START,
             phantom: PhantomData,
         }
     }

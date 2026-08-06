@@ -14,17 +14,17 @@ TransformCall:
           kind:
             Tuple:
               - Wildcard: ~
-          span: "0:1740-1744"
+          span: "0:1773-1777"
           name: ~
-      span: "0:1739-1745"
+      span: "0:1772-1778"
       name: relation
     lineage:
       columns:
         - All:
-            input_id: 121
+            input_id: 7
             except: []
       inputs:
-        - id: 121
+        - id: 7
           name: c_invoice
           table:
             - default_db
@@ -44,7 +44,7 @@ TransformCall:
                   ty:
                     kind:
                       Array: ~
-                    span: "0:1699-1701"
+                    span: "0:1732-1734"
                     name: array
             span: "1:73-87"
         span: "1:73-87"
@@ -94,14 +94,14 @@ lineage:
         name:
           - c_invoice
           - issued_at
-        target_id: 123
+        target_id: 8
         target_name: ~
     - Single:
         name: ~
-        target_id: 139
+        target_id: 24
         target_name: ~
   inputs:
-    - id: 121
+    - id: 7
       name: c_invoice
       table:
         - default_db

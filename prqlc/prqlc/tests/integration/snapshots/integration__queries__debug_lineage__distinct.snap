@@ -10,16 +10,16 @@ frames:
       name:
       - tracks
       - album_id
-      target_id: 129
+      target_id: 14
       target_name: null
     - !Single
       name:
       - tracks
       - genre_id
-      target_id: 130
+      target_id: 15
       target_name: null
     inputs:
-    - id: 127
+    - id: 13
       name: tracks
       table:
       - default_db
@@ -30,16 +30,16 @@ frames:
       name:
       - tracks
       - album_id
-      target_id: 134
+      target_id: 19
       target_name: null
     - !Single
       name:
       - tracks
       - genre_id
-      target_id: 135
+      target_id: 20
       target_name: null
     inputs:
-    - id: 127
+    - id: 13
       name: tracks
       table:
       - default_db
@@ -50,29 +50,29 @@ frames:
       name:
       - tracks
       - album_id
-      target_id: 134
+      target_id: 19
       target_name: null
     - !Single
       name:
       - tracks
       - genre_id
-      target_id: 135
+      target_id: 20
       target_name: null
     inputs:
-    - id: 127
+    - id: 13
       name: tracks
       table:
       - default_db
       - tracks
 nodes:
-- id: 127
+- id: 13
   kind: Ident
   span: 1:13-24
   ident: !Ident
   - default_db
   - tracks
-  parent: 132
-- id: 129
+  parent: 17
+- id: 14
   kind: Ident
   span: 1:33-41
   ident: !Ident
@@ -80,9 +80,9 @@ nodes:
   - tracks
   - album_id
   targets:
-  - 127
-  parent: 131
-- id: 130
+  - 13
+  parent: 16
+- id: 15
   kind: Ident
   span: 1:43-51
   ident: !Ident
@@ -90,81 +90,81 @@ nodes:
   - tracks
   - genre_id
   targets:
-  - 127
-  parent: 131
-- id: 131
+  - 13
+  parent: 16
+- id: 16
   kind: Tuple
   span: 1:32-52
   children:
-  - 129
-  - 130
-  parent: 132
-- id: 132
+  - 14
+  - 15
+  parent: 17
+- id: 17
   kind: 'TransformCall: Select'
   span: 1:25-52
   children:
-  - 127
-  - 131
-  parent: 153
-- id: 134
+  - 13
+  - 16
+  parent: 38
+- id: 19
   kind: Ident
   ident: !Ident
   - this
   - tracks
   - album_id
   targets:
-  - 129
-  parent: 136
-- id: 135
+  - 14
+  parent: 21
+- id: 20
   kind: Ident
   ident: !Ident
   - this
   - tracks
   - genre_id
   targets:
-  - 130
-  parent: 136
-- id: 136
+  - 15
+  parent: 21
+- id: 21
   kind: Tuple
   span: 1:59-67
   children:
-  - 134
-  - 135
-- id: 153
+  - 19
+  - 20
+- id: 38
   kind: 'TransformCall: Take'
   span: 1:69-75
   children:
-  - 132
-  - 154
-  parent: 161
-- id: 154
+  - 17
+  - 39
+  parent: 46
+- id: 39
   kind: Literal
-  parent: 153
-- id: 158
+  parent: 38
+- id: 43
   kind: Ident
   ident: !Ident
   - this
   - tracks
   - album_id
   targets:
-  - 134
-  parent: 161
-- id: 159
+  - 19
+  parent: 46
+- id: 44
   kind: Ident
   ident: !Ident
   - this
   - tracks
   - genre_id
   targets:
-  - 135
-  parent: 161
-- id: 161
+  - 20
+  parent: 46
+- id: 46
   kind: 'TransformCall: Sort'
   span: 1:77-90
   children:
-  - 153
-  - 158
-  - 159
+  - 38
+  - 43
+  - 44
 ast:
   name: Project
   stmts:

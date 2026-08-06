@@ -10,7 +10,11 @@ impl super::Resolver<'_> {
     // entry point to the resolver
     pub fn fold_statements(&mut self, stmts: Vec<Stmt>) -> Result<()> {
         for mut stmt in stmts {
-            stmt.id = Some(self.id.gen());
+            stmt.id = match stmt.span {
+                None => Some(self.id.gen()),
+                Some(span) if span.source_id == 0 => Some(self.id.gen_sys()),
+                Some(_) => Some(self.id.gen()),
+            };
             if let Some(span) = stmt.span {
                 self.root_mod.span_map.insert(stmt.id.unwrap(), span);
             }
