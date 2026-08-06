@@ -14,9 +14,9 @@ TransformCall:
           kind:
             Tuple:
               - Wildcard: ~
-          span: "0:1740-1744"
+          span: "0:1824-1828"
           name: ~
-      span: "0:1739-1745"
+      span: "0:1823-1829"
       name: relation
     lineage:
       columns:
@@ -44,7 +44,7 @@ TransformCall:
                   ty:
                     kind:
                       Array: ~
-                    span: "0:1699-1701"
+                    span: "0:1783-1785"
                     name: array
             span: "1:73-87"
         span: "1:73-87"

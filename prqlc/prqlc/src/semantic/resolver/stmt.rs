@@ -3,6 +3,7 @@ use std::collections::HashMap;
 use crate::ir::decl::{Decl, DeclKind, Module, TableDecl, TableExpr};
 use crate::ir::pl::*;
 use crate::pr::{Ty, TyKind, TyTupleField};
+use crate::semantic::NS_SELF;
 use crate::Result;
 use crate::WithErrorInfo;
 
@@ -43,7 +44,14 @@ impl super::Resolver<'_> {
     fn fold_type_def_stmt(&mut self, stmt: Stmt, ident: Ident) -> Result<()> {
         let type_def = stmt.kind.into_type_def().unwrap();
         let mut ty = self.fold_type(type_def.value)?;
-        ty.name = Some(ident.name.clone());
+        // `type _self = …` inside `module m { … }` makes `m` itself usable as a
+        // type, so name it after the module — `_self` is an implementation
+        // detail that shouldn't reach error messages.
+        ty.name = Some(if ident.name == NS_SELF {
+            ident.path.last().unwrap_or(&ident.name).clone()
+        } else {
+            ident.name.clone()
+        });
 
         let decl = DeclKind::Ty(ty);
 
@@ -166,5 +174,68 @@ fn prepare_expr_decl(value: Box<Expr>) -> DeclKind {
             DeclKind::TableDecl(TableDecl { ty, expr })
         }
         _ => DeclKind::Expr(value),
+    }
+}
+
+#[cfg(test)]
+mod test {
+    use insta::assert_snapshot;
+
+    /// `std.text` and `std.date` name both a module of functions and the
+    /// corresponding primitive type; the type half lives under `_self`.
+    #[test]
+    fn test_module_self_type() {
+        assert_snapshot!(crate::tests::compile(
+            r#"
+            let f = func x <std.text> -> x
+            from t
+            derive {y = f "a"}
+            "#
+        ).unwrap(), @r"
+        SELECT
+          *,
+          'a' AS y
+        FROM
+          t
+        ");
+    }
+
+    /// A `_self` type is still checked, and the mismatch is reported under the
+    /// module's own name rather than leaking `_self`.
+    #[test]
+    fn test_module_self_type_mismatch() {
+        assert_snapshot!(crate::tests::compile(
+            r#"
+            let f = func x <std.date> -> x
+            from t
+            derive {y = f 1}
+            "#
+        ).unwrap_err(), @"
+        Error:
+           ╭─[ :4:27 ]
+           │
+         4 │             derive {y = f 1}
+           │                           ┬
+           │                           ╰── function f, param `x` expected type `date`, but found type `int`
+           │
+           │ Help: Type `date` expands to `date`
+        ───╯
+        ");
+    }
+
+    /// The module keeps working as a namespace of functions.
+    #[test]
+    fn test_module_self_does_not_shadow_functions() {
+        assert_snapshot!(crate::tests::compile(
+            "prql target:sql.postgres
+             from t | derive {a = (text.lower name), b = (date.to_text \"%Y\" d)}"
+        ).unwrap(), @"
+        SELECT
+          *,
+          LOWER(name) AS a,
+          TO_CHAR(d, 'YYYY') AS b
+        FROM
+          t
+        ");
     }
 }

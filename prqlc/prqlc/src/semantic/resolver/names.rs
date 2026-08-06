@@ -366,6 +366,14 @@ fn ambiguous_error(idents: HashSet<Ident>, replace_name: Option<&String>) -> Err
             }
         }
 
+        // `module m { type _self = … }` makes `m` itself resolvable, but the
+        // candidate the user recognises is `m`, not the internal `_self`.
+        if ident.name == NS_SELF {
+            if let Some(parent) = ident.clone().pop() {
+                ident = parent;
+            }
+        }
+
         if let Some(name) = replace_name {
             ident.name.clone_from(name);
         }

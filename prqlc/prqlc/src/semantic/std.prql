@@ -41,11 +41,11 @@ let not = expr<bool> -> <bool> internal std.not
 type int = int
 type float = float
 type bool = bool
-type text = text
-type date = date
 type time = time
 type timestamp = timestamp
 type `func` = func
+# `text` and `date` also name modules of functions below, so their type
+# aliases are declared there as `type _self`.
 
 ## Generic array
 type array = []
@@ -228,6 +228,10 @@ let from_text = input<text> `noresolve.format`:csv -> <relation> internal from_t
 
 ## Text functions
 module text {
+  # `std.text` is the primitive type as well as this module — see the type
+  # primitives above.
+  type _self = text
+
   let lower = column -> <text> internal std.text.lower
   let upper = column -> <text> internal std.text.upper
   let ltrim = column -> <text> internal std.text.ltrim
@@ -244,6 +248,10 @@ module text {
 ## Date functions
 
 module date {
+  # `std.date` is the primitive type as well as this module — see the type
+  # primitives above.
+  type _self = date
+
   # Returns the current date and time as a timestamp.
   let now = -> <timestamp> internal std.date.now
   let to_text = format<text> column -> <text> internal std.date.to_text
