@@ -87,6 +87,7 @@ impl super::Resolver<'_> {
         // matching `let` and `type`.
         self.root_mod
             .declare(ident, decl, stmt.id, stmt.annotations)
+            .push_hint("to import both, alias one of them: `import alias = path`")
             .with_span(stmt.span)?;
         Ok(())
     }
@@ -188,6 +189,8 @@ mod test {
          3 │ ├─▶         import c.b
            │ │
            │ ╰──────────────────────── duplicate declarations of b
+           │
+           │     Help: to import both, alias one of them: `import alias = path`
         ───╯
         ");
     }
