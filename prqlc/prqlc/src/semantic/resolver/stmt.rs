@@ -108,7 +108,7 @@ impl super::Resolver<'_> {
 
         if def.name == "main" {
             def.ty = Some(Ty::new(TyKind::Ident(Ident::from_path(vec![
-                "std", "relation",
+                "std", "types", "relation",
             ]))));
         }
 

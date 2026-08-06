@@ -35,6 +35,7 @@ impl Module {
                 Ident::from_name(NS_THIS),
                 Ident::from_name(NS_THAT),
                 Ident::from_name(NS_PARAM),
+                Ident::from_path(vec![NS_STD, "types"]),
                 Ident::from_name(NS_STD),
             ],
         }
