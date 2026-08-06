@@ -40,7 +40,10 @@ defmodule PRQL do
 
     * `:target` - Dialect used for generate SQL. Accepted values are
     `:generic`, `:mssql`, `:mysql`, `:postgres`, `:ansi`, `:bigquery`,
-    `:clickhouse`, `:duckdb`, `:glaredb`, `:oracle`, `:redshift`, `:sqlite`, `:snowflake`
+    `:clickhouse`, `:duckdb`, `:glaredb`, `:oracle`, `:redshift`, `:sqlite`, `:snowflake`.
+    Defaults to `:generic`. The dialect given here always wins over a
+    `target:sql.…` argument in the query header; there is no value that defers
+    to the header.
 
     * `:format` - Formats the output, defaults to `true`
 
