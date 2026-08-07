@@ -701,8 +701,21 @@ fn test_number() {
     span: "0:0-3"
     "#);
 
-    // expr_of_string("2_").unwrap_err(); // TODO
-    // expr_of_string("2.3_").unwrap_err(); // TODO
+    // Trailing underscores in numeric literals are currently accepted and
+    // ignored: `2_` parses as `2` and `2.3_` as `2.3`. Rejecting them was an
+    // old TODO that referenced a since-removed `expr_of_string` helper; these
+    // snapshots pin the actual behavior so a future change to reject them is
+    // deliberate and visible.
+    assert_yaml_snapshot!(parse_expr(r#"2_"#).unwrap(), @r#"
+    Literal:
+      Integer: 2
+    span: "0:0-2"
+    "#);
+    assert_yaml_snapshot!(parse_expr(r#"2.3_"#).unwrap(), @r#"
+    Literal:
+      Float: 2.3
+    span: "0:0-4"
+    "#);
 }
 
 #[test]

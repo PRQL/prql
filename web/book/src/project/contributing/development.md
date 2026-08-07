@@ -78,7 +78,7 @@ website, we have two options:
   cargo test
   ```
 
-  ...and if that doesn't complete successfully, ensure we have Python >= 3.7, to
+  ...and if that doesn't complete successfully, ensure we have Python >= 3.9, to
   compile `prqlc-python`.
 
 - For more involved contributions, such as building the website, playground,
@@ -136,7 +136,7 @@ To load the shell:
 
    ```sh
    mkdir -p ~/.config/nix/
-   tee 'experimental-features = nix-command flakes' >> ~/.config/nix/nix.conf
+   echo 'experimental-features = nix-command flakes' >> ~/.config/nix/nix.conf
    ```
 
    For NixOS users, follow instructions [here](https://nixos.wiki/wiki/Flakes).
@@ -380,7 +380,7 @@ inconsistent in watchexec. Let's revert back if it gets solved.
   minutes, and we should be reassessing their scope if they take longer than
   that. Once these pass, a pull request can be merged.
 
-- **[GitHub Actions on merge](https://github.com/PRQL/prql/blob/c042eef48709e2c1af577161554fd09f14e67e0f/.github/workflows/pull-request.yaml#L124)**
+- **[GitHub Actions on merge](https://github.com/PRQL/prql/blob/main/.github/workflows/tests.yaml)**
   — we run a wider set tests on every merge to main. This includes testing
   across OSs, all our language bindings, a measure of test code coverage, and
   some performance benchmarks.

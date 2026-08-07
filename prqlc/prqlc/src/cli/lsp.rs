@@ -56,12 +56,7 @@ fn main_loop(
                     Ok((id, params)) => {
                         eprintln!("got gotoDefinition request #{id}: {params:?}");
                         let result = Some(GotoDefinitionResponse::Array(Vec::new()));
-                        let result = serde_json::to_value(&result).unwrap();
-                        let resp = Response {
-                            id,
-                            result: Some(result),
-                            error: None,
-                        };
+                        let resp = Response::new_ok(id, result);
                         connection.sender.send(Message::Response(resp))?;
                         continue;
                     }

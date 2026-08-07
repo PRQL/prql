@@ -221,8 +221,6 @@ impl Resolver<'_> {
                 } else {
                     (WindowKind::Rows, None, None)
                 };
-                // let start = Expr::new(start.map_or(Literal::Null, Literal::Integer));
-                // let end = Expr::new(end.map_or(Literal::Null, Literal::Integer));
                 let range = Range {
                     start: start.map(Literal::Integer).map(Expr::new).map(Box::new),
                     end: end.map(Literal::Integer).map(Expr::new).map(Box::new),
@@ -1461,7 +1459,13 @@ mod tests {
         let (res, _) = ctx.find_main_rel(&[]).unwrap().clone();
         let expr = res.clone().into_relation_var().unwrap();
         let expr = super::super::test::erase_ids(*expr);
-        assert_yaml_snapshot!(expr);
+
+        // Spans from `std.prql` carry source id 0 (`STD_LIB_SOURCE_ID`); user
+        // sources start at 1. Filtering them keeps this snapshot stable when the
+        // stdlib shifts, without hiding spans from the query under test.
+        insta::with_settings!({ filters => vec![(r"\b0:\d+-\d+", "[std]")] }, {
+            assert_yaml_snapshot!(expr);
+        });
     }
 
     #[test]

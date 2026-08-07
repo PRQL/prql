@@ -7,21 +7,21 @@ columns:
       name:
         - employees
         - name
-      target_id: 141
+      target_id: 21
       target_name: ~
   - Single:
       name:
         - employees
         - salary
-      target_id: 142
+      target_id: 22
       target_name: ~
 inputs:
-  - id: 139
+  - id: 20
     name: employees
     table:
       - default_db
       - employees
-  - id: 128
+  - id: 10
     name: managers
     table:
       - default_db

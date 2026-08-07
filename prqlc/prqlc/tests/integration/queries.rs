@@ -148,7 +148,10 @@ mod debug_lineage {
 
         let lineage = serde_yaml::to_string(&fc).unwrap();
 
-        with_settings!({ input_file => prql_path }, {
+        with_settings!({
+            input_file => prql_path,
+            filters => vec![(r"\b0:\d+-\d+", "[std]")],
+        }, {
             assert_snapshot!(test_name, &lineage, &prql)
         });
     }

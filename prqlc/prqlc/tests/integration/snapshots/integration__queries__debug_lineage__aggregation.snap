@@ -7,10 +7,10 @@ frames:
 - - 1:101-123
   - columns:
     - !All
-      input_id: 131
+      input_id: 13
       except: []
     inputs:
-    - id: 131
+    - id: 13
       name: tracks
       table:
       - default_db
@@ -18,15 +18,15 @@ frames:
 - - 1:124-154
   - columns:
     - !All
-      input_id: 131
+      input_id: 13
       except: []
     - !Single
       name:
       - empty_name
-      target_id: 138
+      target_id: 19
       target_name: null
     inputs:
-    - id: 131
+    - id: 13
       name: tracks
       table:
       - default_db
@@ -35,42 +35,42 @@ frames:
   - columns:
     - !Single
       name: null
-      target_id: 144
+      target_id: 25
       target_name: null
     - !Single
       name: null
-      target_id: 147
+      target_id: 28
       target_name: null
     - !Single
       name: null
-      target_id: 150
+      target_id: 31
       target_name: null
     - !Single
       name: null
-      target_id: 153
+      target_id: 34
       target_name: null
     inputs:
-    - id: 131
+    - id: 13
       name: tracks
       table:
       - default_db
       - tracks
 nodes:
-- id: 131
+- id: 13
   kind: Ident
   span: 1:89-100
   ident: !Ident
   - default_db
   - tracks
-  parent: 137
-- id: 133
+  parent: 18
+- id: 14
   kind: RqOperator
   span: 1:108-123
   targets:
-  - 135
-  - 136
-  parent: 137
-- id: 135
+  - 16
+  - 17
+  parent: 18
+- id: 16
   kind: Ident
   span: 1:108-116
   ident: !Ident
@@ -78,26 +78,26 @@ nodes:
   - tracks
   - genre_id
   targets:
-  - 131
-- id: 136
+  - 13
+- id: 17
   kind: Literal
   span: 1:120-123
-- id: 137
+- id: 18
   kind: 'TransformCall: Filter'
   span: 1:101-123
   children:
-  - 131
-  - 133
-  parent: 143
-- id: 138
+  - 13
+  - 14
+  parent: 24
+- id: 19
   kind: RqOperator
   span: 1:144-154
   alias: empty_name
   targets:
-  - 140
-  - 141
-  parent: 142
-- id: 140
+  - 21
+  - 22
+  parent: 23
+- id: 21
   kind: Ident
   span: 1:144-148
   ident: !Ident
@@ -105,30 +105,30 @@ nodes:
   - tracks
   - name
   targets:
-  - 131
-- id: 141
+  - 13
+- id: 22
   kind: Literal
   span: 1:152-154
-- id: 142
+- id: 23
   kind: Tuple
   span: 1:144-154
   children:
-  - 138
-  parent: 143
-- id: 143
+  - 19
+  parent: 24
+- id: 24
   kind: 'TransformCall: Derive'
   span: 1:124-154
   children:
-  - 137
-  - 142
-  parent: 157
-- id: 144
+  - 18
+  - 23
+  parent: 38
+- id: 25
   kind: RqOperator
   span: 1:166-178
   targets:
-  - 146
-  parent: 156
-- id: 146
+  - 27
+  parent: 37
+- id: 27
   kind: Ident
   span: 1:170-178
   ident: !Ident
@@ -136,14 +136,14 @@ nodes:
   - tracks
   - track_id
   targets:
-  - 131
-- id: 147
+  - 13
+- id: 28
   kind: RqOperator
   span: 1:180-197
   targets:
-  - 149
-  parent: 156
-- id: 149
+  - 30
+  parent: 37
+- id: 30
   kind: Ident
   span: 1:193-197
   ident: !Ident
@@ -151,50 +151,50 @@ nodes:
   - tracks
   - name
   targets:
-  - 131
-- id: 150
+  - 13
+- id: 31
   kind: RqOperator
   span: 1:199-213
   targets:
-  - 152
-  parent: 156
-- id: 152
+  - 33
+  parent: 37
+- id: 33
   kind: Ident
   span: 1:203-213
   ident: !Ident
   - this
   - empty_name
   targets:
-  - 138
-- id: 153
+  - 19
+- id: 34
   kind: RqOperator
   span: 1:215-229
   targets:
-  - 155
-  parent: 156
-- id: 155
+  - 36
+  parent: 37
+- id: 36
   kind: Ident
   span: 1:219-229
   ident: !Ident
   - this
   - empty_name
   targets:
-  - 138
-- id: 156
+  - 19
+- id: 37
   kind: Tuple
   span: 1:165-230
   children:
-  - 144
-  - 147
-  - 150
-  - 153
-  parent: 157
-- id: 157
+  - 25
+  - 28
+  - 31
+  - 34
+  parent: 38
+- id: 38
   kind: 'TransformCall: Aggregate'
   span: 1:155-230
   children:
-  - 143
-  - 156
+  - 24
+  - 37
 ast:
   name: Project
   stmts:

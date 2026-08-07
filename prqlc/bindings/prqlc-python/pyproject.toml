@@ -41,9 +41,11 @@ possibly-missing-submodule = "ignore"
 
 [tool.ruff]
 fix = true
+
+[tool.ruff.lint]
 ignore = [
-  # Line length — black handles
-  "E5", #
+  # Line length — `ruff format` handles
+  "E5",
   # No lambdas — too strict
   "E731",
 ]

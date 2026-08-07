@@ -86,12 +86,15 @@ const def = {
       // regex; contributions welcome).
       [/[+-]?[^\w](([\d_]+(\.[\d_]+)?)|(\.[\d_]+))/, "number"],
 
-      // strings
+      // double-quoted strings
       [/"([^"\\]|\\.)*$/, "string.invalid"], // non-terminated string
       [/"/, { token: "string.quote", bracket: "@open", next: "@string" }],
 
-      // characters
-      [/'[^\\']'/, "string"],
+      // single-quoted strings; interchangeable with double quotes in PRQL, so
+      // they can hold arbitrary-length content (e.g. `'USA'`), not just a
+      // single character.
+      [/'([^'\\]|\\.)*$/, "string.invalid"], // non-terminated string
+      [/'/, { token: "string.quote", bracket: "@open", next: "@stringSingle" }],
     ],
 
     comment: [[/#.*/, "comment"]],
@@ -99,6 +102,11 @@ const def = {
     string: [
       [/[^\\"]+/, "string"],
       [/"/, { token: "string.quote", bracket: "@close", next: "@pop" }],
+    ],
+
+    stringSingle: [
+      [/[^\\']+/, "string"],
+      [/'/, { token: "string.quote", bracket: "@close", next: "@pop" }],
     ],
 
     whitespace: [

@@ -9,16 +9,16 @@ frames:
     - !Single
       name:
       - AA
-      target_id: 137
+      target_id: 18
       target_name: null
     - !Single
       name:
       - albums
       - artist_id
-      target_id: 138
+      target_id: 19
       target_name: null
     inputs:
-    - id: 135
+    - id: 17
       name: albums
       table:
       - default_db
@@ -28,16 +28,16 @@ frames:
     - !Single
       name:
       - AA
-      target_id: 137
+      target_id: 18
       target_name: null
     - !Single
       name:
       - albums
       - artist_id
-      target_id: 138
+      target_id: 19
       target_name: null
     inputs:
-    - id: 135
+    - id: 17
       name: albums
       table:
       - default_db
@@ -47,16 +47,16 @@ frames:
     - !Single
       name:
       - AA
-      target_id: 137
+      target_id: 18
       target_name: null
     - !Single
       name:
       - albums
       - artist_id
-      target_id: 138
+      target_id: 19
       target_name: null
     inputs:
-    - id: 135
+    - id: 17
       name: albums
       table:
       - default_db
@@ -66,44 +66,44 @@ frames:
     - !Single
       name:
       - AA
-      target_id: 137
+      target_id: 18
       target_name: null
     - !Single
       name:
       - albums
       - artist_id
-      target_id: 138
+      target_id: 19
       target_name: null
     - !All
-      input_id: 123
+      input_id: 5
       except: []
     inputs:
-    - id: 135
+    - id: 17
       name: albums
       table:
       - default_db
       - albums
-    - id: 123
+    - id: 5
       name: artists
       table:
       - default_db
       - artists
 nodes:
-- id: 123
+- id: 5
   kind: Ident
   span: 1:75-82
   ident: !Ident
   - default_db
   - artists
-  parent: 155
-- id: 135
+  parent: 34
+- id: 17
   kind: Ident
   span: 1:0-11
   ident: !Ident
   - default_db
   - albums
-  parent: 140
-- id: 137
+  parent: 21
+- id: 18
   kind: Ident
   span: 1:24-32
   alias: AA
@@ -112,9 +112,9 @@ nodes:
   - albums
   - album_id
   targets:
-  - 135
-  parent: 139
-- id: 138
+  - 17
+  parent: 20
+- id: 19
   kind: Ident
   span: 1:34-43
   ident: !Ident
@@ -122,71 +122,71 @@ nodes:
   - albums
   - artist_id
   targets:
-  - 135
-  parent: 139
-- id: 139
+  - 17
+  parent: 20
+- id: 20
   kind: Tuple
   span: 1:19-45
   children:
-  - 137
-  - 138
-  parent: 140
-- id: 140
+  - 18
+  - 19
+  parent: 21
+- id: 21
   kind: 'TransformCall: Select'
   span: 1:12-45
   children:
-  - 135
-  - 139
-  parent: 143
-- id: 141
+  - 17
+  - 20
+  parent: 24
+- id: 22
   kind: Ident
   span: 1:51-53
   ident: !Ident
   - this
   - AA
   targets:
-  - 137
-  parent: 143
-- id: 143
+  - 18
+  parent: 24
+- id: 24
   kind: 'TransformCall: Sort'
   span: 1:46-53
   children:
-  - 140
-  - 141
-  parent: 148
-- id: 144
+  - 21
+  - 22
+  parent: 29
+- id: 25
   kind: RqOperator
   span: 1:61-69
   targets:
-  - 146
-  - 147
-  parent: 148
-- id: 146
+  - 27
+  - 28
+  parent: 29
+- id: 27
   kind: Ident
   span: 1:61-63
   ident: !Ident
   - this
   - AA
   targets:
-  - 137
-- id: 147
+  - 18
+- id: 28
   kind: Literal
   span: 1:67-69
-- id: 148
+- id: 29
   kind: 'TransformCall: Filter'
   span: 1:54-69
   children:
-  - 143
-  - 144
-  parent: 155
-- id: 151
+  - 24
+  - 25
+  parent: 34
+- id: 30
   kind: RqOperator
   span: 1:84-95
   targets:
-  - 153
-  - 154
-  parent: 155
-- id: 153
+  - 32
+  - 33
+  parent: 34
+- id: 32
   kind: Ident
   span: 1:86-95
   ident: !Ident
@@ -194,8 +194,8 @@ nodes:
   - albums
   - artist_id
   targets:
-  - 138
-- id: 154
+  - 19
+- id: 33
   kind: Ident
   span: 1:86-95
   ident: !Ident
@@ -203,14 +203,14 @@ nodes:
   - artists
   - artist_id
   targets:
-  - 123
-- id: 155
+  - 5
+- id: 34
   kind: 'TransformCall: Join'
   span: 1:70-96
   children:
-  - 148
-  - 123
-  - 151
+  - 29
+  - 5
+  - 30
 ast:
   name: Project
   stmts:

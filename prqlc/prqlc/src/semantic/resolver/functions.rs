@@ -203,8 +203,8 @@ impl Resolver<'_> {
         if let Some((name, _)) = named_args.into_iter().next() {
             // TODO: report all remaining named_args as separate errors
             return Err(Error::new_simple(format!(
-                "unknown named argument `{name}` to closure {:?}",
-                closure.name_hint
+                "unknown named argument `{name}` to function `{}`",
+                closure.as_debug_name()
             )));
         }
 
@@ -305,16 +305,21 @@ impl Resolver<'_> {
                     // so they can be added to scope, before resolving subsequent elements.
 
                     let mut fields_new = Vec::with_capacity(fields.len());
+                    self.in_flight_tuple_aliases.push(Vec::new());
                     for field in fields {
                         let field = self.fold_within_namespace(field, param)?;
 
                         // add aliased columns into scope
                         if let Some(alias) = field.alias.clone() {
                             let id = field.id.unwrap();
-                            self.root_mod.module.insert_frame_col(NS_THIS, alias, id);
+                            self.root_mod
+                                .module
+                                .insert_frame_col(NS_THIS, alias.clone(), id);
+                            self.in_flight_tuple_aliases.last_mut().unwrap().push(alias);
                         }
                         fields_new.push(field);
                     }
+                    self.in_flight_tuple_aliases.pop();
 
                     // note that this tuple node has to be resolved itself
                     // (it's elements are already resolved and so their resolving

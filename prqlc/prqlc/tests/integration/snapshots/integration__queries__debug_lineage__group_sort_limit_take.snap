@@ -10,16 +10,16 @@ frames:
       name:
       - tracks
       - genre_id
-      target_id: 140
+      target_id: 21
       target_name: null
     - !Single
       name:
       - tracks
       - milliseconds
-      target_id: 141
+      target_id: 22
       target_name: null
     inputs:
-    - id: 138
+    - id: 20
       name: tracks
       table:
       - default_db
@@ -30,16 +30,16 @@ frames:
       name:
       - tracks
       - genre_id
-      target_id: 144
+      target_id: 25
       target_name: null
     - !Single
       name:
       - tracks
       - milliseconds
-      target_id: 141
+      target_id: 22
       target_name: null
     inputs:
-    - id: 138
+    - id: 20
       name: tracks
       table:
       - default_db
@@ -50,24 +50,24 @@ frames:
       name:
       - tracks
       - genre_id
-      target_id: 144
+      target_id: 25
       target_name: null
     - !Single
       name:
       - tracks
       - milliseconds
-      target_id: 141
+      target_id: 22
       target_name: null
     - !All
-      input_id: 129
+      input_id: 11
       except: []
     inputs:
-    - id: 138
+    - id: 20
       name: tracks
       table:
       - default_db
       - tracks
-    - id: 129
+    - id: 11
       name: genres
       table:
       - default_db
@@ -78,21 +78,21 @@ frames:
       name:
       - genres
       - name
-      target_id: 184
+      target_id: 63
       target_name: null
     - !Single
       name:
       - tracks
       - milliseconds
-      target_id: 185
+      target_id: 64
       target_name: null
     inputs:
-    - id: 138
+    - id: 20
       name: tracks
       table:
       - default_db
       - tracks
-    - id: 129
+    - id: 11
       name: genres
       table:
       - default_db
@@ -103,41 +103,41 @@ frames:
       name:
       - genres
       - name
-      target_id: 184
+      target_id: 63
       target_name: null
     - !Single
       name:
       - tracks
       - milliseconds
-      target_id: 185
+      target_id: 64
       target_name: null
     inputs:
-    - id: 138
+    - id: 20
       name: tracks
       table:
       - default_db
       - tracks
-    - id: 129
+    - id: 11
       name: genres
       table:
       - default_db
       - genres
 nodes:
-- id: 129
+- id: 11
   kind: Ident
   span: 1:177-183
   ident: !Ident
   - default_db
   - genres
-  parent: 183
-- id: 138
+  parent: 62
+- id: 20
   kind: Ident
   span: 1:76-87
   ident: !Ident
   - default_db
   - tracks
-  parent: 143
-- id: 140
+  parent: 24
+- id: 21
   kind: Ident
   span: 1:96-104
   ident: !Ident
@@ -145,9 +145,9 @@ nodes:
   - tracks
   - genre_id
   targets:
-  - 138
-  parent: 142
-- id: 141
+  - 20
+  parent: 23
+- id: 22
   kind: Ident
   span: 1:105-117
   ident: !Ident
@@ -155,23 +155,23 @@ nodes:
   - tracks
   - milliseconds
   targets:
-  - 138
-  parent: 142
-- id: 142
+  - 20
+  parent: 23
+- id: 23
   kind: Tuple
   span: 1:95-118
   children:
-  - 140
-  - 141
-  parent: 143
-- id: 143
+  - 21
+  - 22
+  parent: 24
+- id: 24
   kind: 'TransformCall: Select'
   span: 1:88-118
   children:
-  - 138
-  - 142
-  parent: 173
-- id: 144
+  - 20
+  - 23
+  parent: 54
+- id: 25
   kind: Ident
   span: 1:126-134
   ident: !Ident
@@ -179,14 +179,14 @@ nodes:
   - tracks
   - genre_id
   targets:
-  - 140
-  parent: 145
-- id: 145
+  - 21
+  parent: 26
+- id: 26
   kind: Tuple
   span: 1:125-135
   children:
-  - 144
-- id: 169
+  - 25
+- id: 50
   kind: Ident
   span: 1:147-159
   ident: !Ident
@@ -194,25 +194,25 @@ nodes:
   - tracks
   - milliseconds
   targets:
-  - 141
-- id: 173
+  - 22
+- id: 54
   kind: 'TransformCall: Take'
   span: 1:163-169
   children:
-  - 143
-  - 174
-  parent: 183
-- id: 174
+  - 24
+  - 55
+  parent: 62
+- id: 55
   kind: Literal
-  parent: 173
-- id: 179
+  parent: 54
+- id: 58
   kind: RqOperator
   span: 1:185-195
   targets:
-  - 181
-  - 182
-  parent: 183
-- id: 181
+  - 60
+  - 61
+  parent: 62
+- id: 60
   kind: Ident
   span: 1:187-195
   ident: !Ident
@@ -220,8 +220,8 @@ nodes:
   - tracks
   - genre_id
   targets:
-  - 144
-- id: 182
+  - 25
+- id: 61
   kind: Ident
   span: 1:187-195
   ident: !Ident
@@ -229,16 +229,16 @@ nodes:
   - genres
   - genre_id
   targets:
-  - 129
-- id: 183
+  - 11
+- id: 62
   kind: 'TransformCall: Join'
   span: 1:172-196
   children:
-  - 173
-  - 129
-  - 179
-  parent: 187
-- id: 184
+  - 54
+  - 11
+  - 58
+  parent: 66
+- id: 63
   kind: Ident
   span: 1:205-209
   ident: !Ident
@@ -246,9 +246,9 @@ nodes:
   - genres
   - name
   targets:
-  - 129
-  parent: 186
-- id: 185
+  - 11
+  parent: 65
+- id: 64
   kind: Ident
   span: 1:211-223
   ident: !Ident
@@ -256,23 +256,23 @@ nodes:
   - tracks
   - milliseconds
   targets:
-  - 141
-  parent: 186
-- id: 186
+  - 22
+  parent: 65
+- id: 65
   kind: Tuple
   span: 1:204-224
   children:
-  - 184
-  - 185
-  parent: 187
-- id: 187
+  - 63
+  - 64
+  parent: 66
+- id: 66
   kind: 'TransformCall: Select'
   span: 1:197-224
   children:
-  - 183
-  - 186
-  parent: 193
-- id: 188
+  - 62
+  - 65
+  parent: 72
+- id: 67
   kind: Ident
   span: 1:231-236
   ident: !Ident
@@ -280,9 +280,9 @@ nodes:
   - genres
   - name
   targets:
-  - 184
-  parent: 193
-- id: 191
+  - 63
+  parent: 72
+- id: 70
   kind: Ident
   span: 1:238-250
   ident: !Ident
@@ -290,15 +290,15 @@ nodes:
   - tracks
   - milliseconds
   targets:
-  - 185
-  parent: 193
-- id: 193
+  - 64
+  parent: 72
+- id: 72
   kind: 'TransformCall: Sort'
   span: 1:225-251
   children:
-  - 187
-  - 188
-  - 191
+  - 66
+  - 67
+  - 70
 ast:
   name: Project
   stmts:

@@ -25,11 +25,11 @@ repos:
         # https://github.com/crate-ci/typos/issues/347
         pass_filenames: false
   - repo: https://github.com/rbubley/mirrors-prettier
-    rev: v3.9.5
+    rev: v3.9.6
     hooks:
       - id: prettier
   - repo: https://github.com/astral-sh/ruff-pre-commit
-    rev: v0.15.22
+    rev: v0.16.1
     hooks:
       - id: ruff
         args: [--fix]

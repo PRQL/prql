@@ -7,10 +7,10 @@ frames:
 - - 1:12-19
   - columns:
     - !All
-      input_id: 137
+      input_id: 19
       except: []
     inputs:
-    - id: 137
+    - id: 19
       name: genres
       table:
       - default_db
@@ -18,10 +18,10 @@ frames:
 - - 1:20-31
   - columns:
     - !All
-      input_id: 137
+      input_id: 19
       except: []
     inputs:
-    - id: 137
+    - id: 19
       name: genres
       table:
       - default_db
@@ -29,10 +29,10 @@ frames:
 - - 1:32-39
   - columns:
     - !All
-      input_id: 137
+      input_id: 19
       except: []
     inputs:
-    - id: 137
+    - id: 19
       name: genres
       table:
       - default_db
@@ -40,10 +40,10 @@ frames:
 - - 1:40-51
   - columns:
     - !All
-      input_id: 137
+      input_id: 19
       except: []
     inputs:
-    - id: 137
+    - id: 19
       name: genres
       table:
       - default_db
@@ -53,81 +53,81 @@ frames:
     - !Single
       name:
       - d
-      target_id: 149
+      target_id: 30
       target_name: null
     inputs:
-    - id: 137
+    - id: 19
       name: genres
       table:
       - default_db
       - genres
 nodes:
-- id: 137
+- id: 19
   kind: Ident
   span: 1:0-11
   ident: !Ident
   - default_db
   - genres
-  parent: 140
-- id: 140
+  parent: 21
+- id: 21
   kind: 'TransformCall: Take'
   span: 1:12-19
   children:
-  - 137
-  - 141
-  parent: 143
-- id: 141
+  - 19
+  - 22
+  parent: 24
+- id: 22
   kind: Literal
-  parent: 140
-- id: 142
+  parent: 21
+- id: 23
   kind: Literal
   span: 1:27-31
-  parent: 143
-- id: 143
+  parent: 24
+- id: 24
   kind: 'TransformCall: Filter'
   span: 1:20-31
   children:
-  - 140
-  - 142
-  parent: 145
-- id: 145
+  - 21
+  - 23
+  parent: 26
+- id: 26
   kind: 'TransformCall: Take'
   span: 1:32-39
   children:
-  - 143
-  - 146
-  parent: 148
-- id: 146
+  - 24
+  - 27
+  parent: 29
+- id: 27
   kind: Literal
-  parent: 145
-- id: 147
+  parent: 26
+- id: 28
   kind: Literal
   span: 1:47-51
-  parent: 148
-- id: 148
+  parent: 29
+- id: 29
   kind: 'TransformCall: Filter'
   span: 1:40-51
   children:
-  - 145
-  - 147
-  parent: 151
-- id: 149
+  - 26
+  - 28
+  parent: 32
+- id: 30
   kind: Literal
   span: 1:63-65
   alias: d
-  parent: 150
-- id: 150
+  parent: 31
+- id: 31
   kind: Tuple
   span: 1:63-65
   children:
-  - 149
-  parent: 151
-- id: 151
+  - 30
+  parent: 32
+- id: 32
   kind: 'TransformCall: Select'
   span: 1:52-65
   children:
-  - 148
-  - 150
+  - 29
+  - 31
 ast:
   name: Project
   stmts:

@@ -60,8 +60,8 @@ The test commands above with `--accept` will fill in the result automatically.
   - Use `insta::assert_snapshot!` for compact, readable test assertions
   - Fast to run, easy to review in PRs
 
-- **Use integration tests** (`prqlc/tests/integration/queries/*.prql`) only
-  when:
+- **Use integration tests** (`prqlc/prqlc/tests/integration/queries/*.prql`)
+  only when:
   - Developing large, complex features that need comprehensive testing
   - Testing end-to-end behavior across multiple compilation stages
   - The test requires external resources or multi-file scenarios
@@ -132,15 +132,15 @@ For Claude to view crate documentation:
 # Build documentation for a specific crate
 cargo doc -p prqlc
 
-# View the generated HTML documentation with the View tool
+# Read the generated HTML documentation with the Read tool
 # The docs are generated at target/doc/{crate_name}/index.html
-View target/doc/prqlc/index.html
+Read target/doc/prqlc/index.html
 
 # For specific module documentation
-View target/doc/prqlc/module_name/index.html
+Read target/doc/prqlc/module_name/index.html
 
 # For function documentation
-View target/doc/prqlc/fn.compile.html
+Read target/doc/prqlc/fn.compile.html
 ```
 
 ## Releases & Environment

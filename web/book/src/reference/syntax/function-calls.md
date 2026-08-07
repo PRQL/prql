@@ -15,7 +15,7 @@ parentheses, so we know where arguments of inner function end and the arguments
 of outer function start.
 
 ```prql no-eval
-outer_func arg_1 (inner_func arg_a, arg_b) arg_2
+outer_func arg_1 (inner_func arg_a arg_b) arg_2
 ```
 
 The function name must refer to a function variable, which has either
