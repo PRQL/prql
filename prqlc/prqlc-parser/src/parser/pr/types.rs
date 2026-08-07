@@ -3,6 +3,7 @@ use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 use strum::AsRefStr;
 
+use crate::parser::pr::expr::Expr;
 use crate::parser::pr::ident::Ident;
 use crate::span::Span;
 
@@ -32,6 +33,9 @@ pub enum TyKind {
 
     /// Type of functions with defined params and return types.
     Function(Option<TyFunc>),
+
+    /// Simple enumeration type
+    Enum(Box<Expr>),
 }
 
 impl TyKind {

@@ -438,6 +438,18 @@ impl WriteSource for pr::Stmt {
                     }
                 }
             },
+            pr::StmtKind::TypeDef(pr::TypeDef {
+                name,
+                value:
+                    pr::Ty {
+                        kind: pr::TyKind::Enum(enum_tuple),
+                        ..
+                    },
+            }) => {
+                r += opt.consume(&format!("enum {} ", name))?;
+                r += &enum_tuple.write(opt)?;
+                r += "\n";
+            }
             pr::StmtKind::TypeDef(type_def) => {
                 r += opt.consume(&format!("type {}", type_def.name))?;
                 r += opt.consume(" = ")?;
