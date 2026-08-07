@@ -24,7 +24,10 @@ impl<T: From<usize>> IdGenerator<T> {
     /// Generate an 'internal' ID starting at above SYS_ID_START.
     pub fn gen_sys(&mut self) -> T {
         let id = self.next_id_sys;
-        self.next_id_sys = self.next_id_sys.strict_add(1); // panic on overflow
+        self.next_id_sys = self
+            .next_id_sys
+            .checked_add(1)
+            .expect("too many generated internal ids");
         T::from(id)
     }
 
