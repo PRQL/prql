@@ -1,4 +1,3 @@
-use chumsky;
 use chumsky::error::Rich;
 
 use crate::error::WithErrorInfo;
