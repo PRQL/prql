@@ -1,6 +1,5 @@
 use std::collections::{hash_map::Entry, HashMap};
 
-use chumsky;
 use chumsky::input::BorrowInput;
 use chumsky::pratt::*;
 use chumsky::prelude::*;
