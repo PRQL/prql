@@ -62,10 +62,10 @@ impl pl::PlFold for Resolver<'_> {
             return Ok(node);
         }
 
-        let id = match node.span {
-            None => self.id.gen(),
-            Some(span) if span.source_id == 0 => self.id.gen_sys(),
-            Some(_) => self.id.gen(),
+        let id = if node.span.is_some_and(|span| span.source_id == 0) {
+            self.id.gen_sys()
+        } else {
+            self.id.gen()
         };
         let alias = node.alias.clone();
         let span = node.span;

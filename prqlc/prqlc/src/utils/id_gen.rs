@@ -24,7 +24,7 @@ impl<T: From<usize>> IdGenerator<T> {
     /// Generate an 'internal' ID starting at above SYS_ID_START.
     pub fn gen_sys(&mut self) -> T {
         let id = self.next_id_sys;
-        self.next_id_sys += 1;
+        self.next_id_sys = self.next_id_sys.strict_add(1); // panic on overflow
         T::from(id)
     }
 
@@ -32,7 +32,7 @@ impl<T: From<usize>> IdGenerator<T> {
         let id = self.next_id;
         self.next_id += 1;
         if self.next_id >= SYS_ID_START {
-            panic!("too many generated ids!");
+            panic!("too many generated ids (more than {SYS_ID_START})!");
         }
         T::from(id)
     }
@@ -101,9 +101,10 @@ impl NameGenerator {
 fn test_id_generator() {
     let mut id: IdGenerator<usize> = IdGenerator::new();
 
+    assert!(id.gen() < SYS_ID_START);
+    assert!(id.gen_sys() >= SYS_ID_START);
     assert!(id.gen() != id.gen());
     assert!(id.gen_sys() != id.gen_sys());
-    assert!(id.gen() != id.gen_sys());
 
     let i = id.gen();
     id.skip(i + 10);
