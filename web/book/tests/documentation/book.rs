@@ -7,9 +7,11 @@ use globset::Glob;
 use insta::assert_snapshot;
 use itertools::Itertools;
 use mdbook_prql::{code_block_lang_tags, LangTag};
+use prqlc::sql::{Dialect, SupportLevel};
 use prqlc::{pl_to_prql, pl_to_rq, prql_to_pl};
 use pulldown_cmark::Tag;
 use regex::Regex;
+use strum::IntoEnumIterator;
 use walkdir::WalkDir;
 
 use super::compile;
@@ -210,6 +212,54 @@ select {{ a = (tbl.col | date.to_text "{specifier}") }}
     } else {
         Err(anyhow!(errs.join("\n")))
     }
+}
+
+/// The "Supported" / "Unsupported" dialect lists in `project/target.md` are a
+/// hand-maintained copy of `Dialect::support_level` in `sql/dialect.rs`, so
+/// assert the two agree — otherwise a dialect can ship without ever being
+/// documented, as `sql.redshift` did.
+#[test]
+fn test_target_dialects_documented() -> Result<()> {
+    let text = fs::read_to_string("./src/project/target.md")?;
+
+    // Each list is a run of ``- `sql.<name>` `` bullets under its heading;
+    // bullets may carry trailing prose, and the section ends at the next
+    // heading.
+    let section = |heading: &str| -> Result<Vec<String>> {
+        let body = text
+            .split_once(heading)
+            .map(|(_, rest)| rest.split(['#']).next().unwrap_or(rest))
+            .ok_or_else(|| anyhow!("`{heading}` heading not found in target.md"))?;
+        let bullet = Regex::new(r"(?m)^- `sql\.([a-z]+)`")?;
+        Ok(bullet
+            .captures_iter(body)
+            .map(|c| c[1].to_string())
+            .sorted()
+            .collect())
+    };
+
+    let documented_supported = section("### Supported")?;
+    let documented_unsupported = section("### Unsupported")?;
+
+    let actual = |level: SupportLevel| -> Vec<String> {
+        Dialect::iter()
+            .filter(|d| {
+                std::mem::discriminant(&d.support_level()) == std::mem::discriminant(&level)
+            })
+            .map(|d| d.to_string())
+            .sorted()
+            .collect()
+    };
+
+    similar_asserts::assert_eq!(
+        documented: documented_supported,
+        actual: actual(SupportLevel::Supported),
+    );
+    similar_asserts::assert_eq!(
+        documented: documented_unsupported,
+        actual: actual(SupportLevel::Unsupported),
+    );
+    Ok(())
 }
 
 struct Example {

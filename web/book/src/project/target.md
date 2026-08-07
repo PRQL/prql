@@ -37,6 +37,7 @@ on every commit, and we'll endeavor to fix bugs.
 - `sql.glaredb`
 - `sql.mysql`
 - `sql.postgres`
+- `sql.redshift`
 - `sql.sqlite`
 
 ### Unsupported
