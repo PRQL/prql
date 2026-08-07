@@ -1,4 +1,5 @@
 #![cfg(not(target_family = "wasm"))]
+use std::collections::BTreeMap;
 use std::fs;
 use std::path::Path;
 
@@ -218,9 +219,16 @@ select {{ a = (tbl.col | date.to_text "{specifier}") }}
 /// hand-maintained copy of `Dialect::support_level` in `sql/dialect.rs`, so
 /// assert the two agree — otherwise a dialect can ship without ever being
 /// documented, as `sql.redshift` did.
+///
+/// Every `Dialect` variant is checked, by grouping them under the heading their
+/// support level maps to; a dialect at a level with no section in the book (no
+/// dialect is `Nascent` today) fails with a missing-heading error rather than
+/// passing silently.
 #[test]
 fn test_target_dialects_documented() -> Result<()> {
     let text = fs::read_to_string("./src/project/target.md")?;
+    let bullet = Regex::new(r"(?m)^- `sql\.([a-z]+)`")?;
+    let next_heading = Regex::new(r"(?m)^#")?;
 
     // Each list is a run of ``- `sql.<name>` `` bullets under its heading;
     // bullets may carry trailing prose, and the section ends at the next
@@ -228,9 +236,8 @@ fn test_target_dialects_documented() -> Result<()> {
     let section = |heading: &str| -> Result<Vec<String>> {
         let body = text
             .split_once(heading)
-            .map(|(_, rest)| rest.split(['#']).next().unwrap_or(rest))
+            .map(|(_, rest)| next_heading.find(rest).map_or(rest, |m| &rest[..m.start()]))
             .ok_or_else(|| anyhow!("`{heading}` heading not found in target.md"))?;
-        let bullet = Regex::new(r"(?m)^- `sql\.([a-z]+)`")?;
         Ok(bullet
             .captures_iter(body)
             .map(|c| c[1].to_string())
@@ -238,27 +245,28 @@ fn test_target_dialects_documented() -> Result<()> {
             .collect())
     };
 
-    let documented_supported = section("### Supported")?;
-    let documented_unsupported = section("### Unsupported")?;
-
-    let actual = |level: SupportLevel| -> Vec<String> {
-        Dialect::iter()
-            .filter(|d| {
-                std::mem::discriminant(&d.support_level()) == std::mem::discriminant(&level)
-            })
-            .map(|d| d.to_string())
-            .sorted()
-            .collect()
+    // An exhaustive match, so a new support level doesn't compile until it has
+    // a home in the book.
+    let heading = |level: SupportLevel| match level {
+        SupportLevel::Supported => "### Supported",
+        SupportLevel::Unsupported => "### Unsupported",
+        SupportLevel::Nascent => "### Nascent",
     };
 
-    similar_asserts::assert_eq!(
-        documented: documented_supported,
-        actual: actual(SupportLevel::Supported),
-    );
-    similar_asserts::assert_eq!(
-        documented: documented_unsupported,
-        actual: actual(SupportLevel::Unsupported),
-    );
+    let actual: BTreeMap<&str, Vec<String>> = Dialect::iter()
+        .map(|d| (heading(d.support_level()), d.to_string()))
+        .into_group_map()
+        .into_iter()
+        .map(|(heading, dialects)| (heading, dialects.into_iter().sorted().collect()))
+        .collect();
+
+    for (heading, dialects) in actual {
+        similar_asserts::assert_eq!(
+            documented: section(heading)?,
+            actual: dialects,
+            "under `{heading}` in target.md",
+        );
+    }
     Ok(())
 }
 
