@@ -4,6 +4,14 @@
 
 **Language**:
 
+- Report duplicate `import` definitions as an error rather than silently keeping
+  the last one. `import a.b` followed by `import c.b` now reports
+  `duplicate declarations of b`, matching `let` and `type`; use `import d = c.b`
+  to bring in both. The same applies to a multi-file project, where `import a.b`
+  previously discarded a sibling `b.prql`. This is a small breaking change —
+  programs that relied on the last declaration winning now fail to compile.
+  (@prql-bot, #6150)
+
 **Features**:
 
 - Add simple enumeration type, and dedicated support for name resolution when an
