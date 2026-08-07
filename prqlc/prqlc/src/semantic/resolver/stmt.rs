@@ -3,6 +3,7 @@ use std::collections::HashMap;
 use crate::ir::decl::{Decl, DeclKind, Module, TableDecl, TableExpr};
 use crate::ir::pl::*;
 use crate::pr::{Ty, TyKind, TyTupleField};
+use crate::semantic::STD_LIB_SOURCE_ID;
 use crate::Result;
 use crate::WithErrorInfo;
 
@@ -10,7 +11,10 @@ impl super::Resolver<'_> {
     // entry point to the resolver
     pub fn fold_statements(&mut self, stmts: Vec<Stmt>) -> Result<()> {
         for mut stmt in stmts {
-            stmt.id = if stmt.span.is_some_and(|span| span.source_id == 0) {
+            stmt.id = if stmt
+                .span
+                .is_some_and(|span| span.source_id == STD_LIB_SOURCE_ID)
+            {
                 Some(self.id.gen_sys())
             } else {
                 Some(self.id.gen())
