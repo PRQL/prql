@@ -7,10 +7,10 @@ frames:
 - - 1:30-61
   - columns:
     - !All
-      input_id: 131
+      input_id: 17
       except: []
     inputs:
-    - id: 131
+    - id: 17
       name: e
       table:
       - default_db
@@ -18,10 +18,10 @@ frames:
 - - 1:62-90
   - columns:
     - !All
-      input_id: 131
+      input_id: 17
       except: []
     inputs:
-    - id: 131
+    - id: 17
       name: e
       table:
       - default_db
@@ -29,18 +29,18 @@ frames:
 - - 1:145-215
   - columns:
     - !All
-      input_id: 131
+      input_id: 17
       except: []
     - !All
-      input_id: 122
+      input_id: 8
       except: []
     inputs:
-    - id: 131
+    - id: 17
       name: e
       table:
       - default_db
       - employees
-    - id: 122
+    - id: 8
       name: manager
       table:
       - default_db
@@ -49,54 +49,54 @@ frames:
   - columns:
     - !Single
       name: null
-      target_id: 147
+      target_id: 32
       target_name: null
     - !Single
       name:
       - e
       - last_name
-      target_id: 148
+      target_id: 33
       target_name: null
     - !Single
       name:
       - manager
       - first_name
-      target_id: 149
+      target_id: 34
       target_name: null
     inputs:
-    - id: 131
+    - id: 17
       name: e
       table:
       - default_db
       - employees
-    - id: 122
+    - id: 8
       name: manager
       table:
       - default_db
       - employees
 nodes:
-- id: 122
+- id: 8
   kind: Ident
   span: 1:158-167
   ident: !Ident
   - default_db
   - employees
-  parent: 146
-- id: 131
+  parent: 31
+- id: 17
   kind: Ident
   span: 1:13-29
   ident: !Ident
   - default_db
   - employees
-  parent: 137
-- id: 133
+  parent: 22
+- id: 18
   kind: RqOperator
   span: 1:37-61
   targets:
-  - 135
-  - 136
-  parent: 137
-- id: 135
+  - 20
+  - 21
+  parent: 22
+- id: 20
   kind: Ident
   span: 1:37-47
   ident: !Ident
@@ -104,18 +104,18 @@ nodes:
   - e
   - first_name
   targets:
-  - 131
-- id: 136
+  - 17
+- id: 21
   kind: Literal
   span: 1:51-61
-- id: 137
+- id: 22
   kind: 'TransformCall: Filter'
   span: 1:30-61
   children:
-  - 131
-  - 133
-  parent: 141
-- id: 138
+  - 17
+  - 18
+  parent: 26
+- id: 23
   kind: Ident
   span: 1:68-78
   ident: !Ident
@@ -123,9 +123,9 @@ nodes:
   - e
   - first_name
   targets:
-  - 131
-  parent: 141
-- id: 139
+  - 17
+  parent: 26
+- id: 24
   kind: Ident
   span: 1:80-89
   ident: !Ident
@@ -133,24 +133,24 @@ nodes:
   - e
   - last_name
   targets:
-  - 131
-  parent: 141
-- id: 141
+  - 17
+  parent: 26
+- id: 26
   kind: 'TransformCall: Sort'
   span: 1:62-90
   children:
-  - 137
-  - 138
-  - 139
-  parent: 146
-- id: 142
+  - 22
+  - 23
+  - 24
+  parent: 31
+- id: 27
   kind: RqOperator
   span: 1:179-214
   targets:
-  - 144
-  - 145
-  parent: 146
-- id: 144
+  - 29
+  - 30
+  parent: 31
+- id: 29
   kind: Ident
   span: 1:179-191
   ident: !Ident
@@ -158,8 +158,8 @@ nodes:
   - e
   - reports_to
   targets:
-  - 131
-- id: 145
+  - 17
+- id: 30
   kind: Ident
   span: 1:195-214
   ident: !Ident
@@ -167,16 +167,16 @@ nodes:
   - manager
   - employee_id
   targets:
-  - 122
-- id: 146
+  - 8
+- id: 31
   kind: 'TransformCall: Join'
   span: 1:145-215
   children:
-  - 141
-  - 122
-  - 142
-  parent: 151
-- id: 147
+  - 26
+  - 8
+  - 27
+  parent: 36
+- id: 32
   kind: Ident
   span: 1:225-237
   ident: !Ident
@@ -184,9 +184,9 @@ nodes:
   - e
   - first_name
   targets:
-  - 131
-  parent: 150
-- id: 148
+  - 17
+  parent: 35
+- id: 33
   kind: Ident
   span: 1:239-250
   ident: !Ident
@@ -194,9 +194,9 @@ nodes:
   - e
   - last_name
   targets:
-  - 131
-  parent: 150
-- id: 149
+  - 17
+  parent: 35
+- id: 34
   kind: Ident
   span: 1:252-270
   ident: !Ident
@@ -204,22 +204,22 @@ nodes:
   - manager
   - first_name
   targets:
-  - 122
-  parent: 150
-- id: 150
+  - 8
+  parent: 35
+- id: 35
   kind: Tuple
   span: 1:224-271
   children:
-  - 147
-  - 148
-  - 149
-  parent: 151
-- id: 151
+  - 32
+  - 33
+  - 34
+  parent: 36
+- id: 36
   kind: 'TransformCall: Select'
   span: 1:217-271
   children:
-  - 146
-  - 150
+  - 31
+  - 35
 ast:
   name: Project
   stmts:
