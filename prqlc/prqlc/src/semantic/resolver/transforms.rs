@@ -1471,7 +1471,12 @@ mod tests {
         let (res, _) = ctx.find_main_rel(&[]).unwrap().clone();
         let expr = res.clone().into_relation_var().unwrap();
         let expr = super::super::test::erase_ids(*expr);
-        assert_yaml_snapshot!(expr);
+
+        let mut settings = insta::Settings::clone_current();
+        settings.add_filter(r"\b0:\d+-\d+", "[std]");
+        settings.bind(|| {
+            assert_yaml_snapshot!(expr);
+        });
     }
 
     #[test]

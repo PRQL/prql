@@ -154,24 +154,28 @@ pub(super) mod test {
 
     #[test]
     fn test_functions_pipeline() {
-        assert_yaml_snapshot!(resolve_derive(
-            r#"
+        let mut settings = insta::Settings::clone_current();
+        settings.add_filter(r"\b0:\d+-\d+", "[std]");
+        settings.bind(|| {
+            assert_yaml_snapshot!(resolve_derive(
+                r#"
             from a
             derive one = (foo | sum)
             "#
-        )
-        .unwrap());
+            )
+            .unwrap());
 
-        assert_yaml_snapshot!(resolve_derive(
-            r#"
+            assert_yaml_snapshot!(resolve_derive(
+                r#"
             let plus_one = x -> x + 1
             let plus = x y -> x + y
 
             from a
             derive {b = (sum foo | plus_one | plus 2)}
             "#
-        )
-        .unwrap());
+            )
+            .unwrap());
+        });
     }
     #[test]
     fn test_named_args() {
