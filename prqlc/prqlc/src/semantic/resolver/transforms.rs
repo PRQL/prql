@@ -1472,9 +1472,10 @@ mod tests {
         let expr = res.clone().into_relation_var().unwrap();
         let expr = super::super::test::erase_ids(*expr);
 
-        let mut settings = insta::Settings::clone_current();
-        settings.add_filter(r"\b0:\d+-\d+", "[std]");
-        settings.bind(|| {
+        // Spans from `std.prql` carry source id 0 (`STD_LIB_SOURCE_ID`); user
+        // sources start at 1. Filtering them keeps this snapshot stable when the
+        // stdlib shifts, without hiding spans from the query under test.
+        insta::with_settings!({ filters => vec![(r"\b0:\d+-\d+", "[std]")] }, {
             assert_yaml_snapshot!(expr);
         });
     }
