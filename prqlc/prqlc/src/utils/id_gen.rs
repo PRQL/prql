@@ -21,6 +21,7 @@ impl<T: From<usize>> IdGenerator<T> {
         self.next_id = self.next_id.max(id + 1);
     }
 
+    /// Generate an 'internal' ID starting at above SYS_ID_START.
     pub fn gen_sys(&mut self) -> T {
         let id = self.next_id_sys;
         self.next_id_sys += 1;
@@ -94,4 +95,17 @@ impl NameGenerator {
     pub fn gen(&mut self) -> String {
         format!("{}{}", self.prefix, self.id.gen())
     }
+}
+
+#[test]
+fn test_id_generator() {
+    let mut id: IdGenerator<usize> = IdGenerator::new();
+
+    assert!(id.gen() != id.gen());
+    assert!(id.gen_sys() != id.gen_sys());
+    assert!(id.gen() != id.gen_sys());
+
+    let i = id.gen();
+    id.skip(i + 10);
+    assert!(id.gen() > (i + 10));
 }

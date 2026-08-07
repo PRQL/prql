@@ -27,7 +27,7 @@ expression: "resolve_derive(r#\"\n            let plus_one = x -> x + 1\n       
                     ty:
                       kind:
                         Array: ~
-                      span: "0:1732-1734"
+                      span: "0:1699-1701"
                       name: array
               span: "1:120-127"
             - Literal:
