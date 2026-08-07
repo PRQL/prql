@@ -101,7 +101,7 @@ Here is the list of the specifiers currently supported:
 |       |                               |                                                                  |
 |       |                               | **TIME SPECIFIERS:**                                             |
 | `%H`  | `00`                          | Hour number (00-23)                                              |
-| `%k`  | ` 0`                          | Same as `%H` but space-padded. Same as `%_H`.                    |
+| `%-H` | `0`                           | Hour number (0-23)                                               |
 | `%I`  | `12`                          | Hour number in 12-hour clocks (01--12), zero-padded to 2 digits. |
 | `%p`  | `AM`                          | `AM` or `PM` in 12-hour clocks.                                  |
 | `%M`  | `34`                          | Minute number (00-59), zero-padded to 2 digits.                  |
@@ -119,5 +119,8 @@ Here is the list of the specifiers currently supported:
 | `%t`  |                               | Literal tab (`\t`).                                              |
 | `%n`  |                               | Literal newline (`\n`).                                          |
 | `%%`  |                               | Literal percent sign.                                            |
+
+Space-padded specifiers — chrono's `%_`-prefixed forms and their `%k` / `%l`
+aliases — are not supported by any dialect.
 
 [^1]: This is different from chrono, for which `%f` represents nanoseconds
