@@ -111,6 +111,9 @@ jobs:
             nightly:
               - .github/workflows/nightly.yaml
               - .github/workflows/release.yaml
+              # The build steps `release.yaml` runs, so a change to one is
+              # smoke-tested by the same nightly run.
+              - .github/actions/build-*/**
               - "**/Cargo.toml"
               - Cargo.lock
               - rust-toolchain.toml
