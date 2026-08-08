@@ -6,7 +6,7 @@ use crate::pr::{Ty, TyKind, TyTupleField};
 use crate::semantic::ast_expand::expand_expr;
 use crate::semantic::{NS_SELF, STD_LIB_SOURCE_ID};
 use crate::Result;
-use crate::WithErrorInfo;
+use crate::{Error, WithErrorInfo};
 
 impl super::Resolver<'_> {
     // entry point to the resolver
@@ -63,56 +63,64 @@ impl super::Resolver<'_> {
                 // Enums get their own module definition, with NS_SELF pointing to the original type and a
                 // name entry in the module for each alias in the enum's tuple.
 
-                self.current_module_path.push(ident.name);
-
                 let mut module = Module {
                     names: HashMap::new(),
                     redirects: Vec::new(),
                     shadowed: None,
                 };
+                module.names.insert(
+                    NS_SELF.to_string(),
+                    Decl {
+                        declared_at: stmt.id,
+                        kind: DeclKind::Ty(ty.clone()),
+                        annotations: stmt.annotations,
+                        ..Default::default()
+                    },
+                );
 
                 for expr in enum_tuple {
                     let name = expr
                         .alias
                         .clone()
                         .expect("enum literal tuples should always have all fields with aliases");
+                    let member_span = expr.span;
+
+                    // NS_SELF is already in `names`, so a member of that name would
+                    // replace the type entry rather than being reported below.
+                    if name == NS_SELF {
+                        return Err(Error::new_simple(format!(
+                            "`{NS_SELF}` is a reserved name and cannot be an enum member"
+                        ))
+                        .with_span(member_span));
+                    }
+
                     let mut expr = expand_expr(expr)?;
                     expr.ty = Some(ty.clone());
                     // here, the expr needs to have no alias, so that it doesn't clobber an alias
                     // used in a future tuple expression
                     expr.alias = None;
 
-                    module.names.insert(
-                        name,
-                        Decl {
-                            declared_at: stmt.id,
-                            kind: DeclKind::Expr(Box::new(expr)),
-                            ..Default::default()
-                        },
-                    );
-                }
-                module.names.insert(
-                    NS_SELF.to_string(),
-                    Decl {
+                    let member = Decl {
                         declared_at: stmt.id,
-                        kind: DeclKind::Ty(ty),
-                        annotations: stmt.annotations,
+                        kind: DeclKind::Expr(Box::new(expr)),
                         ..Default::default()
-                    },
-                );
+                    };
 
-                let decl = Decl {
-                    declared_at: stmt.id,
-                    kind: DeclKind::Module(module),
-                    ..Default::default()
-                };
+                    // `names` is a map, so a repeated member would otherwise keep only
+                    // the last value.
+                    if module.names.insert(name.clone(), member).is_some() {
+                        return Err(Error::new_simple(format!(
+                            "duplicate declarations of {ident}.{name}"
+                        ))
+                        .with_span(member_span));
+                    }
+                }
 
-                let ident = Ident::from_path(self.current_module_path.clone());
+                // `declare` reports a name that's already taken; inserting into
+                // `root_mod.module` directly would overwrite it silently.
                 self.root_mod
-                    .module
-                    .insert(ident, decl)
+                    .declare(ident, DeclKind::Module(module), stmt.id, Vec::new())
                     .with_span(stmt.span)?;
-                self.current_module_path.pop();
             }
         } else {
             let decl = DeclKind::Ty(ty);
