@@ -310,6 +310,7 @@ jobs:
     runs-on: ubuntu-24.04
     needs: [build-python-wheels]
     if: github.event_name == 'release'
+    environment: release
     permissions:
       id-token: write
     strategy:
@@ -330,6 +331,10 @@ jobs:
 
   publish-js:
     runs-on: ubuntu-24.04
+    # Off-release runs publish with `--dry-run`, on a branch ref the
+    # deployment-branch policy denies, so they take no environment — as in
+    # `publish-to-cargo` below.
+    environment: ${{ github.event_name == 'release' && 'release' || '' }}
     permissions:
       contents: read
       id-token: write
