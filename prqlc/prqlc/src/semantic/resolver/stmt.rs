@@ -3,7 +3,8 @@ use std::collections::HashMap;
 use crate::ir::decl::{Decl, DeclKind, Module, TableDecl, TableExpr};
 use crate::ir::pl::*;
 use crate::pr::{Ty, TyKind, TyTupleField};
-use crate::semantic::STD_LIB_SOURCE_ID;
+use crate::semantic::ast_expand::expand_expr;
+use crate::semantic::{NS_SELF, STD_LIB_SOURCE_ID};
 use crate::Result;
 use crate::WithErrorInfo;
 
@@ -53,11 +54,72 @@ impl super::Resolver<'_> {
         let mut ty = self.fold_type(type_def.value)?;
         ty.name = Some(ident.name.clone());
 
-        let decl = DeclKind::Ty(ty);
+        if let TyKind::Enum(enum_expr) = ty.kind.clone() {
+            if let crate::pr::Expr {
+                kind: crate::pr::ExprKind::Tuple(enum_tuple),
+                ..
+            } = *enum_expr
+            {
+                // Enums get their own module definition, with NS_SELF pointing to the original type and a
+                // name entry in the module for each alias in the enum's tuple.
 
-        self.root_mod
-            .declare(ident, decl, stmt.id, stmt.annotations)
-            .with_span(stmt.span)?;
+                self.current_module_path.push(ident.name);
+
+                let mut module = Module {
+                    names: HashMap::new(),
+                    redirects: Vec::new(),
+                    shadowed: None,
+                };
+
+                for expr in enum_tuple {
+                    let name = expr
+                        .alias
+                        .clone()
+                        .expect("enum literal tuples should always have all fields with aliases");
+                    let mut expr = expand_expr(expr)?;
+                    expr.ty = Some(ty.clone());
+                    // here, the expr needs to have no alias, so that it doesn't clobber an alias
+                    // used in a future tuple expression
+                    expr.alias = None;
+
+                    module.names.insert(
+                        name,
+                        Decl {
+                            declared_at: stmt.id,
+                            kind: DeclKind::Expr(Box::new(expr)),
+                            ..Default::default()
+                        },
+                    );
+                }
+                module.names.insert(
+                    NS_SELF.to_string(),
+                    Decl {
+                        declared_at: stmt.id,
+                        kind: DeclKind::Ty(ty),
+                        annotations: stmt.annotations,
+                        ..Default::default()
+                    },
+                );
+
+                let decl = Decl {
+                    declared_at: stmt.id,
+                    kind: DeclKind::Module(module),
+                    ..Default::default()
+                };
+
+                let ident = Ident::from_path(self.current_module_path.clone());
+                self.root_mod
+                    .module
+                    .insert(ident, decl)
+                    .with_span(stmt.span)?;
+                self.current_module_path.pop();
+            }
+        } else {
+            let decl = DeclKind::Ty(ty);
+            self.root_mod
+                .declare(ident, decl, stmt.id, stmt.annotations)
+                .with_span(stmt.span)?;
+        };
         Ok(())
     }
 

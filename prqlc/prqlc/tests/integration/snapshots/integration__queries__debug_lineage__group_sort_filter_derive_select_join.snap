@@ -135,7 +135,7 @@ nodes:
 - id: 5
   kind: SString
   span: 1:315-367
-  parent: 67
+  parent: 68
 - id: 21
   kind: SString
   span: 1:0-46
@@ -286,15 +286,15 @@ nodes:
   children:
   - 58
   - 61
-  parent: 67
-- id: 63
+  parent: 68
+- id: 64
   kind: RqOperator
   span: 1:371-403
   targets:
-  - 65
   - 66
-  parent: 67
-- id: 65
+  - 67
+  parent: 68
+- id: 66
   kind: Ident
   span: 1:371-385
   ident: !Ident
@@ -303,7 +303,7 @@ nodes:
   - artist_id
   targets:
   - 59
-- id: 66
+- id: 67
   kind: Ident
   span: 1:389-403
   ident: !Ident
@@ -312,13 +312,13 @@ nodes:
   - artist_id
   targets:
   - 5
-- id: 67
+- id: 68
   kind: 'TransformCall: Join'
   span: 1:298-404
   children:
   - 62
   - 5
-  - 63
+  - 64
 ast:
   name: Project
   stmts:

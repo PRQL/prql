@@ -6,7 +6,7 @@ use itertools::Itertools;
 use super::Resolver;
 use crate::ir::decl::{Decl, DeclKind, Module};
 use crate::ir::pl::*;
-use crate::pr::{Ty, TyFunc};
+use crate::pr::{Ty, TyFunc, TyKind};
 use crate::semantic::resolver::types;
 use crate::semantic::{NS_PARAM, NS_THAT, NS_THIS};
 use crate::Result;
@@ -307,7 +307,7 @@ impl Resolver<'_> {
                     let mut fields_new = Vec::with_capacity(fields.len());
                     self.in_flight_tuple_aliases.push(Vec::new());
                     for field in fields {
-                        let field = self.fold_within_namespace(field, &param.name)?;
+                        let field = self.fold_within_namespace(field, param)?;
 
                         // add aliased columns into scope
                         if let Some(alias) = field.alias.clone() {
@@ -361,7 +361,7 @@ impl Resolver<'_> {
         param: &FuncParam,
         func_name: &Option<Ident>,
     ) -> Result<Result<Expr, Expr>> {
-        let mut arg = self.fold_within_namespace(arg, &param.name)?;
+        let mut arg = self.fold_within_namespace(arg, param)?;
 
         // don't validate types of unresolved exprs
         if arg.id.is_some() {
@@ -387,12 +387,41 @@ impl Resolver<'_> {
         Ok(Ok(arg))
     }
 
-    fn fold_within_namespace(&mut self, expr: Expr, param_name: &str) -> Result<Expr> {
-        let prev_namespace = self.default_namespace.take();
+    fn fold_within_namespace(&mut self, expr: Expr, param: &FuncParam) -> Result<Expr> {
+        let param_name = &param.name;
 
         if param_name.starts_with("noresolve.") {
             return Ok(expr);
-        } else if let Some((ns, _)) = param_name.split_once('.') {
+        }
+
+        if let Some(Ty {
+            name: Some(name),
+            kind: TyKind::Enum(enum_expr),
+            ..
+        }) = &param.ty
+        {
+            if let crate::pr::Expr {
+                kind: crate::pr::ExprKind::Tuple(enum_tuple),
+                ..
+            } = &**enum_expr
+            {
+                // function parameters with a declared enum type will
+                // automatically have that namespace module searched first
+                self.current_module_path.push(name.to_string());
+                let res = self.fold_expr(expr).push_hint(format!(
+                    "perhaps you meant one of: {}",
+                    enum_tuple
+                        .iter()
+                        .filter_map(|expr| expr.alias.clone())
+                        .join(", ")
+                ));
+                self.current_module_path.pop();
+                return res;
+            }
+        }
+
+        let prev_namespace = self.default_namespace.take();
+        if let Some((ns, _)) = param_name.split_once('.') {
             self.default_namespace = Some(ns.to_string());
         } else {
             self.default_namespace = None;

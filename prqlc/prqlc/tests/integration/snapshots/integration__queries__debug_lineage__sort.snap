@@ -49,19 +49,19 @@ frames:
   - columns:
     - !Single
       name: null
-      target_id: 32
+      target_id: 33
       target_name: null
     - !Single
       name:
       - e
       - last_name
-      target_id: 33
+      target_id: 34
       target_name: null
     - !Single
       name:
       - manager
       - first_name
-      target_id: 34
+      target_id: 35
       target_name: null
     inputs:
     - id: 17
@@ -81,7 +81,7 @@ nodes:
   ident: !Ident
   - default_db
   - employees
-  parent: 31
+  parent: 32
 - id: 17
   kind: Ident
   span: 1:13-29
@@ -142,15 +142,15 @@ nodes:
   - 22
   - 23
   - 24
-  parent: 31
-- id: 27
+  parent: 32
+- id: 28
   kind: RqOperator
   span: 1:179-214
   targets:
-  - 29
   - 30
-  parent: 31
-- id: 29
+  - 31
+  parent: 32
+- id: 30
   kind: Ident
   span: 1:179-191
   ident: !Ident
@@ -159,7 +159,7 @@ nodes:
   - reports_to
   targets:
   - 17
-- id: 30
+- id: 31
   kind: Ident
   span: 1:195-214
   ident: !Ident
@@ -168,15 +168,15 @@ nodes:
   - employee_id
   targets:
   - 8
-- id: 31
+- id: 32
   kind: 'TransformCall: Join'
   span: 1:145-215
   children:
   - 26
   - 8
-  - 27
-  parent: 36
-- id: 32
+  - 28
+  parent: 37
+- id: 33
   kind: Ident
   span: 1:225-237
   ident: !Ident
@@ -185,8 +185,8 @@ nodes:
   - first_name
   targets:
   - 17
-  parent: 35
-- id: 33
+  parent: 36
+- id: 34
   kind: Ident
   span: 1:239-250
   ident: !Ident
@@ -195,8 +195,8 @@ nodes:
   - last_name
   targets:
   - 17
-  parent: 35
-- id: 34
+  parent: 36
+- id: 35
   kind: Ident
   span: 1:252-270
   ident: !Ident
@@ -205,21 +205,21 @@ nodes:
   - first_name
   targets:
   - 8
-  parent: 35
-- id: 35
+  parent: 36
+- id: 36
   kind: Tuple
   span: 1:224-271
   children:
-  - 32
   - 33
   - 34
-  parent: 36
-- id: 36
+  - 35
+  parent: 37
+- id: 37
   kind: 'TransformCall: Select'
   span: 1:217-271
   children:
-  - 31
-  - 35
+  - 32
+  - 36
 ast:
   name: Project
   stmts:
