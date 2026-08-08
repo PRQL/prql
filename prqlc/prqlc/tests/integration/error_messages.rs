@@ -534,6 +534,11 @@ fn enum_type_2() {
 /// An `enum` builds a module and so used to take a different insertion path
 /// than every other statement kind, which meant it replaced a name that was
 /// already declared instead of reporting the collision.
+///
+/// Only the direction where the `enum` comes second is covered — a `module`
+/// declared after an `enum` (or after another `module`) still overwrites
+/// silently, since `fold_module_def_stmt` keeps its own `Module::insert`; #6166
+/// tracks that.
 #[test]
 fn enum_duplicate_of_existing_declaration() {
     assert_snapshot!(compile(r###"
