@@ -1,13 +1,10 @@
 name: publish-web
 on:
+  # A release ends by pushing its docs to `web` with the bot's PAT, and a push
+  # made with a PAT does start workflows, so this covers releases too.
   push:
     branches:
       - web
-  # Even though releases push to `web` branch, that doesn't cause this workflow
-  # to run, because GHA can't start workflows itself. So we also run on
-  # releases.
-  release:
-    types: [released]
   # Called by pull-request when specifically requested
   workflow_call:
   workflow_dispatch:
