@@ -531,6 +531,94 @@ fn enum_type_2() {
     ");
 }
 
+/// An `enum` builds a module and so used to take a different insertion path
+/// than every other statement kind, which meant it replaced a name that was
+/// already declared instead of reporting the collision.
+///
+/// Only the direction where the `enum` comes second is covered — a `module`
+/// declared after an `enum` (or after another `module`) still overwrites
+/// silently, since `fold_module_def_stmt` keeps its own `Module::insert`; #6166
+/// tracks that.
+#[test]
+fn enum_duplicate_of_existing_declaration() {
+    assert_snapshot!(compile(r###"
+    let Status = 5
+    enum Status { Paid = 0 }
+    from invoices
+    "###).unwrap_err(), @"
+    Error:
+       ╭─[ :2:19 ]
+       │
+     2 │ ╭─▶     let Status = 5
+     3 │ ├─▶     enum Status { Paid = 0 }
+       │ │
+       │ ╰────────────────────────────────── duplicate declarations of Status
+    ───╯
+    ");
+
+    assert_snapshot!(compile(r###"
+    module m { let a = 5 }
+    enum m { Paid = 0 }
+    from invoices
+    "###).unwrap_err(), @"
+    Error:
+       ╭─[ :2:27 ]
+       │
+     2 │ ╭─▶     module m { let a = 5 }
+     3 │ ├─▶     enum m { Paid = 0 }
+       │ │
+       │ ╰───────────────────────────── duplicate declarations of m
+    ───╯
+    ");
+
+    assert_snapshot!(compile(r###"
+    enum Status { Paid = 0 }
+    enum Status { Unpaid = 1 }
+    from invoices
+    "###).unwrap_err(), @"
+    Error:
+       ╭─[ :2:29 ]
+       │
+     2 │ ╭─▶     enum Status { Paid = 0 }
+     3 │ ├─▶     enum Status { Unpaid = 1 }
+       │ │
+       │ ╰──────────────────────────────────── duplicate declarations of Status
+    ───╯
+    ");
+}
+
+/// The enum's members become entries in a map, so a repeated name — or one that
+/// collides with the `_self` entry holding the type itself — used to leave only
+/// the last value with no diagnostic.
+#[test]
+fn enum_duplicate_member() {
+    assert_snapshot!(compile(r###"
+    enum Status { Paid = 0, Paid = 1 }
+    from invoices
+    "###).unwrap_err(), @"
+    Error:
+       ╭─[ :2:36 ]
+       │
+     2 │     enum Status { Paid = 0, Paid = 1 }
+       │                                    ┬
+       │                                    ╰── duplicate declarations of Status.Paid
+    ───╯
+    ");
+
+    assert_snapshot!(compile(r###"
+    enum Status { _self = 0, Paid = 1 }
+    from invoices
+    "###).unwrap_err(), @"
+    Error:
+       ╭─[ :2:27 ]
+       │
+     2 │     enum Status { _self = 0, Paid = 1 }
+       │                           ┬
+       │                           ╰── `_self` is a reserved name and cannot be an enum member
+    ───╯
+    ");
+}
+
 #[test]
 fn append_by_wrong() {
     assert_snapshot!(compile(r###"
