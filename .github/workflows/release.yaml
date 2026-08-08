@@ -23,6 +23,7 @@ jobs:
   brew-dispatcher:
     name: Release on homebrew-prql
     runs-on: ubuntu-24.04
+    environment: release
     if: github.event_name == 'release'
     steps:
       - uses: actions/github-script@v9
@@ -124,6 +125,7 @@ jobs:
 
   publish-winget:
     runs-on: ubuntu-24.04
+    environment: release
     needs: build-prqlc
     if: github.event_name == 'release'
     steps:
@@ -426,6 +428,7 @@ jobs:
 
   push-web-branch:
     runs-on: ubuntu-24.04
+    environment: release
     if: github.event_name == 'release'
     steps:
       - name: 📂 Checkout code
