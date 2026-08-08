@@ -195,7 +195,7 @@ fn test_ambiguous() {
        │            ──┬─
        │              ╰─── Ambiguous name
        │
-       │ Help: could be any of: std.date, this.date
+       │ Help: could be any of: std.date, std.types.date, this.date
        │
        │ Note: available columns: date
     ───╯

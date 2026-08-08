@@ -37,27 +37,29 @@ let not = expr<bool> -> <bool> internal std.not
 
 # Types
 
-## Type primitives
-type int = int
-type float = float
-type bool = bool
-type text = text
-type date = date
-type time = time
-type timestamp = timestamp
-type `func` = func
+module types {
+  ## Type primitives
+  type int = int
+  type float = float
+  type bool = bool
+  type text = text
+  type date = date
+  type time = time
+  type timestamp = timestamp
+  type `func` = func
 
-## Generic array
-type array = []
+  ## Generic array
+  type array = []
 
-## Generic relation
-type relation = [{..}]
+  ## Generic relation
+  type relation = [{..}]
 
-## Range
-type range = {start = *, end = *}
+  ## Range
+  type range = {start = *, end = *}
 
-## Transform
-type transform = func relation -> relation
+  ## Transform
+  type transform = func relation -> relation
+}
 
 # Functions
 
