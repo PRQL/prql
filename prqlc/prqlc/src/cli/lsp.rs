@@ -101,8 +101,16 @@ where
 
 #[cfg(test)]
 mod tests {
+    use std::time::Duration;
+
     use super::main_loop;
     use lsp_server::{Connection, ErrorCode, Message, Notification, Request, RequestId};
+
+    /// Long enough that a loaded CI runner won't trip it, short enough that a
+    /// regression which hangs the loop fails the test rather than running out
+    /// the job's clock — nextest has no `terminate-after` configured, so an
+    /// unbounded wait here is never killed.
+    const REPLY_TIMEOUT: Duration = Duration::from_secs(10);
 
     /// A `textDocument/definition` request whose params fail to deserialize
     /// used to `panic!`, taking the whole server down. It should get an error
@@ -110,7 +118,10 @@ mod tests {
     #[test]
     fn invalid_params_get_an_error_response() {
         let (server, client) = Connection::memory();
-        let server_thread = std::thread::spawn(move || main_loop(server));
+        // The result comes back over a channel rather than a `JoinHandle` so
+        // the wait for the loop to finish can be bounded too.
+        let (done_tx, done_rx) = std::sync::mpsc::channel();
+        std::thread::spawn(move || done_tx.send(main_loop(server)));
 
         client
             .sender
@@ -121,7 +132,11 @@ mod tests {
             }))
             .unwrap();
 
-        let Message::Response(resp) = client.receiver.recv().unwrap() else {
+        let reply = client
+            .receiver
+            .recv_timeout(REPLY_TIMEOUT)
+            .expect("server should reply to a bad request rather than hang");
+        let Message::Response(resp) = reply else {
             panic!("expected a response");
         };
         assert_eq!(resp.id, RequestId::from(1));
@@ -136,6 +151,9 @@ mod tests {
                 params: serde_json::Value::Null,
             }))
             .unwrap();
-        server_thread.join().unwrap().unwrap();
+        done_rx
+            .recv_timeout(REPLY_TIMEOUT)
+            .expect("server should exit on `exit` rather than hang")
+            .unwrap();
     }
 }
