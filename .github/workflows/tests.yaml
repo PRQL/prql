@@ -786,6 +786,12 @@ jobs:
     # default toolchain to run on. The minimum is defined by Cargo.toml's
     # metadata.msrv and is updated manually based on when build environments
     # such as debian & winget are updated.
+    #
+    # `TEND_BOT_TOKEN` lives in the `tend` environment, which admits only
+    # `main`; `nightly-upstream` is schedule-only, so the ref is always `main`.
+    environment:
+      name: tend
+      deployment: false
     steps:
       - name: 📂 Checkout code
         uses: actions/checkout@v7
