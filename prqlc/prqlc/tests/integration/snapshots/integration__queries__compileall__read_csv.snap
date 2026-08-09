@@ -62,23 +62,3 @@ input_file: prqlc/prqlc/tests/integration/queries/read_csv.prql
    table_2
  ORDER BY
    media_type_id
-
---- generic
-+++ glaredb
-@@ -1,15 +1,15 @@
- WITH table_0 AS (
-   SELECT
-     *
-   FROM
--    read_csv('data_file_root/media_types.csv')
-+    csv_scan('data_file_root/media_types.csv')
- ),
- table_2 AS (
-   SELECT
-     *
-   FROM
-     table_0
-   UNION
-   ALL
-   SELECT
-     *
