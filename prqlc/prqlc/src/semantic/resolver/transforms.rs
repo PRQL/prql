@@ -101,7 +101,7 @@ impl Resolver<'_> {
                     let span = side.span;
                     let ident = side.clone().try_cast(
                         ExprKind::into_literal,
-                        Some("side"),
+                        Some("`side`"),
                         "inner, left, right or full",
                     )?;
 
@@ -242,7 +242,7 @@ impl Resolver<'_> {
                     let span = by.span;
                     let ident = by.clone().try_cast(
                         ExprKind::into_literal,
-                        Some("by"),
+                        Some("`by`"),
                         "position or name",
                     )?;
 
@@ -431,7 +431,7 @@ impl Resolver<'_> {
                     let span = take.span;
                     let ident = take.clone().try_cast(
                         ExprKind::into_literal,
-                        Some("take"),
+                        Some("`take`"),
                         "early or late",
                     )?;
 
@@ -526,7 +526,7 @@ impl Resolver<'_> {
                 let res = {
                     let span = format.span;
                     let format = format
-                        .try_cast(ExprKind::into_literal, Some("format"), "csv or json")?
+                        .try_cast(ExprKind::into_literal, Some("`format`"), "csv or json")?
                         .to_string();
                     match format.as_str() {
                         "\"csv\"" => from_text::parse_csv(&text)

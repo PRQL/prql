@@ -562,9 +562,53 @@ fn tuple_uniq_take_wrong() {
        │
      3 │     select (tuple_uniq take:bar this)
        │                             ─┬─
-       │                              ╰─── take expected early or late, but found `this.foo.bar`
+       │                              ╰─── `take` expected early or late, but found `this.foo.bar`
     ───╯
     ");
+}
+
+/// The other three transforms that resolve a parameter to a literal report the
+/// parameter name the same way. An s-string reaches the cast without being a
+/// literal, which is the path that produces these.
+#[test]
+fn transform_param_not_a_literal() {
+    assert_snapshot!(compile(r###"
+    from x
+    join y (==id) side:s"left"
+    "###).unwrap_err(), @r#"
+    Error:
+       ╭─[ :3:24 ]
+       │
+     3 │     join y (==id) side:s"left"
+       │                        ───┬───
+       │                           ╰───── `side` expected inner, left, right or full, but found `s"left"`
+    ───╯
+    "#);
+
+    assert_snapshot!(compile(r###"
+    from foo
+    append by:s"name" baz
+    "###).unwrap_err(), @r#"
+    Error:
+       ╭─[ :3:15 ]
+       │
+     3 │     append by:s"name" baz
+       │               ───┬───
+       │                  ╰───── `by` expected position or name, but found `s"name"`
+    ───╯
+    "#);
+
+    assert_snapshot!(compile(r###"
+    from_text format:s"csv" "a,b"
+    "###).unwrap_err(), @r#"
+    Error:
+       ╭─[ :2:22 ]
+       │
+     2 │     from_text format:s"csv" "a,b"
+       │                      ───┬──
+       │                         ╰──── `format` expected csv or json, but found `s"csv"`
+    ───╯
+    "#);
 }
 
 #[test]
