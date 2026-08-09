@@ -1,11 +1,9 @@
 name: publish-web
 on:
-  # A release ends by pushing its docs to `web` with the bot's PAT, and a push
-  # made with a PAT does start workflows, so this covers releases too.
   push:
     branches:
       - web
-  # Called by pull-request when specifically requested
+  # Called by `release` on a release, and by `tests` on a `pr-publish-web` label
   workflow_call:
   workflow_dispatch:
 
