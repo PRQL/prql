@@ -773,3 +773,52 @@ fn lsp_ignores_non_exit_notification() {
     shutting down server
     "###);
 }
+
+/// `initialize` params that our pinned `lsp-types` can't model — here, ones
+/// missing the required `capabilities` field — must not take the server down.
+/// Before the fix, they were deserialized into `InitializeParams` and
+/// `unwrap`ed, so the server panicked before the main loop even started.
+#[cfg(feature = "lsp")]
+#[test]
+fn lsp_unmodelled_initialize_params() {
+    let init = serde_json::to_string(&lsp_server::Message::Request(lsp_server::Request {
+        method: "initialize".into(),
+        id: lsp_server::RequestId::from(1),
+        params: serde_json::json!({}),
+    }))
+    .unwrap();
+    let initialized = serde_json::to_string(&lsp_server::Message::Notification(
+        lsp_server::Notification {
+            method: "initialized".into(),
+            params: serde_json::json!({}),
+        },
+    ))
+    .unwrap();
+    let exit = serde_json::to_string(&lsp_server::Message::Notification(
+        lsp_server::Notification {
+            method: "exit".into(),
+            params: serde_json::Value::Null,
+        },
+    ))
+    .unwrap();
+
+    assert_cmd_snapshot!(prqlc_command().args(["lsp"])
+        .pass_stdin(format!("Content-Length: {}\r\n\r\n{}Content-Length: {}\r\n\r\n{}Content-Length: {}\r\n\r\n{}",
+            init.len(), init,
+            initialized.len(), initialized,
+            exit.len(), exit))
+        , @r###"
+    success: true
+    exit_code: 0
+    ----- stdout -----
+    Content-Length: 78
+
+    {"jsonrpc":"2.0","id":1,"result":{"capabilities":{"definitionProvider":true}}}
+    ----- stderr -----
+    starting PRQL LSP server
+    starting main loop
+    got msg: Notification(Notification { method: "exit", params: Null })
+    got notification: Notification { method: "exit", params: Null }
+    shutting down server
+    "###);
+}
