@@ -7,9 +7,9 @@
 - Move all standard types into a dedicated `std.types` submodule in order to
   disambiguate between `type text` - `module text` and `type date` -
   `module date`. (@kgutwin, #6155)
-- _Breaking_: The compile target `sql.glaredb` has been removed,
-  since it was never tested after the fully rewritten of GlareDB,
-  and GlareDB seems to be no longer maintained. (#6172)
+- _Breaking_: The compile target `sql.glaredb` has been removed, since it was
+  never tested after the fully rewritten of GlareDB, and GlareDB seems to be no
+  longer maintained. (#6172)
 
 **Features**:
 
