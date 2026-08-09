@@ -83,7 +83,6 @@ fn get_targets() {
     sql.clickhouse
     sql.duckdb
     sql.generic
-    sql.glaredb
     sql.mssql
     sql.mysql
     sql.oracle

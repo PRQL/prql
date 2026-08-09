@@ -18,7 +18,6 @@ mod atoms {
       bigquery,
       clickhouse,
       duckdb,
-      glaredb,
       generic,
       mssql,
       mysql,
@@ -58,8 +57,6 @@ fn target_from_atom(a: Atom) -> prqlc::Target {
         DuckDb
     } else if a == atoms::generic() {
         Generic
-    } else if a == atoms::glaredb() {
-        GlareDb
     } else if a == atoms::mssql() {
         MsSql
     } else if a == atoms::mysql() {
