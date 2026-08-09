@@ -426,15 +426,25 @@ jobs:
   #         nexus_password: ${{ secrets.nexus_password }}
   #         directory: prql-java/java/
 
+  publish-web:
+    if: github.event_name == 'release'
+    uses: ./.github/workflows/publish-web.yaml
+    permissions:
+      contents: read
+      pages: write
+      id-token: write
+
+  # `web` tracks the latest release, so doc-only fixes backport onto it. A push
+  # with the default token starts no workflow, so `publish-web` is the release's
+  # only publish.
   push-web-branch:
     runs-on: ubuntu-24.04
-    environment: release
     if: github.event_name == 'release'
+    permissions:
+      contents: write
     steps:
       - name: 📂 Checkout code
         uses: actions/checkout@v7
-        with:
-          token: ${{ secrets.TEND_BOT_TOKEN }}
       - run: git push origin HEAD:web --force
 
   push-devcontainer:
