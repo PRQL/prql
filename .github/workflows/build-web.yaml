@@ -46,11 +46,9 @@ jobs:
         with:
           prefix-key: ${{ env.version }}-${{ hashFiles('./Cargo.lock') }}
           shared-key: web
-          # A release builds on its tag, and a later `web` build starts from
-          # that cache.
           save-if:
             ${{ github.ref == 'refs/heads/web' || github.ref ==
-            'refs/heads/main' || startsWith(github.ref, 'refs/tags/') }}
+            'refs/heads/main' }}
           # Caching `~/.cargo/bin/` breaks the rustup `cargo`/`rustc` symlinks
           # on the new macos-15 runner image — see
           # https://github.com/Swatinem/rust-cache/issues/341.
