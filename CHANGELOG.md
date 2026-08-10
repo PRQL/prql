@@ -11,8 +11,14 @@
   previously discarded a sibling `b.prql`. This is a small breaking change —
   programs that relied on the last declaration winning now fail to compile.
   (@prql-bot, #6150)
+- Move all standard types into a dedicated `std.types` submodule in order to
+  disambiguate between `type text` - `module text` and `type date` -
+  `module date`. (@kgutwin, #6155)
 
 **Features**:
+
+- Add simple enumeration type, and dedicated support for name resolution when an
+  enum is used as a function parameter. (@kgutwin, #6104)
 
 **Fixes**:
 

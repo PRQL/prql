@@ -51,6 +51,7 @@ jobs:
     # Confirm that it's merged and has a label to ensure nothing is backported without oversight
     if: |
       github.event.pull_request.merged
+      && github.event.pull_request.base.ref == 'main'
       && (
         github.event.action == 'closed'
         || (
@@ -58,6 +59,12 @@ jobs:
           && contains(github.event.label.name, 'pr-backport-web')
         )
       )
+    # `pull_request_target` runs at the base branch's ref, and `TEND_BOT_TOKEN`
+    # lives in the `tend` environment, which admits only `main`. Hence the
+    # `base.ref` condition above.
+    environment:
+      name: tend
+      deployment: false
     steps:
       - uses: tibdex/backport@v2
         with:

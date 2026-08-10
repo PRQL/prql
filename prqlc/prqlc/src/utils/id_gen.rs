@@ -3,9 +3,12 @@ use std::marker::PhantomData;
 use crate::ir::rq::{fold_table, CId, RelationalQuery, RqFold, TId, TableDecl};
 use crate::Result;
 
+pub const SYS_ID_START: usize = 4_000_000_000;
+
 #[derive(Debug, Clone)]
 pub struct IdGenerator<T: From<usize>> {
     next_id: usize,
+    next_id_sys: usize,
     phantom: PhantomData<T>,
 }
 
@@ -18,9 +21,22 @@ impl<T: From<usize>> IdGenerator<T> {
         self.next_id = self.next_id.max(id + 1);
     }
 
+    /// Generate an 'internal' ID starting at above SYS_ID_START.
+    pub fn gen_sys(&mut self) -> T {
+        let id = self.next_id_sys;
+        self.next_id_sys = self
+            .next_id_sys
+            .checked_add(1)
+            .expect("too many generated internal ids");
+        T::from(id)
+    }
+
     pub fn gen(&mut self) -> T {
         let id = self.next_id;
         self.next_id += 1;
+        if self.next_id >= SYS_ID_START {
+            panic!("too many generated ids (more than {SYS_ID_START})!");
+        }
         T::from(id)
     }
 }
@@ -29,6 +45,7 @@ impl<T: From<usize>> Default for IdGenerator<T> {
     fn default() -> IdGenerator<T> {
         IdGenerator {
             next_id: 0,
+            next_id_sys: SYS_ID_START,
             phantom: PhantomData,
         }
     }
@@ -81,4 +98,18 @@ impl NameGenerator {
     pub fn gen(&mut self) -> String {
         format!("{}{}", self.prefix, self.id.gen())
     }
+}
+
+#[test]
+fn test_id_generator() {
+    let mut id: IdGenerator<usize> = IdGenerator::new();
+
+    assert!(id.gen() < SYS_ID_START);
+    assert!(id.gen_sys() >= SYS_ID_START);
+    assert!(id.gen() != id.gen());
+    assert!(id.gen_sys() != id.gen_sys());
+
+    let i = id.gen();
+    id.skip(i + 10);
+    assert!(id.gen() > (i + 10));
 }

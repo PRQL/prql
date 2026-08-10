@@ -1,5 +1,3 @@
-use chumsky;
-
 use chumsky::Parser;
 use insta::assert_debug_snapshot;
 use insta::assert_snapshot;

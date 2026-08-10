@@ -424,7 +424,7 @@ fn compare_directories(dir1: &Path, dir2: &Path) {
 fn debug() {
     assert_cmd_snapshot!(prqlc_command()
         .args(["debug", "lineage"])
-        .pass_stdin("from tracks | select {artist, album}"), @r###"
+        .pass_stdin("from tracks | select {artist, album}"), @"
     success: true
     exit_code: 0
     ----- stdout -----
@@ -435,29 +435,29 @@ fn debug() {
           name:
           - tracks
           - artist
-          target_id: 123
+          target_id: 8
           target_name: null
         - !Single
           name:
           - tracks
           - album
-          target_id: 124
+          target_id: 9
           target_name: null
         inputs:
-        - id: 121
+        - id: 7
           name: tracks
           table:
           - default_db
           - tracks
     nodes:
-    - id: 121
+    - id: 7
       kind: Ident
       span: 1:0-11
       ident: !Ident
       - default_db
       - tracks
-      parent: 126
-    - id: 123
+      parent: 11
+    - id: 8
       kind: Ident
       span: 1:22-28
       ident: !Ident
@@ -465,9 +465,9 @@ fn debug() {
       - tracks
       - artist
       targets:
-      - 121
-      parent: 125
-    - id: 124
+      - 7
+      parent: 10
+    - id: 9
       kind: Ident
       span: 1:30-35
       ident: !Ident
@@ -475,21 +475,21 @@ fn debug() {
       - tracks
       - album
       targets:
-      - 121
-      parent: 125
-    - id: 125
+      - 7
+      parent: 10
+    - id: 10
       kind: Tuple
       span: 1:21-36
       children:
-      - 123
-      - 124
-      parent: 126
-    - id: 126
+      - 8
+      - 9
+      parent: 11
+    - id: 11
       kind: 'TransformCall: Select'
       span: 1:14-36
       children:
-      - 121
-      - 125
+      - 7
+      - 10
     ast:
       name: Project
       stmts:
@@ -528,7 +528,7 @@ fn debug() {
         span: 1:0-36
 
     ----- stderr -----
-    "###);
+    ");
 
     // Don't test the output of this, since on one min-versions check it had
     // different results, and didn't repro on Mac. It having different results

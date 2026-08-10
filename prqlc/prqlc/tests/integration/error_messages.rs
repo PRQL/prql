@@ -195,7 +195,7 @@ fn test_ambiguous() {
        │            ──┬─
        │              ╰─── Ambiguous name
        │
-       │ Help: could be any of: std.date, this.date
+       │ Help: could be any of: std.date, std.types.date, this.date
        │
        │ Note: available columns: date
     ───╯
@@ -492,6 +492,46 @@ fn bare_lambda_expression() {
 }
 
 #[test]
+fn enum_type_1() {
+    assert_snapshot!(compile(r#"
+    enum Status { Paid = "paid", Unpaid = "unpaid" }
+    from invoices | filter status = Status.Canceled
+    "#).unwrap_err(), @"
+    Error:
+       ╭─[ :3:37 ]
+       │
+     3 │     from invoices | filter status = Status.Canceled
+       │                                     ───────┬───────
+       │                                            ╰───────── Unknown name `Status.Canceled`
+    ───╯
+    ");
+}
+
+#[test]
+fn enum_type_2() {
+    assert_snapshot!(compile(r###"
+    enum InvoiceStatus { Paid = 0, Unpaid = 1, Canceled = 2 }
+
+    let filter_status = func status <InvoiceStatus> tbl <relation> -> (
+        filter (this.status == _param.status) tbl
+    )
+
+    from invoices
+    filter_status 1
+    "###).unwrap_err(), @"
+    Error:
+       ╭─[ :9:19 ]
+       │
+     9 │     filter_status 1
+       │                   ┬
+       │                   ╰── function filter_status, param `status` expected type `InvoiceStatus`, but found type `int`
+       │
+       │ Help: Type `InvoiceStatus` expands to `enum {Paid = 0, Unpaid = 1, Canceled = 2}`
+    ───╯
+    ");
+}
+
+#[test]
 fn append_by_wrong() {
     assert_snapshot!(compile(r###"
     from foo
@@ -502,7 +542,11 @@ fn append_by_wrong() {
        │
      3 │     append by:bar baz
        │               ─┬─
-       │                ╰─── `by` expected position or name, but found bar
+       │                ╰─── Ambiguous name
+       │
+       │ Help: could be any of: that.baz.bar, this.foo.bar
+       │
+       │ Note: perhaps you meant one of: position, name
     ───╯
     ");
 }
@@ -518,9 +562,53 @@ fn tuple_uniq_take_wrong() {
        │
      3 │     select (tuple_uniq take:bar this)
        │                             ─┬─
-       │                              ╰─── `take` expected early or late, but found bar
+       │                              ╰─── `take` expected early or late, but found `this.foo.bar`
     ───╯
     ");
+}
+
+/// The other three transforms that resolve a parameter to a literal report the
+/// parameter name the same way. An s-string reaches the cast without being a
+/// literal, which is the path that produces these.
+#[test]
+fn transform_param_not_a_literal() {
+    assert_snapshot!(compile(r###"
+    from x
+    join y (==id) side:s"left"
+    "###).unwrap_err(), @r#"
+    Error:
+       ╭─[ :3:24 ]
+       │
+     3 │     join y (==id) side:s"left"
+       │                        ───┬───
+       │                           ╰───── `side` expected inner, left, right or full, but found `s"left"`
+    ───╯
+    "#);
+
+    assert_snapshot!(compile(r###"
+    from foo
+    append by:s"name" baz
+    "###).unwrap_err(), @r#"
+    Error:
+       ╭─[ :3:15 ]
+       │
+     3 │     append by:s"name" baz
+       │               ───┬───
+       │                  ╰───── `by` expected position or name, but found `s"name"`
+    ───╯
+    "#);
+
+    assert_snapshot!(compile(r###"
+    from_text format:s"csv" "a,b"
+    "###).unwrap_err(), @r#"
+    Error:
+       ╭─[ :2:22 ]
+       │
+     2 │     from_text format:s"csv" "a,b"
+       │                      ───┬──
+       │                         ╰──── `format` expected csv or json, but found `s"csv"`
+    ───╯
+    "#);
 }
 
 #[test]

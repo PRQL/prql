@@ -5,7 +5,7 @@ use crate::ir::pl;
 use crate::ir::pl::PlFold;
 use crate::pr::{Ty, TyKind, TyTupleField};
 use crate::semantic::resolver::{flatten, types, Resolver};
-use crate::semantic::{NS_INFER, NS_SELF, NS_THAT, NS_THIS};
+use crate::semantic::{NS_INFER, NS_SELF, NS_THAT, NS_THIS, STD_LIB_SOURCE_ID};
 use crate::utils::IdGenerator;
 use crate::Result;
 use crate::{Error, Reason, Span, WithErrorInfo};
@@ -62,7 +62,14 @@ impl pl::PlFold for Resolver<'_> {
             return Ok(node);
         }
 
-        let id = self.id.gen();
+        let id = if node
+            .span
+            .is_some_and(|span| span.source_id == STD_LIB_SOURCE_ID)
+        {
+            self.id.gen_sys()
+        } else {
+            self.id.gen()
+        };
         let alias = node.alias.clone();
         let span = node.span;
 
