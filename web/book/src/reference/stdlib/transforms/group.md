@@ -6,7 +6,7 @@ Partitions the rows into groups and applies a pipeline to each of the groups.
 group {key_columns} (pipeline)
 ```
 
-The partitioning of groups are determined by the `key_column`s (first argument).
+The partitioning of groups is determined by the `key_columns` (first argument).
 
 The most conventional use of `group` is with `aggregate`:
 
