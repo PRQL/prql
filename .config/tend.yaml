@@ -2,7 +2,9 @@ bot_name: prql-bot
 secrets:
   # Docker Hub login is needed by test-rust.yaml on internal PRs (external-DB
   # tests); it's a low-value pull token, so it's intentionally repo-level.
-  # Release secrets (cargo/snapcraft) live in the `release` environment instead.
+  # Everything else sits behind an environment, split by the ref that releases
+  # it: `tend` for the jobs that run on `main`, `release` for the ones that run
+  # on a tag.
   allowed:
     - DOCKERHUB_TOKEN
     - DOCKERHUB_USERNAME

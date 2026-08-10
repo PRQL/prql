@@ -154,24 +154,29 @@ pub(super) mod test {
 
     #[test]
     fn test_functions_pipeline() {
-        assert_yaml_snapshot!(resolve_derive(
-            r#"
+        // Spans from `std.prql` carry source id 0 (`STD_LIB_SOURCE_ID`); user
+        // sources start at 1. Filtering them keeps this snapshot stable when the
+        // stdlib shifts, without hiding spans from the query under test.
+        insta::with_settings!({ filters => vec![(r"\b0:\d+-\d+", "[std]")] }, {
+            assert_yaml_snapshot!(resolve_derive(
+                r#"
             from a
             derive one = (foo | sum)
             "#
-        )
-        .unwrap());
+            )
+            .unwrap());
 
-        assert_yaml_snapshot!(resolve_derive(
-            r#"
+            assert_yaml_snapshot!(resolve_derive(
+                r#"
             let plus_one = x -> x + 1
             let plus = x y -> x + y
 
             from a
             derive {b = (sum foo | plus_one | plus 2)}
             "#
-        )
-        .unwrap());
+            )
+            .unwrap());
+        });
     }
     #[test]
     fn test_named_args() {

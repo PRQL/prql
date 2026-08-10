@@ -5,7 +5,7 @@ use crate::ir::pl;
 use crate::ir::pl::PlFold;
 use crate::pr::{Ty, TyKind, TyTupleField};
 use crate::semantic::resolver::{flatten, types, Resolver};
-use crate::semantic::{NS_INFER, NS_SELF, NS_THAT, NS_THIS};
+use crate::semantic::{NS_INFER, NS_SELF, NS_THAT, NS_THIS, STD_LIB_SOURCE_ID};
 use crate::utils::IdGenerator;
 use crate::Result;
 use crate::{Error, Reason, Span, WithErrorInfo};
@@ -62,11 +62,18 @@ impl pl::PlFold for Resolver<'_> {
             return Ok(node);
         }
 
-        let id = self.id.gen();
-        let alias = Box::new(node.alias.clone());
-        let span = Box::new(node.span);
+        let id = if node
+            .span
+            .is_some_and(|span| span.source_id == STD_LIB_SOURCE_ID)
+        {
+            self.id.gen_sys()
+        } else {
+            self.id.gen()
+        };
+        let alias = node.alias.clone();
+        let span = node.span;
 
-        if let Some(span) = *span {
+        if let Some(span) = span {
             self.root_mod.span_map.insert(id, span);
         }
 
@@ -150,7 +157,7 @@ impl pl::PlFold for Resolver<'_> {
                             expected: "a value".to_string(),
                             found: "a type".to_string(),
                         })
-                        .with_span(*span));
+                        .with_span(span));
                     }
 
                     _ => pl::Expr {
@@ -160,9 +167,15 @@ impl pl::PlFold for Resolver<'_> {
                 }
             }
 
-            pl::ExprKind::FuncCall(pl::FuncCall { name, args, .. })
-                if (name.kind.as_ident()).is_some_and(|i| i.to_string() == "std.not")
-                    && matches!(args[0].kind, pl::ExprKind::Tuple(_)) =>
+            // special case: handle the syntax !{tuple..} via resolve_column_exclusion
+            pl::ExprKind::FuncCall(pl::FuncCall {
+                name,
+                args,
+                named_args,
+            }) if (name.kind.as_ident()).is_some_and(|i| i.to_string() == "std.not")
+                && args.len() == 1
+                && named_args.is_empty()
+                && matches!(args[0].kind, pl::ExprKind::Tuple(_)) =>
             {
                 let arg = args.into_iter().exactly_one().unwrap();
                 self.resolve_column_exclusion(arg)?
@@ -183,11 +196,13 @@ impl pl::PlFold for Resolver<'_> {
                 let func = name.try_cast(|n| n.into_func(), None, "a function")?;
 
                 // fold function
-                let func = self.apply_args_to_closure(func, args, named_args)?;
-                self.fold_function(func, *span)?
+                let func = self
+                    .apply_args_to_closure(func, args, named_args)
+                    .with_span_fallback(span)?;
+                self.fold_function(func, span)?
             }
 
-            pl::ExprKind::Func(closure) => self.fold_function(closure, *span)?,
+            pl::ExprKind::Func(closure) => self.fold_function(closure, span)?,
 
             pl::ExprKind::Tuple(exprs) => {
                 let exprs = self.fold_exprs(exprs)?;
@@ -212,7 +227,7 @@ impl pl::PlFold for Resolver<'_> {
                 ..node
             },
         };
-        self.finish_expr_resolve(r, id, *alias, *span)
+        self.finish_expr_resolve(r, id, alias, span)
     }
 }
 

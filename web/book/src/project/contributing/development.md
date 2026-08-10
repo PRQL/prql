@@ -410,8 +410,8 @@ the confidence to make changes faster, please raise an issue.
 
 ## Website
 
-The website is published together with the book and the playground, and is
-automatically built and released on any push to the `web` branch.
+The website is published together with the book and the playground, from a
+release's tag and from any later push to the `web` branch.
 
 The `web` branch points to the latest release plus any website-specific fixes.
 That way, the compiler behavior in the playground matches the latest release
@@ -498,9 +498,11 @@ Currently we release in a semi-automated way:
    )"
    ```
 
-4. From there, both the tag and release is created and all packages are
-   published automatically based on our
-   [release workflow](https://github.com/PRQL/prql/blob/main/.github/workflows/release.yaml).
+4. From there the tag and release are created, and the
+   [release workflow](https://github.com/PRQL/prql/blob/main/.github/workflows/release.yaml)
+   publishes the packages and the website. Its publishing jobs sit behind the
+   `release` and `github-pages` environments, so approve the pending deployments
+   on the run's page.
 
 5. Run
    `cargo release patch --no-publish --no-push --execute --no-verify --no-confirm --no-tag && task prqlc:test-all && cargo insta test --accept -p mdbook-prql`

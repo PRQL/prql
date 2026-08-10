@@ -7,10 +7,10 @@ frames:
 - - 1:25-41
   - columns:
     - !All
-      input_id: 124
+      input_id: 10
       except: []
     inputs:
-    - id: 124
+    - id: 10
       name: tracks
       table:
       - default_db
@@ -18,23 +18,23 @@ frames:
 - - 1:42-51
   - columns:
     - !All
-      input_id: 124
+      input_id: 10
       except: []
     inputs:
-    - id: 124
+    - id: 10
       name: tracks
       table:
       - default_db
       - tracks
 nodes:
-- id: 124
+- id: 10
   kind: Ident
   span: 1:13-24
   ident: !Ident
   - default_db
   - tracks
-  parent: 128
-- id: 126
+  parent: 13
+- id: 11
   kind: Ident
   span: 1:31-40
   ident: !Ident
@@ -42,32 +42,32 @@ nodes:
   - tracks
   - track_id
   targets:
-  - 124
-  parent: 128
-- id: 128
+  - 10
+  parent: 13
+- id: 13
   kind: 'TransformCall: Sort'
   span: 1:25-41
   children:
-  - 124
-  - 126
-  parent: 132
-- id: 129
+  - 10
+  - 11
+  parent: 17
+- id: 14
   kind: Literal
   span: 1:47-48
   alias: start
-  parent: 132
-- id: 130
+  parent: 17
+- id: 15
   kind: Literal
   span: 1:50-51
   alias: end
-  parent: 132
-- id: 132
+  parent: 17
+- id: 17
   kind: 'TransformCall: Take'
   span: 1:42-51
   children:
-  - 128
-  - 129
-  - 130
+  - 13
+  - 14
+  - 15
 ast:
   name: Project
   stmts:

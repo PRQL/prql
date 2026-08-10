@@ -348,6 +348,7 @@ pub fn fold_type<T: ?Sized + PlFold>(fold: &mut T, ty: Ty) -> Result<Ty> {
                 .transpose()?,
             ),
             TyKind::Ident(_) | TyKind::Primitive(_) => ty.kind,
+            TyKind::Enum(_) => ty.kind,
         },
         span: ty.span,
         name: ty.name,

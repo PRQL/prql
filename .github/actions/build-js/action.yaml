@@ -1,0 +1,37 @@
+name: build-js
+description: "Build the prqlc npm package, ready for `npm publish`."
+
+runs:
+  using: composite
+  steps:
+    - uses: baptiste0928/cargo-install@v3
+      with:
+        crate: wasm-pack
+
+    - name: Setup Node
+      uses: actions/setup-node@v7
+      with:
+        # Node 24+ includes npm 11.5.1+ required for OIDC trusted publishing
+        node-version: "24.x"
+        registry-url: "https://registry.npmjs.org"
+
+    - run: ./.github/workflows/scripts/set_version.sh
+      shell: bash
+
+    - name: 💰 Cache
+      uses: Swatinem/rust-cache@v2
+      with:
+        prefix-key: ${{ env.version }}-${{ hashFiles('./Cargo.lock') }}
+        # Share key with the `build-web` job
+        shared-key: web
+        save-if: false
+        # Caching `~/.cargo/bin/` breaks the rustup `cargo`/`rustc` symlinks
+        # on the new macos-15 runner image — see
+        # https://github.com/Swatinem/rust-cache/issues/341.
+        cache-bin: "false"
+
+    # This is only required in order to have `cross-env` installed, since `npx
+    # cross-env` doesn't seem to work in CI (https://github.com/PRQL/prql/pull/3728)
+    - run: npm install
+      working-directory: prqlc/bindings/js/
+      shell: bash
