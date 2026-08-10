@@ -548,16 +548,14 @@ jobs:
         run: bun run test
       - name: 🦋 Setup Raku
         uses: Raku/setup-raku@v1
+      # `prove6` is the TAP harness that runs the whole `t/` directory in one
+      # command, as `grammars/raku/README.md` documents. `zef` ships with the
+      # rakudo archive that `setup-raku` installs.
+      - name: Install prove6
+        run: zef install App::Prove6
       - name: Test raku grammar
         working-directory: grammars/raku/
-        # `raku` only takes a single script, so we loop rather than passing the
-        # whole glob. `run` defaults to `bash -e`, so the first failing test
-        # fails the step.
-        run: |
-          for t in t/*.rakutest; do
-            echo "== $t"
-            raku -I lib "$t"
-          done
+        run: prove6 --lib t/
 
   build-devcontainer:
     needs: rules
