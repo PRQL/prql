@@ -4,6 +4,13 @@
 
 **Language**:
 
+- Report duplicate `import` definitions as an error rather than silently keeping
+  the last one. `import a.b` followed by `import c.b` now reports
+  `duplicate declarations of b`, matching `let` and `type`; use `import d = c.b`
+  to bring in both. The same applies to a multi-file project, where `import a.b`
+  previously discarded a sibling `b.prql`. This is a small breaking change —
+  programs that relied on the last declaration winning now fail to compile.
+  (@prql-bot, #6150)
 - Move all standard types into a dedicated `std.types` submodule in order to
   disambiguate between `type text` - `module text` and `type date` -
   `module date`. (@kgutwin, #6155)

@@ -150,16 +150,14 @@ impl super::Resolver<'_> {
 
     fn fold_import_def_stmt(&mut self, stmt: Stmt, ident: Ident) -> Result<()> {
         let target = stmt.kind.into_import_def().unwrap();
-        let decl = Decl {
-            declared_at: stmt.id,
-            kind: DeclKind::Import(target.name),
-            annotations: stmt.annotations,
-            ..Default::default()
-        };
+        let decl = DeclKind::Import(target.name);
 
+        // `declare` rather than a direct `Module::insert`, so that a name
+        // already taken is reported as a duplicate instead of being overwritten,
+        // matching `let` and `type`.
         self.root_mod
-            .module
-            .insert(ident, decl)
+            .declare(ident, decl, stmt.id, stmt.annotations)
+            .push_hint("to import both, alias one of them: `import alias = path`")
             .with_span(stmt.span)?;
         Ok(())
     }
@@ -236,5 +234,50 @@ fn prepare_expr_decl(value: Box<Expr>) -> DeclKind {
             DeclKind::TableDecl(TableDecl { ty, expr })
         }
         _ => DeclKind::Expr(value),
+    }
+}
+
+#[cfg(test)]
+mod test {
+    use insta::assert_snapshot;
+
+    use crate::tests::compile;
+
+    #[test]
+    fn duplicate_import_is_an_error() {
+        // Import defs bypassed the duplicate check that `let` and `type` get, so
+        // the second `b` used to silently win.
+        assert_snapshot!(compile(r"
+        import a.b
+        import c.b
+        from t
+        ").unwrap_err(), @"
+        Error:
+           ╭─[ :2:19 ]
+           │
+         2 │ ╭─▶         import a.b
+         3 │ ├─▶         import c.b
+           │ │
+           │ ╰──────────────────────── duplicate declarations of b
+           │
+           │     Help: to import both, alias one of them: `import alias = path`
+        ───╯
+        ");
+    }
+
+    #[test]
+    fn aliased_import_avoids_duplicate() {
+        // `import d = …` is the documented way to bring in two targets that
+        // would otherwise land on the same name.
+        assert_snapshot!(compile(r"
+        import a.b
+        import d = c.b
+        from t
+        ").unwrap(), @"
+        SELECT
+          *
+        FROM
+          t
+        ");
     }
 }
