@@ -551,8 +551,14 @@ jobs:
       # `prove6` is the TAP harness that runs the whole `t/` directory in one
       # command, as `grammars/raku/README.md` documents. `zef` ships with the
       # rakudo archive that `setup-raku` installs.
+      #
+      # `--/test` skips the test suites of `App::Prove6` and its transitive
+      # deps, which `zef` would otherwise run before installing. The README
+      # recipe deliberately omits it — a human installing locally wants those
+      # to run; here they'd only turn the job red for reasons unrelated to the
+      # PRQL grammar.
       - name: Install prove6
-        run: zef install App::Prove6
+        run: zef install --/test App::Prove6
       - name: Test raku grammar
         working-directory: grammars/raku/
         run: prove6 --lib t/
