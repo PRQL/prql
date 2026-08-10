@@ -523,8 +523,8 @@ jobs:
           token: cab4ace5-4f10-4027-8b5c-d79722234571
 
   test-grammars:
-    # Currently tests lezer grammars. We could split that out into a separate
-    # job if we want when we add more.
+    # Tests the lezer & raku grammars. We could split these into separate jobs
+    # if we want when we add more.
     runs-on: ubuntu-24.04
     needs: rules
     if:
@@ -540,12 +540,24 @@ jobs:
       - name: Install dependencies
         working-directory: grammars/prql-lezer/
         run: bun install
-      - name: Build grammar
+      - name: Build lezer grammar
         working-directory: grammars/prql-lezer/
         run: bun run build
-      - name: Test grammar
+      - name: Test lezer grammar
         working-directory: grammars/prql-lezer/
         run: bun run test
+      - name: 🦋 Setup Raku
+        uses: Raku/setup-raku@v1
+      - name: Test raku grammar
+        working-directory: grammars/raku/
+        # `raku` only takes a single script, so we loop rather than passing the
+        # whole glob. `run` defaults to `bash -e`, so the first failing test
+        # fails the step.
+        run: |
+          for t in t/*.rakutest; do
+            echo "== $t"
+            raku -I lib "$t"
+          done
 
   build-devcontainer:
     needs: rules
