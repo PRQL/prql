@@ -11,6 +11,13 @@
   previously discarded a sibling `b.prql`. This is a small breaking change —
   programs that relied on the last declaration winning now fail to compile.
   (@prql-bot, #6150)
+- Report duplicate declarations coming from an `enum` definition rather than
+  silently keeping the last one. An `enum` whose name is already taken now
+  reports `duplicate declarations of <name>`, a repeated member reports
+  `duplicate declarations of <enum>.<member>`, and `_self` is rejected as a
+  member name since it is the entry holding the type itself. This is a small
+  breaking change — enums that relied on the last declaration winning now fail
+  to compile. (@prql-bot, #6164)
 - Move all standard types into a dedicated `std.types` submodule in order to
   disambiguate between `type text` - `module text` and `type date` -
   `module date`. (@kgutwin, #6155)
