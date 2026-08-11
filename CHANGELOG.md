@@ -25,9 +25,8 @@
 - Stop silently dropping a select item whose output name matches a table
   qualifier or column reference used earlier in the same projection.
   `select {tbl.a, tbl = x.b}` lost its second column, as did a join between two
-  relations that share a column name, and
-  `group {a} (aggregate {a = sum b})` lost the aggregate entirely.
-  (@prql-bot, #6181)
+  relations that share a column name, and `group {a} (aggregate {a = sum b})`
+  lost the aggregate entirely. (@prql-bot, #6181)
 
 **Documentation**:
 
