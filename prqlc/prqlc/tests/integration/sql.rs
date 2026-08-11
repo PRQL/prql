@@ -1206,6 +1206,32 @@ fn test_alias_matching_table_qualifier_is_kept() {
 }
 
 #[test]
+fn test_aggregate_matching_group_key_is_kept() {
+    // Same root cause as above, reached without a join: with a single relation
+    // the table prefix is omitted, so the group key renders as a one-part
+    // compound identifier and used to claim the name `a` for the aggregate's
+    // alias too — the aggregate was dropped and the query silently returned
+    // only the group key.
+    //
+    // The two output columns share a name because the resolver doesn't
+    // disambiguate a group key against a same-named aggregate the way it does
+    // inside `select` (which renames to `_expr_0`); that's separate from this
+    // dedup pass, which should not be deciding it by deletion.
+    assert_snapshot!(compile(r#"
+    from tbl
+    group {a} (aggregate {a = sum b})
+    "#).unwrap(), @r"
+    SELECT
+      a,
+      COALESCE(SUM(b), 0) AS a
+    FROM
+      tbl
+    GROUP BY
+      a
+    ");
+}
+
+#[test]
 fn test_sort_in_nested_append() {
     assert_snapshot!(compile(r#"
     from `albums`
