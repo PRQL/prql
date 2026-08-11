@@ -121,14 +121,19 @@ pub(super) fn translate_wildcards(ctx: &AnchorContext, cols: Vec<CId>) -> (Vec<C
 }
 
 fn deduplicate_select_items(items: &mut Vec<SelectItem>) {
-    // Dropping all duplicated identifiers
-    let mut seen = HashSet::new();
+    // Dropping all duplicated identifiers. Qualified references and aliases are
+    // tracked separately: a table qualifier such as the `t` of `t.a` lives in a
+    // different namespace to an output column name, so it must not make a later
+    // `… AS t` look like a repeat.
+    let mut seen_idents = HashSet::new();
+    let mut seen_aliases = HashSet::new();
     items.retain(|select_item| match select_item {
+        // Compare the whole path, so that `t.a` and `u.a` both survive while a
+        // repeat of `t.a` does not.
         SelectItem::UnnamedExpr(sql_ast::Expr::CompoundIdentifier(idents)) => {
-            // If any of the identifiers hadn't been seen yet, retain the expr
-            idents.iter().any(|ident| seen.insert(ident.clone()))
+            seen_idents.insert(idents.clone())
         }
-        SelectItem::ExprWithAlias { alias, .. } => seen.insert(alias.clone()),
+        SelectItem::ExprWithAlias { alias, .. } => seen_aliases.insert(alias.clone()),
         _ => true,
     });
 }

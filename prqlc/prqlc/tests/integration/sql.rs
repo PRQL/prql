@@ -1187,6 +1187,25 @@ fn test_sort_in_nested_join_with_extra_derive_and_select() {
 }
 
 #[test]
+fn test_alias_matching_table_qualifier_is_kept() {
+    // The select-item deduplication used to track table qualifiers and output
+    // aliases in one set, so `tbl` from `tbl.a` made `x.b AS tbl` look like a
+    // repeat and the column was dropped from the projection.
+    assert_snapshot!(compile(r#"
+    from tbl
+    join x (==id)
+    select {tbl.a, tbl = x.b}
+    "#).unwrap(), @r"
+    SELECT
+      tbl.a,
+      x.b AS tbl
+    FROM
+      tbl
+      INNER JOIN x ON tbl.id = x.id
+    ");
+}
+
+#[test]
 fn test_sort_in_nested_append() {
     assert_snapshot!(compile(r#"
     from `albums`
