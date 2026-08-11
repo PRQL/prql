@@ -1216,7 +1216,11 @@ fn test_aggregate_matching_group_key_is_kept() {
     // The two output columns share a name because the resolver doesn't
     // disambiguate a group key against a same-named aggregate the way it does
     // inside `select` (which renames to `_expr_0`); that's separate from this
-    // dedup pass, which should not be deciding it by deletion.
+    // dedup pass, which should not be deciding it by deletion. The ambiguity is
+    // therefore not resolved by this change, only surfaced: as a final
+    // projection both columns come back, but wrapping this in a CTE and
+    // selecting `a` from it is ambiguous SQL — an error on stricter engines,
+    // and the group key rather than the sum on SQLite.
     assert_snapshot!(compile(r#"
     from tbl
     group {a} (aggregate {a = sum b})
