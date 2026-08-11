@@ -1,10 +1,10 @@
 ---
 source: prqlc/prqlc/tests/integration/queries.rs
-expression: "# mysql:skip\n# clickhouse:skip\n# glaredb:skip (the string_agg function is not supported)\nfrom tracks\nfilter genre_id == 100\nderive empty_name = name == ''\naggregate {sum track_id, concat_array name, all empty_name, any empty_name}\n"
+expression: "# mysql:skip\n# clickhouse:skip\nfrom tracks\nfilter genre_id == 100\nderive empty_name = name == ''\naggregate {sum track_id, concat_array name, all empty_name, any empty_name}\n"
 input_file: prqlc/prqlc/tests/integration/queries/aggregation.prql
 ---
 frames:
-- - 1:101-123
+- - 1:43-65
   - columns:
     - !All
       input_id: 13
@@ -15,7 +15,7 @@ frames:
       table:
       - default_db
       - tracks
-- - 1:124-154
+- - 1:66-96
   - columns:
     - !All
       input_id: 13
@@ -31,7 +31,7 @@ frames:
       table:
       - default_db
       - tracks
-- - 1:155-230
+- - 1:97-172
   - columns:
     - !Single
       name: null
@@ -58,21 +58,21 @@ frames:
 nodes:
 - id: 13
   kind: Ident
-  span: 1:89-100
+  span: 1:31-42
   ident: !Ident
   - default_db
   - tracks
   parent: 18
 - id: 14
   kind: RqOperator
-  span: 1:108-123
+  span: 1:50-65
   targets:
   - 16
   - 17
   parent: 18
 - id: 16
   kind: Ident
-  span: 1:108-116
+  span: 1:50-58
   ident: !Ident
   - this
   - tracks
@@ -81,17 +81,17 @@ nodes:
   - 13
 - id: 17
   kind: Literal
-  span: 1:120-123
+  span: 1:62-65
 - id: 18
   kind: 'TransformCall: Filter'
-  span: 1:101-123
+  span: 1:43-65
   children:
   - 13
   - 14
   parent: 24
 - id: 19
   kind: RqOperator
-  span: 1:144-154
+  span: 1:86-96
   alias: empty_name
   targets:
   - 21
@@ -99,7 +99,7 @@ nodes:
   parent: 23
 - id: 21
   kind: Ident
-  span: 1:144-148
+  span: 1:86-90
   ident: !Ident
   - this
   - tracks
@@ -108,29 +108,29 @@ nodes:
   - 13
 - id: 22
   kind: Literal
-  span: 1:152-154
+  span: 1:94-96
 - id: 23
   kind: Tuple
-  span: 1:144-154
+  span: 1:86-96
   children:
   - 19
   parent: 24
 - id: 24
   kind: 'TransformCall: Derive'
-  span: 1:124-154
+  span: 1:66-96
   children:
   - 18
   - 23
   parent: 38
 - id: 25
   kind: RqOperator
-  span: 1:166-178
+  span: 1:108-120
   targets:
   - 27
   parent: 37
 - id: 27
   kind: Ident
-  span: 1:170-178
+  span: 1:112-120
   ident: !Ident
   - this
   - tracks
@@ -139,13 +139,13 @@ nodes:
   - 13
 - id: 28
   kind: RqOperator
-  span: 1:180-197
+  span: 1:122-139
   targets:
   - 30
   parent: 37
 - id: 30
   kind: Ident
-  span: 1:193-197
+  span: 1:135-139
   ident: !Ident
   - this
   - tracks
@@ -154,13 +154,13 @@ nodes:
   - 13
 - id: 31
   kind: RqOperator
-  span: 1:199-213
+  span: 1:141-155
   targets:
   - 33
   parent: 37
 - id: 33
   kind: Ident
-  span: 1:203-213
+  span: 1:145-155
   ident: !Ident
   - this
   - empty_name
@@ -168,13 +168,13 @@ nodes:
   - 19
 - id: 34
   kind: RqOperator
-  span: 1:215-229
+  span: 1:157-171
   targets:
   - 36
   parent: 37
 - id: 36
   kind: Ident
-  span: 1:219-229
+  span: 1:161-171
   ident: !Ident
   - this
   - empty_name
@@ -182,7 +182,7 @@ nodes:
   - 19
 - id: 37
   kind: Tuple
-  span: 1:165-230
+  span: 1:107-172
   children:
   - 25
   - 28
@@ -191,7 +191,7 @@ nodes:
   parent: 38
 - id: 38
   kind: 'TransformCall: Aggregate'
-  span: 1:155-230
+  span: 1:97-172
   children:
   - 24
   - 37
@@ -208,97 +208,97 @@ ast:
               name:
                 Ident:
                 - from
-                span: 1:89-93
+                span: 1:31-35
               args:
               - Ident:
                 - tracks
-                span: 1:94-100
-            span: 1:89-100
+                span: 1:36-42
+            span: 1:31-42
           - FuncCall:
               name:
                 Ident:
                 - filter
-                span: 1:101-107
+                span: 1:43-49
               args:
               - Binary:
                   left:
                     Ident:
                     - genre_id
-                    span: 1:108-116
+                    span: 1:50-58
                   op: Eq
                   right:
                     Literal:
                       Integer: 100
-                    span: 1:120-123
-                span: 1:108-123
-            span: 1:101-123
+                    span: 1:62-65
+                span: 1:50-65
+            span: 1:43-65
           - FuncCall:
               name:
                 Ident:
                 - derive
-                span: 1:124-130
+                span: 1:66-72
               args:
               - Binary:
                   left:
                     Ident:
                     - name
-                    span: 1:144-148
+                    span: 1:86-90
                   op: Eq
                   right:
                     Literal:
                       String: ''
-                    span: 1:152-154
-                span: 1:144-154
+                    span: 1:94-96
+                span: 1:86-96
                 alias: empty_name
-            span: 1:124-154
+            span: 1:66-96
           - FuncCall:
               name:
                 Ident:
                 - aggregate
-                span: 1:155-164
+                span: 1:97-106
               args:
               - Tuple:
                 - FuncCall:
                     name:
                       Ident:
                       - sum
-                      span: 1:166-169
+                      span: 1:108-111
                     args:
                     - Ident:
                       - track_id
-                      span: 1:170-178
-                  span: 1:166-178
+                      span: 1:112-120
+                  span: 1:108-120
                 - FuncCall:
                     name:
                       Ident:
                       - concat_array
-                      span: 1:180-192
+                      span: 1:122-134
                     args:
                     - Ident:
                       - name
-                      span: 1:193-197
-                  span: 1:180-197
+                      span: 1:135-139
+                  span: 1:122-139
                 - FuncCall:
                     name:
                       Ident:
                       - all
-                      span: 1:199-202
+                      span: 1:141-144
                     args:
                     - Ident:
                       - empty_name
-                      span: 1:203-213
-                  span: 1:199-213
+                      span: 1:145-155
+                  span: 1:141-155
                 - FuncCall:
                     name:
                       Ident:
                       - any
-                      span: 1:215-218
+                      span: 1:157-160
                     args:
                     - Ident:
                       - empty_name
-                      span: 1:219-229
-                  span: 1:215-229
-                span: 1:165-230
-            span: 1:155-230
-        span: 1:89-230
-    span: 1:0-230
+                      span: 1:161-171
+                  span: 1:157-171
+                span: 1:107-172
+            span: 1:97-172
+        span: 1:31-172
+    span: 1:0-172

@@ -1757,20 +1757,6 @@ fn test_interval() {
     "#);
 
     let query = r###"
-    prql target:sql.glaredb
-
-    from projects
-    derive first_check_in = start + 10days
-    "###;
-    assert_snapshot!((compile(query).unwrap()), @r#"
-    SELECT
-      *,
-      "start" + INTERVAL '10 DAY' AS first_check_in
-    FROM
-      projects
-    "#);
-
-    let query = r###"
     prql target:sql.snowflake
 
     from projects
