@@ -22,10 +22,11 @@
 
 **Fixes**:
 
-- Stop silently dropping a select item whose output name matches a table
-  qualifier used earlier in the same projection. `select {tbl.a, tbl = x.b}`
-  lost its second column, as did a join between two relations that share a
-  column name. (@prql-bot, #6181)
+- Stop silently dropping a select item whose name collides with an identifier
+  used earlier in the same projection — a table qualifier, or a column of the
+  same name from another relation. `select {tbl.a, tbl = x.b}` lost its second
+  column, as did a join between two relations that share a column name.
+  (@prql-bot, #6181)
 
 **Documentation**:
 
