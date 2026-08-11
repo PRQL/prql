@@ -22,7 +22,7 @@ join c = (read_json "metadata.json") (a.artist_id == c.artist_id)
 
 When specifying file names directly in the `FROM` clause without using
 functions, which is allowed in DuckDB, enclose the file names in backticks
-` `` ` as follows:
+`` ` `` as follows:
 
 ```prql
 from `artists.parquet`
