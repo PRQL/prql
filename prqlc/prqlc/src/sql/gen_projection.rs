@@ -121,19 +121,24 @@ pub(super) fn translate_wildcards(ctx: &AnchorContext, cols: Vec<CId>) -> (Vec<C
 }
 
 fn deduplicate_select_items(items: &mut Vec<SelectItem>) {
-    // Dropping all duplicated identifiers. Qualified references and aliases are
-    // tracked separately: a table qualifier such as the `t` of `t.a` lives in a
-    // different namespace to an output column name, so it must not make a later
-    // `… AS t` look like a repeat.
+    // Dropping all duplicated identifiers. Qualified references and output
+    // names are tracked separately: a table qualifier such as the `t` of `t.a`
+    // lives in a different namespace to an output column name, so it must not
+    // make a later `… AS t` look like a repeat.
     let mut seen_idents = HashSet::new();
-    let mut seen_aliases = HashSet::new();
+    let mut seen_names = HashSet::new();
     items.retain(|select_item| match select_item {
-        // Compare the whole path, so that `t.a` and `u.a` both survive while a
-        // repeat of `t.a` does not.
         SelectItem::UnnamedExpr(sql_ast::Expr::CompoundIdentifier(idents)) => {
-            seen_idents.insert(idents.clone())
+            match idents.as_slice() {
+                // An unqualified `a` carries no qualifier and is itself the
+                // output name, so it belongs in the same namespace as aliases.
+                [only] => seen_names.insert(only.clone()),
+                // Compare the whole path, so that `t.a` and `u.a` both survive
+                // while a repeat of `t.a` does not.
+                _ => seen_idents.insert(idents.clone()),
+            }
         }
-        SelectItem::ExprWithAlias { alias, .. } => seen_aliases.insert(alias.clone()),
+        SelectItem::ExprWithAlias { alias, .. } => seen_names.insert(alias.clone()),
         _ => true,
     });
 }
