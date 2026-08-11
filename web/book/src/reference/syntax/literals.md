@@ -121,8 +121,7 @@ Here's a larger list of date and time examples:
   `@16:54:00.000000`, `@16:00:00.000000` respectively
 - `@2022-12-31T16:54:32.123456` is a timestamp without timezone
 - `@2022-12-31T16:54:32.123456Z` is a timestamp in UTC
-- `@2022-12-31T16:54+02` is timestamp in UTC+2
-- `@2022-12-31T16:54+02:00` and `@2022-12-31T16:54+02` are datetimes in UTC+2
+- `@2022-12-31T16:54+02` and `@2022-12-31T16:54+02:00` are timestamps in UTC+2
 - `@16:54+02` is invalid — time is always local, so it cannot have a timezone
 - `@2022-12-31+02` is invalid — date is always local, so it cannot have a
   timezone
