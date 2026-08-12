@@ -187,7 +187,9 @@ jobs:
         include:
           - target: x86_64-unknown-linux-gnu
             os: ubuntu-24.04
-            features: default,test-dbs-external
+            # `lsp` is off by default; include it here so the LSP stub's tests
+            # actually run somewhere.
+            features: default,test-dbs-external,lsp
           # Only run wasm on ubuntu, given it's the same rust target. (There is
           # a possibility of having a failure on just one platform, but it's
           # quite unlikely. If we do observe this, we can add those tests them
