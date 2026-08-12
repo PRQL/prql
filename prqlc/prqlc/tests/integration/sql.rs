@@ -6221,21 +6221,26 @@ fn test_group_exclude() {
        │ Help: available columns: x.b
     ───╯
     ");
+}
 
-    // assert_snapshot!(compile(
-    //     r###"
-    // from x
-    // select {a, b}
-    // group {a + 1} (aggregate {sum b})
-    //     "###,
-    // )
-    // .unwrap_err(), @r###"
-    // SELECT
-    //   a,
-    //   b
-    // FROM
-    //   x
-    // "###);
+#[test]
+fn test_group_by_expression() {
+    assert_snapshot!(compile(
+        r###"
+    from x
+    select {a, b}
+    group {a + 1} (aggregate {sum b})
+        "###,
+    )
+    .unwrap(), @"
+    SELECT
+      a + 1,
+      COALESCE(SUM(b), 0)
+    FROM
+      x
+    GROUP BY
+      a + 1
+    ");
 }
 
 #[test]
