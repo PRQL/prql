@@ -610,7 +610,7 @@ mod tests {
 
     #[test]
     fn doc_comment_inline_module() {
-        // Check the newline doesn't get eated by the `{}` of the module
+        // Check the newline doesn't get eaten by the `{}` of the module
         // TODO: could give a better error when we forget the module name
         assert_yaml_snapshot!(parse_module_contents(r#"
         module bar {

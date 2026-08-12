@@ -4,7 +4,7 @@ failure-output = "final"
 slow-timeout = { period = "500ms" }
 
 [[profile.default.overrides]]
-# compileall does many passes over the same query, so it takes a bit longer
+# the query tests each compile a whole `.prql` file, so they take a bit longer
 filter = 'package(prqlc) & test(queries::)'
 slow-timeout = { period = "2s" }
 
