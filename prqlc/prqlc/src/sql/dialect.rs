@@ -362,21 +362,12 @@ impl DialectHandler for PostgresDialect {
 }
 
 impl DialectHandler for RedshiftDialect {
-    fn ident_quoting_style(&self) -> IdentQuotingStyle {
-        // Use conditional quoting with dialect-specific keywords
-        IdentQuotingStyle::ConditionallyQuoted
-    }
-
     fn interval_quoting_style(&self, dtf: &DateTimeField) -> IntervalQuotingStyle {
         if matches!(dtf, DateTimeField::Week(_) | DateTimeField::Weeks) {
             IntervalQuotingStyle::ValueAndUnitQuoted
         } else {
             IntervalQuotingStyle::ValueQuoted
         }
-    }
-
-    fn supports_distinct_on(&self) -> bool {
-        false
     }
 
     // https://docs.aws.amazon.com/redshift/latest/dg/r_FORMAT_strings.html
