@@ -451,7 +451,7 @@ fn translate_cte(cte: Cte, ctx: &mut Context) -> Result<(sql_ast::Cte, bool)> {
             // Initial implementation assumed that it applies only to the first CTE.
             // This meant that it had to wrap any-non-first CTE into a *nested* WITH, so the inner
             // WITH could be RECURSIVE. If a dialect ever needs that, the removed implementation is
-            // in the history of this file.
+            // in the history of this file (deleted in #6190).
             (inner_query, true)
         }
     };
