@@ -5,7 +5,8 @@
 - **`integration/sql.rs`** — Unit tests for PRQL→SQL compilation. Fast, focused,
   preferred for most changes.
 - **`integration/queries/*.prql`** — Integration tests generating 6 snapshots
-  each (different SQL dialects). Use sparingly.
+  each (`lex`, `compile`, `compileall`, `fmt`, `debug_lineage`, `results`). Use
+  sparingly.
 - **`integration/error_messages.rs`** — Tests for compiler error diagnostics.
 - **`integration/dbs/`** — Database runners for executing queries against real
   databases.
