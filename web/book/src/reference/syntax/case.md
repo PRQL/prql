@@ -18,6 +18,11 @@ from employees
 derive distance = case [
   city == "Calgary" => 0,
   city == "Edmonton" => 300,
-  true => "Unknown",
+  true => 500,
 ]
 ```
+
+Every branch should return the same type. PRQL doesn't currently check this, so
+a `case` mixing an `int` branch with a `text` branch compiles to SQL that
+strictly-typed databases — PostgreSQL and BigQuery among them — reject with a
+type-mismatch error.
