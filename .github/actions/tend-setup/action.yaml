@@ -12,7 +12,7 @@ runs:
   using: composite
   steps:
     - name: Setup Task
-      uses: go-task/setup-task@v1
+      uses: go-task/setup-task@v2
       with:
         repo-token: ${{ inputs.github-token }}
         version: 3.52.0

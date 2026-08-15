@@ -39,11 +39,16 @@ updates:
     labels: []
 
   - package-ecosystem: "github-actions"
+    # `/` only covers `.github/workflows/`; each composite action under
+    # `.github/actions/` needs its own entry or its `uses:` refs are never
+    # scanned. Keep this list in sync with `ls .github/actions/`.
     directories:
       - "/"
-      - ".github/actions/build-python"
+      - ".github/actions/build-js"
       - ".github/actions/build-prqlc"
       - ".github/actions/build-prqlc-c"
+      - ".github/actions/build-python"
+      - ".github/actions/tend-setup"
       - ".github/actions/time-compilation"
     commit-message:
       prefix: "chore: "
