@@ -222,6 +222,7 @@ jobs:
             echo "package_arch=x86_64" >> "$GITHUB_ENV"
           else
             echo "::error::Unknown architecture: ${{ matrix.target }}"
+            exit 1
           fi
       - name: 📦 Build .rpm package
         uses: jiro4989/build-rpm-action@v2
