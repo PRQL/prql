@@ -128,8 +128,11 @@ mod fmt {
             assert_snapshot!(test_name, &formatted, &prql)
         });
 
-        // Check the formatted queries can still compile
-        prqlc::prql_to_pl(&formatted).unwrap();
+        // Formatting is idempotent: re-parsing & re-formatting the output must
+        // reproduce it exactly. This also covers the weaker property that the
+        // formatted query still parses.
+        let reformatted = prqlc::pl_to_prql(&prqlc::prql_to_pl(&formatted).unwrap()).unwrap();
+        similar_asserts::assert_eq!(formatted, reformatted);
     }
 }
 
