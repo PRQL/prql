@@ -402,7 +402,8 @@ impl WriteSource for pr::Stmt {
                         "".to_string()
                     };
 
-                    r += opt.consume(&format!("let {} {}", var_def.name, typo))?;
+                    r +=
+                        opt.consume(&format!("let {} {}", write_ident_part(&var_def.name), typo))?;
 
                     if let Some(val) = &var_def.value {
                         r += opt.consume("= ")?;
@@ -412,7 +413,7 @@ impl WriteSource for pr::Stmt {
                 }
 
                 pr::VarDefKind::Let => {
-                    r += opt.consume(&format!("let {} = ", var_def.name))?;
+                    r += opt.consume(&format!("let {} = ", write_ident_part(&var_def.name)))?;
 
                     r += &var_def.value.as_ref().unwrap().write(opt)?;
                     r += "\n";
@@ -433,7 +434,7 @@ impl WriteSource for pr::Stmt {
                     }
 
                     if var_def.kind == pr::VarDefKind::Into {
-                        r += &format!("into {}", var_def.name);
+                        r += &format!("into {}", write_ident_part(&var_def.name));
                         r += "\n";
                     }
                 }
@@ -446,18 +447,18 @@ impl WriteSource for pr::Stmt {
                         ..
                     },
             }) => {
-                r += opt.consume(&format!("enum {} ", name))?;
+                r += opt.consume(&format!("enum {} ", write_ident_part(name)))?;
                 r += &enum_tuple.write(opt)?;
                 r += "\n";
             }
             pr::StmtKind::TypeDef(type_def) => {
-                r += opt.consume(&format!("type {}", type_def.name))?;
+                r += opt.consume(&format!("type {}", write_ident_part(&type_def.name)))?;
                 r += opt.consume(" = ")?;
                 r += &type_def.value.kind.write(opt)?;
                 r += "\n";
             }
             pr::StmtKind::ModuleDef(module_def) => {
-                r += &format!("module {} {{\n", module_def.name);
+                r += &format!("module {} {{\n", write_ident_part(&module_def.name));
                 opt.indent += 1;
 
                 r += &module_def.stmts.write(opt.clone())?;
@@ -722,6 +723,63 @@ let a = 5
             r#"
 5
 into a
+"#,
+        );
+    }
+
+    /// Declaration names that aren't valid bare idents must keep their
+    /// backticks, otherwise `fmt` emits source that no longer parses.
+    #[test]
+    fn test_quoted_declaration_names() {
+        assert_is_formatted(
+            r#"
+let `my var` = 5
+"#,
+        );
+
+        assert_is_formatted(
+            r#"
+let `my var` <int>
+"#,
+        );
+
+        assert_is_formatted(
+            r#"
+5
+into `my var`
+"#,
+        );
+
+        assert_is_formatted(
+            r#"
+type `my type` = int
+"#,
+        );
+
+        assert_is_formatted(
+            r#"
+type t = {`my field` = int}
+"#,
+        );
+
+        assert_is_formatted(
+            r#"
+enum `my enum` {Paid = 0}
+"#,
+        );
+
+        assert_is_formatted(
+            r#"
+module `my mod` {
+  let a = 5
+}
+"#,
+        );
+
+        // A declaration named after a keyword also needs quoting
+        assert_is_formatted(
+            r#"
+let `case` = 5
 "#,
         );
     }
