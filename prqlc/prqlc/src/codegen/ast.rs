@@ -162,7 +162,7 @@ impl WriteSource for pr::ExprKind {
                 for (name, arg) in &func_call.named_args {
                     r += opt.consume(" ")?;
 
-                    r += opt.consume(name)?;
+                    r += opt.consume(&write_ident_part(name))?;
 
                     r += opt.consume(":")?;
 
@@ -780,6 +780,19 @@ module `my mod` {
         assert_is_formatted(
             r#"
 let `case` = 5
+"#,
+        );
+    }
+
+    /// Named arguments need their backticks too. Unlike the declaration names
+    /// above, dropping them produces output that still parses — as a different
+    /// call, since the unquoted name splits into a positional argument.
+    #[test]
+    fn test_quoted_named_arg() {
+        assert_is_formatted(
+            r#"
+from t
+derive x = (foo `my arg`:5)
 "#,
         );
     }
