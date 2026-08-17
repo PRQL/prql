@@ -93,10 +93,10 @@ echo "from employees | filter country == 'USA'" | cargo run -q -p prqlc -- compi
 echo "from employees | filter country == 'USA'" | cargo run -q -p prqlc -- fmt
 
 # Or pass a file
-cargo run -q -p prqlc -- compile query.prql
+cargo run -q -p prqlc -- compile prqlc/prqlc/tests/integration/queries/aggregation.prql
 
 # See all available commands
-cargo run -p prqlc -- --help
+cargo run -q -p prqlc -- --help
 ```
 
 ## Linting
