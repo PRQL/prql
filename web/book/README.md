@@ -23,6 +23,6 @@ task web:run-book
 [^1]: ...which is equivalent to:
 
     ```sh
-    cd book
+    cd web/book
     mdbook serve
     ```

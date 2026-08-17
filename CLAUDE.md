@@ -86,14 +86,17 @@ mod test {
 For viewing `prqlc` output, for any stage of the compilation process:
 
 ```sh
-# Compile PRQL to SQL
-cargo run -p prqlc -- compile "from employees | filter country == 'USA'"
+# Compile PRQL to SQL (the argument is a path; pipe to read from stdin)
+echo "from employees | filter country == 'USA'" | cargo run -q -p prqlc -- compile
 
 # Format PRQL code
-cargo run -p prqlc -- fmt "from employees | filter country == 'USA'"
+echo "from employees | filter country == 'USA'" | cargo run -q -p prqlc -- fmt
+
+# Or pass a file
+cargo run -q -p prqlc -- compile prqlc/prqlc/tests/integration/queries/aggregation.prql
 
 # See all available commands
-cargo run -p prqlc -- --help
+cargo run -q -p prqlc -- --help
 ```
 
 ## Linting
