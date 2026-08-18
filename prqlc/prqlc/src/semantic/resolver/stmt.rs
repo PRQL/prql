@@ -154,13 +154,9 @@ impl super::Resolver<'_> {
                     existing.annotations = stmt.annotations;
                 }
             }
-            Some(false) => {
-                return Err(
-                    Error::new_simple(format!("duplicate declarations of {ident}"))
-                        .with_span(stmt.span),
-                )
-            }
-            None => {
+            // `declare` inserts a name that's free and reports one that's
+            // taken, which is what a non-module under this name is.
+            _ => {
                 let decl = DeclKind::Module(Module {
                     names: HashMap::new(),
                     redirects: Vec::new(),

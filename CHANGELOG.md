@@ -17,6 +17,15 @@
 - _Breaking_: The compile target `sql.glaredb` has been removed, since it was
   never tested after GlareDB's full rewrite, and GlareDB seems to be no longer
   maintained. (@eitsupi, #6172)
+- Re-opening a `module` extends the earlier block rather than replacing it.
+  `module m { let a = 5 }` followed by `module m { let b = 6 }` previously kept
+  only `b` and dropped `a` with no diagnostic; both now resolve, matching how a
+  module spread over several files already behaves. Two smaller breaking changes
+  come with it: a name declared by both blocks reports
+  `duplicate declarations of m.a`, and re-using a name that holds something
+  other than a module — `let m = 5` followed by `module m { ... }` — reports
+  `duplicate declarations of m` instead of silently discarding the `let`.
+  (@prql-bot, #6206)
 
 **Features**:
 
