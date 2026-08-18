@@ -535,10 +535,9 @@ fn enum_type_2() {
 /// than every other statement kind, which meant it replaced a name that was
 /// already declared instead of reporting the collision.
 ///
-/// Only the direction where the `enum` comes second is covered — a `module`
-/// declared after an `enum` (or after another `module`) still overwrites
-/// silently, since `fold_module_def_stmt` keeps its own `Module::insert`; #6166
-/// tracks that.
+/// The reverse direction — a `module` declared after an `enum` or after
+/// another `module` — is covered by `module_reopened_is_extended` below, which
+/// extends the existing module rather than reporting a collision.
 #[test]
 fn enum_duplicate_of_existing_declaration() {
     assert_snapshot!(compile(r###"
@@ -615,6 +614,72 @@ fn enum_duplicate_member() {
      2 │     enum Status { _self = 0, Paid = 1 }
        │                           ┬
        │                           ╰── `_self` is a reserved name and cannot be an enum member
+    ───╯
+    ");
+}
+
+/// Re-opening a `module` used to replace the earlier block outright, so its
+/// declarations disappeared with no diagnostic. The blocks are now merged, and
+/// a name declared by both is reported.
+#[test]
+fn module_reopened_is_extended() {
+    // Both blocks contribute; neither is discarded.
+    assert_snapshot!(compile(r###"
+    module m { let a = 5 }
+    module m { let b = 6 }
+    from t
+    select {x = m.a, y = m.b}
+    "###).unwrap(), @r"
+    SELECT
+      5 AS x,
+      6 AS y
+    FROM
+      t
+    ");
+
+    // An `enum` also builds a module, so it is extended rather than dropped.
+    assert_snapshot!(compile(r###"
+    enum m { Paid = 0 }
+    module m { let a = 5 }
+    from t
+    select {x = m.Paid, y = m.a}
+    "###).unwrap(), @r"
+    SELECT
+      0 AS x,
+      5 AS y
+    FROM
+      t
+    ");
+
+    // A name declared by both blocks is a real collision.
+    assert_snapshot!(compile(r###"
+    module m { let a = 5 }
+    module m { let a = 6 }
+    from t
+    "###).unwrap_err(), @"
+    Error:
+       ╭─[ :3:16 ]
+       │
+     3 │     module m { let a = 6 }
+       │                ────┬────
+       │                    ╰────── duplicate declarations of m.a
+    ───╯
+    ");
+
+    // Re-opening only applies to modules; any other kind of declaration under
+    // that name is still a collision.
+    assert_snapshot!(compile(r###"
+    let m = 5
+    module m { let a = 6 }
+    from t
+    "###).unwrap_err(), @"
+    Error:
+       ╭─[ :2:14 ]
+       │
+     2 │ ╭─▶     let m = 5
+     3 │ ├─▶     module m { let a = 6 }
+       │ │
+       │ ╰──────────────────────────────── duplicate declarations of m
     ───╯
     ");
 }

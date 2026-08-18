@@ -135,21 +135,42 @@ impl super::Resolver<'_> {
         let module_def = stmt.kind.into_module_def().unwrap();
         self.current_module_path.push(ident.name);
 
-        let decl = Decl {
-            declared_at: stmt.id,
-            kind: DeclKind::Module(Module {
-                names: HashMap::new(),
-                redirects: Vec::new(),
-                shadowed: None,
-            }),
-            annotations: stmt.annotations,
-            ..Default::default()
-        };
         let ident = Ident::from_path(self.current_module_path.clone());
-        self.root_mod
-            .module
-            .insert(ident, decl)
-            .with_span(stmt.span)?;
+
+        // A module that already exists is extended rather than replaced. That
+        // is how a module spread over several files already behaves, and it is
+        // what lets the standard library fill in the empty `std` placeholder
+        // seeded by `Module::new_root`. Inserting unconditionally would discard
+        // whatever the name already held, with no diagnostic; collisions
+        // between the two blocks' own declarations are still reported, by the
+        // `fold_statements` below.
+        match self.root_mod.module.get(&ident).map(|d| d.kind.is_module()) {
+            Some(true) => {
+                // The seeded placeholder carries no id or annotations of its
+                // own, so the first real block to arrive supplies them.
+                let existing = self.root_mod.module.get_mut(&ident).unwrap();
+                if existing.declared_at.is_none() {
+                    existing.declared_at = stmt.id;
+                    existing.annotations = stmt.annotations;
+                }
+            }
+            Some(false) => {
+                return Err(
+                    Error::new_simple(format!("duplicate declarations of {ident}"))
+                        .with_span(stmt.span),
+                )
+            }
+            None => {
+                let decl = DeclKind::Module(Module {
+                    names: HashMap::new(),
+                    redirects: Vec::new(),
+                    shadowed: None,
+                });
+                self.root_mod
+                    .declare(ident, decl, stmt.id, stmt.annotations)
+                    .with_span(stmt.span)?;
+            }
+        }
 
         self.fold_statements(module_def.stmts)?;
         self.current_module_path.pop();
