@@ -1,7 +1,8 @@
 #!/usr/bin/env bash
 
-# Install apt packages, bounding each apt call so a stalled Ubuntu mirror fails
-# the step in minutes instead of hanging the job until GitHub's 6h cap.
+# Install apt packages, bounding each apt call so a stalled Ubuntu mirror
+# resolves the step in minutes instead of hanging the job until GitHub's 6h
+# cap.
 #
 # `apt-get update` has no overall wall-clock bound: a connection that opens and
 # then trickles keeps it waiting indefinitely. On 2026-08-18 the
@@ -30,19 +31,33 @@
 # and apt defers termination signals while dpkg is working, so an install that
 # ignores its SIGTERM would be straight back to running out the 6h cap. `-k`
 # follows up with SIGKILL 30s later, which nothing can defer.
+#
+# A failed `update` is a warning, not an error. The `ubuntu-24.04` image ships
+# with `/var/lib/apt/lists` already populated, so the packages we install
+# resolve from the baked-in indices with no network at all — on a stock runner,
+# `apt-cache policy musl-tools` reports candidate 1.2.4-2 from
+# `noble/universe`, and `apt-get install -s` for both `musl-tools` and
+# `gcc-aarch64-linux-gnu` plans a complete install before any `update` runs.
+# Refreshing is still worth attempting, since a stale index can 404 at download
+# time, but a mirror that won't serve `InRelease` is not a reason to fail a
+# build that doesn't need it. Only the install decides the step's exit status.
 
 set -euo pipefail
 
+updated=""
 for attempt in 1 2 3; do
   if sudo timeout -k 30 300 apt-get update; then
+    updated=1
     break
   fi
-  if [ "$attempt" -eq 3 ]; then
-    echo "::error::apt-get update did not complete after 3 attempts"
-    exit 1
+  echo "::warning::apt-get update stalled or failed (attempt ${attempt})"
+  if [ "$attempt" -lt 3 ]; then
+    sleep 10
   fi
-  echo "::warning::apt-get update stalled or failed (attempt ${attempt}); retrying"
-  sleep 10
 done
+
+if [ -z "$updated" ]; then
+  echo "::warning::apt-get update did not complete after 3 attempts; installing from the package lists baked into the runner image"
+fi
 
 sudo timeout -k 30 300 apt-get install -y "$@"
