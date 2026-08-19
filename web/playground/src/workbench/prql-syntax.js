@@ -17,7 +17,19 @@ const TRANSFORMS = [
 ];
 const MODULES = ["date", "math", "text"];
 const BUILTIN_FUNCTIONS = ["case"]; // "in", "as"
-const KEYWORDS = ["let", "prql"];
+// Keep in sync with the lexer's `keyword` parser in
+// prqlc/prqlc-parser/src/lexer/mod.rs. `case` is listed above.
+const KEYWORDS = [
+  "let",
+  "prql",
+  "into",
+  "type",
+  "module",
+  "internal",
+  "func",
+  "import",
+  "enum",
+];
 const LITERALS = ["null", "true", "false"];
 
 const def = {
