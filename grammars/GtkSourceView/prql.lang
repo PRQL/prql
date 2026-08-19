@@ -20,7 +20,6 @@
     <style id="boolean"         name="Boolean value"     map-to="def:boolean"/>
     <style id="built-in-object" name="Built-in object"   map-to="def:builtin"/>
     <style id="comment"         name="Comment"           map-to="def:comment"/>
-    <style id="declaration"     name="Declarations"      map-to="def:type"/>
     <style id="escaped-char"    name="Escaped Character" map-to="def:special-char"/>
     <style id="floating-point"  name="Floating Point"    map-to="def:floating-point"/>
     <style id="string"          name="String"            map-to="def:string"/>
@@ -40,12 +39,12 @@
     </context>
 
     <!-- Keep in sync with the lexer's `keyword` parser in
-         prqlc/prqlc-parser/src/lexer/mod.rs. `prql` is styled as a built-in
-         object below. -->
-    <context id="declarations" style-ref="declaration">
+         prqlc/prqlc-parser/src/lexer/mod.rs -->
+    <context id="keywords" style-ref="keyword">
       <keyword>let</keyword>
       <keyword>into</keyword>
       <keyword>case</keyword>
+      <keyword>prql</keyword>
       <keyword>type</keyword>
       <keyword>module</keyword>
       <keyword>internal</keyword>
@@ -105,7 +104,6 @@
     <context id="built-in-object" style-ref="built-in-object">
       <keyword>date</keyword>
       <keyword>math</keyword>
-      <keyword>prql</keyword>
     </context>
 
     <!-- https://prql-lang.org/book/reference/stdlib/ -->
@@ -371,7 +369,7 @@
           <match>(?&lt;![\w\.])0[xX](_?[0-9A-Fa-f])+(?![\w\.])</match>
         </context>
 
-        <context ref="declarations"/>
+        <context ref="keywords"/>
         <context ref="dimension"/>
         <context ref="double-quoted-triple-string"/>
         <context ref="single-quoted-triple-string"/>

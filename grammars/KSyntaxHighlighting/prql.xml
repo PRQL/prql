@@ -10,7 +10,7 @@
 ]
 >
 <!-- PRQL https://prql-lang.org/ -->
-<language name="PRQL" version="0" kateversion="5.0" section="Database" extensions="*.prql" author="vanillajonathan" license="MIT">
+<language name="PRQL" version="1" kateversion="5.0" section="Database" extensions="*.prql" author="vanillajonathan" license="MIT">
   <highlighting>
     <list name="imports">
       <item>module</item>
