@@ -18,14 +18,14 @@
     </list>
 
     <!-- Remaining keywords from the lexer's `keyword` parser in
-         prqlc/prqlc-parser/src/lexer/mod.rs; `let` and `type` are below,
-         `prql` is a built-in module. -->
+         prqlc/prqlc-parser/src/lexer/mod.rs; `let` and `type` are below. -->
     <list name="keywords">
       <item>case</item>
       <item>enum</item>
       <item>func</item>
       <item>internal</item>
       <item>into</item>
+      <item>prql</item>
     </list>
 
     <list name="builtinfuncs">
