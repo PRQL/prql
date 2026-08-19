@@ -105,12 +105,15 @@ issue existed and so citing no issue number at all:
 ```sh
 gh pr list --state all --limit 20 --search "<function or symbol name>" \
   --json number,title,state --jq '.[] | "\(.state) #\(.number) \(.title)"'
+# the list carries no reason — read a closed PR's own comments before dismissing it:
+gh pr view <pr-number> --json comments,reviews \
+  --jq '[.comments[], .reviews[]] | map({author: .author.login, body: .body})'
 ```
 
-Searching `6166` returns #6164 and a stray dependency bump, but not #6147 — the
-rejected attempt this section exists to catch, opened two days before the issue.
-Searching `fold_module_def_stmt`, the call site all three PRs edit, returns
-every one of them.
+Searching `6166` returns #6206 and #6164 and a stray dependency bump, but not
+#6147 — the rejected attempt this section exists to catch, opened two days
+before the issue. Searching `fold_module_def_stmt`, the call site all three PRs
+edit, returns every one of them.
 
 **Read the issue's comment bodies, not the count.** The 2026-08-18 nightly (run
 `32109908394`) projected `COMMENTS: \(.comments|length)`, so a prior run's note
@@ -129,5 +132,8 @@ the issue thread, but leave the PR until a maintainer specifically asks for one.
 Parked today:
 
 - **#6166** — duplicate `module` definitions. Whether re-declaring a module
-  merges or errors is a maintainer decision; #6147 and #6206 were both closed as
-  premature.
+  merges or errors is a maintainer decision, and the maintainer has asked
+  directly on that thread that no further PRs be opened on it unless
+  specifically directed. #6147 and #6206 both took the merging approach and were
+  closed on it. Remove this entry once #6166 closes or a maintainer asks for a
+  fix.
