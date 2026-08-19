@@ -533,20 +533,23 @@ fn string<'a>() -> impl Parser<'a, ParserInput<'a>, Literal, ParserError<'a>> {
 }
 
 fn raw_string<'a>() -> impl Parser<'a, ParserInput<'a>, Literal, ParserError<'a>> {
-    just("r")
-        .then(choice((just('\''), just('"'))))
-        .then(
-            any()
-                .filter(move |c: &char| *c != '\'' && *c != '"' && *c != '\n' && *c != '\r')
-                .repeated()
-                .to_slice(),
-        )
-        .then(choice((just('\''), just('"'))))
-        .map(
-            |(((_, _open_quote), s), _close_quote): (((&str, char), &str), char)| {
-                Literal::RawString(s.to_string())
-            },
-        )
+    // The closing quote is bound to the opening one, so `r"foo'` is not a
+    // string, and the other quote character is ordinary content — `r"it's"`
+    // holds an apostrophe, matching how regular strings behave.
+    fn delimited_by<'p>(quote: char) -> impl Parser<'p, ParserInput<'p>, Literal, ParserError<'p>> {
+        just("r")
+            .ignore_then(just(quote))
+            .ignore_then(
+                any()
+                    .filter(move |c: &char| *c != quote && *c != '\n' && *c != '\r')
+                    .repeated()
+                    .to_slice(),
+            )
+            .then_ignore(just(quote))
+            .map(|s: &str| Literal::RawString(s.to_string()))
+    }
+
+    choice((delimited_by('"'), delimited_by('\'')))
 }
 
 fn boolean<'a>() -> impl Parser<'a, ParserInput<'a>, Literal, ParserError<'a>> {

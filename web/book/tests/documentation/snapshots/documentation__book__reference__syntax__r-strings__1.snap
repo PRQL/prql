@@ -1,0 +1,9 @@
+---
+source: web/book/tests/documentation/book.rs
+expression: "from artists\nderive quoted = r\"it's\"\n"
+---
+SELECT
+  *,
+  'it''s' AS quoted
+FROM
+  artists
