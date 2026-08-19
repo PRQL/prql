@@ -14,6 +14,18 @@
   <highlighting>
     <list name="imports">
       <item>module</item>
+      <item>import</item>
+    </list>
+
+    <!-- Remaining keywords from the lexer's `keyword` parser in
+         prqlc/prqlc-parser/src/lexer/mod.rs; `let` and `type` are below,
+         `prql` is a built-in module. -->
+    <list name="keywords">
+      <item>case</item>
+      <item>enum</item>
+      <item>func</item>
+      <item>internal</item>
+      <item>into</item>
     </list>
 
     <list name="builtinfuncs">
@@ -137,6 +149,7 @@
         <keyword attribute="Keyword"          context="#stay" String="declarations" />
         <keyword attribute="Keyword"          context="#stay" String="letExpressions" />
         <keyword attribute="Keyword"          context="#stay" String="imports" />
+        <keyword attribute="Keyword"          context="#stay" String="keywords" />
 
         <IncludeRules context="Number" />
         <IncludeRules context="StringVariants" />

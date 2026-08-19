@@ -39,8 +39,19 @@
       <keyword>true</keyword>
     </context>
 
+    <!-- Keep in sync with the lexer's `keyword` parser in
+         prqlc/prqlc-parser/src/lexer/mod.rs. `prql` is styled as a built-in
+         object below. -->
     <context id="declarations" style-ref="declaration">
       <keyword>let</keyword>
+      <keyword>into</keyword>
+      <keyword>case</keyword>
+      <keyword>type</keyword>
+      <keyword>module</keyword>
+      <keyword>internal</keyword>
+      <keyword>func</keyword>
+      <keyword>import</keyword>
+      <keyword>enum</keyword>
     </context>
 
     <context id="unicode-bdi" style-ref="unicode-bdi">
