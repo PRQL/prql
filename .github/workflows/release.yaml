@@ -43,6 +43,13 @@ jobs:
 
   build-prqlc:
     runs-on: ${{ matrix.os }}
+    # These are the jobs that ran out GitHub's 6h default in
+    # https://github.com/PRQL/prql/actions/runs/32160030161, reached from
+    # `tests.yaml` via `nightly.yaml` on every `main` push. They're slower than
+    # their `tests.yaml` namesakes — `profile: release`, slowest observed leg 24
+    # min — and the `aarch64` legs run `apt_install.sh` twice, so their bounded
+    # worst case is ~45 min of apt plus the build. Hence 90 rather than 30.
+    timeout-minutes: 90
     strategy:
       fail-fast: false
       matrix:
@@ -94,6 +101,7 @@ jobs:
   build-prqlc-c:
     # Mostly a copy/paste of `build-prqlc`.
     runs-on: ${{ matrix.os }}
+    timeout-minutes: 90
     strategy:
       fail-fast: false
       matrix:
