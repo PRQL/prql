@@ -91,3 +91,26 @@ These tasks run as Step 3 of the bundled weekly skill (only when
   the fix has merged or the upstream problem has been addressed, close the issue
   with a short comment citing the resolution (e.g., "Resolved by #NNNN —
   closing"). Applies to any issue where `author.login == prql-bot`.
+
+## Parked issues — don't open a fix PR
+
+Some issues are open to hold a design discussion, not to hold an unclaimed bug.
+Before opening a PR that fixes an issue, list the PRs that already reference it
+and read why the closed ones were closed:
+
+```sh
+gh pr list --state all --search "<issue-number>" --json number,title,state,closedAt
+```
+
+A PR closed on the _approach_ rather than the code means the semantics are still
+a maintainer's call, and a fresh PR taking that same approach is noise however
+well it is implemented. In that case investigate, reproduce, and add findings to
+the issue thread, but leave the PR until a maintainer specifically asks for one.
+Findings noted in the thread are not a substitute for this check — #6206 was
+opened on #6166 despite that thread already carrying a note not to.
+
+Parked today:
+
+- **#6166** — duplicate `module` definitions. Whether re-declaring a module
+  merges or errors is a maintainer decision; #6147 and #6206 were both closed as
+  premature.
