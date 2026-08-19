@@ -16,13 +16,20 @@
 # keeps that signal honest, and a transient mirror stall is retried rather than
 # waiting out the cap.
 #
+# The per-attempt budget has to cover the degraded-but-working case, not just
+# the healthy one. `azure.archive.ubuntu.com` is regularly unreachable on these
+# runners; apt spends ~40s retrying it before falling back to
+# `archive.ubuntu.com`, and only then starts on the package indices. A healthy
+# update takes a few seconds, so 5 minutes is generous for the slow path while
+# still bounding the pathological one at ~15 minutes rather than 6 hours.
+#
 # `timeout` runs under `sudo` (rather than the reverse) so it signals
 # `apt-get` directly.
 
 set -euo pipefail
 
 for attempt in 1 2 3; do
-  if sudo timeout 120 apt-get update; then
+  if sudo timeout 300 apt-get update; then
     break
   fi
   if [ "$attempt" -eq 3 ]; then
