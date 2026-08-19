@@ -51,9 +51,7 @@ jobs:
         run: docker compose up -d
         working-directory: ./prqlc/prqlc/tests/integration/dbs
       - if: ${{ contains(inputs.target, 'musl') }}
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y musl-tools
+        run: ./.github/workflows/scripts/apt_install.sh musl-tools
       - run: rustup target add ${{ inputs.target }}
       - uses: baptiste0928/cargo-install@v3
         with:

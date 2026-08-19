@@ -52,9 +52,7 @@ runs:
 
     - if: runner.os == 'Linux'
       shell: bash
-      run: |
-        sudo apt-get update
-        sudo apt-get install -y musl-tools
+      run: ./.github/workflows/scripts/apt_install.sh musl-tools
 
     - if: runner.os == 'Windows' && inputs.profile == 'release'
       shell: bash
@@ -63,8 +61,7 @@ runs:
     - if: inputs.target == 'aarch64-unknown-linux-musl'
       shell: bash
       run: |
-        sudo apt-get update
-        sudo apt-get install -y gcc-aarch64-linux-gnu
+        ./.github/workflows/scripts/apt_install.sh gcc-aarch64-linux-gnu
         echo 'CARGO_TARGET_AARCH64_UNKNOWN_LINUX_MUSL_LINKER=aarch64-linux-gnu-gcc' >>"$GITHUB_ENV"
         echo 'CC=aarch64-linux-gnu-gcc' >>"$GITHUB_ENV"
 

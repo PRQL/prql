@@ -732,6 +732,10 @@ jobs:
     runs-on: ${{ matrix.os }}
     needs: rules
     if: needs.rules.outputs.rust == 'true' || needs.rules.outputs.main == 'true'
+    # The slowest of these legs takes ~11 minutes; without a cap, a hung step
+    # runs out GitHub's 6h default and reports `cancelled` rather than
+    # `failure`.
+    timeout-minutes: 30
     strategy:
       fail-fast: false
       matrix:
@@ -771,6 +775,7 @@ jobs:
     runs-on: ${{ matrix.os }}
     needs: rules
     if: needs.rules.outputs.main == 'true'
+    timeout-minutes: 30
     strategy:
       fail-fast: false
       matrix:
