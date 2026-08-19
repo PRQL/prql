@@ -1,3 +1,12 @@
+---
+name: running-tend
+description:
+  PRQL-specific guidance for tend CI workflows. Adds PR title conventions, CI
+  structure, Dependabot-batch polling, weekly maintenance tasks, and
+  issue-closing policy on top of the generic tend-* skills. Use when operating
+  in CI.
+---
+
 # Running Tend in PRQL
 
 Tend-specific guidance for this repo. Project build commands, test strategy,
