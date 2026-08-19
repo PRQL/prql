@@ -494,3 +494,71 @@ fn test_interpolation_empty() {
     )
     "#);
 }
+
+#[test]
+fn raw_string_delimiters() {
+    fn test_raw_string_tokens(input: &str) -> Tokens {
+        Tokens(lexer().parse(input).output().unwrap().to_vec())
+    }
+
+    assert_debug_snapshot!(test_raw_string_tokens(r#"r"\n""#), @r#"
+    Tokens(
+        [
+            0..5: Literal(RawString("\\n")),
+        ],
+    )
+    "#);
+
+    // The other quote character is content, not a delimiter.
+    assert_debug_snapshot!(test_raw_string_tokens(r#"r"it's""#), @r#"
+    Tokens(
+        [
+            0..7: Literal(RawString("it's")),
+        ],
+    )
+    "#);
+    assert_debug_snapshot!(test_raw_string_tokens(r#"r'say "hi"'"#), @r#"
+    Tokens(
+        [
+            0..11: Literal(RawString("say \"hi\"")),
+        ],
+    )
+    "#);
+
+    // A closing quote that doesn't match the opening one doesn't close the
+    // string, so these are unterminated rather than valid raw strings.
+    assert_debug_snapshot!(lex_source(r#"r"hello'"#), @r#"
+    Err(
+        [
+            Error {
+                kind: Error,
+                span: Some(
+                    0:8-8,
+                ),
+                reason: Unexpected {
+                    found: "end of input",
+                },
+                hints: [],
+                code: None,
+            },
+        ],
+    )
+    "#);
+    assert_debug_snapshot!(lex_source(r#"r'hello""#), @r#"
+    Err(
+        [
+            Error {
+                kind: Error,
+                span: Some(
+                    0:8-8,
+                ),
+                reason: Unexpected {
+                    found: "end of input",
+                },
+                hints: [],
+                code: None,
+            },
+        ],
+    )
+    "#);
+}
