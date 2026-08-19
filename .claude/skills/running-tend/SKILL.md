@@ -2,9 +2,10 @@
 name: running-tend
 description:
   PRQL-specific guidance for tend CI workflows. Adds a standing exception for
-  filing issues in other repos, PR title conventions, CI structure,
-  Dependabot-batch polling, weekly maintenance tasks, and issue-closing policy
-  on top of the generic tend-* skills. Use when operating in CI.
+  filing issues in other repos, PR title conventions, the bar for CI-only
+  changes, CI structure, Dependabot-batch polling, weekly maintenance tasks, and
+  issue-closing policy on top of the generic tend-* skills. Use when operating
+  in CI.
 ---
 
 # Running Tend in PRQL
@@ -25,6 +26,33 @@ permission first) still applies when the target shows no agent signals.
   `refactor:`, `test:`, `ci:`, `internal:`, `devops:`, `web:`, `refine:`
 - No scope required (e.g., `fix: resolve date parsing` not `fix(parser): ...`)
 - Dependabot PRs use `chore:` prefix
+
+## Bar for CI-only changes
+
+**Weighing a Fix** in the bundled `running-in-ci` skill already says to fix
+waste only when the fix is a simple knob. Read it as covering this repo's CI
+runner time, not only tend's own session compute: a job that burns its 6h cap
+because an upstream mirror stalled is exactly the "run lost to a blip that a
+later tick retries" case, and sweeps here have read that rule too narrowly.
+
+Concretely, for a change whose only benefit is CI runner time — timeouts,
+retries, caching, job ordering, runner sizing — require all three:
+
+- **Recurrence across incidents.** Several run IDs spread over weeks — not one
+  incident, and not several runs inside a single upstream outage window. Count
+  distinct windows, not distinct runs.
+- **A cost beyond minutes.** It hides a real failure, blocks a release, or
+  leaves `main` red. A job GitHub cancelled at its 6h cap, which a re-run
+  recovers, is only minutes.
+- **A proportionate fix.** A line or two, ideally in one file. A new script, a
+  retry loop, or edits fanning out across several workflows is over the bar
+  however well-evidenced the problem is — and stays over it after review
+  feedback grows the diff further.
+
+When it doesn't clear the bar, note the observation on the triggering thread or
+in the sweep's summary, with the run IDs, and stop — no issue, no PR. This
+governs self-initiated work from `tend-nightly`, `tend-review-runs`, and similar
+sweeps; maintainer-requested CI work and a genuinely red `main` are outside it.
 
 ## CI structure
 
