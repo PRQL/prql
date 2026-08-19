@@ -13,17 +13,17 @@
 # https://github.com/PRQL/prql/actions/runs/32160030161
 #
 # A job killed at the cap reports `cancelled`, not `failure`, so it doesn't
-# read as a broken build to anything watching the default branch. Failing fast
-# keeps that signal honest, and a transient mirror stall is retried rather than
-# waiting out the cap.
+# read as a broken build to anything watching the default branch. Bounding each
+# apt call keeps that signal honest — whatever happens, the step now resolves in
+# minutes with a conclusion that means what it says.
 #
 # The per-attempt budget has to cover the degraded-but-working case, not just
 # the healthy one. `azure.archive.ubuntu.com` is regularly unreachable on these
 # runners; apt spends ~40s retrying it before falling back to
 # `archive.ubuntu.com`, and only then starts on the package indices. A healthy
 # update takes a few seconds, so 5 minutes is generous for the slow path while
-# still bounding the pathological one at ~17 minutes (three attempts plus the
-# kill grace) rather than 6 hours.
+# still bounding the pathological one at ~22 minutes (three update attempts
+# plus the kill grace, then the install's own budget) rather than 6 hours.
 #
 # `timeout` runs under `sudo` (rather than the reverse) so it signals
 # `apt-get` directly. `-k 30` is what makes the budget a bound rather than a
@@ -34,13 +34,15 @@
 #
 # A failed `update` is a warning, not an error. The `ubuntu-24.04` image ships
 # with `/var/lib/apt/lists` already populated, so the packages we install
-# resolve from the baked-in indices with no network at all — on a stock runner,
+# resolve without a working index refresh — on a stock runner,
 # `apt-cache policy musl-tools` reports candidate 1.2.4-2 from
 # `noble/universe`, and `apt-get install -s` for both `musl-tools` and
 # `gcc-aarch64-linux-gnu` plans a complete install before any `update` runs.
 # Refreshing is still worth attempting, since a stale index can 404 at download
-# time, but a mirror that won't serve `InRelease` is not a reason to fail a
-# build that doesn't need it. Only the install decides the step's exit status.
+# time, but a mirror that won't serve `InRelease` is not a reason to fail a step
+# that can resolve without it. The install still fetches the `.deb` from that
+# same mirror under the same bound, so a full outage is still red — only the
+# install decides the step's exit status.
 
 set -euo pipefail
 
@@ -60,4 +62,9 @@ if [ -z "$updated" ]; then
   echo "::warning::apt-get update did not complete after 3 attempts; installing from the package lists baked into the runner image"
 fi
 
-sudo timeout -k 30 300 apt-get install -y "$@"
+status=0
+sudo timeout -k 30 300 apt-get install -y "$@" || status=$?
+if [ "$status" -ne 0 ]; then
+  echo "::error::apt-get install failed (exit ${status}) for: $*"
+  exit "$status"
+fi
