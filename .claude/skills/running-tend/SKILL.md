@@ -95,19 +95,36 @@ These tasks run as Step 3 of the bundled weekly skill (only when
 ## Parked issues — don't open a fix PR
 
 Some issues are open to hold a design discussion, not to hold an unclaimed bug.
-Before opening a PR that fixes an issue, list the PRs that already reference it
-and read why the closed ones were closed:
+Before opening a PR that fixes an issue, run both checks below — each catches a
+case the other misses.
+
+**Search prior PRs by the symbol the fix touches, not the issue number.** The
+rejected approach is usually a closed PR on the same call site, filed before the
+issue existed and so citing no issue number at all:
 
 ```sh
-gh pr list --state all --search "<issue-number>" --json number,title,state,closedAt
+gh pr list --state all --limit 20 --search "<function or symbol name>" \
+  --json number,title,state --jq '.[] | "\(.state) #\(.number) \(.title)"'
+```
+
+Searching `6166` returns #6164 and a stray dependency bump, but not #6147 — the
+rejected attempt this section exists to catch, opened two days before the issue.
+Searching `fold_module_def_stmt`, the call site all three PRs edit, returns
+every one of them.
+
+**Read the issue's comment bodies, not the count.** The 2026-08-18 nightly (run
+`32109908394`) projected `COMMENTS: \(.comments|length)`, so a prior run's note
+on #6166 saying not to open another PR was never in context:
+
+```sh
+gh issue view <n> --json comments \
+  --jq '.comments[] | "\(.author.login) (\(.authorAssociation)): \(.body)"'
 ```
 
 A PR closed on the _approach_ rather than the code means the semantics are still
 a maintainer's call, and a fresh PR taking that same approach is noise however
 well it is implemented. In that case investigate, reproduce, and add findings to
 the issue thread, but leave the PR until a maintainer specifically asks for one.
-Findings noted in the thread are not a substitute for this check — #6206 was
-opened on #6166 despite that thread already carrying a note not to.
 
 Parked today:
 
