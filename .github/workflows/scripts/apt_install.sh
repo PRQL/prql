@@ -21,15 +21,20 @@
 # runners; apt spends ~40s retrying it before falling back to
 # `archive.ubuntu.com`, and only then starts on the package indices. A healthy
 # update takes a few seconds, so 5 minutes is generous for the slow path while
-# still bounding the pathological one at ~15 minutes rather than 6 hours.
+# still bounding the pathological one at ~17 minutes (three attempts plus the
+# kill grace) rather than 6 hours.
 #
 # `timeout` runs under `sudo` (rather than the reverse) so it signals
-# `apt-get` directly.
+# `apt-get` directly. `-k 30` is what makes the budget a bound rather than a
+# request: plain `timeout` sends SIGTERM and then waits for the child forever,
+# and apt defers termination signals while dpkg is working, so an install that
+# ignores its SIGTERM would be straight back to running out the 6h cap. `-k`
+# follows up with SIGKILL 30s later, which nothing can defer.
 
 set -euo pipefail
 
 for attempt in 1 2 3; do
-  if sudo timeout 300 apt-get update; then
+  if sudo timeout -k 30 300 apt-get update; then
     break
   fi
   if [ "$attempt" -eq 3 ]; then
@@ -40,4 +45,4 @@ for attempt in 1 2 3; do
   sleep 10
 done
 
-sudo timeout 300 apt-get install -y "$@"
+sudo timeout -k 30 300 apt-get install -y "$@"
