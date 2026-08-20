@@ -1,7 +1,7 @@
 use std::borrow::Cow;
-use std::collections::HashSet;
 use std::sync::OnceLock;
 
+use prqlc_parser::lexer;
 use regex::Regex;
 
 use super::{WriteOpt, WriteSource};
@@ -328,15 +328,6 @@ impl WriteSource for pr::Ident {
     }
 }
 
-fn keywords() -> &'static HashSet<&'static str> {
-    static KEYWORDS: OnceLock<HashSet<&'static str>> = OnceLock::new();
-    KEYWORDS.get_or_init(|| {
-        HashSet::from_iter([
-            "let", "into", "case", "prql", "type", "module", "internal", "func",
-        ])
-    })
-}
-
 fn valid_prql_ident() -> &'static Regex {
     static VALID_PRQL_IDENT: OnceLock<Regex> = OnceLock::new();
     VALID_PRQL_IDENT.get_or_init(|| {
@@ -347,7 +338,7 @@ fn valid_prql_ident() -> &'static Regex {
 }
 
 pub fn write_ident_part(s: &str) -> Cow<'_, str> {
-    if valid_prql_ident().is_match(s) && !keywords().contains(s) {
+    if valid_prql_ident().is_match(s) && !lexer::KEYWORDS.contains(&s) {
         s.into()
     } else {
         format!("`{s}`").into()
@@ -782,6 +773,16 @@ module `my mod` {
 let `case` = 5
 "#,
         );
+    }
+
+    /// Every lexer keyword needs quoting, not just the ones we thought to list
+    /// by hand — `import` and `enum` were missing from the codegen's own copy
+    /// of the list, so `let `import` = 5` formatted to unparseable source.
+    #[test]
+    fn test_every_keyword_is_quoted() {
+        for keyword in lexer::KEYWORDS {
+            assert_is_formatted(&format!("let `{keyword}` = 5"));
+        }
     }
 
     /// Named arguments need their backticks too. Unlike the declaration names
