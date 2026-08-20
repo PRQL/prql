@@ -777,7 +777,7 @@ let `case` = 5
 
     /// Every lexer keyword needs quoting, not just the ones we thought to list
     /// by hand — `import` and `enum` were missing from the codegen's own copy
-    /// of the list, so `let `import` = 5` formatted to unparseable source.
+    /// of the list, so `let `import` = 5` formatted to unparsable source.
     #[test]
     fn test_every_keyword_is_quoted() {
         for keyword in lexer::KEYWORDS {
