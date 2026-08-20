@@ -562,3 +562,18 @@ fn raw_string_delimiters() {
     )
     "#);
 }
+
+/// `RESERVED_LITERALS` is hand-written next to `boolean()` / `null()`, so pin
+/// it to what the lexer actually does: each entry must lex as a `Literal`
+/// rather than an `Ident`, which is what makes it need backticks in codegen.
+#[test]
+fn test_reserved_literals_lex_as_literals() {
+    for word in crate::lexer::RESERVED_LITERALS {
+        let tokens = lexer().parse(word).output().unwrap().to_vec();
+        assert!(
+            matches!(tokens[0].kind, TokenKind::Literal(_)),
+            "`{word}` lexed as {:?}, expected a Literal",
+            tokens[0].kind
+        );
+    }
+}

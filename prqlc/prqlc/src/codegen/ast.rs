@@ -1,7 +1,7 @@
 use std::borrow::Cow;
-use std::collections::HashSet;
 use std::sync::OnceLock;
 
+use prqlc_parser::lexer;
 use regex::Regex;
 
 use super::{WriteOpt, WriteSource};
@@ -91,7 +91,7 @@ impl WriteSource for pr::ExprKind {
         use pr::ExprKind::*;
 
         match &self {
-            Ident(ident) => Some(ident.to_string()),
+            Ident(ident) => Some(write_ident(ident)),
 
             Pipeline(pipeline) => SeparatedExprs {
                 inline: " | ",
@@ -318,23 +318,23 @@ impl WriteSource for pr::Ident {
         let width = self.path.iter().map(|p| p.len() + 1).sum::<usize>() + self.name.len();
         opt.consume_width(width as u16)?;
 
-        let mut r = String::new();
-        for part in &self.path {
-            r += &write_ident_part(part);
-            r += ".";
-        }
-        r += &write_ident_part(&self.name);
-        Some(r)
+        Some(write_ident(self))
     }
 }
 
-fn keywords() -> &'static HashSet<&'static str> {
-    static KEYWORDS: OnceLock<HashSet<&'static str>> = OnceLock::new();
-    KEYWORDS.get_or_init(|| {
-        HashSet::from_iter([
-            "let", "into", "case", "prql", "type", "module", "internal", "func",
-        ])
-    })
+/// Write a dotted identifier, quoting each part that needs it.
+///
+/// `pr::Ident`'s `Display` impl looks similar but has its own copy of the
+/// "needs backticks" rule which doesn't know about reserved words, so codegen
+/// must not reach for `to_string()` here.
+fn write_ident(ident: &pr::Ident) -> String {
+    let mut r = String::new();
+    for part in &ident.path {
+        r += &write_ident_part(part);
+        r += ".";
+    }
+    r += &write_ident_part(&ident.name);
+    r
 }
 
 fn valid_prql_ident() -> &'static Regex {
@@ -347,7 +347,8 @@ fn valid_prql_ident() -> &'static Regex {
 }
 
 pub fn write_ident_part(s: &str) -> Cow<'_, str> {
-    if valid_prql_ident().is_match(s) && !keywords().contains(s) {
+    let reserved = lexer::KEYWORDS.contains(&s) || lexer::RESERVED_LITERALS.contains(&s);
+    if valid_prql_ident().is_match(s) && !reserved {
         s.into()
     } else {
         format!("`{s}`").into()
@@ -782,6 +783,25 @@ module `my mod` {
 let `case` = 5
 "#,
         );
+    }
+
+    /// Every reserved word needs quoting, not just the ones we thought to list
+    /// by hand — `import` and `enum` were missing from the codegen's own copy
+    /// of the list, so `let `import` = 5` formatted to unparsable source.
+    ///
+    /// `true` / `false` / `null` lex as literals rather than keywords, and were
+    /// missing for the same reason. In declaration position they fail loudly
+    /// like `import`; in expression position they're worse, since the output
+    /// still parses — as a literal instead of the column that was written.
+    #[test]
+    fn test_every_reserved_word_is_quoted() {
+        for word in lexer::KEYWORDS
+            .iter()
+            .chain(lexer::RESERVED_LITERALS.iter())
+        {
+            assert_is_formatted(&format!("let `{word}` = 5"));
+            assert_is_formatted(&format!("from t\nselect {{`{word}`}}"));
+        }
     }
 
     /// Named arguments need their backticks too. Unlike the declaration names

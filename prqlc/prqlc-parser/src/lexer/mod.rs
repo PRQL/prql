@@ -190,22 +190,29 @@ fn multi_char_operators<'a>() -> impl Parser<'a, ParserInput<'a>, TokenKind, Par
     ))
 }
 
+/// Words the lexer reserves as [`TokenKind::Keyword`]; an identifier that
+/// collides with one of these has to be written in backticks.
+///
+/// [`RESERVED_LITERALS`] is the other half — together the two are the single
+/// source of truth for which names need quoting. `prqlc`'s codegen reads both
+/// to decide when to quote a name, while the syntax highlighting grammars under
+/// `grammars/`, the playground's `prql-syntax.js`, and the docs in
+/// `web/book/src/reference/syntax/keywords.md` track them by hand.
+pub const KEYWORDS: [&str; 10] = [
+    "let", "into", "case", "prql", "type", "module", "internal", "func", "import", "enum",
+];
+
+/// Words the lexer reserves as [`TokenKind::Literal`] rather than
+/// [`TokenKind::Keyword`] — see `boolean()` and `null()`. They're reserved just
+/// as firmly as [`KEYWORDS`], since both parsers end with `end_expr()`, so an
+/// identifier that collides with one also has to be written in backticks.
+pub const RESERVED_LITERALS: [&str; 3] = ["true", "false", "null"];
+
 fn keyword<'a>() -> impl Parser<'a, ParserInput<'a>, TokenKind, ParserError<'a>> {
-    choice((
-        just("let"),
-        just("into"),
-        just("case"),
-        just("prql"),
-        just("type"),
-        just("module"),
-        just("internal"),
-        just("func"),
-        just("import"),
-        just("enum"),
-    ))
-    .to_slice()
-    .then_ignore(end_expr())
-    .map(|s: &str| TokenKind::Keyword(s.to_string()))
+    choice(KEYWORDS.map(just))
+        .to_slice()
+        .then_ignore(end_expr())
+        .map(|s: &str| TokenKind::Keyword(s.to_string()))
 }
 
 fn param<'a>() -> impl Parser<'a, ParserInput<'a>, TokenKind, ParserError<'a>> {
