@@ -46,3 +46,4 @@ jobs:
             - Run URL: ${{ github.event.workflow_run.html_url }}
             - Commit: ${{ github.event.workflow_run.head_sha }}
             - Commit message: ${{ github.event.workflow_run.head_commit.message }}
+    timeout-minutes: 60

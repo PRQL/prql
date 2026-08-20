@@ -43,3 +43,4 @@ jobs:
           model: opus
           prompt: |
             /tend-ci-runner:review-runs
+    timeout-minutes: 120

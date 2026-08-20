@@ -10,7 +10,57 @@ secrets:
     - DOCKERHUB_USERNAME
 setup:
   - uses: ./.github/actions/tend-setup
+# Without these, every tend job is bounded only by GitHub's 360-minute default
+# job cap. `tend-nightly` run 26438780303 hit exactly that on 2026-05-26 (07:32Z
+# → 13:32Z, six hours, no `tend-outage` row filed). A hang in the setup steps is
+# worse still: those run before the action is entered, so the harness supervisor
+# never sees them and the job cap is the only bound that reaches them.
+#
+# The caps below are ~2x the slowest run observed over the last 100 completed
+# runs of each workflow; see the PR that added them for the table. They sit below
+# the supervisor's `timeout_seconds` (350m), so they are the operative session
+# budget — deliberate, since under `cancel-in-progress: false` an unbounded
+# review holds the PR's review queue behind it.
 workflows:
   ci-fix:
     watched_workflows:
       - tests
+    jobs:
+      fix-ci:
+        timeout-minutes: 60
+  review:
+    jobs:
+      review:
+        timeout-minutes: 120
+  mention:
+    jobs:
+      # `relay` and `verify` are one-step script jobs that have never exceeded
+      # 15s across the last 40 runs, but `handle` declares `needs: verify`, so a
+      # wedged `verify` holds a mention unanswered for the full six hours without
+      # ever reaching the capped job.
+      relay:
+        timeout-minutes: 10
+      verify:
+        timeout-minutes: 10
+      handle:
+        timeout-minutes: 120
+  triage:
+    jobs:
+      triage:
+        timeout-minutes: 120
+  review-runs:
+    jobs:
+      review-runs:
+        timeout-minutes: 120
+  nightly:
+    jobs:
+      nightly:
+        timeout-minutes: 180
+  weekly:
+    jobs:
+      weekly:
+        timeout-minutes: 60
+  notifications:
+    jobs:
+      notifications:
+        timeout-minutes: 60

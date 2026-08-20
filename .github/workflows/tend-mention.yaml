@@ -88,6 +88,7 @@ jobs:
             -f "client_payload[kind]=${{ github.event_name }}" \
             -f "client_payload[pr]=${{ github.event.pull_request.number }}" \
             -f "client_payload[id]=${{ github.event.review.id || github.event.comment.id }}"
+    timeout-minutes: 10
 
   verify:
     # Skip comments on the issues tend files about its own health: the action
@@ -340,6 +341,7 @@ jobs:
           PAYLOAD_KIND: ${{ github.event.client_payload.kind }}
           PAYLOAD_PR: ${{ github.event.client_payload.pr }}
           PAYLOAD_ID: ${{ github.event.client_payload.id }}
+    timeout-minutes: 10
 
   handle:
     needs: verify
@@ -477,3 +479,4 @@ jobs:
             || format('pulls/comments/{0}', github.event.comment.id || github.event.client_payload.id) }}
           BOT_NAME: prql-bot
           GITHUB_TOKEN: ${{ secrets.TEND_BOT_TOKEN }}
+    timeout-minutes: 120

@@ -71,3 +71,4 @@ jobs:
           TARGET: issues/${{ github.event.issue.number }}
           BOT_NAME: prql-bot
           GITHUB_TOKEN: ${{ secrets.TEND_BOT_TOKEN }}
+    timeout-minutes: 120
