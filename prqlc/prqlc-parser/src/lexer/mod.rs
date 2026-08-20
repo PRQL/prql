@@ -203,8 +203,8 @@ pub const KEYWORDS: [&str; 10] = [
 ];
 
 /// Words the lexer reserves as [`TokenKind::Literal`] rather than
-/// [`TokenKind::Keyword`] — see [`boolean`] and [`null`]. They're reserved just
-/// as firmly as [`KEYWORDS`], since both parsers end with [`end_expr`], so an
+/// [`TokenKind::Keyword`] — see `boolean()` and `null()`. They're reserved just
+/// as firmly as [`KEYWORDS`], since both parsers end with `end_expr()`, so an
 /// identifier that collides with one also has to be written in backticks.
 pub const RESERVED_LITERALS: [&str; 3] = ["true", "false", "null"];
 
