@@ -477,3 +477,4 @@ jobs:
             || format('pulls/comments/{0}', github.event.comment.id || github.event.client_payload.id) }}
           BOT_NAME: prql-bot
           GITHUB_TOKEN: ${{ secrets.TEND_BOT_TOKEN }}
+    timeout-minutes: 120
