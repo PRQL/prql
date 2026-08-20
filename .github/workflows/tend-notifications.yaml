@@ -158,4 +158,3 @@ jobs:
           model: opus
           prompt: |
             /tend-ci-runner:notifications
-    timeout-minutes: 60
