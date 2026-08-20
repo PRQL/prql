@@ -34,6 +34,14 @@ workflows:
         timeout-minutes: 120
   mention:
     jobs:
+      # `relay` and `verify` are one-step script jobs that have never exceeded
+      # 15s across the last 40 runs, but `handle` declares `needs: verify`, so a
+      # wedged `verify` holds a mention unanswered for the full six hours without
+      # ever reaching the capped job.
+      relay:
+        timeout-minutes: 10
+      verify:
+        timeout-minutes: 10
       handle:
         timeout-minutes: 120
   triage:
