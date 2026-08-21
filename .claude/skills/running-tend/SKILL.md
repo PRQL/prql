@@ -66,6 +66,11 @@ cargo clippy -p prqlc --test integration --target=x86_64-unknown-linux-gnu \
   --no-default-features --features=default,test-dbs-external,lsp -- -D warnings
 ```
 
+Then scope the resulting claim to match the command: a clean run there clears
+that one compilation unit, not the workspace — other crates and targets stay
+unchecked. Name the unit that was verified rather than repeating #6219's "clean
+across the workspace".
+
 ## CI polling during the Dependabot batch
 
 Dependabot opens its whole batch over a couple of minutes (the 2026-08-03 batch
