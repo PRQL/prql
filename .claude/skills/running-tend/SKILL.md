@@ -48,14 +48,15 @@ The `update-rust-toolchain` action opens `build: Update rust toolchain version`
 with nobody owning it, so tend usually pushes the mechanical lint fixes a new
 clippy demands (the repo compiles with `-D warnings`). **Verify with the
 matrix's full feature set, not `--features=default`.** The `tests` matrix runs
-clippy as `--all-targets --no-default-features
---features=default,test-dbs-external,lsp`, and code behind `test-dbs-external`
-— `prqlc/prqlc/tests/integration/dbs/` — is invisible to a `default`-only run.
+clippy as
+`--all-targets --no-default-features --features=default,test-dbs-external,lsp`,
+and code behind `test-dbs-external` — `prqlc/prqlc/tests/integration/dbs/` — is
+invisible to a `default`-only run.
 
-On #6219 (1.96.1 → 1.97.1) a session fixed the 7
-`useless_borrows_in_formatting` sites `--features=default` exposed and posted
-"clean across the workspace", but an 8th in `dbs/runner.rs` was still red — so
-the posted claim was wrong, not just the branch.
+On #6219 (1.96.1 → 1.97.1) a session fixed the 7 `useless_borrows_in_formatting`
+sites `--features=default` exposed and posted "clean across the workspace", but
+an 8th in `dbs/runner.rs` was still red — so the posted claim was wrong, not
+just the branch.
 
 A whole-workspace `--all-targets` clippy on a cold cache exceeds the session
 budget. Scope it to the failing compilation unit instead (~9 minutes):
