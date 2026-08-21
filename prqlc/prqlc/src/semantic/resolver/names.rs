@@ -145,7 +145,7 @@ impl Resolver<'_> {
 
             // Was not able to infer.
             Err(None) => Err(Error::new_simple(
-                format!("Unknown name `{}`", &ident).to_string(),
+                format!("Unknown name `{}`", ident).to_string(),
             )),
             Err(Some(msg)) => Err(msg),
         }

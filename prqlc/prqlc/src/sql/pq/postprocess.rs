@@ -123,14 +123,14 @@ impl SortingInference<'_> {
                 if final_select.contains(&sort.column) {
                     log::debug!(
                         ".. sort column {:?} is in the final select columns, skip reverting",
-                        &sort.column
+                        sort.column
                     );
                     return;
                 }
                 // try renaming
                 if column_aliases.contains_key(&sort.column) {
                     let alias = column_aliases[&sort.column];
-                    log::debug!("..aliasing {:?} as {alias:?}", &sort.column);
+                    log::debug!("..aliasing {:?} as {alias:?}", sort.column);
                     sort.column = alias;
                 }
                 // try de-reverting with the target table
@@ -138,9 +138,9 @@ impl SortingInference<'_> {
                 if cid_mappings.contains_key(&sort.column) {
                     log::debug!(
                         ".. reverting {:?} forward to {:?} via redirects of {riid:?} ({:?})",
-                        &sort.column,
-                        &cid_mappings[&sort.column],
-                        &cid_mappings
+                        sort.column,
+                        cid_mappings[&sort.column],
+                        cid_mappings
                     );
                     sort.column = cid_mappings[&sort.column];
                 }

@@ -54,7 +54,7 @@ impl Display for ErrorMessage {
                 .map(|c| format!("[{c}] "))
                 .unwrap_or_default();
 
-            writeln!(f, "{}Error: {}", code, &self.reason)?;
+            writeln!(f, "{}Error: {}", code, self.reason)?;
             for hint in &self.hints {
                 // TODO: consider alternative formatting for hints.
                 writeln!(f, "↳ Hint: {hint}")?;
