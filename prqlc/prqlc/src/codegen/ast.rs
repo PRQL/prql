@@ -501,9 +501,17 @@ fn display_interpolation(
                     .replace('}', "}}")
                     .as_str()
             }
-            pr::InterpolateItem::Expr { expr, .. } => {
+            // The `:format` suffix carries meaning — in `std.sql.prql` it's the
+            // required binding strength of the interpolated expression — so it
+            // has to be written back out. The parser reads it as "everything up
+            // to the closing brace", so it needs no escaping.
+            pr::InterpolateItem::Expr { expr, format } => {
                 r += "{";
                 r += &expr.write(opt.clone())?;
+                if let Some(format) = format {
+                    r += ":";
+                    r += format;
+                }
                 r += "}"
             }
         }
@@ -822,6 +830,24 @@ derive x = (foo `my arg`:5)
         assert_is_formatted(
             r#"
 prql version:"^0.9" target:sql.sqlite
+"#,
+        );
+    }
+
+    /// The `:format` suffix on an interpolation used to be dropped on the floor.
+    /// In `std.sql.prql` that suffix is the operand's required binding strength,
+    /// so formatting the file rewrote `s"MIN({column:0})"` to `s"MIN({column})"`
+    /// and silently changed how the operator parenthesizes its argument.
+    #[test]
+    fn test_interpolation_format_is_preserved() {
+        assert_is_formatted(r#"let my_min = func column -> s"MIN({column:0})""#);
+        assert_is_formatted(
+            r#"let log = func base column -> s"LOG10({column:0}) / LOG10({base:0})""#,
+        );
+        assert_is_formatted(
+            r#"
+from t
+derive x = f"{a:>10}-{b}"
 "#,
         );
     }
