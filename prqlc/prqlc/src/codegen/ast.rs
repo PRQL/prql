@@ -504,13 +504,14 @@ fn display_interpolation(
             // The `:format` suffix carries meaning — in `std.sql.prql` it's the
             // required binding strength of the interpolated expression — so it
             // has to be written back out. The parser reads it as "everything up
-            // to the closing brace", so it needs no escaping.
+            // to the closing brace", so braces don't need escaping, but the
+            // string escapes the lexer removed do.
             pr::InterpolateItem::Expr { expr, format } => {
                 r += "{";
                 r += &expr.write(opt.clone())?;
                 if let Some(format) = format {
                     r += ":";
-                    r += format;
+                    r += &format.replace('\\', "\\\\").replace('"', "\\\"");
                 }
                 r += "}"
             }
@@ -850,5 +851,13 @@ from t
 derive x = f"{a:>10}-{b}"
 "#,
         );
+        // The lexer strips string escapes before the interpolation is parsed, so
+        // a quote or a backslash in the format has to be escaped on the way out —
+        // otherwise the quote terminates the string and the output doesn't parse.
+        assert_is_formatted(r#"let x = f"{a:\"q\"}""#);
+        assert_is_formatted(r#"let y = f"{a:\\}""#);
+        // Braces are the exception: the parser reads the format up to the closing
+        // brace without unescaping, so `{` round-trips as itself.
+        assert_is_formatted(r#"let z = f"{a:{}""#);
     }
 }
