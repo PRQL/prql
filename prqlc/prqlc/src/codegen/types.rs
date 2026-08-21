@@ -1,5 +1,6 @@
 use prqlc_parser::parser::pr;
 
+use crate::codegen::ast::write_ident_part;
 use crate::codegen::SeparatedExprs;
 
 use super::{WriteOpt, WriteSource};
@@ -58,6 +59,7 @@ impl WriteSource for pr::TyKind {
                 r += &func.return_ty.as_deref().write(opt)?;
                 Some(r)
             }
+            Enum(tuple) => Some(format!("enum {}", tuple.write(opt)?)),
         }
     }
 }
@@ -73,7 +75,7 @@ impl WriteSource for pr::TyTupleField {
                 let mut r = String::new();
 
                 if let Some(name) = name {
-                    r += name;
+                    r += &write_ident_part(name);
                     r += " = ";
                 }
                 if let Some(expr) = expr {

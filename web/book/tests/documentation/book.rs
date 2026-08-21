@@ -1,4 +1,5 @@
 #![cfg(not(target_family = "wasm"))]
+use std::collections::BTreeMap;
 use std::fs;
 use std::path::Path;
 
@@ -7,8 +8,11 @@ use globset::Glob;
 use insta::assert_snapshot;
 use itertools::Itertools;
 use mdbook_prql::{code_block_lang_tags, LangTag};
+use prqlc::sql::{Dialect, SupportLevel};
 use prqlc::{pl_to_prql, pl_to_rq, prql_to_pl};
 use pulldown_cmark::Tag;
+use regex::Regex;
+use strum::IntoEnumIterator;
 use walkdir::WalkDir;
 
 use super::compile;
@@ -162,6 +166,108 @@ Remove `no-fmt` as a language label to assert successfully compiling the formatt
     } else {
         Err(anyhow!(errs.join("")))
     }
+}
+
+/// The date & time format specifier table in `reference/stdlib/date.md` is
+/// introduced as "the list of the specifiers currently supported", so assert
+/// that each row does compile — otherwise the table silently drifts from the
+/// dialect implementations in `sql/dialect.rs`.
+///
+/// We check against Postgres, matching the other examples on that page; which
+/// specifiers are supported varies by dialect.
+#[test]
+fn test_date_format_specifiers_compile() -> Result<()> {
+    let text = fs::read_to_string("./src/reference/stdlib/date.md")?;
+    // The first cell of each row of the specifier table, e.g. ``| `%Y` |``.
+    let specifier_cell = Regex::new(r"(?m)^\| `(%[^`]+)` *\|")?;
+
+    let specifiers: Vec<&str> = specifier_cell
+        .captures_iter(&text)
+        .map(|c| c.get(1).unwrap().as_str())
+        .collect();
+    // Guard against the test passing vacuously if the table's formatting
+    // changes and the regex stops matching.
+    if specifiers.len() < 20 {
+        bail!(
+            "Expected to find the date specifier table; only matched {} rows",
+            specifiers.len()
+        );
+    }
+
+    let mut errs = Vec::new();
+    for specifier in specifiers {
+        let prql = format!(
+            r#"prql target:sql.postgres
+from tbl
+select {{ a = (tbl.col | date.to_text "{specifier}") }}
+"#
+        );
+        if let Err(e) = compile(&prql) {
+            errs.push(format!(
+                "`{specifier}` is documented as supported, but fails to compile:\n{e}"
+            ));
+        }
+    }
+    if errs.is_empty() {
+        Ok(())
+    } else {
+        Err(anyhow!(errs.join("\n")))
+    }
+}
+
+/// The "Supported" / "Unsupported" dialect lists in `project/target.md` are a
+/// hand-maintained copy of `Dialect::support_level` in `sql/dialect.rs`, so
+/// assert the two agree — otherwise a dialect can ship without ever being
+/// documented, as `sql.redshift` did.
+///
+/// Every `Dialect` variant is checked, by grouping them under the heading their
+/// support level maps to; a dialect at a level with no section in the book (no
+/// dialect is `Nascent` today) fails with a missing-heading error rather than
+/// passing silently.
+#[test]
+fn test_target_dialects_documented() -> Result<()> {
+    let text = fs::read_to_string("./src/project/target.md")?;
+    let bullet = Regex::new(r"(?m)^- `sql\.([a-z]+)`")?;
+    let next_heading = Regex::new(r"(?m)^#")?;
+
+    // Each list is a run of ``- `sql.<name>` `` bullets under its heading;
+    // bullets may carry trailing prose, and the section ends at the next
+    // heading.
+    let section = |heading: &str| -> Result<Vec<String>> {
+        let body = text
+            .split_once(heading)
+            .map(|(_, rest)| next_heading.find(rest).map_or(rest, |m| &rest[..m.start()]))
+            .ok_or_else(|| anyhow!("`{heading}` heading not found in target.md"))?;
+        Ok(bullet
+            .captures_iter(body)
+            .map(|c| c[1].to_string())
+            .sorted()
+            .collect())
+    };
+
+    // An exhaustive match, so a new support level doesn't compile until it has
+    // a home in the book.
+    let heading = |level: SupportLevel| match level {
+        SupportLevel::Supported => "### Supported",
+        SupportLevel::Unsupported => "### Unsupported",
+        SupportLevel::Nascent => "### Nascent",
+    };
+
+    let actual: BTreeMap<&str, Vec<String>> = Dialect::iter()
+        .map(|d| (heading(d.support_level()), d.to_string()))
+        .into_group_map()
+        .into_iter()
+        .map(|(heading, dialects)| (heading, dialects.into_iter().sorted().collect()))
+        .collect();
+
+    for (heading, dialects) in actual {
+        similar_asserts::assert_eq!(
+            documented: section(heading)?,
+            actual: dialects,
+            "under `{heading}` in target.md",
+        );
+    }
+    Ok(())
 }
 
 struct Example {

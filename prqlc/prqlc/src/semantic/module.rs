@@ -35,6 +35,7 @@ impl Module {
                 Ident::from_name(NS_THIS),
                 Ident::from_name(NS_THAT),
                 Ident::from_name(NS_PARAM),
+                Ident::from_path(vec![NS_STD, "types"]),
                 Ident::from_name(NS_STD),
             ],
         }
@@ -218,18 +219,18 @@ impl Module {
 
         log::trace!("lookup: {ident}");
 
-        let mut res = HashSet::new();
+        // A direct hit in this module always wins over redirects.
+        let mut res = lookup_in(self, ident.clone());
+        if !res.is_empty() {
+            return res;
+        }
 
-        res.extend(lookup_in(self, ident.clone()));
-
+        // Otherwise fall back to following redirects into the module's inputs.
         for redirect in &self.redirects {
             log::trace!("... following redirect {redirect}");
             let r = lookup_in(self, redirect.clone() + ident.clone());
             log::trace!("... result of redirect {redirect}: {r:?}");
-            if !r.is_empty() {
-                res.remove(ident);
-                res.extend(r);
-            }
+            res.extend(r);
         }
         res
     }

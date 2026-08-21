@@ -4,7 +4,24 @@
 
 **Language**:
 
+- Report duplicate `import` definitions as an error rather than silently keeping
+  the last one. `import a.b` followed by `import c.b` now reports
+  `duplicate declarations of b`, matching `let` and `type`; use `import d = c.b`
+  to bring in both. The same applies to a multi-file project, where `import a.b`
+  previously discarded a sibling `b.prql`. This is a small breaking change —
+  programs that relied on the last declaration winning now fail to compile.
+  (@prql-bot, #6150)
+- Move all standard types into a dedicated `std.types` submodule in order to
+  disambiguate between `type text` - `module text` and `type date` -
+  `module date`. (@kgutwin, #6155)
+- _Breaking_: The compile target `sql.glaredb` has been removed, since it was
+  never tested after GlareDB's full rewrite, and GlareDB seems to be no longer
+  maintained. (@eitsupi, #6172)
+
 **Features**:
+
+- Add simple enumeration type, and dedicated support for name resolution when an
+  enum is used as a function parameter. (@kgutwin, #6104)
 
 **Fixes**:
 
@@ -21,6 +38,68 @@
 **Internal changes**:
 
 **New Contributors**:
+
+## 0.13.14 — 2026-07-24
+
+0.13.14 has 80 commits from 7 contributors. Selected changes:
+
+**Features**:
+
+- Add a PRQL-native implementation of `append by:name`, which aligns columns by
+  name rather than position and works on any dialect. Columns present in one
+  relation but not the other are filled with NULL. Supporting this added
+  wildcard expansion of relations via their lineage, plus `tuple_uniq` and
+  `tuple_reverse`. (@kgutwin, #6046)
+
+**Fixes**:
+
+- Generate `BETWEEN` again. The optimization compared whole `rq::Expr` values,
+  including their spans, so the same column referenced at two source positions
+  never compared equal and `a >= 5 && a <= 10` was left unoptimized. (@queelius,
+  #5738)
+- Don't leak a joined branch's sort into the implicit `ORDER BY` that `take`
+  generates. A join now retains the left side's order, as documented, rather
+  than emitting a column that is no longer in scope once the joined branch is
+  materialized as a CTE. (@lukapeschke, #6015)
+- Return a compile error instead of panicking when `append` is given relations
+  with different numbers of columns, or with incompatible column types.
+  (@prql-bot, #6025)
+- Set the relation type of `from_text` earlier in the resolver, fixing a crash
+  in `infer_type_of_special_func`. (@kgutwin, #6066)
+- Give wrapper params unique names when currying through nested `let`-bound
+  functions, which previously bound a curried argument to the wrong parameter.
+  (@prql-bot, #5979)
+- Escape quotes when a string contains both quote characters and one sits at
+  each boundary, so formatted output lexes back to the original. (@prql-bot,
+  #5987)
+- Say "identifier" rather than "string literal" in the `target` error message.
+  (@prql-bot, #6081)
+- Sync the KSyntaxHighlighting and book highlighters with the std lib, and drop
+  a stray sub-rule that wrongly highlighted f-strings. (@prql-bot, #6028, #6095)
+
+**Documentation**:
+
+- Numerous typo, grammar, and stale-content fixes across the book, tutorials,
+  bindings docs, and code comments.
+
+**Integrations**:
+
+- Sync the `prqlc` Python type stub with the binding signatures. (@prql-bot,
+  #6058)
+- Correct `ArgumentException` constructor usage in the .NET binding. (@prql-bot,
+  #5954)
+- Bump the Elixir NIF's `rustler` crate to 0.38, matching the hex library.
+  (@prql-bot, #6078)
+
+**Internal changes**:
+
+- Publish to crates.io with Trusted Publishing. `publish-to-cargo` mints a
+  short-lived credential per run through GitHub Actions OIDC instead of reading
+  a stored token, so no long-lived publish credential exists. (@max-sixty,
+  #6100)
+- Update the tend (Claude-powered CI) workflows; most of this release's
+  bot-authored fixes were filed by tend.
+- Update the Rust toolchain version. (#6073)
 
 ## 0.13.13 — 2026-06-14
 

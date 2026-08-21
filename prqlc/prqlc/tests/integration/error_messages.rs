@@ -195,7 +195,7 @@ fn test_ambiguous() {
        │            ──┬─
        │              ╰─── Ambiguous name
        │
-       │ Help: could be any of: std.date, this.date
+       │ Help: could be any of: std.date, std.types.date, this.date
        │
        │ Note: available columns: date
     ───╯
@@ -492,6 +492,134 @@ fn bare_lambda_expression() {
 }
 
 #[test]
+fn enum_type_1() {
+    assert_snapshot!(compile(r#"
+    enum Status { Paid = "paid", Unpaid = "unpaid" }
+    from invoices | filter status = Status.Canceled
+    "#).unwrap_err(), @"
+    Error:
+       ╭─[ :3:37 ]
+       │
+     3 │     from invoices | filter status = Status.Canceled
+       │                                     ───────┬───────
+       │                                            ╰───────── Unknown name `Status.Canceled`
+    ───╯
+    ");
+}
+
+#[test]
+fn enum_type_2() {
+    assert_snapshot!(compile(r###"
+    enum InvoiceStatus { Paid = 0, Unpaid = 1, Canceled = 2 }
+
+    let filter_status = func status <InvoiceStatus> tbl <relation> -> (
+        filter (this.status == _param.status) tbl
+    )
+
+    from invoices
+    filter_status 1
+    "###).unwrap_err(), @"
+    Error:
+       ╭─[ :9:19 ]
+       │
+     9 │     filter_status 1
+       │                   ┬
+       │                   ╰── function filter_status, param `status` expected type `InvoiceStatus`, but found type `int`
+       │
+       │ Help: Type `InvoiceStatus` expands to `enum {Paid = 0, Unpaid = 1, Canceled = 2}`
+    ───╯
+    ");
+}
+
+/// An `enum` builds a module and so used to take a different insertion path
+/// than every other statement kind, which meant it replaced a name that was
+/// already declared instead of reporting the collision.
+///
+/// Only the direction where the `enum` comes second is covered — a `module`
+/// declared after an `enum` (or after another `module`) still overwrites
+/// silently, since `fold_module_def_stmt` keeps its own `Module::insert`; #6166
+/// tracks that.
+#[test]
+fn enum_duplicate_of_existing_declaration() {
+    assert_snapshot!(compile(r###"
+    let Status = 5
+    enum Status { Paid = 0 }
+    from invoices
+    "###).unwrap_err(), @"
+    Error:
+       ╭─[ :2:19 ]
+       │
+     2 │ ╭─▶     let Status = 5
+     3 │ ├─▶     enum Status { Paid = 0 }
+       │ │
+       │ ╰────────────────────────────────── duplicate declarations of Status
+    ───╯
+    ");
+
+    assert_snapshot!(compile(r###"
+    module m { let a = 5 }
+    enum m { Paid = 0 }
+    from invoices
+    "###).unwrap_err(), @"
+    Error:
+       ╭─[ :2:27 ]
+       │
+     2 │ ╭─▶     module m { let a = 5 }
+     3 │ ├─▶     enum m { Paid = 0 }
+       │ │
+       │ ╰───────────────────────────── duplicate declarations of m
+    ───╯
+    ");
+
+    assert_snapshot!(compile(r###"
+    enum Status { Paid = 0 }
+    enum Status { Unpaid = 1 }
+    from invoices
+    "###).unwrap_err(), @"
+    Error:
+       ╭─[ :2:29 ]
+       │
+     2 │ ╭─▶     enum Status { Paid = 0 }
+     3 │ ├─▶     enum Status { Unpaid = 1 }
+       │ │
+       │ ╰──────────────────────────────────── duplicate declarations of Status
+    ───╯
+    ");
+}
+
+/// The enum's members become entries in a map, so a repeated name — or one that
+/// collides with the `_self` entry holding the type itself — used to leave only
+/// the last value with no diagnostic.
+#[test]
+fn enum_duplicate_member() {
+    assert_snapshot!(compile(r###"
+    enum Status { Paid = 0, Paid = 1 }
+    from invoices
+    "###).unwrap_err(), @"
+    Error:
+       ╭─[ :2:36 ]
+       │
+     2 │     enum Status { Paid = 0, Paid = 1 }
+       │                                    ┬
+       │                                    ╰── duplicate declarations of Status.Paid
+    ───╯
+    ");
+
+    assert_snapshot!(compile(r###"
+    enum Status { _self = 0, Paid = 1 }
+    from invoices
+    "###).unwrap_err(), @"
+    Error:
+       ╭─[ :2:27 ]
+       │
+     2 │     enum Status { _self = 0, Paid = 1 }
+       │                           ┬
+       │                           ╰── `_self` is a reserved name and cannot be an enum member
+    ───╯
+    ");
+}
+
+#[test]
 fn append_by_wrong() {
     assert_snapshot!(compile(r###"
     from foo
@@ -502,7 +630,11 @@ fn append_by_wrong() {
        │
      3 │     append by:bar baz
        │               ─┬─
-       │                ╰─── `by` expected position or name, but found bar
+       │                ╰─── Ambiguous name
+       │
+       │ Help: could be any of: that.baz.bar, this.foo.bar
+       │
+       │ Note: perhaps you meant one of: position, name
     ───╯
     ");
 }
@@ -518,9 +650,53 @@ fn tuple_uniq_take_wrong() {
        │
      3 │     select (tuple_uniq take:bar this)
        │                             ─┬─
-       │                              ╰─── `take` expected early or late, but found bar
+       │                              ╰─── `take` expected early or late, but found `this.foo.bar`
     ───╯
     ");
+}
+
+/// The other three transforms that resolve a parameter to a literal report the
+/// parameter name the same way. An s-string reaches the cast without being a
+/// literal, which is the path that produces these.
+#[test]
+fn transform_param_not_a_literal() {
+    assert_snapshot!(compile(r###"
+    from x
+    join y (==id) side:s"left"
+    "###).unwrap_err(), @r#"
+    Error:
+       ╭─[ :3:24 ]
+       │
+     3 │     join y (==id) side:s"left"
+       │                        ───┬───
+       │                           ╰───── `side` expected inner, left, right or full, but found `s"left"`
+    ───╯
+    "#);
+
+    assert_snapshot!(compile(r###"
+    from foo
+    append by:s"name" baz
+    "###).unwrap_err(), @r#"
+    Error:
+       ╭─[ :3:15 ]
+       │
+     3 │     append by:s"name" baz
+       │               ───┬───
+       │                  ╰───── `by` expected position or name, but found `s"name"`
+    ───╯
+    "#);
+
+    assert_snapshot!(compile(r###"
+    from_text format:s"csv" "a,b"
+    "###).unwrap_err(), @r#"
+    Error:
+       ╭─[ :2:22 ]
+       │
+     2 │     from_text format:s"csv" "a,b"
+       │                      ───┬──
+       │                         ╰──── `format` expected csv or json, but found `s"csv"`
+    ───╯
+    "#);
 }
 
 #[test]
@@ -551,6 +727,82 @@ fn append_by_name_unnamed() {
      4 │     append by:name (from bar | select {x, y+3})
        │                                ───────┬───────
        │                                       ╰───────── bottom input to append by:name must not have any unnamed columns
+    ───╯
+    ");
+}
+
+#[test]
+fn missing_argument_hint_without_function_name() {
+    // The hint's fallback branch (no name hint on the function type) shouldn't
+    // end up with a doubled `?`.
+    assert_snapshot!(compile(r"from x | select (std.not)").unwrap_err(), @"
+    Error:
+       ╭─[ :1:10 ]
+       │
+     1 │ from x | select (std.not)
+       │          ────────┬───────
+       │                  ╰───────── main expected type `relation`, but found type `func ? -> ?`
+       │
+       │ Help: Argument might be missing in this function call?
+       │
+       │ Note: Type `relation` expands to `[{..}]`
+    ───╯
+    ");
+}
+
+#[test]
+fn not_with_extra_args() {
+    // A tuple argument to `std.not` is column-exclusion syntax, but only when
+    // it's the sole argument — extra args used to panic on `exactly_one`.
+    assert_snapshot!(compile(r"from x | select (std.not {a} b)").unwrap_err(), @"
+    Error:
+       ╭─[ :1:18 ]
+       │
+     1 │ from x | select (std.not {a} b)
+       │                  ──────┬──────
+       │                        ╰──────── Too many arguments to function `not`
+    ───╯
+    ");
+    assert_snapshot!(compile(r"from x | select (std.not {a} {b})").unwrap_err(), @"
+    Error:
+       ╭─[ :1:18 ]
+       │
+     1 │ from x | select (std.not {a} {b})
+       │                  ───────┬───────
+       │                         ╰───────── Too many arguments to function `not`
+    ───╯
+    ");
+}
+
+#[test]
+fn unknown_named_arg() {
+    // A named argument that no parameter matches names the function and points
+    // at the call site.
+    assert_snapshot!(compile(r"from x | select (std.not {a} b:1)").unwrap_err(), @"
+    Error:
+       ╭─[ :1:18 ]
+       │
+     1 │ from x | select (std.not {a} b:1)
+       │                  ───────┬───────
+       │                         ╰───────── unknown named argument `b` to function `not`
+    ───╯
+    ");
+    assert_snapshot!(compile(r"from x | select (std.not b:1)").unwrap_err(), @"
+    Error:
+       ╭─[ :1:18 ]
+       │
+     1 │ from x | select (std.not b:1)
+       │                  ─────┬─────
+       │                       ╰─────── unknown named argument `b` to function `not`
+    ───╯
+    ");
+    assert_snapshot!(compile(r"from x | take 1 b:2").unwrap_err(), @"
+    Error:
+       ╭─[ :1:10 ]
+       │
+     1 │ from x | take 1 b:2
+       │          ─────┬────
+       │               ╰────── unknown named argument `b` to function `take`
     ───╯
     ");
 }

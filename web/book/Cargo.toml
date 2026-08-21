@@ -36,7 +36,6 @@ globset = "0.4.18"
 insta = { workspace = true }
 log = { workspace = true }
 regex = "1.12.3"
-serde_json = { workspace = true }
 serde_yaml = { workspace = true }
 similar-asserts = { workspace = true }
 walkdir = "2.5.0"

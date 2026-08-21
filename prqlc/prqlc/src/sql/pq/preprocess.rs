@@ -357,7 +357,7 @@ pub(in crate::sql) fn except(
 
         // determine DISTINCT
         let mut distinct = false;
-        // EXCEPT ALL can become except EXCEPT DISTINCT, if top is DISTINCT.
+        // EXCEPT ALL can become EXCEPT DISTINCT, if top is DISTINCT.
         // DISTINCT-ness of bottom has no effect on the output.
         if res.len() >= 3 {
             if let Distinct = &res[res.len() - 3] {
@@ -410,9 +410,6 @@ pub(in crate::sql) fn intersect(
     while let Some(t) = pipeline.next() {
         res.push(t);
 
-        if res.is_empty() {
-            continue;
-        }
         let Join {
             side: JoinSide::Inner,
             filter: join_cond,
@@ -444,7 +441,7 @@ pub(in crate::sql) fn intersect(
 
         // determine DISTINCT
         let mut distinct = false;
-        // INTERSECT ALL can become except INTERSECT DISTINCT
+        // INTERSECT ALL can become INTERSECT DISTINCT
         // - if top is DISTINCT or
         // - if output is DISTINCT
         if res.len() > 1 {
@@ -457,13 +454,13 @@ pub(in crate::sql) fn intersect(
         }
 
         if !distinct && !ctx.dialect.intersect_all() {
-            // INTERCEPT ALL is not supported
+            // INTERSECT ALL is not supported
             // can we fall back to anti-join?
             if ctx.anchor.contains_wildcard(&top) || ctx.anchor.contains_wildcard(&bottom) {
                 return Err(Error::new_simple(format!("The dialect {:?} does not support INTERSECT ALL", ctx.dialect))
                     .push_hint("providing more column information will allow the query to be translated to an anti-join."));
             } else {
-                // Don't create Intercept, fallback to inner join.
+                // Don't create Intersect, fallback to inner join.
                 continue;
             }
         }

@@ -99,42 +99,26 @@ impl Resolver<'_> {
 
                 let side = {
                     let span = side.span;
-                    let ident =
-                        side.clone()
-                            .try_cast(ExprKind::into_ident, Some("side"), "ident")?;
+                    let ident = side.clone().try_cast(
+                        ExprKind::into_literal,
+                        Some("`side`"),
+                        "inner, left, right or full",
+                    )?;
 
-                    // first try to match the raw ident string as a bare word
+                    // these must match the values of JoinSide defined in std.prql
                     match ident.to_string().as_str() {
-                        "inner" => JoinSide::Inner,
-                        "left" => JoinSide::Left,
-                        "right" => JoinSide::Right,
-                        "full" => JoinSide::Full,
+                        "\"inner\"" => JoinSide::Inner,
+                        "\"left\"" => JoinSide::Left,
+                        "\"right\"" => JoinSide::Right,
+                        "\"full\"" => JoinSide::Full,
 
-                        _ => {
-                            // if that fails, fold the ident and try treating the result as a literal
-                            // this allows the join side to be passed as a function parameter
-                            // NOTE: this is temporary, pending discussions and implementation, tracked in #4501
-                            let folded = self.fold_expr(side)?.try_cast(
-                                ExprKind::into_literal,
-                                Some("side"),
-                                "string literal",
-                            )?;
-
-                            match folded.to_string().as_str() {
-                                "\"inner\"" => JoinSide::Inner,
-                                "\"left\"" => JoinSide::Left,
-                                "\"right\"" => JoinSide::Right,
-                                "\"full\"" => JoinSide::Full,
-
-                                _ => {
-                                    return Err(Error::new(Reason::Expected {
-                                        who: Some("`side`".to_string()),
-                                        expected: "inner, left, right or full".to_string(),
-                                        found: folded.to_string(),
-                                    })
-                                    .with_span(span))
-                                }
-                            }
+                        val => {
+                            return Err(Error::new(Reason::Expected {
+                                who: Some("`side`".to_string()),
+                                expected: "inner, left, right or full".to_string(),
+                                found: val.to_string(),
+                            })
+                            .with_span(span))
                         }
                     }
                 };
@@ -237,8 +221,6 @@ impl Resolver<'_> {
                 } else {
                     (WindowKind::Rows, None, None)
                 };
-                // let start = Expr::new(start.map_or(Literal::Null, Literal::Integer));
-                // let end = Expr::new(end.map_or(Literal::Null, Literal::Integer));
                 let range = Range {
                     start: start.map(Literal::Integer).map(Expr::new).map(Box::new),
                     end: end.map(Literal::Integer).map(Expr::new).map(Box::new),
@@ -258,13 +240,15 @@ impl Resolver<'_> {
 
                 let by_name = {
                     let span = by.span;
-                    let ident = by
-                        .clone()
-                        .try_cast(ExprKind::into_ident, Some("by"), "ident")?;
+                    let ident = by.clone().try_cast(
+                        ExprKind::into_literal,
+                        Some("`by`"),
+                        "position or name",
+                    )?;
 
                     match ident.to_string().as_str() {
-                        "position" => false,
-                        "name" => true,
+                        "\"position\"" => false,
+                        "\"name\"" => true,
                         _ => {
                             return Err(Error::new(Reason::Expected {
                                 who: Some("`by`".to_string()),
@@ -445,13 +429,15 @@ impl Resolver<'_> {
 
                 let take_late = {
                     let span = take.span;
-                    let ident =
-                        take.clone()
-                            .try_cast(ExprKind::into_ident, Some("take"), "ident")?;
+                    let ident = take.clone().try_cast(
+                        ExprKind::into_literal,
+                        Some("`take`"),
+                        "early or late",
+                    )?;
 
                     match ident.to_string().as_str() {
-                        "early" => false,
-                        "late" => true,
+                        "\"early\"" => false,
+                        "\"late\"" => true,
                         _ => {
                             return Err(Error::new(Reason::Expected {
                                 who: Some("`take`".to_string()),
@@ -540,12 +526,12 @@ impl Resolver<'_> {
                 let res = {
                     let span = format.span;
                     let format = format
-                        .try_cast(ExprKind::into_ident, Some("format"), "ident")?
+                        .try_cast(ExprKind::into_literal, Some("`format`"), "csv or json")?
                         .to_string();
                     match format.as_str() {
-                        "csv" => from_text::parse_csv(&text)
+                        "\"csv\"" => from_text::parse_csv(&text)
                             .map_err(|r| Error::new_simple(r).with_span(span))?,
-                        "json" => from_text::parse_json(&text)
+                        "\"json\"" => from_text::parse_json(&text)
                             .map_err(|r| Error::new_simple(r).with_span(span))?,
 
                         _ => {
@@ -1473,7 +1459,13 @@ mod tests {
         let (res, _) = ctx.find_main_rel(&[]).unwrap().clone();
         let expr = res.clone().into_relation_var().unwrap();
         let expr = super::super::test::erase_ids(*expr);
-        assert_yaml_snapshot!(expr);
+
+        // Spans from `std.prql` carry source id 0 (`STD_LIB_SOURCE_ID`); user
+        // sources start at 1. Filtering them keeps this snapshot stable when the
+        // stdlib shifts, without hiding spans from the query under test.
+        insta::with_settings!({ filters => vec![(r"\b0:\d+-\d+", "[std]")] }, {
+            assert_yaml_snapshot!(expr);
+        });
     }
 
     #[test]

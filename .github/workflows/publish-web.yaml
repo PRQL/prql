@@ -3,12 +3,7 @@ on:
   push:
     branches:
       - web
-  # Even though releases push to `web` branch, that doesn't cause this workflow
-  # to run, because GHA can't start workflows itself. So we also run on
-  # releases.
-  release:
-    types: [released]
-  # Called by pull-request when specifically requested
+  # Called by `release` on a release, and by `tests` on a `pr-publish-web` label
   workflow_call:
   workflow_dispatch:
 

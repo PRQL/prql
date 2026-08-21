@@ -7,15 +7,15 @@ frames:
 - - 1:25-48
   - columns:
     - !All
-      input_id: 133
+      input_id: 19
       except: []
     - !Single
       name:
       - d
-      target_id: 135
+      target_id: 20
       target_name: null
     inputs:
-    - id: 133
+    - id: 19
       name: tracks
       table:
       - default_db
@@ -25,15 +25,15 @@ frames:
     - !Single
       name:
       - d
-      target_id: 141
+      target_id: 26
       target_name: null
     - !Single
       name:
       - n1
-      target_id: 158
+      target_id: 43
       target_name: null
     inputs:
-    - id: 133
+    - id: 19
       name: tracks
       table:
       - default_db
@@ -43,15 +43,15 @@ frames:
     - !Single
       name:
       - d
-      target_id: 141
+      target_id: 26
       target_name: null
     - !Single
       name:
       - n1
-      target_id: 158
+      target_id: 43
       target_name: null
     inputs:
-    - id: 133
+    - id: 19
       name: tracks
       table:
       - default_db
@@ -61,15 +61,15 @@ frames:
     - !Single
       name:
       - d
-      target_id: 141
+      target_id: 26
       target_name: null
     - !Single
       name:
       - n1
-      target_id: 158
+      target_id: 43
       target_name: null
     inputs:
-    - id: 133
+    - id: 19
       name: tracks
       table:
       - default_db
@@ -79,36 +79,36 @@ frames:
     - !Single
       name:
       - d1
-      target_id: 171
+      target_id: 56
       target_name: null
     - !Single
       name:
       - n1
-      target_id: 172
+      target_id: 57
       target_name: null
     inputs:
-    - id: 133
+    - id: 19
       name: tracks
       table:
       - default_db
       - tracks
 nodes:
-- id: 133
+- id: 19
   kind: Ident
   span: 1:13-24
   ident: !Ident
   - default_db
   - tracks
-  parent: 140
-- id: 135
+  parent: 25
+- id: 20
   kind: RqOperator
   span: 1:36-48
   alias: d
   targets:
-  - 137
-  - 138
-  parent: 139
-- id: 137
+  - 22
+  - 23
+  parent: 24
+- id: 22
   kind: Ident
   span: 1:36-44
   ident: !Ident
@@ -116,46 +116,46 @@ nodes:
   - tracks
   - album_id
   targets:
-  - 133
-- id: 138
+  - 19
+- id: 23
   kind: Literal
   span: 1:47-48
-- id: 139
+- id: 24
   kind: Tuple
   span: 1:36-48
   children:
-  - 135
-  parent: 140
-- id: 140
+  - 20
+  parent: 25
+- id: 25
   kind: 'TransformCall: Derive'
   span: 1:25-48
   children:
-  - 133
-  - 139
-  parent: 162
-- id: 141
+  - 19
+  - 24
+  parent: 47
+- id: 26
   kind: Ident
   span: 1:55-56
   ident: !Ident
   - this
   - d
   targets:
-  - 135
-  parent: 144
-- id: 144
+  - 20
+  parent: 29
+- id: 29
   kind: Tuple
   span: 1:55-56
   children:
-  - 141
-  parent: 162
-- id: 158
+  - 26
+  parent: 47
+- id: 43
   kind: RqOperator
   span: 1:100-103
   alias: n1
   targets:
-  - 160
-  parent: 161
-- id: 160
+  - 45
+  parent: 46
+- id: 45
   kind: Ident
   span: 1:89-97
   ident: !Ident
@@ -163,48 +163,48 @@ nodes:
   - tracks
   - track_id
   targets:
-  - 133
-- id: 161
+  - 19
+- id: 46
   kind: Tuple
   span: 1:73-111
   children:
-  - 158
-  parent: 162
-- id: 162
+  - 43
+  parent: 47
+- id: 47
   kind: 'TransformCall: Aggregate'
   span: 1:63-111
   children:
-  - 140
-  - 161
-  - 144
-  parent: 167
-- id: 165
+  - 25
+  - 46
+  - 29
+  parent: 52
+- id: 50
   kind: Ident
   span: 1:119-120
   ident: !Ident
   - this
   - d
   targets:
-  - 141
-  parent: 167
-- id: 167
+  - 26
+  parent: 52
+- id: 52
   kind: 'TransformCall: Sort'
   span: 1:114-120
   children:
-  - 162
-  - 165
-  parent: 169
-- id: 169
+  - 47
+  - 50
+  parent: 54
+- id: 54
   kind: 'TransformCall: Take'
   span: 1:121-128
   children:
-  - 167
-  - 170
-  parent: 174
-- id: 170
+  - 52
+  - 55
+  parent: 59
+- id: 55
   kind: Literal
-  parent: 169
-- id: 171
+  parent: 54
+- id: 56
   kind: Ident
   span: 1:143-144
   alias: d1
@@ -212,30 +212,30 @@ nodes:
   - this
   - d
   targets:
-  - 141
-  parent: 173
-- id: 172
+  - 26
+  parent: 58
+- id: 57
   kind: Ident
   span: 1:146-148
   ident: !Ident
   - this
   - n1
   targets:
-  - 158
-  parent: 173
-- id: 173
+  - 43
+  parent: 58
+- id: 58
   kind: Tuple
   span: 1:136-150
   children:
-  - 171
-  - 172
-  parent: 174
-- id: 174
+  - 56
+  - 57
+  parent: 59
+- id: 59
   kind: 'TransformCall: Select'
   span: 1:129-150
   children:
-  - 169
-  - 173
+  - 54
+  - 58
 ast:
   name: Project
   stmts:

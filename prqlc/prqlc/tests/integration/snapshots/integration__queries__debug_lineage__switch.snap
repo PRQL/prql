@@ -1,159 +1,159 @@
 ---
 source: prqlc/prqlc/tests/integration/queries.rs
-expression: "# glaredb:skip (May be a bag of String type conversion for Postgres Client)\n# mssql:test\nfrom tracks\nsort milliseconds\nselect display = case [\n    composer != null => composer,\n    genre_id < 17 => 'no composer',\n    true => f'unknown composer'\n]\ntake 10\n"
+expression: "# mssql:test\nfrom tracks\nsort milliseconds\nselect display = case [\n    composer != null => composer,\n    genre_id < 17 => 'no composer',\n    true => f'unknown composer'\n]\ntake 10\n"
 input_file: prqlc/prqlc/tests/integration/queries/switch.prql
 ---
 frames:
-- - 1:101-118
+- - 1:25-42
   - columns:
     - !All
-      input_id: 127
+      input_id: 13
       except: []
     inputs:
-    - id: 127
+    - id: 13
       name: tracks
       table:
       - default_db
       - tracks
-- - 1:119-246
+- - 1:43-170
   - columns:
     - !Single
       name:
       - display
-      target_id: 132
+      target_id: 17
       target_name: null
     inputs:
-    - id: 127
+    - id: 13
       name: tracks
       table:
       - default_db
       - tracks
-- - 1:247-254
+- - 1:171-178
   - columns:
     - !Single
       name:
       - display
-      target_id: 132
+      target_id: 17
       target_name: null
     inputs:
-    - id: 127
+    - id: 13
       name: tracks
       table:
       - default_db
       - tracks
 nodes:
-- id: 127
+- id: 13
   kind: Ident
-  span: 1:89-100
+  span: 1:13-24
   ident: !Ident
   - default_db
   - tracks
-  parent: 131
-- id: 129
+  parent: 16
+- id: 14
   kind: Ident
-  span: 1:106-118
+  span: 1:30-42
   ident: !Ident
   - this
   - tracks
   - milliseconds
   targets:
-  - 127
-  parent: 131
-- id: 131
+  - 13
+  parent: 16
+- id: 16
   kind: 'TransformCall: Sort'
-  span: 1:101-118
+  span: 1:25-42
   children:
-  - 127
-  - 129
-  parent: 146
-- id: 132
+  - 13
+  - 14
+  parent: 31
+- id: 17
   kind: Case
-  span: 1:136-246
+  span: 1:60-170
   alias: display
   targets:
-  - 133
-  - 137
-  - 138
-  - 142
-  - 143
-  - 144
-  parent: 145
-- id: 133
+  - 18
+  - 22
+  - 23
+  - 27
+  - 28
+  - 29
+  parent: 30
+- id: 18
   kind: RqOperator
-  span: 1:147-163
+  span: 1:71-87
   targets:
-  - 135
-  - 136
-- id: 135
+  - 20
+  - 21
+- id: 20
   kind: Ident
-  span: 1:147-155
+  span: 1:71-79
   ident: !Ident
   - this
   - tracks
   - composer
   targets:
-  - 127
-- id: 136
+  - 13
+- id: 21
   kind: Literal
-  span: 1:159-163
-- id: 137
+  span: 1:83-87
+- id: 22
   kind: Ident
-  span: 1:167-175
+  span: 1:91-99
   ident: !Ident
   - this
   - tracks
   - composer
   targets:
-  - 127
-- id: 138
+  - 13
+- id: 23
   kind: RqOperator
-  span: 1:181-194
+  span: 1:105-118
   targets:
-  - 140
-  - 141
-- id: 140
+  - 25
+  - 26
+- id: 25
   kind: Ident
-  span: 1:181-189
+  span: 1:105-113
   ident: !Ident
   - this
   - tracks
   - genre_id
   targets:
-  - 127
-- id: 141
+  - 13
+- id: 26
   kind: Literal
-  span: 1:192-194
-- id: 142
+  span: 1:116-118
+- id: 27
   kind: Literal
-  span: 1:198-211
-- id: 143
+  span: 1:122-135
+- id: 28
   kind: Literal
-  span: 1:217-221
-- id: 144
+  span: 1:141-145
+- id: 29
   kind: FString
-  span: 1:225-244
-- id: 145
+  span: 1:149-168
+- id: 30
   kind: Tuple
-  span: 1:136-246
+  span: 1:60-170
   children:
-  - 132
-  parent: 146
-- id: 146
+  - 17
+  parent: 31
+- id: 31
   kind: 'TransformCall: Select'
-  span: 1:119-246
+  span: 1:43-170
   children:
-  - 131
-  - 145
-  parent: 148
-- id: 148
+  - 16
+  - 30
+  parent: 33
+- id: 33
   kind: 'TransformCall: Take'
-  span: 1:247-254
+  span: 1:171-178
   children:
-  - 146
-  - 149
-- id: 149
+  - 31
+  - 34
+- id: 34
   kind: Literal
-  parent: 148
+  parent: 33
 ast:
   name: Project
   stmts:
@@ -167,27 +167,27 @@ ast:
               name:
                 Ident:
                 - from
-                span: 1:89-93
+                span: 1:13-17
               args:
               - Ident:
                 - tracks
-                span: 1:94-100
-            span: 1:89-100
+                span: 1:18-24
+            span: 1:13-24
           - FuncCall:
               name:
                 Ident:
                 - sort
-                span: 1:101-105
+                span: 1:25-29
               args:
               - Ident:
                 - milliseconds
-                span: 1:106-118
-            span: 1:101-118
+                span: 1:30-42
+            span: 1:25-42
           - FuncCall:
               name:
                 Ident:
                 - select
-                span: 1:119-125
+                span: 1:43-49
               args:
               - Case:
                 - condition:
@@ -195,52 +195,52 @@ ast:
                       left:
                         Ident:
                         - composer
-                        span: 1:147-155
+                        span: 1:71-79
                       op: Ne
                       right:
                         Literal: 'Null'
-                        span: 1:159-163
-                    span: 1:147-163
+                        span: 1:83-87
+                    span: 1:71-87
                   value:
                     Ident:
                     - composer
-                    span: 1:167-175
+                    span: 1:91-99
                 - condition:
                     Binary:
                       left:
                         Ident:
                         - genre_id
-                        span: 1:181-189
+                        span: 1:105-113
                       op: Lt
                       right:
                         Literal:
                           Integer: 17
-                        span: 1:192-194
-                    span: 1:181-194
+                        span: 1:116-118
+                    span: 1:105-118
                   value:
                     Literal:
                       String: no composer
-                    span: 1:198-211
+                    span: 1:122-135
                 - condition:
                     Literal:
                       Boolean: true
-                    span: 1:217-221
+                    span: 1:141-145
                   value:
                     FString:
                     - !String unknown composer
-                    span: 1:225-244
-                span: 1:136-246
+                    span: 1:149-168
+                span: 1:60-170
                 alias: display
-            span: 1:119-246
+            span: 1:43-170
           - FuncCall:
               name:
                 Ident:
                 - take
-                span: 1:247-251
+                span: 1:171-175
               args:
               - Literal:
                   Integer: 10
-                span: 1:252-254
-            span: 1:247-254
-        span: 1:89-254
-    span: 1:0-254
+                span: 1:176-178
+            span: 1:171-178
+        span: 1:13-178
+    span: 1:0-178

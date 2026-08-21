@@ -83,7 +83,6 @@ fn get_targets() {
     sql.clickhouse
     sql.duckdb
     sql.generic
-    sql.glaredb
     sql.mssql
     sql.mysql
     sql.oracle
@@ -424,7 +423,7 @@ fn compare_directories(dir1: &Path, dir2: &Path) {
 fn debug() {
     assert_cmd_snapshot!(prqlc_command()
         .args(["debug", "lineage"])
-        .pass_stdin("from tracks | select {artist, album}"), @r###"
+        .pass_stdin("from tracks | select {artist, album}"), @"
     success: true
     exit_code: 0
     ----- stdout -----
@@ -435,29 +434,29 @@ fn debug() {
           name:
           - tracks
           - artist
-          target_id: 123
+          target_id: 8
           target_name: null
         - !Single
           name:
           - tracks
           - album
-          target_id: 124
+          target_id: 9
           target_name: null
         inputs:
-        - id: 121
+        - id: 7
           name: tracks
           table:
           - default_db
           - tracks
     nodes:
-    - id: 121
+    - id: 7
       kind: Ident
       span: 1:0-11
       ident: !Ident
       - default_db
       - tracks
-      parent: 126
-    - id: 123
+      parent: 11
+    - id: 8
       kind: Ident
       span: 1:22-28
       ident: !Ident
@@ -465,9 +464,9 @@ fn debug() {
       - tracks
       - artist
       targets:
-      - 121
-      parent: 125
-    - id: 124
+      - 7
+      parent: 10
+    - id: 9
       kind: Ident
       span: 1:30-35
       ident: !Ident
@@ -475,21 +474,21 @@ fn debug() {
       - tracks
       - album
       targets:
-      - 121
-      parent: 125
-    - id: 125
+      - 7
+      parent: 10
+    - id: 10
       kind: Tuple
       span: 1:21-36
       children:
-      - 123
-      - 124
-      parent: 126
-    - id: 126
+      - 8
+      - 9
+      parent: 11
+    - id: 11
       kind: 'TransformCall: Select'
       span: 1:14-36
       children:
-      - 121
-      - 125
+      - 7
+      - 10
     ast:
       name: Project
       stmts:
@@ -528,7 +527,7 @@ fn debug() {
         span: 1:0-36
 
     ----- stderr -----
-    "###);
+    ");
 
     // Don't test the output of this, since on one min-versions check it had
     // different results, and didn't repro on Mac. It having different results
@@ -768,6 +767,55 @@ fn lsp_ignores_non_exit_notification() {
     starting main loop
     got msg: Notification(Notification { method: "$/setTrace", params: Object {"value": String("off")} })
     got notification: Notification { method: "$/setTrace", params: Object {"value": String("off")} }
+    got msg: Notification(Notification { method: "exit", params: Null })
+    got notification: Notification { method: "exit", params: Null }
+    shutting down server
+    "###);
+}
+
+/// `initialize` params that our pinned `lsp-types` can't model — here, ones
+/// missing the required `capabilities` field — must not take the server down.
+/// Before the fix, they were deserialized into `InitializeParams` and
+/// `unwrap`ed, so the server panicked before the main loop even started.
+#[cfg(feature = "lsp")]
+#[test]
+fn lsp_unmodelled_initialize_params() {
+    let init = serde_json::to_string(&lsp_server::Message::Request(lsp_server::Request {
+        method: "initialize".into(),
+        id: lsp_server::RequestId::from(1),
+        params: serde_json::json!({}),
+    }))
+    .unwrap();
+    let initialized = serde_json::to_string(&lsp_server::Message::Notification(
+        lsp_server::Notification {
+            method: "initialized".into(),
+            params: serde_json::json!({}),
+        },
+    ))
+    .unwrap();
+    let exit = serde_json::to_string(&lsp_server::Message::Notification(
+        lsp_server::Notification {
+            method: "exit".into(),
+            params: serde_json::Value::Null,
+        },
+    ))
+    .unwrap();
+
+    assert_cmd_snapshot!(prqlc_command().args(["lsp"])
+        .pass_stdin(format!("Content-Length: {}\r\n\r\n{}Content-Length: {}\r\n\r\n{}Content-Length: {}\r\n\r\n{}",
+            init.len(), init,
+            initialized.len(), initialized,
+            exit.len(), exit))
+        , @r###"
+    success: true
+    exit_code: 0
+    ----- stdout -----
+    Content-Length: 78
+
+    {"jsonrpc":"2.0","id":1,"result":{"capabilities":{"definitionProvider":true}}}
+    ----- stderr -----
+    starting PRQL LSP server
+    starting main loop
     got msg: Notification(Notification { method: "exit", params: Null })
     got notification: Notification { method: "exit", params: Null }
     shutting down server

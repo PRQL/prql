@@ -1,5 +1,4 @@
 # generic:skip
-# glaredb:skip
 # sqlite:skip
 # mssql:test
 from invoices

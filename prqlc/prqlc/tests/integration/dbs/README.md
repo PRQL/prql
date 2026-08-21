@@ -15,7 +15,7 @@ cargo test --features=test-dbs
 
 To run tests against external databases — currently Postgres, MySQL and SQL
 Server are tested using `docker compose` to create the databases. (ClickHouse
-and GlareDB runners exist but are currently disabled in `mod.rs`.)
+runner exists but is currently disabled in `mod.rs`.)
 
 The steps are all covered by `task test-rust-external-dbs`; to run them
 manually:
@@ -65,7 +65,7 @@ to 112kB, but that would require a preprocessing step before running
 ## Queries
 
 For databases like ClickHouse, where the order of results is ambiguous, please
-use `sort` for test queries to to guarantee the order of rows across DBs.
+use `sort` for test queries to guarantee the order of rows across DBs.
 
 For example, instead of the following query:
 

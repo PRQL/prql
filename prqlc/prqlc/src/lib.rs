@@ -457,6 +457,7 @@ impl SourceTree {
     pub fn single(path: PathBuf, content: String) -> Self {
         SourceTree {
             sources: [(path.clone(), content)].into(),
+            // the std lib source ID is 0, so user-supplied sources are 1 or greater
             source_ids: [(1, path)].into(),
             root: None,
         }
@@ -474,6 +475,7 @@ impl SourceTree {
 
         for (index, (path, content)) in iter.into_iter().enumerate() {
             res.sources.insert(path.clone(), content);
+            // the std lib source ID is 0, so user-supplied sources are 1 or greater
             res.source_ids.insert((index + 1) as u16, path);
         }
         res

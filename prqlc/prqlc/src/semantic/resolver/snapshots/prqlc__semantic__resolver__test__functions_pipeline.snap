@@ -13,7 +13,7 @@ expression: "resolve_derive(r#\"\n            from a\n            derive one = (
         ty:
           kind:
             Array: ~
-          span: "0:1699-1701"
+          span: "[std]"
           name: array
   span: "1:52-55"
   alias: one

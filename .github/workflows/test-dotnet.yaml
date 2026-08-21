@@ -20,7 +20,7 @@ jobs:
       - name: 🏗 Build prqlc-c
         run: cargo build --package prqlc-c
       - name: 🔧 Setup dotnet
-        uses: actions/setup-dotnet@v5
+        uses: actions/setup-dotnet@v6
         with:
           dotnet-version: 10
       - name: 🧪 Build and test

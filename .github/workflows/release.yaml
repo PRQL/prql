@@ -23,6 +23,7 @@ jobs:
   brew-dispatcher:
     name: Release on homebrew-prql
     runs-on: ubuntu-24.04
+    environment: release
     if: github.event_name == 'release'
     steps:
       - uses: actions/github-script@v9
@@ -124,6 +125,7 @@ jobs:
 
   publish-winget:
     runs-on: ubuntu-24.04
+    environment: release
     needs: build-prqlc
     if: github.event_name == 'release'
     steps:
@@ -220,6 +222,7 @@ jobs:
             echo "package_arch=x86_64" >> "$GITHUB_ENV"
           else
             echo "::error::Unknown architecture: ${{ matrix.target }}"
+            exit 1
           fi
       - name: 📦 Build .rpm package
         uses: jiro4989/build-rpm-action@v2
@@ -310,6 +313,7 @@ jobs:
     runs-on: ubuntu-24.04
     needs: [build-python-wheels]
     if: github.event_name == 'release'
+    environment: release
     permissions:
       id-token: write
     strategy:
@@ -328,56 +332,46 @@ jobs:
           command: upload
           args: --skip-existing *
 
+  # `release.yaml` is reused from `nightly.yaml` on PRs, where it only
+  # smoke-tests the publish path. Those runs are on branch refs, which the
+  # `release` environment's deployment policy denies, so each smoke test is its
+  # own job holding no `id-token: write`. A registry accepts an OIDC token from
+  # any run of this workflow unless its publisher config pins the environment,
+  # so a run outside `release` must not be able to mint one.
+  test-publish-js:
+    runs-on: ubuntu-24.04
+    if: github.event_name != 'release'
+    permissions:
+      contents: read
+    steps:
+      - name: 📂 Checkout code
+        uses: actions/checkout@v7
+      - uses: ./.github/actions/build-js
+      # `--provenance` needs an OIDC token, so it belongs to `publish-js` alone.
+      - name: Check the npm package
+        run: npm publish --dry-run --access public
+        working-directory: prqlc/bindings/js/
+
   publish-js:
     runs-on: ubuntu-24.04
+    if: github.event_name == 'release'
+    environment: release
     permissions:
       contents: read
       id-token: write
     steps:
       - name: 📂 Checkout code
         uses: actions/checkout@v7
-      - uses: baptiste0928/cargo-install@v3
-        with:
-          crate: wasm-pack
-
-      - name: Setup Node
-        uses: actions/setup-node@v6
-        with:
-          # Node 24+ includes npm 11.5.1+ required for OIDC trusted publishing
-          node-version: "24.x"
-          registry-url: "https://registry.npmjs.org"
-
-      - run: ./.github/workflows/scripts/set_version.sh
-      - name: 💰 Cache
-        uses: Swatinem/rust-cache@v2
-        with:
-          prefix-key: ${{ env.version }}-${{ hashFiles('./Cargo.lock') }}
-          # Share key with the `build-web` job
-          shared-key: web
-          save-if: false
-          # Caching `~/.cargo/bin/` breaks the rustup `cargo`/`rustc` symlinks
-          # on the new macos-15 runner image — see
-          # https://github.com/Swatinem/rust-cache/issues/341.
-          cache-bin: "false"
-
-      # This is only required in order to have `cross-env` installed, since `npx
-      # cross-env` doesn't seem to work in CI (https://github.com/PRQL/prql/pull/3728)
-      - run: npm install
-        working-directory: prqlc/bindings/js/
-
+      - uses: ./.github/actions/build-js
       - name: Publish to npm
-        run:
-          npm publish --provenance --access public ${{ (github.event_name !=
-          'release') && '--dry-run' || '' }}
+        run: npm publish --provenance --access public
         working-directory: prqlc/bindings/js/
 
-  publish-to-cargo:
+  test-publish-to-cargo:
     runs-on: ubuntu-24.04
-    # This job runs unconditionally as a `--no-verify` dry-run smoke test when
-    # `release.yaml` is reused from `nightly.yaml` on PRs; only apply the
-    # `release` environment (and its tag-restricted secret) on actual releases,
-    # otherwise the deployment-branch policy denies the dry-run on branch refs.
-    environment: ${{ github.event_name == 'release' && 'release' || '' }}
+    if: github.event_name != 'release'
+    permissions:
+      contents: read
     steps:
       - name: 📂 Checkout code
         uses: actions/checkout@v7
@@ -388,10 +382,31 @@ jobs:
       # https://github.com/crate-ci/cargo-release/issues/691
       # --no-verify is required to prevent build.
       - run:
-          cargo release publish --no-confirm ${{ github.event_name == 'release'
-          && '--execute' || '--no-verify --package prqlc-parser'}}
+          cargo release publish --no-confirm --no-verify --package prqlc-parser
+
+  publish-to-cargo:
+    runs-on: ubuntu-24.04
+    if: github.event_name == 'release'
+    environment: release
+    permissions:
+      contents: read
+      id-token: write
+    steps:
+      - name: 📂 Checkout code
+        uses: actions/checkout@v7
+      - uses: baptiste0928/cargo-install@v3
+        with:
+          crate: cargo-release
+      # Auth is via crates.io Trusted Publishing (GitHub Actions OIDC). One
+      # exchange covers prqlc, prqlc-parser and prqlc-macros: crates.io scopes
+      # the minted token to every crate whose config matches this repo,
+      # workflow and environment.
+      - name: Authenticate with crates.io
+        id: auth
+        uses: rust-lang/crates-io-auth-action@v1
+      - run: cargo release publish --no-confirm --execute
         env:
-          CARGO_REGISTRY_TOKEN: ${{ secrets.CARGO_REGISTRY_TOKEN }}
+          CARGO_REGISTRY_TOKEN: ${{ steps.auth.outputs.token }}
 
   # Requires another pass: https://github.com/PRQL/prql/issues/850
   # publish-prql-java:
@@ -412,14 +427,25 @@ jobs:
   #         nexus_password: ${{ secrets.nexus_password }}
   #         directory: prql-java/java/
 
+  publish-web:
+    if: github.event_name == 'release'
+    uses: ./.github/workflows/publish-web.yaml
+    permissions:
+      contents: read
+      pages: write
+      id-token: write
+
+  # `web` tracks the latest release, so doc-only fixes backport onto it. A push
+  # with the default token starts no workflow, so `publish-web` is the release's
+  # only publish.
   push-web-branch:
     runs-on: ubuntu-24.04
     if: github.event_name == 'release'
+    permissions:
+      contents: write
     steps:
       - name: 📂 Checkout code
         uses: actions/checkout@v7
-        with:
-          token: ${{ secrets.TEND_BOT_TOKEN }}
       - run: git push origin HEAD:web --force
 
   push-devcontainer:

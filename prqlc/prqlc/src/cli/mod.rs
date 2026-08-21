@@ -657,7 +657,7 @@ fn combine_prql_and_frames(source: &str, frames: Vec<(Option<pr::Span>, pl::Line
 }
 
 /// Unit tests for `prqlc`. Integration tests (where we call the actual binary)
-/// are in `prqlc/tests/test.rs`.
+/// are in `prqlc/prqlc/src/cli/test.rs`.
 #[cfg(test)]
 mod tests {
     use insta::assert_snapshot;

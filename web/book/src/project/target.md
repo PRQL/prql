@@ -34,9 +34,9 @@ on every commit, and we'll endeavor to fix bugs.
 - `sql.duckdb`
 - `sql.generic`
   {{footnote: while there's no "generic" DB to test `sql.generic` against, we still count it as supported.}}
-- `sql.glaredb`
 - `sql.mysql`
 - `sql.postgres`
+- `sql.redshift`
 - `sql.sqlite`
 
 ### Unsupported
@@ -83,7 +83,7 @@ echo 'prql target:sql.generic
 PRQL allows specifying a version of the language in the PRQL header, like:
 
 ```prql
-prql version:"0.13.13"
+prql version:"0.13.14"
 
 from employees
 ```

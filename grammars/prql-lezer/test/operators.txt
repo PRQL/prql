@@ -14,7 +14,15 @@ filter foo != bar
 
 Query(Pipeline(CallExpression(Identifier,ArgList(BinaryExpression(Identifier,CompareOp,Identifier)))))
 
-# >= Greater than
+# > Greater than
+
+filter foo > bar
+
+==>
+
+Query(Pipeline(CallExpression(Identifier,ArgList(BinaryExpression(Identifier,CompareOp,Identifier)))))
+
+# >= Greater than or equal
 
 filter foo >= bar
 
@@ -22,7 +30,15 @@ filter foo >= bar
 
 Query(Pipeline(CallExpression(Identifier,ArgList(BinaryExpression(Identifier,CompareOp,Identifier)))))
 
-# <= Less than
+# < Less than
+
+filter foo < bar
+
+==>
+
+Query(Pipeline(CallExpression(Identifier,ArgList(BinaryExpression(Identifier,CompareOp,Identifier)))))
+
+# <= Less than or equal
 
 filter foo <= bar
 
@@ -61,6 +77,14 @@ filter foo ?? bar
 ==>
 
 Query(Pipeline(CallExpression(Identifier,ArgList(BinaryExpression(Identifier,LogicOp,Identifier)))))
+
+# in Membership
+
+filter foo in bar
+
+==>
+
+Query(Pipeline(CallExpression(Identifier,ArgList(BinaryExpression(Identifier,in,Identifier)))))
 
 # Unary operator -
 

@@ -372,48 +372,4 @@ pub(crate) mod external {
                 .replace(" AS TEXT", " AS VARCHAR")
         }
     }
-
-    #[allow(dead_code)]
-    pub(crate) struct GlareDbTestRunner {
-        protocol: connector_arrow::postgres::PostgresConnection,
-        data_file_root: String,
-    }
-
-    impl GlareDbTestRunner {
-        #[allow(dead_code)]
-        pub(crate) fn new(url: &str, data_file_root: String) -> Self {
-            use connector_arrow::postgres::PostgresConnection;
-            let client = ::postgres::Client::connect(url, ::postgres::NoTls).unwrap();
-            Self {
-                protocol: PostgresConnection::new(client),
-                data_file_root,
-            }
-        }
-    }
-
-    impl DbTestRunner for GlareDbTestRunner {
-        fn dialect(&self) -> Dialect {
-            Dialect::GlareDb
-        }
-
-        fn protocol(&mut self) -> &mut dyn DbProtocol {
-            &mut self.protocol
-        }
-
-        fn data_file_root(&self) -> &str {
-            &self.data_file_root
-        }
-
-        fn import_csv(&mut self, csv_path: &str, table_name: &str) {
-            self.protocol
-                .execute(&format!(
-                    "INSERT INTO {table_name} SELECT * FROM '{csv_path}'"
-                ))
-                .unwrap();
-        }
-
-        fn modify_ddl(&self, sql: String) -> String {
-            sql.replace("FLOAT", "DOUBLE PRECISION")
-        }
-    }
 }

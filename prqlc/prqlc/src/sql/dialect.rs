@@ -86,7 +86,6 @@ pub enum Dialect {
     DuckDb,
     #[default]
     Generic,
-    GlareDb,
     MsSql,
     MySql,
     Oracle,
@@ -112,7 +111,6 @@ impl Dialect {
             Dialect::DuckDb => Box::new(DuckDbDialect),
             Dialect::Postgres => Box::new(PostgresDialect),
             Dialect::Redshift => Box::new(RedshiftDialect),
-            Dialect::GlareDb => Box::new(GlareDbDialect),
             Dialect::Oracle => Box::new(OracleDialect),
             Dialect::Ansi | Dialect::Generic => Box::new(GenericDialect),
         }
@@ -126,7 +124,6 @@ impl Dialect {
             | Dialect::Redshift
             | Dialect::MySql
             | Dialect::Generic
-            | Dialect::GlareDb
             | Dialect::ClickHouse => SupportLevel::Supported,
             Dialect::MsSql
             | Dialect::Ansi
@@ -168,8 +165,6 @@ pub struct DuckDbDialect;
 pub struct PostgresDialect;
 #[derive(Debug)]
 pub struct RedshiftDialect;
-#[derive(Debug)]
-pub struct GlareDbDialect;
 #[derive(Debug)]
 pub struct OracleDialect;
 
@@ -367,21 +362,12 @@ impl DialectHandler for PostgresDialect {
 }
 
 impl DialectHandler for RedshiftDialect {
-    fn ident_quoting_style(&self) -> IdentQuotingStyle {
-        // Use conditional quoting with dialect-specific keywords
-        IdentQuotingStyle::ConditionallyQuoted
-    }
-
     fn interval_quoting_style(&self, dtf: &DateTimeField) -> IntervalQuotingStyle {
         if matches!(dtf, DateTimeField::Week(_) | DateTimeField::Weeks) {
             IntervalQuotingStyle::ValueAndUnitQuoted
         } else {
             IntervalQuotingStyle::ValueQuoted
         }
-    }
-
-    fn supports_distinct_on(&self) -> bool {
-        false
     }
 
     // https://docs.aws.amazon.com/redshift/latest/dg/r_FORMAT_strings.html
@@ -438,12 +424,6 @@ impl DialectHandler for RedshiftDialect {
     // for more than two elements: https://docs.aws.amazon.com/redshift/latest/dg/r_CONCAT.html
     fn has_concat_function(&self) -> bool {
         false
-    }
-}
-
-impl DialectHandler for GlareDbDialect {
-    fn interval_quoting_style(&self, _dtf: &DateTimeField) -> IntervalQuotingStyle {
-        IntervalQuotingStyle::ValueAndUnitQuoted
     }
 }
 

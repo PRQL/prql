@@ -19,6 +19,8 @@ use crate::WithErrorInfo;
 use crate::{debug, parser};
 use crate::{Error, Reason, Result};
 
+pub const STD_LIB_SOURCE_ID: u16 = 0;
+
 /// Runs semantic analysis on the query and lowers PL to RQ.
 pub fn resolve_and_lower(
     file_tree: pr::ModuleDef,
@@ -67,7 +69,7 @@ pub fn load_std_lib(module_tree: &mut pr::ModuleDef) {
         let _suppressed = debug::log_suppress();
 
         let std_source = include_str!("std.prql");
-        match parser::parse_source(std_source, 0) {
+        match parser::parse_source(std_source, STD_LIB_SOURCE_ID) {
             Ok(stmts) => {
                 let stmt = pr::Stmt::new(pr::StmtKind::ModuleDef(pr::ModuleDef {
                     name: "std".to_string(),
@@ -215,6 +217,21 @@ pub mod test {
         "###).unwrap().relation.columns, @"
         - Single: is_sponsored
         - Wildcard
+        ")
+    }
+
+    #[test]
+    fn test_resolve_this_wildcard() {
+        // `this.*` should include computed columns, matching bare `this`
+        // (https://github.com/PRQL/prql/issues/6044).
+        assert_yaml_snapshot!(parse_resolve_and_lower(r###"
+        from foo
+        select { a, b, c = a + b }
+        select this.*
+        "###).unwrap().relation.columns, @"
+        - Single: a
+        - Single: b
+        - Single: c
         ")
     }
 

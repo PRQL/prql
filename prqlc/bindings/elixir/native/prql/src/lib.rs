@@ -18,7 +18,6 @@ mod atoms {
       bigquery,
       clickhouse,
       duckdb,
-      glaredb,
       generic,
       mssql,
       mysql,
@@ -58,8 +57,6 @@ fn target_from_atom(a: Atom) -> prqlc::Target {
         DuckDb
     } else if a == atoms::generic() {
         Generic
-    } else if a == atoms::glaredb() {
-        GlareDb
     } else if a == atoms::mssql() {
         MsSql
     } else if a == atoms::mysql() {
@@ -109,8 +106,11 @@ pub struct CompileOptions {
     /// If something does not work in a specific dialect, please raise in a
     /// GitHub issue.
     ///
-    /// If `None` is used, the `target` argument from the query header is used.
-    /// If it does not exist, [`prqlc::sql::Dialect::Generic`] is used.
+    /// Defaults to `:generic`; an atom that names no known dialect also falls
+    /// back to [`prqlc::sql::Dialect::Generic`]. Note that the dialect named
+    /// here always wins over a `target:sql.…` argument in the query header —
+    /// unlike [`prqlc::Options::target`], there is no value that defers to the
+    /// header.
     pub target: Atom,
 
     /// Emits the compiler signature as a comment after generated SQL

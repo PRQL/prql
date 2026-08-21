@@ -3,10 +3,8 @@ fail-fast = false
 failure-output = "final"
 slow-timeout = { period = "500ms" }
 
-[[profile.default.overrides]]
-# compileall does many passes over the same query, so it takes a bit longer
-filter = 'package(prqlc) & test(queries::)'
-slow-timeout = { period = "2s" }
+# Overrides are resolved first-match-wins per setting, so the more specific
+# filters need to come before the broad `queries::` one below.
 
 [[profile.default.overrides]]
 # compileall does many passes over the same query, so it takes a bit longer
@@ -17,6 +15,11 @@ slow-timeout = { period = "10s" }
 filter = 'package(prqlc) & test(queries::results::)'
 slow-timeout = { period = "10s" }
 test-group = 'test-dbs'
+
+[[profile.default.overrides]]
+# the query tests each process a whole `.prql` file, so they take a bit longer
+filter = 'package(prqlc) & test(queries::)'
+slow-timeout = { period = "2s" }
 
 [test-groups.test-dbs]
 # test-dbs runs database setup when the connection is established, and because
