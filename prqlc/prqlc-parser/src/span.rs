@@ -1,7 +1,6 @@
 use std::fmt::{self, Debug, Formatter};
 use std::ops::{Add, Range, Sub};
 
-use chumsky;
 use schemars::JsonSchema;
 use serde::de::Visitor;
 use serde::{Deserialize, Serialize};

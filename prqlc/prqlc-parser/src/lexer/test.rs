@@ -1,5 +1,3 @@
-use chumsky;
-
 use chumsky::Parser;
 use insta::assert_debug_snapshot;
 use insta::assert_snapshot;
@@ -495,4 +493,87 @@ fn test_interpolation_empty() {
         ],
     )
     "#);
+}
+
+#[test]
+fn raw_string_delimiters() {
+    fn test_raw_string_tokens(input: &str) -> Tokens {
+        Tokens(lexer().parse(input).output().unwrap().to_vec())
+    }
+
+    assert_debug_snapshot!(test_raw_string_tokens(r#"r"\n""#), @r#"
+    Tokens(
+        [
+            0..5: Literal(RawString("\\n")),
+        ],
+    )
+    "#);
+
+    // The other quote character is content, not a delimiter.
+    assert_debug_snapshot!(test_raw_string_tokens(r#"r"it's""#), @r#"
+    Tokens(
+        [
+            0..7: Literal(RawString("it's")),
+        ],
+    )
+    "#);
+    assert_debug_snapshot!(test_raw_string_tokens(r#"r'say "hi"'"#), @r#"
+    Tokens(
+        [
+            0..11: Literal(RawString("say \"hi\"")),
+        ],
+    )
+    "#);
+
+    // A closing quote that doesn't match the opening one doesn't close the
+    // string, so these are unterminated rather than valid raw strings.
+    assert_debug_snapshot!(lex_source(r#"r"hello'"#), @r#"
+    Err(
+        [
+            Error {
+                kind: Error,
+                span: Some(
+                    0:8-8,
+                ),
+                reason: Unexpected {
+                    found: "end of input",
+                },
+                hints: [],
+                code: None,
+            },
+        ],
+    )
+    "#);
+    assert_debug_snapshot!(lex_source(r#"r'hello""#), @r#"
+    Err(
+        [
+            Error {
+                kind: Error,
+                span: Some(
+                    0:8-8,
+                ),
+                reason: Unexpected {
+                    found: "end of input",
+                },
+                hints: [],
+                code: None,
+            },
+        ],
+    )
+    "#);
+}
+
+/// `RESERVED_LITERALS` is hand-written next to `boolean()` / `null()`, so pin
+/// it to what the lexer actually does: each entry must lex as a `Literal`
+/// rather than an `Ident`, which is what makes it need backticks in codegen.
+#[test]
+fn test_reserved_literals_lex_as_literals() {
+    for word in crate::lexer::RESERVED_LITERALS {
+        let tokens = lexer().parse(word).output().unwrap().to_vec();
+        assert!(
+            matches!(tokens[0].kind, TokenKind::Literal(_)),
+            "`{word}` lexed as {:?}, expected a Literal",
+            tokens[0].kind
+        );
+    }
 }

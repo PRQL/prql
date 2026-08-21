@@ -29,7 +29,7 @@ where a line break doesn't act as a pipe.
 
 - before or after tuple items
 - before or after array items
-- before a new statement, which starts with `let` or `from` (or `func`)
+- before a new statement, which starts with `let` or `from`
 - within a [line wrap](./operators.md#wrapping-lines)
 
 For example:

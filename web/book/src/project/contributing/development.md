@@ -78,7 +78,7 @@ website, we have two options:
   cargo test
   ```
 
-  ...and if that doesn't complete successfully, ensure we have Python >= 3.7, to
+  ...and if that doesn't complete successfully, ensure we have Python >= 3.9, to
   compile `prqlc-python`.
 
 - For more involved contributions, such as building the website, playground,
@@ -136,7 +136,7 @@ To load the shell:
 
    ```sh
    mkdir -p ~/.config/nix/
-   tee 'experimental-features = nix-command flakes' >> ~/.config/nix/nix.conf
+   echo 'experimental-features = nix-command flakes' >> ~/.config/nix/nix.conf
    ```
 
    For NixOS users, follow instructions [here](https://nixos.wiki/wiki/Flakes).
@@ -380,7 +380,7 @@ inconsistent in watchexec. Let's revert back if it gets solved.
   minutes, and we should be reassessing their scope if they take longer than
   that. Once these pass, a pull request can be merged.
 
-- **[GitHub Actions on merge](https://github.com/PRQL/prql/blob/c042eef48709e2c1af577161554fd09f14e67e0f/.github/workflows/pull-request.yaml#L124)**
+- **[GitHub Actions on merge](https://github.com/PRQL/prql/blob/main/.github/workflows/tests.yaml)**
   — we run a wider set tests on every merge to main. This includes testing
   across OSs, all our language bindings, a measure of test code coverage, and
   some performance benchmarks.
@@ -410,8 +410,8 @@ the confidence to make changes faster, please raise an issue.
 
 ## Website
 
-The website is published together with the book and the playground, and is
-automatically built and released on any push to the `web` branch.
+The website is published together with the book and the playground, from a
+release's tag and from any later push to the `web` branch.
 
 The `web` branch points to the latest release plus any website-specific fixes.
 That way, the compiler behavior in the playground matches the latest release
@@ -498,15 +498,19 @@ Currently we release in a semi-automated way:
    )"
    ```
 
-4. From there, both the tag and release is created and all packages are
-   published automatically based on our
-   [release workflow](https://github.com/PRQL/prql/blob/main/.github/workflows/release.yaml).
+4. From there the tag and release are created, and the
+   [release workflow](https://github.com/PRQL/prql/blob/main/.github/workflows/release.yaml)
+   publishes the packages and the website. Its publishing jobs sit behind the
+   `release` and `github-pages` environments, so approve the pending deployments
+   on the run's page.
 
 5. Run
-   `cargo release patch --no-publish --no-push --execute --no-verify --no-confirm --no-tag && task prqlc:test-all`
+   `cargo release patch --no-publish --no-push --execute --no-verify --no-confirm --no-tag && task prqlc:test-all && cargo insta test --accept -p mdbook-prql`
    to bump to the next development version, then PR the resulting commit. This
-   recreates the `## [unreleased]` section for the next cycle, and
-   `task prqlc:test-all` refreshes the snapshot tests that embed the version.
+   recreates the `## [unreleased]` section for the next cycle. The version is
+   embedded in snapshots in two workspaces, so both test commands are needed:
+   `task prqlc:test-all` covers `prqlc`'s docs-generator snapshots, and
+   `cargo insta test -p mdbook-prql` covers the book's `prql.version` example.
 
 <!-- `version` and `replace` must run in one `cargo release` invocation (not separate `cargo release version` + `cargo release replace` steps) so the `prev_version` replacement for the prqlc version constraint in target.md resolves. -->
 

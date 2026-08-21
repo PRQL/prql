@@ -149,11 +149,6 @@ pub fn compiler_version() -> Version {
     static COMPILER_VERSION: OnceLock<Version> = OnceLock::new();
     COMPILER_VERSION
         .get_or_init(|| {
-            if let Ok(prql_version_override) = std::env::var("PRQL_VERSION_OVERRIDE") {
-                return Version::parse(&prql_version_override).unwrap_or_else(|e| {
-                    panic!("Could not parse PRQL version {prql_version_override}\n{e}")
-                });
-            }
             let git_version = env!("VERGEN_GIT_DESCRIBE");
             let cargo_version = env!("CARGO_PKG_VERSION");
             Version::parse(git_version)
@@ -462,6 +457,7 @@ impl SourceTree {
     pub fn single(path: PathBuf, content: String) -> Self {
         SourceTree {
             sources: [(path.clone(), content)].into(),
+            // the std lib source ID is 0, so user-supplied sources are 1 or greater
             source_ids: [(1, path)].into(),
             root: None,
         }
@@ -479,6 +475,7 @@ impl SourceTree {
 
         for (index, (path, content)) in iter.into_iter().enumerate() {
             res.sources.insert(path.clone(), content);
+            // the std lib source ID is 0, so user-supplied sources are 1 or greater
             res.source_ids.insert((index + 1) as u16, path);
         }
         res

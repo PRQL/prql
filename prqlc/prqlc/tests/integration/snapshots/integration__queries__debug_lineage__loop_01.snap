@@ -1,260 +1,260 @@
 ---
 source: prqlc/prqlc/tests/integration/queries.rs
-expression: "# clickhouse:skip (DB::Exception: Syntax error)\n# glaredb:skip (DataFusion does not support recursive CTEs https://github.com/apache/arrow-datafusion/issues/462)\nfrom [{n = 1}]\nselect n = n - 2\nloop (filter n < 4 | select n = n + 1)\nselect n = n * 2\nsort n\n"
+expression: "# clickhouse:skip (DB::Exception: Syntax error)\nfrom [{n = 1}]\nselect n = n - 2\nloop (filter n < 4 | select n = n + 1)\nselect n = n * 2\nsort n\n"
 input_file: prqlc/prqlc/tests/integration/queries/loop_01.prql
 ---
 frames:
-- - 1:177-193
+- - 1:63-79
   - columns:
     - !Single
       name:
       - n
-      target_id: 131
+      target_id: 19
       target_name: null
     inputs:
-    - id: 127
-      name: _literal_127
+    - id: 16
+      name: _literal_16
       table:
       - default_db
-      - _literal_127
-- - 1:200-212
+      - _literal_16
+- - 1:86-98
   - columns:
     - !Single
       name:
       - n
-      target_id: 131
+      target_id: 19
       target_name: null
     inputs:
-    - id: 127
-      name: _literal_127
+    - id: 16
+      name: _literal_16
       table:
       - default_db
-      - _literal_127
-- - 1:215-231
+      - _literal_16
+- - 1:101-117
   - columns:
     - !Single
       name:
       - n
-      target_id: 154
+      target_id: 42
       target_name: null
     inputs:
-    - id: 127
-      name: _literal_127
+    - id: 16
+      name: _literal_16
       table:
       - default_db
-      - _literal_127
-- - 1:194-232
+      - _literal_16
+- - 1:80-118
   - columns:
     - !Single
       name:
       - n
-      target_id: 131
+      target_id: 19
       target_name: null
     inputs:
-    - id: 127
-      name: _literal_127
+    - id: 16
+      name: _literal_16
       table:
       - default_db
-      - _literal_127
-- - 1:233-249
+      - _literal_16
+- - 1:119-135
   - columns:
     - !Single
       name:
       - n
-      target_id: 162
+      target_id: 50
       target_name: null
     inputs:
-    - id: 127
-      name: _literal_127
+    - id: 16
+      name: _literal_16
       table:
       - default_db
-      - _literal_127
-- - 1:250-256
+      - _literal_16
+- - 1:136-142
   - columns:
     - !Single
       name:
       - n
-      target_id: 162
+      target_id: 50
       target_name: null
     inputs:
-    - id: 127
-      name: _literal_127
+    - id: 16
+      name: _literal_16
       table:
       - default_db
-      - _literal_127
+      - _literal_16
 nodes:
-- id: 127
+- id: 16
   kind: Array
-  span: 1:162-176
+  span: 1:48-62
   children:
-  - 128
-  parent: 136
-- id: 128
+  - 17
+  parent: 24
+- id: 17
   kind: Tuple
-  span: 1:168-175
+  span: 1:54-61
   children:
-  - 129
-  parent: 127
-- id: 129
+  - 18
+  parent: 16
+- id: 18
   kind: Literal
-  span: 1:173-174
+  span: 1:59-60
   alias: n
-  parent: 128
-- id: 131
+  parent: 17
+- id: 19
   kind: RqOperator
-  span: 1:188-193
+  span: 1:74-79
   alias: n
   targets:
-  - 133
-  - 134
-  parent: 135
-- id: 133
+  - 21
+  - 22
+  parent: 23
+- id: 21
   kind: Ident
-  span: 1:188-189
+  span: 1:74-75
   ident: !Ident
   - this
-  - _literal_127
+  - _literal_16
   - n
   targets:
-  - 127
-- id: 134
+  - 16
+- id: 22
   kind: Literal
-  span: 1:192-193
-- id: 135
+  span: 1:78-79
+- id: 23
   kind: Tuple
-  span: 1:188-193
+  span: 1:74-79
   children:
-  - 131
-  parent: 136
-- id: 136
+  - 19
+  parent: 24
+- id: 24
   kind: 'TransformCall: Select'
-  span: 1:177-193
+  span: 1:63-79
   children:
-  - 127
-  - 135
-  parent: 160
-- id: 145
+  - 16
+  - 23
+  parent: 48
+- id: 33
   kind: Ident
   ident: !Ident
   - _param
   - _tbl
   targets:
-  - 142
-  parent: 153
-- id: 149
+  - 30
+  parent: 41
+- id: 37
   kind: RqOperator
-  span: 1:207-212
+  span: 1:93-98
   targets:
-  - 151
-  - 152
-  parent: 153
-- id: 151
+  - 39
+  - 40
+  parent: 41
+- id: 39
   kind: Ident
-  span: 1:207-208
+  span: 1:93-94
   ident: !Ident
   - this
   - n
   targets:
-  - 131
-- id: 152
+  - 19
+- id: 40
   kind: Literal
-  span: 1:211-212
-- id: 153
+  span: 1:97-98
+- id: 41
   kind: 'TransformCall: Filter'
-  span: 1:200-212
+  span: 1:86-98
   children:
-  - 145
-  - 149
-  parent: 159
-- id: 154
+  - 33
+  - 37
+  parent: 47
+- id: 42
   kind: RqOperator
-  span: 1:226-231
+  span: 1:112-117
   alias: n
   targets:
-  - 156
-  - 157
-  parent: 158
-- id: 156
+  - 44
+  - 45
+  parent: 46
+- id: 44
   kind: Ident
-  span: 1:226-227
+  span: 1:112-113
   ident: !Ident
   - this
   - n
   targets:
-  - 131
-- id: 157
+  - 19
+- id: 45
   kind: Literal
-  span: 1:230-231
-- id: 158
+  span: 1:116-117
+- id: 46
   kind: Tuple
-  span: 1:226-231
+  span: 1:112-117
   children:
-  - 154
-  parent: 159
-- id: 159
+  - 42
+  parent: 47
+- id: 47
   kind: 'TransformCall: Select'
-  span: 1:215-231
+  span: 1:101-117
   children:
-  - 153
-  - 158
-- id: 160
+  - 41
+  - 46
+- id: 48
   kind: 'TransformCall: Loop'
-  span: 1:194-232
+  span: 1:80-118
   children:
-  - 136
-  - 161
-  parent: 167
-- id: 161
+  - 24
+  - 49
+  parent: 55
+- id: 49
   kind: Func
-  span: 1:215-231
-  parent: 160
-- id: 162
+  span: 1:101-117
+  parent: 48
+- id: 50
   kind: RqOperator
-  span: 1:244-249
+  span: 1:130-135
   alias: n
   targets:
-  - 164
-  - 165
-  parent: 166
-- id: 164
+  - 52
+  - 53
+  parent: 54
+- id: 52
   kind: Ident
-  span: 1:244-245
+  span: 1:130-131
   ident: !Ident
   - this
   - n
   targets:
-  - 131
-- id: 165
+  - 19
+- id: 53
   kind: Literal
-  span: 1:248-249
-- id: 166
+  span: 1:134-135
+- id: 54
   kind: Tuple
-  span: 1:244-249
+  span: 1:130-135
   children:
-  - 162
-  parent: 167
-- id: 167
+  - 50
+  parent: 55
+- id: 55
   kind: 'TransformCall: Select'
-  span: 1:233-249
+  span: 1:119-135
   children:
-  - 160
-  - 166
-  parent: 170
-- id: 168
+  - 48
+  - 54
+  parent: 58
+- id: 56
   kind: Ident
-  span: 1:255-256
+  span: 1:141-142
   ident: !Ident
   - this
   - n
   targets:
-  - 162
-  parent: 170
-- id: 170
+  - 50
+  parent: 58
+- id: 58
   kind: 'TransformCall: Sort'
-  span: 1:250-256
+  span: 1:136-142
   children:
-  - 167
-  - 168
+  - 55
+  - 56
 ast:
   name: Project
   stmts:
@@ -268,41 +268,41 @@ ast:
               name:
                 Ident:
                 - from
-                span: 1:162-166
+                span: 1:48-52
               args:
               - Array:
                 - Tuple:
                   - Literal:
                       Integer: 1
-                    span: 1:173-174
+                    span: 1:59-60
                     alias: n
-                  span: 1:168-175
-                span: 1:167-176
-            span: 1:162-176
+                  span: 1:54-61
+                span: 1:53-62
+            span: 1:48-62
           - FuncCall:
               name:
                 Ident:
                 - select
-                span: 1:177-183
+                span: 1:63-69
               args:
               - Binary:
                   left:
                     Ident:
                     - n
-                    span: 1:188-189
+                    span: 1:74-75
                   op: Sub
                   right:
                     Literal:
                       Integer: 2
-                    span: 1:192-193
-                span: 1:188-193
+                    span: 1:78-79
+                span: 1:74-79
                 alias: n
-            span: 1:177-193
+            span: 1:63-79
           - FuncCall:
               name:
                 Ident:
                 - loop
-                span: 1:194-198
+                span: 1:80-84
               args:
               - Pipeline:
                   exprs:
@@ -310,69 +310,69 @@ ast:
                       name:
                         Ident:
                         - filter
-                        span: 1:200-206
+                        span: 1:86-92
                       args:
                       - Binary:
                           left:
                             Ident:
                             - n
-                            span: 1:207-208
+                            span: 1:93-94
                           op: Lt
                           right:
                             Literal:
                               Integer: 4
-                            span: 1:211-212
-                        span: 1:207-212
-                    span: 1:200-212
+                            span: 1:97-98
+                        span: 1:93-98
+                    span: 1:86-98
                   - FuncCall:
                       name:
                         Ident:
                         - select
-                        span: 1:215-221
+                        span: 1:101-107
                       args:
                       - Binary:
                           left:
                             Ident:
                             - n
-                            span: 1:226-227
+                            span: 1:112-113
                           op: Add
                           right:
                             Literal:
                               Integer: 1
-                            span: 1:230-231
-                        span: 1:226-231
+                            span: 1:116-117
+                        span: 1:112-117
                         alias: n
-                    span: 1:215-231
-                span: 1:200-231
-            span: 1:194-232
+                    span: 1:101-117
+                span: 1:86-117
+            span: 1:80-118
           - FuncCall:
               name:
                 Ident:
                 - select
-                span: 1:233-239
+                span: 1:119-125
               args:
               - Binary:
                   left:
                     Ident:
                     - n
-                    span: 1:244-245
+                    span: 1:130-131
                   op: Mul
                   right:
                     Literal:
                       Integer: 2
-                    span: 1:248-249
-                span: 1:244-249
+                    span: 1:134-135
+                span: 1:130-135
                 alias: n
-            span: 1:233-249
+            span: 1:119-135
           - FuncCall:
               name:
                 Ident:
                 - sort
-                span: 1:250-254
+                span: 1:136-140
               args:
               - Ident:
                 - n
-                span: 1:255-256
-            span: 1:250-256
-        span: 1:162-256
-    span: 1:0-256
+                span: 1:141-142
+            span: 1:136-142
+        span: 1:48-142
+    span: 1:0-142

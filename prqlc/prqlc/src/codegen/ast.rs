@@ -1,7 +1,7 @@
 use std::borrow::Cow;
-use std::collections::HashSet;
 use std::sync::OnceLock;
 
+use prqlc_parser::lexer;
 use regex::Regex;
 
 use super::{WriteOpt, WriteSource};
@@ -91,7 +91,7 @@ impl WriteSource for pr::ExprKind {
         use pr::ExprKind::*;
 
         match &self {
-            Ident(ident) => Some(ident.to_string()),
+            Ident(ident) => Some(write_ident(ident)),
 
             Pipeline(pipeline) => SeparatedExprs {
                 inline: " | ",
@@ -162,7 +162,7 @@ impl WriteSource for pr::ExprKind {
                 for (name, arg) in &func_call.named_args {
                     r += opt.consume(" ")?;
 
-                    r += opt.consume(name)?;
+                    r += opt.consume(&write_ident_part(name))?;
 
                     r += opt.consume(":")?;
 
@@ -318,23 +318,23 @@ impl WriteSource for pr::Ident {
         let width = self.path.iter().map(|p| p.len() + 1).sum::<usize>() + self.name.len();
         opt.consume_width(width as u16)?;
 
-        let mut r = String::new();
-        for part in &self.path {
-            r += &write_ident_part(part);
-            r += ".";
-        }
-        r += &write_ident_part(&self.name);
-        Some(r)
+        Some(write_ident(self))
     }
 }
 
-fn keywords() -> &'static HashSet<&'static str> {
-    static KEYWORDS: OnceLock<HashSet<&'static str>> = OnceLock::new();
-    KEYWORDS.get_or_init(|| {
-        HashSet::from_iter([
-            "let", "into", "case", "prql", "type", "module", "internal", "func",
-        ])
-    })
+/// Write a dotted identifier, quoting each part that needs it.
+///
+/// `pr::Ident`'s `Display` impl looks similar but has its own copy of the
+/// "needs backticks" rule which doesn't know about reserved words, so codegen
+/// must not reach for `to_string()` here.
+fn write_ident(ident: &pr::Ident) -> String {
+    let mut r = String::new();
+    for part in &ident.path {
+        r += &write_ident_part(part);
+        r += ".";
+    }
+    r += &write_ident_part(&ident.name);
+    r
 }
 
 fn valid_prql_ident() -> &'static Regex {
@@ -347,7 +347,8 @@ fn valid_prql_ident() -> &'static Regex {
 }
 
 pub fn write_ident_part(s: &str) -> Cow<'_, str> {
-    if valid_prql_ident().is_match(s) && !keywords().contains(s) {
+    let reserved = lexer::KEYWORDS.contains(&s) || lexer::RESERVED_LITERALS.contains(&s);
+    if valid_prql_ident().is_match(s) && !reserved {
         s.into()
     } else {
         format!("`{s}`").into()
@@ -402,7 +403,8 @@ impl WriteSource for pr::Stmt {
                         "".to_string()
                     };
 
-                    r += opt.consume(&format!("let {} {}", var_def.name, typo))?;
+                    r +=
+                        opt.consume(&format!("let {} {}", write_ident_part(&var_def.name), typo))?;
 
                     if let Some(val) = &var_def.value {
                         r += opt.consume("= ")?;
@@ -412,7 +414,7 @@ impl WriteSource for pr::Stmt {
                 }
 
                 pr::VarDefKind::Let => {
-                    r += opt.consume(&format!("let {} = ", var_def.name))?;
+                    r += opt.consume(&format!("let {} = ", write_ident_part(&var_def.name)))?;
 
                     r += &var_def.value.as_ref().unwrap().write(opt)?;
                     r += "\n";
@@ -433,19 +435,31 @@ impl WriteSource for pr::Stmt {
                     }
 
                     if var_def.kind == pr::VarDefKind::Into {
-                        r += &format!("into {}", var_def.name);
+                        r += &format!("into {}", write_ident_part(&var_def.name));
                         r += "\n";
                     }
                 }
             },
+            pr::StmtKind::TypeDef(pr::TypeDef {
+                name,
+                value:
+                    pr::Ty {
+                        kind: pr::TyKind::Enum(enum_tuple),
+                        ..
+                    },
+            }) => {
+                r += opt.consume(&format!("enum {} ", write_ident_part(name)))?;
+                r += &enum_tuple.write(opt)?;
+                r += "\n";
+            }
             pr::StmtKind::TypeDef(type_def) => {
-                r += opt.consume(&format!("type {}", type_def.name))?;
+                r += opt.consume(&format!("type {}", write_ident_part(&type_def.name)))?;
                 r += opt.consume(" = ")?;
                 r += &type_def.value.kind.write(opt)?;
                 r += "\n";
             }
             pr::StmtKind::ModuleDef(module_def) => {
-                r += &format!("module {} {{\n", module_def.name);
+                r += &format!("module {} {{\n", write_ident_part(&module_def.name));
                 opt.indent += 1;
 
                 r += &module_def.stmts.write(opt.clone())?;
@@ -710,6 +724,95 @@ let a = 5
             r#"
 5
 into a
+"#,
+        );
+    }
+
+    /// Declaration names that aren't valid bare idents must keep their
+    /// backticks, otherwise `fmt` emits source that no longer parses.
+    #[test]
+    fn test_quoted_declaration_names() {
+        assert_is_formatted(
+            r#"
+let `my var` = 5
+"#,
+        );
+
+        assert_is_formatted(
+            r#"
+let `my var` <int>
+"#,
+        );
+
+        assert_is_formatted(
+            r#"
+5
+into `my var`
+"#,
+        );
+
+        assert_is_formatted(
+            r#"
+type `my type` = int
+"#,
+        );
+
+        assert_is_formatted(
+            r#"
+type t = {`my field` = int}
+"#,
+        );
+
+        assert_is_formatted(
+            r#"
+enum `my enum` {Paid = 0}
+"#,
+        );
+
+        assert_is_formatted(
+            r#"
+module `my mod` {
+  let a = 5
+}
+"#,
+        );
+
+        // A declaration named after a keyword also needs quoting
+        assert_is_formatted(
+            r#"
+let `case` = 5
+"#,
+        );
+    }
+
+    /// Every reserved word needs quoting, not just the ones we thought to list
+    /// by hand — `import` and `enum` were missing from the codegen's own copy
+    /// of the list, so `let `import` = 5` formatted to unparsable source.
+    ///
+    /// `true` / `false` / `null` lex as literals rather than keywords, and were
+    /// missing for the same reason. In declaration position they fail loudly
+    /// like `import`; in expression position they're worse, since the output
+    /// still parses — as a literal instead of the column that was written.
+    #[test]
+    fn test_every_reserved_word_is_quoted() {
+        for word in lexer::KEYWORDS
+            .iter()
+            .chain(lexer::RESERVED_LITERALS.iter())
+        {
+            assert_is_formatted(&format!("let `{word}` = 5"));
+            assert_is_formatted(&format!("from t\nselect {{`{word}`}}"));
+        }
+    }
+
+    /// Named arguments need their backticks too. Unlike the declaration names
+    /// above, dropping them produces output that still parses — as a different
+    /// call, since the unquoted name splits into a positional argument.
+    #[test]
+    fn test_quoted_named_arg() {
+        assert_is_formatted(
+            r#"
+from t
+derive x = (foo `my arg`:5)
 "#,
         );
     }

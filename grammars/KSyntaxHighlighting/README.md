@@ -1,6 +1,6 @@
 # Syntax highlighting for KSyntaxHighlighting
 
-This is a syntax highlighting file the
+This is a syntax highlighting file for the
 [KSyntaxHighlighting](https://invent.kde.org/frameworks/syntax-highlighting)
 component used by text editors and integrated development environments such as
 [Kate](https://kate-editor.org/), [KWrite](https://apps.kde.org/kwrite/) and

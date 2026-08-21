@@ -1,6 +1,6 @@
 # Syntax highlighting for GtkSourceView
 
-This is a syntax highlighting file the
+This is a syntax highlighting file for the
 [GtkSourceView](https://gitlab.gnome.org/GNOME/gtksourceview) component used by
 text editors and integrated development environments such as
 [GNOME Text Editor](https://apps.gnome.org/TextEditor/) and

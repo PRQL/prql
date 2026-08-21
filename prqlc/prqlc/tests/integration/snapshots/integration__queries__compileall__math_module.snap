@@ -4,41 +4,6 @@ expression: "# mssql:test\n# sqlite:skip (see https://github.com/rusqlite/rusqli
 input_file: prqlc/prqlc/tests/integration/queries/math_module.prql
 ---
 --- generic
-+++ glaredb
-@@ -1,19 +1,19 @@
- SELECT
--  ROUND(total, 2) AS total_original,
--  ABS(ROUND(PI() - total, 2)) AS total_x,
-+  ROUND((total)::numeric, 2) AS total_original,
-+  ABS(ROUND((PI() - total)::numeric, 2)) AS total_x,
-   FLOOR(total) AS total_floor,
-   CEIL(total) AS total_ceil,
--  ROUND(LOG10(total), 3) AS total_log10,
--  ROUND(LOG10(total) / LOG10(2), 3) AS total_log2,
--  ROUND(SQRT(total), 3) AS total_sqrt,
--  ROUND(EXP(LN(total)), 2) AS total_ln,
--  ROUND(ACOS(COS(total)), 2) AS total_cos,
--  ROUND(ASIN(SIN(total)), 2) AS total_sin,
--  ROUND(ATAN(TAN(total)), 2) AS total_tan,
--  ROUND(RADIANS(DEGREES(total)), 2) AS total_deg,
--  ROUND(POW(total, 2), 2) AS total_square,
--  ROUND(POW(total, 2), 2) AS total_square_op
-+  ROUND((LOG10(total))::numeric, 3) AS total_log10,
-+  ROUND((LOG10(total) / LOG10(2))::numeric, 3) AS total_log2,
-+  ROUND((SQRT(total))::numeric, 3) AS total_sqrt,
-+  ROUND((EXP(LN(total)))::numeric, 2) AS total_ln,
-+  ROUND((ACOS(COS(total)))::numeric, 2) AS total_cos,
-+  ROUND((ASIN(SIN(total)))::numeric, 2) AS total_sin,
-+  ROUND((ATAN(TAN(total)))::numeric, 2) AS total_tan,
-+  ROUND((RADIANS(DEGREES(total)))::numeric, 2) AS total_deg,
-+  ROUND((POW(total, 2))::numeric, 2) AS total_square,
-+  ROUND((POW(total, 2))::numeric, 2) AS total_square_op
- FROM
-   invoices
- LIMIT
-   5
-
---- generic
 +++ mssql
 @@ -1,19 +1,24 @@
  SELECT

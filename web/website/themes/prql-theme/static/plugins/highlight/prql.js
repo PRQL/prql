@@ -80,7 +80,23 @@ const formatting = function (hljs) {
     "window",
   ];
 
-  const KEYWORDS = ["let", "prql", "into", "case", "in", "as", "module"];
+  // Keep in sync with the lexer's `keyword` parser in
+  // prqlc/prqlc-parser/src/lexer/mod.rs. `in` and `as` are not lexer keywords,
+  // but are kept here as they read as such.
+  const KEYWORDS = [
+    "let",
+    "prql",
+    "into",
+    "case",
+    "in",
+    "as",
+    "module",
+    "type",
+    "enum",
+    "func",
+    "import",
+    "internal",
+  ];
 
   const CHAR_ESCAPE = {
     scope: "char.escape",
@@ -197,12 +213,6 @@ const formatting = function (hljs) {
         ],
         contains: [
           CHAR_ESCAPE,
-          {
-            scope: "variable",
-            begin: "f",
-            end: '"',
-            // excludesEnd: true,
-          },
           // TODO: would be nice to have this be a different color, but I don't
           // think it's possible to have a subscope within the begin / end.
           // {

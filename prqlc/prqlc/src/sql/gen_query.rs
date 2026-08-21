@@ -347,8 +347,7 @@ fn translate_set_ops_pipeline(
 }
 
 fn translate_relation_expr(relation_expr: RelationExpr, ctx: &mut Context) -> Result<TableFactor> {
-    let alias = Some(&relation_expr.riid)
-        .and_then(|riid| ctx.anchor.relation_instances.get(riid))
+    let alias = (ctx.anchor.relation_instances.get(&relation_expr.riid))
         .and_then(|ri| ri.table_ref.name.clone());
 
     Ok(match relation_expr.kind {
@@ -448,40 +447,12 @@ fn translate_cte(cte: Cte, ctx: &mut Context) -> Result<(sql_ast::Cte, bool)> {
                 right: step,
             });
 
-            (inner_query, true)
-
             // RECURSIVE can only follow WITH directly.
             // Initial implementation assumed that it applies only to the first CTE.
             // This meant that it had to wrap any-non-first CTE into a *nested* WITH, so the inner
-            // WITH could be RECURSIVE.
-            // This is implementation of that, in case some dialect requires it.
-            // let inner_cte = sql_ast::Cte {
-            //     alias: simple_table_alias(cte_name.clone()),
-            //     query: Box::new(inner_query),
-            //     from: None,
-            // };
-            // let outer_query = sql_ast::Query {
-            //     with: Some(sql_ast::With {
-            //         recursive: true,
-            //         cte_tables: vec![inner_cte],
-            //     }),
-            //     ..default_query(sql_ast::SetExpr::Select(Box::new(sql_ast::Select {
-            //         projection: vec![SelectItem::Wildcard(
-            //             sql_ast::WildcardAdditionalOptions::default(),
-            //         )],
-            //         from: vec![TableWithJoins {
-            //             relation: TableFactor::Table {
-            //                 name: sql_ast::ObjectName(vec![cte_name.clone()]),
-            //                 alias: None,
-            //                 args: None,
-            //                 with_hints: Vec::new(),
-            //             },
-            //             joins: vec![],
-            //         }],
-            //         ..default_select()
-            //     })))
-            // };
-            // (outer_query, false)
+            // WITH could be RECURSIVE. If a dialect ever needs that, the removed implementation is
+            // in the history of this file (deleted in #6190).
+            (inner_query, true)
         }
     };
 

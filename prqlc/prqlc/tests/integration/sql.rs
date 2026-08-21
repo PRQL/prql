@@ -481,6 +481,22 @@ fn test_sqlite_integer_division() {
 }
 
 #[test]
+fn test_between_optimization() {
+    // Regression test: >= and <= on same column should produce BETWEEN
+    assert_snapshot!(compile(r#"
+    from t
+    filter (a >= 5 && a <= 10)
+    "#).unwrap(), @r"
+    SELECT
+      *
+    FROM
+      t
+    WHERE
+      a BETWEEN 5 AND 10
+    ");
+}
+
+#[test]
 fn test_precedence_01() {
     assert_snapshot!((compile(r###"
     from artists
@@ -1741,20 +1757,6 @@ fn test_interval() {
     "#);
 
     let query = r###"
-    prql target:sql.glaredb
-
-    from projects
-    derive first_check_in = start + 10days
-    "###;
-    assert_snapshot!((compile(query).unwrap()), @r#"
-    SELECT
-      *,
-      "start" + INTERVAL '10 DAY' AS first_check_in
-    FROM
-      projects
-    "#);
-
-    let query = r###"
     prql target:sql.snowflake
 
     from projects
@@ -2950,7 +2952,7 @@ fn test_join() {
 #[test]
 fn test_join_side_literal() {
     assert_snapshot!((compile(r###"
-    let my_side = "right"
+    let my_side = JoinSide.right
 
     from x
     join y (==id) side:my_side
@@ -2971,26 +2973,28 @@ fn test_join_side_literal_err() {
 
     from x
     join y (==id) side:my_side
-    "###).unwrap_err()), @"
+    "###).unwrap_err()), @r#"
     Error:
-       ╭─[ :5:24 ]
+       ╭─[ :2:19 ]
        │
-     5 │     join y (==id) side:my_side
-       │                        ───┬───
-       │                           ╰───── `side` expected inner, left, right or full, but found 42
+     2 │     let my_side = 42
+       │                   ─┬
+       │                    ╰── function std.join, param `side` expected type `JoinSide`, but found type `int`
+       │
+       │ Help: Type `JoinSide` expands to `enum {inner = "inner", left = "left", right = "right", full = "full"}`
     ───╯
-    ");
+    "#);
 }
 
 #[test]
 fn test_join_side_literal_via_func() {
     assert_snapshot!((compile(r###"
-    let my_join = func m <relation> c s <text>:"right" tbl <relation> -> (
+    let my_join = func m <relation> c s <JoinSide>:right tbl <relation> -> (
         join side:_param.s m (c == that.k) tbl
     )
 
     from x
-    my_join default_db.y this.id s:"left"
+    my_join default_db.y this.id s:left
     "###).unwrap()), @"
     SELECT
       x.*,
@@ -3004,7 +3008,7 @@ fn test_join_side_literal_via_func() {
 #[test]
 fn test_join_side_literal_via_func_err() {
     assert_snapshot!((compile(r###"
-    let my_join = func m <relation> c s <text>:"right" tbl <relation> -> (
+    let my_join = func m <relation> c s <JoinSide>:right tbl <relation> -> (
         join side:_param.s m (c == that.k) tbl
     )
 
@@ -3012,11 +3016,13 @@ fn test_join_side_literal_via_func_err() {
     my_join default_db.y this.id s:"four"
     "###).unwrap_err()), @r#"
     Error:
-       ╭─[ :3:19 ]
+       ╭─[ :7:36 ]
        │
-     3 │         join side:_param.s m (c == that.k) tbl
-       │                   ────┬───
-       │                       ╰───── `side` expected inner, left, right or full, but found "four"
+     7 │     my_join default_db.y this.id s:"four"
+       │                                    ───┬──
+       │                                       ╰──── function my_join, param `s` expected type `JoinSide`, but found type `text`
+       │
+       │ Help: Type `JoinSide` expands to `enum {inner = "inner", left = "left", right = "right", full = "full"}`
     ───╯
     "#);
 }
@@ -4945,6 +4951,28 @@ fn test_from_text_07() {
 }
 
 #[test]
+fn test_from_text_08() {
+    assert_snapshot!(compile(r#"
+    from foo | join m=(from_text format:csv 'key,value') this.bar == that.key
+    "#).unwrap(), @r#"
+    WITH table_0 AS (
+      SELECT
+        NULL AS "key",
+        NULL AS value
+      WHERE
+        false
+    )
+    SELECT
+      foo.*,
+      table_0."key",
+      table_0.value
+    FROM
+      foo
+      INNER JOIN table_0 ON foo.bar = table_0."key"
+    "#);
+}
+
+#[test]
 fn test_header() {
     // Test both target & version at the same time
     let header = format!(
@@ -6053,6 +6081,70 @@ fn test_sort_this_wildcard() {
 }
 
 #[test]
+fn test_this_wildcard_computed_column() {
+    // `this.*` should reflect the current columns of the pipeline, including
+    // computed ones, matching bare `this` (#6044).
+    assert_snapshot!(compile(
+        r###"
+    from foo
+    select {a, b, c = a + b}
+    select this.*
+        "###,
+    )
+    .unwrap(), @"
+    SELECT
+      a,
+      b,
+      a + b AS c
+    FROM
+      foo
+    ");
+
+    assert_snapshot!(compile(
+        r###"
+    from foo
+    select {a, b, c = a + b}
+    sort this.*
+        "###,
+    )
+    .unwrap(), @"
+    SELECT
+      a,
+      b,
+      a + b AS c
+    FROM
+      foo
+    ORDER BY
+      a,
+      b,
+      c
+    ");
+}
+
+#[test]
+fn test_this_wildcard_ignores_sibling_alias() {
+    // `this.*` covers the columns entering the transform, not the ones the
+    // enclosing tuple is still defining — so the sibling `z = 5` doesn't add a
+    // second `z` to the expansion.
+    assert_snapshot!(compile(
+        r###"
+    from foo
+    select {x, y, z}
+    select {z = 5, this.*}
+        "###,
+    )
+    .unwrap(), @"
+    SELECT
+      5,
+      x,
+      y,
+      z
+    FROM
+      foo
+    ");
+}
+
+#[test]
 fn test_select_bare_wildcard() {
     // Regression test for #5694: bare `*` in `select` should produce
     // a helpful error, not panic.
@@ -6129,21 +6221,26 @@ fn test_group_exclude() {
        │ Help: available columns: x.b
     ───╯
     ");
+}
 
-    // assert_snapshot!(compile(
-    //     r###"
-    // from x
-    // select {a, b}
-    // group {a + 1} (aggregate {sum b})
-    //     "###,
-    // )
-    // .unwrap_err(), @r###"
-    // SELECT
-    //   a,
-    //   b
-    // FROM
-    //   x
-    // "###);
+#[test]
+fn test_group_by_expression() {
+    assert_snapshot!(compile(
+        r###"
+    from x
+    select {a, b}
+    group {a + 1} (aggregate {sum b})
+        "###,
+    )
+    .unwrap(), @"
+    SELECT
+      a + 1,
+      COALESCE(SUM(b), 0)
+    FROM
+      x
+    GROUP BY
+      a + 1
+    ");
 }
 
 #[test]
@@ -7447,5 +7544,264 @@ fn test_tuple_map_aliases() {
       y + 4 AS d
     FROM
       foo
+    "###);
+}
+
+#[test]
+fn test_enum_1() {
+    assert_snapshot!(compile(r###"
+    enum InvoiceStatus { Paid = 0, Unpaid = 1, Canceled = 2 }
+
+    from invoices
+    filter status == InvoiceStatus.Paid
+    "###).unwrap(), @"
+    SELECT
+      *
+    FROM
+      invoices
+    WHERE
+      status = 0
+    ");
+}
+
+#[test]
+fn test_enum_1b() {
+    assert_snapshot!(compile(r###"
+    enum InvoiceStatus { Paid = 0, Unpaid = 1, Canceled = 2 }
+
+    from invoices
+    select { status = InvoiceStatus.Paid }
+    "###).unwrap(), @"
+    SELECT
+      0 AS status
+    FROM
+      invoices
+    ");
+}
+
+#[test]
+fn test_enum_2() {
+    assert_snapshot!(compile(r###"
+    enum InvoiceStatus { Paid = "paid", Unpaid = "unpaid", Canceled = "canceled" }
+
+    let filter_status = func status <InvoiceStatus> tbl <relation> -> (
+        filter (this.status == _param.status) tbl
+    )
+
+    from invoices
+    filter_status InvoiceStatus.Unpaid
+    "###).unwrap(), @"
+    SELECT
+      *
+    FROM
+      invoices
+    WHERE
+      status = 'unpaid'
+    ");
+}
+
+#[test]
+fn test_enum_3() {
+    assert_snapshot!(compile(r###"
+    enum InvoiceStatus { Paid = "paid", Unpaid = "unpaid", Canceled = "canceled" }
+
+    let filter_status = func status <InvoiceStatus> tbl <relation> -> (
+        filter (this.status == _param.status) tbl
+    )
+
+    from invoices
+    filter_status Canceled
+    "###).unwrap(), @"
+    SELECT
+      *
+    FROM
+      invoices
+    WHERE
+      status = 'canceled'
+    ");
+}
+
+#[test]
+fn test_enum_4() {
+    assert_snapshot!(compile(r###"
+    enum InvoiceStatus { Paid = "paid", Unpaid = "unpaid", Canceled = "canceled" }
+
+    let filter_status = func status <InvoiceStatus> tbl <relation> -> (
+        filter (this.status == _param.status) tbl
+    )
+
+    let expected_status = InvoiceStatus.Paid
+
+    from invoices
+    filter_status expected_status
+    "###).unwrap(), @"
+    SELECT
+      *
+    FROM
+      invoices
+    WHERE
+      status = 'paid'
+    ");
+}
+
+#[test]
+fn test_enum_5() {
+    assert_snapshot!(compile(r###"
+    enum InvoiceStatus { Paid = "paid", Unpaid = "unpaid", Canceled = "canceled" }
+
+    let filter_status = func status <InvoiceStatus> tbl <relation> -> (
+        filter (this.status == _param.status) tbl
+    )
+
+    from invoices
+    select { id, status }
+    join (
+      from invoice_history
+      select { id, hist_stat }
+    ) (==id)
+    filter_status hist_stat
+    "###).unwrap(), @"
+    WITH table_0 AS (
+      SELECT
+        id,
+        hist_stat
+      FROM
+        invoice_history
+    )
+    SELECT
+      invoices.id,
+      invoices.status,
+      table_0.id,
+      table_0.hist_stat
+    FROM
+      invoices
+      INNER JOIN table_0 ON invoices.id = table_0.id
+    WHERE
+      invoices.status = table_0.hist_stat
+    ");
+}
+
+#[test]
+fn test_enum_6() {
+    assert_snapshot!(compile(r###"
+    enum InvoiceStatus { Paid = "paid", Unpaid = "unpaid", Canceled = "canceled" }
+
+    let filter_status = func status <InvoiceStatus>:Paid tbl <relation> -> (
+        filter (this.status == _param.status) tbl
+    )
+
+    from invoices
+    filter_status
+    "###).unwrap(), @"
+    SELECT
+      *
+    FROM
+      invoices
+    WHERE
+      status = 'paid'
+    ");
+}
+
+#[test]
+fn test_tuple_reverse() {
+    assert_snapshot!(compile(r###"
+    from foo
+    select {x, y, z}
+    select (tuple_reverse this.*)
+    "###).unwrap(), @r###"
+    SELECT
+      z,
+      y,
+      x
+    FROM
+      foo
+    "###);
+}
+
+#[test]
+fn test_tuple_uniq() {
+    assert_snapshot!(compile(r###"
+    from foo
+    select {x, y, z}
+    select (tuple_uniq {z = 5, this.*})
+    "###).unwrap(), @r###"
+    SELECT
+      5 AS z,
+      x,
+      y
+    FROM
+      foo
+    "###);
+
+    assert_snapshot!(compile(r###"
+    from foo
+    select {x, y, z}
+    select (tuple_uniq take:late {z = 5, this.*})
+    "###).unwrap(), @r###"
+    SELECT
+      z,
+      x,
+      y
+    FROM
+      foo
+    "###);
+}
+
+#[test]
+fn test_tuple_uniq_no_alias() {
+    assert_snapshot!(compile(r###"
+    from foo
+    select (tuple_uniq {x, 4, 5})
+    "###).unwrap(), @r###"
+    SELECT
+      x
+    FROM
+      foo
+    "###);
+}
+
+#[test]
+fn test_wildcard_func_param() {
+    assert_snapshot!(compile(r###"
+    let _my_func = func top <relation> -> select {top.*, b = 4} top
+
+    from foo
+    select {x, y}
+    _my_func
+    "###).unwrap(), @r###"
+    SELECT
+      x,
+      y,
+      4 AS b
+    FROM
+      foo
+    "###);
+}
+
+#[test]
+fn test_append_by_name() {
+    assert_snapshot!(compile(r###"
+    from foo
+    select {x, y, b = 4}
+    append by:name (from bar | select {y, z, b = 5, c = 7})
+    "###).unwrap(), @r###"
+    SELECT
+      x,
+      y,
+      4 AS b,
+      NULL AS z,
+      NULL AS c
+    FROM
+      foo
+    UNION
+    ALL
+    SELECT
+      NULL AS x,
+      y,
+      5 AS b,
+      z,
+      7 AS c
+    FROM
+      bar
     "###);
 }

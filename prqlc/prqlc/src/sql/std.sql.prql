@@ -383,28 +383,6 @@ module redshift {
   }
 }
 
-module glaredb {
-  @{binding_strength=11}
-  let div_f = l r -> s"({l} * 1.0 / {r:12})"
-
-  @{binding_strength=100}
-  let div_i = l r -> s"TRUNC({l:11} / {r:12})"
-
-  # Mathematical functions
-  module math {
-    # GlareDB: https://glaredb.com/docs/sql-reference/functions/math-functions
-    @{binding_strength=100}
-    let round = n_digits column -> s"ROUND(({column:0})::numeric, {n_digits:0})"
-  }
-
-  @{binding_strength=9}
-  let regex_search = text pattern -> s"{text} ~ {pattern}"
-
-  let read_csv = source -> s"csv_scan({source:0})"
-
-  let read_parquet = source -> s"parquet_scan({source:0})"
-}
-
 module sqlite {
   @{window_frame=true, coalesce="TRUE", binding_strength=6}
   let all = column -> s"MIN({column:0}) > 0"

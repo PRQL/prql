@@ -10,10 +10,22 @@
 ]
 >
 <!-- PRQL https://prql-lang.org/ -->
-<language name="PRQL" version="0" kateversion="5.0" section="Database" extensions="*.prql" author="vanillajonathan" license="MIT">
+<language name="PRQL" version="1" kateversion="5.0" section="Database" extensions="*.prql" author="vanillajonathan" license="MIT">
   <highlighting>
     <list name="imports">
       <item>module</item>
+      <item>import</item>
+    </list>
+
+    <!-- Remaining keywords from the lexer's `keyword` parser in
+         prqlc/prqlc-parser/src/lexer/mod.rs; `let` and `type` are below. -->
+    <list name="keywords">
+      <item>case</item>
+      <item>enum</item>
+      <item>func</item>
+      <item>internal</item>
+      <item>into</item>
+      <item>prql</item>
     </list>
 
     <list name="builtinfuncs">
@@ -137,6 +149,7 @@
         <keyword attribute="Keyword"          context="#stay" String="declarations" />
         <keyword attribute="Keyword"          context="#stay" String="letExpressions" />
         <keyword attribute="Keyword"          context="#stay" String="imports" />
+        <keyword attribute="Keyword"          context="#stay" String="keywords" />
 
         <IncludeRules context="Number" />
         <IncludeRules context="StringVariants" />

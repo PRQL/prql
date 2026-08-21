@@ -1,6 +1,5 @@
 use std::collections::{hash_map::Entry, HashMap};
 
-use chumsky;
 use chumsky::input::BorrowInput;
 use chumsky::pratt::*;
 use chumsky::prelude::*;
@@ -171,6 +170,41 @@ where
         ))
         .boxed()
     })
+}
+
+pub(crate) fn literal_tuple<'a, I>() -> impl Parser<'a, I, Expr, ParserError<'a>> + Clone + 'a
+where
+    I: Input<'a, Token = lr::Token, Span = Span> + BorrowInput<'a>,
+{
+    use chumsky::recovery::{skip_then_retry_until, via_parser};
+
+    sequence(maybe_aliased(expr()).validate(|expr, extra, emit| {
+        let span = extra.span();
+
+        if expr.alias.is_none() {
+            emit.emit(Rich::custom(span, "must specify an alias for this value"));
+        }
+
+        match expr.kind {
+            ExprKind::Literal(_) => (),
+            _ => emit.emit(Rich::custom(extra.span(), "expected a literal value")),
+        };
+
+        expr
+    }))
+    .delimited_by(
+        ctrl('{'),
+        ctrl('}')
+            .recover_with(via_parser(end()))
+            .recover_with(skip_then_retry_until(
+                any_ref().ignored(),
+                ctrl('}').ignored().or(ctrl(',').ignored()).or(end()),
+            )),
+    )
+    .map(ExprKind::Tuple)
+    .labelled("literal tuple")
+    .map_with(|kind, extra| ExprKind::into_expr(kind, extra.span()))
+    .boxed()
 }
 
 fn tuple<'a, I>(

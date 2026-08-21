@@ -27,10 +27,18 @@ keywords:
   - beginString: sort
   - beginString: take
   - beginString: window
+  # Keep in sync with the lexer's `keyword` parser in
+  # prqlc/prqlc-parser/src/lexer/mod.rs
   - beginString: case
   - beginString: let
   - beginString: module
   - beginString: prql
+  - beginString: into
+  - beginString: type
+  - beginString: internal
+  - beginString: func
+  - beginString: import
+  - beginString: enum
 commands:
   - beginString: abs
   - beginString: any
