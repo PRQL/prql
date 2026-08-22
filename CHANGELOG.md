@@ -25,6 +25,11 @@
 
 **Fixes**:
 
+- `prqlc lsp` now reports that `prqlc` was built without the `lsp` feature,
+  rather than panicking with `internal error: entered unreachable code`. The
+  subcommand is registered in every build, but the feature is off by default, so
+  the released binaries were affected. (@prql-bot, #6221)
+
 **Documentation**:
 
 **Web**:
