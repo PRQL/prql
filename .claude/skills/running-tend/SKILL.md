@@ -42,6 +42,35 @@ permission first) still applies when the target shows no agent signals.
   in #5753, so bot PRs must be merged manually by a maintainer (or via repo
   branch-protection auto-merge if a maintainer enables it on the PR).
 
+## Verifying a `rust-toolchain.toml` bump
+
+The `update-rust-toolchain` action opens `build: Update rust toolchain version`
+with nobody owning it, so tend usually pushes the mechanical lint fixes a new
+clippy demands (the repo compiles with `-D warnings`). **Verify with the
+matrix's full feature set, not `--features=default`.** The `tests` matrix runs
+clippy as
+`--all-targets --no-default-features --features=default,test-dbs-external,lsp`,
+and code behind `test-dbs-external` — `prqlc/prqlc/tests/integration/dbs/` — is
+invisible to a `default`-only run.
+
+On #6219 (1.96.1 → 1.97.1) a session fixed the 7 `useless_borrows_in_formatting`
+sites `--features=default` exposed and posted "clean across the workspace", but
+an 8th in `dbs/runner.rs` was still red — so the posted claim was wrong, not
+just the branch.
+
+A whole-workspace `--all-targets` clippy on a cold cache exceeds the session
+budget. Scope it to the failing compilation unit instead (~9 minutes):
+
+```sh
+cargo clippy -p prqlc --test integration --target=x86_64-unknown-linux-gnu \
+  --no-default-features --features=default,test-dbs-external,lsp -- -D warnings
+```
+
+Then scope the resulting claim to match the command: a clean run there clears
+that one compilation unit, not the workspace — other crates and targets stay
+unchecked. Name the unit that was verified rather than repeating #6219's "clean
+across the workspace".
+
 ## CI polling during the Dependabot batch
 
 Dependabot opens its whole batch over a couple of minutes (the 2026-08-03 batch
