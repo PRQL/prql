@@ -169,6 +169,12 @@ enum Command {
     ListTargets,
 
     /// Language Server Protocol
+    //
+    // Only does anything when built with the `lsp` feature, which is off by
+    // default. The variant stays present without it so that the help text and
+    // the shell completions don't vary with the feature set. (Hence a `//`
+    // comment — a second doc-comment paragraph would render as clap long help,
+    // which the completion snapshots pick up.)
     #[command(hide = true)]
     Lsp,
 
@@ -344,6 +350,13 @@ impl Command {
                 Ok(_) => Ok(()),
                 Err(err) => Err(anyhow!(err)),
             },
+            // Without the feature there's no server to start. This has to be
+            // handled here rather than falling through to `run_io_command`,
+            // which has no `IoArgs` to work with and would panic.
+            #[cfg(not(feature = "lsp"))]
+            Command::Lsp => Err(anyhow!(
+                "`lsp` requires `prqlc` to be built with the `lsp` feature"
+            )),
             _ => self.run_io_command(),
         }
     }
@@ -357,7 +370,27 @@ impl Command {
         let (mut file_tree, main_path) = self.read_input()?;
 
         self.execute(&mut file_tree, &main_path)
-            .and_then(|buf| Ok(self.write_output(&buf)?))
+            .and_then(|buf| self.write_output(&buf))
+    }
+
+    /// The [`IoArgs`] of the commands that read input and write output.
+    ///
+    /// `None` for the commands that handle their own IO, which [`Self::run`]
+    /// dispatches before falling through to [`Self::run_io_command`].
+    fn io_args(&mut self) -> Option<&mut IoArgs> {
+        use Command::*;
+        match self {
+            Parse { io_args, .. }
+            | Lex { io_args, .. }
+            | Collect(io_args)
+            | Compile { io_args, .. }
+            | Debug(DebugCommand::Annotate(io_args) | DebugCommand::Lineage { io_args, .. })
+            | Experimental(
+                ExperimentalCommand::GenerateDocs { io_args, .. }
+                | ExperimentalCommand::Highlight(io_args),
+            ) => Some(io_args),
+            _ => None,
+        }
     }
 
     fn execute<'a>(&self, sources: &'a mut SourceTree, main_path: &'a str) -> Result<Vec<u8>> {
@@ -497,19 +530,9 @@ impl Command {
         // `input`, rather than matching on them and grabbing `input` from
         // `self`? But possibly if everything moves to `io_args`, then this is
         // quite reasonable?
-        use Command::*;
-        let io_args = match self {
-            Parse { io_args, .. }
-            | Lex { io_args, .. }
-            | Collect(io_args)
-            | Compile { io_args, .. }
-            | Debug(DebugCommand::Annotate(io_args) | DebugCommand::Lineage { io_args, .. }) => {
-                io_args
-            }
-            Experimental(ExperimentalCommand::GenerateDocs { io_args, .. }) => io_args,
-            Experimental(ExperimentalCommand::Highlight(io_args)) => io_args,
-            _ => unreachable!(),
-        };
+        let io_args = self
+            .io_args()
+            .ok_or_else(|| anyhow!("internal error: command does not take input & output"))?;
         let input = &mut io_args.input;
 
         // Don't wait without a prompt when running `prqlc compile` —
@@ -532,23 +555,13 @@ impl Command {
         Ok((sources, main_path))
     }
 
-    fn write_output(&mut self, data: &[u8]) -> std::io::Result<()> {
-        use Command::{Collect, Compile, Debug, Experimental, Lex, Parse};
-        let mut output = match self {
-            Parse { io_args, .. }
-            | Lex { io_args, .. }
-            | Collect(io_args)
-            | Compile { io_args, .. }
-            | Debug(DebugCommand::Annotate(io_args) | DebugCommand::Lineage { io_args, .. }) => {
-                io_args.output.clone()
-            }
-            Experimental(ExperimentalCommand::GenerateDocs { io_args, .. }) => {
-                io_args.output.clone()
-            }
-            Experimental(ExperimentalCommand::Highlight(io_args)) => io_args.output.clone(),
-            _ => unreachable!(),
-        };
-        output.write_all(data)
+    fn write_output(&mut self, data: &[u8]) -> Result<()> {
+        let mut output = self
+            .io_args()
+            .ok_or_else(|| anyhow!("internal error: command does not take input & output"))?
+            .output
+            .clone();
+        Ok(output.write_all(data)?)
     }
 }
 
