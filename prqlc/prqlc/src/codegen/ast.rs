@@ -501,9 +501,18 @@ fn display_interpolation(
                     .replace('}', "}}")
                     .as_str()
             }
-            pr::InterpolateItem::Expr { expr, .. } => {
+            // The `:format` suffix carries meaning — in `std.sql.prql` it's the
+            // required binding strength of the interpolated expression — so it
+            // has to be written back out. The parser reads it as "everything up
+            // to the closing brace", so braces don't need escaping, but the
+            // string escapes the lexer removed do.
+            pr::InterpolateItem::Expr { expr, format } => {
                 r += "{";
                 r += &expr.write(opt.clone())?;
+                if let Some(format) = format {
+                    r += ":";
+                    r += &format.replace('\\', "\\\\").replace('"', "\\\"");
+                }
                 r += "}"
             }
         }
@@ -824,5 +833,31 @@ derive x = (foo `my arg`:5)
 prql version:"^0.9" target:sql.sqlite
 "#,
         );
+    }
+
+    /// The `:format` suffix on an interpolation used to be dropped on the floor.
+    /// In `std.sql.prql` that suffix is the operand's required binding strength,
+    /// so formatting the file rewrote `s"MIN({column:0})"` to `s"MIN({column})"`
+    /// and silently changed how the operator parenthesizes its argument.
+    #[test]
+    fn test_interpolation_format_is_preserved() {
+        assert_is_formatted(r#"let my_min = func column -> s"MIN({column:0})""#);
+        assert_is_formatted(
+            r#"let log = func base column -> s"LOG10({column:0}) / LOG10({base:0})""#,
+        );
+        assert_is_formatted(
+            r#"
+from t
+derive x = f"{a:>10}-{b}"
+"#,
+        );
+        // The lexer strips string escapes before the interpolation is parsed, so
+        // a quote or a backslash in the format has to be escaped on the way out —
+        // otherwise the quote terminates the string and the output doesn't parse.
+        assert_is_formatted(r#"let x = f"{a:\"q\"}""#);
+        assert_is_formatted(r#"let y = f"{a:\\}""#);
+        // Braces are the exception: the parser reads the format up to the closing
+        // brace without unescaping, so `{` round-trips as itself.
+        assert_is_formatted(r#"let z = f"{a:{}""#);
     }
 }
