@@ -25,6 +25,11 @@
 
 **Fixes**:
 
+- `prqlc lsp` now reports that `prqlc` was built without the `lsp` feature,
+  rather than panicking with `internal error: entered unreachable code`. The
+  subcommand is registered in every build, but the feature is off by default, so
+  the released binaries were affected. (@prql-bot, #6221)
+
 - Deserializing an ident with an empty path now reports an error rather than
   panicking. A document containing `{"Ident":[]}` passed to `json::to_pl` or
   `json::to_rq` — reachable from the Python and JS bindings — hit
