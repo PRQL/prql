@@ -127,11 +127,28 @@ jobs:
             --no-run --locked --target=${{ inputs.target }}
             --no-default-features --features=${{ inputs.features }}
       - name: Wait for database
+        id: wait-for-db
         uses: ifaxity/wait-on-action@v1.2.1
         with:
           resource: "tcp:1433 tcp:3306 tcp:5432 tcp:9004"
           timeout: 60000
         if: ${{ contains(inputs.features, 'test-dbs-external') }}
+      - name: Dump database containers
+        # The step above only reports which port never opened, which isn't
+        # enough to tell a container that crashed from one that was merely
+        # slow. Dump the containers' own state & logs so the next occurrence is
+        # diagnosable from the failing run rather than needing a re-run.
+        #
+        # `df -h` covers the disk-exhaustion hypothesis, which the container
+        # logs alone don't answer: `Free up disk space` above is skipped on a
+        # cache hit, so on that path nothing prints the free space and mssql —
+        # the largest of the four images — is the first to fail to initialise.
+        if: ${{ failure() && steps.wait-for-db.outcome == 'failure' }}
+        run: |
+          df -h
+          docker compose ps --all
+          docker compose logs --no-color --tail=200
+        working-directory: ./prqlc/prqlc/tests/integration/dbs
       - name: 📋 Test
         uses: clechasseur/rs-cargo@v4
         with:
