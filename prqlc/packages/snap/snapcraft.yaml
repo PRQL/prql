@@ -19,10 +19,11 @@ icon: web/website/static/img/icon.svg
 parts:
   rust-deps:
     plugin: nil
-    # No `--default-toolchain`: the `prqlc` part builds from the source tree,
-    # where `rust-toolchain.toml` overrides whatever default we set here.
-    # Pinning one only downloads a second, unused toolchain — and reads as an
-    # MSRV guarantee the build never actually makes.
+    # `--default-toolchain none` (not just omitting the flag — that would
+    # install `stable`): the `prqlc` part builds from the source tree, where
+    # `rust-toolchain.toml` overrides whatever default we set here. Pinning one
+    # only downloads a second, unused toolchain — and reads as an MSRV
+    # guarantee the build never actually makes.
     override-pull:
       curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y
       --profile minimal --default-toolchain none
