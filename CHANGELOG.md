@@ -25,6 +25,13 @@
 
 **Fixes**:
 
+- Deserializing an ident with an empty path now reports an error rather than
+  panicking. A document containing `{"Ident":[]}` passed to `json::to_pl` or
+  `json::to_rq` — reachable from the Python and JS bindings — hit
+  `path.pop().unwrap()`; it now reports
+  `invalid length 0, expected an ident with at least one part`. (@prql-bot,
+  #6223)
+
 **Documentation**:
 
 **Web**:
