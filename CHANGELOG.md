@@ -31,6 +31,14 @@
 
 **Integrations**:
 
+- The `prqlc` Python package now declares `requires-python = ">=3.10"`. Python
+  3.9 reached end-of-life in October 2025 and was never exercised by the test
+  matrix, which runs 3.10 and 3.12. The stale `>=3.9` claim also blocked every
+  Dependabot update to the binding's Python dependencies, because a pinned
+  candidate that itself requires 3.10+ leaves the 3.9 resolution fork
+  unsatisfiable. Users still on 3.9 continue to resolve the last release that
+  declared support for it. (@prql-bot, #6225)
+
 **Internal changes**:
 
 **New Contributors**:
