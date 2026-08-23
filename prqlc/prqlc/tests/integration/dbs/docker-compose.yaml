@@ -21,7 +21,16 @@ services:
     command: --secure-file-priv=""
     volumes: *vol
   mssql:
-    image: "mcr.microsoft.com/mssql/server"
+    # Pinned to the 2022 line: the untagged image resolves to `latest`, which is
+    # now SQL Server 2025, and that crashes in SQLPAL on startup depending on
+    # the host it lands on — intermittently red CI, with the container gone
+    # before the port ever opens. Upstream reports 2025 crashing where
+    # `2022-latest` is fine on the same host:
+    # https://github.com/microsoft/mssql-docker/issues/954
+    # https://github.com/microsoft/mssql-docker/issues/940
+    # `2022-latest` still floats within the 2022 line, so cumulative updates
+    # arrive without another silent major-version jump.
+    image: "mcr.microsoft.com/mssql/server:2022-latest"
     ports:
       - "1433:1433"
     # https://github.com/microsoft/mssql-docker/issues/668#issuecomment-1436802153
