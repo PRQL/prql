@@ -26,7 +26,8 @@ services:
     # the host it lands on — intermittently red CI, with the container gone
     # before the port ever opens. Upstream reports 2025 crashing where
     # `2022-latest` is fine on the same host:
-    # https://github.com/microsoft/mssql-docker/issues/954
+    # https://github.com/microsoft/mssql-docker/issues/951 (the open tracking
+    # issue; #954 was closed as a duplicate of it)
     # https://github.com/microsoft/mssql-docker/issues/940
     # `2022-latest` still floats within the 2022 line, so cumulative updates
     # arrive without another silent major-version jump.
