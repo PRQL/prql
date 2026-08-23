@@ -17,6 +17,7 @@ SELECT
   invoices.processed,
   shipments.id,
   shipments.invoice_id,
+  shipments.date_of,
   shipments.shipped_on
 FROM
   invoices
