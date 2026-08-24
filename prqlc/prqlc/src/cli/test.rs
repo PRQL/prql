@@ -670,6 +670,23 @@ fn lex() {
     "#);
 }
 
+/// `lsp` is off by default, and the subcommand exists either way — so before
+/// the fix a default build dispatched `prqlc lsp` into the IO commands, which
+/// have no `IoArgs` for it, and panicked on `unreachable!()`. It should report
+/// the missing feature instead.
+#[cfg(not(feature = "lsp"))]
+#[test]
+fn lsp_without_feature() {
+    assert_cmd_snapshot!(prqlc_command().args(["lsp"]), @"
+    success: false
+    exit_code: 1
+    ----- stdout -----
+
+    ----- stderr -----
+    `lsp` requires `prqlc` to be built with the `lsp` feature
+    ");
+}
+
 #[cfg(feature = "lsp")]
 #[test]
 fn lsp() {
