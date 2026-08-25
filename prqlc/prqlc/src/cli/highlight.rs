@@ -11,12 +11,44 @@ pub(crate) fn highlight(tokens: &Tokens) -> String {
 
     for token in &tokens.0 {
         let diff = token.span.start - last;
-        last = token.span.end;
         output.push_str(&" ".repeat(diff));
-        output.push_str(&highlight_token_kind(&token.kind));
+        // A range is the one token whose span covers more than the token's own
+        // text, so it's the one kind that needs the span to render.
+        match &token.kind {
+            TokenKind::Range {
+                bind_left,
+                bind_right,
+            } => output.push_str(&highlight_range(*bind_left, *bind_right, token.span.len())),
+            kind => output.push_str(&highlight_token_kind(kind)),
+        }
+        last = token.span.end;
     }
 
     output
+}
+
+/// Render a range token, including the whitespace either side of the `..`.
+///
+/// The lexer folds that whitespace into the range token's own span, and it's
+/// what decides whether the range binds: `take 1..5` compiles, while
+/// `take 1 .. 5` is an error. Writing back a bare `..` would print a different
+/// program than the one being highlighted.
+///
+/// `width` is the span's width, which the padding fills so that everything
+/// later on the line keeps its column.
+fn highlight_range(bind_left: bool, bind_right: bool, width: usize) -> String {
+    let min_left = usize::from(!bind_left);
+    let min_right = usize::from(!bind_right);
+    // Whatever the span holds beyond the minimum is whitespace on an unbound
+    // side. When both sides are unbound the split isn't recoverable from the
+    // token, so the surplus all goes on the left.
+    let surplus = width.saturating_sub("..".len() + min_left + min_right);
+    let (left, right) = if bind_left {
+        (0, min_right + surplus)
+    } else {
+        (min_left + surplus, min_right)
+    };
+    format!("{}..{}", " ".repeat(left), " ".repeat(right))
 }
 
 fn highlight_token_kind(token: &TokenKind) -> String {
@@ -42,10 +74,12 @@ fn highlight_token_kind(token: &TokenKind) -> String {
             _ => literal.to_string(),
         }),
         TokenKind::Param(param) => output.push_str(&param.purple().to_string()),
+        // Only reachable through the `LineWrap` recursion below, which carries
+        // no spans; the padding falls back to a single space per unbound side.
         TokenKind::Range {
-            bind_left: _,
-            bind_right: _,
-        } => output.push_str(".."),
+            bind_left,
+            bind_right,
+        } => output.push_str(&highlight_range(*bind_left, *bind_right, 0)),
         TokenKind::Interpolation(_, _) => output.push_str(&format!("{}", token.yellow())),
         TokenKind::Control(char) => output.push(*char),
         TokenKind::ArrowThin
@@ -137,6 +171,33 @@ mod tests {
 
         ----- stderr -----
         "#);
+    }
+
+    /// The whitespace around `..` is part of the range token's span, and it
+    /// decides whether the range binds — `take 1..5` compiles, `take 1 .. 5`
+    /// doesn't — so highlighting has to preserve it rather than print a bare
+    /// `..`.
+    #[test]
+    fn highlight_range_whitespace() {
+        assert_cmd_snapshot!(prqlc_command().args(["experimental", "highlight"]).pass_stdin(r#"from x
+take 1..5
+take 1 .. 5
+take 1   ..5
+take 1..   5
+take 1  ..  5
+"#), @r"
+        success: true
+        exit_code: 0
+        ----- stdout -----
+        from x
+        take 1..5
+        take 1 .. 5
+        take 1   ..5
+        take 1..   5
+        take 1   .. 5
+
+        ----- stderr -----
+        ");
     }
 
     // TODO: import from existing location, need to adjust visibility
