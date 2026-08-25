@@ -37,6 +37,12 @@
   `invalid length 0, expected an ident with at least one part`. (@prql-bot,
   #6223)
 
+- `prqlc experimental highlight` now preserves the whitespace around `..`. It
+  previously printed a bare `..` for every range token, which could turn the
+  highlighted output into a different program than the input — `take 1 .. 5` is
+  a compile error, but it was rendered as `take 1..5`, which compiles to
+  `LIMIT 5`. (@prql-bot, #6232)
+
 **Documentation**:
 
 **Web**:

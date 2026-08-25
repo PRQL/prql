@@ -183,6 +183,10 @@ mod tests {
     /// decides whether the range binds — `take 1..5` compiles, `take 1 .. 5`
     /// doesn't — so highlighting has to preserve it rather than print a bare
     /// `..`.
+    ///
+    /// The final line is the one lossy case: when both sides are unbound the
+    /// span records the total width but not how it splits, so asymmetric
+    /// spacing is re-centred. The width and the binding still round-trip.
     #[test]
     fn highlight_range_whitespace() {
         assert_cmd_snapshot!(prqlc_command().args(["experimental", "highlight"]).pass_stdin(r#"from x
@@ -191,6 +195,7 @@ take 1 .. 5
 take 1   ..5
 take 1..   5
 take 1  ..  5
+take 1    ..  5
 "#), @r"
         success: true
         exit_code: 0
@@ -201,6 +206,7 @@ take 1  ..  5
         take 1   ..5
         take 1..   5
         take 1  ..  5
+        take 1   ..   5
 
         ----- stderr -----
         ");
