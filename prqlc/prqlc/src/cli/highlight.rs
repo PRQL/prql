@@ -11,12 +11,49 @@ pub(crate) fn highlight(tokens: &Tokens) -> String {
 
     for token in &tokens.0 {
         let diff = token.span.start - last;
-        last = token.span.end;
         output.push_str(&" ".repeat(diff));
-        output.push_str(&highlight_token_kind(&token.kind));
+        // A range's span covers the whitespace either side of the `..`, and
+        // that whitespace decides whether the range binds — so it's the one
+        // kind whose rendering needs the span. (`LineWrap` spans are wider
+        // than their text too, but the whitespace they swallow is inert.)
+        match &token.kind {
+            TokenKind::Range {
+                bind_left,
+                bind_right,
+            } => output.push_str(&highlight_range(*bind_left, *bind_right, token.span.len())),
+            kind => output.push_str(&highlight_token_kind(kind)),
+        }
+        last = token.span.end;
     }
 
     output
+}
+
+/// Render a range token, including the whitespace either side of the `..`.
+///
+/// The lexer folds that whitespace into the range token's own span, and it's
+/// what decides whether the range binds: `take 1..5` compiles, while
+/// `take 1 .. 5` is an error. Writing back a bare `..` would print a different
+/// program than the one being highlighted.
+///
+/// `width` is the span's width, which the padding fills so that everything
+/// later on the line keeps its column.
+fn highlight_range(bind_left: bool, bind_right: bool, width: usize) -> String {
+    let min_left = usize::from(!bind_left);
+    let min_right = usize::from(!bind_right);
+    // Whatever the span holds beyond the minimum is whitespace on an unbound
+    // side. When both sides are unbound the split isn't recoverable from the
+    // token, so it's split evenly — which round-trips symmetric spacing like
+    // `1  ..  5` exactly, and only re-splits genuinely asymmetric spacing.
+    let surplus = width.saturating_sub("..".len() + min_left + min_right);
+    let (left, right) = if bind_left {
+        (0, min_right + surplus)
+    } else if bind_right {
+        (min_left + surplus, 0)
+    } else {
+        (min_left + surplus.div_ceil(2), min_right + surplus / 2)
+    };
+    format!("{}..{}", " ".repeat(left), " ".repeat(right))
 }
 
 fn highlight_token_kind(token: &TokenKind) -> String {
@@ -42,10 +79,13 @@ fn highlight_token_kind(token: &TokenKind) -> String {
             _ => literal.to_string(),
         }),
         TokenKind::Param(param) => output.push_str(&param.purple().to_string()),
+        // Unreachable: `highlight` intercepts `Range` before dispatching here,
+        // and a `LineWrap` only ever carries comments. Kept for exhaustiveness;
+        // width `0` renders the minimum padding.
         TokenKind::Range {
-            bind_left: _,
-            bind_right: _,
-        } => output.push_str(".."),
+            bind_left,
+            bind_right,
+        } => output.push_str(&highlight_range(*bind_left, *bind_right, 0)),
         TokenKind::Interpolation(_, _) => output.push_str(&format!("{}", token.yellow())),
         TokenKind::Control(char) => output.push(*char),
         TokenKind::ArrowThin
@@ -137,6 +177,39 @@ mod tests {
 
         ----- stderr -----
         "#);
+    }
+
+    /// The whitespace around `..` is part of the range token's span, and it
+    /// decides whether the range binds — `take 1..5` compiles, `take 1 .. 5`
+    /// doesn't — so highlighting has to preserve it rather than print a bare
+    /// `..`.
+    ///
+    /// The final line is the one lossy case: when both sides are unbound the
+    /// span records the total width but not how it splits, so asymmetric
+    /// spacing is re-centred. The width and the binding still round-trip.
+    #[test]
+    fn highlight_range_whitespace() {
+        assert_cmd_snapshot!(prqlc_command().args(["experimental", "highlight"]).pass_stdin(r#"from x
+take 1..5
+take 1 .. 5
+take 1   ..5
+take 1..   5
+take 1  ..  5
+take 1    ..  5
+"#), @r"
+        success: true
+        exit_code: 0
+        ----- stdout -----
+        from x
+        take 1..5
+        take 1 .. 5
+        take 1   ..5
+        take 1..   5
+        take 1  ..  5
+        take 1   ..   5
+
+        ----- stderr -----
+        ");
     }
 
     // TODO: import from existing location, need to adjust visibility
