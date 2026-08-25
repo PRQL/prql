@@ -12,8 +12,10 @@ pub(crate) fn highlight(tokens: &Tokens) -> String {
     for token in &tokens.0 {
         let diff = token.span.start - last;
         output.push_str(&" ".repeat(diff));
-        // A range is the one token whose span covers more than the token's own
-        // text, so it's the one kind that needs the span to render.
+        // A range's span covers the whitespace either side of the `..`, and
+        // that whitespace decides whether the range binds — so it's the one
+        // kind whose rendering needs the span. (`LineWrap` spans are wider
+        // than their text too, but the whitespace they swallow is inert.)
         match &token.kind {
             TokenKind::Range {
                 bind_left,
@@ -41,12 +43,15 @@ fn highlight_range(bind_left: bool, bind_right: bool, width: usize) -> String {
     let min_right = usize::from(!bind_right);
     // Whatever the span holds beyond the minimum is whitespace on an unbound
     // side. When both sides are unbound the split isn't recoverable from the
-    // token, so the surplus all goes on the left.
+    // token, so it's split evenly — which round-trips symmetric spacing like
+    // `1  ..  5` exactly, and only re-splits genuinely asymmetric spacing.
     let surplus = width.saturating_sub("..".len() + min_left + min_right);
     let (left, right) = if bind_left {
         (0, min_right + surplus)
+    } else if bind_right {
+        (min_left + surplus, 0)
     } else {
-        (min_left + surplus, min_right)
+        (min_left + surplus.div_ceil(2), min_right + surplus / 2)
     };
     format!("{}..{}", " ".repeat(left), " ".repeat(right))
 }
@@ -74,8 +79,9 @@ fn highlight_token_kind(token: &TokenKind) -> String {
             _ => literal.to_string(),
         }),
         TokenKind::Param(param) => output.push_str(&param.purple().to_string()),
-        // Only reachable through the `LineWrap` recursion below, which carries
-        // no spans; the padding falls back to a single space per unbound side.
+        // Unreachable: `highlight` intercepts `Range` before dispatching here,
+        // and a `LineWrap` only ever carries comments. Kept for exhaustiveness;
+        // width `0` renders the minimum padding.
         TokenKind::Range {
             bind_left,
             bind_right,
@@ -194,7 +200,7 @@ take 1  ..  5
         take 1 .. 5
         take 1   ..5
         take 1..   5
-        take 1   .. 5
+        take 1  ..  5
 
         ----- stderr -----
         ");
