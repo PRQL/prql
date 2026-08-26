@@ -47,6 +47,11 @@
 
 **Web**:
 
+- The playground no longer depends on `web-vitals`. `reportWebVitals` was called
+  with no argument, and its body is guarded on that argument being a function —
+  so the dynamic `import("web-vitals")` inside it never ran. It was Create React
+  App boilerplate that outlived the migration to Vite. (@prql-bot, #6233)
+
 **Integrations**:
 
 - The `prqlc` Python package now declares `requires-python = ">=3.10"`. Python
