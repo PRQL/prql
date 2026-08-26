@@ -70,7 +70,15 @@ task prqlc:test
 place, so the initialize-empty-then-accept flow works here too.
 `task prqlc:pull-request` does not: through `test-all` it also needs
 `cargo-llvm-cov` for the coverage step and `pre-commit` for `:lint`, and
-`tend-setup` installs neither.
+`tend-setup` installs neither. Those two steps are all that's missing, so when
+`CLAUDE.md` calls for the pre-return check, run the rest by hand: `test-all`'s
+first two commands — the `--features=default,test-dbs` insta/nextest run and
+the matching `cargo test --doc`, both over `packages_core` plus
+`packages_addon` and `packages_bindings` — and then `:lint`'s
+`cargo clippy --all-targets --all-features`, budgeting for the cold-cache cost
+the `rust-toolchain.toml` section below describes. Don't substitute
+`prqlc:test`: it covers `-p prqlc-parser -p prqlc` only, so a change that
+breaks `prqlc-js` or `prqlc-c` passes it.
 
 Notes on running tests here:
 
