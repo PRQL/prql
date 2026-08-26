@@ -63,11 +63,13 @@ export PATH="/home/runner/.cargo-install/cargo-insta/bin:/home/runner/.cargo-ins
 task prqlc:test
 ```
 
-`task` is already on the sandbox PATH, so the inner loop `CLAUDE.md` documents
-then runs unchanged. Verified in a session on 2026-08-26: `task prqlc:test`
-exits 0 in ~3 minutes on a warm `target/`, and `cargo insta test --accept`
-rewrote an `assert_snapshot!(ident, @"")` literal in place — so the
-initialize-empty-then-accept flow works here too.
+`task` is already on the sandbox PATH, so `task prqlc:test` — the inner loop
+`CLAUDE.md` documents — then runs unchanged. Verified in a session on
+2026-08-26: it exits 0 in ~3 minutes on a warm `target/`, and `cargo insta test
+--accept` rewrote an `assert_snapshot!(ident, @"")` literal in place, so the
+initialize-empty-then-accept flow works here too. `task prqlc:pull-request` does
+not: through `test-all` it also needs `cargo-llvm-cov` for the coverage step and
+`pre-commit` for `:lint`, and `tend-setup` installs neither.
 
 Notes on running tests here:
 
@@ -77,6 +79,11 @@ Notes on running tests here:
   nothing. Use it only to regenerate file snapshots deliberately, then re-run
   plain `cargo test` to verify. Plain `cargo test` is a real check: insta's
   default `auto` behaviour writes nothing when `CI` is set.
+- **A green `task prqlc:test` is weaker than it looks.** The task runs `cargo
+  insta test --accept` and then `cargo clippy --fix --allow-dirty
+  --allow-staged`, so exit 0 can mean snapshots and source were rewritten to
+  match what the code now produces rather than that the assertions held. Check
+  `git status` and read the diff before reporting the run as verification.
 - Without the export, plain `cargo test` is the fallback — scoped the same way
   the `CLAUDE.md` examples are, e.g.
   `cargo test -p prqlc --test integration -- date`. Inline snapshots then have
