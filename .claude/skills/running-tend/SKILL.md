@@ -2,9 +2,10 @@
 name: running-tend
 description:
   PRQL-specific guidance for tend CI workflows. Adds a standing exception for
-  filing issues in other repos, PR title conventions, CI structure,
-  Dependabot-batch polling, weekly maintenance tasks, and issue-closing policy
-  on top of the generic tend-* skills. Use when operating in CI.
+  filing issues in other repos, PR title conventions, CI structure, which test
+  commands actually run inside the sandbox, Dependabot-batch polling, weekly
+  maintenance tasks, and issue-closing policy on top of the generic tend-*
+  skills. Use when operating in CI.
 ---
 
 # Running Tend in PRQL
@@ -41,6 +42,49 @@ permission first) still applies when the target shows no agent signals.
   titles and handles `pr-backport-web` backports. The automerge job was removed
   in #5753, so bot PRs must be merged manually by a maintainer (or via repo
   branch-protection auto-merge if a maintainer enables it on the PR).
+
+## Running tests from a tend session
+
+**`cargo-insta` and `cargo-nextest` are not on the sandbox PATH**, so the
+commands `CLAUDE.md` documents as the inner loop do not run here.
+`.github/actions/tend-setup` installs both, but `baptiste0928/cargo-install`
+puts them under the runner user's home — `.cargo-install/<crate>/bin` there —
+and the agent runs as a separate `tend-sandbox` user whose PATH cannot carry a
+runner-home path. Both subcommands answer `no such command`, which takes down
+`task prqlc:test` and `task prqlc:pull-request`: both route through
+`cargo insta test --accept … --test-runner=nextest`.
+
+What to run instead:
+
+- `cargo test` directly, scoped the same way the `CLAUDE.md` examples are — e.g.
+  `cargo test -p prqlc --test integration -- date`.
+- **Don't `cargo install` either crate to work around this.** Building them from
+  source costs several minutes of the session budget and the binaries are thrown
+  away with the runner.
+- **Never verify with `INSTA_UPDATE=always cargo test`.** `always` selects
+  insta's in-place update, so a `.snap` file is rewritten to whatever the code
+  produced and the assertion passes unconditionally — a green run that checked
+  nothing. Use it only to regenerate file snapshots deliberately, then re-run
+  plain `cargo test` to verify. Plain `cargo test` is a real check: insta's
+  default `auto` behaviour writes nothing when `CI` is set.
+- **Inline snapshots can't be auto-accepted here.** `CLAUDE.md` asks for
+  `assert_snapshot!(result, @"")` filled in by `--accept`, but insta itself
+  never rewrites a source file — it records the value in a pending-snapshot file
+  and leaves applying it to `cargo-insta`. Take the expected value from the test
+  failure's diff, write it into the `@"…"` literal by hand, and re-run to
+  confirm it matches.
+- Scope the claim to the command that actually ran. `cargo test -p prqlc` is not
+  `task prqlc:pull-request`, and saying so is the difference between a useful
+  caveat and a false green.
+
+**Don't re-propose the infra fix.** #6144 (symlinking both binaries into
+`/usr/local/bin`) sat open for 20 days and was closed unmerged by a maintainer
+on 2026-08-25, hours after
+[max-sixty/tend#1048](https://github.com/max-sixty/tend/pull/1048) landed
+upstream — which makes runner-home setup explicit and names `sandbox_setup:`
+(with `sandbox_path:`) as the supported lever for sandbox-scoped installs.
+Whether to pull that lever in `.config/tend.yaml` is a maintainer's call, not
+something to re-litigate from a session.
 
 ## Verifying a `rust-toolchain.toml` bump
 
