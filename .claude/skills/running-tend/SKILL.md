@@ -45,46 +45,64 @@ permission first) still applies when the target shows no agent signals.
 
 ## Running tests from a tend session
 
-**`cargo-insta` and `cargo-nextest` are not on the sandbox PATH**, so the
-commands `CLAUDE.md` documents as the inner loop do not run here.
-`.github/actions/tend-setup` installs both, but `baptiste0928/cargo-install`
-puts them under the runner user's home — `.cargo-install/<crate>/bin` there —
-and the agent runs as a separate `tend-sandbox` user whose PATH cannot carry a
-runner-home path. Both subcommands answer `no such command`, which takes down
-`task prqlc:test` and `task prqlc:pull-request`: both route through
-`cargo insta test --accept … --test-runner=nextest`.
+**`cargo-insta` and `cargo-nextest` are not on the sandbox PATH by default**, so
+`task prqlc:test` and `task prqlc:pull-request` — both of which route through
+`cargo insta test --accept … --test-runner=nextest` — answer `no such command`
+out of the box. `.github/actions/tend-setup` installs both, but
+`baptiste0928/cargo-install` puts them under the runner user's home
+(`/home/runner/.cargo-install/<crate>/bin`), and tend derives the sandbox PATH
+without any runner-home directory.
 
-What to run instead:
+The binaries are world-executable and `/home/runner` is `drwxr-x--x`, so
+`tend-sandbox` can traverse to them without being able to enumerate that home.
+Prepend them in the same invocation as the command — shell state doesn't persist
+between tool calls:
 
-- `cargo test` directly, scoped the same way the `CLAUDE.md` examples are — e.g.
-  `cargo test -p prqlc --test integration -- date`.
-- **Don't `cargo install` either crate to work around this.** Building them from
-  source costs several minutes of the session budget and the binaries are thrown
-  away with the runner.
+```sh
+export PATH="/home/runner/.cargo-install/cargo-insta/bin:/home/runner/.cargo-install/cargo-nextest/bin:$PATH"
+task prqlc:test
+```
+
+`task` is already on the sandbox PATH, so the inner loop `CLAUDE.md` documents
+then runs unchanged. Verified in a session on 2026-08-26: `task prqlc:test`
+exits 0 in ~3 minutes on a warm `target/`, and `cargo insta test --accept`
+rewrote an `assert_snapshot!(ident, @"")` literal in place — so the
+initialize-empty-then-accept flow works here too.
+
+Notes on running tests here:
+
 - **Never verify with `INSTA_UPDATE=always cargo test`.** `always` selects
   insta's in-place update, so a `.snap` file is rewritten to whatever the code
   produced and the assertion passes unconditionally — a green run that checked
   nothing. Use it only to regenerate file snapshots deliberately, then re-run
   plain `cargo test` to verify. Plain `cargo test` is a real check: insta's
   default `auto` behaviour writes nothing when `CI` is set.
-- **Inline snapshots can't be auto-accepted here.** `CLAUDE.md` asks for
-  `assert_snapshot!(result, @"")` filled in by `--accept`, but insta itself
-  never rewrites a source file — it records the value in a pending-snapshot file
-  and leaves applying it to `cargo-insta`. Take the expected value from the test
-  failure's diff, write it into the `@"…"` literal by hand, and re-run to
-  confirm it matches.
+- Without the export, plain `cargo test` is the fallback — scoped the same way
+  the `CLAUDE.md` examples are, e.g.
+  `cargo test -p prqlc --test integration -- date`. Inline snapshots then have
+  to be transcribed by hand: insta never rewrites a source file itself, it
+  records the value in a pending-snapshot file and leaves applying it to
+  `cargo-insta`. Take the expected value from the failure's diff, write it into
+  the `@"…"` literal, and re-run to confirm.
+- **Don't `cargo install` either crate.** Building from source costs several
+  minutes of the session budget, and the binaries `tend-setup` already built are
+  one `export` away.
 - Scope the claim to the command that actually ran. `cargo test -p prqlc` is not
   `task prqlc:pull-request`, and saying so is the difference between a useful
   caveat and a false green.
 
-**Don't re-propose the infra fix.** #6144 (symlinking both binaries into
-`/usr/local/bin`) sat open for 20 days and was closed unmerged by a maintainer
-on 2026-08-25, hours after
-[max-sixty/tend#1048](https://github.com/max-sixty/tend/pull/1048) landed
-upstream — which makes runner-home setup explicit and names `sandbox_setup:`
-(with `sandbox_path:`) as the supported lever for sandbox-scoped installs.
-Whether to pull that lever in `.config/tend.yaml` is a maintainer's call, not
-something to re-litigate from a session.
+**On making the export unnecessary — a maintainer's call.** #6144 (a workflow
+step symlinking both binaries into `/usr/local/bin`) sat open for 20 days and
+was closed unmerged on 2026-08-25; don't re-propose it. `sandbox_path:` is not
+the alternative either: tend's `proxy/setup-sandbox.sh` rejects any entry under
+the runner's home outside the checkout and fails the job with "Install the tool
+into the sandbox with `sandbox_setup:` instead" — deliberately, since that home
+can hold credentials unrelated to the tool being reached for. `sandbox_setup:`
+is the supported lever, and it needn't mean a rebuild: `tend-setup` runs before
+the tend action, so copying the two existing binaries into
+`/home/tend-sandbox/.cargo/bin` (already on the sandbox PATH, and writable by
+the sandbox user) would cost a `cp`. Leave that to a maintainer rather than
+re-litigating the area from a session.
 
 ## Verifying a `rust-toolchain.toml` bump
 
