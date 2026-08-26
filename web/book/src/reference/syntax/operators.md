@@ -176,7 +176,7 @@ from employees
 derive total_distance = sum distance
 ```
 
-...while with parentheses, it works at expected:
+...while with parentheses, it works as expected:
 
 ```prql
 from employees
