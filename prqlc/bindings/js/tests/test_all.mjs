@@ -70,6 +70,30 @@ describe("prqlc-js", () => {
       );
       assert(res.includes("target:sql.mssql"));
     });
+
+    it("should throw on an unknown target rather than silently using sql.any", () => {
+      const opts = new prqlc.CompileOptions();
+      opts.target = "sql.postgrez";
+
+      expect(() => prqlc.compile("from a | take 10", opts)).to.throw(
+        "sql.postgrez",
+      );
+    });
+
+    it("should treat an unset target as sql.any", () => {
+      const opts = new prqlc.CompileOptions();
+      opts.format = false;
+      opts.signature_comment = false;
+
+      const res = prqlc.compile(
+        "prql target:sql.mssql\nfrom a | take 10",
+        opts,
+      );
+      assert.equal(
+        res,
+        "SELECT * FROM a ORDER BY (SELECT NULL) OFFSET 0 ROWS FETCH FIRST 10 ROWS ONLY",
+      );
+    });
   });
 
   describe("prql_to_pl", () => {

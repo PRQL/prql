@@ -7,9 +7,13 @@ use wasm_bindgen::prelude::*;
 
 #[wasm_bindgen]
 pub fn compile(prql_query: &str, options: Option<CompileOptions>) -> Option<String> {
+    let options = match options.map(prqlc::Options::try_from).transpose() {
+        Ok(options) => options.unwrap_or_default(),
+        Err(e) => return return_or_throw(Err(e)),
+    };
+
     return_or_throw(
-        prqlc::compile(prql_query, &options.map(|x| x.into()).unwrap_or_default())
-            .map_err(|e| e.composed(&prql_query.into())),
+        prqlc::compile(prql_query, &options).map_err(|e| e.composed(&prql_query.into())),
     )
 }
 
@@ -109,17 +113,26 @@ impl CompileOptions {
     }
 }
 
-impl From<CompileOptions> for prqlc::Options {
-    fn from(o: CompileOptions) -> Self {
-        let target = Target::from_str(&o.target).unwrap_or_default();
+impl TryFrom<CompileOptions> for prqlc::Options {
+    type Error = prqlc::ErrorMessages;
 
-        prqlc::Options {
+    fn try_from(o: CompileOptions) -> Result<Self, Self::Error> {
+        // An empty `target` is the unset default, and means `sql.any`. Anything
+        // else has to parse — otherwise a typo such as `sql.postgrez` would
+        // silently compile to generic SQL.
+        let target = if o.target.is_empty() {
+            Target::default()
+        } else {
+            Target::from_str(&o.target).map_err(prqlc::ErrorMessages::from)?
+        };
+
+        Ok(prqlc::Options {
             format: o.format,
             target,
             signature_comment: o.signature_comment,
             display: prqlc::DisplayOptions::Plain,
             ..Default::default()
-        }
+        })
     }
 }
 

@@ -54,6 +54,13 @@
 
 **Integrations**:
 
+- The `prqlc` JS/wasm package now reports an error for an unknown `target`,
+  rather than silently compiling to generic SQL. A typo such as
+  `opts.target = "sql.postgrez"` previously fell back to `sql.any`, so the
+  caller got working-but-wrong SQL with no signal. The Python and C bindings
+  already propagated this error; an unset (empty) `target` still means
+  `sql.any`. (@prql-bot, #6238)
+
 - The `prqlc` Python package now declares `requires-python = ">=3.10"`. Python
   3.9 reached end-of-life in October 2025 and was never exercised by the test
   matrix, which runs 3.10 and 3.12. The stale `>=3.9` claim also blocked every
