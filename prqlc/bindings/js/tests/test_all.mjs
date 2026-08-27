@@ -73,9 +73,11 @@ describe("prqlc-js", () => {
 
     it("should throw on an unknown target rather than silently using sql.any", () => {
       const opts = new prqlc.CompileOptions();
-      opts.target = "sql.postgress";
+      opts.target = "sql.postgrez";
 
-      expect(() => prqlc.compile("from a | take 10", opts)).to.throw();
+      expect(() => prqlc.compile("from a | take 10", opts)).to.throw(
+        "sql.postgrez",
+      );
     });
 
     it("should treat an unset target as sql.any", () => {

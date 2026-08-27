@@ -118,7 +118,7 @@ impl TryFrom<CompileOptions> for prqlc::Options {
 
     fn try_from(o: CompileOptions) -> Result<Self, Self::Error> {
         // An empty `target` is the unset default, and means `sql.any`. Anything
-        // else has to parse — otherwise a typo such as `sql.postgress` would
+        // else has to parse — otherwise a typo such as `sql.postgrez` would
         // silently compile to generic SQL.
         let target = if o.target.is_empty() {
             Target::default()

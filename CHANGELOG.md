@@ -56,7 +56,7 @@
 
 - The `prqlc` JS/wasm package now reports an error for an unknown `target`,
   rather than silently compiling to generic SQL. A typo such as
-  `opts.target = "sql.postgress"` previously fell back to `sql.any`, so the
+  `opts.target = "sql.postgrez"` previously fell back to `sql.any`, so the
   caller got working-but-wrong SQL with no signal. The Python and C bindings
   already propagated this error; an unset (empty) `target` still means
   `sql.any`. (@prql-bot, #6238)
