@@ -270,7 +270,6 @@ where
 
 #[cfg(test)]
 mod tests {
-    use chumsky::prelude::*;
     use insta::{assert_debug_snapshot, assert_yaml_snapshot};
 
     use super::*;
