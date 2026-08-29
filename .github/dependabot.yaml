@@ -13,6 +13,20 @@ updates:
       patch:
         update-types:
           - patch
+    ignore:
+      # `mdbook-core` 0.5.3+ requires `toml ^1.1.2` (0.5.2 needed `toml ^0.9.8`)
+      # and `mdbook-preprocessor` 0.5.3 requires `mdbook-core ^0.5.3`; `toml` 1.1
+      # requires `indexmap ^2.13`; every `indexmap` from 2.12 on declares
+      # `rust-version` >= 1.82, above the project's declared 1.81.0 MSRV. So the
+      # bump lands in the workspace lockfile and fails `test-msrv` — it recurred
+      # weekly as #6035, #6062, #6132 and #6203, each closed unmerged. Staying on
+      # 0.5.2 is a deliberate choice pending an MSRV decision (see #6203). Drop
+      # these two entries once `rust-version` in the workspace `Cargo.toml` and
+      # `metadata.msrv` in `prqlc/prqlc/Cargo.toml` are raised.
+      - dependency-name: "mdbook-core"
+        versions: [">= 0.5.3"]
+      - dependency-name: "mdbook-preprocessor"
+        versions: [">= 0.5.3"]
     # We exclude labels throughout because of https://github.com/dependabot/dependabot-core/issues/7645#issuecomment-1986212847
     labels: []
 
