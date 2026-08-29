@@ -13,6 +13,23 @@ struct Node {
     done: bool,
 }
 
+/// Sorts `dependencies` so that each entry follows the entries it depends on.
+///
+/// Returns one element per element of `dependencies` — not per distinct key —
+/// or `None` if the dependencies contain a cycle.
+///
+/// - A key may be declared more than once. Edges resolve to the *last*
+///   declaration of a key, and every declaration appears in the output, so a
+///   repeated key appears in the output more than once.
+/// - A dependency on a key that is never declared is ignored.
+/// - `start` limits the output to the entries reachable from that key,
+///   including the entry for the key itself.
+///
+/// # Panics
+///
+/// Panics if `start` is `Some` and names a key that isn't declared in
+/// `dependencies`. Note `None` is already used for "there's a cycle", so an
+/// unknown start key can't currently be reported through the return type.
 pub fn toposort<'a, Key: Eq + std::hash::Hash + Clone>(
     dependencies: &'a [(Key, Vec<Key>)],
     start: Option<&'_ Key>,
@@ -42,7 +59,11 @@ pub fn toposort<'a, Key: Eq + std::hash::Hash + Clone>(
         order: Vec::with_capacity(dependencies.len()),
     };
 
-    if let Some(start) = start.map(|s| index.get(s).unwrap()) {
+    if let Some(start) = start.map(|s| {
+        index
+            .get(s)
+            .expect("`start` must name a key declared in `dependencies`")
+    }) {
         // use only the provided visit start
         toposort.visit(&dag, *start).ok()?;
     } else {
