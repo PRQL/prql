@@ -1,16 +1,19 @@
 # Syntax highlighting for Vim
 
-This is a syntax highlighting file for Vim and Neovim.
+Both Vim and Neovim ship PRQL's syntax file
+([`runtime/syntax/prql.vim`](https://github.com/vim/vim/blob/master/runtime/syntax/prql.vim)),
+so there's nothing to install from this repo.
 
-## Installation
+## Neovim
 
-### For Vim
+Neovim 0.11 and later detect the `.prql` extension and highlight it with no
+configuration.
 
-Copy the `prql.vim` file to:
+## Vim
 
-    ~/.vim/syntax/
-
-Then, edit your `~/.vimrc` file and add the following:
+Vim bundles the syntax file (since v9.1.1212), but doesn't yet detect the
+`.prql` extension, so the filetype has to be set manually. Add the following to
+your `~/.vimrc`:
 
 ```vim
 augroup PrqlFileType
@@ -19,10 +22,6 @@ augroup PrqlFileType
 augroup END
 ```
 
-### For Neovim
-
-Copy the `prql.vim` file to:
-
-    ~/.config/nvim/syntax/
-
-Then, edit your `~/.config/nvim/init.vim` file.
+On an older Vim, additionally copy
+[`prql.vim`](https://github.com/vim/vim/blob/master/runtime/syntax/prql.vim)
+into `~/.vim/syntax/`.
