@@ -10,7 +10,7 @@ rust-version.workspace = true
 version.workspace = true
 
 # Required for `cargo-msrv`, which doesn't yet support workspaces
-metadata.msrv = "1.81.0"
+metadata.msrv = "1.85.0"
 
 build = "build.rs"
 
@@ -63,7 +63,7 @@ csv = "1.4.0"
 enum-as-inner = { workspace = true }
 itertools = { workspace = true }
 log = { workspace = true }
-regex = "1.12.3"
+regex = "1.12.4"
 schemars = { workspace = true }
 semver = { workspace = true }
 # serde is required for the `from_text` feature of PRQL, so we can't really put
@@ -88,7 +88,7 @@ vergen-gitcl = { version = "1.0.8", features = ["build"] }
 
 # unique dependencies from the CLI, marked as optional and included in the 'cli'
 # feature
-anyhow = { version = "1.0.102", features = ["backtrace"], optional = true }
+anyhow = { version = "1.0.103", features = ["backtrace"], optional = true }
 clap = { version = "4.5.61", features = [
   "derive",
   "env",

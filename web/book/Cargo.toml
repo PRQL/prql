@@ -21,8 +21,8 @@ test = false
 ansi-to-html = "0.2.3"
 anyhow = { workspace = true }
 itertools = { workspace = true }
-mdbook-core = { version = "0.5.2", default-features = false }
-mdbook-preprocessor = { version = "0.5.2", default-features = false }
+mdbook-core = { version = "0.5.4", default-features = false }
+mdbook-preprocessor = { version = "0.5.4", default-features = false }
 prqlc = { path = "../../prqlc/prqlc", default-features = false }
 pulldown-cmark = { version = "0.13.0", default-features = false }
 pulldown-cmark-to-cmark = "22.0.0"
@@ -35,7 +35,7 @@ anstream = { version = "1.0.0" }
 globset = "0.4.18"
 insta = { workspace = true }
 log = { workspace = true }
-regex = "1.12.3"
+regex = "1.12.4"
 serde_yaml = { workspace = true }
 similar-asserts = { workspace = true }
 walkdir = "2.5.0"

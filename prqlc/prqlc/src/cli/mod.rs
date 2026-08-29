@@ -600,7 +600,7 @@ pub fn write_log(path: &std::path::Path) -> Result<()> {
 }
 
 fn drop_module_def(stmts: &mut Vec<pr::Stmt>, name: &str) {
-    stmts.retain(|x| x.kind.as_module_def().map_or(true, |m| m.name != name));
+    stmts.retain(|x| x.kind.as_module_def().is_none_or(|m| m.name != name));
 }
 
 fn read_files(input: &mut clio::ClioPath) -> Result<SourceTree> {
@@ -673,9 +673,46 @@ fn combine_prql_and_frames(source: &str, frames: Vec<(Option<pr::Span>, pl::Line
 /// are in `prqlc/prqlc/src/cli/test.rs`.
 #[cfg(test)]
 mod tests {
-    use insta::assert_snapshot;
+    use insta::{assert_debug_snapshot, assert_snapshot};
 
     use super::*;
+
+    #[test]
+    fn drop_named_module_def() {
+        let module = |name: &str| {
+            pr::Stmt::new(pr::StmtKind::ModuleDef(pr::ModuleDef {
+                name: name.to_string(),
+                stmts: Vec::new(),
+            }))
+        };
+        let mut stmts = vec![
+            module("std"),
+            module("user"),
+            pr::Stmt::new(pr::StmtKind::VarDef(pr::VarDef {
+                kind: pr::VarDefKind::Let,
+                name: "value".to_string(),
+                value: None,
+                ty: None,
+            })),
+        ];
+
+        drop_module_def(&mut stmts, "std");
+
+        let remaining = stmts
+            .iter()
+            .map(|stmt| {
+                stmt.kind
+                    .as_module_def()
+                    .map_or("<non-module>", |module| module.name.as_str())
+            })
+            .collect::<Vec<_>>();
+        assert_debug_snapshot!(remaining, @r#"
+        [
+            "user",
+            "<non-module>",
+        ]
+        "#);
+    }
 
     #[test]
     fn layouts() {

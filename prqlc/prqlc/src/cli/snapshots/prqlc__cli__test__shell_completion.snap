@@ -7,10 +7,7 @@ info:
     - shell-completion
     - bash
   env:
-    CLICOLOR_FORCE: ""
     NO_COLOR: "1"
-    RUST_BACKTRACE: ""
-    RUST_LOG: ""
 ---
 success: true
 exit_code: 0
@@ -34,142 +31,142 @@ _prqlc() {
                 cmd="prqlc"
                 ;;
             prqlc,collect)
-                cmd="prqlc__collect"
+                cmd="prqlc__subcmd__collect"
                 ;;
             prqlc,compile)
-                cmd="prqlc__compile"
+                cmd="prqlc__subcmd__compile"
                 ;;
             prqlc,debug)
-                cmd="prqlc__debug"
+                cmd="prqlc__subcmd__debug"
                 ;;
             prqlc,experimental)
-                cmd="prqlc__experimental"
+                cmd="prqlc__subcmd__experimental"
                 ;;
             prqlc,fmt)
-                cmd="prqlc__fmt"
+                cmd="prqlc__subcmd__fmt"
                 ;;
             prqlc,help)
-                cmd="prqlc__help"
+                cmd="prqlc__subcmd__help"
                 ;;
             prqlc,lex)
-                cmd="prqlc__lex"
+                cmd="prqlc__subcmd__lex"
                 ;;
             prqlc,list-targets)
-                cmd="prqlc__list__targets"
+                cmd="prqlc__subcmd__list__subcmd__targets"
                 ;;
             prqlc,lsp)
-                cmd="prqlc__lsp"
+                cmd="prqlc__subcmd__lsp"
                 ;;
             prqlc,parse)
-                cmd="prqlc__parse"
+                cmd="prqlc__subcmd__parse"
                 ;;
             prqlc,shell-completion)
-                cmd="prqlc__shell__completion"
+                cmd="prqlc__subcmd__shell__subcmd__completion"
                 ;;
             prqlc,watch)
-                cmd="prqlc__watch"
+                cmd="prqlc__subcmd__watch"
                 ;;
-            prqlc__debug,annotate)
-                cmd="prqlc__debug__annotate"
+            prqlc__subcmd__debug,annotate)
+                cmd="prqlc__subcmd__debug__subcmd__annotate"
                 ;;
-            prqlc__debug,ast)
-                cmd="prqlc__debug__ast"
+            prqlc__subcmd__debug,ast)
+                cmd="prqlc__subcmd__debug__subcmd__ast"
                 ;;
-            prqlc__debug,help)
-                cmd="prqlc__debug__help"
+            prqlc__subcmd__debug,help)
+                cmd="prqlc__subcmd__debug__subcmd__help"
                 ;;
-            prqlc__debug,json-schema)
-                cmd="prqlc__debug__json__schema"
+            prqlc__subcmd__debug,json-schema)
+                cmd="prqlc__subcmd__debug__subcmd__json__subcmd__schema"
                 ;;
-            prqlc__debug,lineage)
-                cmd="prqlc__debug__lineage"
+            prqlc__subcmd__debug,lineage)
+                cmd="prqlc__subcmd__debug__subcmd__lineage"
                 ;;
-            prqlc__debug__help,annotate)
-                cmd="prqlc__debug__help__annotate"
+            prqlc__subcmd__debug__subcmd__help,annotate)
+                cmd="prqlc__subcmd__debug__subcmd__help__subcmd__annotate"
                 ;;
-            prqlc__debug__help,ast)
-                cmd="prqlc__debug__help__ast"
+            prqlc__subcmd__debug__subcmd__help,ast)
+                cmd="prqlc__subcmd__debug__subcmd__help__subcmd__ast"
                 ;;
-            prqlc__debug__help,help)
-                cmd="prqlc__debug__help__help"
+            prqlc__subcmd__debug__subcmd__help,help)
+                cmd="prqlc__subcmd__debug__subcmd__help__subcmd__help"
                 ;;
-            prqlc__debug__help,json-schema)
-                cmd="prqlc__debug__help__json__schema"
+            prqlc__subcmd__debug__subcmd__help,json-schema)
+                cmd="prqlc__subcmd__debug__subcmd__help__subcmd__json__subcmd__schema"
                 ;;
-            prqlc__debug__help,lineage)
-                cmd="prqlc__debug__help__lineage"
+            prqlc__subcmd__debug__subcmd__help,lineage)
+                cmd="prqlc__subcmd__debug__subcmd__help__subcmd__lineage"
                 ;;
-            prqlc__experimental,doc)
-                cmd="prqlc__experimental__doc"
+            prqlc__subcmd__experimental,doc)
+                cmd="prqlc__subcmd__experimental__subcmd__doc"
                 ;;
-            prqlc__experimental,help)
-                cmd="prqlc__experimental__help"
+            prqlc__subcmd__experimental,help)
+                cmd="prqlc__subcmd__experimental__subcmd__help"
                 ;;
-            prqlc__experimental,highlight)
-                cmd="prqlc__experimental__highlight"
+            prqlc__subcmd__experimental,highlight)
+                cmd="prqlc__subcmd__experimental__subcmd__highlight"
                 ;;
-            prqlc__experimental__help,doc)
-                cmd="prqlc__experimental__help__doc"
+            prqlc__subcmd__experimental__subcmd__help,doc)
+                cmd="prqlc__subcmd__experimental__subcmd__help__subcmd__doc"
                 ;;
-            prqlc__experimental__help,help)
-                cmd="prqlc__experimental__help__help"
+            prqlc__subcmd__experimental__subcmd__help,help)
+                cmd="prqlc__subcmd__experimental__subcmd__help__subcmd__help"
                 ;;
-            prqlc__experimental__help,highlight)
-                cmd="prqlc__experimental__help__highlight"
+            prqlc__subcmd__experimental__subcmd__help,highlight)
+                cmd="prqlc__subcmd__experimental__subcmd__help__subcmd__highlight"
                 ;;
-            prqlc__help,collect)
-                cmd="prqlc__help__collect"
+            prqlc__subcmd__help,collect)
+                cmd="prqlc__subcmd__help__subcmd__collect"
                 ;;
-            prqlc__help,compile)
-                cmd="prqlc__help__compile"
+            prqlc__subcmd__help,compile)
+                cmd="prqlc__subcmd__help__subcmd__compile"
                 ;;
-            prqlc__help,debug)
-                cmd="prqlc__help__debug"
+            prqlc__subcmd__help,debug)
+                cmd="prqlc__subcmd__help__subcmd__debug"
                 ;;
-            prqlc__help,experimental)
-                cmd="prqlc__help__experimental"
+            prqlc__subcmd__help,experimental)
+                cmd="prqlc__subcmd__help__subcmd__experimental"
                 ;;
-            prqlc__help,fmt)
-                cmd="prqlc__help__fmt"
+            prqlc__subcmd__help,fmt)
+                cmd="prqlc__subcmd__help__subcmd__fmt"
                 ;;
-            prqlc__help,help)
-                cmd="prqlc__help__help"
+            prqlc__subcmd__help,help)
+                cmd="prqlc__subcmd__help__subcmd__help"
                 ;;
-            prqlc__help,lex)
-                cmd="prqlc__help__lex"
+            prqlc__subcmd__help,lex)
+                cmd="prqlc__subcmd__help__subcmd__lex"
                 ;;
-            prqlc__help,list-targets)
-                cmd="prqlc__help__list__targets"
+            prqlc__subcmd__help,list-targets)
+                cmd="prqlc__subcmd__help__subcmd__list__subcmd__targets"
                 ;;
-            prqlc__help,lsp)
-                cmd="prqlc__help__lsp"
+            prqlc__subcmd__help,lsp)
+                cmd="prqlc__subcmd__help__subcmd__lsp"
                 ;;
-            prqlc__help,parse)
-                cmd="prqlc__help__parse"
+            prqlc__subcmd__help,parse)
+                cmd="prqlc__subcmd__help__subcmd__parse"
                 ;;
-            prqlc__help,shell-completion)
-                cmd="prqlc__help__shell__completion"
+            prqlc__subcmd__help,shell-completion)
+                cmd="prqlc__subcmd__help__subcmd__shell__subcmd__completion"
                 ;;
-            prqlc__help,watch)
-                cmd="prqlc__help__watch"
+            prqlc__subcmd__help,watch)
+                cmd="prqlc__subcmd__help__subcmd__watch"
                 ;;
-            prqlc__help__debug,annotate)
-                cmd="prqlc__help__debug__annotate"
+            prqlc__subcmd__help__subcmd__debug,annotate)
+                cmd="prqlc__subcmd__help__subcmd__debug__subcmd__annotate"
                 ;;
-            prqlc__help__debug,ast)
-                cmd="prqlc__help__debug__ast"
+            prqlc__subcmd__help__subcmd__debug,ast)
+                cmd="prqlc__subcmd__help__subcmd__debug__subcmd__ast"
                 ;;
-            prqlc__help__debug,json-schema)
-                cmd="prqlc__help__debug__json__schema"
+            prqlc__subcmd__help__subcmd__debug,json-schema)
+                cmd="prqlc__subcmd__help__subcmd__debug__subcmd__json__subcmd__schema"
                 ;;
-            prqlc__help__debug,lineage)
-                cmd="prqlc__help__debug__lineage"
+            prqlc__subcmd__help__subcmd__debug,lineage)
+                cmd="prqlc__subcmd__help__subcmd__debug__subcmd__lineage"
                 ;;
-            prqlc__help__experimental,doc)
-                cmd="prqlc__help__experimental__doc"
+            prqlc__subcmd__help__subcmd__experimental,doc)
+                cmd="prqlc__subcmd__help__subcmd__experimental__subcmd__doc"
                 ;;
-            prqlc__help__experimental,highlight)
-                cmd="prqlc__help__experimental__highlight"
+            prqlc__subcmd__help__subcmd__experimental,highlight)
+                cmd="prqlc__subcmd__help__subcmd__experimental__subcmd__highlight"
                 ;;
             *)
                 ;;
@@ -195,8 +192,8 @@ _prqlc() {
             COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
             return 0
             ;;
-        prqlc__collect)
-            opts="-h --color --help [INPUT] [OUTPUT] [MAIN_PATH]"
+        prqlc__subcmd__collect)
+            opts="-h --color --help"
             if [[ ${cur} == -* || ${COMP_CWORD} -eq 2 ]] ; then
                 COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
                 return 0
@@ -213,8 +210,8 @@ _prqlc() {
             COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
             return 0
             ;;
-        prqlc__compile)
-            opts="-t -h --hide-signature-comment --no-format --target --debug-log --color --help [INPUT] [OUTPUT] [MAIN_PATH]"
+        prqlc__subcmd__compile)
+            opts="-t -h --hide-signature-comment --no-format --target --debug-log --color --help"
             if [[ ${cur} == -* || ${COMP_CWORD} -eq 2 ]] ; then
                 COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
                 return 0
@@ -243,7 +240,7 @@ _prqlc() {
             COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
             return 0
             ;;
-        prqlc__debug)
+        prqlc__subcmd__debug)
             opts="-h --color --help annotate lineage ast json-schema help"
             if [[ ${cur} == -* || ${COMP_CWORD} -eq 2 ]] ; then
                 COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
@@ -261,25 +258,7 @@ _prqlc() {
             COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
             return 0
             ;;
-        prqlc__debug__annotate)
-            opts="-h --color --help [INPUT] [OUTPUT] [MAIN_PATH]"
-            if [[ ${cur} == -* || ${COMP_CWORD} -eq 3 ]] ; then
-                COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
-                return 0
-            fi
-            case "${prev}" in
-                --color)
-                    COMPREPLY=($(compgen -W "auto always never" -- "${cur}"))
-                    return 0
-                    ;;
-                *)
-                    COMPREPLY=()
-                    ;;
-            esac
-            COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
-            return 0
-            ;;
-        prqlc__debug__ast)
+        prqlc__subcmd__debug__subcmd__annotate)
             opts="-h --color --help"
             if [[ ${cur} == -* || ${COMP_CWORD} -eq 3 ]] ; then
                 COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
@@ -297,7 +276,25 @@ _prqlc() {
             COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
             return 0
             ;;
-        prqlc__debug__help)
+        prqlc__subcmd__debug__subcmd__ast)
+            opts="-h --color --help"
+            if [[ ${cur} == -* || ${COMP_CWORD} -eq 3 ]] ; then
+                COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
+                return 0
+            fi
+            case "${prev}" in
+                --color)
+                    COMPREPLY=($(compgen -W "auto always never" -- "${cur}"))
+                    return 0
+                    ;;
+                *)
+                    COMPREPLY=()
+                    ;;
+            esac
+            COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
+            return 0
+            ;;
+        prqlc__subcmd__debug__subcmd__help)
             opts="annotate lineage ast json-schema help"
             if [[ ${cur} == -* || ${COMP_CWORD} -eq 3 ]] ; then
                 COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
@@ -311,7 +308,7 @@ _prqlc() {
             COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
             return 0
             ;;
-        prqlc__debug__help__annotate)
+        prqlc__subcmd__debug__subcmd__help__subcmd__annotate)
             opts=""
             if [[ ${cur} == -* || ${COMP_CWORD} -eq 4 ]] ; then
                 COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
@@ -325,7 +322,7 @@ _prqlc() {
             COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
             return 0
             ;;
-        prqlc__debug__help__ast)
+        prqlc__subcmd__debug__subcmd__help__subcmd__ast)
             opts=""
             if [[ ${cur} == -* || ${COMP_CWORD} -eq 4 ]] ; then
                 COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
@@ -339,7 +336,7 @@ _prqlc() {
             COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
             return 0
             ;;
-        prqlc__debug__help__help)
+        prqlc__subcmd__debug__subcmd__help__subcmd__help)
             opts=""
             if [[ ${cur} == -* || ${COMP_CWORD} -eq 4 ]] ; then
                 COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
@@ -353,7 +350,7 @@ _prqlc() {
             COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
             return 0
             ;;
-        prqlc__debug__help__json__schema)
+        prqlc__subcmd__debug__subcmd__help__subcmd__json__subcmd__schema)
             opts=""
             if [[ ${cur} == -* || ${COMP_CWORD} -eq 4 ]] ; then
                 COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
@@ -367,7 +364,7 @@ _prqlc() {
             COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
             return 0
             ;;
-        prqlc__debug__help__lineage)
+        prqlc__subcmd__debug__subcmd__help__subcmd__lineage)
             opts=""
             if [[ ${cur} == -* || ${COMP_CWORD} -eq 4 ]] ; then
                 COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
@@ -381,7 +378,7 @@ _prqlc() {
             COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
             return 0
             ;;
-        prqlc__debug__json__schema)
+        prqlc__subcmd__debug__subcmd__json__subcmd__schema)
             opts="-h --ir-type --color --help"
             if [[ ${cur} == -* || ${COMP_CWORD} -eq 3 ]] ; then
                 COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
@@ -403,8 +400,8 @@ _prqlc() {
             COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
             return 0
             ;;
-        prqlc__debug__lineage)
-            opts="-h --format --color --help [INPUT] [OUTPUT] [MAIN_PATH]"
+        prqlc__subcmd__debug__subcmd__lineage)
+            opts="-h --format --color --help"
             if [[ ${cur} == -* || ${COMP_CWORD} -eq 3 ]] ; then
                 COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
                 return 0
@@ -425,7 +422,7 @@ _prqlc() {
             COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
             return 0
             ;;
-        prqlc__experimental)
+        prqlc__subcmd__experimental)
             opts="-h --color --help doc highlight help"
             if [[ ${cur} == -* || ${COMP_CWORD} -eq 2 ]] ; then
                 COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
@@ -443,8 +440,8 @@ _prqlc() {
             COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
             return 0
             ;;
-        prqlc__experimental__doc)
-            opts="-h --format --color --help [INPUT] [OUTPUT] [MAIN_PATH]"
+        prqlc__subcmd__experimental__subcmd__doc)
+            opts="-h --format --color --help"
             if [[ ${cur} == -* || ${COMP_CWORD} -eq 3 ]] ; then
                 COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
                 return 0
@@ -465,7 +462,7 @@ _prqlc() {
             COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
             return 0
             ;;
-        prqlc__experimental__help)
+        prqlc__subcmd__experimental__subcmd__help)
             opts="doc highlight help"
             if [[ ${cur} == -* || ${COMP_CWORD} -eq 3 ]] ; then
                 COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
@@ -479,7 +476,7 @@ _prqlc() {
             COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
             return 0
             ;;
-        prqlc__experimental__help__doc)
+        prqlc__subcmd__experimental__subcmd__help__subcmd__doc)
             opts=""
             if [[ ${cur} == -* || ${COMP_CWORD} -eq 4 ]] ; then
                 COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
@@ -493,7 +490,7 @@ _prqlc() {
             COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
             return 0
             ;;
-        prqlc__experimental__help__help)
+        prqlc__subcmd__experimental__subcmd__help__subcmd__help)
             opts=""
             if [[ ${cur} == -* || ${COMP_CWORD} -eq 4 ]] ; then
                 COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
@@ -507,7 +504,7 @@ _prqlc() {
             COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
             return 0
             ;;
-        prqlc__experimental__help__highlight)
+        prqlc__subcmd__experimental__subcmd__help__subcmd__highlight)
             opts=""
             if [[ ${cur} == -* || ${COMP_CWORD} -eq 4 ]] ; then
                 COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
@@ -521,8 +518,8 @@ _prqlc() {
             COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
             return 0
             ;;
-        prqlc__experimental__highlight)
-            opts="-h --color --help [INPUT] [OUTPUT] [MAIN_PATH]"
+        prqlc__subcmd__experimental__subcmd__highlight)
+            opts="-h --color --help"
             if [[ ${cur} == -* || ${COMP_CWORD} -eq 3 ]] ; then
                 COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
                 return 0
@@ -539,8 +536,8 @@ _prqlc() {
             COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
             return 0
             ;;
-        prqlc__fmt)
-            opts="-h --color --help [INPUT]"
+        prqlc__subcmd__fmt)
+            opts="-h --color --help"
             if [[ ${cur} == -* || ${COMP_CWORD} -eq 2 ]] ; then
                 COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
                 return 0
@@ -557,7 +554,7 @@ _prqlc() {
             COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
             return 0
             ;;
-        prqlc__help)
+        prqlc__subcmd__help)
             opts="parse lex fmt collect debug experimental compile watch list-targets lsp shell-completion help"
             if [[ ${cur} == -* || ${COMP_CWORD} -eq 2 ]] ; then
                 COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
@@ -571,7 +568,7 @@ _prqlc() {
             COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
             return 0
             ;;
-        prqlc__help__collect)
+        prqlc__subcmd__help__subcmd__collect)
             opts=""
             if [[ ${cur} == -* || ${COMP_CWORD} -eq 3 ]] ; then
                 COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
@@ -585,7 +582,7 @@ _prqlc() {
             COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
             return 0
             ;;
-        prqlc__help__compile)
+        prqlc__subcmd__help__subcmd__compile)
             opts=""
             if [[ ${cur} == -* || ${COMP_CWORD} -eq 3 ]] ; then
                 COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
@@ -599,7 +596,7 @@ _prqlc() {
             COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
             return 0
             ;;
-        prqlc__help__debug)
+        prqlc__subcmd__help__subcmd__debug)
             opts="annotate lineage ast json-schema"
             if [[ ${cur} == -* || ${COMP_CWORD} -eq 3 ]] ; then
                 COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
@@ -613,7 +610,7 @@ _prqlc() {
             COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
             return 0
             ;;
-        prqlc__help__debug__annotate)
+        prqlc__subcmd__help__subcmd__debug__subcmd__annotate)
             opts=""
             if [[ ${cur} == -* || ${COMP_CWORD} -eq 4 ]] ; then
                 COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
@@ -627,7 +624,7 @@ _prqlc() {
             COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
             return 0
             ;;
-        prqlc__help__debug__ast)
+        prqlc__subcmd__help__subcmd__debug__subcmd__ast)
             opts=""
             if [[ ${cur} == -* || ${COMP_CWORD} -eq 4 ]] ; then
                 COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
@@ -641,7 +638,7 @@ _prqlc() {
             COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
             return 0
             ;;
-        prqlc__help__debug__json__schema)
+        prqlc__subcmd__help__subcmd__debug__subcmd__json__subcmd__schema)
             opts=""
             if [[ ${cur} == -* || ${COMP_CWORD} -eq 4 ]] ; then
                 COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
@@ -655,7 +652,7 @@ _prqlc() {
             COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
             return 0
             ;;
-        prqlc__help__debug__lineage)
+        prqlc__subcmd__help__subcmd__debug__subcmd__lineage)
             opts=""
             if [[ ${cur} == -* || ${COMP_CWORD} -eq 4 ]] ; then
                 COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
@@ -669,7 +666,7 @@ _prqlc() {
             COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
             return 0
             ;;
-        prqlc__help__experimental)
+        prqlc__subcmd__help__subcmd__experimental)
             opts="doc highlight"
             if [[ ${cur} == -* || ${COMP_CWORD} -eq 3 ]] ; then
                 COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
@@ -683,7 +680,7 @@ _prqlc() {
             COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
             return 0
             ;;
-        prqlc__help__experimental__doc)
+        prqlc__subcmd__help__subcmd__experimental__subcmd__doc)
             opts=""
             if [[ ${cur} == -* || ${COMP_CWORD} -eq 4 ]] ; then
                 COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
@@ -697,7 +694,7 @@ _prqlc() {
             COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
             return 0
             ;;
-        prqlc__help__experimental__highlight)
+        prqlc__subcmd__help__subcmd__experimental__subcmd__highlight)
             opts=""
             if [[ ${cur} == -* || ${COMP_CWORD} -eq 4 ]] ; then
                 COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
@@ -711,7 +708,7 @@ _prqlc() {
             COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
             return 0
             ;;
-        prqlc__help__fmt)
+        prqlc__subcmd__help__subcmd__fmt)
             opts=""
             if [[ ${cur} == -* || ${COMP_CWORD} -eq 3 ]] ; then
                 COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
@@ -725,7 +722,7 @@ _prqlc() {
             COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
             return 0
             ;;
-        prqlc__help__help)
+        prqlc__subcmd__help__subcmd__help)
             opts=""
             if [[ ${cur} == -* || ${COMP_CWORD} -eq 3 ]] ; then
                 COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
@@ -739,7 +736,7 @@ _prqlc() {
             COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
             return 0
             ;;
-        prqlc__help__lex)
+        prqlc__subcmd__help__subcmd__lex)
             opts=""
             if [[ ${cur} == -* || ${COMP_CWORD} -eq 3 ]] ; then
                 COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
@@ -753,7 +750,7 @@ _prqlc() {
             COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
             return 0
             ;;
-        prqlc__help__list__targets)
+        prqlc__subcmd__help__subcmd__list__subcmd__targets)
             opts=""
             if [[ ${cur} == -* || ${COMP_CWORD} -eq 3 ]] ; then
                 COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
@@ -767,7 +764,7 @@ _prqlc() {
             COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
             return 0
             ;;
-        prqlc__help__lsp)
+        prqlc__subcmd__help__subcmd__lsp)
             opts=""
             if [[ ${cur} == -* || ${COMP_CWORD} -eq 3 ]] ; then
                 COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
@@ -781,7 +778,7 @@ _prqlc() {
             COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
             return 0
             ;;
-        prqlc__help__parse)
+        prqlc__subcmd__help__subcmd__parse)
             opts=""
             if [[ ${cur} == -* || ${COMP_CWORD} -eq 3 ]] ; then
                 COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
@@ -795,7 +792,7 @@ _prqlc() {
             COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
             return 0
             ;;
-        prqlc__help__shell__completion)
+        prqlc__subcmd__help__subcmd__shell__subcmd__completion)
             opts=""
             if [[ ${cur} == -* || ${COMP_CWORD} -eq 3 ]] ; then
                 COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
@@ -809,7 +806,7 @@ _prqlc() {
             COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
             return 0
             ;;
-        prqlc__help__watch)
+        prqlc__subcmd__help__subcmd__watch)
             opts=""
             if [[ ${cur} == -* || ${COMP_CWORD} -eq 3 ]] ; then
                 COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
@@ -823,8 +820,8 @@ _prqlc() {
             COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
             return 0
             ;;
-        prqlc__lex)
-            opts="-h --format --color --help [INPUT] [OUTPUT] [MAIN_PATH]"
+        prqlc__subcmd__lex)
+            opts="-h --format --color --help"
             if [[ ${cur} == -* || ${COMP_CWORD} -eq 2 ]] ; then
                 COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
                 return 0
@@ -845,7 +842,7 @@ _prqlc() {
             COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
             return 0
             ;;
-        prqlc__list__targets)
+        prqlc__subcmd__list__subcmd__targets)
             opts="-h --color --help"
             if [[ ${cur} == -* || ${COMP_CWORD} -eq 2 ]] ; then
                 COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
@@ -863,7 +860,7 @@ _prqlc() {
             COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
             return 0
             ;;
-        prqlc__lsp)
+        prqlc__subcmd__lsp)
             opts="-h --color --help"
             if [[ ${cur} == -* || ${COMP_CWORD} -eq 2 ]] ; then
                 COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
@@ -881,8 +878,8 @@ _prqlc() {
             COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
             return 0
             ;;
-        prqlc__parse)
-            opts="-h --format --color --help [INPUT] [OUTPUT] [MAIN_PATH]"
+        prqlc__subcmd__parse)
+            opts="-h --format --color --help"
             if [[ ${cur} == -* || ${COMP_CWORD} -eq 2 ]] ; then
                 COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
                 return 0
@@ -903,7 +900,7 @@ _prqlc() {
             COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
             return 0
             ;;
-        prqlc__shell__completion)
+        prqlc__subcmd__shell__subcmd__completion)
             opts="-h --color --help bash elvish fig fish nushell powershell zsh"
             if [[ ${cur} == -* || ${COMP_CWORD} -eq 2 ]] ; then
                 COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
@@ -921,8 +918,8 @@ _prqlc() {
             COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
             return 0
             ;;
-        prqlc__watch)
-            opts="-h --no-format --no-signature --color --help <PATH>"
+        prqlc__subcmd__watch)
+            opts="-h --no-format --no-signature --color --help"
             if [[ ${cur} == -* || ${COMP_CWORD} -eq 2 ]] ; then
                 COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
                 return 0
