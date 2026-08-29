@@ -35,20 +35,21 @@ pub fn toposort<'a, Key: Eq + std::hash::Hash + Clone>(
         visiting: false,
         done: false,
     };
+    // Sized by `dependencies`, not `index`: a repeated key collapses to a single
+    // `index` entry, but `dag` still has a node per element of `dependencies`.
     let mut toposort = Toposort {
-        nodes: vec![empty; index.len()],
-        order: Vec::with_capacity(index.len()),
+        nodes: vec![empty; dependencies.len()],
+        order: Vec::with_capacity(dependencies.len()),
     };
 
     if let Some(start) = start.map(|s| index.get(s).unwrap()) {
         // use only the provided visit start
         toposort.visit(&dag, *start).ok()?;
     } else {
-        // start visits from all nodes
-        while toposort.order.len() < dependencies.len() {
-            for start_at in 0..index.len() {
-                toposort.visit(&dag, start_at).ok()?;
-            }
+        // start visits from all nodes; one pass reaches every node, since
+        // `visit` returns immediately for one that's already done
+        for start_at in 0..dependencies.len() {
+            toposort.visit(&dag, start_at).ok()?;
         }
     }
 
@@ -140,6 +141,21 @@ mod tests {
 
         let order = order.into_iter().copied().collect_vec();
         assert_eq!(order, vec!["b", "a", "c", "d"]);
+    }
+
+    /// A repeated key used to panic (or, for other shapes, loop forever),
+    /// because `nodes` was sized by the deduplicated key count while `dag` was
+    /// sized by the number of entries.
+    #[test]
+    fn repeated_key() {
+        let dependencies = vec![("c", vec!["a"]), ("a", vec![]), ("a", vec![])];
+
+        let order = toposort(&dependencies, None).unwrap();
+
+        // Every entry appears once, and the `a` that `c` resolves to — the
+        // last one declared — comes before it.
+        let order = order.into_iter().copied().collect_vec();
+        assert_eq!(order, vec!["a", "c", "a"]);
     }
 
     #[test]
