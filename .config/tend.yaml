@@ -10,6 +10,27 @@ secrets:
     - DOCKERHUB_USERNAME
 setup:
   - uses: ./.github/actions/tend-setup
+# `setup:` installs cargo-insta and cargo-nextest under the *runner* user's
+# home, which tend deliberately keeps off the sandbox PATH — the agent gets a
+# stub that exits 127. Reinstall them under the sandbox user's home, which is
+# what that stub asks for. Both ship prebuilt binaries, so this downloads rather
+# than builds (~1s for the pair).
+#
+# `~/.local/bin` rather than the cargo default: the sandbox PATH puts
+# `~/.tend-blocked/bin` ahead of `~/.cargo/bin`, so an install at the default
+# location would still be shadowed by the stub. Hence `CARGO_HOME` on the
+# cargo-dist installer, which places the binary at `$CARGO_HOME/bin`.
+#
+# Without this, `task prqlc:test` and `task prqlc:pull-request` — the inner loop
+# and pre-return gate `CLAUDE.md` documents — abort in every tend session.
+sandbox_setup:
+  - mkdir -p ~/.local/bin
+  - curl -LsSf https://get.nexte.st/latest/linux | tar zxf - -C ~/.local/bin
+  - cargo-nextest --version
+  - curl -LsSf
+    https://github.com/mitsuhiko/insta/releases/latest/download/cargo-insta-installer.sh
+    | CARGO_HOME=~/.local sh
+  - cargo-insta --version
 workflows:
   ci-fix:
     watched_workflows:
