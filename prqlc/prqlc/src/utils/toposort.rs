@@ -16,7 +16,8 @@ struct Node {
 /// Sorts `dependencies` so that each entry follows the entries it depends on.
 ///
 /// Returns one element per element of `dependencies` — not per distinct key —
-/// or `None` if the dependencies contain a cycle.
+/// or `None` if a cycle is reached. With `start`, only the reachable portion
+/// is visited, so a cycle elsewhere in `dependencies` isn't detected.
 ///
 /// - A key may be declared more than once. Edges resolve to the *last*
 ///   declaration of a key, and every declaration appears in the output, so a
@@ -177,6 +178,19 @@ mod tests {
         // last one declared — comes before it.
         let order = order.into_iter().copied().collect_vec();
         assert_eq!(order, vec!["a", "c", "a"]);
+    }
+
+    /// Cycle detection only covers the visited part of the graph, so a cycle
+    /// that `start` can't reach goes unreported.
+    #[test]
+    fn cycle_unreachable_from_root() {
+        let dependencies = vec![("a", vec![]), ("b", vec!["c"]), ("c", vec!["b"])];
+        let root = "a";
+
+        let order = toposort(&dependencies, Some(&root)).unwrap();
+
+        let order = order.into_iter().copied().collect_vec();
+        assert_eq!(order, vec!["a"]);
     }
 
     #[test]
