@@ -11,9 +11,14 @@ configuration.
 
 ## Vim
 
-Vim bundles the syntax file (since v9.1.1212), but doesn't yet detect the
-`.prql` extension, so the filetype has to be set manually. Add the following to
-your `~/.vimrc`:
+Vim needs no configuration on a current version: it detects the `.prql`
+extension (since patch 9.0.1319) and bundles the syntax file (since v9.1.1212).
+
+On any Vim older than v9.1.1212, the syntax file isn't bundled — copy
+[`prql.vim`](https://github.com/vim/vim/blob/master/runtime/syntax/prql.vim)
+into `~/.vim/syntax/`. That's sufficient on 9.0.1319 and later; on a Vim older
+than that, the extension isn't detected either, so also set the filetype in your
+`~/.vimrc`:
 
 ```vim
 augroup PrqlFileType
@@ -21,7 +26,3 @@ augroup PrqlFileType
   autocmd BufRead,BufNewFile *.prql setfiletype prql
 augroup END
 ```
-
-On an older Vim, additionally copy
-[`prql.vim`](https://github.com/vim/vim/blob/master/runtime/syntax/prql.vim)
-into `~/.vim/syntax/`.
