@@ -22,24 +22,24 @@ The PRQL compiler operates in the following stages:
    (PR).
 
 2. **Semantic Analysis**: This stage resolves names (identifiers), extracts
-   declarations, and determines frames (table columns in each step). A `Context`
-   is declared containing the root module, which maps accessible names to their
-   declarations.
+   declarations, and determines the lineage (table columns in each step) of each
+   expression. A `RootModule` is declared, holding the `Module` that maps
+   accessible names to their declarations.
 
    The resolving process involves the following operations:
    - Assign an ID to each node (`Expr` and `Stmt`).
    - Extract function declarations and variable definitions into the appropriate
-     `Module`, accessible from `Context::root_mod`.
+     `Module`, accessible from `RootModule::module`.
    - Look up identifiers in the module and find the associated declaration. The
      identifier is replaced with a fully qualified name that guarantees a unique
-     name in `root_mod`. In some cases, `Expr::target` is also set.
+     name in the root module. In some cases, `Expr::target_id` is also set.
    - Convert function calls to transforms (`from`, `derive`, `filter`) from
      `FuncCall` to `TransformCall`, which is more convenient for later
      processing.
    - Determine the type of expressions. If an expression is a reference to a
-     table, use the frame of the table as the type. If it is a `TransformCall`,
-     apply the transform to the input frame to obtain the resulting type. For
-     simple expressions, try to infer from `ExprKind`.
+     table, use the lineage of the table as the type. If it is a
+     `TransformCall`, apply the transform to the input lineage to obtain the
+     resulting type. For simple expressions, try to infer from `ExprKind`.
    - Lowering: This stage converts the PL into RQ, which is more strictly typed
      and contains less information but is convenient for translating into SQL or
      other backends.
@@ -59,7 +59,7 @@ The PRQL compiler operates in the following stages:
    This process is also called anchoring, as it anchors a column definition to a
    specific location in the output query.
 
-   During this process, `sql::context` keeps track of:
+   During this process, `AnchorContext` in `sql::pq::context` keeps track of:
    - Table instances in the query (to prevent mixing up multiple instances of
      the same table)
    - Column definitions, whether computed or a reference to a table column
