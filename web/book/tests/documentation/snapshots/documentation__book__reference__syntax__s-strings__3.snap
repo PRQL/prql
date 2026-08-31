@@ -1,15 +1,16 @@
 ---
 source: web/book/tests/documentation/book.rs
-expression: "from s\"SELECT DISTINCT ON first_name, id, age FROM employees ORDER BY age ASC\"\njoin s = s\"SELECT * FROM salaries\" (==id)\n"
+expression: "from s\"SELECT DISTINCT ON (first_name) first_name, id, age FROM employees ORDER BY first_name, age ASC\"\njoin s = s\"SELECT * FROM salaries\" (==id)\n"
 ---
 WITH table_0 AS (
   SELECT
-    DISTINCT ON first_name,
+    DISTINCT ON (first_name) first_name,
     id,
     age
   FROM
     employees
   ORDER BY
+    first_name,
     age ASC
 ),
 table_1 AS (
@@ -19,7 +20,9 @@ table_1 AS (
     salaries
 )
 SELECT
-  table_0.*,
+  table_0.id,
+  table_0.age,
+  table_0.first_name,
   table_1.*
 FROM
   table_0
