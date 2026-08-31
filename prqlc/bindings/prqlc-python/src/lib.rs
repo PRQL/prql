@@ -99,7 +99,7 @@ fn prqlc(_py: Python, m: &Bound<'_, PyModule>) -> PyResult<()> {
 }
 
 /// Compilation options for SQL backend of the compiler.
-#[pyclass]
+#[pyclass(from_py_object)]
 #[derive(Clone, Debug)]
 pub struct CompileOptions {
     /// Pass generated SQL string through a formatter that splits it into
