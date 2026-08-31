@@ -116,6 +116,7 @@ def prql_lineage(prql_query: str) -> str:
     """
     ...
 
+
 def pl_to_lineage(pl_json: str) -> str:
     """Computes a column-level lineage graph from PL AST (JSON)."""
     ...
