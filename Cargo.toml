@@ -62,6 +62,6 @@ serde = { version = "1.0.228", features = ["derive"] }
 serde_json = "1.0.150"
 serde_yaml = { version = "0.9.34" }
 similar = "2.7.0"
-similar-asserts = "1.7.0"
+similar-asserts = "2.0.0"
 strum = { version = "0.28.0", features = ["std", "derive"] }
 strum_macros = "0.28.0"
