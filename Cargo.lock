@@ -2970,7 +2970,7 @@ dependencies = [
  "serde",
  "serde_json",
  "serde_yaml",
- "similar 2.7.0",
+ "similar 3.2.0",
  "similar-asserts",
  "sqlformat",
  "sqlparser",
