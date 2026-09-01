@@ -84,7 +84,7 @@ jobs:
           anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
           bot_name: prql-bot
           model: opus
-          sandbox_setup: |
+          sandbox_setup: |2
             mkdir -p ~/.local/bin
             curl -LsSf https://get.nexte.st/latest/linux | tar zxf - -C ~/.local/bin
             cargo-nextest --version
