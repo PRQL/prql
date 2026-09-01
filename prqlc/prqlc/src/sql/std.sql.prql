@@ -346,7 +346,7 @@ module oracle {
     # Oracle's `CONCAT` takes exactly two arguments before 23ai, so the generic
     # three-argument form is rejected. `||` is available in every version.
     # https://docs.oracle.com/en/database/oracle/oracle-database/21/sqlrf/CONCAT.html
-    let contains = substr column -> s"{column:0} LIKE '%' || {substr:0} || '%'"
+    let contains = substr column -> s"{column:0} LIKE '%' || {substr:11} || '%'"
   }
 }
 
