@@ -16,6 +16,16 @@ These are all the functions defined in the `text` module:
 | trim        | `col`                  | Removes all the whitespaces from both sides of `col`                          |
 | upper       | `col`                  | Converts `col` to upper case                                                  |
 
+## Pattern matching
+
+`contains`, `starts_with` and `ends_with` compile to SQL `LIKE`, and their
+argument becomes the `LIKE` pattern rather than a literal string. `%` and `_` in
+the argument therefore keep their wildcard meaning — `text.contains "a_b"`
+matches `axb` as well as `a_b` — and PRQL does not escape them. Case sensitivity
+follows the target database's `LIKE` semantics, so lower-case the column and use
+a lower-case pattern for matching that is case-insensitive everywhere, as in the
+example below.
+
 ## Example
 
 ```prql
