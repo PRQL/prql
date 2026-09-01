@@ -41,5 +41,11 @@ jobs:
           anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
           bot_name: prql-bot
           model: opus
+          sandbox_setup: |
+            mkdir -p ~/.local/bin
+            curl -LsSf https://get.nexte.st/latest/linux | tar zxf - -C ~/.local/bin
+            cargo-nextest --version
+            curl -LsSf https://github.com/mitsuhiko/insta/releases/latest/download/cargo-insta-installer.sh | CARGO_HOME=~/.local sh
+            cargo-insta --version
           prompt: |2
             /tend-ci-runner:weekly
