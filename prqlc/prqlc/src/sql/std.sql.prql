@@ -340,6 +340,16 @@ module mysql {
   let regex_search = text pattern -> s"REGEXP_LIKE({text:0}, {pattern:0}, 'c')"
 }
 
+module oracle {
+  # Text functions
+  module text {
+    # Oracle's `CONCAT` takes exactly two arguments before 23ai, so the generic
+    # three-argument form is rejected. `||` is available in every version.
+    # https://docs.oracle.com/en/database/oracle/oracle-database/21/sqlrf/CONCAT.html
+    let contains = substr column -> s"{column:0} LIKE '%' || {substr:0} || '%'"
+  }
+}
+
 module postgres {
   @{binding_strength=11}
   let div_f = l r -> s"({l} * 1.0 / {r:12})"
