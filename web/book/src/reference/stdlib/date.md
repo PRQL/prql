@@ -74,6 +74,36 @@ select (event_time | date.trunc "day")
 
 ```
 
+### `diff`
+
+Returns the difference between two dates or timestamps, measured in `unit`. The
+unit is written as a bare keyword, unlike `date.trunc`, which takes it as a
+string.
+
+```prql
+from events
+derive { days_open = (date.diff day start_date end_date) }
+```
+
+`date.diff` compiles to the target database's own date-difference function, so
+the exact rounding behavior — whether a partial unit counts — follows that
+database rather than being normalized by PRQL:
+
+| Dialect    | SQL output                                 |
+| ---------- | ------------------------------------------ |
+| Generic    | `DATEDIFF(day, start_date, end_date)`      |
+| DuckDB     | `datediff('day', start_date, end_date)`    |
+| MSSQL      | `DATEDIFF(day, start_date, end_date)`      |
+| MySQL      | `TIMESTAMPDIFF(day, start_date, end_date)` |
+| Clickhouse | `dateDiff('day', start_date, end_date)`    |
+| BigQuery   | `DATE_DIFF(end_date, start_date, day)`     |
+| Snowflake  | `DATEDIFF(day, "start_date", "end_date")`  |
+
+<!-- prettier-ignore -->
+> [!NOTE]
+> Postgres and SQLite have no built-in date-difference function, so `date.diff`
+> raises an error when compiling for those dialects.
+
 ### Date & time format specifiers
 
 PRQL specifiers for date and time formatting is a subset of specifiers used by
