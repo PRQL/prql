@@ -1,0 +1,9 @@
+---
+source: web/book/tests/documentation/book.rs
+expression: "from events\nderive { days_open = (date.diff day start_date end_date) }\n"
+---
+SELECT
+  *,
+  DATEDIFF(day, start_date, end_date) AS days_open
+FROM
+  events
