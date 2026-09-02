@@ -244,3 +244,121 @@ mod test {
         );
     }
 }
+
+/// `pyo3-build-config` is PyO3's own build-script helper, released in lockstep
+/// with `pyo3`, and PyO3 expects the two to be on the same version. Dependabot
+/// tracks them as independent entries, so merging one bump without the other
+/// silently splits them: #6258 took `pyo3-build-config` to 0.29.2 while `pyo3`
+/// stayed on 0.27, leaving two copies of the crate in the lockfile and building
+/// this crate's extension-module link args with a helper two minor versions
+/// ahead of the `pyo3` it links against.
+///
+/// The `pyo3` group in `.github/dependabot.yaml` keeps the bumps together; this
+/// catches a split that arrives some other way. The requirements in
+/// `[workspace.dependencies]` are what Dependabot edits, so they're checked
+/// directly rather than the resolved versions in `Cargo.lock`.
+#[cfg(test)]
+mod pyo3_versions {
+    use insta::assert_snapshot;
+
+    #[test]
+    fn are_aligned() {
+        let manifest = include_str!("../../../../Cargo.toml");
+        let pyo3 = workspace_dep_version(manifest, "pyo3").expect("`pyo3` is a workspace dep");
+        let build_config = workspace_dep_version(manifest, "pyo3-build-config")
+            .expect("`pyo3-build-config` is a workspace dep");
+
+        assert_eq!(
+            minor_version(&pyo3),
+            minor_version(&build_config),
+            "`pyo3` ({pyo3}) and `pyo3-build-config` ({build_config}) must be on the same minor \
+             version — bump both together in the workspace `Cargo.toml`"
+        );
+    }
+
+    /// The version requirement `name` is pinned to in `[workspace.dependencies]`,
+    /// in either the shorthand (`foo = "1.2.3"`) or table (`foo = { version =
+    /// "1.2.3", … }`) form, the latter possibly wrapped across lines.
+    fn workspace_dep_version(manifest: &str, name: &str) -> Option<String> {
+        let deps = manifest.split_once("\n[workspace.dependencies]\n")?.1;
+        // Section headers are the only thing starting a line with `[` here.
+        let deps = deps.split("\n[").next().unwrap_or(deps);
+
+        let entry = deps.lines().position(|line| {
+            line.split_once('=')
+                .is_some_and(|(key, _)| key.trim() == name)
+        })?;
+        let entry = deps.lines().skip(entry).collect::<Vec<_>>().join("\n");
+        let value = entry.split_once('=')?.1.trim_start();
+
+        match value.strip_prefix('{') {
+            None => leading_string(value),
+            Some(table) => {
+                let table = table.split_once('}')?.0;
+                let version = table.split_once("version")?.1.trim_start();
+                leading_string(version.strip_prefix('=')?.trim_start())
+            }
+        }
+    }
+
+    /// The contents of the `"…"` string `s` starts with.
+    fn leading_string(s: &str) -> Option<String> {
+        s.strip_prefix('"')?
+            .split_once('"')
+            .map(|(value, _)| value.to_string())
+    }
+
+    /// `major.minor` of a version — PyO3 pairs the two crates per minor release,
+    /// so a differing patch level between them is not a mismatch.
+    fn minor_version(version: &str) -> &str {
+        version.rsplit_once('.').map_or(version, |(head, _)| head)
+    }
+
+    #[test]
+    fn parses_dep_versions() {
+        let manifest = r#"
+[workspace.package]
+version = "0.13.15"
+
+[workspace.dependencies]
+anyhow = "1.0.103"
+arrow = { version = "53", features = [
+  "pyarrow",
+], default-features = false }
+pyo3-build-config = "0.27.1"
+pyo3 = { version = "0.27.1", features = ["abi3-py37", "anyhow"] }
+
+[profile.release]
+lto = true
+"#;
+
+        let found = [
+            "pyo3",
+            "pyo3-build-config",
+            "arrow",
+            "anyhow",
+            "lto",
+            "serde",
+        ]
+        .map(|name| format!("{name}: {:?}", workspace_dep_version(manifest, name)))
+        .join("\n");
+
+        assert_snapshot!(found, @r#"
+        pyo3: Some("0.27.1")
+        pyo3-build-config: Some("0.27.1")
+        arrow: Some("53")
+        anyhow: Some("1.0.103")
+        lto: None
+        serde: None
+        "#);
+    }
+
+    #[test]
+    fn truncates_to_minor_version() {
+        let found = ["0.27.1", "1.0.103", "53"]
+            .map(|version| minor_version(version).to_string())
+            .join(" ");
+
+        assert_snapshot!(found, @"0.27 1.0 53");
+    }
+}
