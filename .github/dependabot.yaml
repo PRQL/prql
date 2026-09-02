@@ -9,13 +9,10 @@ updates:
     commit-message:
       prefix: "chore: "
     groups:
-      # `pyo3-build-config` is PyO3's own build-script helper and is released in
-      # lockstep with `pyo3`; PyO3 expects the two to be on the same version.
-      # Ungrouped, Dependabot raises a separate PR for each, and merging one
-      # without the other leaves the versions split — #6258 took
-      # `pyo3-build-config` to 0.29.2 while `pyo3` stayed on 0.27, which put two
-      # copies of the crate in the lockfile. Listed before `patch` because a
-      # dependency joins the first group it matches.
+      # `pyo3-build-config` is released in lockstep with `pyo3` and expects to
+      # be on the same version, but ungrouped Dependabot raises a PR for each:
+      # #6258 bumped the helper alone while `pyo3` stayed two minors behind.
+      # Listed before `patch` because a dependency joins its first match.
       pyo3:
         patterns:
           - "pyo3"
