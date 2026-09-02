@@ -99,8 +99,9 @@ fn prqlc(_py: Python, m: &Bound<'_, PyModule>) -> PyResult<()> {
 }
 
 /// Compilation options for SQL backend of the compiler.
-// `from_py_object` keeps the `FromPyObject` impl that `#[pyclass] + Clone` used
-// to derive implicitly; `compile` and `rq_to_sql` take this by value.
+// `#[pyclass]` + `Clone` still derives `FromPyObject` implicitly in 0.29, but
+// deprecated since 0.28, and workspace clippy runs `-D warnings`. `compile`
+// and `rq_to_sql` take this by value, so opt in rather than skip.
 #[pyclass(from_py_object)]
 #[derive(Clone, Debug)]
 pub struct CompileOptions {
