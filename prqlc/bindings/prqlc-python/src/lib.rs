@@ -282,7 +282,7 @@ mod pyo3_versions {
     fn workspace_dep_version(manifest: &str, name: &str) -> Option<String> {
         let deps = manifest.split_once("\n[workspace.dependencies]\n")?.1;
         // Section headers are the only thing starting a line with `[` here.
-        let deps = deps.split("\n[").next().unwrap_or(deps);
+        let deps = deps.split_once("\n[").map_or(deps, |(section, _)| section);
 
         let entry = deps.lines().position(|line| {
             line.split_once('=')
@@ -311,7 +311,10 @@ mod pyo3_versions {
     /// `major.minor` of a version — PyO3 pairs the two crates per minor release,
     /// so a differing patch level between them is not a mismatch.
     fn minor_version(version: &str) -> &str {
-        version.rsplit_once('.').map_or(version, |(head, _)| head)
+        match version.match_indices('.').nth(1) {
+            Some((end, _)) => &version[..end],
+            None => version,
+        }
     }
 
     #[test]
@@ -355,10 +358,10 @@ lto = true
 
     #[test]
     fn truncates_to_minor_version() {
-        let found = ["0.27.1", "1.0.103", "53"]
+        let found = ["0.27.1", "0.27", "1.0.103", "53"]
             .map(|version| minor_version(version).to_string())
             .join(" ");
 
-        assert_snapshot!(found, @"0.27 1.0 53");
+        assert_snapshot!(found, @"0.27 0.27 1.0 53");
     }
 }
