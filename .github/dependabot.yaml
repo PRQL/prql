@@ -8,8 +8,19 @@ updates:
       interval: weekly
     commit-message:
       prefix: "chore: "
-    # Bump all patch versions of rust dependencies as a single PR
     groups:
+      # `pyo3-build-config` is PyO3's own build-script helper and is released in
+      # lockstep with `pyo3`; PyO3 expects the two to be on the same version.
+      # Ungrouped, Dependabot raises a separate PR for each, and merging one
+      # without the other leaves the versions split — #6258 took
+      # `pyo3-build-config` to 0.29.2 while `pyo3` stayed on 0.27, which put two
+      # copies of the crate in the lockfile. Listed before `patch` because a
+      # dependency joins the first group it matches.
+      pyo3:
+        patterns:
+          - "pyo3"
+          - "pyo3-build-config"
+      # Bump all patch versions of rust dependencies as a single PR
       patch:
         update-types:
           - patch
