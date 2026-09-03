@@ -1085,7 +1085,12 @@ impl SQLExpression for sql_ast::Expr {
 
             sql_ast::Expr::UnaryOp { op, .. } => op.binding_strength(),
 
-            sql_ast::Expr::Like { .. } | sql_ast::Expr::ILike { .. } => 7,
+            // `BETWEEN` and `LIKE` sit at the same level in both PostgreSQL and
+            // SQLite: below "any other operator" (which includes `||`) and
+            // above the comparison operators.
+            sql_ast::Expr::Like { .. }
+            | sql_ast::Expr::ILike { .. }
+            | sql_ast::Expr::Between { .. } => 7,
 
             sql_ast::Expr::IsNull(_) | sql_ast::Expr::IsNotNull(_) => 5,
 

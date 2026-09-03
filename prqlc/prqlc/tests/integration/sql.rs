@@ -7854,13 +7854,17 @@ fn test_sqlite_concat_parenthesizes_compound_operands() {
     // `*`/`/`/`%` and `+`/`-`, so an unparenthesized operand binds to the
     // neighbouring pieces of the f-string instead of to itself:
     // `'pre' || a * b || 'post'` parses as `('pre' || a) * (b || 'post')`.
+    // `BETWEEN` binds looser than `||` in both dialects, so it needs the same
+    // treatment: `a BETWEEN 1 AND 5 || 'x'` parses as
+    // `a BETWEEN 1 AND ('5' || 'x')`.
     assert_snapshot!(compile_with_sql_dialect(r###"
     from x
-    derive {m = a * b, n = a + b, p = a == b}
+    derive {m = a * b, n = a + b, p = a == b, t = (a >= 1 && a <= 5)}
     select {
         y = f"pre{m}post",
         z = f"{n}x",
         q = f"{p}x",
+        bt = f"{t}x",
         w = f"{a}{b}{c}",
     }
     "###, sql::Dialect::SQLite
@@ -7869,6 +7873,7 @@ fn test_sqlite_concat_parenthesizes_compound_operands() {
       'pre' || (a * b) || 'post' AS y,
       (a + b) || 'x' AS z,
       (a = b) || 'x' AS q,
+      (a BETWEEN 1 AND 5) || 'x' AS bt,
       a || b || c AS w
     FROM
       x
@@ -7879,21 +7884,23 @@ fn test_sqlite_concat_parenthesizes_compound_operands() {
 fn test_redshift_concat_parenthesizes_comparison_operand() {
     // Redshift inherits PostgreSQL's precedence, where `||` sits below binary
     // `+`/`-` but above the comparison operators — so arithmetic operands need
-    // no parentheses while a comparison does.
+    // no parentheses while a comparison or a `BETWEEN` does.
     assert_snapshot!(compile_with_sql_dialect(r###"
     from x
-    derive {m = a * b, n = a + b, p = a == b}
+    derive {m = a * b, n = a + b, p = a == b, t = (a >= 1 && a <= 5)}
     select {
         y = f"pre{m}post",
         z = f"{n}x",
         q = f"{p}x",
+        bt = f"{t}x",
     }
     "###, sql::Dialect::Redshift
     ).unwrap(), @"
     SELECT
       'pre' || a * b || 'post' AS y,
       a + b || 'x' AS z,
-      (a = b) || 'x' AS q
+      (a = b) || 'x' AS q,
+      (a BETWEEN 1 AND 5) || 'x' AS bt
     FROM
       x
     ");
