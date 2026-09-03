@@ -413,9 +413,12 @@ module sqlite {
   module text {
     # SQLite: https://www.sqlite.org/lang_corefunc.html
     let length = column -> s"LENGTH({column:0})"
-    let starts_with = prefix column -> s"{column:0} LIKE {prefix:0} || '%'"
-    let contains = substr column -> s"{column:0} LIKE '%' || {substr:0} || '%'"
-    let ends_with = suffix column -> s"{column:0} LIKE '%' || {suffix:0}"
+    # SQLite ranks `||` above both `*`/`/`/`%` and `+`/`-`, so an unparenthesized
+    # argument binds to the surrounding `'%'` literals rather than to itself.
+    # https://www.sqlite.org/lang_expr.html#operators_and_parse_affecting_attributes
+    let starts_with = prefix column -> s"{column:0} LIKE {prefix:12} || '%'"
+    let contains = substr column -> s"{column:0} LIKE '%' || {substr:12} || '%'"
+    let ends_with = suffix column -> s"{column:0} LIKE '%' || {suffix:12}"
   }
 
   # Date functions
