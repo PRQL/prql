@@ -367,12 +367,21 @@ fn process_concat(expr: &rq::Expr, ctx: &mut Context) -> Result<sql_ast::Expr> {
     } else {
         let concat_args = collect_concat_args(expr);
 
+        // Operands need parenthesizing against the dialect's ranking of `||`,
+        // which differs between dialects: SQLite ranks it above `* / %`, while
+        // Redshift (like PostgreSQL) ranks it below binary `+`/`-`.
+        let strength = ctx.dialect.string_concat_binding_strength();
+
         let mut iter = concat_args.into_iter();
         let first_expr = iter.next().unwrap();
-        let mut current_expr = translate_expr(first_expr.clone(), ctx)?.into_ast();
+        let mut current_expr =
+            translate_operand(first_expr.clone(), true, strength, Associativity::Both, ctx)?
+                .into_ast();
 
         for arg in iter {
-            let translated_arg = translate_expr(arg.clone(), ctx)?.into_ast();
+            let translated_arg =
+                translate_operand(arg.clone(), false, strength, Associativity::Both, ctx)?
+                    .into_ast();
             current_expr = sql_ast::Expr::BinaryOp {
                 left: Box::new(current_expr),
                 op: BinaryOperator::StringConcat,

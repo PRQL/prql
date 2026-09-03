@@ -3146,7 +3146,7 @@ fn test_f_string() {
           @"
     SELECT
       'Hello my name is ' || prefix || first_name || ' ' || last_name,
-      'and I am ' || year_born - now() || ' years old.'
+      'and I am ' || (year_born - now()) || ' years old.'
     FROM
       employees
     "
@@ -7846,4 +7846,55 @@ fn test_append_by_name() {
     FROM
       bar
     "###);
+}
+
+#[test]
+fn test_sqlite_concat_parenthesizes_compound_operands() {
+    // SQLite emits `||` rather than `CONCAT`, and ranks `||` above both
+    // `*`/`/`/`%` and `+`/`-`, so an unparenthesized operand binds to the
+    // neighbouring pieces of the f-string instead of to itself:
+    // `'pre' || a * b || 'post'` parses as `('pre' || a) * (b || 'post')`.
+    assert_snapshot!(compile_with_sql_dialect(r###"
+    from x
+    derive {m = a * b, n = a + b, p = a == b}
+    select {
+        y = f"pre{m}post",
+        z = f"{n}x",
+        q = f"{p}x",
+        w = f"{a}{b}{c}",
+    }
+    "###, sql::Dialect::SQLite
+    ).unwrap(), @"
+    SELECT
+      'pre' || (a * b) || 'post' AS y,
+      (a + b) || 'x' AS z,
+      (a = b) || 'x' AS q,
+      a || b || c AS w
+    FROM
+      x
+    ");
+}
+
+#[test]
+fn test_redshift_concat_parenthesizes_comparison_operand() {
+    // Redshift inherits PostgreSQL's precedence, where `||` sits below binary
+    // `+`/`-` but above the comparison operators — so arithmetic operands need
+    // no parentheses while a comparison does.
+    assert_snapshot!(compile_with_sql_dialect(r###"
+    from x
+    derive {m = a * b, n = a + b, p = a == b}
+    select {
+        y = f"pre{m}post",
+        z = f"{n}x",
+        q = f"{p}x",
+    }
+    "###, sql::Dialect::Redshift
+    ).unwrap(), @"
+    SELECT
+      'pre' || a * b || 'post' AS y,
+      a + b || 'x' AS z,
+      (a = b) || 'x' AS q
+    FROM
+      x
+    ");
 }
