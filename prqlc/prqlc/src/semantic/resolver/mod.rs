@@ -37,9 +37,6 @@ pub struct Resolver<'a> {
     pub id: IdGenerator<usize>,
 }
 
-#[derive(Default, Clone)]
-pub struct ResolverOptions {}
-
 impl Resolver<'_> {
     pub fn new(root_mod: &mut RootModule) -> Resolver<'_> {
         Resolver {
