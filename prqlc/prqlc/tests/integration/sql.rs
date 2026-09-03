@@ -7857,15 +7857,19 @@ fn test_sqlite_concat_parenthesizes_compound_operands() {
     // `BETWEEN` binds looser than `||` in both dialects, so it needs the same
     // treatment: `a BETWEEN 1 AND 5 || 'x'` parses as
     // `a BETWEEN 1 AND ('5' || 'x')`.
+    //
+    // An operand that is itself a `||` chain (`nest`) stays unparenthesized —
+    // `||` is associative, so it never needs wrapping against itself.
     assert_snapshot!(compile_with_sql_dialect(r###"
     from x
-    derive {m = a * b, n = a + b, p = a == b, t = (a >= 1 && a <= 5)}
+    derive {m = a * b, n = a + b, p = a == b, t = (a >= 1 && a <= 5), s = f"{a}{b}"}
     select {
         y = f"pre{m}post",
         z = f"{n}x",
         q = f"{p}x",
         bt = f"{t}x",
         w = f"{a}{b}{c}",
+        nest = f"{s}!",
     }
     "###, sql::Dialect::SQLite
     ).unwrap(), @"
@@ -7874,7 +7878,8 @@ fn test_sqlite_concat_parenthesizes_compound_operands() {
       (a + b) || 'x' AS z,
       (a = b) || 'x' AS q,
       (a BETWEEN 1 AND 5) || 'x' AS bt,
-      a || b || c AS w
+      a || b || c AS w,
+      a || b || '!' AS nest
     FROM
       x
     ");

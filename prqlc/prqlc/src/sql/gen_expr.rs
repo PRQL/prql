@@ -374,14 +374,10 @@ fn process_concat(expr: &rq::Expr, ctx: &mut Context) -> Result<sql_ast::Expr> {
 
         let mut iter = concat_args.into_iter();
         let first_expr = iter.next().unwrap();
-        let mut current_expr =
-            translate_operand(first_expr.clone(), true, strength, Associativity::Both, ctx)?
-                .into_ast();
+        let mut current_expr = translate_concat_operand(first_expr.clone(), true, strength, ctx)?;
 
         for arg in iter {
-            let translated_arg =
-                translate_operand(arg.clone(), false, strength, Associativity::Both, ctx)?
-                    .into_ast();
+            let translated_arg = translate_concat_operand(arg.clone(), false, strength, ctx)?;
             current_expr = sql_ast::Expr::BinaryOp {
                 left: Box::new(current_expr),
                 op: BinaryOperator::StringConcat,
@@ -408,6 +404,41 @@ fn translate_binary_operator(
     let right = Box::new(right.into_ast());
 
     Ok(sql_ast::Expr::BinaryOp { left, op, right })
+}
+
+/// Translates a single operand of a hand-built `||` chain, parenthesizing it
+/// against the dialect's ranking of `||`.
+///
+/// An operand that is itself a `||` chain is left alone. Its strength comes
+/// from `BinaryOperator::binding_strength`'s generic `_ => 9` arm rather than
+/// from the dialect, so on a dialect that ranks `||` above `9` the same
+/// operator would be compared against two different strengths and the child
+/// wrapped needlessly. `||` is associative, so a chain never needs parentheses
+/// against another chain either way.
+fn translate_concat_operand(
+    arg: rq::Expr,
+    is_left: bool,
+    strength: i32,
+    ctx: &mut Context,
+) -> Result<sql_ast::Expr> {
+    let expr = translate_expr(arg, ctx)?;
+
+    let is_concat_chain = matches!(
+        &expr,
+        ExprOrSource::Expr(inner) if matches!(
+            **inner,
+            sql_ast::Expr::BinaryOp {
+                op: BinaryOperator::StringConcat,
+                ..
+            }
+        )
+    );
+
+    if !is_concat_chain && needs_parentheses(&expr, is_left, strength, Associativity::Both) {
+        Ok(expr.wrap_in_parenthesis().into_ast())
+    } else {
+        Ok(expr.into_ast())
+    }
 }
 
 fn collect_concat_args(expr: &rq::Expr) -> Vec<&rq::Expr> {
@@ -1085,9 +1116,10 @@ impl SQLExpression for sql_ast::Expr {
 
             sql_ast::Expr::UnaryOp { op, .. } => op.binding_strength(),
 
-            // `BETWEEN` and `LIKE` sit at the same level in both PostgreSQL and
-            // SQLite: below "any other operator" (which includes `||`) and
-            // above the comparison operators.
+            // `BETWEEN` and `LIKE` sit at the same level as each other, below
+            // `||`, in both PostgreSQL and SQLite. `7` follows PostgreSQL,
+            // which puts that level above the comparison operators; SQLite
+            // instead ranks it alongside `=` and below `< > <= >=`.
             sql_ast::Expr::Like { .. }
             | sql_ast::Expr::ILike { .. }
             | sql_ast::Expr::Between { .. } => 7,
