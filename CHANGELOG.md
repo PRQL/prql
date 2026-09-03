@@ -43,6 +43,11 @@
   a compile error, but it was rendered as `take 1..5`, which compiles to
   `LIMIT 5`. (@prql-bot, #6232)
 
+- `text.contains` now compiles to `||` concatenation on the `sql.oracle` target,
+  rather than a three-argument `CONCAT`. Oracle's `CONCAT` takes exactly two
+  arguments before 23ai, so the generated query was rejected outright. This
+  matches the existing `sql.redshift` override. (@prql-bot, #6267)
+
 **Documentation**:
 
 **Web**:

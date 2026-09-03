@@ -7111,6 +7111,48 @@ fn test_redshift_text_contains_uses_double_pipe() {
 }
 
 #[test]
+fn test_oracle_text_contains_uses_double_pipe() {
+    // https://github.com/PRQL/prql/issues/5751
+    // Oracle's CONCAT takes exactly two arguments before 23ai, so the generic
+    // three-argument form is invalid.
+    assert_snapshot!(compile_with_sql_dialect(r###"
+    from employees
+    select {
+        name,
+        has_substring = (name | text.contains "pika")
+    }
+    "###, sql::Dialect::Oracle
+    ).unwrap(), @r#"
+    SELECT
+      "name",
+      "name" LIKE '%' || 'pika' || '%' AS "has_substring"
+    FROM
+      "employees"
+    "#);
+}
+
+#[test]
+fn test_oracle_text_contains_parenthesizes_additive_argument() {
+    // Oracle ranks binary `+`/`-` at the same precedence as `||`, evaluated
+    // left to right, so an unparenthesized argument would parse as
+    // `((('%' || first_name) + last_name) || '%')`.
+    assert_snapshot!(compile_with_sql_dialect(r###"
+    from employees
+    select {
+        name,
+        has_substring = (name | text.contains (first_name + last_name))
+    }
+    "###, sql::Dialect::Oracle
+    ).unwrap(), @r#"
+    SELECT
+      "name",
+      "name" LIKE '%' || ("first_name" + "last_name") || '%' AS "has_substring"
+    FROM
+      "employees"
+    "#);
+}
+
+#[test]
 fn test_snowflake_row_number_requires_order_by() {
     // https://github.com/PRQL/prql/issues/5580
     // Snowflake requires ORDER BY for ROW_NUMBER() in window specification
