@@ -49,9 +49,9 @@
   matches the existing `sql.redshift` override. (@prql-bot, #6267)
 
 - f-strings now parenthesize their operands on the `sql.sqlite` and
-  `sql.redshift` targets, which emit `||` rather than `CONCAT`. Operands
-  were passed through without any precedence check, so `f"pre{a * b}post"`
-  compiled to `'pre' || a * b || 'post'`, which SQLite parses as
+  `sql.redshift` targets, which emit `||` rather than `CONCAT`. Operands were
+  passed through without any precedence check, so `f"pre{a * b}post"` compiled
+  to `'pre' || a * b || 'post'`, which SQLite parses as
   `('pre' || a) * (b || 'post')` and evaluates to a number rather than a string.
   (@prql-bot, #6273)
 
