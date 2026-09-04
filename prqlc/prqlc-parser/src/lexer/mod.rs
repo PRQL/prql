@@ -61,7 +61,9 @@ fn convert_lexer_error(source: &str, error: &Simple<'_, char>, source_id: u16) -
     .with_source(ErrorSource::Lexer(error_source))
 }
 
-/// Lex PRQL into LR, returning both the LR and any errors encountered
+/// Lex PRQL into LR, returning the tokens if the whole source lexed and the
+/// errors if it didn't. The lexer doesn't resume after an error, so tokens and
+/// errors never come back together.
 pub fn lex_source_recovery(source: &str, source_id: u16) -> (Option<Vec<Token>>, Vec<E>) {
     let result = lexer().parse(source).into_result();
 
