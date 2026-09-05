@@ -3146,7 +3146,7 @@ fn test_f_string() {
           @"
     SELECT
       'Hello my name is ' || prefix || first_name || ' ' || last_name,
-      'and I am ' || year_born - now() || ' years old.'
+      'and I am ' || (year_born - now()) || ' years old.'
     FROM
       employees
     "
@@ -7846,4 +7846,67 @@ fn test_append_by_name() {
     FROM
       bar
     "###);
+}
+
+#[test]
+fn test_sqlite_concat_parenthesizes_compound_operands() {
+    // SQLite emits `||` rather than `CONCAT`, and ranks `||` above both
+    // `*`/`/`/`%` and `+`/`-`, so an unparenthesized operand binds to the
+    // neighbouring pieces of the f-string instead of to itself:
+    // `'pre' || a * b || 'post'` parses as `('pre' || a) * (b || 'post')`.
+    // `BETWEEN` binds looser than `||` in both dialects, so it needs the same
+    // treatment: `a BETWEEN 1 AND 5 || 'x'` parses as
+    // `a BETWEEN 1 AND ('5' || 'x')`.
+    //
+    // An operand that is itself a `||` chain (`nest`) stays unparenthesized —
+    // `||` is associative, so it never needs wrapping against itself.
+    assert_snapshot!(compile_with_sql_dialect(r###"
+    from x
+    derive {m = a * b, n = a + b, p = a == b, t = (a >= 1 && a <= 5), s = f"{a}{b}"}
+    select {
+        y = f"pre{m}post",
+        z = f"{n}x",
+        q = f"{p}x",
+        bt = f"{t}x",
+        w = f"{a}{b}{c}",
+        nest = f"{s}!",
+    }
+    "###, sql::Dialect::SQLite
+    ).unwrap(), @"
+    SELECT
+      'pre' || (a * b) || 'post' AS y,
+      (a + b) || 'x' AS z,
+      (a = b) || 'x' AS q,
+      (a BETWEEN 1 AND 5) || 'x' AS bt,
+      a || b || c AS w,
+      a || b || '!' AS nest
+    FROM
+      x
+    ");
+}
+
+#[test]
+fn test_redshift_concat_parenthesizes_comparison_operand() {
+    // Redshift inherits PostgreSQL's precedence, where `||` sits below binary
+    // `+`/`-` but above the comparison operators — so arithmetic operands need
+    // no parentheses while a comparison or a `BETWEEN` does.
+    assert_snapshot!(compile_with_sql_dialect(r###"
+    from x
+    derive {m = a * b, n = a + b, p = a == b, t = (a >= 1 && a <= 5)}
+    select {
+        y = f"pre{m}post",
+        z = f"{n}x",
+        q = f"{p}x",
+        bt = f"{t}x",
+    }
+    "###, sql::Dialect::Redshift
+    ).unwrap(), @"
+    SELECT
+      'pre' || a * b || 'post' AS y,
+      a + b || 'x' AS z,
+      (a = b) || 'x' AS q,
+      (a BETWEEN 1 AND 5) || 'x' AS bt
+    FROM
+      x
+    ");
 }

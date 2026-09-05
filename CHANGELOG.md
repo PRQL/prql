@@ -48,6 +48,15 @@
   arguments before 23ai, so the generated query was rejected outright. This
   matches the existing `sql.redshift` override. (@prql-bot, #6267)
 
+- f-strings now parenthesize operand expressions on the `sql.sqlite` and
+  `sql.redshift` targets, which emit `||` rather than `CONCAT`. Operands were
+  passed through without any precedence check, so `f"pre{a * b}post"` compiled
+  to `'pre' || a * b || 'post'`, which SQLite parses as
+  `('pre' || a) * (b || 'post')` and evaluates to a number rather than a string.
+  `BETWEEN` operands, which bind looser than `||` in both dialects, are
+  parenthesized too. Operands that expand from an s-string still follow that
+  s-string's declared binding strength. (@prql-bot, #6273)
+
 **Documentation**:
 
 - The `prql-java` README now documents the actual API. It advertised a

@@ -227,6 +227,17 @@ pub(super) trait DialectHandler: Any + Debug {
         true
     }
 
+    /// Binding strength of the `||` string-concatenation operator, used to
+    /// decide whether operands of a `||` chain need parentheses. Only relevant
+    /// for dialects where [`Self::has_concat_function`] is `false`.
+    ///
+    /// The default matches `BinaryOperator::StringConcat`'s generic strength of
+    /// `9`, which is where PostgreSQL — and so Redshift — ranks `||`: below
+    /// binary `+`/`-`.
+    fn string_concat_binding_strength(&self) -> i32 {
+        9
+    }
+
     /// Whether or not intervals such as `INTERVAL 1 HOUR` require quotes like
     /// `INTERVAL '1 HOUR'` or `INTERVAL '1' HOUR`
     fn interval_quoting_style(&self, _dtf: &DateTimeField) -> IntervalQuotingStyle {
@@ -438,6 +449,14 @@ impl DialectHandler for SQLiteDialect {
 
     fn has_concat_function(&self) -> bool {
         false
+    }
+
+    /// SQLite ranks `||` above `* / %`, which is above `+ -`:
+    /// <https://www.sqlite.org/lang_expr.html#operators_and_parse_affecting_attributes>
+    /// So it sits above `Modulo | Multiply | Divide => 11` and below the unary
+    /// operators at `13`.
+    fn string_concat_binding_strength(&self) -> i32 {
+        12
     }
 
     fn stars_in_group(&self) -> bool {
