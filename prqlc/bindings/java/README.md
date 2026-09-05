@@ -22,10 +22,15 @@ isn't published to Maven. Contributions are welcome.
 ## Installation
 
 Build the bindings and install them into your local Maven repository from
-`java/`:
+`java/`. The jar this produces does not bundle the native library — only the
+`deploy` profile's `cross.sh` step populates `src/main/resources` — so consumers
+need `libprql_java` from the workspace's `target/release` on
+`java.library.path`:
 
 ```sh
-./mvnw install
+# `-Dgpg.skip=true` because `java/pom.xml` binds `maven-gpg-plugin` to the
+# `verify` phase, which `install` runs.
+./mvnw install -Dgpg.skip=true
 ```
 
 Then depend on the coordinates declared in
@@ -53,6 +58,14 @@ class Main {
         System.out.println(sql);
     }
 }
+```
+
+Run it with the native library on the library path, otherwise `PrqlCompiler`'s
+static initializer falls through to the in-jar lookup and fails with
+`libprql_java-linux64.so was not found inside JAR`:
+
+```sh
+java -Djava.library.path=/path/to/prql/target/release Main
 ```
 
 See
