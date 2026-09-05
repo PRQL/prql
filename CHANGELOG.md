@@ -48,6 +48,14 @@
   arguments before 23ai, so the generated query was rejected outright. This
   matches the existing `sql.redshift` override. (@prql-bot, #6267)
 
+- `text.contains`, `text.starts_with` and `text.ends_with` now parenthesize
+  their argument on the `sql.sqlite` target. SQLite ranks `||` above both
+  `*`/`/`/`%` and `+`/`-`, so an arithmetic argument bound to the surrounding
+  `'%'` literals instead of to itself — `text.contains (a + b)` compiled to
+  `col LIKE '%' || a + b || '%'`, which SQLite parses as
+  `('%' || a) + (b || '%')` and evaluates to a number rather than a pattern.
+  (@prql-bot, #6272)
+
 **Documentation**:
 
 - The `prql-java` README now documents the actual API. It advertised a
