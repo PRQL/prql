@@ -1,5 +1,4 @@
 import "./Sidebar.css";
-import React from "react";
 import { useState } from "react";
 
 function Sidebar({ library, onLoadFile }) {
@@ -8,8 +7,7 @@ function Sidebar({ library, onLoadFile }) {
   }
 
   function toggleFolder(id) {
-    openFolders[id] = !Boolean(openFolders[id]);
-    setOpenFolders(() => ({ ...openFolders }));
+    setOpenFolders((folders) => ({ ...folders, [id]: !folders[id] }));
   }
 
   function handleClick(section, file, id) {
@@ -29,28 +27,37 @@ function Sidebar({ library, onLoadFile }) {
 
   for (const [section, files] of Object.entries(library)) {
     const fileRows = [];
-    for (const [index, filename] of Object.keys(files).entries()) {
-      const array = files[filename];
-      const depth = array[2];
-      const parent = array[3];
-      const id = array[4];
-      const name = array[5];
+    // Whether each row's children should render: the row is itself visible
+    // *and* open. `generateBook.cjs` emits parents before their children, so
+    // an entry's ancestors are already recorded by the time it's read. Testing
+    // only the immediate parent would leave a subtree dangling at the top of
+    // the sidebar when a grandparent is collapsed while the parent stays open.
+    const childrenVisible = {};
+    for (const filename of Object.keys(files)) {
+      // The `book` section carries tree metadata past the editor and content;
+      // the flat sections (examples, tables, local storage) leave it undefined.
+      const [, , depth, parent, id, name] = files[filename];
+      const visible =
+        parent == null || depth === 0 || Boolean(childrenVisible[parent]);
+      childrenVisible[id] = visible && Boolean(openFolders[id]);
+
+      if (!visible) {
+        continue;
+      }
+
       fileRows.push(
-        <React.Fragment key={index}>
-          {(parent == null || openFolders[parent] || depth === 0) && (
-            <div
-              className={
-                "fileRow " +
-                (isFile(filename) ? " " : " folderRow ") +
-                (openFolders[id] ? " open " : " ")
-              }
-              style={{ marginLeft: `${12 * depth}px` }}
-              onClick={() => handleClick(section, filename, id)}
-            >
-              {name ?? filename}
-            </div>
-          )}
-        </React.Fragment>,
+        <div
+          key={filename}
+          className={
+            "fileRow " +
+            (isFile(filename) ? " " : " folderRow ") +
+            (openFolders[id] ? " open " : " ")
+          }
+          style={{ marginLeft: `${12 * (depth ?? 0)}px` }}
+          onClick={() => handleClick(section, filename, id)}
+        >
+          {name ?? filename}
+        </div>,
       );
     }
 
