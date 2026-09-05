@@ -50,6 +50,15 @@
 
 **Documentation**:
 
+- The `prql-java` README now documents the actual API. It advertised a
+  single-argument `toSql(String query)` in package `org.prqllang.prql4j`; the
+  binding really exposes `toSql(query, target, format, signature)`, `toJson` and
+  `format` in package `org.prql.prql4j`, so the usage example as written would
+  not compile. `DEVELOPMENT.md` also described publishing to Maven as a working
+  step, but the `publish-prql-java` release job has been commented out since
+  #850 and no `org.prqllang` artifact exists on Maven Central. (@prql-bot,
+  #6281)
+
 **Web**:
 
 - The playground no longer depends on `web-vitals`. `reportWebVitals` was called
