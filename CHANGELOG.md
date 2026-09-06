@@ -43,6 +43,11 @@
   a compile error, but it was rendered as `take 1..5`, which compiles to
   `LIMIT 5`. (@prql-bot, #6232)
 
+- The two errors from the self-equality operator — `==5` and `==x.y` in a `join`
+  — now report a source location. They were raised without a span, so they
+  printed as a bare `Error: self-equality operator requires a column name` with
+  no snippet pointing at the offending expression. (@prql-bot, #6283)
+
 - `text.contains` now compiles to `||` concatenation on the `sql.oracle` target,
   rather than a three-argument `CONCAT`. Oracle's `CONCAT` takes exactly two
   arguments before 23ai, so the generated query was rejected outright. This
