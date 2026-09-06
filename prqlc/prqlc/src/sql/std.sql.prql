@@ -78,6 +78,10 @@ module math {
   let exp = column -> s"EXP({column:0})"
   let ln = column -> s"LN({column:0})"
   let log10 = column -> s"LOG10({column:0})"
+  # This compiles to a top-level `/`, so it needs the same binding strength as
+  # `div_f`; without it the result reports the s-string default of `100` and is
+  # emitted bare into a surrounding expression.
+  @{binding_strength=11}
   let log = base column -> s"LOG10({column:0}) / LOG10({base:0})"
   let sqrt = column -> s"SQRT({column:0})"
   let degrees = column -> s"DEGREES({column:0})"
@@ -158,7 +162,9 @@ let read_json = source -> s"read_json({source:0})"
 @{binding_strength=11}
 let mul = l r -> null
 
-@{binding_strength=100}
+# The body ends in `* SIGN(...) * SIGN(...)`, so the top-level operation is a
+# multiplication rather than the `FLOOR` call — `11`, where `mul` ranks.
+@{binding_strength=11}
 let div_i = l r -> s"FLOOR(ABS({l:11} / {r:12})) * SIGN({l:0}) * SIGN({r:0})"
 
 # We have a simple float division by default, but it can be overridden by
@@ -414,7 +420,9 @@ module sqlite {
   @{binding_strength=11}
   let div_f = l r -> s"({l} * 1.0 / {r:12})"
 
-  @{binding_strength=100}
+  # As with the generic definition, the top-level operation is the trailing
+  # `* SIGN(...)`, not the `CAST`.
+  @{binding_strength=11}
   let div_i = l r -> s"CAST(ABS({l:11} * 1.0 / {r:12}) AS INTEGER) * SIGN({l:0}) * SIGN({r:0})"
 
   # Text functions

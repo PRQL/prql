@@ -8020,3 +8020,94 @@ fn test_postgres_concat_leaves_text_pattern_operand_unwrapped() {
       x
     ");
 }
+
+#[test]
+fn test_div_i_parenthesized_as_a_multiplication_operand() {
+    // The generic `div_i` body ends in `* SIGN(...) * SIGN(...)`, so its
+    // top-level operation is a multiplication, not the `FLOOR` call. It
+    // declared `100` anyway, so it was emitted bare and the trailing factors
+    // escaped the operand: `1 / FLOOR(...) * SIGN(a) * SIGN(b)` multiplies by
+    // the signs instead of dividing by the whole quotient.
+    assert_snapshot!(compile(r###"
+    from x
+    select {q = 1 / (a // b), plain = a // b}
+    "###).unwrap(), @r"
+    SELECT
+      1 / (FLOOR(ABS(a / b)) * SIGN(a) * SIGN(b)) AS q,
+      FLOOR(ABS(a / b)) * SIGN(a) * SIGN(b) AS plain
+    FROM
+      x
+    ");
+}
+
+#[test]
+fn test_sqlite_div_i_parenthesized_in_f_string() {
+    // SQLite overrides `div_i` with a body of the same shape, and ranks `||`
+    // above `*` — so an unparenthesized result binds its trailing `SIGN(b)` to
+    // the next f-string piece.
+    assert_snapshot!(compile_with_sql_dialect(r###"
+    from x
+    derive d = (a // b)
+    select r = f"{d}!"
+    "###, sql::Dialect::SQLite
+    ).unwrap(), @r"
+    SELECT
+      (
+        CAST(ABS(a * 1.0 / b) AS INTEGER) * SIGN(a) * SIGN(b)
+      ) || '!' AS r
+    FROM
+      x
+    ");
+}
+
+#[test]
+fn test_postgres_div_i_left_unwrapped() {
+    // Postgres wraps its `div_i` in `TRUNC(...)` and declares `100` to match,
+    // so no parentheses should appear. (DuckDB has the same body but declares
+    // `11`, so it still gets a redundant pair — pre-existing, not covered here.)
+    assert_snapshot!(compile_with_sql_dialect(r###"
+    from x
+    select q = 1 / (a // b)
+    "###, sql::Dialect::Postgres
+    ).unwrap(), @r"
+    SELECT
+      (1 * 1.0 / TRUNC(a / b)) AS q
+    FROM
+      x
+    ");
+}
+
+#[test]
+fn test_math_log_parenthesized_as_a_division_operand() {
+    // `math.log` compiles to a top-level `/` but declared no
+    // `binding_strength`, so it reported the s-string default of `100`:
+    // `1 / LOG10(a) / LOG10(2)` is `1 / (log₁₀a · log₁₀2)`, not
+    // `1 / (log₁₀a / log₁₀2)`. This is dialect-independent.
+    assert_snapshot!(compile(r###"
+    from x
+    select {q = 1 / (a | math.log 2), plain = (a | math.log 2)}
+    "###).unwrap(), @r"
+    SELECT
+      1 / (LOG10(a) / LOG10(2)) AS q,
+      LOG10(a) / LOG10(2) AS plain
+    FROM
+      x
+    ");
+}
+
+#[test]
+fn test_sqlite_math_log_parenthesized_in_f_string() {
+    // On SQLite the same gap reaches the `||` chain, where the result would
+    // otherwise be evaluated as a bare number.
+    assert_snapshot!(compile_with_sql_dialect(r###"
+    from x
+    derive l = (a | math.log 2)
+    select r = f"{l}!"
+    "###, sql::Dialect::SQLite
+    ).unwrap(), @r"
+    SELECT
+      (LOG10(a) / LOG10(2)) || '!' AS r
+    FROM
+      x
+    ");
+}

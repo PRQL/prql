@@ -86,6 +86,19 @@
   `%z%!` rather than appending `'!'` to the result. They now declare `7`, where
   `LIKE` ranks. (@prql-bot, #6285)
 
+- `math.log` and integer division (`//`) now declare the binding strength of the
+  operator they compile to, so they are parenthesized when used as an operand.
+  `math.log` compiles to a top-level `/` but declared none, so it reported the
+  s-string default of `100`: `1 / (a | math.log 2)` compiled to
+  `1 / LOG10(a) / LOG10(2)`, which divides by the product of the two logarithms
+  rather than by their quotient. The generic and `sql.sqlite` `div_i`
+  definitions end in `* SIGN(...) * SIGN(...)`, so their top-level operation is
+  a multiplication, but they declared `100` as though the leading `FLOOR`/`CAST`
+  call wrapped the whole body — `1 / (a // b)` compiled to
+  `1 / FLOOR(ABS(a / b)) * SIGN(a) * SIGN(b)`, multiplying by the signs instead
+  of dividing by the quotient. Both now declare `11`, where `*` and `/` rank.
+  (@prql-bot, #6286)
+
 **Documentation**:
 
 - The `prql-java` README now documents the actual API. It advertised a
