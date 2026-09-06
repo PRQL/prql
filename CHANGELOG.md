@@ -43,6 +43,12 @@
   a compile error, but it was rendered as `take 1..5`, which compiles to
   `LIMIT 5`. (@prql-bot, #6232)
 
+- `prqlc lsp` now answers a request for an unimplemented method with a
+  `MethodNotFound` error rather than dropping it. Only `textDocument/definition`
+  and `shutdown` are handled, and every other request fell through the match
+  with no reply at all — LSP requires a response to every request, so a client
+  that waits on one hung. (@prql-bot, #6282)
+
 - `text.contains` now compiles to `||` concatenation on the `sql.oracle` target,
   rather than a three-argument `CONCAT`. Oracle's `CONCAT` takes exactly two
   arguments before 23ai, so the generated query was rejected outright. This
