@@ -77,13 +77,14 @@
   s-string's declared binding strength. (@prql-bot, #6273)
 
 - `text.contains`, `text.starts_with` and `text.ends_with` now parenthesize
-  their *result* when it is used inside an f-string on the `sql.sqlite` and
+  their _result_ when it is used inside an f-string on the `sql.sqlite` and
   `sql.redshift` targets. The definitions compile to a top-level `LIKE`, but
   declared no `binding_strength`, so they reported the s-string default of `100`
-  and were emitted bare into the `||` chain. With `c = (nm | text.contains 'z')`,
-  `f"{c}!"` compiled to `nm LIKE '%' || 'z' || '%' || '!'`, which tests `nm`
-  against the pattern `%z%!` rather than appending `'!'` to the result. They now
-  declare `7`, where `LIKE` ranks. (@prql-bot, #6285)
+  and were emitted bare into the `||` chain. With
+  `c = (nm | text.contains 'z')`, `f"{c}!"` compiled to
+  `nm LIKE '%' || 'z' || '%' || '!'`, which tests `nm` against the pattern
+  `%z%!` rather than appending `'!'` to the result. They now declare `7`, where
+  `LIKE` ranks. (@prql-bot, #6285)
 
 **Documentation**:
 
