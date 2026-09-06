@@ -43,10 +43,23 @@
   a compile error, but it was rendered as `take 1..5`, which compiles to
   `LIMIT 5`. (@prql-bot, #6232)
 
+- The two errors from the self-equality operator — `==5` and `==x.y` in a `join`
+  — now report a source location. They were raised without a span, so they
+  printed as a bare `Error: self-equality operator requires a column name` with
+  no snippet pointing at the offending expression. (@prql-bot, #6283)
+
 - `text.contains` now compiles to `||` concatenation on the `sql.oracle` target,
   rather than a three-argument `CONCAT`. Oracle's `CONCAT` takes exactly two
   arguments before 23ai, so the generated query was rejected outright. This
   matches the existing `sql.redshift` override. (@prql-bot, #6267)
+
+- `text.contains`, `text.starts_with` and `text.ends_with` now parenthesize
+  their argument on the `sql.sqlite` target. SQLite ranks `||` above both
+  `*`/`/`/`%` and `+`/`-`, so an arithmetic argument bound to the surrounding
+  `'%'` literals instead of to itself — `text.contains (a + b)` compiled to
+  `col LIKE '%' || a + b || '%'`, which SQLite parses as
+  `('%' || a) + (b || '%')` and evaluates to a number rather than a pattern.
+  (@prql-bot, #6272)
 
 - f-strings now parenthesize operand expressions on the `sql.sqlite` and
   `sql.redshift` targets, which emit `||` rather than `CONCAT`. Operands were
@@ -58,6 +71,15 @@
   s-string's declared binding strength. (@prql-bot, #6273)
 
 **Documentation**:
+
+- The `prql-java` README now documents the actual API. It advertised a
+  single-argument `toSql(String query)` in package `org.prqllang.prql4j`; the
+  binding really exposes `toSql(query, target, format, signature)`, `toJson` and
+  `format` in package `org.prql.prql4j`, so the usage example as written would
+  not compile. `DEVELOPMENT.md` also described publishing to Maven as a working
+  step, but the `publish-prql-java` release job has been commented out since
+  #850 and no `org.prqllang` artifact exists on Maven Central. (@prql-bot,
+  #6281)
 
 **Web**:
 

@@ -7,11 +7,11 @@
 We implement Rust bindings to Java with
 [JNI](https://docs.oracle.com/javase/8/docs/technotes/guides/jni/).
 
-First, define a native method --
-`public static native String toSql(String query, String target, boolean format, boolean signature)`
-for PrqlCompiler, `toJson` is same.
+First, define the native methods on `PrqlCompiler` --
+`toSql(String query, String target, boolean format, boolean signature)`,
+`toJson(String query)` and `format(String query)`.
 
-And then implement it in Rust with this
+And then implement them in Rust with this
 [crate](https://docs.rs/jni/latest/jni/).
 
 ## Build
@@ -54,13 +54,17 @@ As to cross compilation toolchains, we use
 
 ## Publish (for maintainer)
 
-To publish the Java library to Maven public repo, project maintainer need first
-register a project in the Maven Nexus repository, by the doc:
-<https://central.sonatype.org/publish/publish-guide/>.
+**Publishing is not currently wired up.** The `publish-prql-java` job in
+`.github/workflows/release.yaml` is commented out, and no `org.prqllang`
+artifact exists on Maven Central.
+[#850](https://github.com/PRQL/prql/issues/850) tracks the remaining work: the
+job failed on a missing `distribution` argument, the Maven auth tokens are
+unconfigured, and `java/pom.xml` carries a hand-maintained `<version>` that no
+release step bumps.
 
-And then, we can release our artifact in the `release` workflow. The action we
-used is
-[action-maven-publish](https://github.com/marketplace/actions/action-maven-publish).
-Project maintainer has to configure some personal information, those used in the
-first step, by the action's doc, such as `nexus_username`, `nexus_password`,
-`gpg_private_key`, `gpg_passphrase`.
+The commented-out job is the starting point rather than a working recipe. To
+finish it, a maintainer would first register the project in the Maven Nexus
+repository, by the doc: <https://central.sonatype.org/publish/publish-guide/>,
+then configure the secrets the action needs -- `nexus_username`,
+`nexus_password`, `gpg_private_key`, `gpg_passphrase` -- and correct the job's
+stale `directory:`, which still points at the pre-`prqlc/bindings` layout.

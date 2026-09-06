@@ -7153,6 +7153,47 @@ fn test_oracle_text_contains_parenthesizes_additive_argument() {
 }
 
 #[test]
+fn test_sqlite_text_pattern_parenthesizes_compound_argument() {
+    // SQLite ranks `||` above both `*`/`/`/`%` and `+`/`-`, so an
+    // unparenthesized argument binds to the surrounding `'%'` literals instead
+    // of to itself: `'%' || a + b || '%'` parses as `('%' || a) + (b || '%')`.
+    assert_snapshot!(compile_with_sql_dialect(r###"
+    from employees
+    select {
+        c = (name | text.contains (first_name + last_name)),
+        s = (name | text.starts_with (first_name + last_name)),
+        e = (name | text.ends_with (first_name * last_name)),
+    }
+    "###, sql::Dialect::SQLite
+    ).unwrap(), @r"
+    SELECT
+      name LIKE '%' || (first_name + last_name) || '%' AS c,
+      name LIKE (first_name + last_name) || '%' AS s,
+      name LIKE '%' || (first_name * last_name) AS e
+    FROM
+      employees
+    ");
+}
+
+#[test]
+fn test_sqlite_text_pattern_leaves_simple_argument_unwrapped() {
+    assert_snapshot!(compile_with_sql_dialect(r###"
+    from employees
+    select {
+        c = (name | text.contains "pika"),
+        s = (name | text.starts_with first_name),
+    }
+    "###, sql::Dialect::SQLite
+    ).unwrap(), @r"
+    SELECT
+      name LIKE '%' || 'pika' || '%' AS c,
+      name LIKE first_name || '%' AS s
+    FROM
+      employees
+    ");
+}
+
+#[test]
 fn test_snowflake_row_number_requires_order_by() {
     // https://github.com/PRQL/prql/issues/5580
     // Snowflake requires ORDER BY for ROW_NUMBER() in window specification
