@@ -7993,8 +7993,9 @@ fn test_sqlite_div_i_parenthesized_in_f_string() {
 
 #[test]
 fn test_postgres_div_i_left_unwrapped() {
-    // Postgres and DuckDB wrap theirs in a function call, so the declared
-    // strength is already right there and no parentheses should appear.
+    // Postgres wraps its `div_i` in `TRUNC(...)` and declares `100` to match,
+    // so no parentheses should appear. (DuckDB has the same body but declares
+    // `11`, so it still gets a redundant pair — pre-existing, not covered here.)
     assert_snapshot!(compile_with_sql_dialect(r###"
     from x
     select q = 1 / (a // b)
