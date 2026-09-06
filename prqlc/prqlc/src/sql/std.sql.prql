@@ -115,8 +115,14 @@ module text {
   let length = column -> s"CHAR_LENGTH({column:0})"
   let extract = offset length column -> s"SUBSTRING({column:0}, {offset:0}, {length:0})"
   let replace = pattern replacement column -> s"REPLACE({column:0}, {pattern:0}, {replacement:0})"
+  # These compile to a top-level `LIKE`, which binds looser than `||` and than
+  # the arithmetic operators, so the result needs parentheses in those contexts.
+  # `7` is where `binding_strength` ranks `LIKE`.
+  @{binding_strength=7}
   let starts_with = prefix column -> s"{column:0} LIKE CONCAT({prefix:0}, '%')"
+  @{binding_strength=7}
   let contains = substr column -> s"{column:0} LIKE CONCAT('%', {substr:0}, '%')"
+  @{binding_strength=7}
   let ends_with = suffix column -> s"{column:0} LIKE CONCAT('%', {suffix:0})"
 }
 
@@ -346,6 +352,7 @@ module oracle {
     # Oracle's `CONCAT` takes exactly two arguments before 23ai, so the generic
     # three-argument form is rejected. `||` is available in every version.
     # https://docs.oracle.com/en/database/oracle/oracle-database/21/sqlrf/CONCAT.html
+    @{binding_strength=7}
     let contains = substr column -> s"{column:0} LIKE '%' || {substr:11} || '%'"
   }
 }
@@ -389,6 +396,7 @@ module redshift {
   # Text functions
   module text {
     # https://docs.aws.amazon.com/redshift/latest/dg/r_concat_op.html
+    @{binding_strength=7}
     let contains = substr column -> s"{column:0} LIKE '%' || {substr:0} || '%'"
   }
 }
@@ -416,8 +424,11 @@ module sqlite {
     # SQLite ranks `||` above both `*`/`/`/`%` and `+`/`-`, so an unparenthesized
     # argument binds to the surrounding `'%'` literals rather than to itself.
     # https://www.sqlite.org/lang_expr.html#operators_and_parse_affecting_attributes
+    @{binding_strength=7}
     let starts_with = prefix column -> s"{column:0} LIKE {prefix:12} || '%'"
+    @{binding_strength=7}
     let contains = substr column -> s"{column:0} LIKE '%' || {substr:12} || '%'"
+    @{binding_strength=7}
     let ends_with = suffix column -> s"{column:0} LIKE '%' || {suffix:12}"
   }
 
