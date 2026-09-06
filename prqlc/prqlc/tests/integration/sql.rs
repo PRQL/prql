@@ -7953,6 +7953,75 @@ fn test_redshift_concat_parenthesizes_comparison_operand() {
 }
 
 #[test]
+fn test_sqlite_concat_parenthesizes_text_pattern_operand() {
+    // The `text.*` definitions compile to a top-level `LIKE`, which binds
+    // looser than `||`. Without a `binding_strength` annotation they reported
+    // the s-string default of `100`, so an f-string operand was emitted bare
+    // and the trailing piece was swallowed into the pattern:
+    // `nm LIKE '%' || 'z' || '%' || '!'` matches `%z%!` rather than
+    // concatenating `'!'` onto the result.
+    assert_snapshot!(compile_with_sql_dialect(r###"
+    from x
+    derive {c = (nm | text.contains "z"), s = (nm | text.starts_with "z"), e = (nm | text.ends_with "z")}
+    select {
+        y = f"{c}!",
+        z = f"{s}!",
+        w = f"{e}!",
+    }
+    "###, sql::Dialect::SQLite
+    ).unwrap(), @"
+    SELECT
+      (nm LIKE '%' || 'z' || '%') || '!' AS y,
+      (nm LIKE 'z' || '%') || '!' AS z,
+      (nm LIKE '%' || 'z') || '!' AS w
+    FROM
+      x
+    ");
+}
+
+#[test]
+fn test_redshift_concat_parenthesizes_text_pattern_operand() {
+    // Redshift emits `||` too, and only overrides `text.contains` — so
+    // `starts_with` and `ends_with` reach the same chain through the generic
+    // `CONCAT`-based definitions and need the annotation just as much.
+    assert_snapshot!(compile_with_sql_dialect(r###"
+    from x
+    derive {c = (nm | text.contains "z"), s = (nm | text.starts_with "z"), e = (nm | text.ends_with "z")}
+    select {
+        y = f"{c}!",
+        z = f"{s}!",
+        w = f"{e}!",
+    }
+    "###, sql::Dialect::Redshift
+    ).unwrap(), @"
+    SELECT
+      (nm LIKE '%' || 'z' || '%') || '!' AS y,
+      (nm LIKE CONCAT('z', '%')) || '!' AS z,
+      (nm LIKE CONCAT('%', 'z')) || '!' AS w
+    FROM
+      x
+    ");
+}
+
+#[test]
+fn test_postgres_concat_leaves_text_pattern_operand_unwrapped() {
+    // Dialects with a `CONCAT` function pass operands as function arguments,
+    // where precedence is irrelevant — the annotation must not add parentheses
+    // there.
+    assert_snapshot!(compile_with_sql_dialect(r###"
+    from x
+    derive c = (nm | text.contains "z")
+    select y = f"{c}!"
+    "###, sql::Dialect::Postgres
+    ).unwrap(), @"
+    SELECT
+      CONCAT(nm LIKE CONCAT('%', 'z', '%'), '!') AS y
+    FROM
+      x
+    ");
+}
+
+#[test]
 fn test_div_i_parenthesized_as_a_multiplication_operand() {
     // The generic `div_i` body ends in `* SIGN(...) * SIGN(...)`, so its
     // top-level operation is a multiplication, not the `FLOOR` call. It
