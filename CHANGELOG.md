@@ -49,10 +49,23 @@
   with no reply at all — LSP requires a response to every request, so a client
   that waits on one hung. (@prql-bot, #6282)
 
+- The two errors from the self-equality operator — `==5` and `==x.y` in a `join`
+  — now report a source location. They were raised without a span, so they
+  printed as a bare `Error: self-equality operator requires a column name` with
+  no snippet pointing at the offending expression. (@prql-bot, #6283)
+
 - `text.contains` now compiles to `||` concatenation on the `sql.oracle` target,
   rather than a three-argument `CONCAT`. Oracle's `CONCAT` takes exactly two
   arguments before 23ai, so the generated query was rejected outright. This
   matches the existing `sql.redshift` override. (@prql-bot, #6267)
+
+- `text.contains`, `text.starts_with` and `text.ends_with` now parenthesize
+  their argument on the `sql.sqlite` target. SQLite ranks `||` above both
+  `*`/`/`/`%` and `+`/`-`, so an arithmetic argument bound to the surrounding
+  `'%'` literals instead of to itself — `text.contains (a + b)` compiled to
+  `col LIKE '%' || a + b || '%'`, which SQLite parses as
+  `('%' || a) + (b || '%')` and evaluates to a number rather than a pattern.
+  (@prql-bot, #6272)
 
 **Documentation**:
 
