@@ -99,6 +99,11 @@
   of dividing by the quotient. Both now declare `11`, where `*` and `/` rank.
   (@prql-bot, #6286)
 
+- `take` now compiles to `OFFSET n ROWS FETCH FIRST n ROWS ONLY` on the
+  `sql.oracle` target, rather than `LIMIT n OFFSET n`. Oracle has no `LIMIT`
+  clause, so `take 15..20` produced a query that the database rejects outright.
+  (@prql-bot, #6292)
+
 **Documentation**:
 
 - The `prql-java` README now documents the actual API. It advertised a
@@ -141,6 +146,20 @@
   PRQL, but the grammar ran a triple-quoted body only up to the first quote
   character, and its `escape` token covered neither `\\` nor an escaped quote.
   (@prql-bot, #6288)
+
+- The lezer grammar in `grammars/prql-lezer/` now parses a triple-quoted string
+  containing the quote character, such as `"""I said "hello"!"""`, and a string
+  containing an escaped quote, such as `"\"hello\""` — including the f-string
+  and s-string forms. Both are documented PRQL, but the triple-quoted body ran
+  only up to the first quote character, and the `Escape` token covered neither
+  `\\` nor an escaped quote. This is the same pair of bugs fixed for the Raku
+  grammar in #6288. An escape sequence that directly follows a quote inside a
+  triple-quoted string, such as `"""a"\nb"""`, no longer highlights as an error,
+  and an r-string holding an unmatched brace, such as `r"{a"`, now highlights as
+  an r-string rather than an identifier followed by a plain string. A backslash
+  followed by something the compiler doesn't recognize as an escape, such as
+  `"\z"`, parses rather than erroring — `prqlc` compiles it to `'z'` — but is
+  not highlighted as an escape sequence. (@prql-bot, #6289)
 
 **Internal changes**:
 

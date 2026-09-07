@@ -124,10 +124,10 @@ LambdaParam { identPart TypeDefinition? (":" expression)? }
 @skip {} {
   // Couldn't manage to do these & the interpolated as a template.
   String {
-    '"""' (stringContentDouble | Escape)* '"""' |
-    "'''" (stringContentSingle | Escape)* "'''" |
-    '"' (stringContentDouble | Escape)* '"' |
-    "'" (stringContentSingle | Escape)* "'"
+    '"""' (tripleContentDouble | Escape | escapeUnknown)* '"""' |
+    "'''" (tripleContentSingle | Escape | escapeUnknown)* "'''" |
+    '"' (stringContentDouble | Escape | escapeUnknown)* '"' |
+    "'" (stringContentSingle | Escape | escapeUnknown)* "'"
   }
 }
 
@@ -155,15 +155,47 @@ LambdaParam { identPart TypeDefinition? (":" expression)? }
   // underscores and allows no digit before the decimal point.
   space { $[ \t] }
 
-  Escape {
-    "\\" ("x" hex hex | "u" "{" hex+ "}" | $[bfnrt])
-  }
+  // The escape sequences `parse_escape_sequence()` in
+  // `prqlc/prqlc-parser/src/lexer/mod.rs` recognizes by name, which are what
+  // `Escape` highlights. `\\`, `\'` and `\"` are in the set; the previous
+  // `$[bfnrt]` one left them out, which is what made `"\"hello\""` fail to
+  // parse. `\/` is recognized by the lexer but missing from the book's table.
+  // https://prql-lang.org/book/reference/syntax/strings.html#escape-sequences
+  escapeKnown { "\\" ("x" hex hex | "u" "{" hex+ "}" | $[\\/bfnrt'"]) }
+
+  // Anything else after a backslash is not an escape sequence, but the lexer
+  // still accepts it and keeps the following character — that function ends in
+  // `other => other`, so `"\z"` compiles to `'z'` rather than erroring. The
+  // grammar accepts it for the same reason and deliberately gives it no
+  // `Escape` node, so an unrecognized escape is neither reported as a syntax
+  // error nor highlighted as an escape sequence. Newline is excluded so a
+  // trailing backslash still tokenizes as `lineWrap`.
+  escapeUnknown { "\\" ![\n] }
+
+  escapeSeq { escapeKnown | escapeUnknown }
+
+  Escape { escapeKnown }
+
+  // Both match a backslash and one character for a sequence like `\n`; the
+  // recognized set wins so it is the one that produces an `Escape` node.
+  @precedence { Escape, escapeUnknown }
 
   Parameter { "$" (@digit+ | identPart) }
 
   stringContentSingle { ![\\']+ }
 
   stringContentDouble { ![\\"]+ }
+
+  // A triple-quoted string may contain the quote character itself, so its body
+  // admits runs of one or two quotes followed by a non-quote or by an escape.
+  // Three in a row can't be matched, which is what leaves the closing delimiter
+  // for `String`. An escape directly after a quote is folded into this token
+  // rather than emitted as a separate `Escape` node, so `"""a"\nb"""` is a
+  // plain `String` while `"""C:\\path"""` is still `String(Escape)`.
+  // https://prql-lang.org/book/reference/syntax/strings.html
+  tripleContentSingle { (![\\'] | "'" (![\\'] | escapeSeq) | "''" (![\\'] | escapeSeq))+ }
+
+  tripleContentDouble { (![\\"] | '"' (![\\"] | escapeSeq) | '""' (![\\"] | escapeSeq))+ }
 
   Docblock { "#!" ![\n]* }
   Comment { "#" ![\n]* }
@@ -182,18 +214,33 @@ LambdaParam { identPart TypeDefinition? (":" expression)? }
   // string as a string, because these are all within the `@tokens` block. But
   // they need to be within this block, because it's not possible to have
   // negations (e.g. `![{'}` outside it.
-  stringInterpolatedSingle { $['] (![{'] | interpolationInnerSingle)* $['] }
-  stringInterpolatedDouble { $["] (![{"] | interpolationInnerDouble)* $["] }
+  // `\\` is excluded from these bodies so a backslash is only ever consumed by
+  // `escapeSeq`; otherwise an escaped quote could be read as a plain backslash
+  // followed by the closing quote, cutting the string short. `escapeSeq` leaves
+  // out a newline so that a trailing backslash at the top level is still
+  // `lineWrap`, but these are self-contained tokens the tokenizer only enters
+  // after the `f`/`s` prefix, where `lineWrap` never competes — so `"\\" newline`
+  // is admitted here, matching `multi_quoted_string()`, which allows a newline
+  // after a backslash.
+  stringInterpolatedSingle { $['] (![{'\\] | escapeSeq | "\\" newline | interpolationInnerSingle)* $['] }
+  stringInterpolatedDouble { $["] (![{"\\] | escapeSeq | "\\" newline | interpolationInnerDouble)* $["] }
 
   interpolationInnerSingle { "{" ![}']* "}" }
   interpolationInnerDouble { "{" ![}"]* "}" }
+
+  // Raw strings have neither escape sequences nor interpolation, so unlike the
+  // bodies above they take any character but the quote and a newline — `r"C:\"`
+  // is a raw string holding `C:\` and `r"{a"` one holding `{a`, matching
+  // `raw_string()` in `prqlc/prqlc-parser/src/lexer/mod.rs`.
+  rawStringSingle { $['] !['\n]* $['] }
+  rawStringDouble { $["] !["\n]* $["] }
 
   interpolatedString<prefix> { prefix (stringInterpolatedDouble | stringInterpolatedSingle) }
 
   "="[@name=Equals]
 
   FString { interpolatedString<'f'> }
-  RString { interpolatedString<'r'> }
+  RString { "r" (rawStringDouble | rawStringSingle) }
   SString { interpolatedString<'s'> }
 
   // We need to give precedence to `Op_bin` so we don't get `x+y` as `x` & `+y`.

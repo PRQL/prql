@@ -2530,6 +2530,70 @@ fn test_take_mssql() {
 }
 
 #[test]
+fn test_take_oracle() {
+    // Issue #6291: Oracle has no `LIMIT`; it uses `OFFSET .. ROWS FETCH FIRST .. ROWS ONLY`.
+    // Unlike MSSQL, Oracle's row-limiting clause is a peer of `ORDER BY`, so no
+    // `ORDER BY (SELECT NULL)` is synthesised.
+    assert_snapshot!((compile(r#"
+    prql target:sql.oracle
+
+    from bar
+    take 15..20
+    "#).unwrap()), @r#"
+    SELECT
+      *
+    FROM
+      "bar" OFFSET 14 ROWS
+    FETCH FIRST
+      6 ROWS ONLY
+    "#);
+
+    assert_snapshot!((compile(r#"
+    prql target:sql.oracle
+
+    from bar
+    take ..5
+    "#).unwrap()), @r#"
+    SELECT
+      *
+    FROM
+      "bar" OFFSET 0 ROWS
+    FETCH FIRST
+      5 ROWS ONLY
+    "#);
+
+    assert_snapshot!((compile(r#"
+    prql target:sql.oracle
+
+    from bar
+    take 3..
+    "#).unwrap()), @r#"
+    SELECT
+      *
+    FROM
+      "bar" OFFSET 2 ROWS
+    "#);
+
+    // An explicit sort is preserved rather than replaced.
+    assert_snapshot!((compile(r#"
+    prql target:sql.oracle
+
+    from bar
+    sort a
+    take 15..20
+    "#).unwrap()), @r#"
+    SELECT
+      *
+    FROM
+      "bar"
+    ORDER BY
+      "a" OFFSET 14 ROWS
+    FETCH FIRST
+      6 ROWS ONLY
+    "#);
+}
+
+#[test]
 fn test_mssql_distinct_fetch() {
     // Issue #5628: MSSQL requires ORDER BY items to appear in SELECT list when DISTINCT is used.
     // Using (SELECT NULL) for ORDER BY with DISTINCT is invalid in MSSQL.
