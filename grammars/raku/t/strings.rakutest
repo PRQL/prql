@@ -2,7 +2,7 @@ use Test;
 use lib $?FILE.IO.parent.add('lib').Str;
 use PRQLTest;
 
-plan 11;
+plan 22;
 
 # Single-quoted string
 parses-to "filter 'Hello'", 'statement(pipeline-statement(pipeline(call-expression(identifier«filter»,test(test-inner(expression(string«\'Hello\'»)))))))';
@@ -36,3 +36,40 @@ parses-to 'filter """Hello world!"""', 'statement(pipeline-statement(pipeline(ca
 
 # Escape sequence
 parses-to 'filter "\xff"', 'statement(pipeline-statement(pipeline(call-expression(identifier«filter»,test(test-inner(expression(string(escape(xdigit«f»,xdigit«f»)))))))))';
+
+# Triple-quoted string containing the quote character. On the previous grammar
+# the `"""` arm stopped at the inner quote, the `"` arm then matched the empty
+# string `""`, and `filter` collected the remainder as five more arguments — a
+# parse that succeeded, so only an assertion on the shape catches it.
+parses-to 'filter """I said "hello world"!"""', 'statement(pipeline-statement(pipeline(call-expression(identifier«filter»,test(test-inner(expression(string«"""I said "hello world"!"""»)))))))';
+
+parses-to "filter '''I said 'hello world'!'''", 'statement(pipeline-statement(pipeline(call-expression(identifier«filter»,test(test-inner(expression(string«\'\'\'I said \'hello world\'!\'\'\'»)))))))';
+
+# Escaped double quote within a double-quoted string
+parses-to 'filter "\"hello world\""', 'statement(pipeline-statement(pipeline(call-expression(identifier«filter»,test(test-inner(expression(string(escape«\\"»,escape«\\"»))))))))';
+
+# Escaped backslash within a double-quoted string
+parses-to 'filter "C:\\\\path"', 'statement(pipeline-statement(pipeline(call-expression(identifier«filter»,test(test-inner(expression(string(escape«\\\\»))))))))';
+
+# Escaped double quote within an f-string
+parses-to 'filter f"\"hello world\""', 'statement(pipeline-statement(pipeline(call-expression(identifier«filter»,test(test-inner(expression(f-string(escape«\\"»,escape«\\"»))))))))';
+
+# Escaped double quote within an s-string
+parses-to 'filter s"\"hello world\""', 'statement(pipeline-statement(pipeline(call-expression(identifier«filter»,test(test-inner(expression(s-string(escape«\\"»,escape«\\"»))))))))';
+
+# Unrecognized escape sequence: the compiler keeps the character after the
+# backslash rather than rejecting the string, so the grammar accepts any
+# character there too
+parses-to 'filter "\d+"', 'statement(pipeline-statement(pipeline(call-expression(identifier«filter»,test(test-inner(expression(string(escape«\\d»))))))))';
+
+# Unrecognized escape sequence within an s-string, as a SQL regex would use
+parses-to 'filter s"x ~ \'\\d+\'"', 'statement(pipeline-statement(pipeline(call-expression(identifier«filter»,test(test-inner(expression(s-string(escape«\\d»))))))))';
+
+# Escaped single quote within a single-quoted string
+parses-to "filter 'don\\'t'", 'statement(pipeline-statement(pipeline(call-expression(identifier«filter»,test(test-inner(expression(string(escape«\\\'»))))))))';
+
+# Escaped single quote within a single-quoted f-string
+parses-to "filter f'\\'hello world\\''", 'statement(pipeline-statement(pipeline(call-expression(identifier«filter»,test(test-inner(expression(f-string(escape«\\\'»,escape«\\\'»))))))))';
+
+# Unrecognized escape sequence within a single-quoted s-string
+parses-to "filter s'x ~ \"\\d+\"'", 'statement(pipeline-statement(pipeline(call-expression(identifier«filter»,test(test-inner(expression(s-string(escape«\\d»))))))))';
