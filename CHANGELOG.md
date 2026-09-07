@@ -139,6 +139,20 @@
   unsatisfiable. Users still on 3.9 continue to resolve the last release that
   declared support for it. (@prql-bot, #6225)
 
+- The lezer grammar in `grammars/prql-lezer/` now parses a triple-quoted string
+  containing the quote character, such as `"""I said "hello"!"""`, and a string
+  containing an escaped quote, such as `"\"hello\""` — including the f-string
+  and s-string forms. Both are documented PRQL, but the triple-quoted body ran
+  only up to the first quote character, and the `Escape` token covered neither
+  `\\` nor an escaped quote. This is the same pair of bugs fixed for the Raku
+  grammar in #6288. An escape sequence that directly follows a quote inside a
+  triple-quoted string, such as `"""a"\nb"""`, no longer highlights as an error,
+  and an r-string holding an unmatched brace, such as `r"{a"`, now highlights as
+  an r-string rather than an identifier followed by a plain string. A backslash
+  followed by something the compiler doesn't recognize as an escape, such as
+  `"\z"`, parses rather than erroring — `prqlc` compiles it to `'z'` — but is
+  not highlighted as an escape sequence. (@prql-bot, #6289)
+
 **Internal changes**:
 
 **New Contributors**:
