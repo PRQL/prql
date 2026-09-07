@@ -744,6 +744,12 @@ impl DialectHandler for DuckDbDialect {
 }
 
 impl DialectHandler for OracleDialect {
+    // Oracle has no `LIMIT`; row limiting is `OFFSET n ROWS FETCH FIRST n ROWS ONLY`
+    // https://docs.oracle.com/en/database/oracle/oracle-database/26/sqlrf/SELECT.html
+    fn use_fetch(&self) -> bool {
+        true
+    }
+
     fn ident_quoting_style(&self) -> IdentQuotingStyle {
         // Due to oraclesql identifier casing rules, identifiers are always quoted
         // https://docs.oracle.com/en/database/oracle/oracle-database/26/sqlrf/Database-Object-Names-and-Qualifiers.html
