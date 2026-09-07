@@ -197,3 +197,12 @@ filter r'{a'
 ==>
 
 Query(Pipeline(CallExpression(Identifier,ArgList(RString))))
+
+# Raw string spanning a newline is not a raw string
+
+filter r"a
+b"
+
+==>
+
+Query(Pipeline(CallExpression(Identifier,ArgList(Identifier,String))))
