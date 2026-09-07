@@ -143,8 +143,10 @@
   grammar in #6288. An escape sequence that directly follows a quote inside a
   triple-quoted string, such as `"""a"\nb"""`, no longer highlights as an error,
   and an r-string holding an unmatched brace, such as `r"{a"`, now highlights as
-  an r-string rather than an identifier followed by a plain string. (@prql-bot,
-  #6289)
+  an r-string rather than an identifier followed by a plain string. A backslash
+  followed by something the compiler doesn't recognize as an escape, such as
+  `"\z"`, parses rather than erroring — `prqlc` compiles it to `'z'` — but is
+  not highlighted as an escape sequence. (@prql-bot, #6289)
 
 **Internal changes**:
 

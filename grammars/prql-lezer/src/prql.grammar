@@ -124,10 +124,10 @@ LambdaParam { identPart TypeDefinition? (":" expression)? }
 @skip {} {
   // Couldn't manage to do these & the interpolated as a template.
   String {
-    '"""' (tripleContentDouble | Escape)* '"""' |
-    "'''" (tripleContentSingle | Escape)* "'''" |
-    '"' (stringContentDouble | Escape)* '"' |
-    "'" (stringContentSingle | Escape)* "'"
+    '"""' (tripleContentDouble | Escape | escapeUnknown)* '"""' |
+    "'''" (tripleContentSingle | Escape | escapeUnknown)* "'''" |
+    '"' (stringContentDouble | Escape | escapeUnknown)* '"' |
+    "'" (stringContentSingle | Escape | escapeUnknown)* "'"
   }
 }
 
@@ -155,14 +155,30 @@ LambdaParam { identPart TypeDefinition? (":" expression)? }
   // underscores and allows no digit before the decimal point.
   space { $[ \t] }
 
-  // The final alternative is any character rather than a fixed set: an
-  // unrecognized escape keeps the character that follows it, and that is what
-  // covers `\\`, `\'` and `\"`, which a `$[bfnrt]` set left out. Newline is
-  // excluded so a trailing backslash still tokenizes as `lineWrap`.
+  // The escape sequences `parse_escape_sequence()` in
+  // `prqlc/prqlc-parser/src/lexer/mod.rs` recognizes by name, which are what
+  // `Escape` highlights. `\\`, `\'` and `\"` are in the set; the previous
+  // `$[bfnrt]` one left them out, which is what made `"\"hello\""` fail to
+  // parse. `\/` is recognized by the lexer but missing from the book's table.
   // https://prql-lang.org/book/reference/syntax/strings.html#escape-sequences
-  escapeSeq { "\\" ("x" hex hex | "u" "{" hex+ "}" | ![\n]) }
+  escapeKnown { "\\" ("x" hex hex | "u" "{" hex+ "}" | $[\\/bfnrt'"]) }
 
-  Escape { escapeSeq }
+  // Anything else after a backslash is not an escape sequence, but the lexer
+  // still accepts it and keeps the following character — that function ends in
+  // `other => other`, so `"\z"` compiles to `'z'` rather than erroring. The
+  // grammar accepts it for the same reason and deliberately gives it no
+  // `Escape` node, so an unrecognized escape is neither reported as a syntax
+  // error nor highlighted as an escape sequence. Newline is excluded so a
+  // trailing backslash still tokenizes as `lineWrap`.
+  escapeUnknown { "\\" ![\n] }
+
+  escapeSeq { escapeKnown | escapeUnknown }
+
+  Escape { escapeKnown }
+
+  // Both match a backslash and one character for a sequence like `\n`; the
+  // recognized set wins so it is the one that produces an `Escape` node.
+  @precedence { Escape, escapeUnknown }
 
   Parameter { "$" (@digit+ | identPart) }
 

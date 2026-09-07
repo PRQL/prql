@@ -206,3 +206,27 @@ b"
 ==>
 
 Query(Pipeline(CallExpression(Identifier,ArgList(Identifier,String))))
+
+# Unrecognized escape sequence parses but is not an Escape
+
+filter "\z"
+
+==>
+
+Query(Pipeline(CallExpression(Identifier,ArgList(String))))
+
+# Unrecognized escape sequence in a triple-quoted string
+
+filter """a\zb"""
+
+==>
+
+Query(Pipeline(CallExpression(Identifier,ArgList(String))))
+
+# Backslash before a character that only starts a hex escape
+
+filter "\xg"
+
+==>
+
+Query(Pipeline(CallExpression(Identifier,ArgList(String))))
