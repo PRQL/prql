@@ -28,6 +28,14 @@ parses-to 'filter foo || bar', 'statement(pipeline-statement(pipeline(call-expre
 # ?? Coalesce
 parses-to 'filter foo ?? bar', 'statement(pipeline-statement(pipeline(call-expression(identifier«filter»,test(test-inner(binary-test(expression(identifier«foo»),logic-op«??»,expression(identifier«bar»))))))))';
 
+# The unary operator itself isn't recorded: `unary-expression` matches it in an
+# unnamed group (`('+' | '-') <expression>`) or as a bare literal
+# (`'==' <identifier>`), so `shape` has no name to render it under and
+# `sort { +name }` would assert the same shape as `-name`. As with the timezone
+# suffix in `t/datetime.rakutest`, the assertion is still operator-sensitive —
+# `.parse` anchors on the whole string, so an operator the grammar stopped
+# accepting fails the parse rather than passing with this shape.
+
 # Unary operator -
 parses-to 'sort { -name }', 'statement(pipeline-statement(pipeline(call-expression(identifier«sort»,test(test-inner(expression(tuple-expression(expression(unary-expression(expression(identifier«name»)))))))))))';
 
