@@ -5,10 +5,10 @@ use PRQLTest;
 plan 6;
 
 # Array on one line
-parses-to 'filter [foo, bar, baz]', 'statement(pipeline-statement(pipeline(call-expression(identifier,test(test-inner(expression(array-expression(test(test-inner(expression(identifier))),test(test-inner(expression(identifier))),test(test-inner(expression(identifier)))))))))))';
+parses-to 'filter [foo, bar, baz]', 'statement(pipeline-statement(pipeline(call-expression(identifier«filter»,test(test-inner(expression(array-expression(test(test-inner(expression(identifier«foo»))),test(test-inner(expression(identifier«bar»))),test(test-inner(expression(identifier«baz»)))))))))))';
 
 # Array on multiple lines
-parses-to q:to/END/, 'statement(pipeline-statement(pipeline(call-expression(identifier,test(test-inner(expression(array-expression(test(test-inner(expression(identifier))),test(test-inner(expression(identifier))),test(test-inner(expression(identifier)))))))))))';
+parses-to q:to/END/, 'statement(pipeline-statement(pipeline(call-expression(identifier«filter»,test(test-inner(expression(array-expression(test(test-inner(expression(identifier«foo»))),test(test-inner(expression(identifier«bar»))),test(test-inner(expression(identifier«baz»)))))))))))';
 filter [
   foo,
   bar,
@@ -17,7 +17,7 @@ filter [
 END
 
 # Array on multiple lines with blank lines
-parses-to q:to/END/, 'statement(pipeline-statement(pipeline(call-expression(identifier,test(test-inner(expression(array-expression(test(test-inner(expression(identifier))),test(test-inner(expression(identifier))),test(test-inner(expression(identifier)))))))))))';
+parses-to q:to/END/, 'statement(pipeline-statement(pipeline(call-expression(identifier«filter»,test(test-inner(expression(array-expression(test(test-inner(expression(identifier«foo»))),test(test-inner(expression(identifier«bar»))),test(test-inner(expression(identifier«baz»)))))))))))';
 filter [
 
   foo,
@@ -30,10 +30,10 @@ filter [
 END
 
 # Array of integers
-parses-to 'filter [1, 2, 3]', 'statement(pipeline-statement(pipeline(call-expression(identifier,test(test-inner(expression(array-expression(test(test-inner(expression(number(integer)))),test(test-inner(expression(number(integer)))),test(test-inner(expression(number(integer))))))))))))';
+parses-to 'filter [1, 2, 3]', 'statement(pipeline-statement(pipeline(call-expression(identifier«filter»,test(test-inner(expression(array-expression(test(test-inner(expression(number(integer«1»)))),test(test-inner(expression(number(integer«2»)))),test(test-inner(expression(number(integer«3»))))))))))))';
 
 # Array of floats
-parses-to 'filter [1.1, 2.2, 3.3]', 'statement(pipeline-statement(pipeline(call-expression(identifier,test(test-inner(expression(array-expression(test(test-inner(expression(number(float)))),test(test-inner(expression(number(float)))),test(test-inner(expression(number(float))))))))))))';
+parses-to 'filter [1.1, 2.2, 3.3]', 'statement(pipeline-statement(pipeline(call-expression(identifier«filter»,test(test-inner(expression(array-expression(test(test-inner(expression(number(float«1.1»)))),test(test-inner(expression(number(float«2.2»)))),test(test-inner(expression(number(float«3.3»))))))))))))';
 
 # Array of strings
-parses-to 'filter ["string", f"format", r"raw", s"server"]', 'statement(pipeline-statement(pipeline(call-expression(identifier,test(test-inner(expression(array-expression(test(test-inner(expression(string))),test(test-inner(expression(f-string))),test(test-inner(expression(r-string))),test(test-inner(expression(s-string)))))))))))';
+parses-to 'filter ["string", f"format", r"raw", s"server"]', 'statement(pipeline-statement(pipeline(call-expression(identifier«filter»,test(test-inner(expression(array-expression(test(test-inner(expression(string«"string"»))),test(test-inner(expression(f-string«f"format"»))),test(test-inner(expression(r-string«r"raw"»))),test(test-inner(expression(s-string«s"server"»)))))))))))';

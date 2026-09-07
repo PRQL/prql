@@ -55,8 +55,8 @@ vendor
 # Lychee link checker cache
 .lycheecache
 
-# Rakudo's precompilation cache, written under `grammars/raku/lib/` whenever
-# the grammar tests run
+# Rakudo's precompilation cache, written under `grammars/raku/lib/` and
+# `grammars/raku/t/lib/` whenever the grammar tests run
 .precomp/
 
 # Claude Code local settings (per-developer, never committed)

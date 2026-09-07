@@ -5,28 +5,28 @@ use PRQLTest;
 plan 9;
 
 # Integer
-parses-to 'filter 123', 'statement(pipeline-statement(pipeline(call-expression(identifier,test(test-inner(expression(number(integer))))))))';
+parses-to 'filter 123', 'statement(pipeline-statement(pipeline(call-expression(identifier«filter»,test(test-inner(expression(number(integer«123»))))))))';
 
 # Integer with underscore
-parses-to 'filter 123_456', 'statement(pipeline-statement(pipeline(call-expression(identifier,test(test-inner(expression(number(integer))))))))';
+parses-to 'filter 123_456', 'statement(pipeline-statement(pipeline(call-expression(identifier«filter»,test(test-inner(expression(number(integer«123_456»))))))))';
 
 # Integer with underscores
-parses-to 'filter 123_456_789', 'statement(pipeline-statement(pipeline(call-expression(identifier,test(test-inner(expression(number(integer))))))))';
+parses-to 'filter 123_456_789', 'statement(pipeline-statement(pipeline(call-expression(identifier«filter»,test(test-inner(expression(number(integer«123_456_789»))))))))';
 
 # Decimal
-parses-to 'filter 123.45', 'statement(pipeline-statement(pipeline(call-expression(identifier,test(test-inner(expression(number(float))))))))';
+parses-to 'filter 123.45', 'statement(pipeline-statement(pipeline(call-expression(identifier«filter»,test(test-inner(expression(number(float«123.45»))))))))';
 
 # Scientific notation
-parses-to 'filter 123e10', 'statement(pipeline-statement(pipeline(call-expression(identifier,test(test-inner(expression(number(integer(integer)))))))))';
+parses-to 'filter 123e10', 'statement(pipeline-statement(pipeline(call-expression(identifier«filter»,test(test-inner(expression(number(integer(integer«10»)))))))))';
 
 # Number with time unit
-parses-to 'filter 5years', 'statement(pipeline-statement(pipeline(call-expression(identifier,test(test-inner(expression(time-unit(number,dimension))))))))';
+parses-to 'filter 5years', 'statement(pipeline-statement(pipeline(call-expression(identifier«filter»,test(test-inner(expression(time-unit(number«5»,dimension«years»))))))))';
 
 # Binary notation
-parses-to 'filter 0b1111', 'statement(pipeline-statement(pipeline(call-expression(identifier,test(test-inner(expression(number(integer))))))))';
+parses-to 'filter 0b1111', 'statement(pipeline-statement(pipeline(call-expression(identifier«filter»,test(test-inner(expression(number(integer«0b1111»))))))))';
 
 # Hex notation
-parses-to 'filter 0xff', 'statement(pipeline-statement(pipeline(call-expression(identifier,test(test-inner(expression(number(integer))))))))';
+parses-to 'filter 0xff', 'statement(pipeline-statement(pipeline(call-expression(identifier«filter»,test(test-inner(expression(number(integer«0xff»))))))))';
 
 # Octal notation
-parses-to 'filter 0o777', 'statement(pipeline-statement(pipeline(call-expression(identifier,test(test-inner(expression(number(integer))))))))';
+parses-to 'filter 0o777', 'statement(pipeline-statement(pipeline(call-expression(identifier«filter»,test(test-inner(expression(number(integer«0o777»))))))))';

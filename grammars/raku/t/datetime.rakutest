@@ -5,22 +5,22 @@ use PRQLTest;
 plan 7;
 
 # Date YYYY-MM-DD
-parses-to 'filter @1970-01-01', 'statement(pipeline-statement(pipeline(call-expression(identifier,test(test-inner(expression(date-time(date))))))))';
+parses-to 'filter @1970-01-01', 'statement(pipeline-statement(pipeline(call-expression(identifier«filter»,test(test-inner(expression(date-time(date«1970-01-01»))))))))';
 
 # Time HH:MM
-parses-to 'filter @08:30', 'statement(pipeline-statement(pipeline(call-expression(identifier,test(test-inner(expression(date-time(time))))))))';
+parses-to 'filter @08:30', 'statement(pipeline-statement(pipeline(call-expression(identifier«filter»,test(test-inner(expression(date-time(time«08:30»))))))))';
 
 # Time HH:MM:SS
-parses-to 'filter @12:00:00', 'statement(pipeline-statement(pipeline(call-expression(identifier,test(test-inner(expression(date-time(time))))))))';
+parses-to 'filter @12:00:00', 'statement(pipeline-statement(pipeline(call-expression(identifier«filter»,test(test-inner(expression(date-time(time«12:00:00»))))))))';
 
 # Time HH:MM:SS.xxx
-parses-to 'filter @12:00:00.500', 'statement(pipeline-statement(pipeline(call-expression(identifier,test(test-inner(expression(date-time(time))))))))';
+parses-to 'filter @12:00:00.500', 'statement(pipeline-statement(pipeline(call-expression(identifier«filter»,test(test-inner(expression(date-time(time«12:00:00.500»))))))))';
 
 # Date and time
-parses-to 'filter @1970-01-01T12:00:00', 'statement(pipeline-statement(pipeline(call-expression(identifier,test(test-inner(expression(date-time(date,time))))))))';
+parses-to 'filter @1970-01-01T12:00:00', 'statement(pipeline-statement(pipeline(call-expression(identifier«filter»,test(test-inner(expression(date-time(date«1970-01-01»,time«12:00:00»))))))))';
 
 # Date and time with timezone
-parses-to 'filter @1970-01-01T12:00:00+01:00', 'statement(pipeline-statement(pipeline(call-expression(identifier,test(test-inner(expression(date-time(date,time))))))))';
+parses-to 'filter @1970-01-01T12:00:00+01:00', 'statement(pipeline-statement(pipeline(call-expression(identifier«filter»,test(test-inner(expression(date-time(date«1970-01-01»,time«12:00:00»))))))))';
 
 # Date and time in UTC
-parses-to 'filter @1970-01-01T12:00:00Z', 'statement(pipeline-statement(pipeline(call-expression(identifier,test(test-inner(expression(date-time(date,time))))))))';
+parses-to 'filter @1970-01-01T12:00:00Z', 'statement(pipeline-statement(pipeline(call-expression(identifier«filter»,test(test-inner(expression(date-time(date«1970-01-01»,time«12:00:00»))))))))';

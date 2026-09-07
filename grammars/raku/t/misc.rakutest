@@ -5,74 +5,77 @@ use PRQLTest;
 plan 23;
 
 # Boolean: true
-parses-to 'filter true', 'statement(pipeline-statement(pipeline(call-expression(identifier,test(test-inner(expression(boolean)))))))';
+parses-to 'filter true', 'statement(pipeline-statement(pipeline(call-expression(identifier«filter»,test(test-inner(expression(boolean«true»)))))))';
 
 # Boolean: false
-parses-to 'filter false', 'statement(pipeline-statement(pipeline(call-expression(identifier,test(test-inner(expression(boolean)))))))';
+parses-to 'filter false', 'statement(pipeline-statement(pipeline(call-expression(identifier«filter»,test(test-inner(expression(boolean«false»)))))))';
 
 # Null
-parses-to 'filter null', 'statement(pipeline-statement(pipeline(call-expression(identifier,test(test-inner(expression))))))';
+parses-to 'filter null', 'statement(pipeline-statement(pipeline(call-expression(identifier«filter»,test(test-inner(expression«null»))))))';
 
 # Keyword: this
-parses-to 'filter this', 'statement(pipeline-statement(pipeline(call-expression(identifier,test(test-inner(expression))))))';
+parses-to 'filter this', 'statement(pipeline-statement(pipeline(call-expression(identifier«filter»,test(test-inner(expression«this»))))))';
 
 # Keyword: that
-parses-to 'filter that', 'statement(pipeline-statement(pipeline(call-expression(identifier,test(test-inner(expression))))))';
+parses-to 'filter that', 'statement(pipeline-statement(pipeline(call-expression(identifier«filter»,test(test-inner(expression«that»))))))';
 
 # Annotation
-parses-to q:to/END/, 'statement(annotation(declaration(identifier,expression(number(integer))))),statement(variable-declaration(variable-name,lambda(lambda-param(identifier),expression(identifier))))';
+parses-to q:to/END/, 'statement(annotation(declaration(identifier«binding_strength»,expression(number(integer«1»))))),statement(variable-declaration(variable-name«x»,lambda(lambda-param(identifier«y»),expression(identifier«z»))))';
 @{binding_strength=1}
 let x = y -> z
 END
 
 # Range: 10..20
-parses-to 'filter 10..20', 'statement(pipeline-statement(pipeline(call-expression(identifier,test(test-inner(expression(range-expression)))))))';
+parses-to 'filter 10..20', 'statement(pipeline-statement(pipeline(call-expression(identifier«filter»,test(test-inner(expression(range-expression«10..20»)))))))';
 
 # Comment
-parses-to 'filter 1 # Hello', 'statement(pipeline-statement(pipeline(call-expression(identifier,test(test-inner(expression(number(integer))))))),comment)';
+parses-to 'filter 1 # Hello', 'statement(pipeline-statement(pipeline(call-expression(identifier«filter»,test(test-inner(expression(number(integer«1»))))))),comment«# Hello»)';
 
 # Two comments
-parses-to q:to/END/, 'statement(comment),statement(comment)';
+parses-to q:to/END/, 'statement(comment«# Hello»),statement(comment«# Bar»)';
 # Hello
 # Bar
 END
 
-# Comment between pipes
-parses-to q:to/END/, 'statement(pipeline-statement(pipeline(call-expression(identifier,test(test-inner(expression(identifier)))))),comment),statement(pipeline-statement(pipeline(call-expression(identifier,test(test-inner(expression(identifier)))))))';
+# Comment between pipes. Same cause as the multi-line query in
+# `t/full_queries.rakutest`: the newline-separated steps don't join into one
+# pipeline, so each becomes its own `statement`. The lezer corpus expects a
+# single `Pipeline` with two `CallExpression`s.
+parses-to q:to/END/, 'statement(pipeline-statement(pipeline(call-expression(identifier«from»,test(test-inner(expression(identifier«foo»)))))),comment«# filter...»),statement(pipeline-statement(pipeline(call-expression(identifier«select»,test(test-inner(expression(identifier«bar»)))))))';
 from foo
 # filter...
 select bar
 END
 
 # Docblock
-parses-to q:to/END/, 'statement(doc-block),statement(pipeline-statement(pipeline(call-expression(identifier,test(test-inner(expression(number(integer))))))))';
+parses-to q:to/END/, 'statement(doc-block«#! Hello»),statement(pipeline-statement(pipeline(call-expression(identifier«filter»,test(test-inner(expression(number(integer«1»))))))))';
 #! Hello
 filter 1
 END
 
 # Variable declaration
-parses-to 'let foo = (from foo)', 'statement(variable-declaration(variable-name,nested-pipeline(pipeline(call-expression(identifier,test(test-inner(expression(identifier))))))))';
+parses-to 'let foo = (from foo)', 'statement(variable-declaration(variable-name«foo»,nested-pipeline(pipeline(call-expression(identifier«from»,test(test-inner(expression(identifier«foo»))))))))';
 
 # Function declaration
-parses-to 'let my_func = arg1 -> arg1', 'statement(variable-declaration(variable-name,lambda(lambda-param(identifier),expression(identifier))))';
+parses-to 'let my_func = arg1 -> arg1', 'statement(variable-declaration(variable-name«my_func»,lambda(lambda-param(identifier«arg1»),expression(identifier«arg1»))))';
 
 # Function declaration with two args
-parses-to 'let my_func = arg1 arg2 -> arg1 + arg2', 'statement(variable-declaration(variable-name,lambda(lambda-param(identifier),lambda-param(identifier),expression(binary-expression(identifier,arith-op,expression(identifier))))))';
+parses-to 'let my_func = arg1 arg2 -> arg1 + arg2', 'statement(variable-declaration(variable-name«my_func»,lambda(lambda-param(identifier«arg1»),lambda-param(identifier«arg2»),expression(binary-expression(identifier«arg1»,arith-op«+»,expression(identifier«arg2»))))))';
 
 # Function declaration with type annotation
-parses-to 'let my_func = arg1<int32> -> arg1', 'statement(variable-declaration(variable-name,lambda(lambda-param(identifier,type-definition(type-name(identifier))),expression(identifier))))';
+parses-to 'let my_func = arg1<int32> -> arg1', 'statement(variable-declaration(variable-name«my_func»,lambda(lambda-param(identifier«arg1»,type-definition(type-name(identifier«int32»))),expression(identifier«arg1»))))';
 
 # Parameter
-parses-to 'filter id == $1', 'statement(pipeline-statement(pipeline(call-expression(identifier,test(test-inner(binary-test(expression(identifier),compare-op,expression(parameter))))))))';
+parses-to 'filter id == $1', 'statement(pipeline-statement(pipeline(call-expression(identifier«filter»,test(test-inner(binary-test(expression(identifier«id»),compare-op«==»,expression(parameter«$1»))))))))';
 
 # Parenthesized expression
-parses-to 'filter (1)', 'statement(pipeline-statement(pipeline(call-expression(identifier,test(test-inner(expression(parenthesized-expression(expression(number(integer))))))))))';
+parses-to 'filter (1)', 'statement(pipeline-statement(pipeline(call-expression(identifier«filter»,test(test-inner(expression(parenthesized-expression(expression(number(integer«1»))))))))))';
 
 # Simple pipeline
-parses-to 'from foo | select bar', 'statement(pipeline-statement(pipeline(call-expression(identifier,test(test-inner(expression(identifier)))),call-expression(identifier,test(test-inner(expression(identifier)))))))';
+parses-to 'from foo | select bar', 'statement(pipeline-statement(pipeline(call-expression(identifier«from»,test(test-inner(expression(identifier«foo»)))),call-expression(identifier«select»,test(test-inner(expression(identifier«bar»)))))))';
 
 # Derive
-parses-to q:to/END/, 'statement(pipeline-statement(pipeline(call-expression(identifier,test(test-inner(expression(tuple-expression(declaration-tuple(identifier,expression(number(float))),declaration-tuple(identifier,expression(binary-expression(identifier,arith-op,expression(identifier))))))))))))';
+parses-to q:to/END/, 'statement(pipeline-statement(pipeline(call-expression(identifier«derive»,test(test-inner(expression(tuple-expression(declaration-tuple(identifier«transaction_fees»,expression(number(float«0.8»))),declaration-tuple(identifier«income»,expression(binary-expression(identifier«total»,arith-op«-»,expression(identifier«transaction_fees»))))))))))))';
 derive {
   transaction_fees = 0.8,
   income = total - transaction_fees
@@ -80,7 +83,7 @@ derive {
 END
 
 # Nested pipeline
-parses-to q:to/END/, 'statement(pipeline-statement(pipeline(call-expression(identifier,test(test-inner(expression(identifier))),test(test-inner(expression(nested-pipeline(pipeline(call-expression(identifier,test(test-inner(expression(tuple-expression(call-expression(identifier,test(test-inner(expression(identifier))))))))))))))))))';
+parses-to q:to/END/, 'statement(pipeline-statement(pipeline(call-expression(identifier«group»,test(test-inner(expression(identifier«customer_id»))),test(test-inner(expression(nested-pipeline(pipeline(call-expression(identifier«aggregate»,test(test-inner(expression(tuple-expression(call-expression(identifier«average»,test(test-inner(expression(identifier«total»))))))))))))))))))';
 group customer_id (
   aggregate {
     average total
@@ -89,17 +92,17 @@ group customer_id (
 END
 
 # Tabs as spaces
-parses-to 'let		foo		=		(foo 1)', 'statement(variable-declaration(variable-name,nested-pipeline(pipeline(call-expression(identifier,test(test-inner(expression(number(integer)))))))))';
+parses-to 'let		foo		=		(foo 1)', 'statement(variable-declaration(variable-name«foo»,nested-pipeline(pipeline(call-expression(identifier«foo»,test(test-inner(expression(number(integer«1»)))))))))';
 
 # Module
-parses-to q:to/END/, 'statement(module(identifier,statement(variable-declaration(variable-name,lambda(expression(s-string))))))';
+parses-to q:to/END/, 'statement(module(identifier«foo»,statement(variable-declaration(variable-name«x»,lambda(expression(s-string«s"foo()"»))))))';
 module foo {
   let x = -> s"foo()"
 }
 END
 
 # Pipeline within tuple
-parses-to q:to/END/, 'statement(pipeline-statement(pipeline(call-expression(identifier,test(test-inner(expression(tuple-expression(declaration-tuple(identifier,expression(nested-pipeline(pipeline(expression(identifier),identifier))))))))))))';
+parses-to q:to/END/, 'statement(pipeline-statement(pipeline(call-expression(identifier«derive»,test(test-inner(expression(tuple-expression(declaration-tuple(identifier«a»,expression(nested-pipeline(pipeline(expression(identifier«b»),identifier«math.abs»))))))))))))';
 derive {
   a = (b | math.abs)
 }

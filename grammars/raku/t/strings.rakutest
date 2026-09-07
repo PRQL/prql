@@ -5,34 +5,34 @@ use PRQLTest;
 plan 11;
 
 # Single-quoted string
-parses-to "filter 'Hello'", 'statement(pipeline-statement(pipeline(call-expression(identifier,test(test-inner(expression(string)))))))';
+parses-to "filter 'Hello'", 'statement(pipeline-statement(pipeline(call-expression(identifier«filter»,test(test-inner(expression(string«\'Hello\'»)))))))';
 
 # Double-quoted string
-parses-to 'filter "Hello"', 'statement(pipeline-statement(pipeline(call-expression(identifier,test(test-inner(expression(string)))))))';
+parses-to 'filter "Hello"', 'statement(pipeline-statement(pipeline(call-expression(identifier«filter»,test(test-inner(expression(string«"Hello"»)))))))';
 
 # Single-quoted f-string
-parses-to "filter f'Hello \{name\}!'", 'statement(pipeline-statement(pipeline(call-expression(identifier,test(test-inner(expression(f-string)))))))';
+parses-to "filter f'Hello \{name\}!'", 'statement(pipeline-statement(pipeline(call-expression(identifier«filter»,test(test-inner(expression(f-string«f\'Hello {name}!\'»)))))))';
 
 # Double-quoted f-string
-parses-to 'filter f"Hello {name}!"', 'statement(pipeline-statement(pipeline(call-expression(identifier,test(test-inner(expression(f-string)))))))';
+parses-to 'filter f"Hello {name}!"', 'statement(pipeline-statement(pipeline(call-expression(identifier«filter»,test(test-inner(expression(f-string«f"Hello {name}!"»)))))))';
 
 # Single-quoted r-string
-parses-to "filter r'version()'", 'statement(pipeline-statement(pipeline(call-expression(identifier,test(test-inner(expression(r-string)))))))';
+parses-to "filter r'version()'", 'statement(pipeline-statement(pipeline(call-expression(identifier«filter»,test(test-inner(expression(r-string«r\'version()\'»)))))))';
 
 # Double-quoted r-string
-parses-to 'filter r"version()"', 'statement(pipeline-statement(pipeline(call-expression(identifier,test(test-inner(expression(r-string)))))))';
+parses-to 'filter r"version()"', 'statement(pipeline-statement(pipeline(call-expression(identifier«filter»,test(test-inner(expression(r-string«r"version()"»)))))))';
 
 # Single-quoted s-string
-parses-to "filter s'version()'", 'statement(pipeline-statement(pipeline(call-expression(identifier,test(test-inner(expression(s-string)))))))';
+parses-to "filter s'version()'", 'statement(pipeline-statement(pipeline(call-expression(identifier«filter»,test(test-inner(expression(s-string«s\'version()\'»)))))))';
 
 # Double-quoted s-string
-parses-to 'filter s"version()"', 'statement(pipeline-statement(pipeline(call-expression(identifier,test(test-inner(expression(s-string)))))))';
+parses-to 'filter s"version()"', 'statement(pipeline-statement(pipeline(call-expression(identifier«filter»,test(test-inner(expression(s-string«s"version()"»)))))))';
 
 # Triple-quoted single-quoted string
-parses-to "filter '''Hello world!'''", 'statement(pipeline-statement(pipeline(call-expression(identifier,test(test-inner(expression(string)))))))';
+parses-to "filter '''Hello world!'''", 'statement(pipeline-statement(pipeline(call-expression(identifier«filter»,test(test-inner(expression(string«\'\'\'Hello world!\'\'\'»)))))))';
 
 # Triple-quoted double-quoted string
-parses-to 'filter """Hello world!"""', 'statement(pipeline-statement(pipeline(call-expression(identifier,test(test-inner(expression(string)))))))';
+parses-to 'filter """Hello world!"""', 'statement(pipeline-statement(pipeline(call-expression(identifier«filter»,test(test-inner(expression(string«"""Hello world!"""»)))))))';
 
 # Escape sequence
-parses-to 'filter "\xff"', 'statement(pipeline-statement(pipeline(call-expression(identifier,test(test-inner(expression(string(escape(xdigit,xdigit)))))))))';
+parses-to 'filter "\xff"', 'statement(pipeline-statement(pipeline(call-expression(identifier«filter»,test(test-inner(expression(string(escape(xdigit«f»,xdigit«f»)))))))))';

@@ -5,21 +5,21 @@ use PRQLTest;
 plan 6;
 
 # Plus
-parses-to 'filter 10 + 10.5', 'statement(pipeline-statement(pipeline(call-expression(identifier,test(test-inner(binary-test(expression(number(integer)),arith-op,expression(number(float)))))))))';
+parses-to 'filter 10 + 10.5', 'statement(pipeline-statement(pipeline(call-expression(identifier«filter»,test(test-inner(binary-test(expression(number(integer«10»)),arith-op«+»,expression(number(float«10.5»)))))))))';
 
 # Minus
-parses-to 'filter 10 - 10', 'statement(pipeline-statement(pipeline(call-expression(identifier,test(test-inner(binary-test(expression(number(integer)),arith-op,expression(number(integer)))))))))';
+parses-to 'filter 10 - 10', 'statement(pipeline-statement(pipeline(call-expression(identifier«filter»,test(test-inner(binary-test(expression(number(integer«10»)),arith-op«-»,expression(number(integer«10»)))))))))';
 
 # Multiply
-parses-to 'filter 10 * 10', 'statement(pipeline-statement(pipeline(call-expression(identifier,test(test-inner(binary-test(expression(number(integer)),arith-op,expression(number(integer)))))))))';
+parses-to 'filter 10 * 10', 'statement(pipeline-statement(pipeline(call-expression(identifier«filter»,test(test-inner(binary-test(expression(number(integer«10»)),arith-op«*»,expression(number(integer«10»)))))))))';
 
 # Divide
-parses-to 'filter 10 / 10', 'statement(pipeline-statement(pipeline(call-expression(identifier,test(test-inner(binary-test(expression(number(integer)),arith-op,expression(number(integer)))))))))';
+parses-to 'filter 10 / 10', 'statement(pipeline-statement(pipeline(call-expression(identifier«filter»,test(test-inner(binary-test(expression(number(integer«10»)),arith-op«/»,expression(number(integer«10»)))))))))';
 
 # Exponentiation
-parses-to 'filter 10 ** 10', 'statement(pipeline-statement(pipeline(call-expression(identifier,test(test-inner(binary-test(expression(number(integer)),arith-op,expression(number(integer)))))))))';
+parses-to 'filter 10 ** 10', 'statement(pipeline-statement(pipeline(call-expression(identifier«filter»,test(test-inner(binary-test(expression(number(integer«10»)),arith-op«**»,expression(number(integer«10»)))))))))';
 
 # Multiple ops. `binary-expression` accepts only an identifier on its left, so
 # this doesn't nest: the shape records two arguments to `filter` — `10 + 10`
 # and a unary `+ 10` — rather than one nested binary expression.
-parses-to 'filter 10 + 10 + 10', 'statement(pipeline-statement(pipeline(call-expression(identifier,test(test-inner(binary-test(expression(number(integer)),arith-op,expression(number(integer))))),test(test-inner(expression(unary-expression(expression(number(integer))))))))))';
+parses-to 'filter 10 + 10 + 10', 'statement(pipeline-statement(pipeline(call-expression(identifier«filter»,test(test-inner(binary-test(expression(number(integer«10»)),arith-op«+»,expression(number(integer«10»))))),test(test-inner(expression(unary-expression(expression(number(integer«10»))))))))))';

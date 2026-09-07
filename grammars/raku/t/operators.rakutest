@@ -5,31 +5,31 @@ use PRQLTest;
 plan 10;
 
 # == Equals
-parses-to 'filter foo == bar', 'statement(pipeline-statement(pipeline(call-expression(identifier,test(test-inner(binary-test(expression(identifier),compare-op,expression(identifier))))))))';
+parses-to 'filter foo == bar', 'statement(pipeline-statement(pipeline(call-expression(identifier«filter»,test(test-inner(binary-test(expression(identifier«foo»),compare-op«==»,expression(identifier«bar»))))))))';
 
 # != Not equals
-parses-to 'filter foo != bar', 'statement(pipeline-statement(pipeline(call-expression(identifier,test(test-inner(binary-test(expression(identifier),compare-op,expression(identifier))))))))';
+parses-to 'filter foo != bar', 'statement(pipeline-statement(pipeline(call-expression(identifier«filter»,test(test-inner(binary-test(expression(identifier«foo»),compare-op«!=»,expression(identifier«bar»))))))))';
 
 # >= Greater than or equal
-parses-to 'filter foo >= bar', 'statement(pipeline-statement(pipeline(call-expression(identifier,test(test-inner(binary-test(expression(identifier),compare-op,expression(identifier))))))))';
+parses-to 'filter foo >= bar', 'statement(pipeline-statement(pipeline(call-expression(identifier«filter»,test(test-inner(binary-test(expression(identifier«foo»),compare-op«>=»,expression(identifier«bar»))))))))';
 
 # <= Less than or equal
-parses-to 'filter foo <= bar', 'statement(pipeline-statement(pipeline(call-expression(identifier,test(test-inner(binary-test(expression(identifier),compare-op,expression(identifier))))))))';
+parses-to 'filter foo <= bar', 'statement(pipeline-statement(pipeline(call-expression(identifier«filter»,test(test-inner(binary-test(expression(identifier«foo»),compare-op«<=»,expression(identifier«bar»))))))))';
 
 # ~= Regex match
-parses-to 'filter foo ~= bar', 'statement(pipeline-statement(pipeline(call-expression(identifier,test(test-inner(binary-test(expression(identifier),compare-op,expression(identifier))))))))';
+parses-to 'filter foo ~= bar', 'statement(pipeline-statement(pipeline(call-expression(identifier«filter»,test(test-inner(binary-test(expression(identifier«foo»),compare-op«~=»,expression(identifier«bar»))))))))';
 
 # && And
-parses-to 'filter foo && bar', 'statement(pipeline-statement(pipeline(call-expression(identifier,test(test-inner(binary-test(expression(identifier),logic-op,expression(identifier))))))))';
+parses-to 'filter foo && bar', 'statement(pipeline-statement(pipeline(call-expression(identifier«filter»,test(test-inner(binary-test(expression(identifier«foo»),logic-op«&&»,expression(identifier«bar»))))))))';
 
 # || Or
-parses-to 'filter foo || bar', 'statement(pipeline-statement(pipeline(call-expression(identifier,test(test-inner(binary-test(expression(identifier),logic-op,expression(identifier))))))))';
+parses-to 'filter foo || bar', 'statement(pipeline-statement(pipeline(call-expression(identifier«filter»,test(test-inner(binary-test(expression(identifier«foo»),logic-op«||»,expression(identifier«bar»))))))))';
 
 # ?? Coalesce
-parses-to 'filter foo ?? bar', 'statement(pipeline-statement(pipeline(call-expression(identifier,test(test-inner(binary-test(expression(identifier),logic-op,expression(identifier))))))))';
+parses-to 'filter foo ?? bar', 'statement(pipeline-statement(pipeline(call-expression(identifier«filter»,test(test-inner(binary-test(expression(identifier«foo»),logic-op«??»,expression(identifier«bar»))))))))';
 
 # Unary operator -
-parses-to 'sort { -name }', 'statement(pipeline-statement(pipeline(call-expression(identifier,test(test-inner(expression(tuple-expression(expression(unary-expression(expression(identifier)))))))))))';
+parses-to 'sort { -name }', 'statement(pipeline-statement(pipeline(call-expression(identifier«sort»,test(test-inner(expression(tuple-expression(expression(unary-expression(expression(identifier«name»)))))))))))';
 
 # Unary operator ==
-parses-to 'join customers (==customer_id)', 'statement(pipeline-statement(pipeline(call-expression(identifier,test(test-inner(expression(identifier))),test(test-inner(expression(parenthesized-expression(expression(unary-expression(identifier))))))))))';
+parses-to 'join customers (==customer_id)', 'statement(pipeline-statement(pipeline(call-expression(identifier«join»,test(test-inner(expression(identifier«customers»))),test(test-inner(expression(parenthesized-expression(expression(unary-expression(identifier«customer_id»))))))))))';

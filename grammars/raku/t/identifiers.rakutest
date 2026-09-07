@@ -5,10 +5,10 @@ use PRQLTest;
 plan 3;
 
 # Basic identifier
-parses-to 'filter foo', 'statement(pipeline-statement(pipeline(call-expression(identifier,test(test-inner(expression(identifier)))))))';
+parses-to 'filter foo', 'statement(pipeline-statement(pipeline(call-expression(identifier«filter»,test(test-inner(expression(identifier«foo»)))))))';
 
 # Identifier with underscore and digit
-parses-to 'filter foo_123', 'statement(pipeline-statement(pipeline(call-expression(identifier,test(test-inner(expression(identifier)))))))';
+parses-to 'filter foo_123', 'statement(pipeline-statement(pipeline(call-expression(identifier«filter»,test(test-inner(expression(identifier«foo_123»)))))))';
 
 # Unicode identifier
-parses-to 'filter räksmörgås', 'statement(pipeline-statement(pipeline(call-expression(identifier,test(test-inner(expression(identifier)))))))';
+parses-to 'filter räksmörgås', 'statement(pipeline-statement(pipeline(call-expression(identifier«filter»,test(test-inner(expression(identifier«räksmörgås»)))))))';

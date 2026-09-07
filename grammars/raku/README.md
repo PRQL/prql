@@ -33,11 +33,13 @@ To run all tests in the directory you have to install `prove6` using `zef`:
 Each test asserts the shape of the tree the grammar builds, not only that the
 query parses:
 
-    parses-to 'filter 10 * 10', 'statement(pipeline-statement(pipeline(call-expression(identifier,test(test-inner(binary-test(expression(number(integer)),arith-op,expression(number(integer)))))))))';
+    parses-to 'filter 10 * 10', 'statement(pipeline-statement(pipeline(call-expression(identifier«filter»,test(test-inner(binary-test(expression(number(integer«10»)),arith-op«*»,expression(number(integer«10»)))))))))';
 
 `parses-to` comes from `t/lib/PRQLTest.rakumod`, which renders a `Match` as
-`rule(child,child)` over the grammar's named captures. To see the shape a query
-produces before writing the assertion:
+`rule(child,child)` over the grammar's named captures, with the text a leaf
+capture matched in `«…»`. On failure it prints both shapes one capture per line,
+indented by depth. To see the shape a query produces before writing the
+assertion:
 
     raku -I lib -I t/lib -e 'use PRQLTest; use prql; say shape(PRQL.parse("filter 1 + 1"))'
 
