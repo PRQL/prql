@@ -1,7 +1,7 @@
 use Test;
 use prql;
 
-plan 11;
+plan 15;
 
 # Single-quoted string
 ok PRQL.parse("filter 'Hello'");
@@ -46,3 +46,15 @@ ok PRQL.parse('filter """Hello world!"""');
 # Escape sequence
 ok PRQL.parse('filter "\xff"');
 #query(pipeline(call-expression(identifier,arg-list(string(escape)))))
+
+# Triple-quoted double-quoted string containing the quote character
+ok PRQL.parse('filter """I said "hello world"!"""');
+
+# Triple-quoted single-quoted string containing the quote character
+ok PRQL.parse("filter '''I said 'hello world'!'''");
+
+# Escaped double quote within a double-quoted string
+ok PRQL.parse('filter "\"hello world\""');
+
+# Escaped backslash within a double-quoted string
+ok PRQL.parse('filter "C:\\\\path"');

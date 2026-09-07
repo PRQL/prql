@@ -134,6 +134,13 @@
   unsatisfiable. Users still on 3.9 continue to resolve the last release that
   declared support for it. (@prql-bot, #6225)
 
+- The Raku grammar in `grammars/raku/` now parses a triple-quoted string
+  containing the quote character, such as `"""I said "hello"!"""`, and a string
+  containing an escaped quote, such as `"\"hello\""`. Both are documented PRQL,
+  but the grammar ran a triple-quoted body only up to the first quote character,
+  and its `escape` token covered neither `\\` nor an escaped quote. (@prql-bot,
+  #6288)
+
 **Internal changes**:
 
 **New Contributors**:
