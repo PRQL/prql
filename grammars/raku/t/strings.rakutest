@@ -1,7 +1,7 @@
 use Test;
 use prql;
 
-plan 19;
+plan 21;
 
 # Single-quoted string
 ok PRQL.parse("filter 'Hello'");
@@ -47,11 +47,17 @@ ok PRQL.parse('filter """Hello world!"""');
 ok PRQL.parse('filter "\xff"');
 #query(pipeline(call-expression(identifier,arg-list(string(escape)))))
 
-# Triple-quoted double-quoted string containing the quote character
+# Triple-quoted string containing the quote character. The whole-query form
+# passes on the previous grammar too, but not because it parsed: the `"""` arm
+# stopped at the inner quote, the `"` arm then matched the empty string `""`,
+# and `filter` collected the remainder as five more arguments. So each case is
+# also asserted against `string` on its own, where the rule has to consume the
+# entire literal for the test to pass.
 ok PRQL.parse('filter """I said "hello world"!"""');
+ok PRQL.parse('"""I said "hello world"!"""', :rule<string>);
 
-# Triple-quoted single-quoted string containing the quote character
 ok PRQL.parse("filter '''I said 'hello world'!'''");
+ok PRQL.parse("'''I said 'hello world'!'''", :rule<string>);
 
 # Escaped double quote within a double-quoted string
 ok PRQL.parse('filter "\"hello world\""');
