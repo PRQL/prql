@@ -133,3 +133,27 @@ filter s"\"hello world\""
 ==>
 
 Query(Pipeline(CallExpression(Identifier,ArgList(SString))))
+
+# Escaped single quote within a single-quoted string
+
+filter '\'hello world\''
+
+==>
+
+Query(Pipeline(CallExpression(Identifier,ArgList(String(Escape,Escape)))))
+
+# Backslash before the closing quote of a double-quoted r-string
+
+filter r"C:\"
+
+==>
+
+Query(Pipeline(CallExpression(Identifier,ArgList(RString))))
+
+# Backslash before the closing quote of a single-quoted r-string
+
+filter r'C:\'
+
+==>
+
+Query(Pipeline(CallExpression(Identifier,ArgList(RString))))

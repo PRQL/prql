@@ -204,12 +204,18 @@ LambdaParam { identPart TypeDefinition? (":" expression)? }
   interpolationInnerSingle { "{" ![}']* "}" }
   interpolationInnerDouble { "{" ![}"]* "}" }
 
+  // Raw strings have no escape sequences, so unlike the bodies above they keep
+  // a backslash as ordinary content — `r"C:\"` is a raw string holding `C:\`,
+  // matching `raw_string()` in `prqlc/prqlc-parser/src/lexer/mod.rs`.
+  rawStringSingle { $['] (![{'] | interpolationInnerSingle)* $['] }
+  rawStringDouble { $["] (![{"] | interpolationInnerDouble)* $["] }
+
   interpolatedString<prefix> { prefix (stringInterpolatedDouble | stringInterpolatedSingle) }
 
   "="[@name=Equals]
 
   FString { interpolatedString<'f'> }
-  RString { interpolatedString<'r'> }
+  RString { "r" (rawStringDouble | rawStringSingle) }
   SString { interpolatedString<'s'> }
 
   // We need to give precedence to `Op_bin` so we don't get `x+y` as `x` & `+y`.
