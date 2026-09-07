@@ -124,8 +124,8 @@ LambdaParam { identPart TypeDefinition? (":" expression)? }
 @skip {} {
   // Couldn't manage to do these & the interpolated as a template.
   String {
-    '"""' (stringContentDouble | Escape)* '"""' |
-    "'''" (stringContentSingle | Escape)* "'''" |
+    '"""' (tripleContentDouble | Escape)* '"""' |
+    "'''" (tripleContentSingle | Escape)* "'''" |
     '"' (stringContentDouble | Escape)* '"' |
     "'" (stringContentSingle | Escape)* "'"
   }
@@ -155,15 +155,28 @@ LambdaParam { identPart TypeDefinition? (":" expression)? }
   // underscores and allows no digit before the decimal point.
   space { $[ \t] }
 
-  Escape {
-    "\\" ("x" hex hex | "u" "{" hex+ "}" | $[bfnrt])
-  }
+  // The final alternative is any character rather than a fixed set: an
+  // unrecognized escape keeps the character that follows it, and that is what
+  // covers `\\`, `\'` and `\"`, which a `$[bfnrt]` set left out. Newline is
+  // excluded so a trailing backslash still tokenizes as `lineWrap`.
+  // https://prql-lang.org/book/reference/syntax/strings.html#escape-sequences
+  escapeSeq { "\\" ("x" hex hex | "u" "{" hex+ "}" | ![\n]) }
+
+  Escape { escapeSeq }
 
   Parameter { "$" (@digit+ | identPart) }
 
   stringContentSingle { ![\\']+ }
 
   stringContentDouble { ![\\"]+ }
+
+  // A triple-quoted string may contain the quote character itself, so its body
+  // admits runs of one or two quotes followed by a non-quote. Three in a row
+  // can't be matched, which is what leaves the closing delimiter for `String`.
+  // https://prql-lang.org/book/reference/syntax/strings.html
+  tripleContentSingle { (![\\'] | "'" ![\\'] | "''" ![\\'])+ }
+
+  tripleContentDouble { (![\\"] | '"' ![\\"] | '""' ![\\"])+ }
 
   Docblock { "#!" ![\n]* }
   Comment { "#" ![\n]* }
@@ -182,8 +195,11 @@ LambdaParam { identPart TypeDefinition? (":" expression)? }
   // string as a string, because these are all within the `@tokens` block. But
   // they need to be within this block, because it's not possible to have
   // negations (e.g. `![{'}` outside it.
-  stringInterpolatedSingle { $['] (![{'] | interpolationInnerSingle)* $['] }
-  stringInterpolatedDouble { $["] (![{"] | interpolationInnerDouble)* $["] }
+  // `\\` is excluded from these bodies so a backslash is only ever consumed by
+  // `escapeSeq`; otherwise an escaped quote could be read as a plain backslash
+  // followed by the closing quote, cutting the string short.
+  stringInterpolatedSingle { $['] (![{'\\] | escapeSeq | interpolationInnerSingle)* $['] }
+  stringInterpolatedDouble { $["] (![{"\\] | escapeSeq | interpolationInnerDouble)* $["] }
 
   interpolationInnerSingle { "{" ![}']* "}" }
   interpolationInnerDouble { "{" ![}"]* "}" }

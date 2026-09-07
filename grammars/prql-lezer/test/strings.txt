@@ -85,3 +85,51 @@ filter "\xff"
 ==>
 
 Query(Pipeline(CallExpression(Identifier,ArgList(String(Escape)))))
+
+# Triple-quoted double-quoted string containing the quote character
+
+filter """I said "hello world"!"""
+
+==>
+
+Query(Pipeline(CallExpression(Identifier,ArgList(String))))
+
+# Triple-quoted single-quoted string containing the quote character
+
+filter '''I said 'hello world'!'''
+
+==>
+
+Query(Pipeline(CallExpression(Identifier,ArgList(String))))
+
+# Escaped double quote within a double-quoted string
+
+filter "\"hello world\""
+
+==>
+
+Query(Pipeline(CallExpression(Identifier,ArgList(String(Escape,Escape)))))
+
+# Escaped backslash within a double-quoted string
+
+filter "C:\\path"
+
+==>
+
+Query(Pipeline(CallExpression(Identifier,ArgList(String(Escape)))))
+
+# Escaped double quote within an f-string
+
+filter f"\"hello world\""
+
+==>
+
+Query(Pipeline(CallExpression(Identifier,ArgList(FString))))
+
+# Escaped double quote within an s-string
+
+filter s"\"hello world\""
+
+==>
+
+Query(Pipeline(CallExpression(Identifier,ArgList(SString))))
