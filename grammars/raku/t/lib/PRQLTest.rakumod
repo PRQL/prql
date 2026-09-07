@@ -66,7 +66,12 @@ sub indented(Str:D $shape --> Str) {
 #| single-line tests; pass `:desc` for the heredoc ones, whose first line is
 #| both truncated and — for pairs like `derive {` in `t/misc.rakutest` — shared
 #| with another test.
-sub parses-to(Str:D $source, Str:D $expected, Str :$desc --> Bool) is export {
+#|
+#| `is test-assertion` makes `Test`'s failure line walk past this frame to the
+#| `.rakutest` call site. Without it every one of the 81 tests reports the `ok`
+#| below as its location, so a failure names this file rather than the test that
+#| failed.
+sub parses-to(Str:D $source, Str:D $expected, Str :$desc --> Bool) is export is test-assertion {
     my $description = $desc // $source.trim.lines.head;
     my $match = PRQL.parse($source);
     without $match {
