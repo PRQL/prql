@@ -53,9 +53,9 @@ additional dialects.
 - `sql.snowflake`
 - `sql.oracle` — very early; currently ensures identifiers are quoted to
   accommodate Oracle's case-folding rules, compiles `take` to
-  `OFFSET ... FETCH FIRST` rather than `LIMIT`, and emits `||` for
-  `text.contains`. Most other language features fall back to generic SQL and may
-  not execute correctly against Oracle.
+  `OFFSET ... FETCH FIRST` rather than `LIMIT`, and uses `||` rather than
+  `CONCAT` in `text.contains`. Most other language features fall back to generic
+  SQL and may not execute correctly against Oracle.
 
 ## Priority of targets
 
