@@ -8,7 +8,7 @@ plan 6;
 parses-to 'filter [foo, bar, baz]', 'statement(pipeline-statement(pipeline(call-expression(identifier«filter»,test(test-inner(expression(array-expression(test(test-inner(expression(identifier«foo»))),test(test-inner(expression(identifier«bar»))),test(test-inner(expression(identifier«baz»)))))))))))';
 
 # Array on multiple lines
-parses-to q:to/END/, 'statement(pipeline-statement(pipeline(call-expression(identifier«filter»,test(test-inner(expression(array-expression(test(test-inner(expression(identifier«foo»))),test(test-inner(expression(identifier«bar»))),test(test-inner(expression(identifier«baz»)))))))))))';
+parses-to q:to/END/, 'statement(pipeline-statement(pipeline(call-expression(identifier«filter»,test(test-inner(expression(array-expression(test(test-inner(expression(identifier«foo»))),test(test-inner(expression(identifier«bar»))),test(test-inner(expression(identifier«baz»)))))))))))', :desc('Array on multiple lines');
 filter [
   foo,
   bar,
@@ -17,7 +17,7 @@ filter [
 END
 
 # Array on multiple lines with blank lines
-parses-to q:to/END/, 'statement(pipeline-statement(pipeline(call-expression(identifier«filter»,test(test-inner(expression(array-expression(test(test-inner(expression(identifier«foo»))),test(test-inner(expression(identifier«bar»))),test(test-inner(expression(identifier«baz»)))))))))))';
+parses-to q:to/END/, 'statement(pipeline-statement(pipeline(call-expression(identifier«filter»,test(test-inner(expression(array-expression(test(test-inner(expression(identifier«foo»))),test(test-inner(expression(identifier«bar»))),test(test-inner(expression(identifier«baz»)))))))))))', :desc('Array on multiple lines with blank lines');
 filter [
 
   foo,

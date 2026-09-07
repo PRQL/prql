@@ -61,7 +61,11 @@ sub indented(Str:D $shape --> Str) {
 }
 
 #| Parse `$source` and check the tree against `$expected`, so a test covers the
-#| structure the grammar builds and not only that the parse succeeded.
+#| structure the grammar builds and not only that the parse succeeded. The TAP
+#| description defaults to the first line of `$source`, which is enough for the
+#| single-line tests; pass `:desc` for the heredoc ones, whose first line is
+#| both truncated and — for pairs like `derive {` in `t/misc.rakutest` — shared
+#| with another test.
 sub parses-to(Str:D $source, Str:D $expected, Str :$desc --> Bool) is export {
     my $description = $desc // $source.trim.lines.head;
     my $match = PRQL.parse($source);

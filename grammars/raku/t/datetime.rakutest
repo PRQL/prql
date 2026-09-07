@@ -19,6 +19,13 @@ parses-to 'filter @12:00:00.500', 'statement(pipeline-statement(pipeline(call-ex
 # Date and time
 parses-to 'filter @1970-01-01T12:00:00', 'statement(pipeline-statement(pipeline(call-expression(identifier«filter»,test(test-inner(expression(date-time(date«1970-01-01»,time«12:00:00»))))))))';
 
+# The two tests below record the same shape as `Date and time` above: the
+# timezone suffix sits in an unnamed group inside `date-time`, so `shape` has
+# nothing to name it by, and `date-time`'s own text is dropped because it has
+# named children (`date`, `time`). The assertion is still timezone-sensitive —
+# `.parse` anchors on the whole string, so a grammar that stopped accepting
+# `+01:00` or `Z` would fail the parse rather than pass with this shape.
+
 # Date and time with timezone
 parses-to 'filter @1970-01-01T12:00:00+01:00', 'statement(pipeline-statement(pipeline(call-expression(identifier«filter»,test(test-inner(expression(date-time(date«1970-01-01»,time«12:00:00»))))))))';
 
