@@ -230,3 +230,21 @@ filter "\xg"
 ==>
 
 Query(Pipeline(CallExpression(Identifier,ArgList(String))))
+
+# Backslash before a newline in an f-string
+
+filter f"a\
+b"
+
+==>
+
+Query(Pipeline(CallExpression(Identifier,ArgList(FString))))
+
+# Backslash before a newline in a single-quoted s-string
+
+filter s'a\
+b'
+
+==>
+
+Query(Pipeline(CallExpression(Identifier,ArgList(SString))))
