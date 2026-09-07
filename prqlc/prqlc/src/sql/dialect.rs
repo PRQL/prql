@@ -193,6 +193,13 @@ pub(super) trait DialectHandler: Any + Debug {
         false
     }
 
+    /// Whether a `FETCH` clause requires an accompanying `ORDER BY`. True for
+    /// MSSQL, where the row-limiting clause is a suffix of `ORDER BY`; false for
+    /// Oracle, where it is a peer of `ORDER BY` in the `SELECT` grammar.
+    fn fetch_requires_order_by(&self) -> bool {
+        true
+    }
+
     fn ident_quote(&self) -> char {
         '"'
     }
@@ -748,6 +755,14 @@ impl DialectHandler for OracleDialect {
     // https://docs.oracle.com/en/database/oracle/oracle-database/26/sqlrf/SELECT.html
     fn use_fetch(&self) -> bool {
         true
+    }
+
+    // Oracle's row-limiting clause is a peer of `ORDER BY`, not a suffix of it,
+    // so `FETCH` alone is valid. The `ORDER BY (SELECT NULL)` that MSSQL needs
+    // is `ORA-00923` here anyway — a scalar subquery requires a `FROM` before
+    // 23ai (`SELECT NULL FROM DUAL`).
+    fn fetch_requires_order_by(&self) -> bool {
+        false
     }
 
     fn ident_quoting_style(&self) -> IdentQuotingStyle {

@@ -207,7 +207,8 @@ fn translate_select_pipeline(
 
     // If we have a FETCH we need to make sure that:
     // - we have an OFFSET (set to 0)
-    // - we have an ORDER BY (see https://stackoverflow.com/a/44919325)
+    // - we have an ORDER BY, where the dialect requires one alongside `FETCH`
+    //   (see https://stackoverflow.com/a/44919325)
     if fetch.is_some() {
         if offset.is_none() {
             let kind = ExprKind::Literal(Literal::Integer(0));
@@ -217,7 +218,7 @@ fn translate_select_pipeline(
                 rows: sqlparser::ast::OffsetRows::Rows,
             })
         }
-        if order_by.is_empty() {
+        if order_by.is_empty() && ctx.dialect.fetch_requires_order_by() {
             // When DISTINCT is used, MSSQL requires ORDER BY items to appear
             // in the SELECT list. Use the first column from the projection
             // instead of (SELECT NULL).

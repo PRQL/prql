@@ -102,7 +102,7 @@
 - `take` now compiles to `OFFSET n ROWS FETCH FIRST n ROWS ONLY` on the
   `sql.oracle` target, rather than `LIMIT n OFFSET n`. Oracle has no `LIMIT`
   clause, so `take 15..20` produced a query that the database rejects outright.
-  (@prql-bot, #6291)
+  (@prql-bot, #6292)
 
 **Documentation**:
 
