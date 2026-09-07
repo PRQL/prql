@@ -1,7 +1,7 @@
 use Test;
 use prql;
 
-plan 17;
+plan 19;
 
 # Single-quoted string
 ok PRQL.parse("filter 'Hello'");
@@ -64,3 +64,11 @@ ok PRQL.parse('filter f"\"hello world\""');
 
 # Escaped double quote within an s-string
 ok PRQL.parse('filter s"\"hello world\""');
+
+# Unrecognized escape sequence: the compiler keeps the character after the
+# backslash rather than rejecting the string, so the grammar accepts any
+# character there too
+ok PRQL.parse('filter "\d+"');
+
+# Unrecognized escape sequence within an s-string, as a SQL regex would use
+ok PRQL.parse('filter s"x ~ \'\\d+\'"');
