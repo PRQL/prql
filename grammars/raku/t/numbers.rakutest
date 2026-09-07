@@ -1,40 +1,32 @@
 use Test;
-use prql;
+use lib $?FILE.IO.parent.add('lib').Str;
+use PRQLTest;
 
 plan 9;
 
 # Integer
-ok PRQL.parse('filter 123');
-#query(pipeline(call-expression(identifier,arg-list(integer))))
+parses-to 'filter 123', 'statement(pipeline-statement(pipeline(call-expression(identifier,test(test-inner(expression(number(integer))))))))';
 
 # Integer with underscore
-ok PRQL.parse('filter 123_456');
-#query(pipeline(call-expression(identifier,arg-list(integer))))
+parses-to 'filter 123_456', 'statement(pipeline-statement(pipeline(call-expression(identifier,test(test-inner(expression(number(integer))))))))';
 
 # Integer with underscores
-ok PRQL.parse('filter 123_456_789');
-#query(pipeline(call-expression(identifier,arg-list(integer))))
+parses-to 'filter 123_456_789', 'statement(pipeline-statement(pipeline(call-expression(identifier,test(test-inner(expression(number(integer))))))))';
 
 # Decimal
-ok PRQL.parse('filter 123.45');
-#query(pipeline(call-expression(identifier,arg-list(float))))
+parses-to 'filter 123.45', 'statement(pipeline-statement(pipeline(call-expression(identifier,test(test-inner(expression(number(float))))))))';
 
 # Scientific notation
-ok PRQL.parse('filter 123e10');
-#query(pipeline(call-expression(identifier,arg-list(integer))))
+parses-to 'filter 123e10', 'statement(pipeline-statement(pipeline(call-expression(identifier,test(test-inner(expression(number(integer(integer)))))))))';
 
 # Number with time unit
-ok PRQL.parse('filter 5years');
-#query(pipeline(call-expression(identifier,arg-list(time-unit))))
+parses-to 'filter 5years', 'statement(pipeline-statement(pipeline(call-expression(identifier,test(test-inner(expression(time-unit(number,dimension))))))))';
 
 # Binary notation
-ok PRQL.parse('filter 0b1111');
-#query(pipeline(call-expression(identifier,arg-list(integer))))
+parses-to 'filter 0b1111', 'statement(pipeline-statement(pipeline(call-expression(identifier,test(test-inner(expression(number(integer))))))))';
 
 # Hex notation
-ok PRQL.parse('filter 0xff');
-#query(pipeline(call-expression(identifier,arg-list(integer))))
+parses-to 'filter 0xff', 'statement(pipeline-statement(pipeline(call-expression(identifier,test(test-inner(expression(number(integer))))))))';
 
 # Octal notation
-ok PRQL.parse('filter 0o777');
-#query(pipeline(call-expression(identifier,arg-list(integer))))
+parses-to 'filter 0o777', 'statement(pipeline-statement(pipeline(call-expression(identifier,test(test-inner(expression(number(integer))))))))';
