@@ -140,7 +140,11 @@
   and s-string forms. Both are documented PRQL, but the triple-quoted body ran
   only up to the first quote character, and the `Escape` token covered neither
   `\\` nor an escaped quote. This is the same pair of bugs fixed for the Raku
-  grammar in #6288. (@prql-bot, #6289)
+  grammar in #6288. An escape sequence that directly follows a quote inside a
+  triple-quoted string, such as `"""a"\nb"""`, no longer highlights as an error,
+  and an r-string holding an unmatched brace, such as `r"{a"`, now highlights as
+  an r-string rather than an identifier followed by a plain string. (@prql-bot,
+  #6289)
 
 **Internal changes**:
 

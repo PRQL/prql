@@ -171,12 +171,15 @@ LambdaParam { identPart TypeDefinition? (":" expression)? }
   stringContentDouble { ![\\"]+ }
 
   // A triple-quoted string may contain the quote character itself, so its body
-  // admits runs of one or two quotes followed by a non-quote. Three in a row
-  // can't be matched, which is what leaves the closing delimiter for `String`.
+  // admits runs of one or two quotes followed by a non-quote or by an escape.
+  // Three in a row can't be matched, which is what leaves the closing delimiter
+  // for `String`. An escape directly after a quote is folded into this token
+  // rather than emitted as a separate `Escape` node, so `"""a"\nb"""` is a
+  // plain `String` while `"""C:\\path"""` is still `String(Escape)`.
   // https://prql-lang.org/book/reference/syntax/strings.html
-  tripleContentSingle { (![\\'] | "'" ![\\'] | "''" ![\\'])+ }
+  tripleContentSingle { (![\\'] | "'" (![\\'] | escapeSeq) | "''" (![\\'] | escapeSeq))+ }
 
-  tripleContentDouble { (![\\"] | '"' ![\\"] | '""' ![\\"])+ }
+  tripleContentDouble { (![\\"] | '"' (![\\"] | escapeSeq) | '""' (![\\"] | escapeSeq))+ }
 
   Docblock { "#!" ![\n]* }
   Comment { "#" ![\n]* }
@@ -204,11 +207,12 @@ LambdaParam { identPart TypeDefinition? (":" expression)? }
   interpolationInnerSingle { "{" ![}']* "}" }
   interpolationInnerDouble { "{" ![}"]* "}" }
 
-  // Raw strings have no escape sequences, so unlike the bodies above they keep
-  // a backslash as ordinary content — `r"C:\"` is a raw string holding `C:\`,
-  // matching `raw_string()` in `prqlc/prqlc-parser/src/lexer/mod.rs`.
-  rawStringSingle { $['] (![{'] | interpolationInnerSingle)* $['] }
-  rawStringDouble { $["] (![{"] | interpolationInnerDouble)* $["] }
+  // Raw strings have neither escape sequences nor interpolation, so unlike the
+  // bodies above they take any character but the quote and a newline — `r"C:\"`
+  // is a raw string holding `C:\` and `r"{a"` one holding `{a`, matching
+  // `raw_string()` in `prqlc/prqlc-parser/src/lexer/mod.rs`.
+  rawStringSingle { $['] !['\n]* $['] }
+  rawStringDouble { $["] !["\n]* $["] }
 
   interpolatedString<prefix> { prefix (stringInterpolatedDouble | stringInterpolatedSingle) }
 

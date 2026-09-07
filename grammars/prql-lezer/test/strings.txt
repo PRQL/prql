@@ -157,3 +157,43 @@ filter r'C:\'
 ==>
 
 Query(Pipeline(CallExpression(Identifier,ArgList(RString))))
+
+# Escape sequence directly after a quote in a triple-quoted string
+
+filter """a"\nb"""
+
+==>
+
+Query(Pipeline(CallExpression(Identifier,ArgList(String))))
+
+# Escape sequence directly after two quotes in a triple-quoted string
+
+filter """a""\\b"""
+
+==>
+
+Query(Pipeline(CallExpression(Identifier,ArgList(String))))
+
+# Escape sequence directly after a quote in a single-quoted triple string
+
+filter '''a'\nb'''
+
+==>
+
+Query(Pipeline(CallExpression(Identifier,ArgList(String))))
+
+# Opening brace without a closing one in a double-quoted r-string
+
+filter r"{a"
+
+==>
+
+Query(Pipeline(CallExpression(Identifier,ArgList(RString))))
+
+# Opening brace without a closing one in a single-quoted r-string
+
+filter r'{a'
+
+==>
+
+Query(Pipeline(CallExpression(Identifier,ArgList(RString))))
