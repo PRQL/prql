@@ -193,6 +193,14 @@ pub(super) trait DialectHandler: Any + Debug {
         false
     }
 
+    /// Whether a `FETCH` clause requires an accompanying `ORDER BY`. Standard
+    /// `OFFSET`/`FETCH` doesn't, and the synthesised `ORDER BY (SELECT NULL)`
+    /// is invalid on dialects that require a `FROM` in a scalar subquery
+    /// (Oracle's `DUAL`, Db2's `SYSIBM.SYSDUMMY1`), so MSSQL overrides this.
+    fn fetch_requires_order_by(&self) -> bool {
+        false
+    }
+
     fn ident_quote(&self) -> char {
         '"'
     }
@@ -466,6 +474,12 @@ impl DialectHandler for SQLiteDialect {
 
 impl DialectHandler for MsSqlDialect {
     fn use_fetch(&self) -> bool {
+        true
+    }
+
+    // MSSQL's row-limiting clause is a suffix of `ORDER BY`, so a `FETCH`
+    // without a sort is a syntax error: https://stackoverflow.com/a/44919325
+    fn fetch_requires_order_by(&self) -> bool {
         true
     }
 
@@ -744,6 +758,12 @@ impl DialectHandler for DuckDbDialect {
 }
 
 impl DialectHandler for OracleDialect {
+    // Oracle has no `LIMIT`; row limiting is `OFFSET n ROWS FETCH FIRST n ROWS ONLY`
+    // https://docs.oracle.com/en/database/oracle/oracle-database/26/sqlrf/SELECT.html
+    fn use_fetch(&self) -> bool {
+        true
+    }
+
     fn ident_quoting_style(&self) -> IdentQuotingStyle {
         // Due to oraclesql identifier casing rules, identifiers are always quoted
         // https://docs.oracle.com/en/database/oracle/oracle-database/26/sqlrf/Database-Object-Names-and-Qualifiers.html

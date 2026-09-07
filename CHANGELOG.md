@@ -99,6 +99,11 @@
   of dividing by the quotient. Both now declare `11`, where `*` and `/` rank.
   (@prql-bot, #6286)
 
+- `take` now compiles to `OFFSET n ROWS FETCH FIRST n ROWS ONLY` on the
+  `sql.oracle` target, rather than `LIMIT n OFFSET n`. Oracle has no `LIMIT`
+  clause, so `take 15..20` produced a query that the database rejects outright.
+  (@prql-bot, #6292)
+
 **Documentation**:
 
 - The `prql-java` README now documents the actual API. It advertised a
