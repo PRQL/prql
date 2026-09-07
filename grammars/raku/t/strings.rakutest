@@ -2,7 +2,7 @@ use Test;
 use lib $?FILE.IO.parent.add('lib').Str;
 use PRQLTest;
 
-plan 19;
+plan 22;
 
 # Single-quoted string
 parses-to "filter 'Hello'", 'statement(pipeline-statement(pipeline(call-expression(identifier«filter»,test(test-inner(expression(string«\'Hello\'»)))))))';
@@ -64,3 +64,12 @@ parses-to 'filter "\d+"', 'statement(pipeline-statement(pipeline(call-expression
 
 # Unrecognized escape sequence within an s-string, as a SQL regex would use
 parses-to 'filter s"x ~ \'\\d+\'"', 'statement(pipeline-statement(pipeline(call-expression(identifier«filter»,test(test-inner(expression(s-string(escape«\\d»))))))))';
+
+# Escaped single quote within a single-quoted string
+parses-to "filter 'don\\'t'", 'statement(pipeline-statement(pipeline(call-expression(identifier«filter»,test(test-inner(expression(string(escape«\\\'»))))))))';
+
+# Escaped single quote within a single-quoted f-string
+parses-to "filter f'\\'hello world\\''", 'statement(pipeline-statement(pipeline(call-expression(identifier«filter»,test(test-inner(expression(f-string(escape«\\\'»,escape«\\\'»))))))))';
+
+# Unrecognized escape sequence within a single-quoted s-string
+parses-to "filter s'x ~ \"\\d+\"'", 'statement(pipeline-statement(pipeline(call-expression(identifier«filter»,test(test-inner(expression(s-string(escape«\\d»))))))))';
