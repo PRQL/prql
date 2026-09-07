@@ -1,7 +1,7 @@
 use Test;
 use prql;
 
-plan 15;
+plan 17;
 
 # Single-quoted string
 ok PRQL.parse("filter 'Hello'");
@@ -58,3 +58,9 @@ ok PRQL.parse('filter "\"hello world\""');
 
 # Escaped backslash within a double-quoted string
 ok PRQL.parse('filter "C:\\\\path"');
+
+# Escaped double quote within an f-string
+ok PRQL.parse('filter f"\"hello world\""');
+
+# Escaped double quote within an s-string
+ok PRQL.parse('filter s"\"hello world\""');
