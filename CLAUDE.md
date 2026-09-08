@@ -23,12 +23,13 @@ task prqlc:pull-request
 ```
 
 `task prqlc:pull-request` covers only the `prqlc` packages and their bindings.
-The book's examples are compiled by `mdbook-prql`, which no `task` runs, so a
-change to compiled SQL can leave a stale snapshot under
-`web/book/tests/documentation/snapshots/` that only CI catches:
+The book's examples and dialect docs are tested by `mdbook-prql`, which no
+`task` runs, so a change to `prqlc`'s output — compiled SQL, RQ serialization,
+the dialect list — can leave the book's snapshots or its `target.md` stale, and
+only CI catches it:
 
 ```sh
-# Also run when the change alters compiled SQL
+# Also run for any change to prqlc's output or dialect list
 cargo insta test -p mdbook-prql --accept --test-runner=nextest
 ```
 
