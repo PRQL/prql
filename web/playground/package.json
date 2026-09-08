@@ -39,6 +39,9 @@
   "name": "prql-playground",
   "type": "module",
   "private": true,
+  "overrides": {
+    "dompurify": "^3.4.13"
+  },
   "scripts": {
     "dev": "vite --host 0.0.0.0",
     "build": "vite build",
