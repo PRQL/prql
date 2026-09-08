@@ -22,6 +22,16 @@ cargo insta test -p prqlc --test integration -- date
 task prqlc:pull-request
 ```
 
+`task prqlc:pull-request` covers only the `prqlc` packages and their bindings.
+The book's examples are compiled by `mdbook-prql`, which no `task` runs, so a
+change to compiled SQL can leave a stale snapshot under
+`web/book/tests/documentation/snapshots/` that only CI catches:
+
+```sh
+# Also run when the change alters compiled SQL
+cargo insta test -p mdbook-prql --accept --test-runner=nextest
+```
+
 **Cross-binding changes only** (~2min):
 
 ```sh
