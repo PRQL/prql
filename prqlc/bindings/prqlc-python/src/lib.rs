@@ -206,6 +206,19 @@ mod test {
     }
 
     #[test]
+    fn invalid_display_option() {
+        let opts = CompileOptions {
+            format: true,
+            target: "sql.any".to_string(),
+            signature_comment: false,
+            color: false,
+            display: "rainbow".to_string(),
+        };
+
+        assert_snapshot!(convert_options(opts).unwrap_err(), @r#"Error: Invalid display option: "rainbow"; expected one of: plain, ansi_color"#);
+    }
+
+    #[test]
     fn parse_pipeline() {
         let opts = Some(CompileOptions {
             format: true,
