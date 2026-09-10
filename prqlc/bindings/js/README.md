@@ -76,7 +76,7 @@ console.log(sql);
 <html>
   <head>
     <script type="module">
-      import init, { compile } from "./dist/web/prql_js.js";
+      import init, { compile } from "./dist/web/prqlc_js.js";
       await init();
 
       const sql = compile("from employees | select first_name");
@@ -91,7 +91,7 @@ console.log(sql);
 ### From a framework or a bundler
 
 ```typescript
-import compile from "prqlc/dist/bundler";
+import { compile } from "prqlc/dist/bundler";
 
 const sql = compile(`from employees | select first_name`);
 console.log(sql);
@@ -135,7 +135,7 @@ These errors can be caught as such:
 
 ```javascript
 try {
-  const sql = prqlJs.compile(`from employees | foo first_name`);
+  const sql = prqlc.compile(`from employees | foo first_name`);
 } catch (error) {
   const errorMessages = JSON.parse(error.message).inner;
 
