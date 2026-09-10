@@ -7,11 +7,12 @@ use pyo3::{exceptions, prelude::*};
 #[pyfunction]
 #[pyo3(signature = (prql_query, options=None))]
 pub fn compile(prql_query: &str, options: Option<CompileOptions>) -> PyResult<String> {
-    let Ok(options) = options.map(convert_options).transpose() else {
-        return Err(PyErr::new::<exceptions::PyValueError, _>(
-            "Invalid options".to_string(),
-        ));
-    };
+    // Report what was wrong with the options rather than a bare "Invalid
+    // options" — an unknown `target` or `display` names itself in the error.
+    let options = options
+        .map(convert_options)
+        .transpose()
+        .map_err(|err| PyErr::new::<exceptions::PyValueError, _>(err.to_string()))?;
 
     prqlc_lib::compile(prql_query, &options.unwrap_or_default())
         .map_err(|err| PyErr::new::<exceptions::PyValueError, _>(err.to_string()))
