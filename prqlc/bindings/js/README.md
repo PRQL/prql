@@ -174,7 +174,7 @@ PROFILE=dev npm run build
   generate bindings[^1].
 - We've added an `npm` layer on top of the usual approach of just using
   `wasm-pack`, so we can distribute a single package with targets of `node`,
-  `bundler` and `no-modules` — somewhat inverting the approach recommended by
+  `bundler` and `web` — somewhat inverting the approach recommended by
   `wasm-pack`. The build instruction goes in a `build` script, rather than a
   `pack` script.
 
