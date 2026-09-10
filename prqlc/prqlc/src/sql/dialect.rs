@@ -209,6 +209,15 @@ pub(super) trait DialectHandler: Any + Debug {
         IdentQuotingStyle::ConditionallyQuoted
     }
 
+    /// Whether a table alias may be introduced with an explicit `AS` keyword.
+    /// Oracle's `table_reference` grammar is `table_reference [ t_alias ]`, with
+    /// no `AS`, so `FROM t AS a` is a syntax error there. Column aliases are
+    /// unaffected — this only covers aliases on tables, derived tables and
+    /// joined relations.
+    fn table_alias_uses_as(&self) -> bool {
+        true
+    }
+
     fn column_exclude(&self) -> Option<ColumnExclude> {
         None
     }
@@ -768,6 +777,12 @@ impl DialectHandler for OracleDialect {
         // Due to oraclesql identifier casing rules, identifiers are always quoted
         // https://docs.oracle.com/en/database/oracle/oracle-database/26/sqlrf/Database-Object-Names-and-Qualifiers.html
         IdentQuotingStyle::AlwaysQuoted
+    }
+
+    // Oracle has no `AS` keyword for table aliases
+    // https://docs.oracle.com/en/database/oracle/oracle-database/26/sqlrf/SELECT.html
+    fn table_alias_uses_as(&self) -> bool {
+        false
     }
 }
 
