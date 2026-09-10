@@ -104,6 +104,12 @@
   clause, so `take 15..20` produced a query that the database rejects outright.
   (@prql-bot, #6292)
 
+- Table aliases no longer carry an `AS` keyword on the `sql.oracle` target.
+  Oracle's `table_reference` grammar is `table_reference [ t_alias ]`, so
+  `from a = bar` compiled to `SELECT * FROM "bar" AS "a"`, which the database
+  rejects; it now compiles to `SELECT * FROM "bar" "a"`. Column aliases, which
+  Oracle does accept `AS` for, are unchanged. (@prql-bot, #6306)
+
 **Documentation**:
 
 - The `prql-java` README now documents the actual API. It advertised a
