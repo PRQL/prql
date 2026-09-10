@@ -195,14 +195,24 @@ jobs:
       - name: 🗒️ Doc
         # Only running on nightly, because of
         # https://github.com/duckdb/duckdb-rs/issues/179#issuecomment-1710986020.
-        if:
-          inputs.nightly == 'true' && inputs.target != 'wasm32-unknown-unknown'
+        #
+        # `nightly` is a `workflow_call` input of `type: boolean`, so it arrives
+        # as a real boolean. Comparing it to the string `'true'` casts both to
+        # numbers — `true` to 1 and `'true'` to NaN — so the comparison is
+        # always false. Test it as a boolean instead. (Composite actions are the
+        # opposite case: their inputs are always strings, hence the `== 'true'`
+        # in `.github/actions/time-compilation/action.yaml`.)
+        if: inputs.nightly && inputs.target != 'wasm32-unknown-unknown'
         uses: clechasseur/rs-cargo@v4
         with:
+          # `--no-deps`: cargo passes `--cap-lints allow` to registry
+          # dependencies, so `RUSTDOCFLAGS: -Dwarnings` can only fire on our own
+          # crates. Documenting the dependency tree as well adds no signal, and
+          # its output is what fills the disk in the issue linked above.
           command: doc
           args:
-            --target=${{ inputs.target }} --no-default-features --features=${{
-            inputs.features }}
+            --no-deps --target=${{ inputs.target }} --no-default-features
+            --features=${{ inputs.features }}
       - name: Build extra targets for cache
         # When building the cache, we also run with `--all-targets` so that
         # prqlc builds can use the same cache.
