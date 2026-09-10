@@ -93,7 +93,9 @@ def test_invalid_options_name_the_offending_option() -> None:
     with pytest.raises(ValueError, match="sql.postgrez"):
         prqlc.compile("from a", prqlc.CompileOptions(target="sql.postgrez"))
 
-    with pytest.raises(ValueError, match="display"):
+    with pytest.raises(
+        ValueError, match='"rainbow"; expected one of: plain, ansi_color'
+    ):
         prqlc.compile("from a", prqlc.CompileOptions(display="rainbow"))
 
 

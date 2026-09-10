@@ -127,9 +127,19 @@
 - The `prqlc` JS/wasm package now reports an error for an unknown `target`,
   rather than silently compiling to generic SQL. A typo such as
   `opts.target = "sql.postgrez"` previously fell back to `sql.any`, so the
-  caller got working-but-wrong SQL with no signal. The Python and C bindings
-  already propagated this error; an unset (empty) `target` still means
-  `sql.any`. (@prql-bot, #6238)
+  caller got working-but-wrong SQL with no signal. The C binding already
+  propagated this error, as did Python's `rq_to_sql` (but not Python's `compile`
+  — see #6303); an unset (empty) `target` still means `sql.any`. (@prql-bot,
+  #6238)
+
+- `prqlc.compile` in the Python package now reports which option was invalid,
+  rather than a bare `Invalid options`. A typo such as `target="sql.postgrez"`
+  raises ``ValueError: Error: target `"sql.postgrez"` not found``, and an
+  unknown `display` names both the rejected value and the accepted ones:
+  `Invalid display option: "rainbow"; expected one of: plain, ansi_color`.
+  `rq_to_sql` already propagated the underlying error through the same
+  `convert_options`, so the two entry points no longer disagree on the same
+  input. (@prql-bot, #6303)
 
 - The `prqlc` Python package now declares `requires-python = ">=3.10"`. Python
   3.9 reached end-of-life in October 2025 and was never exercised by the test

@@ -342,7 +342,7 @@ impl Options {
     }
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize, strum::EnumString)]
+#[derive(Debug, Clone, Serialize, Deserialize, strum::EnumString, strum::VariantNames)]
 #[strum(serialize_all = "snake_case")]
 #[non_exhaustive]
 pub enum DisplayOptions {
@@ -350,6 +350,14 @@ pub enum DisplayOptions {
     Plain,
     /// With ANSI colors
     AnsiColor,
+}
+
+impl DisplayOptions {
+    /// The accepted values of [`DisplayOptions::from_str`], for callers that
+    /// need to list them in an error message.
+    pub fn names() -> &'static [&'static str] {
+        Self::VARIANTS
+    }
 }
 
 #[doc = include_str!("../README.md")]

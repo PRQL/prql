@@ -158,8 +158,15 @@ fn convert_options(o: CompileOptions) -> Result<prqlc_lib::Options, prqlc_lib::E
         target,
         signature_comment: o.signature_comment,
         color: false,
-        display: prqlc_lib::DisplayOptions::from_str(&o.display).map_err(|e| ErrorMessages {
-            inner: vec![Error::new_simple(format!("Invalid display option: {e}")).into()],
+        display: prqlc_lib::DisplayOptions::from_str(&o.display).map_err(|_| ErrorMessages {
+            // strum's own error is "Matching variant not found", which names
+            // neither the rejected value nor the accepted ones.
+            inner: vec![Error::new_simple(format!(
+                "Invalid display option: {:?}; expected one of: {}",
+                o.display,
+                prqlc_lib::DisplayOptions::names().join(", ")
+            ))
+            .into()],
         })?,
     })
 }
