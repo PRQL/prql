@@ -7,11 +7,12 @@ use pyo3::{exceptions, prelude::*};
 #[pyfunction]
 #[pyo3(signature = (prql_query, options=None))]
 pub fn compile(prql_query: &str, options: Option<CompileOptions>) -> PyResult<String> {
-    let Ok(options) = options.map(convert_options).transpose() else {
-        return Err(PyErr::new::<exceptions::PyValueError, _>(
-            "Invalid options".to_string(),
-        ));
-    };
+    // Report what was wrong with the options rather than a bare "Invalid
+    // options" — an unknown `target` or `display` names itself in the error.
+    let options = options
+        .map(convert_options)
+        .transpose()
+        .map_err(|err| PyErr::new::<exceptions::PyValueError, _>(err.to_string()))?;
 
     prqlc_lib::compile(prql_query, &options.unwrap_or_default())
         .map_err(|err| PyErr::new::<exceptions::PyValueError, _>(err.to_string()))
@@ -150,6 +151,7 @@ impl CompileOptions {
 
 fn convert_options(o: CompileOptions) -> Result<prqlc_lib::Options, prqlc_lib::ErrorMessages> {
     use prqlc_lib::Error;
+    use strum::VariantNames;
     let target = prqlc_lib::Target::from_str(&o.target).map_err(prqlc_lib::ErrorMessages::from)?;
 
     Ok(prqlc_lib::Options {
@@ -157,8 +159,14 @@ fn convert_options(o: CompileOptions) -> Result<prqlc_lib::Options, prqlc_lib::E
         target,
         signature_comment: o.signature_comment,
         color: false,
-        display: prqlc_lib::DisplayOptions::from_str(&o.display).map_err(|e| ErrorMessages {
-            inner: vec![Error::new_simple(format!("Invalid display option: {e}")).into()],
+        // strum's own error is "Matching variant not found", which names
+        // neither the rejected value nor the accepted ones.
+        display: prqlc_lib::DisplayOptions::from_str(&o.display).map_err(|_| {
+            ErrorMessages::from(Error::new_simple(format!(
+                "Invalid display option: {:?}; expected one of: {}",
+                o.display,
+                prqlc_lib::DisplayOptions::VARIANTS.join(", ")
+            )))
         })?,
     })
 }
@@ -195,6 +203,19 @@ mod test {
           age BETWEEN 20 AND 30
         "
         );
+    }
+
+    #[test]
+    fn invalid_display_option() {
+        let opts = CompileOptions {
+            format: true,
+            target: "sql.any".to_string(),
+            signature_comment: false,
+            color: false,
+            display: "rainbow".to_string(),
+        };
+
+        assert_snapshot!(convert_options(opts).unwrap_err(), @r#"Error: Invalid display option: "rainbow"; expected one of: plain, ansi_color"#);
     }
 
     #[test]

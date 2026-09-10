@@ -342,7 +342,7 @@ impl Options {
     }
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize, strum::EnumString)]
+#[derive(Debug, Clone, Serialize, Deserialize, strum::EnumString, strum::VariantNames)]
 #[strum(serialize_all = "snake_case")]
 #[non_exhaustive]
 pub enum DisplayOptions {

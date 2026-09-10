@@ -1,6 +1,7 @@
 import json
 
 import prqlc
+import pytest
 
 
 def test_all() -> None:
@@ -82,6 +83,20 @@ def test_compile_options() -> None:
     assert res.startswith(
         "SELECT\n  *\nFROM\n  a\nORDER BY\n  (\n    SELECT\n      NULL\n  ) OFFSET 0 ROWS\nFETCH FIRST\n  3 ROWS ONLY"
     )
+
+
+def test_invalid_options_name_the_offending_option() -> None:
+    """
+    An option that can't be converted reports what was wrong with it, rather
+    than a bare "Invalid options".
+    """
+    with pytest.raises(ValueError, match="sql.postgrez"):
+        prqlc.compile("from a", prqlc.CompileOptions(target="sql.postgrez"))
+
+    with pytest.raises(
+        ValueError, match='"rainbow"; expected one of: plain, ansi_color'
+    ):
+        prqlc.compile("from a", prqlc.CompileOptions(display="rainbow"))
 
 
 def test_rq_to_sql_options() -> None:
