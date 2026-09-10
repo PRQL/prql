@@ -207,8 +207,10 @@ jobs:
         with:
           # `--no-deps`: cargo passes `--cap-lints allow` to registry
           # dependencies, so `RUSTDOCFLAGS: -Dwarnings` can only fire on our own
-          # crates. Documenting the dependency tree as well adds no signal, and
-          # its output is what fills the disk in the issue linked above.
+          # crates — documenting the dependency tree adds no signal, only time.
+          # (It doesn't relieve the disk pressure in the issue linked above:
+          # that report already ran with `--no-deps`, and the 1.3GB it measured
+          # was the `libduckdb-sys` build artifact, not rustdoc output.)
           command: doc
           args:
             --no-deps --target=${{ inputs.target }} --no-default-features
