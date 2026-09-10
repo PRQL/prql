@@ -3029,6 +3029,7 @@ dependencies = [
  "prqlc",
  "pyo3",
  "pyo3-build-config",
+ "strum 0.28.0",
 ]
 
 [[package]]

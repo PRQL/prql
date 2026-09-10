@@ -352,14 +352,6 @@ pub enum DisplayOptions {
     AnsiColor,
 }
 
-impl DisplayOptions {
-    /// The accepted values of [`DisplayOptions::from_str`], for callers that
-    /// need to list them in an error message.
-    pub fn names() -> &'static [&'static str] {
-        Self::VARIANTS
-    }
-}
-
 #[doc = include_str!("../README.md")]
 #[cfg(doctest)]
 pub struct ReadmeDoctests;
