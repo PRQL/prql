@@ -2,6 +2,9 @@ import { styleTags, tags as t } from "@lezer/highlight";
 
 export const prqlHighlight = styleTags({
   "CallExpression/Identifier": t.function(t.variableName),
+  // Keywords are named terms only because the grammar declares them through
+  // `kw<>`; see the note on the literal tokens in `prql.grammar`.
+  prql: t.keyword,
   module: t.moduleKeyword,
   let: t.definitionKeyword,
   case: t.controlKeyword,
