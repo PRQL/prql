@@ -47,26 +47,15 @@ const sql = prqlc.compile(`from employees | take 10`, opts);
 console.log(sql);
 ```
 
-Template literal
+A query over several lines
 
 ```javascript
 const prqlc = require("prqlc");
-const prql = (string) => prqlc.compile(string[0] || "");
 
-const sql = prql`from employees | select first_name`;
-console.log(sql);
-```
-
-Template literal with newlines
-
-```javascript
-const prqlc = require("prqlc");
-const prql = (string) => prqlc.compile(string[0] || "");
-
-const sql = prql`
-    from employees
-    select first_name
-`;
+const sql = prqlc.compile(`
+  from employees
+  select first_name
+`);
 console.log(sql);
 ```
 
