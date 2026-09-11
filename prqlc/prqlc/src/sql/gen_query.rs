@@ -398,9 +398,10 @@ fn translate_relation_expr(relation_expr: RelationExpr, ctx: &mut Context) -> Re
 }
 
 fn translate_table_alias(alias: Option<String>, ctx: &mut Context) -> Option<TableAlias> {
+    let explicit = ctx.dialect.table_alias_uses_as();
     alias
         .map(|ident| translate_ident_part(ident, ctx))
-        .map(simple_table_alias)
+        .map(|name| simple_table_alias(name, explicit))
 }
 
 fn translate_join(
@@ -641,11 +642,14 @@ fn default_select() -> Select {
     }
 }
 
-fn simple_table_alias(name: sql_ast::Ident) -> TableAlias {
+/// A table alias, e.g. `FROM t AS a`. `explicit` controls the `AS` keyword,
+/// which some dialects (Oracle) don't accept before a table alias — see
+/// `DialectHandler::table_alias_uses_as`.
+fn simple_table_alias(name: sql_ast::Ident, explicit: bool) -> TableAlias {
     TableAlias {
         name,
         columns: Vec::new(),
-        explicit: true,
+        explicit,
         at: None,
     }
 }
@@ -689,9 +693,10 @@ fn query_to_set_expr(query: sql_ast::Query, context: &mut Context) -> Box<SetExp
                 relation: TableFactor::Derived {
                     lateral: false,
                     subquery: Box::new(query),
-                    alias: Some(simple_table_alias(sql_ast::Ident::new(
-                        context.anchor.table_name.gen(),
-                    ))),
+                    alias: Some(simple_table_alias(
+                        sql_ast::Ident::new(context.anchor.table_name.gen()),
+                        context.dialect.table_alias_uses_as(),
+                    )),
                     sample: None,
                 },
                 joins: vec![],

@@ -7217,6 +7217,78 @@ fn test_oracle_text_contains_parenthesizes_additive_argument() {
 }
 
 #[test]
+fn test_oracle_table_alias_omits_as() {
+    // https://github.com/PRQL/prql/issues/6305
+    // Oracle's `table_reference` grammar is `table_reference [ t_alias ]` — there
+    // is no `AS` keyword for table aliases, so `FROM "bar" AS "a"` is rejected.
+    assert_snapshot!(compile_with_sql_dialect(r###"
+    from a = bar
+    "###, sql::Dialect::Oracle
+    ).unwrap(), @r#"
+    SELECT
+      *
+    FROM
+      "bar" "a"
+    "#);
+
+    // Aliases on a joined relation go through the same path.
+    assert_snapshot!(compile_with_sql_dialect(r###"
+    from bar
+    take 10
+    join c = baz (==id)
+    "###, sql::Dialect::Oracle
+    ).unwrap(), @r#"
+    WITH "table_0" AS (
+      SELECT
+        *
+      FROM
+        "bar" OFFSET 0 ROWS
+      FETCH FIRST
+        10 ROWS ONLY
+    )
+    SELECT
+      "table_0".*,
+      "c".*
+    FROM
+      "table_0"
+      INNER JOIN "baz" "c" ON "table_0"."id" = "c"."id"
+    "#);
+
+    // So do the aliases the compiler generates for derived tables.
+    assert_snapshot!(compile_with_sql_dialect(r###"
+    from bar
+    take 10
+    append (from baz | take 5)
+    "###, sql::Dialect::Oracle
+    ).unwrap(), @r#"
+    SELECT
+      *
+    FROM
+      (
+        SELECT
+          *
+        FROM
+          "bar" OFFSET 0 ROWS
+        FETCH FIRST
+          10 ROWS ONLY
+      ) table_2
+    UNION
+    ALL
+    SELECT
+      *
+    FROM
+      (
+        SELECT
+          *
+        FROM
+          "baz" OFFSET 0 ROWS
+        FETCH FIRST
+          5 ROWS ONLY
+      ) table_3
+    "#);
+}
+
+#[test]
 fn test_sqlite_text_pattern_parenthesizes_compound_argument() {
     // SQLite ranks `||` above both `*`/`/`/`%` and `+`/`-`, so an
     // unparenthesized argument binds to the surrounding `'%'` literals instead
