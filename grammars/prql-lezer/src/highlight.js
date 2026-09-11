@@ -1,6 +1,10 @@
 import { styleTags, tags as t } from "@lezer/highlight";
 
-export const prqlHighlight = styleTags({
+// The selectors, separate from the `styleTags` call below so that
+// `test/test-highlight.js` can check each one resolves to a term in the
+// grammar: `styleTags` drops a selector that matches nothing without
+// reporting it.
+export const prqlHighlightSpec = {
   "CallExpression/Identifier": t.function(t.variableName),
   // Keywords are named terms only because the grammar declares them through
   // `kw<>`; see the note on the literal tokens in `prql.grammar`.
@@ -36,4 +40,6 @@ export const prqlHighlight = styleTags({
   "[ ]": t.squareBracket,
   "{ }": t.brace,
   "| ,": t.separator,
-});
+};
+
+export const prqlHighlight = styleTags(prqlHighlightSpec);
