@@ -121,6 +121,12 @@
   #850 and no `org.prqllang` artifact exists on Maven Central. (@prql-bot,
   #6281)
 
+- The `prqlc` npm README no longer documents a template-literal tag function
+  that silently discarded everything after the first interpolation — a query
+  containing any `${...}` compiled only the text before it. The two examples
+  using it are replaced by a direct `compile` call on a plain template literal.
+  (@prql-bot, #6309)
+
 **Web**:
 
 - The playground no longer depends on `web-vitals`. `reportWebVitals` was called
