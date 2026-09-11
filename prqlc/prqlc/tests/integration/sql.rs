@@ -1309,6 +1309,30 @@ join side:left (
 }
 
 #[test]
+fn test_s_string_column_order_is_preserved() {
+    // The columns extracted from a table s-string keep the order they appear in
+    // within the SQL, rather than being sorted by name.
+    assert_snapshot!(compile(r#"
+    let x = s"SELECT b, a FROM t"
+
+    from x
+    "#).unwrap(), @"
+    WITH table_0 AS (
+      SELECT
+        b,
+        a
+      FROM
+        t
+    )
+    SELECT
+      b,
+      a
+    FROM
+      table_0
+    ");
+}
+
+#[test]
 fn test_rn_ids_are_unique() {
     // this is wrong, output will have duplicate y_id and x_id
     assert_snapshot!((compile(r###"

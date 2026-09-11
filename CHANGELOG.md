@@ -25,6 +25,11 @@
 
 **Fixes**:
 
+- A relation defined by a table s-string now keeps the column order of the SQL
+  it wraps, rather than sorting the columns by name. A `from` over
+  `s"SELECT b, a FROM t"` compiled to `SELECT a, b`, returning the columns in an
+  order the query never asked for. (@prql-bot, #6297)
+
 - `prqlc lsp` now reports that `prqlc` was built without the `lsp` feature,
   rather than panicking with `internal error: entered unreachable code`. The
   subcommand is registered in every build, but the feature is off by default, so
