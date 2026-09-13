@@ -665,19 +665,23 @@ mod test {
     /// default can be absent. Write the parameter rather than panic on it.
     #[test]
     fn test_named_param_without_default() {
-        let mut stmt = crate::prql_to_pl("let a = func x <int>:5 -> x")
-            .unwrap()
-            .stmts
-            .remove(0);
-        let pr::StmtKind::VarDef(var_def) = &mut stmt.kind else {
-            panic!("expected a var def");
-        };
-        let pr::ExprKind::Func(func) = &mut var_def.value.as_mut().unwrap().kind else {
-            panic!("expected a func");
-        };
-        func.named_params[0].default_value = None;
+        let func = pr::Expr::new(pr::ExprKind::Func(
+            pr::Func {
+                return_ty: None,
+                body: Box::new(pr::Expr::new(pr::ExprKind::Ident(pr::Ident::from_name(
+                    "x".to_string(),
+                )))),
+                params: vec![],
+                named_params: vec![pr::FuncParam {
+                    name: "x".to_string(),
+                    ty: None,
+                    default_value: None,
+                }],
+            }
+            .into(),
+        ));
 
-        assert_snapshot!(stmt.write(WriteOpt::default()).unwrap(), @"let a = func x <int> -> x");
+        assert_snapshot!(func.write(WriteOpt::default()).unwrap(), @"func x -> x");
     }
 
     #[test]
