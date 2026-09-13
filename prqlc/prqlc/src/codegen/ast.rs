@@ -191,8 +191,19 @@ impl WriteSource for pr::ExprKind {
                 }
                 for param in &c.named_params {
                     r += opt.consume(&write_ident_part(&param.name))?;
-                    r += opt.consume(":")?;
-                    r += opt.consume(&param.default_value.as_ref().unwrap().write(opt.clone())?)?;
+                    if let Some(ty) = &param.ty {
+                        r += opt.consume(" ")?;
+                        let ty = ty.write_between("<", ">", opt.clone())?;
+                        r += opt.consume(&ty)?;
+                    }
+                    // A parameter without a default is a positional one, so write
+                    // it as such. The parser only puts defaulted parameters in
+                    // `named_params`, but a PL AST deserialized from JSON can
+                    // carry one without a default.
+                    if let Some(default_value) = &param.default_value {
+                        r += opt.consume(":")?;
+                        r += opt.consume(&default_value.write(opt.clone())?)?;
+                    }
                     r += opt.consume(" ")?;
                 }
                 r += opt.consume("-> ")?;
@@ -635,6 +646,38 @@ mod test {
     #[test]
     fn test_func() {
         assert_is_formatted(r#"let a = func x y:false -> x and y"#);
+    }
+
+    /// A type annotation on a parameter with a default used to be dropped, so
+    /// `fmt` silently removed the constraint: `f x:"str"` against
+    /// `func x <int>:5` is a type error before formatting and compiles clean
+    /// after it.
+    #[test]
+    fn test_typed_func_params() {
+        assert_is_formatted(r#"let a = func x <int> -> x"#);
+        assert_is_formatted(r#"let a = func x <int>:5 -> x"#);
+        assert_is_formatted(r#"let a = func x <int>:5 y <text>:"d" -> x"#);
+        assert_is_formatted(r#"let a = func x <int> y <text>:"d" -> x"#);
+    }
+
+    /// The parser only ever puts a parameter with a default into `named_params`,
+    /// but `pl_to_prql` also accepts a PL AST deserialized from JSON, where the
+    /// default can be absent. Write the parameter rather than panic on it.
+    #[test]
+    fn test_named_param_without_default() {
+        let mut stmt = crate::prql_to_pl("let a = func x <int>:5 -> x")
+            .unwrap()
+            .stmts
+            .remove(0);
+        let pr::StmtKind::VarDef(var_def) = &mut stmt.kind else {
+            panic!("expected a var def");
+        };
+        let pr::ExprKind::Func(func) = &mut var_def.value.as_mut().unwrap().kind else {
+            panic!("expected a func");
+        };
+        func.named_params[0].default_value = None;
+
+        assert_snapshot!(stmt.write(WriteOpt::default()).unwrap(), @"let a = func x <int> -> x");
     }
 
     #[test]
