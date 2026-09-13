@@ -180,26 +180,19 @@ impl WriteSource for pr::ExprKind {
             Func(c) => {
                 let mut r = "func ".to_string();
 
-                for param in &c.params {
-                    r += opt.consume(&write_ident_part(&param.name))?;
-                    r += opt.consume(" ")?;
-                    if let Some(ty) = &param.ty {
-                        let ty = ty.write_between("<", ">", opt.clone())?;
-                        r += opt.consume(&ty)?;
-                        r += opt.consume(" ")?;
-                    }
-                }
-                for param in &c.named_params {
+                // The parser partitions parameters by whether they have a
+                // default, so `params` never carries one and `named_params`
+                // always does. A PL AST deserialized from JSON is under no such
+                // constraint, so write whatever each parameter actually holds
+                // rather than what its list implies: a parameter with no default
+                // is a positional one, and one with a default is named.
+                for param in c.params.iter().chain(&c.named_params) {
                     r += opt.consume(&write_ident_part(&param.name))?;
                     if let Some(ty) = &param.ty {
                         r += opt.consume(" ")?;
                         let ty = ty.write_between("<", ">", opt.clone())?;
                         r += opt.consume(&ty)?;
                     }
-                    // A parameter without a default is a positional one, so write
-                    // it as such. The parser only puts defaulted parameters in
-                    // `named_params`, but a PL AST deserialized from JSON can
-                    // carry one without a default.
                     if let Some(default_value) = &param.default_value {
                         r += opt.consume(":")?;
                         r += opt.consume(&default_value.write(opt.clone())?)?;
@@ -660,28 +653,48 @@ mod test {
         assert_is_formatted(r#"let a = func x <int> y <text>:"d" -> x"#);
     }
 
-    /// The parser only ever puts a parameter with a default into `named_params`,
-    /// but `pl_to_prql` also accepts a PL AST deserialized from JSON, where the
-    /// default can be absent. Write the parameter rather than panic on it.
+    /// The parser partitions parameters by whether they have a default, so
+    /// `params` never carries one and `named_params` always does. A PL AST
+    /// deserialized from JSON — which `pl_to_prql` also accepts — is under no
+    /// such constraint, so a parameter is written as what it holds rather than
+    /// as what its list implies. Writing a `named_params` entry without a
+    /// default used to panic, and a `params` entry's default was dropped.
     #[test]
-    fn test_named_param_without_default() {
-        let func = pr::Expr::new(pr::ExprKind::Func(
-            pr::Func {
-                return_ty: None,
-                body: Box::new(pr::Expr::new(pr::ExprKind::Ident(pr::Ident::from_name(
-                    "x".to_string(),
-                )))),
-                params: vec![],
-                named_params: vec![pr::FuncParam {
-                    name: "x".to_string(),
-                    ty: None,
-                    default_value: None,
-                }],
+    fn test_func_params_mismatching_their_list() {
+        /// `x <int>`, with the default supplied by the caller.
+        fn param(default_value: Option<pr::Expr>) -> pr::FuncParam {
+            pr::FuncParam {
+                name: "x".to_string(),
+                ty: Some(pr::Ty::new(pr::TyKind::Ident(pr::Ident::from_name("int")))),
+                default_value: default_value.map(Box::new),
             }
-            .into(),
-        ));
+        }
 
-        assert_snapshot!(func.write(WriteOpt::default()).unwrap(), @"func x -> x");
+        fn write_func(params: Vec<pr::FuncParam>, named_params: Vec<pr::FuncParam>) -> String {
+            let func = pr::Expr::new(pr::ExprKind::Func(
+                pr::Func {
+                    return_ty: None,
+                    body: Box::new(pr::Expr::new(pr::ExprKind::Ident(pr::Ident::from_name(
+                        "x".to_string(),
+                    )))),
+                    params,
+                    named_params,
+                }
+                .into(),
+            ));
+            func.write(WriteOpt::default()).unwrap()
+        }
+
+        let five = || pr::Expr::new(pr::ExprKind::Literal(pr::Literal::Integer(5)));
+
+        // A `named_params` entry with no default is a positional parameter.
+        assert_snapshot!(write_func(vec![], vec![param(None)]), @"func x <int> -> x");
+
+        // A `params` entry with a default keeps it.
+        assert_snapshot!(
+            write_func(vec![param(Some(five()))], vec![]),
+            @"func x <int>:5 -> x"
+        );
     }
 
     #[test]
