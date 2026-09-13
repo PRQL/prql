@@ -110,6 +110,15 @@
   rejects; it now compiles to `SELECT * FROM "bar" "a"`. Column aliases, which
   Oracle does accept `AS` for, are unchanged. (@prql-bot, #6306)
 
+- `prqlc fmt` now keeps the type annotation on a function parameter that has a
+  default value. `func x <int>:5 -> x` was formatted as `func x:5 -> x`, which
+  still parses but drops a constraint the compiler was enforcing, so a mistyped
+  argument that was rejected before formatting compiled clean after it. A
+  parameter whose default disagrees with the list it is stored in — only
+  reachable through a PL AST deserialized by `json::to_pl` — is now written as
+  what it holds rather than panicking or silently dropping the default.
+  (@prql-bot, #6311)
+
 **Documentation**:
 
 - The `prql-java` README now documents the actual API. It advertised a
