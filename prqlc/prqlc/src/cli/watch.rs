@@ -41,14 +41,24 @@ pub fn run(command: &mut WatchArgs) -> Result<()> {
 
 fn find_and_compile(path: &Path, opt: &prqlc::Options) -> Result<()> {
     for entry in WalkDir::new(path) {
-        // A file that doesn't compile is the ordinary starting state for
-        // `watch` — aborting here would leave the errors unwatched, so we
-        // report and carry on, as the watch loop below does. `compile_path`
-        // has already printed the compiler's diagnostics.
-        let _ignore = compile_path(entry?.path(), opt);
+        compile_path_reporting_errors(entry?.path(), opt);
     }
 
     Ok(())
+}
+
+/// Compile `path`, printing any error rather than propagating it.
+///
+/// A file that doesn't compile is the ordinary starting state for `watch`, and
+/// the one it exists to iterate out of, so neither the initial pass nor the
+/// watch loop stops for one. `compile_path` prints the compiler's own
+/// diagnostics, but it also returns errors it hasn't printed — an unwritable
+/// `.sql` path, say — which would otherwise leave the watcher silently
+/// producing nothing.
+fn compile_path_reporting_errors(path: &Path, opt: &prqlc::Options) {
+    if let Err(error) = compile_path(path, opt) {
+        println!("{}: {error}", path.display());
+    }
 }
 
 fn watch_and_compile(path: &Path, opt: &prqlc::Options) -> Result<()> {
@@ -81,7 +91,7 @@ fn watch_and_compile(path: &Path, opt: &prqlc::Options) -> Result<()> {
                             &path
                         };
 
-                        let _ignore = compile_path(relative_path, opt);
+                        compile_path_reporting_errors(relative_path, opt);
                     }
                 }
 
@@ -154,7 +164,8 @@ mod tests {
     #[test]
     fn initial_compile_continues_past_a_failing_file() {
         let dir = TempDir::new().unwrap();
-        // Named so that the failing file is walked before the second good one.
+        // Two good files, since `WalkDir` doesn't order entries: whichever
+        // side of the failing file the walk puts them on, both must compile.
         fs::write(dir.path().join("a_good.prql"), "from tracks\n").unwrap();
         fs::write(dir.path().join("b_bad.prql"), "from tracks | filter\n").unwrap();
         fs::write(dir.path().join("c_good.prql"), "from albums\n").unwrap();
