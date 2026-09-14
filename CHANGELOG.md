@@ -119,6 +119,12 @@
   what it holds rather than panicking or silently dropping the default.
   (@prql-bot, #6311)
 
+- `prqlc watch` no longer exits when a `.prql` file in the watched tree fails to
+  compile. The initial pass aborted on the first error, so the command never
+  reached the watch loop — precisely the state watch mode exists to iterate out
+  of. It now reports the error and keeps watching, as it already did for errors
+  that appear after it starts. (@prql-bot, #PRNUM)
+
 **Documentation**:
 
 - The `prql-java` README now documents the actual API. It advertised a

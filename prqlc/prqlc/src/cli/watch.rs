@@ -41,7 +41,11 @@ pub fn run(command: &mut WatchArgs) -> Result<()> {
 
 fn find_and_compile(path: &Path, opt: &prqlc::Options) -> Result<()> {
     for entry in WalkDir::new(path) {
-        compile_path(entry?.path(), opt)?;
+        // A file that doesn't compile is the ordinary starting state for
+        // `watch` — aborting here would leave the errors unwatched, so we
+        // report and carry on, as the watch loop below does. `compile_path`
+        // has already printed the compiler's diagnostics.
+        let _ignore = compile_path(entry?.path(), opt);
     }
 
     Ok(())
@@ -133,4 +137,32 @@ fn compile_path(path: &Path, opt: &prqlc::Options) -> Result<()> {
     fs::write(sql_path, sql_string)?;
 
     Ok(())
+}
+
+#[cfg(test)]
+mod tests {
+    use std::fs;
+
+    use tempfile::TempDir;
+
+    use super::*;
+
+    /// A file that fails to compile used to abort the initial pass, so
+    /// `prqlc watch` exited before printing "Watching path" — the one state
+    /// watch mode exists to iterate out of. The other files must still compile,
+    /// and the walk must reach the end.
+    #[test]
+    fn initial_compile_continues_past_a_failing_file() {
+        let dir = TempDir::new().unwrap();
+        // Named so that the failing file is walked before the second good one.
+        fs::write(dir.path().join("a_good.prql"), "from tracks\n").unwrap();
+        fs::write(dir.path().join("b_bad.prql"), "from tracks | filter\n").unwrap();
+        fs::write(dir.path().join("c_good.prql"), "from albums\n").unwrap();
+
+        find_and_compile(dir.path(), &prqlc::Options::default()).unwrap();
+
+        assert!(dir.path().join("a_good.sql").is_file());
+        assert!(dir.path().join("c_good.sql").is_file());
+        assert!(!dir.path().join("b_bad.sql").exists());
+    }
 }
