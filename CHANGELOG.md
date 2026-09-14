@@ -122,8 +122,11 @@
 - `prqlc watch` no longer exits when a `.prql` file in the watched tree fails to
   compile. The initial pass aborted on the first error, so the command never
   reached the watch loop — precisely the state watch mode exists to iterate out
-  of. It now reports the error and keeps watching, as it already did for errors
-  that appear after it starts. (@prql-bot, #6313)
+  of. Both the initial pass and the watch loop now print the failing path
+  alongside the error and carry on. The loop previously discarded every error it
+  hit, so a failure that produces no compiler diagnostic — an unwritable `.sql`
+  output path, say — left the watcher running silently and writing nothing.
+  (@prql-bot, #6313)
 
 **Documentation**:
 
