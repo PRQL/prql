@@ -123,7 +123,7 @@
   compile. The initial pass aborted on the first error, so the command never
   reached the watch loop — precisely the state watch mode exists to iterate out
   of. It now reports the error and keeps watching, as it already did for errors
-  that appear after it starts. (@prql-bot, #PRNUM)
+  that appear after it starts. (@prql-bot, #6313)
 
 **Documentation**:
 
