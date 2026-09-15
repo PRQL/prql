@@ -125,6 +125,15 @@
   codegen's "needs backticks" rule accepted `$` because it was copied from the
   SQL side, where Postgres does allow it in an identifier. (@prql-bot, #6322)
 
+- `prqlc watch` no longer exits when a `.prql` file in the watched tree fails to
+  compile. The initial pass aborted on the first error, so the command never
+  reached the watch loop — precisely the state watch mode exists to iterate out
+  of. Both the initial pass and the watch loop now print the failing path
+  alongside the error and carry on. The loop previously discarded every error it
+  hit, so a failure that produces no compiler diagnostic — an unwritable `.sql`
+  output path, say — left the watcher running silently and writing nothing.
+  (@prql-bot, #6313)
+
 **Documentation**:
 
 - The `prql-java` README now documents the actual API. It advertised a
