@@ -22,6 +22,17 @@ cargo insta test -p prqlc --test integration -- date
 task prqlc:pull-request
 ```
 
+`task prqlc:pull-request` covers only the `prqlc` packages and their bindings.
+The book's examples and dialect docs are tested by `mdbook-prql`, which no
+`task` runs, so a change to `prqlc`'s output — compiled SQL, RQ serialization,
+the dialect list — can leave the book's snapshots or its `target.md` stale, and
+only CI catches it:
+
+```sh
+# Also run for any change to prqlc's output or dialect list
+cargo insta test -p mdbook-prql --accept --test-runner=nextest
+```
+
 **Cross-binding changes only** (~2min):
 
 ```sh
