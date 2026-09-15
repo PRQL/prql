@@ -119,6 +119,12 @@
   what it holds rather than panicking or silently dropping the default.
   (@prql-bot, #6311)
 
+- `prqlc fmt` now keeps the backticks on a name containing `$`. A name written
+  as `` `a$b` `` was formatted bare, and the lexer reads the result as `a`
+  applied to the parameter `$b`, so the formatted output no longer compiled. The
+  codegen's "needs backticks" rule accepted `$` because it was copied from the
+  SQL side, where Postgres does allow it in an identifier. (@prql-bot, #6322)
+
 **Documentation**:
 
 - The `prql-java` README now documents the actual API. It advertised a
