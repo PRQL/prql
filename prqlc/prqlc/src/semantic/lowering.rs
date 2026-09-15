@@ -1,5 +1,5 @@
 use std::collections::hash_map::RandomState;
-use std::collections::{BTreeSet, HashMap, HashSet};
+use std::collections::{HashMap, HashSet};
 use std::iter::zip;
 
 use enum_as_inner::EnumAsInner;
@@ -1114,7 +1114,8 @@ fn try_extract_sql_columns(
     .into_iter()
     .flatten()
     // deduplicate extracted columns, but preserve their order
-    .collect::<BTreeSet<String>>();
+    .unique()
+    .collect_vec();
 
     if has_wildcard {
         log::debug!("s-string contains a wildcard, skipping column extraction");
