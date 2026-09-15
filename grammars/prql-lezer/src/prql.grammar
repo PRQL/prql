@@ -19,7 +19,7 @@
 
 statements { newline* QueryDefinition? Module? Annotation? VariableDeclaration* pipelineStatement? end? }
 
-QueryDefinition { @specialize<identPart, "prql"> NamedArg+ newline+ }
+QueryDefinition { kw<"prql"> NamedArg+ newline+ }
 
 Module { kw<"module"> Identifier "{" statements "}" }
 
@@ -46,7 +46,7 @@ Declaration { DeclarationItem { identPart } "=" expression }
 DeclarationTuple { DeclarationItem { identPart } "=" expression }
 CaseBranch { expression "=>" expression }
 // Possibly we could only accept case branches inside the TupleExpression?
-CaseExpression { @specialize<identPart, "case"> TupleExpression }
+CaseExpression { kw<"case"> TupleExpression }
 
 NestedPipeline { "(" newline* Pipeline ~ambigNewline newline? ")" }
 
@@ -238,6 +238,11 @@ LambdaParam { identPart TypeDefinition? (":" expression)? }
   interpolatedString<prefix> { prefix (stringInterpolatedDouble | stringInterpolatedSingle) }
 
   "="[@name=Equals]
+
+  // Declaring these literals here names each one after itself, which is what
+  // makes them addressable from `highlight.js` — an undeclared literal is an
+  // anonymous term, so a style tag naming it silently matches nothing.
+  "(" ")" "[" "]" "{" "}" "," "|"
 
   FString { interpolatedString<'f'> }
   RString { "r" (rawStringDouble | rawStringSingle) }

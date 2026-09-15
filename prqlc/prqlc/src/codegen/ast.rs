@@ -344,9 +344,14 @@ fn write_ident(ident: &pr::Ident) -> String {
 fn valid_prql_ident() -> &'static Regex {
     static VALID_PRQL_IDENT: OnceLock<Regex> = OnceLock::new();
     VALID_PRQL_IDENT.get_or_init(|| {
+        // Mirrors `ident_part()` in the lexer, minus its acceptance of
+        // non-ASCII alphabetics — quoting one of those is merely noisy, while
+        // leaving a name bare that the lexer won't accept breaks the output.
+        // `*` is here because `write_ident` uses this for `a.*`.
+        //
         // Pomsky expression (regex is to Pomsky what SQL is to PRQL):
-        // ^ ('*' | [ascii_alpha '_$'] [ascii_alpha ascii_digit '_$']* ) $
-        Regex::new(r"^(?:\*|[a-zA-Z_$][a-zA-Z0-9_$]*)$").unwrap()
+        // ^ ('*' | [ascii_alpha '_'] [ascii_alpha ascii_digit '_']* ) $
+        Regex::new(r"^(?:\*|[a-zA-Z_][a-zA-Z0-9_]*)$").unwrap()
     })
 }
 
@@ -871,6 +876,17 @@ let `case` = 5
             assert_is_formatted(&format!("let `{word}` = 5"));
             assert_is_formatted(&format!("from t\nselect {{`{word}`}}"));
         }
+    }
+
+    /// `$` is not an ident character in PRQL — the lexer reads it as the start
+    /// of a `$param` token — so a name containing one has to keep its
+    /// backticks. `valid_prql_ident` accepted `$` because it was copied from
+    /// the SQL-side `utils::valid_ident`, where Postgres does allow it.
+    #[test]
+    fn test_quoted_dollar_in_name() {
+        assert_is_formatted("from t\nselect {`a$b`}");
+        assert_is_formatted("from t\nselect {x = t.`$foo`}");
+        assert_is_formatted("let `$foo` = 5");
     }
 
     /// Named arguments need their backticks too. Unlike the declaration names

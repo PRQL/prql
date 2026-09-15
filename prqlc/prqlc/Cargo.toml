@@ -137,7 +137,7 @@ tokio-util = { version = "0.7.18", optional = true, features = ["compat"] }
 glob = { version = "0.3.3" }
 insta = { workspace = true }
 insta-cmd = { workspace = true }
-rstest = "0.26.1"
+rstest = "0.27.0"
 similar = { workspace = true }
 similar-asserts = { workspace = true }
 tempfile = { version = "3.27.0" }
