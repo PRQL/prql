@@ -21,8 +21,8 @@ table_1 AS (
 )
 SELECT
   table_0.id,
-  table_0.age,
   table_0.first_name,
+  table_0.age,
   table_1.*
 FROM
   table_0
