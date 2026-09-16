@@ -18,6 +18,9 @@ vars:
   packages_core: -p prqlc-parser -p prqlc
   packages_addon: -p prqlc-macros -p compile-files
   packages_bindings: -p prql -p prql-java -p prqlc-js -p prqlc-c -p prqlc-python
+  # The book's tests compile every example under `web/book` and check the
+  # dialect list in `target.md`, so they're sensitive to prqlc's output.
+  packages_book: -p mdbook-prql
 
 tasks:
   test:
@@ -41,7 +44,7 @@ tasks:
     cmds:
       - cargo insta test --accept --dnd --features=default,test-dbs
         --test-runner=nextest --unreferenced=auto {{.packages_core}}
-        {{.packages_addon}} {{.packages_bindings}}
+        {{.packages_addon}} {{.packages_bindings}} {{.packages_book}}
       - cargo test --doc --features=default,test-dbs {{.packages_core}}
         {{.packages_addon}} {{.packages_bindings}}
       - cargo llvm-cov --lcov --output-path lcov.info
