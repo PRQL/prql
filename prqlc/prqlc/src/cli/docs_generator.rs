@@ -546,17 +546,22 @@ mod tests {
         ");
     }
 
-    /// Doc comments are free-form prose, so `<`, `>` and `&` reach the HTML
-    /// generator verbatim. Before escaping they were interpolated raw, which
-    /// both mangled ordinary prose like `a < b` and let a doc comment inject
-    /// arbitrary markup into the generated page.
+    /// Doc comments are free-form prose and backtick-quoted names are
+    /// near-arbitrary, so `<`, `>`, `&` and quotes reach the HTML generator
+    /// verbatim. Before escaping they were interpolated raw, which both mangled
+    /// ordinary prose like `a < b` and let a doc comment inject arbitrary markup
+    /// into the generated page. A name is interpolated into the `id` and `href`
+    /// attributes as well as into element content, so both paths are covered.
     #[test]
-    fn generate_html_docs_escapes_doc_comments() {
+    fn generate_html_docs_escapes_html() {
         std::env::set_var("PRQL_VERSION_OVERRIDE", env!("CARGO_PKG_VERSION"));
 
         let input = r#"
         #! True when a < b & not c > d <img src="x" onerror='alert(1)'>
         let cmp = a b -> a
+
+        #! A quoted name reaches the id and href attributes.
+        let `a<b"c` = x -> x
         "#;
 
         assert_cmd_snapshot!(prqlc_command().args(["experimental", "doc", "--format=html"]).pass_stdin(input), @r##"
@@ -583,6 +588,7 @@ mod tests {
               <h2>Functions</h2>
         <ul>
           <li><a href="#fn-cmp">cmp</a></li>
+          <li><a href="#fn-a&lt;b&quot;c">a&lt;b&quot;c</a></li>
         </ul>
 
         <section>
@@ -593,6 +599,16 @@ mod tests {
           <ul>
             <li><var>a</var></li>
             <li><var>b</var></li>
+          </ul>
+        </div>
+        </section>
+        <section>
+          <h3 id="fn-a&lt;b&quot;c">a&lt;b&quot;c</h3>
+        <div class="ms-3">
+          <p> A quoted name reaches the id and href attributes.</p>
+          <h4 class="h6">Parameters</h4>
+          <ul>
+            <li><var>x</var></li>
           </ul>
         </div>
         </section>
