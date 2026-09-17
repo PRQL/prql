@@ -396,17 +396,20 @@ fn write_json_ast_node<W: Write>(
 
             writeln!(w, r#"<div class="json-object">"#)?;
             for (key, value) in properties {
+                // Keys originate in the query as well — a backtick-quoted named
+                // argument becomes a key of `FuncCall::named_args`.
+                let key_escaped = escape_html(&key);
                 if key == "ty" || key == "return_ty" {
                     // special case for better type printing
                     let ty_json = value.to_string();
                     if let Ok(ty) = serde_json::from_str::<pr::Ty>(&ty_json) {
                         let ty_prql = escape_html(&codegen::write_ty(&ty));
-                        write!(w, r#"<span>{key}: {ty_prql}</span>"#)?;
+                        write!(w, r#"<span>{key_escaped}: {ty_prql}</span>"#)?;
                     }
                     continue;
                 }
 
-                write!(w, r#"<span>{key}: </span><div class="json-value">"#)?;
+                write!(w, r#"<span>{key_escaped}: </span><div class="json-value">"#)?;
                 write_json_ast_node(w, value, false)?;
                 writeln!(w, "</div>")?;
             }
@@ -444,7 +447,7 @@ fn write_ast_node_from_object<W: Write>(
         write!(w, "<summary class=header>")?;
 
         let h2_id = id.map(|i| format!("id=ast-{i} ")).unwrap_or_default();
-        write!(w, "<h2 {h2_id}class=clickable>{name}</h2>")?;
+        write!(w, "<h2 {h2_id}class=clickable>{}</h2>", escape_html(&name))?;
 
         if let Some(id) = id {
             write!(w, r#"<span>id={id}</span>"#)?;
@@ -881,6 +884,40 @@ mod tests {
         <div><b class="blue">path</b>: &quot;&lt;a&amp;b&gt;.prql&quot;</div>
         </div>
         &lt;script&gt;alert(1)&lt;/script&gt;
+        "#);
+    }
+
+    /// JSON object keys are user-controlled too: a backtick-quoted named
+    /// argument becomes a key of `FuncCall::named_args`, so it renders both as
+    /// an object-property label and — when it is the object's only key — as an
+    /// AST-node header.
+    #[test]
+    fn escapes_json_object_keys() {
+        let mut w = String::new();
+
+        write_json_ast_node(
+            &mut w,
+            serde_json::json!({"<b>one</b>": 1, "<b>two</b>": 2}),
+            false,
+        )
+        .unwrap();
+
+        write_json_ast_node(
+            &mut w,
+            serde_json::json!({"<script>alert(1)</script>": {"Literal": "x"}}),
+            false,
+        )
+        .unwrap();
+
+        assert_snapshot!(w, @r#"
+        <div class="json-object">
+        <span>&lt;b&gt;one&lt;/b&gt;: </span><div class="json-value">1</div>
+        <span>&lt;b&gt;two&lt;/b&gt;: </span><div class="json-value">2</div>
+        </div>
+        <details class=ast-node open tabindex=2><summary class=header><h2 class=clickable>&lt;script&gt;alert(1)&lt;/script&gt;</h2></summary><content class="contents indent"><div class="json-object">
+        <span>Literal: </span><div class="json-value">x</div>
+        </div>
+        </content></details>
         "#);
     }
 }
