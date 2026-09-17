@@ -3,6 +3,7 @@ use std::fmt::{Debug, Result, Write};
 use std::iter::Peekable;
 
 use crate::sql::pq_ast;
+use crate::utils::escape_html;
 use crate::{codegen, SourceTree};
 
 use super::log::*;
@@ -516,14 +517,6 @@ fn write_decl<W: Write>(
     }
 
     write!(w, "</details>")
-}
-
-fn escape_html(text: &str) -> String {
-    text.replace('&', "&amp;")
-        .replace('<', "&lt;")
-        .replace('>', "&gt;")
-        .replace('"', "&quot;")
-        .replace('\'', "&#039;")
 }
 
 const CSS_STYLES: &str = r#"
