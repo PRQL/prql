@@ -183,7 +183,7 @@ fn write_message<W: Write>(w: &mut W, message: &Message) -> Result {
     if let Some(module_path) = &message.module_path {
         write!(w, r#" {module_path}"#)?;
     }
-    writeln!(w, "] {}", message.text)?;
+    writeln!(w, "] {}", escape_html(&message.text))?;
     writeln!(w, "</div>")
 }
 
@@ -345,14 +345,18 @@ fn write_repr_sql_parser<W: Write>(w: &mut W, ast: &sqlparser::ast::Query) -> Re
 
 fn write_repr_sql<W: Write>(w: &mut W, query: &str) -> Result {
     writeln!(w, r#"<div class="sql repr">"#)?;
-    writeln!(w, "<pre><code>{query}</code></pre>")?;
+    writeln!(w, "<pre><code>{}</code></pre>", escape_html(query))?;
     writeln!(w, "</div>")
 }
 
 fn write_key_values<W: Write>(w: &mut W, pairs: &[(&'static str, &dyn Debug)]) -> Result {
     writeln!(w, r#"<div class="key-values">"#)?;
     for (k, v) in pairs {
-        writeln!(w, r#"<div><b class="blue">{k}</b>: {v:?}</div>"#)?;
+        writeln!(
+            w,
+            r#"<div><b class="blue">{k}</b>: {}</div>"#,
+            escape_html(&format!("{v:?}"))
+        )?;
     }
     writeln!(w, "</div>")
 }
@@ -369,7 +373,7 @@ fn write_json_ast_node<W: Write>(
         serde_json::Value::Null => write!(w, "None"),
         serde_json::Value::Bool(b) => write!(w, "{b}"),
         serde_json::Value::Number(n) => write!(w, "{n}"),
-        serde_json::Value::String(s) => write!(w, "{s}"),
+        serde_json::Value::String(s) => write!(w, "{}", escape_html(&s)),
         serde_json::Value::Array(items) => {
             writeln!(w, r#"<ul class="json-array">"#)?;
             for item in items {
@@ -451,7 +455,7 @@ fn write_ast_node_from_object<W: Write>(
         if let Some(ty) = ty {
             let ty_json = ty.to_string();
             if let Ok(ty) = serde_json::from_str::<pr::Ty>(&ty_json) {
-                let ty_prql = codegen::write_ty(&ty);
+                let ty_prql = escape_html(&codegen::write_ty(&ty));
                 write!(w, r#"<span class="ty">{ty_prql}</span>"#)?;
             }
         }
@@ -479,7 +483,11 @@ fn write_decl<W: Write>(
     // header
     {
         write!(w, "<summary class=header>")?;
-        write!(w, r#"<h2 class="clickable blue">{name}</h2>"#)?;
+        write!(
+            w,
+            r#"<h2 class="clickable blue">{}</h2>"#,
+            escape_html(name)
+        )?;
 
         let span = decl.declared_at.as_ref().and_then(|id| span_map.get(id));
         if let Some(span) = span {
@@ -510,7 +518,7 @@ fn write_decl<W: Write>(
                 write_json_ast_node(w, json_node, false)?;
             }
             _ => {
-                write!(w, r#"<div>{}</div>"#, decl.kind)?;
+                write!(w, r#"<div>{}</div>"#, escape_html(&decl.kind.to_string()))?;
             }
         }
         write!(w, "</content>")?;
@@ -823,3 +831,56 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 });
 "#;
+
+#[cfg(test)]
+mod tests {
+    use insta::assert_snapshot;
+
+    use super::*;
+
+    /// Every writer that interpolates user-controlled text into the debug page
+    /// has to escape it. Source, SQL, log text, declaration names and JSON
+    /// string leaves all originate in the compiled query, so `<`, `>` and `&`
+    /// reach them verbatim — unescaped, a `select {a = "<script>…"}` both
+    /// mangles the page and runs in the browser that opens it.
+    #[test]
+    fn escapes_user_content() {
+        let mut w = String::new();
+
+        write_repr_sql(&mut w, "SELECT '<script>alert(1)</script>' AS a").unwrap();
+
+        write_message(
+            &mut w,
+            &Message {
+                level: "DEBUG".to_string(),
+                file: None,
+                line: None,
+                module_path: None,
+                text: "folding `a < b & c > d`".to_string(),
+            },
+        )
+        .unwrap();
+
+        write_key_values(&mut w, &[("path", &"<a&b>.prql")]).unwrap();
+
+        write_json_ast_node(
+            &mut w,
+            serde_json::Value::String("<script>alert(1)</script>".to_string()),
+            false,
+        )
+        .unwrap();
+
+        assert_snapshot!(w, @r#"
+        <div class="sql repr">
+        <pre><code>SELECT &#39;&lt;script&gt;alert(1)&lt;/script&gt;&#39; AS a</code></pre>
+        </div>
+        <div class="entry msg-DEBUG">
+        [<b>DEBUG</b>] folding `a &lt; b &amp; c &gt; d`
+        </div>
+        <div class="key-values">
+        <div><b class="blue">path</b>: &quot;&lt;a&amp;b&gt;.prql&quot;</div>
+        </div>
+        &lt;script&gt;alert(1)&lt;/script&gt;
+        "#);
+    }
+}

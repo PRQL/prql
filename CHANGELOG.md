@@ -31,6 +31,12 @@
   and the text around it vanished from the rendered page; the same path let a
   doc comment inject arbitrary markup. (@prql-bot, #6327)
 
+- `prqlc compile --debug-log=<file>.html` now escapes HTML in the page it
+  generates. Query source, generated SQL, log text and declaration names were
+  interpolated verbatim, so a query as ordinary as `filter a < b` lost text from
+  the rendered page, and a string literal could inject arbitrary markup.
+  (@prql-bot, #6327)
+
 - A relation defined by a table s-string now keeps the column order of the SQL
   it wraps, rather than sorting the columns by name. A `from` over
   `s"SELECT b, a FROM t"` compiled to `SELECT a, b`, returning the columns in an
