@@ -68,14 +68,16 @@ jobs:
           # release with nothing in it. This job checks out the tag, so the
           # section has to be in the tagged commit: adding it to `main` and
           # re-running reads the same file, which is why the message asks for
-          # the tag to move.
+          # the tag to move. Moving a tag is an `update` against the all-tags
+          # rulesets and so needs admin, hence the second route — the check
+          # above reuses a draft, so one made by hand carries the notes in.
           awk -v tag="$TAG" '
             $0 ~ "^## " tag "([^0-9.]|$)" { found = 1; next }
             found && /^## / { exit }
             found { print }
           ' CHANGELOG.md > notes.md
           if [ ! -s notes.md ]; then
-            echo "::error::No CHANGELOG.md section for $TAG. Add it on main, then move the tag to that commit and re-push it."
+            echo "::error::No CHANGELOG.md section for $TAG. Add it on main, then move the tag to that commit and re-push it — or, without admin to move a tag, create the draft release by hand and re-run this run."
             exit 1
           fi
           gh release create "$TAG" --draft --title "$TAG" --notes-file notes.md
