@@ -554,10 +554,10 @@ mod tests {
     fn generate_html_docs_escapes_doc_comments() {
         std::env::set_var("PRQL_VERSION_OVERRIDE", env!("CARGO_PKG_VERSION"));
 
-        let input = r"
-        #! True when a < b & not c > d <img src=x onerror=alert(1)>
+        let input = r#"
+        #! True when a < b & not c > d <img src="x" onerror='alert(1)'>
         let cmp = a b -> a
-        ";
+        "#;
 
         assert_cmd_snapshot!(prqlc_command().args(["experimental", "doc", "--format=html"]).pass_stdin(input), @r##"
         success: true
@@ -588,7 +588,7 @@ mod tests {
         <section>
           <h3 id="fn-cmp">cmp</h3>
         <div class="ms-3">
-          <p> True when a &lt; b &amp; not c &gt; d &lt;img src=x onerror=alert(1)&gt;</p>
+          <p> True when a &lt; b &amp; not c &gt; d &lt;img src=&quot;x&quot; onerror=&#39;alert(1)&#39;&gt;</p>
           <h4 class="h6">Parameters</h4>
           <ul>
             <li><var>a</var></li>
