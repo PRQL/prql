@@ -1,14 +1,26 @@
-# This workflow runs on tags / releases. It also runs on nightly builds without
+# This workflow runs on release tags. It also runs on nightly builds without
 # publishing anything, in order to test as much of the build works as possible.
 #
-# We indicate whether it should publish, vs. just build, by checking whether
-# `github.event_name == 'release'` . (An alternative would be to have an input
-# which is passed in by the calling workflow.)
+# We indicate whether it should publish, vs. just build, by checking
+# `github.event_name == 'push' && github.ref_type == 'tag'`. Both halves are
+# needed. `nightly.yaml` calls this workflow, and inside a called workflow the
+# `github` context is the caller's — a push to `main` — so the tag test is what
+# separates a release from a smoke test. And `workflow_dispatch` is excluded
+# deliberately: it can be aimed at an existing tag by anyone with write access,
+# which would let a non-maintainer fire the publish jobs.
+#
+# GitHub's immutable-releases setting refuses asset uploads to a release that is
+# already published, so the release is created as a draft, every artifact is
+# uploaded to the draft, and `publish-release` publishes it once they have all
+# landed. That is also why the trigger is the tag rather than the release:
+# creating a draft emits no `release` event, so there would be nothing to start
+# this workflow while the release is still writable.
 
 name: release
 on:
-  release:
-    types: [released]
+  push:
+    tags:
+      - "[0-9]+.[0-9]+.[0-9]+*"
   workflow_call:
   workflow_dispatch:
 
@@ -20,11 +32,46 @@ env:
   RUSTDOCFLAGS: "-Dwarnings"
 
 jobs:
+  # The release is created here, as a draft, so that the build jobs have
+  # somewhere to upload to. Doing it in one place rather than letting each
+  # upload create the release on demand keeps several concurrent jobs from
+  # racing to create it.
+  create-draft:
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: write
+    steps:
+      - name: 📂 Checkout code
+        uses: actions/checkout@v7
+      - name: Create the draft release
+        if: ${{ github.event_name == 'push' && github.ref_type == 'tag' }}
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          TAG: ${{ github.ref_name }}
+        run: |
+          if gh release view "$TAG" >/dev/null 2>&1; then
+            echo "Release $TAG already exists; uploading into it."
+            exit 0
+          fi
+          # The changelog entry is the release's notes, so a tag pushed before
+          # the changelog is updated fails here rather than publishing a
+          # release with nothing in it.
+          awk -v tag="$TAG" '
+            $0 ~ "^## " tag "([^0-9.]|$)" { found = 1; next }
+            found && /^## / { exit }
+            found { print }
+          ' CHANGELOG.md > notes.md
+          if [ ! -s notes.md ]; then
+            echo "::error::No CHANGELOG.md section for $TAG. Add it on main, then re-run this workflow."
+            exit 1
+          fi
+          gh release create "$TAG" --draft --title "$TAG" --notes-file notes.md
+
   brew-dispatcher:
     name: Release on homebrew-prql
     runs-on: ubuntu-24.04
     environment: release
-    if: github.event_name == 'release'
+    if: ${{ github.event_name == 'push' && github.ref_type == 'tag' }}
     steps:
       - uses: actions/github-script@v9
         with:
@@ -42,6 +89,7 @@ jobs:
             })
 
   build-prqlc:
+    needs: create-draft
     runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: false
@@ -71,9 +119,11 @@ jobs:
           profile: release
           features: cli
       - name: Upload release artifact
-        if: github.event_name == 'release'
+        if: ${{ github.event_name == 'push' && github.ref_type == 'tag' }}
         uses: softprops/action-gh-release@v3
         with:
+          tag_name: ${{ github.ref_name }}
+          draft: true
           append_body: true
           files: ${{ steps.build-artifact.outputs.artifact-name }}
       - name: test the CLI works
@@ -93,6 +143,7 @@ jobs:
 
   build-prqlc-c:
     # Mostly a copy/paste of `build-prqlc`.
+    needs: create-draft
     runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: false
@@ -117,17 +168,19 @@ jobs:
           target: ${{ matrix.target }}
           profile: release
       - name: Upload release artifact
-        if: github.event_name == 'release'
+        if: ${{ github.event_name == 'push' && github.ref_type == 'tag' }}
         uses: softprops/action-gh-release@v3
         with:
+          tag_name: ${{ github.ref_name }}
+          draft: true
           append_body: true
           files: ${{ steps.build-artifact.outputs.artifact-name }}
 
   publish-winget:
     runs-on: ubuntu-24.04
     environment: release
-    needs: build-prqlc
-    if: github.event_name == 'release'
+    needs: publish-release
+    if: ${{ github.event_name == 'push' && github.ref_type == 'tag' }}
     steps:
       - name: publish
         uses: vedantmgoyal2009/winget-releaser@v2
@@ -175,7 +228,9 @@ jobs:
           package: prqlc
           package_root: .debpkg
           maintainer: The PRQL Project
-          version: ${{ github.event_name == 'release' && github.ref_name || 0 }}
+          version:
+            ${{ (github.event_name == 'push' && github.ref_type == 'tag') &&
+            github.ref_name || 0 }}
           arch: ${{ env.package_arch }}
           desc: >
             prqlc is the CLI for the PRQL compiler. It compiles PRQL to SQL, and
@@ -188,9 +243,11 @@ jobs:
           name: deb-${{ matrix.target }}
           path: ./*.deb
       - name: Release
-        if: github.event_name == 'release'
+        if: ${{ github.event_name == 'push' && github.ref_type == 'tag' }}
         uses: softprops/action-gh-release@v3
         with:
+          tag_name: ${{ github.ref_name }}
+          draft: true
           files: prqlc_*.deb
 
   build-rpm-package:
@@ -232,7 +289,9 @@ jobs:
           package_root: .rpmpkg
           maintainer: The PRQL Project
           vendor: The PRQL Project
-          version: ${{ github.event_name == 'release' && github.ref_name || 0 }}
+          version:
+            ${{ (github.event_name == 'push' && github.ref_type == 'tag') &&
+            github.ref_name || 0 }}
           arch: ${{ env.package_arch }}
           desc: >
             prqlc is the CLI for the PRQL compiler. It compiles PRQL to SQL, and
@@ -249,15 +308,38 @@ jobs:
             !./*-debuginfo-*.rpm
       - run: rm prqlc-debuginfo-*.rpm
       - name: Release
-        if: github.event_name == 'release'
+        if: ${{ github.event_name == 'push' && github.ref_type == 'tag' }}
         uses: softprops/action-gh-release@v3
         with:
+          tag_name: ${{ github.ref_name }}
+          draft: true
           files: prqlc-*.rpm
+
+  publish-release:
+    runs-on: ubuntu-24.04
+    needs:
+      - create-draft
+      - build-prqlc
+      - build-prqlc-c
+      - build-deb-package
+      - build-rpm-package
+    if: ${{ github.event_name == 'push' && github.ref_type == 'tag' }}
+    permissions:
+      contents: write
+    steps:
+      - name: Publish the release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_REPO: ${{ github.repository }}
+          TAG: ${{ github.ref_name }}
+        # `gh release edit` sends `tag_name` with the request; a hand-rolled
+        # PATCH that omits it resets a draft's tag to `untagged-<hex>`.
+        run: gh release edit "$TAG" --draft=false
 
   build-and-publish-snap:
     runs-on: ubuntu-24.04
     environment: release
-    if: ${{ github.event_name == 'release' }}
+    if: ${{ github.event_name == 'push' && github.ref_type == 'tag' }}
     steps:
       - name: 📂 Checkout code
         uses: actions/checkout@v7
@@ -267,7 +349,7 @@ jobs:
         id: build
         uses: snapcore/action-build@v1
       - name: 🆙 Publish Snap
-        if: github.event_name == 'release'
+        if: ${{ github.event_name == 'push' && github.ref_type == 'tag' }}
         uses: snapcore/action-publish@v1
         env:
           SNAPCRAFT_STORE_CREDENTIALS:
@@ -312,7 +394,7 @@ jobs:
   publish-python:
     runs-on: ubuntu-24.04
     needs: [build-python-wheels]
-    if: github.event_name == 'release'
+    if: ${{ github.event_name == 'push' && github.ref_type == 'tag' }}
     environment: release
     permissions:
       id-token: write
@@ -340,7 +422,7 @@ jobs:
   # so a run outside `release` must not be able to mint one.
   test-publish-js:
     runs-on: ubuntu-24.04
-    if: github.event_name != 'release'
+    if: ${{ !(github.event_name == 'push' && github.ref_type == 'tag') }}
     permissions:
       contents: read
     steps:
@@ -354,7 +436,7 @@ jobs:
 
   publish-js:
     runs-on: ubuntu-24.04
-    if: github.event_name == 'release'
+    if: ${{ github.event_name == 'push' && github.ref_type == 'tag' }}
     environment: release
     permissions:
       contents: read
@@ -369,7 +451,7 @@ jobs:
 
   test-publish-to-cargo:
     runs-on: ubuntu-24.04
-    if: github.event_name != 'release'
+    if: ${{ !(github.event_name == 'push' && github.ref_type == 'tag') }}
     permissions:
       contents: read
     steps:
@@ -386,7 +468,7 @@ jobs:
 
   publish-to-cargo:
     runs-on: ubuntu-24.04
-    if: github.event_name == 'release'
+    if: ${{ github.event_name == 'push' && github.ref_type == 'tag' }}
     environment: release
     permissions:
       contents: read
@@ -428,7 +510,7 @@ jobs:
   #         directory: prql-java/java/
 
   publish-web:
-    if: github.event_name == 'release'
+    if: ${{ github.event_name == 'push' && github.ref_type == 'tag' }}
     uses: ./.github/workflows/publish-web.yaml
     permissions:
       contents: read
@@ -440,7 +522,7 @@ jobs:
   # only publish.
   push-web-branch:
     runs-on: ubuntu-24.04
-    if: github.event_name == 'release'
+    if: ${{ github.event_name == 'push' && github.ref_type == 'tag' }}
     permissions:
       contents: write
     steps:
@@ -449,7 +531,7 @@ jobs:
       - run: git push origin HEAD:web --force
 
   push-devcontainer:
-    if: github.event_name == 'release'
+    if: ${{ github.event_name == 'push' && github.ref_type == 'tag' }}
     uses: ./.github/workflows/build-devcontainer.yaml
     secrets: inherit
     with:
