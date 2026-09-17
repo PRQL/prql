@@ -464,9 +464,10 @@ Currently we release in a semi-automated way:
    `## [unreleased]` heading to the new version and date (matching the format of
    the entries below it) and curate its entries. Leave no `## [unreleased]`
    section; step 5 recreates it. This section becomes the release's notes
-   verbatim — step 3 reads it out of `CHANGELOG.md` at the tagged commit — so
-   the heading must be exactly `## $version`, and a tag pushed without one fails
-   the release rather than publishing empty notes.
+   verbatim — the release workflow reads it out of `CHANGELOG.md` at the tagged
+   commit — so the heading must start with `## $version`, and a tag pushed
+   without a matching section fails the release rather than publishing empty
+   notes.
 
    Generate the line that introduces the enumerated changes with:
 
