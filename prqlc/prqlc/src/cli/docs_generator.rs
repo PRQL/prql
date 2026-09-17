@@ -561,7 +561,7 @@ mod tests {
         let cmp = a b -> a
 
         #! A quoted name reaches the id and href attributes.
-        let `a<b"c` = x -> x
+        let `a<b"c` = x `y>z`:false -> x
         "#;
 
         assert_cmd_snapshot!(prqlc_command().args(["experimental", "doc", "--format=html"]).pass_stdin(input), @r##"
@@ -609,6 +609,10 @@ mod tests {
           <h4 class="h6">Parameters</h4>
           <ul>
             <li><var>x</var></li>
+          </ul>
+          <h4 class="h6">Named parameters</h4>
+          <ul>
+            <li><var>y&gt;z</var></li>
           </ul>
         </div>
         </section>
