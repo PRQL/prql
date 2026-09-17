@@ -49,9 +49,17 @@ jobs:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           TAG: ${{ github.ref_name }}
         run: |
-          if gh release view "$TAG" >/dev/null 2>&1; then
-            echo "Release $TAG already exists; uploading into it."
-            exit 0
+          # An existing draft is reused, so the notes can be written by hand
+          # before the tag is pushed. An existing *published* release is fatal:
+          # its assets are already locked, so every upload below would fail
+          # with a 422 partway through the run. Delete it and re-push the tag.
+          if state=$(gh release view "$TAG" --json isDraft --jq '.isDraft' 2>/dev/null); then
+            if [ "$state" = "true" ]; then
+              echo "Draft release $TAG already exists; uploading into it."
+              exit 0
+            fi
+            echo "::error::Release $TAG is already published, so its assets cannot be changed. Delete the release, then re-push the tag."
+            exit 1
           fi
           # The changelog entry is the release's notes, so a tag pushed before
           # the changelog is updated fails here rather than publishing a
@@ -71,6 +79,7 @@ jobs:
     name: Release on homebrew-prql
     runs-on: ubuntu-24.04
     environment: release
+    needs: create-draft
     if: ${{ github.event_name == 'push' && github.ref_type == 'tag' }}
     steps:
       - uses: actions/github-script@v9
@@ -339,6 +348,7 @@ jobs:
   build-and-publish-snap:
     runs-on: ubuntu-24.04
     environment: release
+    needs: create-draft
     if: ${{ github.event_name == 'push' && github.ref_type == 'tag' }}
     steps:
       - name: 📂 Checkout code
@@ -393,7 +403,7 @@ jobs:
 
   publish-python:
     runs-on: ubuntu-24.04
-    needs: [build-python-wheels]
+    needs: [build-python-wheels, create-draft]
     if: ${{ github.event_name == 'push' && github.ref_type == 'tag' }}
     environment: release
     permissions:
@@ -436,6 +446,7 @@ jobs:
 
   publish-js:
     runs-on: ubuntu-24.04
+    needs: create-draft
     if: ${{ github.event_name == 'push' && github.ref_type == 'tag' }}
     environment: release
     permissions:
@@ -468,6 +479,7 @@ jobs:
 
   publish-to-cargo:
     runs-on: ubuntu-24.04
+    needs: create-draft
     if: ${{ github.event_name == 'push' && github.ref_type == 'tag' }}
     environment: release
     permissions:
@@ -510,6 +522,7 @@ jobs:
   #         directory: prql-java/java/
 
   publish-web:
+    needs: create-draft
     if: ${{ github.event_name == 'push' && github.ref_type == 'tag' }}
     uses: ./.github/workflows/publish-web.yaml
     permissions:
@@ -522,6 +535,7 @@ jobs:
   # only publish.
   push-web-branch:
     runs-on: ubuntu-24.04
+    needs: create-draft
     if: ${{ github.event_name == 'push' && github.ref_type == 'tag' }}
     permissions:
       contents: write
@@ -531,6 +545,7 @@ jobs:
       - run: git push origin HEAD:web --force
 
   push-devcontainer:
+    needs: create-draft
     if: ${{ github.event_name == 'push' && github.ref_type == 'tag' }}
     uses: ./.github/workflows/build-devcontainer.yaml
     secrets: inherit
