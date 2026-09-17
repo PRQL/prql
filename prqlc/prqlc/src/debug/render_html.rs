@@ -920,4 +920,25 @@ mod tests {
         </content></details>
         "#);
     }
+
+    /// `write_decl` interpolates two pieces of query-derived text: the
+    /// declaration name, which can be backtick-quoted and so near-arbitrary,
+    /// and — for kinds without a dedicated branch — the `Display` of the kind,
+    /// which prints idents (`DeclKind::Import`, `InstanceOf`) that are
+    /// themselves names from the query.
+    #[test]
+    fn escapes_declaration_names() {
+        let mut w = String::new();
+        let span_map = HashMap::new();
+
+        write_decl(
+            &mut w,
+            &decl::Decl::from(decl::DeclKind::Import(pl::Ident::from_name("a<b"))),
+            &r#"q<u"o"#.to_string(),
+            &span_map,
+        )
+        .unwrap();
+
+        assert_snapshot!(w, @r#"<details class="ast-node"  open tabindex=2><summary class=header><h2 class="clickable blue">q&lt;u&quot;o</h2></summary><content class="contents indent"><div>Import `a&lt;b`</div></content></details>"#);
+    }
 }
