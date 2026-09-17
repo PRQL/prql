@@ -505,12 +505,12 @@ Currently we release in a semi-automated way:
    on the run's page.
 
 5. Run
-   `cargo release patch --no-publish --no-push --execute --no-verify --no-confirm --no-tag && task prqlc:test-all && cargo insta test --accept -p mdbook-prql`
+   `cargo release patch --no-publish --no-push --execute --no-verify --no-confirm --no-tag && task prqlc:test-all`
    to bump to the next development version, then PR the resulting commit. This
    recreates the `## [unreleased]` section for the next cycle. The version is
-   embedded in snapshots in two workspaces, so both test commands are needed:
-   `task prqlc:test-all` covers `prqlc`'s docs-generator snapshots, and
-   `cargo insta test -p mdbook-prql` covers the book's `prql.version` example.
+   embedded in snapshots in both `prqlc` and the book, and `task prqlc:test-all`
+   accepts both: `prqlc`'s docs-generator snapshots and the book's
+   `prql.version` example.
 
 <!-- `version` and `replace` must run in one `cargo release` invocation (not separate `cargo release version` + `cargo release replace` steps) so the `prev_version` replacement for the prqlc version constraint in target.md resolves. -->
 
