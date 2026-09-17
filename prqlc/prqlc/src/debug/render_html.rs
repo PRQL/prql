@@ -3,6 +3,7 @@ use std::fmt::{Debug, Result, Write};
 use std::iter::Peekable;
 
 use crate::sql::pq_ast;
+use crate::utils::escape_html;
 use crate::{codegen, SourceTree};
 
 use super::log::*;
@@ -182,7 +183,7 @@ fn write_message<W: Write>(w: &mut W, message: &Message) -> Result {
     if let Some(module_path) = &message.module_path {
         write!(w, r#" {module_path}"#)?;
     }
-    writeln!(w, "] {}", message.text)?;
+    writeln!(w, "] {}", escape_html(&message.text))?;
     writeln!(w, "</div>")
 }
 
@@ -344,14 +345,18 @@ fn write_repr_sql_parser<W: Write>(w: &mut W, ast: &sqlparser::ast::Query) -> Re
 
 fn write_repr_sql<W: Write>(w: &mut W, query: &str) -> Result {
     writeln!(w, r#"<div class="sql repr">"#)?;
-    writeln!(w, "<pre><code>{query}</code></pre>")?;
+    writeln!(w, "<pre><code>{}</code></pre>", escape_html(query))?;
     writeln!(w, "</div>")
 }
 
 fn write_key_values<W: Write>(w: &mut W, pairs: &[(&'static str, &dyn Debug)]) -> Result {
     writeln!(w, r#"<div class="key-values">"#)?;
     for (k, v) in pairs {
-        writeln!(w, r#"<div><b class="blue">{k}</b>: {v:?}</div>"#)?;
+        writeln!(
+            w,
+            r#"<div><b class="blue">{k}</b>: {}</div>"#,
+            escape_html(&format!("{v:?}"))
+        )?;
     }
     writeln!(w, "</div>")
 }
@@ -368,7 +373,7 @@ fn write_json_ast_node<W: Write>(
         serde_json::Value::Null => write!(w, "None"),
         serde_json::Value::Bool(b) => write!(w, "{b}"),
         serde_json::Value::Number(n) => write!(w, "{n}"),
-        serde_json::Value::String(s) => write!(w, "{s}"),
+        serde_json::Value::String(s) => write!(w, "{}", escape_html(&s)),
         serde_json::Value::Array(items) => {
             writeln!(w, r#"<ul class="json-array">"#)?;
             for item in items {
@@ -391,17 +396,20 @@ fn write_json_ast_node<W: Write>(
 
             writeln!(w, r#"<div class="json-object">"#)?;
             for (key, value) in properties {
+                // Keys originate in the query as well — a backtick-quoted named
+                // argument becomes a key of `FuncCall::named_args`.
+                let key_escaped = escape_html(&key);
                 if key == "ty" || key == "return_ty" {
                     // special case for better type printing
                     let ty_json = value.to_string();
                     if let Ok(ty) = serde_json::from_str::<pr::Ty>(&ty_json) {
                         let ty_prql = escape_html(&codegen::write_ty(&ty));
-                        write!(w, r#"<span>{key}: {ty_prql}</span>"#)?;
+                        write!(w, r#"<span>{key_escaped}: {ty_prql}</span>"#)?;
                     }
                     continue;
                 }
 
-                write!(w, r#"<span>{key}: </span><div class="json-value">"#)?;
+                write!(w, r#"<span>{key_escaped}: </span><div class="json-value">"#)?;
                 write_json_ast_node(w, value, false)?;
                 writeln!(w, "</div>")?;
             }
@@ -439,7 +447,7 @@ fn write_ast_node_from_object<W: Write>(
         write!(w, "<summary class=header>")?;
 
         let h2_id = id.map(|i| format!("id=ast-{i} ")).unwrap_or_default();
-        write!(w, "<h2 {h2_id}class=clickable>{name}</h2>")?;
+        write!(w, "<h2 {h2_id}class=clickable>{}</h2>", escape_html(&name))?;
 
         if let Some(id) = id {
             write!(w, r#"<span>id={id}</span>"#)?;
@@ -450,7 +458,7 @@ fn write_ast_node_from_object<W: Write>(
         if let Some(ty) = ty {
             let ty_json = ty.to_string();
             if let Ok(ty) = serde_json::from_str::<pr::Ty>(&ty_json) {
-                let ty_prql = codegen::write_ty(&ty);
+                let ty_prql = escape_html(&codegen::write_ty(&ty));
                 write!(w, r#"<span class="ty">{ty_prql}</span>"#)?;
             }
         }
@@ -478,7 +486,11 @@ fn write_decl<W: Write>(
     // header
     {
         write!(w, "<summary class=header>")?;
-        write!(w, r#"<h2 class="clickable blue">{name}</h2>"#)?;
+        write!(
+            w,
+            r#"<h2 class="clickable blue">{}</h2>"#,
+            escape_html(name)
+        )?;
 
         let span = decl.declared_at.as_ref().and_then(|id| span_map.get(id));
         if let Some(span) = span {
@@ -509,21 +521,13 @@ fn write_decl<W: Write>(
                 write_json_ast_node(w, json_node, false)?;
             }
             _ => {
-                write!(w, r#"<div>{}</div>"#, decl.kind)?;
+                write!(w, r#"<div>{}</div>"#, escape_html(&decl.kind.to_string()))?;
             }
         }
         write!(w, "</content>")?;
     }
 
     write!(w, "</details>")
-}
-
-fn escape_html(text: &str) -> String {
-    text.replace('&', "&amp;")
-        .replace('<', "&lt;")
-        .replace('>', "&gt;")
-        .replace('"', "&quot;")
-        .replace('\'', "&#039;")
 }
 
 const CSS_STYLES: &str = r#"
@@ -830,3 +834,111 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 });
 "#;
+
+#[cfg(test)]
+mod tests {
+    use insta::assert_snapshot;
+
+    use super::*;
+
+    /// Every writer that interpolates user-controlled text into the debug page
+    /// has to escape it. Source, SQL, log text, declaration names and JSON
+    /// string leaves all originate in the compiled query, so `<`, `>` and `&`
+    /// reach them verbatim — unescaped, a `select {a = "<script>…"}` both
+    /// mangles the page and runs in the browser that opens it.
+    #[test]
+    fn escapes_user_content() {
+        let mut w = String::new();
+
+        write_repr_sql(&mut w, "SELECT '<script>alert(1)</script>' AS a").unwrap();
+
+        write_message(
+            &mut w,
+            &Message {
+                level: "DEBUG".to_string(),
+                file: None,
+                line: None,
+                module_path: None,
+                text: "folding `a < b & c > d`".to_string(),
+            },
+        )
+        .unwrap();
+
+        write_key_values(&mut w, &[("path", &"<a&b>.prql")]).unwrap();
+
+        write_json_ast_node(
+            &mut w,
+            serde_json::Value::String("<script>alert(1)</script>".to_string()),
+            false,
+        )
+        .unwrap();
+
+        assert_snapshot!(w, @r#"
+        <div class="sql repr">
+        <pre><code>SELECT &#39;&lt;script&gt;alert(1)&lt;/script&gt;&#39; AS a</code></pre>
+        </div>
+        <div class="entry msg-DEBUG">
+        [<b>DEBUG</b>] folding `a &lt; b &amp; c &gt; d`
+        </div>
+        <div class="key-values">
+        <div><b class="blue">path</b>: &quot;&lt;a&amp;b&gt;.prql&quot;</div>
+        </div>
+        &lt;script&gt;alert(1)&lt;/script&gt;
+        "#);
+    }
+
+    /// JSON object keys are user-controlled too: a backtick-quoted named
+    /// argument becomes a key of `FuncCall::named_args`, so it renders both as
+    /// an object-property label and — when it is the object's only key — as an
+    /// AST-node header.
+    #[test]
+    fn escapes_json_object_keys() {
+        let mut w = String::new();
+
+        write_json_ast_node(
+            &mut w,
+            serde_json::json!({"<b>one</b>": 1, "<b>two</b>": 2}),
+            false,
+        )
+        .unwrap();
+
+        write_json_ast_node(
+            &mut w,
+            serde_json::json!({"<script>alert(1)</script>": {"Literal": "x"}}),
+            false,
+        )
+        .unwrap();
+
+        assert_snapshot!(w, @r#"
+        <div class="json-object">
+        <span>&lt;b&gt;one&lt;/b&gt;: </span><div class="json-value">1</div>
+        <span>&lt;b&gt;two&lt;/b&gt;: </span><div class="json-value">2</div>
+        </div>
+        <details class=ast-node open tabindex=2><summary class=header><h2 class=clickable>&lt;script&gt;alert(1)&lt;/script&gt;</h2></summary><content class="contents indent"><div class="json-object">
+        <span>Literal: </span><div class="json-value">x</div>
+        </div>
+        </content></details>
+        "#);
+    }
+
+    /// `write_decl` interpolates two pieces of query-derived text: the
+    /// declaration name, which can be backtick-quoted and so near-arbitrary,
+    /// and — for kinds without a dedicated branch — the `Display` of the kind,
+    /// which prints idents (`DeclKind::Import`, `InstanceOf`) that are
+    /// themselves names from the query.
+    #[test]
+    fn escapes_declaration_names() {
+        let mut w = String::new();
+        let span_map = HashMap::new();
+
+        write_decl(
+            &mut w,
+            &decl::Decl::from(decl::DeclKind::Import(pl::Ident::from_name("a<b"))),
+            &r#"q<u"o"#.to_string(),
+            &span_map,
+        )
+        .unwrap();
+
+        assert_snapshot!(w, @r#"<details class="ast-node"  open tabindex=2><summary class=header><h2 class="clickable blue">q&lt;u&quot;o</h2></summary><content class="contents indent"><div>Import `a&lt;b`</div></content></details>"#);
+    }
+}

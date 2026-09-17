@@ -1,4 +1,5 @@
 use prqlc::pr::{ExprKind, Stmt, StmtKind, TyKind, VarDefKind};
+use prqlc::utils::escape_html;
 
 /// Whether a statement is a `let` function definition that gets its own
 /// documentation section. The Functions index and the detail sections must
@@ -46,10 +47,8 @@ pub fn generate_html_docs(stmts: Vec<Stmt>) -> String {
     docs.push_str("<ul>\n");
     for stmt in stmts.iter().filter(|stmt| is_documented_function(stmt)) {
         let var_def = stmt.kind.as_var_def().unwrap();
-        docs.push_str(&format!(
-            "  <li><a href=\"#fn-{}\">{}</a></li>\n",
-            var_def.name, var_def.name
-        ));
+        let name = escape_html(&var_def.name);
+        docs.push_str(&format!("  <li><a href=\"#fn-{name}\">{name}</a></li>\n"));
     }
     docs.push_str("</ul>\n\n");
     if !stmts.iter().any(is_documented_function) {
@@ -72,8 +71,9 @@ pub fn generate_html_docs(stmts: Vec<Stmt>) -> String {
         {
             let type_def = stmt.kind.as_type_def().unwrap();
             docs.push_str(&format!(
-                "  <li><code>{}</code> – {:?}</li>\n",
-                type_def.name, type_def.value.kind
+                "  <li><code>{}</code> – {}</li>\n",
+                escape_html(&type_def.name),
+                escape_html(&format!("{:?}", type_def.value.kind))
             ));
         }
         docs.push_str("</ul>\n");
@@ -94,7 +94,7 @@ pub fn generate_html_docs(stmts: Vec<Stmt>) -> String {
             .filter(|stmt| matches!(stmt.kind, StmtKind::ModuleDef(_)))
         {
             let module_def = stmt.kind.as_module_def().unwrap();
-            docs.push_str(&format!("  <li>{}</li>\n", module_def.name));
+            docs.push_str(&format!("  <li>{}</li>\n", escape_html(&module_def.name)));
         }
         docs.push_str("</ul>\n");
     }
@@ -103,15 +103,13 @@ pub fn generate_html_docs(stmts: Vec<Stmt>) -> String {
         let var_def = stmt.kind.as_var_def().unwrap();
 
         docs.push_str("<section>\n");
-        docs.push_str(&format!(
-            "  <h3 id=\"fn-{}\">{}</h3>\n",
-            var_def.name, var_def.name
-        ));
+        let name = escape_html(&var_def.name);
+        docs.push_str(&format!("  <h3 id=\"fn-{name}\">{name}</h3>\n"));
 
         docs.push_str("<div class=\"ms-3\">\n");
 
         if let Some(doc_comment) = &stmt.doc_comment {
-            docs.push_str(&format!("  <p>{doc_comment}</p>\n"));
+            docs.push_str(&format!("  <p>{}</p>\n", escape_html(doc_comment)));
         }
 
         if let Some(expr) = &var_def.value {
@@ -121,7 +119,10 @@ pub fn generate_html_docs(stmts: Vec<Stmt>) -> String {
                         docs.push_str("  <h4 class=\"h6\">Parameters</h4>\n");
                         docs.push_str("  <ul>\n");
                         for param in &func.params {
-                            docs.push_str(&format!("    <li><var>{}</var></li>\n", param.name));
+                            docs.push_str(&format!(
+                                "    <li><var>{}</var></li>\n",
+                                escape_html(&param.name)
+                            ));
                         }
                         docs.push_str("  </ul>\n");
                     }
@@ -130,7 +131,10 @@ pub fn generate_html_docs(stmts: Vec<Stmt>) -> String {
                         docs.push_str("  <h4 class=\"h6\">Named parameters</h4>\n");
                         docs.push_str("  <ul>\n");
                         for param in &func.named_params {
-                            docs.push_str(&format!("    <li><var>{}</var></li>\n", param.name));
+                            docs.push_str(&format!(
+                                "    <li><var>{}</var></li>\n",
+                                escape_html(&param.name)
+                            ));
                         }
                         docs.push_str("  </ul>\n");
                     }
@@ -139,10 +143,16 @@ pub fn generate_html_docs(stmts: Vec<Stmt>) -> String {
                         docs.push_str("  <h4 class=\"h6\">Returns</h4>\n");
                         match &return_ty.kind {
                             TyKind::Ident(ident) => {
-                                docs.push_str(&format!("  <p><code>{}</code></p>\n", ident.name));
+                                docs.push_str(&format!(
+                                    "  <p><code>{}</code></p>\n",
+                                    escape_html(&ident.name)
+                                ));
                             }
                             TyKind::Primitive(primitive) => {
-                                docs.push_str(&format!("  <p><code>{primitive}</code></p>\n"));
+                                docs.push_str(&format!(
+                                    "  <p><code>{}</code></p>\n",
+                                    escape_html(&primitive.to_string())
+                                ));
                             }
                             _ => docs.push_str("  <p class=\"text-danger\">Not implemented</p>\n"),
                         }
@@ -516,6 +526,88 @@ mod tests {
 
         ----- stderr -----
         ");
+    }
+
+    /// Doc comments are free-form prose and backtick-quoted names are
+    /// near-arbitrary, so `<`, `>`, `&` and quotes reach the HTML generator
+    /// verbatim. Before escaping they were interpolated raw, which both mangled
+    /// ordinary prose like `a < b` and let a doc comment inject arbitrary markup
+    /// into the generated page. A name is interpolated into the `id` and `href`
+    /// attributes as well as into element content, so both paths are covered.
+    #[test]
+    fn generate_html_docs_escapes_html() {
+        std::env::set_var("PRQL_VERSION_OVERRIDE", env!("CARGO_PKG_VERSION"));
+
+        let input = r#"
+        #! True when a < b & not c > d <img src="x" onerror='alert(1)'>
+        let cmp = a b -> a
+
+        #! A quoted name reaches the id and href attributes.
+        let `a<b"c` = x `y>z`:false -> x
+        "#;
+
+        assert_cmd_snapshot!(prqlc_command().args(["experimental", "doc", "--format=html"]).pass_stdin(input), @r##"
+        success: true
+        exit_code: 0
+        ----- stdout -----
+        <!doctype html>
+        <html lang="en">
+          <head>
+            <meta charset="utf-8">
+            <meta name="viewport" content="width=device-width, initial-scale=1">
+            <meta name="keywords" content="prql">
+            <meta name="generator" content="prqlc 0.13.15">
+            <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-T3c6CoIi6uLrA9TneNEoa7RxnatzjcDSCmG1MXxSR1GAsXEV/Dwwykc2MPK8M2HN" crossorigin="anonymous">
+            <title>PRQL Docs</title>
+          </head>
+          <body>
+            <header class="bg-body-tertiary">
+              <div class="container">
+                <h1>Documentation</h1>
+              </div>
+            </header>
+            <main class="container">
+              <h2>Functions</h2>
+        <ul>
+          <li><a href="#fn-cmp">cmp</a></li>
+          <li><a href="#fn-a&lt;b&quot;c">a&lt;b&quot;c</a></li>
+        </ul>
+
+        <section>
+          <h3 id="fn-cmp">cmp</h3>
+        <div class="ms-3">
+          <p> True when a &lt; b &amp; not c &gt; d &lt;img src=&quot;x&quot; onerror=&#39;alert(1)&#39;&gt;</p>
+          <h4 class="h6">Parameters</h4>
+          <ul>
+            <li><var>a</var></li>
+            <li><var>b</var></li>
+          </ul>
+        </div>
+        </section>
+        <section>
+          <h3 id="fn-a&lt;b&quot;c">a&lt;b&quot;c</h3>
+        <div class="ms-3">
+          <p> A quoted name reaches the id and href attributes.</p>
+          <h4 class="h6">Parameters</h4>
+          <ul>
+            <li><var>x</var></li>
+          </ul>
+          <h4 class="h6">Named parameters</h4>
+          <ul>
+            <li><var>y&gt;z</var></li>
+          </ul>
+        </div>
+        </section>
+
+            </main>
+            <footer class="container border-top">
+              <small class="text-body-secondary">Generated with <a href="https://prql-lang.org/" rel="external" target="_blank">prqlc</a> 0.13.15.</small>
+            </footer>
+          </body>
+        </html>
+
+        ----- stderr -----
+        "##);
     }
 
     fn prqlc_command() -> Command {
