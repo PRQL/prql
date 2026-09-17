@@ -25,12 +25,6 @@ permission first) still applies when the target shows no agent signals.
   `refactor:`, `test:`, `ci:`, `internal:`, `devops:`, `web:`, `refine:`
 - No scope required (e.g., `fix: resolve date parsing` not `fix(parser): ...`)
 - Dependabot PRs use `chore:` prefix
-- A user-facing change needs a `CHANGELOG.md` line in the same PR, under the
-  matching heading, formatted `{message}, (@contributor, #X)` with `X` the PR
-  number. The convention lives in
-  [`development.md`](https://github.com/PRQL/prql/blob/main/web/book/src/project/contributing/development.md)
-  under **Contribution workflow › Commits**. Internal refactors, test-only
-  changes and workflow regens don't need one.
 
 ## CI structure
 

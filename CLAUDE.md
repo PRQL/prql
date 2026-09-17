@@ -127,6 +127,16 @@ Error messages should avoid 2nd person (you/your). Use softer modal verbs like
 - ❌ "you can only use X" → ✅ "X requires Y" (for hard constraints)
 - ❌ "Have you forgotten an argument?" → ✅ "Argument might be missing?"
 
+## Changelog
+
+A user-facing change needs a `CHANGELOG.md` line in the same PR, under the
+matching heading, formatted `{message}, (@contributor, #X)` with `X` the PR
+number — which only exists once the PR is open, so add the entry in a follow-up
+commit rather than dropping it. Internal refactors, test-only changes and
+workflow regens don't need one. See
+`web/book/src/project/contributing/development.md` under **Contribution workflow
+› Commits**.
+
 ## Documentation
 
 For Claude to view crate documentation:
