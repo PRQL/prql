@@ -371,6 +371,22 @@ fn date_diff_unsupported_dialects() {
     .is_err());
 }
 
+/// Snowflake uses the generic form, but quotes identifiers, so it doesn't fit
+/// the shared template in `date_trunc_operator`.
+#[test]
+fn date_trunc_snowflake() {
+    assert_snapshot!(compile_with_sql_dialect(
+        r#"from events | select {trunc_day = (event_time | date.trunc "day")}"#,
+        sql::Dialect::Snowflake
+    )
+    .unwrap(), @r#"
+    SELECT
+      DATE_TRUNC('day', "event_time") AS "trunc_day"
+    FROM
+      "events"
+    "#);
+}
+
 #[test]
 fn date_trunc_unsupported_dialects() {
     // SQLite has no DATE_TRUNC function
@@ -402,11 +418,16 @@ fn date_to_text_bigquery_rfc3339() {
     ");
 }
 
+/// The dialect forms are documented in
+/// `web/book/src/reference/stdlib/date.md`, so each row of that table needs a
+/// case here — except Snowflake, which `date_trunc_snowflake` covers.
 #[rstest]
+#[case::generic(sql::Dialect::Generic, "DATE_TRUNC('day', event_time)")]
 #[case::duckdb(sql::Dialect::DuckDb, "DATE_TRUNC('day', event_time)")]
 #[case::postgres(sql::Dialect::Postgres, "DATE_TRUNC('day', event_time)")]
 #[case::mssql(sql::Dialect::MsSql, "DATETRUNC(day, event_time)")]
 #[case::mysql(sql::Dialect::MySql, "DATE_TRUNC('day', event_time)")]
+#[case::clickhouse(sql::Dialect::ClickHouse, "DATE_TRUNC('day', event_time)")]
 #[case::bigquery(sql::Dialect::BigQuery, "DATE_TRUNC(event_time, DAY)")]
 fn date_trunc_operator(#[case] dialect: sql::Dialect, #[case] expected_date_trunc: &'static str) {
     let query = r#"
