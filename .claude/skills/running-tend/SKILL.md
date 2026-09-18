@@ -16,8 +16,8 @@ error conventions, etc. are in `CLAUDE.md` — don't duplicate them here.
 
 Standing exception granted: file directly in agent-equipped targets (per
 **Filing issues** in the bundled `/tend-ci-runner:act-in-other-repos` skill)
-without asking permission here first. The default rule (open an issue here asking
-permission first) still applies when the target shows no agent signals.
+without asking permission here first. The default rule (open an issue here
+asking permission first) still applies when the target shows no agent signals.
 
 ## PR conventions
 
