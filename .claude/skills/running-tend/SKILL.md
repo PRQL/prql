@@ -42,6 +42,19 @@ permission first) still applies when the target shows no agent signals.
   in #5753, so bot PRs must be merged manually by a maintainer (or via repo
   branch-protection auto-merge if a maintainer enables it on the PR).
 
+## Running `task lint`
+
+`pre-commit`'s hook environments live in `~/.cache/pre-commit` under the sandbox
+home, which is discarded with the session — so the cold build is paid by every
+session that lints, not just the first. It takes ~4 minutes, past the 120 s
+default command timeout, and the `cargo fmt` hook alone can exceed it.
+
+**Give `task lint` a timeout of at least 10 minutes.** A run killed at the
+default looks identical to a broken gate, which reads as the gate being
+unrunnable — the exact failure the `sandbox_setup:` entries exist to remove. A
+killed run is recoverable, since `pre-commit` caches each environment as it
+finishes, and later runs in the same session are fast.
+
 ## Verifying a `rust-toolchain.toml` bump
 
 The `update-rust-toolchain` action opens `build: Update rust toolchain version`
