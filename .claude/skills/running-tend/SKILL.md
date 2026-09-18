@@ -86,8 +86,8 @@ check has not been allocated a runner, so another round changes nothing: post
 the verdict, name the unverified checks, and end. If any pending check is
 `IN_PROGRESS`, keep polling — that work is advancing and may still settle.
 
-The `pending()` helper in **CI Monitoring** returns a count without the states,
-so it can't tell those two cases apart. Project the states alongside it:
+`poll_pr_checks.py` prints the still-pending checks by name without their
+states, so it can't tell those two cases apart. Project the states alongside it:
 
 ```sh
 gh pr view <n> --json statusCheckRollup \
