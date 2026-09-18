@@ -1,6 +1,5 @@
 name: tend-setup
-description:
-  Setup steps for tend CI workflows (Rust toolchain, caching, dev tools)
+description: Setup steps for tend CI workflows
 
 inputs:
   github-token:
@@ -11,28 +10,17 @@ inputs:
 runs:
   using: composite
   steps:
+    # `task` is the only thing a setup step can hand to the agent:
+    # `go-task/setup-task` installs into `/opt/hostedtoolcache`, a system
+    # location the sandbox can read. Nothing else here could — the agent works
+    # in a disposable clone with `denyRead` on both the runner's home and the
+    # runner's checkout, and only `GITHUB_*` names cross into its environment.
+    # So a cache restore, a `$GITHUB_ENV` write or a tool installed under the
+    # runner's home warms nothing; tools belong in `sandbox_setup:` and env
+    # vars in `sandbox_env:` in `.config/tend.yaml`. Tracked upstream as
+    # https://github.com/max-sixty/tend/issues/1198.
     - name: Setup Task
       uses: go-task/setup-task@v2
       with:
         repo-token: ${{ inputs.github-token }}
         version: 3.53.1
-
-    - run: ./.github/workflows/scripts/set_version.sh
-      shell: bash
-
-    - name: Cache
-      uses: Swatinem/rust-cache@v2
-      with:
-        prefix-key: ${{ hashFiles('./Cargo.lock') }}
-        shared-key: rust-x86_64-unknown-linux-gnu
-        save-if: false
-        # Caching `~/.cargo/bin/` breaks the rustup `cargo`/`rustc` symlinks
-        # on the new macos-15 runner image — see
-        # https://github.com/Swatinem/rust-cache/issues/341.
-        cache-bin: "false"
-
-    - run: |
-        echo CARGO_TERM_COLOR=always >> $GITHUB_ENV
-        echo 'RUSTFLAGS=-C debuginfo=0' >> $GITHUB_ENV
-        echo 'RUSTDOCFLAGS=-Dwarnings' >> $GITHUB_ENV
-      shell: bash
