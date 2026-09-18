@@ -49,11 +49,16 @@ home, which is discarded with the session — so the cold build is paid by every
 session that lints, not just the first. It takes ~4 minutes, past the 120 s
 default command timeout, and the `cargo fmt` hook alone can exceed it.
 
-**Give `task lint` a timeout of at least 10 minutes.** A run killed at the
+**Give `task lint` the maximum command timeout, 600 s.** A run killed at the
 default looks identical to a broken gate, which reads as the gate being
 unrunnable — the exact failure the `sandbox_setup:` entries exist to remove. A
 killed run is recoverable, since `pre-commit` caches each environment as it
 finishes, and later runs in the same session are fast.
+
+600 s is the ceiling, not a budget: `task lint` is `pre-commit` _then_ a
+whole-workspace `--all-targets` clippy, which on a cold cargo cache exceeds the
+session budget on its own (see the next section). If the combined run is still
+killed, run its two commands separately, each with its own 600 s.
 
 ## Verifying a `rust-toolchain.toml` bump
 
