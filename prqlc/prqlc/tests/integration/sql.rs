@@ -420,7 +420,7 @@ fn date_to_text_bigquery_rfc3339() {
 
 /// The dialect forms are documented in
 /// `web/book/src/reference/stdlib/date.md`, so each row of that table needs a
-/// case here.
+/// case here — except Snowflake, which `date_trunc_snowflake` covers.
 #[rstest]
 #[case::generic(sql::Dialect::Generic, "DATE_TRUNC('day', event_time)")]
 #[case::duckdb(sql::Dialect::DuckDb, "DATE_TRUNC('day', event_time)")]

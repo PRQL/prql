@@ -64,9 +64,10 @@ The SQL output varies by dialect:
 
 ### `trunc`
 
-Truncates a date or timestamp to a given unit. The unit is written as a string,
-unlike `date.diff`, which takes it as a bare keyword; which units are accepted
-follows the target database.
+Truncates a date or timestamp to a given unit. The unit is written as a string
+literal, unlike `date.diff`, which takes it as a bare keyword; which units are
+accepted follows the target database. The unit has to be known at compile time,
+so a column or expression in its place is an error.
 
 ```prql
 prql target:sql.postgres
