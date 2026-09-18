@@ -262,6 +262,8 @@ jobs:
             cargo-nextest --version
             curl -LsSf https://github.com/mitsuhiko/insta/releases/latest/download/cargo-insta-installer.sh | CARGO_HOME=~/.local sh
             cargo-insta --version
+            uv tool install pre-commit
+            pre-commit --version
           prompt: |2
             /tend-ci-runner:notifications
 

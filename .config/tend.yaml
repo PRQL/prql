@@ -25,8 +25,8 @@ setup:
 #
 # Without this, `task prqlc:test` — the inner loop `CLAUDE.md` documents —
 # aborts in every tend session. `task prqlc:pull-request` needs more: it also
-# reaches `cargo llvm-cov` and `pre-commit`, neither of which is on the sandbox
-# PATH at all.
+# reaches `cargo llvm-cov`, which is still not on the sandbox PATH, so that
+# task stops there even with the entries below.
 sandbox_setup:
   - mkdir -p ~/.local/bin
   - curl -LsSf https://get.nexte.st/latest/linux | tar zxf - -C ~/.local/bin
@@ -35,6 +35,21 @@ sandbox_setup:
     https://github.com/mitsuhiko/insta/releases/latest/download/cargo-insta-installer.sh
     | CARGO_HOME=~/.local sh
   - cargo-insta --version
+  #
+  # `pre-commit` is the same shape of gap, for lint rather than tests. `task
+  # lint` — the lint command `CLAUDE.md` documents — is `pre-commit run
+  # --all-files` followed by clippy, and `pre-commit` is absent from the
+  # runner's PATH and the sandbox's alike, so the gate aborts on its first
+  # command in every session; the 2026-09-18 nightly is the latest to report it
+  # unrun, leaving `typos` and `ruff` ungated locally on a PR it opened. `uv
+  # tool install` puts it in `~/.local/bin` — first on the sandbox PATH — in
+  # well under a second, because `uv` is already provisioned.
+  #
+  # The hook environments are *not* built here: `pre-commit` builds them on first
+  # use, ~3.5 min for this repo's 14 hooks, so only a session that actually lints
+  # pays that, and a session that never lints pays a second.
+  - uv tool install pre-commit
+  - pre-commit --version
 workflows:
   ci-fix:
     watched_workflows:
