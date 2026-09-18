@@ -64,7 +64,9 @@ The SQL output varies by dialect:
 
 ### `trunc`
 
-Truncates a date or timestamp to a given unit.
+Truncates a date or timestamp to a given unit. The unit is written as a string,
+unlike `date.diff`, which takes it as a bare keyword; which units are accepted
+follows the target database.
 
 ```prql
 prql target:sql.postgres
@@ -73,6 +75,25 @@ from events
 select (event_time | date.trunc "day")
 
 ```
+
+Most dialects take the unit as a quoted first argument, but MSSQL and BigQuery
+each use their own form:
+
+| Dialect    | SQL output                        |
+| ---------- | --------------------------------- |
+| Generic    | `DATE_TRUNC('day', event_time)`   |
+| DuckDB     | `DATE_TRUNC('day', event_time)`   |
+| Postgres   | `DATE_TRUNC('day', event_time)`   |
+| MySQL      | `DATE_TRUNC('day', event_time)`   |
+| Clickhouse | `DATE_TRUNC('day', event_time)`   |
+| Snowflake  | `DATE_TRUNC('day', "event_time")` |
+| MSSQL      | `DATETRUNC(day, event_time)`      |
+| BigQuery   | `DATE_TRUNC(event_time, DAY)`     |
+
+<!-- prettier-ignore -->
+> [!NOTE]
+> SQLite has no date-truncation function, so `date.trunc` raises an error when
+> compiling for that dialect.
 
 ### `diff`
 
