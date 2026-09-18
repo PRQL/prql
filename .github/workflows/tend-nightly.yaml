@@ -51,5 +51,6 @@ jobs:
             cargo-insta --version
             uv tool install pre-commit
             pre-commit --version
+            cargo --version
           prompt: |2
             /tend-ci-runner:nightly

@@ -346,6 +346,7 @@ jobs:
             cargo-insta --version
             uv tool install pre-commit
             pre-commit --version
+            cargo --version
           prompt: >-
             ${{ steps.delay.outputs.seconds
             && format('This job started {0}s after the triggering event (over ~40s means it was queued). ',

@@ -50,6 +50,16 @@ sandbox_setup:
   # pays that, and a session that never lints pays a second.
   - uv tool install pre-commit
   - pre-commit --version
+  #
+  # And the toolchain `rust-toolchain.toml` pins, because the `fmt` hook passes
+  # filenames: `pre-commit` splits this repo's ~114 `.rs` files across the
+  # runner's cores and starts one `cargo fmt` per chunk. The sandbox home ships
+  # only `stable`, so each of those races the same rustup auto-install and they
+  # clobber each other's partial downloads in `~/.rustup/downloads` — the hook
+  # fails on a component-download error, `pre-commit` exits non-zero and `task
+  # lint` never reaches clippy. Installing it once, serially, takes ~11s, and
+  # it's a cost every session that touches Rust pays anyway.
+  - cargo --version
 workflows:
   ci-fix:
     watched_workflows:
