@@ -15,9 +15,9 @@ error conventions, etc. are in `CLAUDE.md` — don't duplicate them here.
 ## Filing issues in other repos
 
 Standing exception granted: file directly in agent-equipped targets (per
-**Filing Issues in Other Repos** in the bundled `running-in-ci` skill) without
-asking permission here first. The default rule (open an issue here asking
-permission first) still applies when the target shows no agent signals.
+**Filing issues** in the bundled `/tend-ci-runner:act-in-other-repos` skill)
+without asking permission here first. The default rule (open an issue here
+asking permission first) still applies when the target shows no agent signals.
 
 ## PR conventions
 
@@ -78,16 +78,16 @@ ran 17:14:32 → 17:16:45; across 2026-06 to 2026-08 every batch has landed in
 17:12–17:19 UTC), so five or six `tests` matrices compete for runners at once.
 The surviving `tests` run on each PR then sits in `QUEUED` for a long time
 before it starts — run `30835855220` on #6130 took 73 minutes end to end
-(17:14:37 → 18:27:46), far past the 9-minute cap on the poll loop in **CI
-Monitoring** in `running-in-ci`.
+(17:14:37 → 18:27:46), far past the 9-minute cap on the poll loop in
+`/tend-ci-runner:monitor-ci`.
 
 **Stop after one poll round when every pending check is `QUEUED`.** A `QUEUED`
 check has not been allocated a runner, so another round changes nothing: post
 the verdict, name the unverified checks, and end. If any pending check is
 `IN_PROGRESS`, keep polling — that work is advancing and may still settle.
 
-The `pending()` helper in **CI Monitoring** returns a count without the states,
-so it can't tell those two cases apart. Project the states alongside it:
+`poll_pr_checks.py` prints the still-pending checks by name without their
+states, so it can't tell those two cases apart. Project the states alongside it:
 
 ```sh
 gh pr view <n> --json statusCheckRollup \
