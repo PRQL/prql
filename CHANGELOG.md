@@ -153,6 +153,11 @@
 
 **Documentation**:
 
+- The `loop` reference page now shows the transform's real signature. It read
+  `loop {step_function} {initial_relation}`, but `{...}` is tuple syntax and
+  `std.loop` takes a pipeline plus the relation piped into it, so a query
+  written as documented failed to compile. (@prql-bot, #6342)
+
 - The `prql-java` README now documents the actual API. It advertised a
   single-argument `toSql(String query)` in package `org.prqllang.prql4j`; the
   binding really exposes `toSql(query, target, format, signature)`, `toJson` and
