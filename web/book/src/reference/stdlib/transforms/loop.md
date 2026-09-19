@@ -47,5 +47,5 @@ loop (
 > [!NOTE]
 > Currently, `loop` may produce references to the recursive CTE in
 > sub-queries, which is not supported by some database engines, e.g. SQLite. For
-> now, we suggest step functions are kept simple enough to fit into a single
+> now, we suggest step pipelines are kept simple enough to fit into a single
 > SELECT statement.
