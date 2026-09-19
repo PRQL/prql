@@ -52,23 +52,30 @@ jobs:
           # An existing draft is reused, so the notes can be written by hand
           # before the tag is pushed. An existing *published* release is fatal:
           # its assets are already locked, so every upload below would fail
-          # with a 422 partway through the run. The recovery is a re-run rather
-          # than another tag push — `gh release delete` leaves the tag in
-          # place, so pushing it again changes nothing and starts nothing.
-          #
-          # That recovery depends on the tag still being reusable, which holds
-          # only for a release published while immutable releases were off.
-          # Deleting an immutable release stays allowed once the setting is on,
-          # but GitHub documents that its tag name cannot be reused afterwards,
-          # so the re-run would fail to create the draft and the version has to
-          # be re-cut instead. See
-          # https://docs.github.com/en/code-security/concepts/supply-chain-security/immutable-releases
+          # with a 422 partway through the run.
           if state=$(gh release view "$TAG" --json isDraft --jq '.isDraft' 2>/dev/null); then
             if [ "$state" = "true" ]; then
               echo "Draft release $TAG already exists; uploading into it."
               exit 0
             fi
-            echo "::error::Release $TAG is already published, so its assets cannot be changed. Delete the release, then re-run all jobs on this run. If it was published with immutable releases enabled, its tag cannot be reused after the delete, so release the next patch version instead."
+            # Which recovery applies turns on the release's immutability.
+            # Deleting a mutable release leaves its tag in place, so the fix is
+            # a re-run rather than another tag push — re-pushing the tag would
+            # change nothing and start nothing. Deleting an immutable release
+            # is allowed too, but GitHub does not let its tag name be reused
+            # afterwards, so the re-run would fail at `gh release create` and
+            # the version has to be re-cut:
+            # https://docs.github.com/en/code-security/concepts/supply-chain-security/immutable-releases
+            #
+            # This is a second call rather than another field on the one above
+            # because a `gh` too old for `isImmutable` would fail that call and
+            # skip the whole guard; here it only costs the sharper message, on
+            # a path that is aborting anyway.
+            if [ "$(gh release view "$TAG" --json isImmutable --jq '.isImmutable' 2>/dev/null)" = "true" ]; then
+              echo "::error::Release $TAG is already published and immutable, so its assets cannot be changed and its tag cannot be reused after a delete. Release the next patch version instead."
+            else
+              echo "::error::Release $TAG is already published, so its assets cannot be changed. Delete the release, then re-run all jobs on this run."
+            fi
             exit 1
           fi
           # The changelog entry is the release's notes, so a tag pushed before
