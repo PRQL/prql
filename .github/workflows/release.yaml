@@ -69,12 +69,19 @@ jobs:
             #
             # This is a second call rather than another field on the one above
             # because a `gh` too old for `isImmutable` would fail that call and
-            # skip the whole guard; here it only costs the sharper message, on
-            # a path that is aborting anyway.
-            if [ "$(gh release view "$TAG" --json isImmutable --jq '.isImmutable' 2>/dev/null)" = "true" ]; then
-              echo "::error::Release $TAG is already published and immutable, so its assets cannot be changed and its tag cannot be reused after a delete. Release the next patch version instead."
+            # skip the whole guard; a failure here costs only the specific
+            # remedy, on a path that is aborting anyway. It gets its own
+            # message rather than joining the mutable case: deleting an
+            # immutable release cannot be undone, so "unknown" must not read as
+            # "safe to delete".
+            if immutable=$(gh release view "$TAG" --json isImmutable --jq '.isImmutable' 2>/dev/null); then
+              if [ "$immutable" = "true" ]; then
+                echo "::error::Release $TAG is already published and immutable, so its assets cannot be changed and its tag cannot be reused after a delete. Release the next patch version instead."
+              else
+                echo "::error::Release $TAG is already published, so its assets cannot be changed. Delete the release, then re-run all jobs on this run."
+              fi
             else
-              echo "::error::Release $TAG is already published, so its assets cannot be changed. Delete the release, then re-run all jobs on this run."
+              echo "::error::Release $TAG is already published, so its assets cannot be changed, and its immutability could not be read. Check it before deleting: a mutable release can be deleted and all jobs on this run re-run, but an immutable one leaves its tag name unusable, so the next patch version has to be released instead."
             fi
             exit 1
           fi
