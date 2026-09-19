@@ -94,6 +94,39 @@ gh pr view <n> --json statusCheckRollup \
   --jq '[.statusCheckRollup[] | {name: (.name // .context), status: (.status // .state)}]'
 ```
 
+## Verifying a change to the .NET binding
+
+`prqlc/bindings/dotnet/` can be built and tested from a session, but two sandbox
+constraints block it first, and neither names its own cause.
+
+**`/tmp` is read-only, and the .NET SDK insists on it.** The first-run
+configurer creates a named `Mutex` whose backing directory it places under a
+hard-coded `/tmp`, so `dotnet build`, `restore`, `test` and `new` all abort with
+`mkdtemp("/tmp/.dotnet.XXXXXX") == nullptr; errno == EROFS`. No environment
+variable moves that path: `TMPDIR`, `DOTNET_CLI_HOME`, `NUGET_PACKAGES` and
+`DOTNET_SKIP_FIRST_TIME_EXPERIENCE` leave it alone. `dotnet --info` and
+`dotnet --version` succeed because neither reaches the configurer, so the SDK
+looks usable right up to the first build. Run `dotnet` through
+`scripts/with-writable-tmp.sh`, which gives the command a private tmpfs at
+`/tmp`.
+
+**MSBuild's worker nodes can't start, and say nothing.** Binding an `AF_UNIX`
+socket is refused sandbox-wide with `EPERM`, so a multi-node build fails in the
+node handshake and reports `Build FAILED.` with `0 Error(s)` and no diagnostic
+at all. **Pass `-m:1` to every `dotnet` command**; without it a real failure is
+indistinguishable from this one.
+
+Together they reproduce the whole `test-dotnet` job from the repo root:
+
+```sh
+cargo build -p prqlc-c
+W=.claude/skills/running-tend/scripts/with-writable-tmp.sh
+$W dotnet build prqlc/bindings/dotnet -m:1
+cp target/debug/libprqlc_c.* prqlc/bindings/dotnet/PrqlCompiler/bin/Debug/net*/
+cp target/debug/libprqlc_c.* prqlc/bindings/dotnet/PrqlCompiler.Tests/bin/Debug/net*/
+$W dotnet test prqlc/bindings/dotnet -m:1
+```
+
 ## Weekly maintenance
 
 These tasks run as Step 3 of the bundled weekly skill (only when
