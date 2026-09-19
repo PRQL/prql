@@ -133,14 +133,16 @@ $W dotnet test prqlc/bindings/dotnet -m:1
 Restore prints `NU1903` for `Newtonsoft.Json` 9.0.1, pulled in transitively by
 `Microsoft.NET.Test.Sdk`. It predates any change under review — don't chase it.
 
-**The wrapper looks unnecessary after the first wrapped run, and isn't.** That
-run completes the SDK's first-use configuration and writes
-`~/.dotnet/<version>.dotnetFirstUseSentinel` into the real home, which persists
-outside the tmpfs — so an unwrapped `dotnet` afterwards gets past the configurer
-and looks fixed. It isn't: NuGet's `MigrationRunner` takes the same mutex again
-inside `RestoreTask`, and the same `mkdtemp` failure resurfaces as an `MSB4018`
-from `NuGet.targets`. Probe the constraint from a session that has run no
-wrapped `dotnet` command, or not at all.
+**A `dotnet` command that succeeds without the wrapper is not evidence the
+constraint is gone**, and the failure moves rather than disappearing. With
+`~/.dotnet/<version>.dotnetFirstUseSentinel` present — one wrapped run writes it
+into the real home, outside the tmpfs — an unwrapped build clears the configurer
+and then hits the same `mkdtemp` inside NuGet's `MigrationRunner`, surfacing as
+an `MSB4018` from `NuGet.targets` instead of the bare `IOException`. One session
+did report a fully green unwrapped `build` and `test` from a cleared `~/.dotnet`
+and `~/.nuget`, and that has not been reconciled with the `EROFS` that
+reproduces from a fresh sandbox. Keep the wrapper: it costs a bind path in
+absolute build output and nothing else.
 
 ## Weekly maintenance
 
