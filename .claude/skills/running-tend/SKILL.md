@@ -96,36 +96,25 @@ gh pr view <n> --json statusCheckRollup \
 
 ## Verifying a change to the .NET binding
 
-`prqlc/bindings/dotnet/` can be built and tested from a session, but two sandbox
-constraints block it first, and neither names its own cause.
-
-**`/tmp` is read-only, and the .NET SDK insists on it.** The first-run
-configurer creates a named `Mutex` whose backing directory it places under a
-hard-coded `/tmp`, so `dotnet build`, `restore`, `test` and `new` all abort with
-`mkdtemp("/tmp/.dotnet.XXXXXX") == nullptr; errno == EROFS`. No environment
-variable moves that path: `TMPDIR`, `DOTNET_CLI_HOME`, `NUGET_PACKAGES` and
-`DOTNET_SKIP_FIRST_TIME_EXPERIENCE` leave it alone. `dotnet --info` and
-`dotnet --version` succeed because neither reaches the configurer, so the SDK
-looks usable right up to the first build. Run `dotnet` through
-`scripts/with-writable-tmp.sh`, which gives the command a private tmpfs at
-`/tmp`.
-
-**MSBuild's worker nodes can't start, and say nothing.** Binding an `AF_UNIX`
-socket is refused sandbox-wide with `EPERM`, so a multi-node build fails in the
-node handshake and reports `Build FAILED.` with `0 Error(s)` and no diagnostic
-at all. **Pass `-m:1` to every `dotnet` command**; without it a real failure is
+`prqlc/bindings/dotnet/` builds and tests from a session, but MSBuild's worker
+nodes can't start in the sandbox and say nothing when they fail. Binding an
+`AF_UNIX` socket is refused with `EPERM`, so a multi-node build dies in the node
+handshake and reports `Build FAILED.` with `0 Error(s)` and no diagnostic at
+all. **Pass `-m:1` to every `dotnet` command** — without it a real failure is
 indistinguishable from this one.
 
-Together they reproduce the whole `test-dotnet` job from the repo root:
+With that flag the whole `test-dotnet` job reproduces from the repo root:
 
 ```sh
 cargo build -p prqlc-c
-W=.claude/skills/running-tend/scripts/with-writable-tmp.sh
-$W dotnet build prqlc/bindings/dotnet -m:1
+dotnet build prqlc/bindings/dotnet -m:1
 cp target/debug/libprqlc_c.* prqlc/bindings/dotnet/PrqlCompiler/bin/Debug/net*/
 cp target/debug/libprqlc_c.* prqlc/bindings/dotnet/PrqlCompiler.Tests/bin/Debug/net*/
-$W dotnet test prqlc/bindings/dotnet -m:1
+dotnet test prqlc/bindings/dotnet -m:1
 ```
+
+Restore prints `NU1903` for `Newtonsoft.Json` 9.0.1, pulled in transitively by
+`Microsoft.NET.Test.Sdk`. It predates any change under review — don't chase it.
 
 ## Weekly maintenance
 
