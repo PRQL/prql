@@ -60,6 +60,19 @@ sandbox_setup:
   # lint` never reaches clippy. Installing it once, serially, takes ~11s, and
   # it's a cost every session that touches Rust pays anyway.
   - cargo --version
+  #
+  # And a NuGet migration marker, or every `dotnet build`, `restore`, `test` and
+  # `new` aborts before it does any work. `NuGet.Common.Migrations.MigrationRunner`
+  # opens a named `Mutex` whose backing directory is a hard-coded `/tmp` path that
+  # no environment variable moves, and `/tmp` is read-only in the sandbox — so the
+  # SDK looks usable (`dotnet --info` and `--version` never reach the runner) right
+  # up to the first build, which dies with
+  # `mkdtemp("/tmp/.dotnet.XXXXXX") == nullptr; errno == EROFS`. The runner skips
+  # the mutex entirely once the marker for its migration count exists; `1` is
+  # current as of SDK 10.0.400, and a later SDK that bumps it needs the new number
+  # here.
+  - mkdir -p "${XDG_DATA_HOME:-$HOME/.local/share}/NuGet/Migrations"
+  - touch "${XDG_DATA_HOME:-$HOME/.local/share}/NuGet/Migrations/1"
 workflows:
   ci-fix:
     watched_workflows:

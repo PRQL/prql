@@ -266,6 +266,8 @@ jobs:
             uv tool install pre-commit
             pre-commit --version
             cargo --version
+            mkdir -p "${XDG_DATA_HOME:-$HOME/.local/share}/NuGet/Migrations"
+            touch "${XDG_DATA_HOME:-$HOME/.local/share}/NuGet/Migrations/1"
           prompt: |2
             /tend-ci-runner:notifications
 

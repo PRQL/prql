@@ -96,19 +96,8 @@ gh pr view <n> --json statusCheckRollup \
 
 ## Verifying a change to the .NET binding
 
-`prqlc/bindings/dotnet/` builds and tests from a session, but two sandbox
-constraints block it first and neither names its own cause.
-
-**`/tmp` is read-only, and the .NET SDK insists on it.** The SDK's first-run
-configurer creates a named `Mutex` whose backing directory it places under a
-hard-coded `/tmp`, so `dotnet build`, `restore`, `test` and `new` all abort with
-`mkdtemp("/tmp/.dotnet.XXXXXX") == nullptr; errno == EROFS`. No environment
-variable moves that path — `TMPDIR`, `DOTNET_CLI_HOME`, `NUGET_PACKAGES` and
-`DOTNET_SKIP_FIRST_TIME_EXPERIENCE` all leave it alone — and `dotnet --info` and
-`dotnet --version` succeed because neither reaches the configurer, so the SDK
-looks usable right up to the first build. Run `dotnet` through
-`scripts/with-writable-tmp.sh`, which gives the command a private tmpfs at
-`/tmp`.
+`prqlc/bindings/dotnet/` builds and tests from a session, but one sandbox
+constraint blocks it and doesn't name its own cause.
 
 **MSBuild's worker nodes can't start, and say nothing.** Creating an `AF_UNIX`
 socket is refused sandbox-wide with `EPERM` — `socketpair` still works, so
@@ -119,30 +108,32 @@ every `dotnet` command** — without it a real failure is indistinguishable from
 this one. A single-project build succeeds either way, which is why a quick probe
 misses it.
 
-Together they reproduce the whole `test-dotnet` job from the repo root:
+With that, the whole `test-dotnet` job runs from the repo root:
 
 ```sh
 cargo build -p prqlc-c
-W=.claude/skills/running-tend/scripts/with-writable-tmp.sh
-$W dotnet build prqlc/bindings/dotnet -m:1
+dotnet build prqlc/bindings/dotnet -m:1
 cp target/debug/libprqlc_c.* prqlc/bindings/dotnet/PrqlCompiler/bin/Debug/net*/
 cp target/debug/libprqlc_c.* prqlc/bindings/dotnet/PrqlCompiler.Tests/bin/Debug/net*/
-$W dotnet test prqlc/bindings/dotnet -m:1
+dotnet test prqlc/bindings/dotnet -m:1
 ```
 
 Restore prints `NU1903` for `Newtonsoft.Json` 9.0.1, pulled in transitively by
 `Microsoft.NET.Test.Sdk`. It predates any change under review — don't chase it.
 
-**A `dotnet` command that succeeds without the wrapper is not evidence the
-constraint is gone**, and the failure moves rather than disappearing. With
-`~/.dotnet/<version>.dotnetFirstUseSentinel` present — one wrapped run writes it
-into the real home, outside the tmpfs — an unwrapped build clears the configurer
-and then hits the same `mkdtemp` inside NuGet's `MigrationRunner`, surfacing as
-an `MSB4018` from `NuGet.targets` instead of the bare `IOException`. One session
-did report a fully green unwrapped `build` and `test` from a cleared `~/.dotnet`
-and `~/.nuget`, and that has not been reconciled with the `EROFS` that
-reproduces from a fresh sandbox. Keep the wrapper: it costs a bind path in
-absolute build output and nothing else.
+**If a `dotnet` command aborts with
+`mkdtemp("/tmp/.dotnet.XXXXXX") == nullptr; errno == EROFS`**, the NuGet
+migration marker is missing. `/tmp` is read-only here, and
+`NuGet.Common.Migrations.MigrationRunner` opens a named `Mutex` backed by a
+hard-coded `/tmp` path that no environment variable moves — but only when
+`${XDG_DATA_HOME:-~/.local/share}/NuGet/Migrations/<n>` is absent, where `<n>`
+is NuGet's migration count. `sandbox_setup` in `.config/tend.yaml` creates it
+for `n = 1`, current as of SDK 10.0.400; a later SDK bumps `n` and the failure
+returns, so re-create the file for the new number and update that config to
+match. Which code path reaches the mutex first varies — a bare `IOException`
+from the first-run configurer, or an `MSB4018` from `NuGet.targets` once
+`~/.dotnet/<version>.dotnetFirstUseSentinel` exists — so match on the `EROFS`,
+not on what wraps it.
 
 ## Weekly maintenance
 

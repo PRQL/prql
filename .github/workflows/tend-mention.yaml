@@ -366,6 +366,8 @@ jobs:
             uv tool install pre-commit
             pre-commit --version
             cargo --version
+            mkdir -p "${XDG_DATA_HOME:-$HOME/.local/share}/NuGet/Migrations"
+            touch "${XDG_DATA_HOME:-$HOME/.local/share}/NuGet/Migrations/1"
           prompt: >-
             ${{ steps.delay.outputs.seconds
             && format('This job started {0}s after the triggering event (over ~40s means it was queued). ',
