@@ -104,9 +104,10 @@ socket is refused sandbox-wide with `EPERM` — `socketpair` still works, so
 ordinary parent/child pipes are unaffected and only cross-process Unix-socket
 IPC is lost. A multi-node build dies in the node handshake and reports
 `Build FAILED.` with `0 Error(s)` and no diagnostic at all. **Pass `-m:1` to
-every `dotnet` command** — without it a real failure is indistinguishable from
-this one. A single-project build succeeds either way, which is why a quick probe
-misses it.
+every `dotnet` command that drives MSBuild** — `build`, `test`, `restore`;
+`dotnet new` rejects it as an unknown option and doesn't need it. Without it a
+real failure is indistinguishable from this one, and a single-project build
+succeeds either way, which is why a quick probe misses it.
 
 With that, the whole `test-dotnet` job runs from the repo root:
 
