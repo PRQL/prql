@@ -13,7 +13,7 @@ public static partial class PrqlCompiler
     /// Compile a PRQL string into a SQL string.
     /// </summary>
     /// <param name="prqlQuery">A PRQL query.</param>
-    /// <returns>SQL query.</returns>
+    /// <returns>Compilation result, whose <see cref="Result.Output"/> is the SQL query.</returns>
     /// <exception cref="ArgumentException"><paramref name="prqlQuery"/> is null or empty.</exception>
     /// <exception cref="FormatException"><paramref name="prqlQuery"/> cannot be compiled.</exception>
     public static Result Compile(string prqlQuery)
@@ -28,7 +28,7 @@ public static partial class PrqlCompiler
     /// </summary>
     /// <param name="prqlQuery">A PRQL query.</param>
     /// <param name="options">PRQL compiler options.</param>
-    /// <returns>SQL query.</returns>
+    /// <returns>Compilation result, whose <see cref="Result.Output"/> is the SQL query.</returns>
     /// <exception cref="ArgumentException"><paramref name="prqlQuery"/> is null or empty.</exception>
     /// <exception cref="ArgumentNullException"><paramref name="options"/> is <c>null</c>.</exception>
     /// <exception cref="FormatException"><paramref name="prqlQuery"/> cannot be compiled.</exception>
@@ -59,7 +59,7 @@ public static partial class PrqlCompiler
     /// Build PL AST from a PRQL string.
     /// </summary>
     /// <param name="prqlQuery">A PRQL query.</param>
-    /// <returns>JSON.</returns>
+    /// <returns>Compilation result, whose <see cref="Result.Output"/> is the PL AST as JSON.</returns>
     /// <exception cref="ArgumentException"><paramref name="prqlQuery"/> is null or empty.</exception>
     /// <exception cref="FormatException"><paramref name="prqlQuery"/> cannot be compiled.</exception>
     /// <remarks>https://docs.rs/prqlc/latest/</remarks>
@@ -74,8 +74,8 @@ public static partial class PrqlCompiler
     /// <summary>
     /// Finds variable references, validates functions calls, determines frames and converts PL to RQ.
     /// </summary>
-    /// <param name="plJson">A PRQL query.</param>
-    /// <returns>JSON.</returns>
+    /// <param name="plJson">PL AST in JSON format.</param>
+    /// <returns>Compilation result, whose <see cref="Result.Output"/> is the RQ AST as JSON.</returns>
     /// <exception cref="ArgumentException"><paramref name="plJson"/> is null or empty.</exception>
     /// <exception cref="FormatException"><paramref name="plJson"/> cannot be compiled.</exception>
     /// <remarks>https://docs.rs/prqlc/latest/</remarks>
@@ -92,7 +92,7 @@ public static partial class PrqlCompiler
     /// </summary>
     /// <param name="rqJson">RQ string in JSON format.</param>
     /// <param name="options">PRQL compiler options.</param>
-    /// <returns>SQL.</returns>
+    /// <returns>Compilation result, whose <see cref="Result.Output"/> is the SQL query.</returns>
     /// <exception cref="ArgumentException"><paramref name="rqJson"/> is null or empty.</exception>
     /// <exception cref="ArgumentNullException"><paramref name="options"/> is <c>null</c>.</exception>
     /// <exception cref="FormatException"><paramref name="rqJson"/> cannot be compiled.</exception>
