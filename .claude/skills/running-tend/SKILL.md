@@ -94,6 +94,48 @@ gh pr view <n> --json statusCheckRollup \
   --jq '[.statusCheckRollup[] | {name: (.name // .context), status: (.status // .state)}]'
 ```
 
+## Verifying a change to the .NET binding
+
+`prqlc/bindings/dotnet/` builds and tests from a session, but one sandbox
+constraint blocks it and doesn't name its own cause.
+
+**MSBuild's worker nodes can't start, and say nothing.** Creating an `AF_UNIX`
+socket is refused sandbox-wide with `EPERM` — `socketpair` still works, so
+ordinary parent/child pipes are unaffected and only cross-process Unix-socket
+IPC is lost. A multi-node build dies in the node handshake and reports
+`Build FAILED.` with `0 Error(s)` and no diagnostic at all. **Pass `-m:1` to
+every `dotnet` command that drives MSBuild** — `build`, `test`, `restore`;
+`dotnet new` rejects it as an unknown option and doesn't need it. Without it a
+real failure is indistinguishable from this one, and a single-project build
+succeeds either way, which is why a quick probe misses it.
+
+With that, the whole `test-dotnet` job runs from the repo root:
+
+```sh
+cargo build -p prqlc-c
+dotnet build prqlc/bindings/dotnet -m:1
+cp target/debug/libprqlc_c.* prqlc/bindings/dotnet/PrqlCompiler/bin/Debug/net*/
+cp target/debug/libprqlc_c.* prqlc/bindings/dotnet/PrqlCompiler.Tests/bin/Debug/net*/
+dotnet test prqlc/bindings/dotnet -m:1
+```
+
+Restore prints `NU1903` for `Newtonsoft.Json` 9.0.1, pulled in transitively by
+`Microsoft.NET.Test.Sdk`. It predates any change under review — don't chase it.
+
+**If a `dotnet` command aborts with
+`mkdtemp("/tmp/.dotnet.XXXXXX") == nullptr; errno == EROFS`**, the NuGet
+migration marker is missing. `/tmp` is read-only here, and
+`NuGet.Common.Migrations.MigrationRunner` opens a named `Mutex` backed by a
+hard-coded `/tmp` path that no environment variable moves — but only when
+`${XDG_DATA_HOME:-~/.local/share}/NuGet/Migrations/<n>` is absent, where `<n>`
+is NuGet's migration count. `sandbox_setup` in `.config/tend.yaml` creates it
+for `n = 1`, current as of SDK 10.0.400; a later SDK bumps `n` and the failure
+returns, so re-create the file for the new number and update that config to
+match. Which code path reaches the mutex first varies — a bare `IOException`
+from the first-run configurer, or an `MSB4018` from `NuGet.targets` once
+`~/.dotnet/<version>.dotnetFirstUseSentinel` exists — so match on the `EROFS`,
+not on what wraps it.
+
 ## Weekly maintenance
 
 These tasks run as Step 3 of the bundled weekly skill (only when
