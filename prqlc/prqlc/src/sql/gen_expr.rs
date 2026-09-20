@@ -771,12 +771,9 @@ pub(super) fn range_of_ranges(ranges: Vec<Range<rq::Expr>>) -> Result<Range<i64>
     let mut current = Range::default();
     for range in ranges {
         // Kept before the conversion below, which consumes the bounds, so an
-        // overflow can be reported against the `take` that caused it.
-        let span = range
-            .start
-            .as_ref()
-            .or(range.end.as_ref())
-            .and_then(|bound| bound.span);
+        // overflow can be reported against the bound that caused it.
+        let start_span = range.start.as_ref().and_then(|bound| bound.span);
+        let end_span = range.end.as_ref().and_then(|bound| bound.span);
         let range = try_range_into_int(range)?;
 
         // b = b + a.start -1 (take care of 1-based index!)
@@ -785,19 +782,28 @@ pub(super) fn range_of_ranges(ranges: Vec<Range<rq::Expr>>) -> Result<Range<i64>
         // its bounds by the outer range's start, and two bounds near
         // `i64::MAX` sum past it. Overflowing here panics in a debug build and,
         // because `[profile.release]` leaves `overflow-checks` off, silently
-        // wraps to a nonsense `LIMIT`/`OFFSET` in a release one — so it is
-        // reported as a compile error instead.
-        let mut range = Range {
-            start: match (range.start, current.start) {
-                (Some(a), Some(b)) => Some(shift_bound(a, b, span)?),
-                (a, None) => a,
-                (None, b) => b,
-            },
-            end: range
-                .end
-                .map(|b| shift_bound(current.start.unwrap_or(1), b, span))
-                .transpose()?,
+        // wraps to a nonsense `LIMIT`/`OFFSET` in a release one — so an
+        // overflow that the intersection below cannot discard is reported as a
+        // compile error instead.
+        let start = match (range.start, current.start) {
+            (Some(a), Some(b)) => Some(shift_bound(a, b, start_span)?),
+            (a, None) => a,
+            (None, b) => b,
         };
+        let end = match range.end {
+            Some(b) => match shift_bound(current.start.unwrap_or(1), b, end_span) {
+                Ok(end) => Some(end),
+                // The intersection below clamps the end to the enclosing one,
+                // which is necessarily the smaller of the two once the shifted
+                // bound has run past `i64::MAX`. So an overflow the
+                // intersection would discard is not an error; only an
+                // unbounded enclosing range leaves it with no representable
+                // answer.
+                Err(err) => Some(current.end.ok_or(err)?),
+            },
+            None => None,
+        };
+        let mut range = Range { start, end };
 
         // b.end = min(a.end, b.end)
         range.end = current.end.or_map(range.end, i64::min);
@@ -1378,6 +1384,38 @@ mod test {
          1 │ from a | take 2.. | take ..9223372036854775807
            │                            ─────────┬─────────
            │                                     ╰─────────── `take` bounds are too large to combine with the enclosing `take`
+        ───╯
+        ");
+    }
+
+    /// An end bound that overflows while being shifted is still bounded by the
+    /// enclosing range's end, which the intersection picks — so this is an
+    /// ordinary query, not an overflow.
+    #[test]
+    fn test_range_of_ranges_overflowing_end_is_clamped_by_the_enclosing_end() {
+        let query = "from a | take 2..10 | take ..9223372036854775807";
+        assert_snapshot!(crate::tests::compile(query).unwrap(), @"
+        SELECT
+          *
+        FROM
+          a
+        LIMIT
+          9 OFFSET 1
+        ");
+    }
+
+    /// The error points at the bound that overflowed, not at whichever bound
+    /// of the same `take` happens to come first.
+    #[test]
+    fn test_range_of_ranges_overflow_points_at_the_offending_bound() {
+        let query = "from a | take 2.. | take 3..9223372036854775807";
+        assert_snapshot!(crate::tests::compile(query).unwrap_err(), @"
+        Error:
+           ╭─[ :1:29 ]
+           │
+         1 │ from a | take 2.. | take 3..9223372036854775807
+           │                             ─────────┬─────────
+           │                                      ╰─────────── `take` bounds are too large to combine with the enclosing `take`
         ───╯
         ");
     }
