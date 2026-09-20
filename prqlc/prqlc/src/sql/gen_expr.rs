@@ -783,10 +783,19 @@ pub(super) fn range_of_ranges(ranges: Vec<Range<rq::Expr>>) -> Result<Range<i64>
         // `i64::MAX` sum past it. Overflowing here panics in a debug build and,
         // because `[profile.release]` leaves `overflow-checks` off, silently
         // wraps to a nonsense `LIMIT`/`OFFSET` in a release one — so an
-        // overflow that the intersection below cannot discard is reported as a
-        // compile error instead.
+        // overflow that the intersection and emptiness check below cannot
+        // discard is reported as a compile error instead.
         let start = match (range.start, current.start) {
-            (Some(a), Some(b)) => Some(shift_bound(a, b, start_span)?),
+            (Some(a), Some(b)) => match shift_bound(a, b, start_span) {
+                Ok(start) => Some(start),
+                // A start past `i64::MAX` is past every representable end, so
+                // a bounded enclosing range selects nothing — the same result
+                // the emptiness check below reaches for `take 2..3 | take 5..`.
+                // Only an unbounded enclosing end leaves no representable
+                // answer.
+                Err(err) if current.end.is_none() => return Err(err),
+                Err(_) => return Ok(empty_range()),
+            },
             (a, None) => a,
             (None, b) => b,
         };
@@ -812,13 +821,18 @@ pub(super) fn range_of_ranges(ranges: Vec<Range<rq::Expr>>) -> Result<Range<i64>
 
     if let Some((s, e)) = current.start.zip(current.end) {
         if e < s {
-            return Ok(Range {
-                start: None,
-                end: Some(0),
-            });
+            return Ok(empty_range());
         }
     }
     Ok(current)
+}
+
+/// The range that selects no rows.
+fn empty_range() -> Range<i64> {
+    Range {
+        start: None,
+        end: Some(0),
+    }
 }
 
 /// Shifts a 1-based range bound by the start of the range it is nested in,
@@ -1447,6 +1461,22 @@ mod test {
           a
         LIMIT
           9223372036854775807
+        ");
+    }
+
+    /// A start bound that overflows while being shifted has run past every
+    /// representable end, so a bounded enclosing range selects nothing — the
+    /// same result `take 2..3 | take 5..` reaches without overflowing.
+    #[test]
+    fn test_range_of_ranges_overflowing_start_is_empty_when_enclosing_end_is_bounded() {
+        let query = "from a | take 9223372036854775807..9223372036854775807 | take 2..";
+        assert_snapshot!(crate::tests::compile(query).unwrap(), @"
+        SELECT
+          *
+        FROM
+          a
+        LIMIT
+          0
         ");
     }
 
