@@ -800,7 +800,7 @@ pub(super) fn range_of_ranges(ranges: Vec<Range<rq::Expr>>) -> Result<Range<i64>
             (None, b) => b,
         };
         let end = match range.end {
-            Some(b) => match shift_bound(current.start.unwrap_or(1), b, end_span) {
+            Some(b) => match shift_bound(b, current.start.unwrap_or(1), end_span) {
                 Ok(end) => Some(end),
                 // The intersection below clamps the end to the enclosing one,
                 // which is necessarily the smaller of the two once the shifted
@@ -836,16 +836,17 @@ fn empty_range() -> Range<i64> {
 }
 
 /// Shifts a 1-based range bound by the start of the range it is nested in,
-/// i.e. `a + b - 1`.
+/// i.e. `bound + enclosing_start - 1`.
 ///
 /// Subtracting before adding keeps the intermediate in range: lowering has
-/// already rejected bounds below 1, so `a - 1` cannot underflow, and the sum
-/// then overflows only when `a + b - 1` genuinely exceeds `i64::MAX`. Adding
-/// first would reject `take ..9223372036854775807`, whose result is
+/// already rejected bounds below 1, so `bound - 1` cannot underflow, and the
+/// sum then overflows only when the result genuinely exceeds `i64::MAX`.
+/// Adding first would reject `take ..9223372036854775807`, whose result is
 /// representable.
-fn shift_bound(a: i64, b: i64, span: Option<Span>) -> Result<i64> {
-    a.checked_sub(1)
-        .and_then(|a| a.checked_add(b))
+fn shift_bound(bound: i64, enclosing_start: i64, span: Option<Span>) -> Result<i64> {
+    bound
+        .checked_sub(1)
+        .and_then(|shifted| shifted.checked_add(enclosing_start))
         .ok_or_else(|| {
             Error::new_simple("`take` bounds are too large to combine with the enclosing `take`")
                 .with_span(span)
