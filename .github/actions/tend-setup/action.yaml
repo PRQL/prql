@@ -10,9 +10,10 @@ inputs:
 runs:
   using: composite
   steps:
-    # `task` is the only thing a setup step can hand to the agent:
-    # `go-task/setup-task` installs into `/opt/hostedtoolcache`, a system
-    # location the sandbox can read. Nothing else here could — the agent works
+    # Only `task` and `uv` reach the agent from these steps:
+    # `go-task/setup-task` and `astral-sh/setup-uv` install into
+    # `/opt/hostedtoolcache`, a system location the sandbox can read and whose
+    # PATH entries tend carries over. Nothing else here could — the agent works
     # in a disposable clone with `denyRead` on both the runner's home and the
     # runner's checkout, and only `GITHUB_*` names cross into its environment.
     # So a cache restore, a `$GITHUB_ENV` write or a tool installed under the
@@ -24,3 +25,14 @@ runs:
       with:
         repo-token: ${{ inputs.github-token }}
         version: 3.53.1
+
+    # `.config/tend.yaml`'s `uv tool install pre-commit` needs a `uv`. Today
+    # that command runs in the sandbox, where this `uv` sits ahead of tend's
+    # pinned fallback on PATH. Once https://github.com/max-sixty/tend/pull/1346
+    # ships, it runs in an ordinary step after this composite, where tend
+    # supplies no `uv` and this is the only one. The cache stays off because
+    # the runner does no `uv` work worth caching.
+    - name: Setup uv
+      uses: astral-sh/setup-uv@v10.1.0
+      with:
+        enable-cache: false
