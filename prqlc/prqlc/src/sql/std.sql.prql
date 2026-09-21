@@ -405,6 +405,14 @@ module redshift {
     @{binding_strength=7}
     let contains = substr column -> s"{column:0} LIKE '%' || {substr:0} || '%'"
   }
+
+  # Date functions
+  module date {
+    # Redshift's TO_CHAR takes the same Postgres-style format strings that
+    # `RedshiftDialect::translate_chrono_item` emits.
+    # https://docs.aws.amazon.com/redshift/latest/dg/r_TO_CHAR.html
+    let to_text = format column -> s"TO_CHAR({column:0}, {format:0})"
+  }
 }
 
 module sqlite {

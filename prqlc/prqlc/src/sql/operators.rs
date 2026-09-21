@@ -45,8 +45,16 @@ pub(super) fn translate_operator(
     args: Vec<rq::Expr>,
     ctx: &mut Context,
 ) -> Result<SourceExpr> {
-    let (func_def, binding_strength, window_frame, coalesce) =
-        find_operator_impl(&name, ctx.dialect_enum).unwrap();
+    // An operator with neither a dialect override nor a base implementation used
+    // to panic here; report it the way a `null` body below already does.
+    let Some((func_def, binding_strength, window_frame, coalesce)) =
+        find_operator_impl(&name, ctx.dialect_enum)
+    else {
+        return Err(Error::new_simple(format!(
+            "operator {} is not supported for dialect {}",
+            name, ctx.dialect_enum
+        )));
+    };
     let parent_binding_strength = binding_strength.unwrap_or(100);
 
     let params = func_def
@@ -189,5 +197,29 @@ fn into_tuple_items(expr: pl::Expr) -> Result<Vec<(String, pl::ExprKind)>, pl::E
             .map(|item| Ok((item.alias.clone().unwrap(), item.kind)))
             .collect(),
         _ => Err(expr),
+    }
+}
+
+#[cfg(test)]
+mod test {
+    use insta::assert_snapshot;
+
+    /// `sql.redshift` maps date format specifiers like Postgres does, but had
+    /// no `to_text` implementation to emit, so the operator lookup found
+    /// nothing and panicked.
+    #[test]
+    fn redshift_date_to_text() {
+        assert_snapshot!(crate::tests::compile(
+            r#"
+            prql target:sql.redshift
+            from invoices
+            select (invoice_date | date.to_text "%d/%m/%Y")
+            "#
+        ).unwrap(), @r"
+        SELECT
+          TO_CHAR(invoice_date, 'DD/MM/YYYY')
+        FROM
+          invoices
+        ");
     }
 }
