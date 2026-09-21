@@ -30,10 +30,9 @@
   queries hit this: `date.to_text` on `sql.redshift`, which had no
   implementation for that dialect; a query declaring its own
   `internal std.<name>` for a name that doesn't exist; and one declaring an
-  `internal std.<name>` with fewer parameters than the operator reads.
-  Redshift also gains a `to_text` implementation, so the first now compiles to
-  `TO_CHAR`, supporting the same format specifiers as Postgres. (@prql-bot,
-  #6352)
+  `internal std.<name>` with fewer parameters than the operator reads. Redshift
+  also gains a `to_text` implementation, so the first now compiles to `TO_CHAR`,
+  supporting the same format specifiers as Postgres. (@prql-bot, #6352)
 
 - `prqlc experimental doc --format=html` now escapes HTML in the page it
   generates. A doc comment containing `<`, `>` or `&` — as ordinary prose such
