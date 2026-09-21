@@ -1037,6 +1037,11 @@ mod tests {
         assert_snapshot!(
             PostgresDialect.translate_chrono_item(Item::Error).unwrap_err().reason,
             @"date format string contains an unrecognized specifier");
+        // End to end, so that the `Item::Error` premise stays pinned to what
+        // chrono actually yields for an escape it doesn't recognize.
+        assert_snapshot!(
+            PostgresDialect.translate_prql_date_format("%Q").unwrap_err().reason,
+            @"date format string contains an unrecognized specifier");
     }
 
     /// A specifier chrono understands but we have no spelling for keeps the
