@@ -56,7 +56,11 @@ pub(super) fn translate_operator(
         .named_params
         .iter()
         .chain(func_def.params.iter())
-        .map(|x| x.name.split('.').next_back().unwrap_or(x.name.as_str()));
+        .map(|x| x.name.split('.').next_back().unwrap_or(x.name.as_str()))
+        .collect_vec();
+
+    let param_count = params.len();
+    let arg_count = args.len();
 
     let args: HashMap<&str, _> = zip(params, args).collect();
 
@@ -79,7 +83,15 @@ pub(super) fn translate_operator(
                 let ident = ident.as_ref().unwrap();
 
                 // lookup args
-                let arg = args.get(ident.name.as_str()).unwrap().clone();
+                //
+                // A query may declare its own `internal std.<name>` taking
+                // fewer arguments than the implementation's body reads, so
+                // this can come up empty.
+                let Some(arg) = args.get(ident.name.as_str()).cloned() else {
+                    return Err(Error::new_simple(format!(
+                        "operator {name} expects {param_count} arguments, found {arg_count}"
+                    )));
+                };
 
                 // binding strength
                 let required_strength = format
@@ -241,6 +253,29 @@ mod test {
          4 │             select (my_op total)
            │                     ─────┬─────
            │                          ╰─────── operator std.no_such_operator is not supported for dialect generic
+        ───╯
+        ");
+    }
+
+    /// A declaration's own parameter list doesn't have to match the arity of
+    /// the operator it names, so the implementation's body can reference an
+    /// argument that was never passed — which used to panic rather than
+    /// report.
+    #[test]
+    fn internal_operator_arity_mismatch_is_reported() {
+        assert_snapshot!(crate::tests::compile(
+            r#"
+            let my_op = column -> internal std.lag
+            from invoices
+            select (my_op total)
+            "#
+        ).unwrap_err(), @"
+        Error:
+           ╭─[ :4:21 ]
+           │
+         4 │             select (my_op total)
+           │                     ─────┬─────
+           │                          ╰─────── operator std.lag expects 2 arguments, found 1
         ───╯
         ");
     }

@@ -25,11 +25,13 @@
 
 **Fixes**:
 
-- An operator with no implementation for the target dialect is now reported as
-  an error rather than aborting the compiler with
-  `called Option::unwrap() on a None value`. Both `date.to_text` on
-  `sql.redshift` and a query declaring its own `internal std.<name>` hit this.
-  Redshift also gains a `to_text` implementation, so the former compiles to
+- An operator that can't be translated is now reported as an error rather than
+  aborting the compiler with `called Option::unwrap() on a None value`. Three
+  queries hit this: `date.to_text` on `sql.redshift`, which had no
+  implementation for that dialect; a query declaring its own
+  `internal std.<name>` for a name that doesn't exist; and one declaring an
+  `internal std.<name>` with fewer parameters than the operator reads.
+  Redshift also gains a `to_text` implementation, so the first now compiles to
   `TO_CHAR`, supporting the same format specifiers as Postgres. (@prql-bot,
   #6352)
 
