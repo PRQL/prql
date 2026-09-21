@@ -233,7 +233,7 @@ fn translate_select_pipeline(
             order_by.push(sql_ast::OrderByExpr {
                 expr: order_expr,
                 options: sqlparser::ast::OrderByOptions {
-                    asc: None,
+                    sort: None,
                     nulls_first: None,
                 },
                 with_fill: None,
