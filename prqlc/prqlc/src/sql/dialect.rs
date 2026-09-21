@@ -63,6 +63,11 @@ fn chrono_item_to_strftime(item: &Item) -> Option<String> {
 /// Naming the specifier matters because the error's span covers the whole
 /// format string, so `"%d %P"` otherwise gives no clue which of the two the
 /// dialect rejected.
+///
+/// The name is chrono's canonical spelling of the parsed item, not the text
+/// that was typed — chrono discards the source offsets, so `%e` (its own
+/// documented alias for `%_d`) is reported as `%_d`. Both name the same
+/// specifier, and the alternative is the generic message that names none.
 fn unsupported_format_specifier(item: &Item, dialect: &str) -> Error {
     // chrono parses a `%` escape it doesn't recognize into `Item::Error`, so
     // the format string is malformed rather than beyond this dialect's reach.
@@ -1044,6 +1049,19 @@ mod tests {
                 .unwrap_err()
                 .reason,
             @"PRQL doesn't support this format specifier");
+    }
+
+    /// chrono parses its aliases down to the same `Item` and keeps no source
+    /// offsets, so an alias is named by its canonical spelling: `%e` is
+    /// reported as `%_d`, the form chrono documents it as equal to.
+    #[test]
+    fn alias_specifier_is_named_by_its_canonical_spelling() {
+        assert_snapshot!(
+            PostgresDialect
+                .translate_prql_date_format("%e")
+                .unwrap_err()
+                .reason,
+            @"format specifier `%_d` is not supported for Postgres");
     }
 }
 
