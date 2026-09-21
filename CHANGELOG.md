@@ -25,6 +25,13 @@
 
 **Fixes**:
 
+- `date.to_text` errors now name the format specifier the target dialect
+  rejected — `format specifier %P is not supported for Postgres` rather than
+  `PRQL doesn't support this format specifier`, whose span covers the whole
+  format string. An escape chrono doesn't recognize at all, such as `%Q`, now
+  reports an unrecognized specifier instead of BigQuery's
+  `format specifier Error is not supported for BigQuery`. (@prql-bot, #6351)
+
 - `prqlc experimental doc --format=html` now escapes HTML in the page it
   generates. A doc comment containing `<`, `>` or `&` — as ordinary prose such
   as `a < b` does — was interpolated verbatim, so a browser parsed it as markup
