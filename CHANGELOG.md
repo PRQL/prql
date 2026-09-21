@@ -25,10 +25,12 @@
 
 **Fixes**:
 
-- `date.to_text` now compiles on the `sql.redshift` target rather than panicking
-  with `called Option::unwrap() on a None value`. Redshift maps every format
-  specifier but had no `to_text` implementation to emit; it now compiles to
-  `TO_CHAR`, as on Postgres. (@prql-bot, #6352)
+- An operator with no implementation for the target dialect is now reported as
+  an error rather than aborting the compiler with
+  `called Option::unwrap() on a None value`. `date.to_text` hit this on
+  `sql.redshift`, which maps every format specifier but had no `to_text` to emit
+  — it now compiles to `TO_CHAR`, as on Postgres — and so did a query declaring
+  its own `internal std.<name>`. (@prql-bot, #6352)
 
 - `prqlc experimental doc --format=html` now escapes HTML in the page it
   generates. A doc comment containing `<`, `>` or `&` — as ordinary prose such

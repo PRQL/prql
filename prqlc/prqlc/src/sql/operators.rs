@@ -222,4 +222,26 @@ mod test {
           invoices
         ");
     }
+
+    /// A query can declare its own `internal std.<name>`, so the operator
+    /// lookup can come up empty on any target — which used to panic rather
+    /// than report.
+    #[test]
+    fn unknown_internal_operator_is_reported() {
+        assert_snapshot!(crate::tests::compile(
+            r#"
+            let my_op = column -> internal std.no_such_operator
+            from invoices
+            select (my_op total)
+            "#
+        ).unwrap_err(), @"
+        Error:
+           ╭─[ :4:21 ]
+           │
+         4 │             select (my_op total)
+           │                     ─────┬─────
+           │                          ╰─────── operator std.no_such_operator is not supported for dialect generic
+        ───╯
+        ");
+    }
 }
