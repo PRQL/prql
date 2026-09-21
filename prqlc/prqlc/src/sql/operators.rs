@@ -45,15 +45,10 @@ pub(super) fn translate_operator(
     args: Vec<rq::Expr>,
     ctx: &mut Context,
 ) -> Result<SourceExpr> {
-    // An operator with neither a dialect override nor a base implementation used
-    // to panic here; report it the way a `null` body below already does.
     let Some((func_def, binding_strength, window_frame, coalesce)) =
         find_operator_impl(&name, ctx.dialect_enum)
     else {
-        return Err(Error::new_simple(format!(
-            "operator {} is not supported for dialect {}",
-            name, ctx.dialect_enum
-        )));
+        return Err(unsupported_operator(&name, ctx.dialect_enum));
     };
     let parent_binding_strength = binding_strength.unwrap_or(100);
 
@@ -68,10 +63,7 @@ pub(super) fn translate_operator(
     // body can only be an s-string
     let body = match &func_def.body.kind {
         pl::ExprKind::Literal(pl::Literal::Null) => {
-            return Err(Error::new_simple(format!(
-                "operator {} is not supported for dialect {}",
-                name, ctx.dialect_enum
-            )))
+            return Err(unsupported_operator(&name, ctx.dialect_enum))
         }
         pl::ExprKind::SString(items) => items,
         _ => panic!("Bad RQ operator implementation. Expected s-string or null"),
@@ -126,6 +118,14 @@ pub(super) fn translate_operator(
         binding_strength,
         window_frame,
     })
+}
+
+/// Raised both when the operator table has no entry for the dialect and when the
+/// entry is a `null` body marking it explicitly unsupported.
+fn unsupported_operator(name: &str, dialect: Dialect) -> Error {
+    Error::new_simple(format!(
+        "operator {name} is not supported for dialect {dialect}"
+    ))
 }
 
 fn find_operator_impl(
