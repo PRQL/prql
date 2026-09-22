@@ -11,17 +11,18 @@ runs:
   using: composite
   steps:
     # What these steps build reaches the agent. From tend 0.2.14 it works in
-    # the job's own checkout and home through a copy-on-write view, and tend
-    # hands it the job's PATH — so a tool installed here, whether into
+    # the job's own checkout and home through a copy-on-write view, with the
+    # job's own environment and PATH — so a tool installed here, whether into
     # `/opt/hostedtoolcache` or under the runner's home, is on the agent's
-    # PATH, and so is a `$GITHUB_PATH` entry any of these actions adds. Tools
-    # therefore belong in `setup:` in `.config/tend.yaml`, as `uses:` or
-    # ordinary `run:` steps.
+    # PATH, and a `$GITHUB_PATH` or `$GITHUB_ENV` entry any of these actions
+    # writes reaches it too. Tools therefore belong in `setup:` in
+    # `.config/tend.yaml`, as `uses:` or ordinary `run:` steps, and env vars
+    # in those steps' `env:`, exported to `$GITHUB_ENV`.
     #
     # Through 0.2.13 none of that held: the agent worked in a disposable clone
     # with `denyRead` on both the runner's home and the runner's checkout, so
-    # only `/opt/hostedtoolcache` crossed over and tools had to go in
-    # `sandbox_setup:`. That gap was
+    # only `/opt/hostedtoolcache` crossed over, and tools and env vars had to
+    # go in `sandbox_setup:` and `sandbox_env:`. That gap was
     # https://github.com/max-sixty/tend/issues/1198, closed by the move.
     # `.config/tend.yaml` still uses the deprecated `sandbox_setup:` key, which
     # 0.2.15 accepts with a warning and emits as a `run:` step after this
@@ -36,12 +37,14 @@ runs:
     # command runs in an ordinary step after this composite, where tend
     # supplies no `uv` of its own, so this is the only one on PATH.
     #
-    # This step also puts `~/.local/bin` first on the job PATH — `setup-uv`
-    # prepends its tool-bin directory unless `UV_NO_MODIFY_PATH` is set, which
-    # is why it is deliberately unset here and set in the generated verify
-    # jobs. That is the directory `sandbox_setup:` installs all three of
-    # `cargo-nextest`, `cargo-insta` and `pre-commit` into, so setting it here
-    # would break that step on its first `--version` check.
+    # Hence no `UV_NO_MODIFY_PATH` here, unlike the generated gate jobs in
+    # `tend-mention` and `tend-notifications`, which set it and then call the
+    # action's `uv-path` output by absolute path. That variable suppresses
+    # every PATH entry `setup-uv` makes, including the one for `uv` itself, so
+    # setting it here would leave that later step with no `uv` to run. What it
+    # would *not* cost is `~/.local/bin` — where `sandbox_setup:` puts
+    # `cargo-nextest`, `cargo-insta` and `pre-commit` — because the
+    # ubuntu-24.04 image already has `$HOME/.local/bin` on the job PATH.
     #
     # The cache stays off because the runner does no `uv` work worth caching.
     - name: Setup uv
