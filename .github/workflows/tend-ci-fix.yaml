@@ -52,8 +52,6 @@ jobs:
           uv tool install pre-commit
           pre-commit --version
           cargo --version
-          mkdir -p "${XDG_DATA_HOME:-$HOME/.local/share}/NuGet/Migrations"
-          touch "${XDG_DATA_HOME:-$HOME/.local/share}/NuGet/Migrations/1"
         shell: bash
 
       - uses: max-sixty/tend/claude@0.2.15
