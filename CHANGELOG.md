@@ -153,6 +153,19 @@
 
 **Documentation**:
 
+- The .NET binding's README now documents the actual API. It advertised `ToJson`
+  and `ToSql` static methods, which `PrqlCompiler` has never had — the binding
+  exposes `Compile`, `PrqlToPl`, `PlToRq` and `RqToSql`, each returning a
+  `Result` — and its usage example printed the `Result` object rather than its
+  `Output`. The XML doc comments had the same mismatch, and documented a
+  `FormatException` on every method that nothing throws — a query that cannot be
+  compiled is reported in the returned `Result`'s `Messages`. (@prql-bot, #6344)
+
+- The `loop` reference page now shows the transform's real signature. It read
+  `loop {step_function} {initial_relation}`, but `{...}` is tuple syntax and
+  `std.loop` takes a pipeline plus the relation piped into it, so a query
+  written as documented failed to compile. (@prql-bot, #6342)
+
 - The `prql-java` README now documents the actual API. It advertised a
   single-argument `toSql(String query)` in package `org.prqllang.prql4j`; the
   binding really exposes `toSql(query, target, format, signature)`, `toJson` and
