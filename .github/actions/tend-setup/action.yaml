@@ -10,28 +10,40 @@ inputs:
 runs:
   using: composite
   steps:
-    # Only `task` and `uv` reach the agent from these steps:
-    # `go-task/setup-task` and `astral-sh/setup-uv` install into
-    # `/opt/hostedtoolcache`, a system location the sandbox can read and whose
-    # PATH entries tend carries over. Nothing else here could — the agent works
-    # in a disposable clone with `denyRead` on both the runner's home and the
-    # runner's checkout, and only `GITHUB_*` names cross into its environment.
-    # So a cache restore, a `$GITHUB_ENV` write or a tool installed under the
-    # runner's home warms nothing; tools belong in `sandbox_setup:` and env
-    # vars in `sandbox_env:` in `.config/tend.yaml`. Tracked upstream as
-    # https://github.com/max-sixty/tend/issues/1198.
+    # What these steps build reaches the agent. From tend 0.2.14 it works in
+    # the job's own checkout and home through a copy-on-write view, and tend
+    # hands it the job's PATH — so a tool installed here, whether into
+    # `/opt/hostedtoolcache` or under the runner's home, is on the agent's
+    # PATH, and so is a `$GITHUB_PATH` entry any of these actions adds. Tools
+    # therefore belong in `setup:` in `.config/tend.yaml`, as `uses:` or
+    # ordinary `run:` steps.
+    #
+    # Through 0.2.13 none of that held: the agent worked in a disposable clone
+    # with `denyRead` on both the runner's home and the runner's checkout, so
+    # only `/opt/hostedtoolcache` crossed over and tools had to go in
+    # `sandbox_setup:`. That gap was
+    # https://github.com/max-sixty/tend/issues/1198, closed by the move.
+    # `.config/tend.yaml` still uses the deprecated `sandbox_setup:` key, which
+    # 0.2.15 accepts with a warning and emits as a `run:` step after this
+    # composite; migrating those commands into `setup:` is a follow-up.
     - name: Setup Task
       uses: go-task/setup-task@v2
       with:
         repo-token: ${{ inputs.github-token }}
         version: 3.53.1
 
-    # `.config/tend.yaml`'s `uv tool install pre-commit` needs a `uv`. Today
-    # that command runs in the sandbox, where this `uv` sits ahead of tend's
-    # pinned fallback on PATH. Once https://github.com/max-sixty/tend/pull/1346
-    # ships, it runs in an ordinary step after this composite, where tend
-    # supplies no `uv` and this is the only one. The cache stays off because
-    # the runner does no `uv` work worth caching.
+    # `.config/tend.yaml`'s `uv tool install pre-commit` needs a `uv`. That
+    # command runs in an ordinary step after this composite, where tend
+    # supplies no `uv` of its own, so this is the only one on PATH.
+    #
+    # This step also puts `~/.local/bin` first on the job PATH — `setup-uv`
+    # prepends its tool-bin directory unless `UV_NO_MODIFY_PATH` is set, which
+    # is why it is deliberately unset here and set in the generated verify
+    # jobs. That is the directory `sandbox_setup:` installs all three of
+    # `cargo-nextest`, `cargo-insta` and `pre-commit` into, so setting it here
+    # would break that step on its first `--version` check.
+    #
+    # The cache stays off because the runner does no `uv` work worth caching.
     - name: Setup uv
       uses: astral-sh/setup-uv@v10.1.0
       with:
