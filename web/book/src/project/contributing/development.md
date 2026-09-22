@@ -44,7 +44,7 @@ That's sufficient for making an initial contribution to the compiler.
 > & instructions.
 
 For more advanced development; for example compiling for wasm or previewing the
-website, we have two options:
+website, we have a few options:
 
 ### Option 1: Use the project's `task`
 
@@ -174,7 +174,9 @@ change!
 
 - If a change is user-facing, please add a line in
   [**`CHANGELOG.md`**](https://github.com/PRQL/prql/blob/main/CHANGELOG.md),
-  with `{message}, ({@contributor, #X})` where `X` is the PR number.
+  with `{message}, (@contributor, #X)` where `X` is the PR number. The PR number
+  only exists once the PR is open, so the entry usually lands in a follow-up
+  commit on the same branch.
   - If there's a missing entry, a follow-up PR containing just the changelog
     entry is welcome.
 - We're using [Conventional Commits](https://www.conventionalcommits.org)
