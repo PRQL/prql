@@ -2,7 +2,7 @@ use Test;
 use lib $?FILE.IO.parent.add('lib').Str;
 use PRQLTest;
 
-plan 14;
+plan 15;
 
 # Integer
 parses-to 'filter 123', 'statement(pipeline-statement(pipeline(call-expression(identifier«filter»,test(test-inner(expression(number(integer«123»))))))))';
