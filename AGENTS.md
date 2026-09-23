@@ -1,4 +1,4 @@
-# Claude
+# PRQL Development Guidelines
 
 ## Development Workflow
 
@@ -36,6 +36,8 @@ The test suite is configured to minimize token usage:
 - **Result**: ~52% reduction in output (1128 → 540 lines, ~4.5k tokens)
 
 ## Tests
+
+Read `prqlc/prqlc/tests/AGENTS.md` before changing compiler tests.
 
 Prefer inline snapshots for almost all tests:
 
@@ -139,22 +141,14 @@ workflow regens don't need one. See
 
 ## Documentation
 
-For Claude to view crate documentation:
+Build crate documentation with:
 
 ```sh
-# Build documentation for a specific crate
 cargo doc -p prqlc
-
-# Read the generated HTML documentation with the Read tool
-# The docs are generated at target/doc/{crate_name}/index.html
-Read target/doc/prqlc/index.html
-
-# For specific module documentation
-Read target/doc/prqlc/module_name/index.html
-
-# For function documentation
-Read target/doc/prqlc/fn.compile.html
 ```
+
+The generated HTML is at `target/doc/{crate_name}/index.html`. Follow its links
+to modules and functions.
 
 ## Releases & Environment
 

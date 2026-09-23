@@ -23,7 +23,7 @@ setup:
 # `~/.cargo/bin`. Hence `CARGO_HOME` on the cargo-dist installer, which places
 # the binary at `$CARGO_HOME/bin`.
 #
-# Without this, `task prqlc:test` — the inner loop `CLAUDE.md` documents —
+# Without this, `task prqlc:test` — the inner loop `AGENTS.md` documents —
 # aborts in every tend session. `task prqlc:pull-request` needs more: it also
 # reaches `cargo llvm-cov`, which is still not on the sandbox PATH, so that
 # task stops there even with the entries below.
@@ -37,7 +37,7 @@ sandbox_setup:
   - cargo-insta --version
   #
   # `pre-commit` is the same shape of gap, for lint rather than tests. `task
-  # lint` — the lint command `CLAUDE.md` documents — is `pre-commit run
+  # lint` — the lint command `AGENTS.md` documents — is `pre-commit run
   # --all-files` followed by clippy, and `pre-commit` is absent from the
   # runner's PATH and the sandbox's alike, so the gate aborts on its first
   # command in every session; the 2026-09-18 nightly is the latest to report it
