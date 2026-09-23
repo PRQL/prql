@@ -25,7 +25,7 @@ runs:
     # go in `sandbox_setup:` and `sandbox_env:`. That gap was
     # https://github.com/max-sixty/tend/issues/1198, closed by the move.
     # `.config/tend.yaml` still uses the deprecated `sandbox_setup:` key, which
-    # 0.2.15 accepts with a warning and emits as a `run:` step after this
+    # 0.3.1 accepts with a warning and emits as a `run:` step after this
     # composite; migrating those commands into `setup:` is a follow-up.
     - name: Setup Task
       uses: go-task/setup-task@v2
