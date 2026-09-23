@@ -2,7 +2,7 @@ use Test;
 use lib $?FILE.IO.parent.add('lib').Str;
 use PRQLTest;
 
-plan 9;
+plan 14;
 
 # Integer
 parses-to 'filter 123', 'statement(pipeline-statement(pipeline(call-expression(identifier«filter»,test(test-inner(expression(number(integer«123»))))))))';
@@ -16,8 +16,27 @@ parses-to 'filter 123_456_789', 'statement(pipeline-statement(pipeline(call-expr
 # Decimal
 parses-to 'filter 123.45', 'statement(pipeline-statement(pipeline(call-expression(identifier«filter»,test(test-inner(expression(number(float«123.45»))))))))';
 
-# Scientific notation
-parses-to 'filter 123e10', 'statement(pipeline-statement(pipeline(call-expression(identifier«filter»,test(test-inner(expression(number(integer(integer«10»)))))))))';
+# Scientific notation. The exponent is part of the number's own text rather
+# than a nested capture, so these assert a single leaf.
+parses-to 'filter 123e10', 'statement(pipeline-statement(pipeline(call-expression(identifier«filter»,test(test-inner(expression(number(integer«123e10»))))))))';
+
+# Scientific notation, uppercase exponent
+parses-to 'filter 1E10', 'statement(pipeline-statement(pipeline(call-expression(identifier«filter»,test(test-inner(expression(number(integer«1E10»))))))))';
+
+# Scientific notation, explicitly positive exponent
+parses-to 'filter 123e+10', 'statement(pipeline-statement(pipeline(call-expression(identifier«filter»,test(test-inner(expression(number(integer«123e+10»))))))))';
+
+# Scientific notation, negative exponent
+parses-to 'filter 123e-10', 'statement(pipeline-statement(pipeline(call-expression(identifier«filter»,test(test-inner(expression(number(integer«123e-10»))))))))';
+
+# Decimal with a negative exponent
+parses-to 'filter 1.5e-3', 'statement(pipeline-statement(pipeline(call-expression(identifier«filter»,test(test-inner(expression(number(float«1.5e-3»))))))))';
+
+# Decimal with an explicitly positive exponent
+parses-to 'filter 1.5e+3', 'statement(pipeline-statement(pipeline(call-expression(identifier«filter»,test(test-inner(expression(number(float«1.5e+3»))))))))';
+
+# Decimal with an uppercase exponent
+parses-to 'filter 1.5E10', 'statement(pipeline-statement(pipeline(call-expression(identifier«filter»,test(test-inner(expression(number(float«1.5E10»))))))))';
 
 # Number with time unit
 parses-to 'filter 5years', 'statement(pipeline-statement(pipeline(call-expression(identifier«filter»,test(test-inner(expression(time-unit(number«5»,dimension«years»))))))))';
