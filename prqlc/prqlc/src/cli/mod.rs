@@ -594,7 +594,8 @@ pub fn write_log(path: &std::path::Path) -> Result<()> {
         }
         Some("html") => {
             let mut file = BufWriter::new(File::create(path)?);
-            debug::render_log_to_html(&mut file, &debug_log)?;
+            debug::render_log_to_html(&mut file, &debug_log)
+                .map_err(|_| anyhow!("failed to write the debug log to {path:?}"))?;
             file.flush()?;
         }
         _ => {
