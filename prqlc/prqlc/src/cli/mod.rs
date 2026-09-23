@@ -594,9 +594,12 @@ pub fn write_log(path: &std::path::Path) -> Result<()> {
         }
         Some("html") => {
             let mut file = BufWriter::new(File::create(path)?);
+            // The cause is interpolated rather than attached with
+            // `.context()`: `main` prints the error with `{error}`, anyhow's
+            // `Display`, which shows the outermost message alone.
             debug::render_log_to_html(&mut file, &debug_log)
-                .map_err(|_| anyhow!("failed to write the debug log to {path:?}"))?;
-            file.flush()?;
+                .and_then(|()| file.flush())
+                .map_err(|err| anyhow!("failed to write the debug log to {path:?}: {err}"))?;
         }
         _ => {
             return Err(anyhow!("unknown debug log format for file {path:?}"));

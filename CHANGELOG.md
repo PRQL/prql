@@ -36,8 +36,9 @@
   consume only part of the slice it is handed, and both formats left the
   `BufWriter`'s final flush to `drop`, which discards its error — so a partial
   write or a failure while flushing produced a short file and a successful exit.
-  A failure in the HTML branch now names the file it was writing, rather than
-  reporting `an error occurred when formatting an argument`. (@prql-bot, #6365)
+  A failure in the HTML branch now names the file it was writing and the I/O
+  error behind it, rather than reporting
+  `an error occurred when formatting an argument`. (@prql-bot, #6365)
 
 - `prqlc compile --debug-log=<file>.html` now escapes HTML in the page it
   generates. Query source, generated SQL, log text, declaration names and the
