@@ -583,14 +583,19 @@ pub fn write_log(path: &std::path::Path) -> Result<()> {
             "debug log was started, but it cannot be found after compilation"
         ));
     };
+    // `BufWriter` flushes on drop but discards any error it meets there, so
+    // each branch flushes explicitly: without it a full disk truncates the log
+    // and the command still reports success.
     match path.extension().and_then(|s| s.to_str()) {
         Some("json") => {
-            let file = BufWriter::new(File::create(path)?);
-            serde_json::to_writer(file, &debug_log)?;
+            let mut file = BufWriter::new(File::create(path)?);
+            serde_json::to_writer(&mut file, &debug_log)?;
+            file.flush()?;
         }
         Some("html") => {
-            let file = BufWriter::new(File::create(path)?);
-            debug::render_log_to_html(file, &debug_log)?;
+            let mut file = BufWriter::new(File::create(path)?);
+            debug::render_log_to_html(&mut file, &debug_log)?;
+            file.flush()?;
         }
         _ => {
             return Err(anyhow!("unknown debug log format for file {path:?}"));

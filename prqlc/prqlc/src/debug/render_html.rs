@@ -13,21 +13,27 @@ use prqlc_parser::lexer::lr;
 use prqlc_parser::parser::pr;
 
 pub fn render_log_to_html<W: std::io::Write>(writer: W, debug_log: &DebugLog) -> core::fmt::Result {
-    struct IoWriter<W: std::io::Write> {
-        inner: W,
-    }
-
-    impl<W: std::io::Write> core::fmt::Write for IoWriter<W> {
-        fn write_str(&mut self, s: &str) -> std::fmt::Result {
-            self.inner
-                .write(s.as_bytes())
-                .map_err(|_| std::fmt::Error)?;
-            Ok(())
-        }
-    }
     let mut io_writer = IoWriter { inner: writer };
 
     write_debug_log(&mut io_writer, debug_log)
+}
+
+/// Adapts a [std::io::Write] to the [core::fmt::Write] that the `write!`
+/// machinery below needs.
+struct IoWriter<W: std::io::Write> {
+    inner: W,
+}
+
+impl<W: std::io::Write> core::fmt::Write for IoWriter<W> {
+    fn write_str(&mut self, s: &str) -> std::fmt::Result {
+        // `write_all` rather than `write`: a single `write` is free to consume
+        // only part of the slice, which would drop the rest of the fragment
+        // silently. Fragments here are unbounded — a whole escaped source file
+        // or the whole generated SQL arrives as one `write_str`.
+        self.inner
+            .write_all(s.as_bytes())
+            .map_err(|_| std::fmt::Error)
+    }
 }
 
 fn write_debug_log<W: Write>(w: &mut W, debug_log: &DebugLog) -> Result {
@@ -940,5 +946,35 @@ mod tests {
         .unwrap();
 
         assert_snapshot!(w, @r#"<details class="ast-node"  open tabindex=2><summary class=header><h2 class="clickable blue">q&lt;u&quot;o</h2></summary><content class="contents indent"><div>Import `a&lt;b`</div></content></details>"#);
+    }
+
+    /// `std::io::Write::write` may consume only part of the slice it is given.
+    /// `BufWriter` passes a slice at least as large as its buffer straight
+    /// through to the inner writer, and fragments here reach that size — a
+    /// whole escaped source file or the whole generated SQL arrives as one
+    /// `write_str` — so a partial write would drop the rest of the page.
+    #[test]
+    fn a_short_write_does_not_truncate() {
+        struct ShortWriter(Vec<u8>);
+
+        impl std::io::Write for ShortWriter {
+            fn write(&mut self, buf: &[u8]) -> std::io::Result<usize> {
+                let taken = buf.len().min(4);
+                self.0.extend_from_slice(&buf[..taken]);
+                Ok(taken)
+            }
+
+            fn flush(&mut self) -> std::io::Result<()> {
+                Ok(())
+            }
+        }
+
+        let mut writer = IoWriter {
+            inner: ShortWriter(Vec::new()),
+        };
+
+        writer.write_str("0123456789").unwrap();
+
+        assert_eq!(String::from_utf8(writer.inner.0).unwrap(), "0123456789");
     }
 }
