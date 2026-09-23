@@ -63,6 +63,8 @@ sandbox_setup:
   # it's a cost every session that touches Rust pays anyway.
   - cargo --version
 workflows:
+  codex-auth-refresh:
+    enabled: false
   ci-fix:
     watched_workflows:
       - tests
