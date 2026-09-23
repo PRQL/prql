@@ -137,6 +137,12 @@ workflow regens don't need one. See
 `web/book/src/project/contributing/development.md` under **Contribution workflow
 › Commits**.
 
+Documentation counts as user-facing when the reader is a PRQL user: the book's
+language and standard-library reference pages, and the bindings' READMEs and API
+docs. Those get an entry under the `**Documentation**:` heading. Documentation
+written for contributors — this file, `web/book/src/project/contributing/`, the
+website roadmap, a binding's `DEVELOPMENT.md` — doesn't need one.
+
 ## Documentation
 
 For Claude to view crate documentation:
