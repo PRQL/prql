@@ -214,6 +214,12 @@
   unsatisfiable. Users still on 3.9 continue to resolve the last release that
   declared support for it. (@prql-bot, #6225)
 
+- The Raku grammar in `grammars/raku/` now parses the exponent forms the
+  compiler accepts: an uppercase `E`, and a sign on a decimal's exponent. Its
+  `integer` and `float` tokens each spelled the exponent out separately and the
+  two had drifted, so `1.5e-3`, `1.5e+3`, `1E10` and `1.5E10` did not parse.
+  Both now share one `exponent` token. (@prql-bot, #6366)
+
 - The Raku grammar in `grammars/raku/` now parses a triple-quoted string
   containing the quote character, such as `"""I said "hello"!"""`, and a string
   containing an escaped quote, such as `"\"hello\""` — including the f-string
