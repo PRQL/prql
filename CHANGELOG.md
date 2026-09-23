@@ -31,6 +31,15 @@
   and the text around it vanished from the rendered page; the same path let a
   doc comment inject arbitrary markup. (@prql-bot, #6327)
 
+- `prqlc compile --debug-log=<file>` no longer truncates the file it writes
+  without reporting an error. The HTML renderer used `Write::write`, which may
+  consume only part of the slice it is handed, and both formats left the
+  `BufWriter`'s final flush to `drop`, which discards its error — so a partial
+  write or a failure while flushing produced a short file and a successful exit.
+  A failure in the HTML branch now names the file it was writing and the I/O
+  error behind it, rather than reporting
+  `an error occurred when formatting an argument`. (@prql-bot, #6365)
+
 - `prqlc compile --debug-log=<file>.html` now escapes HTML in the page it
   generates. Query source, generated SQL, log text, declaration names and the
   labels in the AST views were interpolated verbatim, so a query as ordinary as
