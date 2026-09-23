@@ -10,7 +10,7 @@ description:
 # Running Tend in PRQL
 
 Tend-specific guidance for this repo. Project build commands, test strategy,
-error conventions, etc. are in `CLAUDE.md` — don't duplicate them here.
+error conventions, etc. are in `AGENTS.md` — don't duplicate them here.
 
 ## Filing issues in other repos
 
