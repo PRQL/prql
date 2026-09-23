@@ -349,6 +349,9 @@ jobs:
           token: ${{ secrets.TEND_BOT_TOKEN }}
 
       - uses: ./.github/actions/tend-setup
+      - uses: baptiste0928/cargo-install@v3
+        with:
+          crate: cargo-llvm-cov
       - run: |-
           mkdir -p ~/.local/bin
           curl -LsSf https://get.nexte.st/latest/linux | tar zxf - -C ~/.local/bin
@@ -358,6 +361,7 @@ jobs:
           uv tool install pre-commit
           pre-commit --version
           cargo --version
+          cargo llvm-cov --version
         shell: bash
 
       - uses: max-sixty/tend/claude@0.2.15

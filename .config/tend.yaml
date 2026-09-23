@@ -10,56 +10,22 @@ secrets:
     - DOCKERHUB_USERNAME
 setup:
   - uses: ./.github/actions/tend-setup
-# cargo-insta and cargo-nextest are used only by the agent, never by a
-# runner-side step. `tend-setup` used to install them with `cargo-install`,
-# under the *runner* user's home — which tend deliberately keeps off the sandbox
-# PATH, since that home can hold credentials — so the agent got a stub that
-# exits 127. Install them under the sandbox user's home instead, which is what
-# that stub asks for. Both ship prebuilt binaries, so this downloads rather than
-# builds (~1s for the pair).
-#
-# `~/.local/bin` rather than the cargo default: it is first on the sandbox PATH,
-# ahead of both `~/.tend-blocked/bin` (where the 127 stubs live) and
-# `~/.cargo/bin`. Hence `CARGO_HOME` on the cargo-dist installer, which places
-# the binary at `$CARGO_HOME/bin`.
-#
-# Without this, `task prqlc:test` — the inner loop `AGENTS.md` documents —
-# aborts in every tend session. `task prqlc:pull-request` needs more: it also
-# reaches `cargo llvm-cov`, which is still not on the sandbox PATH, so that
-# task stops there even with the entries below.
-sandbox_setup:
-  - mkdir -p ~/.local/bin
-  - curl -LsSf https://get.nexte.st/latest/linux | tar zxf - -C ~/.local/bin
-  - cargo-nextest --version
-  - curl -LsSf
-    https://github.com/mitsuhiko/insta/releases/latest/download/cargo-insta-installer.sh
-    | CARGO_HOME=~/.local sh
-  - cargo-insta --version
-  #
-  # `pre-commit` is the same shape of gap, for lint rather than tests. `task
-  # lint` — the lint command `AGENTS.md` documents — is `pre-commit run
-  # --all-files` followed by clippy, and `pre-commit` is absent from the
-  # runner's PATH and the sandbox's alike, so the gate aborts on its first
-  # command in every session; the 2026-09-18 nightly is the latest to report it
-  # unrun, leaving `typos` and `ruff` ungated locally on a PR it opened. `uv
-  # tool install` puts it in `~/.local/bin` — first on the sandbox PATH — in
-  # well under a second, because `uv` is already provisioned.
-  #
-  # The hook environments are *not* built here: `pre-commit` builds them on first
-  # use, ~3.5 min for this repo's 14 hooks, so only a session that actually lints
-  # pays that, and a session that never lints pays a second.
-  - uv tool install pre-commit
-  - pre-commit --version
-  #
-  # And the toolchain `rust-toolchain.toml` pins, because the `fmt` hook passes
-  # filenames: `pre-commit` splits this repo's ~114 `.rs` files across the
-  # runner's cores and starts one `cargo fmt` per chunk. The sandbox home ships
-  # only `stable`, so each of those races the same rustup auto-install and they
-  # clobber each other's partial downloads in `~/.rustup/downloads` — the hook
-  # fails on a component-download error, `pre-commit` exits non-zero and `task
-  # lint` never reaches clippy. Installing it once, serially, takes ~11s, and
-  # it's a cost every session that touches Rust pays anyway.
-  - cargo --version
+  - uses: baptiste0928/cargo-install@v3
+    with:
+      crate: cargo-llvm-cov
+  # Tend shares the runner checkout, home, and PATH with the agent. Install
+  # test and lint tools here, after tend-setup has put uv on PATH.
+  - run: |-
+      mkdir -p ~/.local/bin
+      curl -LsSf https://get.nexte.st/latest/linux | tar zxf - -C ~/.local/bin
+      cargo-nextest --version
+      curl -LsSf https://github.com/mitsuhiko/insta/releases/latest/download/cargo-insta-installer.sh | CARGO_HOME=~/.local sh
+      cargo-insta --version
+      uv tool install pre-commit
+      pre-commit --version
+      cargo --version
+      cargo llvm-cov --version
+    shell: bash
 workflows:
   ci-fix:
     watched_workflows:
