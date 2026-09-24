@@ -15,6 +15,8 @@ setup:
       crate: cargo-llvm-cov
   # Tend shares the runner checkout, home, and PATH with the agent. Install
   # test and lint tools here, after tend-setup has put uv on PATH.
+  # `cargo --version` installs the pinned rust-toolchain.toml toolchain once;
+  # otherwise parallel `cargo fmt` hooks race to install it during lint.
   - run: |-
       mkdir -p ~/.local/bin
       curl -LsSf https://get.nexte.st/latest/linux | tar zxf - -C ~/.local/bin
