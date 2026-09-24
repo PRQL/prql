@@ -18,6 +18,6 @@ runs:
 
     # The following setup steps use uv to install pre-commit. Keep uv on PATH.
     - name: Setup uv
-      uses: astral-sh/setup-uv@v10.1.0
+      uses: astral-sh/setup-uv@v10.2.0
       with:
         enable-cache: false
