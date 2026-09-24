@@ -22,6 +22,10 @@
 
 - Add simple enumeration type, and dedicated support for name resolution when an
   enum is used as a function parameter. (@kgutwin, #6104)
+- Formatted SQL output changes with the upgrade of `sqlformat` to 0.5.0: a CTE's
+  name now starts on the line after `WITH`, and `PARTITION BY` puts its columns
+  on their own lines, as other clauses do. Pass `--no-format` for unformatted
+  output. (@prql-bot, #6257)
 
 **Fixes**:
 

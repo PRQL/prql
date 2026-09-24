@@ -3,14 +3,16 @@ source: prqlc/prqlc/tests/integration/queries.rs
 expression: "# mssql:test\nfrom tracks\nselect {genre_id, media_type_id, album_id}\ngroup {genre_id, media_type_id} (sort {-album_id} | take 1)\nsort {-genre_id, media_type_id}\n"
 input_file: prqlc/prqlc/tests/integration/queries/distinct_on.prql
 ---
-WITH table_0 AS (
+WITH
+table_0 AS (
   SELECT
     genre_id,
     media_type_id,
     album_id,
     ROW_NUMBER() OVER (
-      PARTITION BY genre_id,
-      media_type_id
+      PARTITION BY
+        genre_id,
+        media_type_id
       ORDER BY
         album_id DESC
     ) AS _expr_0

@@ -802,7 +802,8 @@ sort full
         )
         .unwrap();
         assert_snapshot!(String::from_utf8(result).unwrap().trim(), @"
-        WITH x AS (
+        WITH
+        x AS (
           SELECT
             y,
             u
