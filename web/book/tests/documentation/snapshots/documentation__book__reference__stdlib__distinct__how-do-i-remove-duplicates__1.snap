@@ -2,7 +2,7 @@
 source: web/book/tests/documentation/book.rs
 expression: "from employees\ngroup employees.* (take 1)\n"
 ---
-SELECT
-  DISTINCT *
+SELECT DISTINCT
+  *
 FROM
   employees
