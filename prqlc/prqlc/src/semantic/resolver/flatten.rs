@@ -26,7 +26,7 @@ pub struct Flattener {
 
     /// Window affects transforms in it's inner pipeline.
     /// This means that this field has to be set before folding inner pipeline,
-    /// and unset after the folding.
+    /// and restored to the enclosing frame after the folding.
     window: WindowFrame,
 
     /// Window and group contain Closures in their inner pipelines.
