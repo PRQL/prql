@@ -806,3 +806,51 @@ fn unknown_named_arg() {
     ───╯
     ");
 }
+
+#[test]
+fn test_error_after_non_ascii() {
+    // Multi-byte chars before an error mustn't shift its label, or push the
+    // span past the end of the source.
+    assert_snapshot!(compile(r#"
+    from t
+    derive {x = "éééééééééé"}
+    select {x, foo.bar.baz}
+    "#).unwrap_err(), @"
+    Error:
+       ╭─[ :4:16 ]
+       │
+     4 │     select {x, foo.bar.baz}
+       │                ─────┬─────
+       │                     ╰─────── Unknown name `foo.bar.baz`
+       │
+       │ Help: available columns: x
+    ───╯
+    ");
+
+    assert_snapshot!(compile(r#"
+    # café
+    from t
+    select {foo.bar.baz}
+    "#).unwrap_err(), @"
+    Error:
+       ╭─[ :4:13 ]
+       │
+     4 │     select {foo.bar.baz}
+       │             ─────┬─────
+       │                  ╰─────── Unknown name `foo.bar.baz`
+    ───╯
+    ");
+
+    assert_snapshot!(compile(r#"
+    from t
+    derive {x = f"éééé{foo.}"}
+    "#).unwrap_err(), @r#"
+    Error:
+       ╭─[ :3:28 ]
+       │
+     3 │     derive {x = f"éééé{foo.}"}
+       │                            ┬
+       │                            ╰── expected interpolated string or interp:backticks, but found "}"
+    ───╯
+    "#);
+}
