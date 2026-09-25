@@ -42,8 +42,7 @@ group {first_name, last_name} (take 1)
 ```
 
 When compiling to the Postgres, DuckDB or ClickHouse dialects, such queries are
-compiled to `DISTINCT ON`, which is
-[the most performant option](https://stackoverflow.com/a/7630564):
+compiled to `DISTINCT ON`:
 
 ```prql
 prql target:sql.postgres
