@@ -41,11 +41,9 @@ from employees
 group {first_name, last_name} (take 1)
 ```
 
-<!-- TODO: uncomment when the bug is fixed -->
-
-<!-- When compiling to Postgres or DuckDB dialect, such queries will be compiled to
-`DISTINCT ON`, which is
-[the most performant option](https://stackoverflow.com/a/7630564).
+When compiling to the Postgres, DuckDB or ClickHouse dialects, such queries are
+compiled to `DISTINCT ON`, which is
+[the most performant option](https://stackoverflow.com/a/7630564):
 
 ```prql
 prql target:sql.postgres
@@ -55,4 +53,4 @@ group department (
   sort age
   take 1
 )
-``` -->
+```
