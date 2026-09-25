@@ -22,6 +22,10 @@
 
 - Add simple enumeration type, and dedicated support for name resolution when an
   enum is used as a function parameter. (@kgutwin, #6104)
+- Formatted SQL output changes with the upgrade of `sqlformat` to 0.5.0: a CTE's
+  name now starts on the line after `WITH`, and `PARTITION BY` puts its columns
+  on their own lines, as other clauses do. Pass `--no-format` for unformatted
+  output. (@prql-bot, #6257)
 
 **Fixes**:
 
@@ -33,12 +37,24 @@
   `internal std.<name>` with fewer parameters than the operator reads. Redshift
   also gains a `to_text` implementation, so the first now compiles to `TO_CHAR`,
   supporting the same format specifiers as Postgres. (@prql-bot, #6352)
-
+- Keep the outer frame after a nested `window`; transforms following the inner
+  `window` previously compiled with an unbounded `OVER ()`. (@prql-bot, #6375)
+- Report a circular `import` as an error rather than crashing with a stack
+  overflow. (@prql-bot, #6376)
 - `prqlc experimental doc --format=html` now escapes HTML in the page it
   generates. A doc comment containing `<`, `>` or `&` — as ordinary prose such
   as `a < b` does — was interpolated verbatim, so a browser parsed it as markup
   and the text around it vanished from the rendered page; the same path let a
   doc comment inject arbitrary markup. (@prql-bot, #6327)
+
+- `prqlc compile --debug-log=<file>` no longer truncates the file it writes
+  without reporting an error. The HTML renderer used `Write::write`, which may
+  consume only part of the slice it is handed, and both formats left the
+  `BufWriter`'s final flush to `drop`, which discards its error — so a partial
+  write or a failure while flushing produced a short file and a successful exit.
+  A failure in the HTML branch now names the file it was writing and the I/O
+  error behind it, rather than reporting
+  `an error occurred when formatting an argument`. (@prql-bot, #6365)
 
 - `prqlc compile --debug-log=<file>.html` now escapes HTML in the page it
   generates. Query source, generated SQL, log text, declaration names and the
@@ -222,6 +238,12 @@
   candidate that itself requires 3.10+ leaves the 3.9 resolution fork
   unsatisfiable. Users still on 3.9 continue to resolve the last release that
   declared support for it. (@prql-bot, #6225)
+
+- The Raku grammar in `grammars/raku/` now parses the exponent forms the
+  compiler accepts: an uppercase `E`, and a sign on a decimal's exponent. Its
+  `integer` and `float` tokens each spelled the exponent out separately and the
+  two had drifted, so `1.5e-3`, `1.5e+3`, `1E10` and `1.5E10` did not parse.
+  Both now share one `exponent` token. (@prql-bot, #6366)
 
 - The Raku grammar in `grammars/raku/` now parses a triple-quoted string
   containing the quote character, such as `"""I said "hello"!"""`, and a string

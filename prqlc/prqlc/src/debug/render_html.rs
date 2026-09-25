@@ -12,22 +12,48 @@ use itertools::Itertools;
 use prqlc_parser::lexer::lr;
 use prqlc_parser::parser::pr;
 
-pub fn render_log_to_html<W: std::io::Write>(writer: W, debug_log: &DebugLog) -> core::fmt::Result {
-    struct IoWriter<W: std::io::Write> {
-        inner: W,
-    }
+pub fn render_log_to_html<W: std::io::Write>(
+    writer: W,
+    debug_log: &DebugLog,
+) -> std::io::Result<()> {
+    let mut io_writer = IoWriter {
+        inner: writer,
+        error: None,
+    };
 
-    impl<W: std::io::Write> core::fmt::Write for IoWriter<W> {
-        fn write_str(&mut self, s: &str) -> std::fmt::Result {
-            self.inner
-                .write(s.as_bytes())
-                .map_err(|_| std::fmt::Error)?;
-            Ok(())
-        }
-    }
-    let mut io_writer = IoWriter { inner: writer };
+    write_debug_log(&mut io_writer, debug_log).map_err(|err| io_writer.into_io_error(err))
+}
 
-    write_debug_log(&mut io_writer, debug_log)
+/// Adapts a [std::io::Write] to the [core::fmt::Write] that the `write!`
+/// machinery below needs.
+struct IoWriter<W: std::io::Write> {
+    inner: W,
+    /// The `io::Error` that stopped the write, kept because the
+    /// [core::fmt::Error] returned in its place cannot carry it.
+    error: Option<std::io::Error>,
+}
+
+impl<W: std::io::Write> IoWriter<W> {
+    /// Recovers the cause behind a [core::fmt::Error]: `write_str` can only
+    /// report *that* the write failed, so the [std::io::Error] it met is taken
+    /// back off the writer here. A full disk, a permission failure or an
+    /// interrupted write then reaches the caller intact.
+    fn into_io_error(self, err: core::fmt::Error) -> std::io::Error {
+        self.error.unwrap_or_else(|| std::io::Error::other(err))
+    }
+}
+
+impl<W: std::io::Write> core::fmt::Write for IoWriter<W> {
+    fn write_str(&mut self, s: &str) -> std::fmt::Result {
+        // `write_all` rather than `write`: a single `write` is free to consume
+        // only part of the slice, which would drop the rest of the fragment
+        // silently. Fragments here are unbounded — a whole escaped source file
+        // or the whole generated SQL arrives as one `write_str`.
+        self.inner.write_all(s.as_bytes()).map_err(|err| {
+            self.error = Some(err);
+            std::fmt::Error
+        })
+    }
 }
 
 fn write_debug_log<W: Write>(w: &mut W, debug_log: &DebugLog) -> Result {
@@ -940,5 +966,68 @@ mod tests {
         .unwrap();
 
         assert_snapshot!(w, @r#"<details class="ast-node"  open tabindex=2><summary class=header><h2 class="clickable blue">q&lt;u&quot;o</h2></summary><content class="contents indent"><div>Import `a&lt;b`</div></content></details>"#);
+    }
+
+    /// `std::io::Write::write` may consume only part of the slice it is given.
+    /// `BufWriter` passes a slice at least as large as its buffer straight
+    /// through to the inner writer, and fragments here reach that size — a
+    /// whole escaped source file or the whole generated SQL arrives as one
+    /// `write_str` — so a partial write would drop the rest of the page.
+    #[test]
+    fn a_short_write_does_not_truncate() {
+        struct ShortWriter(Vec<u8>);
+
+        impl std::io::Write for ShortWriter {
+            fn write(&mut self, buf: &[u8]) -> std::io::Result<usize> {
+                let taken = buf.len().min(4);
+                self.0.extend_from_slice(&buf[..taken]);
+                Ok(taken)
+            }
+
+            fn flush(&mut self) -> std::io::Result<()> {
+                Ok(())
+            }
+        }
+
+        let mut writer = IoWriter {
+            inner: ShortWriter(Vec::new()),
+            error: None,
+        };
+
+        writer.write_str("0123456789").unwrap();
+
+        assert_eq!(String::from_utf8(writer.inner.0).unwrap(), "0123456789");
+    }
+
+    /// The `io::Error` has to survive the trip through [core::fmt::Error],
+    /// which carries no cause of its own: the caller names the file it was
+    /// writing, and this is what tells the user *why* that write failed.
+    #[test]
+    fn a_write_failure_keeps_its_cause() {
+        struct FailingWriter;
+
+        impl std::io::Write for FailingWriter {
+            fn write(&mut self, _buf: &[u8]) -> std::io::Result<usize> {
+                Err(std::io::Error::new(
+                    std::io::ErrorKind::StorageFull,
+                    "No space left on device (os error 28)",
+                ))
+            }
+
+            fn flush(&mut self) -> std::io::Result<()> {
+                Ok(())
+            }
+        }
+
+        let mut writer = IoWriter {
+            inner: FailingWriter,
+            error: None,
+        };
+
+        let err = writer.write_str("anything").unwrap_err();
+        let err = writer.into_io_error(err);
+
+        assert_eq!(err.kind(), std::io::ErrorKind::StorageFull);
+        assert_snapshot!(err, @"No space left on device (os error 28)");
     }
 }

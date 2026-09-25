@@ -10,7 +10,7 @@ description:
 # Running Tend in PRQL
 
 Tend-specific guidance for this repo. Project build commands, test strategy,
-error conventions, etc. are in `CLAUDE.md` — don't duplicate them here.
+error conventions, etc. are in `AGENTS.md` — don't duplicate them here.
 
 ## Filing issues in other repos
 
@@ -93,6 +93,34 @@ states, so it can't tell those two cases apart. Project the states alongside it:
 gh pr view <n> --json statusCheckRollup \
   --jq '[.statusCheckRollup[] | {name: (.name // .context), status: (.status // .state)}]'
 ```
+
+## Verifying a change to the .NET binding
+
+`prqlc/bindings/dotnet/` builds and tests from a session, but one sandbox
+constraint blocks it and doesn't name its own cause.
+
+**MSBuild's worker nodes can't start, and say nothing.** Creating an `AF_UNIX`
+socket is refused sandbox-wide — `socketpair` still works, so ordinary
+parent/child pipes are unaffected and only cross-process Unix-socket IPC is
+lost. A multi-node build dies in the node handshake and reports `Build FAILED.`
+with `0 Error(s)` and no diagnostic at all. **Pass `-m:1` to every `dotnet`
+command that drives MSBuild** — `build`, `test`, `restore`; `dotnet new` rejects
+it as an unknown option and doesn't need it. Without it a real failure is
+indistinguishable from this one, and a single-project build succeeds either way,
+which is why a quick probe misses it.
+
+With that, the whole `test-dotnet` job runs from the repo root:
+
+```sh
+cargo build -p prqlc-c
+dotnet build prqlc/bindings/dotnet -m:1
+cp target/debug/libprqlc_c.* prqlc/bindings/dotnet/PrqlCompiler/bin/Debug/net*/
+cp target/debug/libprqlc_c.* prqlc/bindings/dotnet/PrqlCompiler.Tests/bin/Debug/net*/
+dotnet test prqlc/bindings/dotnet -m:1
+```
+
+Restore prints `NU1903` for `Newtonsoft.Json` 9.0.1, pulled in transitively by
+`Microsoft.NET.Test.Sdk`. It predates any change under review — don't chase it.
 
 ## Weekly maintenance
 

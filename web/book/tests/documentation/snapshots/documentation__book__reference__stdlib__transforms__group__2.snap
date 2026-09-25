@@ -2,11 +2,13 @@
 source: web/book/tests/documentation/book.rs
 expression: "from employees\ngroup role (\n  sort join_date  # taken from above\n  take 1\n)\n"
 ---
-WITH table_0 AS (
+WITH
+table_0 AS (
   SELECT
     *,
     ROW_NUMBER() OVER (
-      PARTITION BY role
+      PARTITION BY
+        role
       ORDER BY
         join_date
     ) AS _expr_0

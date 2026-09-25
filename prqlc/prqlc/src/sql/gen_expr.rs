@@ -7,7 +7,7 @@ use prqlc_parser::generic::{InterpolateItem, Range};
 use regex::Regex;
 use sqlparser::ast::{
     self as sql_ast, BinaryOperator, DateTimeField, Fetch, Function, FunctionArg, FunctionArgExpr,
-    FunctionArgumentList, ObjectName, OrderByExpr, SelectItem, UnaryOperator, Value,
+    FunctionArgumentList, ObjectName, OrderByExpr, OrderBySort, SelectItem, UnaryOperator, Value,
     WindowFrameBound, WindowSpec,
 };
 
@@ -892,7 +892,7 @@ fn translate_windowed(
         order_by.push(OrderByExpr {
             expr: sql_ast::Expr::Value(Value::Number("1".to_string(), false).into()),
             options: sqlparser::ast::OrderByOptions {
-                asc: None,
+                sort: None,
                 nulls_first: None,
             },
             with_fill: None,
@@ -957,10 +957,10 @@ pub(super) fn translate_column_sort(
     Ok(OrderByExpr {
         expr: translate_cid(sort.column, ctx)?.into_ast(),
         options: sqlparser::ast::OrderByOptions {
-            asc: if matches!(sort.direction, SortDirection::Asc) {
+            sort: if matches!(sort.direction, SortDirection::Asc) {
                 None // default order is ASC, so there is no need to emit it
             } else {
-                Some(false)
+                Some(OrderBySort::Desc)
             },
             nulls_first: None,
         },
