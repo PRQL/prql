@@ -29,6 +29,8 @@
 
 **Fixes**:
 
+- Report a circular `import` as an error rather than crashing with a stack
+  overflow. (@prql-bot, #6376)
 - `prqlc experimental doc --format=html` now escapes HTML in the page it
   generates. A doc comment containing `<`, `>` or `&` — as ordinary prose such
   as `a < b` does — was interpolated verbatim, so a browser parsed it as markup
