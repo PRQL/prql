@@ -20,7 +20,7 @@ end
 
 
   iex> PRQL.compile("from customers\ntake 10", target: :mssql, signature_comment: false)
-  {:ok, "SELECT\n  *\nFROM\n  customers\nORDER BY\n  (\n    SELECT\n      NULL\n  ) OFFSET 0 ROWS\nFETCH FIRST\n  10 ROWS ONLY\n"}
+  {:ok, "SELECT\n  *\nFROM\n  customers\nORDER BY\n  (\n    SELECT\n      NULL) OFFSET 0 ROWS\nFETCH FIRST\n  10 ROWS ONLY\n"}
 ```
 
 ## Development
