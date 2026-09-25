@@ -43,6 +43,8 @@ jobs:
     steps:
       - name: 📂 Checkout code
         uses: actions/checkout@v7
+        with:
+          persist-credentials: false
       - name: Create the draft release
         if: ${{ github.event_name == 'push' && github.ref_type == 'tag' }}
         env:
@@ -152,6 +154,8 @@ jobs:
     steps:
       - name: 📂 Checkout code
         uses: actions/checkout@v7
+        with:
+          persist-credentials: false
       - uses: ./.github/actions/build-prqlc
         id: build-artifact
         with:
@@ -202,6 +206,8 @@ jobs:
     steps:
       - name: 📂 Checkout code
         uses: actions/checkout@v7
+        with:
+          persist-credentials: false
       - uses: ./.github/actions/build-prqlc-c
         id: build-artifact
         with:
@@ -388,6 +394,8 @@ jobs:
     steps:
       - name: 📂 Checkout code
         uses: actions/checkout@v7
+        with:
+          persist-credentials: false
       - name: Move Snap to project root directory
         run: cp -r prqlc/packages/snap/ .
       - name: 📦 Build Snap
@@ -432,6 +440,8 @@ jobs:
     steps:
       - name: 📂 Checkout code
         uses: actions/checkout@v7
+        with:
+          persist-credentials: false
       - uses: ./.github/actions/build-python
         with:
           target: ${{ matrix.target }}
@@ -475,6 +485,8 @@ jobs:
     steps:
       - name: 📂 Checkout code
         uses: actions/checkout@v7
+        with:
+          persist-credentials: false
       - uses: ./.github/actions/build-js
       # `--provenance` needs an OIDC token, so it belongs to `publish-js` alone.
       - name: Check the npm package
@@ -492,6 +504,8 @@ jobs:
     steps:
       - name: 📂 Checkout code
         uses: actions/checkout@v7
+        with:
+          persist-credentials: false
       - uses: ./.github/actions/build-js
       - name: Publish to npm
         run: npm publish --provenance --access public
@@ -505,6 +519,8 @@ jobs:
     steps:
       - name: 📂 Checkout code
         uses: actions/checkout@v7
+        with:
+          persist-credentials: false
       - uses: baptiste0928/cargo-install@8195d4f734a149db85385bb4102b42efcd373759 # v3.5.0
         with:
           crate: cargo-release
@@ -525,6 +541,8 @@ jobs:
     steps:
       - name: 📂 Checkout code
         uses: actions/checkout@v7
+        with:
+          persist-credentials: false
       - uses: baptiste0928/cargo-install@8195d4f734a149db85385bb4102b42efcd373759 # v3.5.0
         with:
           crate: cargo-release

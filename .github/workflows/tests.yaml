@@ -67,6 +67,7 @@ jobs:
       - name: 📂 Checkout code
         uses: actions/checkout@v7
         with:
+          persist-credentials: false
           fetch-tags: true
       - uses: dorny/paths-filter@ceb8a2b8f2d89434be7ff52d3de7ec3738c5cc9d # v4.0.3
         id: changes
@@ -390,6 +391,8 @@ jobs:
     steps:
       - name: 📂 Checkout code
         uses: actions/checkout@v7
+        with:
+          persist-credentials: false
 
       - uses: baptiste0928/cargo-install@8195d4f734a149db85385bb4102b42efcd373759 # v3.5.0
         with:
@@ -449,6 +452,8 @@ jobs:
     steps:
       - name: 📂 Checkout code
         uses: actions/checkout@v7
+        with:
+          persist-credentials: false
       - uses: baptiste0928/cargo-install@8195d4f734a149db85385bb4102b42efcd373759 # v3.5.0
         with:
           crate: mdbook
@@ -485,6 +490,8 @@ jobs:
     steps:
       - name: 📂 Checkout code
         uses: actions/checkout@v7
+        with:
+          persist-credentials: false
       - run: ./.github/workflows/scripts/set_version.sh
       - uses: actions/setup-python@v7
         with:
@@ -563,6 +570,8 @@ jobs:
     steps:
       - name: 📂 Checkout code
         uses: actions/checkout@v7
+        with:
+          persist-credentials: false
       - name: 🧅 Setup Bun
         uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2.2.0
         with:
@@ -622,6 +631,8 @@ jobs:
       contents: read
     steps:
       - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
       - name: Build and run devcontainer
         uses: devcontainers/ci@513af61f4de4f75d37e4438f184ba4358f0fc1ca # v0.3.1900000450
         with:
@@ -641,6 +652,8 @@ jobs:
     steps:
       - name: 📂 Checkout code
         uses: actions/checkout@v7
+        with:
+          persist-credentials: false
       - uses: baptiste0928/cargo-install@8195d4f734a149db85385bb4102b42efcd373759 # v3.5.0
         with:
           crate: cargo-msrv
@@ -664,6 +677,8 @@ jobs:
     steps:
       - name: 📂 Checkout code
         uses: actions/checkout@v7
+        with:
+          persist-credentials: false
       - run: rustup override set nightly-2025-11-10
       - uses: actions/setup-python@v7
         with:
@@ -793,6 +808,8 @@ jobs:
     steps:
       - name: 📂 Checkout code
         uses: actions/checkout@v7
+        with:
+          persist-credentials: false
       - uses: ./.github/actions/build-prqlc
         with:
           target: ${{ matrix.target }}
@@ -828,6 +845,8 @@ jobs:
     steps:
       - name: 📂 Checkout code
         uses: actions/checkout@v7
+        with:
+          persist-credentials: false
       - uses: ./.github/actions/build-prqlc-c
         with:
           target: ${{ matrix.target }}

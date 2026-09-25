@@ -30,6 +30,8 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@v7
+        with:
+          persist-credentials: false
       - run: ./.github/workflows/scripts/set_version.sh
       - name: Compute Cargo.lock hash
         shell: bash

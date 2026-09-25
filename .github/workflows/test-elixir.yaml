@@ -38,6 +38,8 @@ jobs:
       # Step: Check out the code.
       - name: Checkout code
         uses: actions/checkout@v7
+        with:
+          persist-credentials: false
 
       # Step: Setup Elixir + Erlang image as the base.
       - name: Set up Elixir on Windows or Linux

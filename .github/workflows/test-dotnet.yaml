@@ -19,6 +19,8 @@ jobs:
     steps:
       - name: 📂 Checkout code
         uses: actions/checkout@v7
+        with:
+          persist-credentials: false
       - name: 🏗 Build prqlc-c
         run: cargo build --package prqlc-c
       - name: 🔧 Setup dotnet

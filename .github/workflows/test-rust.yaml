@@ -36,6 +36,7 @@ jobs:
       - name: 📂 Checkout code
         uses: actions/checkout@v7
         with:
+          persist-credentials: false
           fetch-tags: true
       - name: Log in to Docker Hub
         if:
