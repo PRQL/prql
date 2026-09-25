@@ -30,8 +30,8 @@
 **Fixes**:
 
 - Error labels after non-ASCII text now point at the right column, rather than
-  drifting right or crashing `prqlc` when a label ran past the end of the
-  query. (@prql-bot, #6378)
+  drifting right or crashing `prqlc` when a label ran past the end of the query.
+  (@prql-bot, #6378)
 - Report a circular `import` as an error rather than crashing with a stack
   overflow. (@prql-bot, #6376)
 - `prqlc experimental doc --format=html` now escapes HTML in the page it
