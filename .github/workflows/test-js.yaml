@@ -38,7 +38,7 @@ jobs:
           # and is EOL. Matches the pin in `.github/actions/build-js`.
           node-version: "24.x"
 
-      - uses: baptiste0928/cargo-install@v3
+      - uses: baptiste0928/cargo-install@8195d4f734a149db85385bb4102b42efcd373759 # v3.5.0
         with:
           crate: wasm-pack
 
@@ -54,7 +54,7 @@ jobs:
           fi
 
       - name: 💰 Cache
-        uses: Swatinem/rust-cache@v2
+        uses: Swatinem/rust-cache@6323deb102c322ba6fcbdcafc7e3dddab59af2b6 # v2.9.2
         id: cache
         with:
           prefix-key: ${{ env.version }}-${{ env.cargo_lock_hash }}

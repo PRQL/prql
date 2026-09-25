@@ -44,7 +44,7 @@ jobs:
 
     steps:
       - uses: actions/checkout@v7
-      - uses: rustsec/audit-check@v2.0.0
+      - uses: rustsec/audit-check@69366f33c96575abad1ee0dba8212993eecbe998 # v2.0.0
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
 
@@ -52,7 +52,7 @@ jobs:
     runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v7
-      - uses: clechasseur/rs-cargo@v4
+      - uses: clechasseur/rs-cargo@2a8aa939121c79dd2b4305ed6bf83bc400ce1036 # v4.0.2
         with:
           command: bench
           # GH Actions is fairly noisy, so the precise details don't matter that
@@ -87,16 +87,16 @@ jobs:
       - name: 📂 Checkout code
         uses: actions/checkout@v7
       - run: rustup override set nightly-2025-11-10
-      - uses: baptiste0928/cargo-install@v3
+      - uses: baptiste0928/cargo-install@8195d4f734a149db85385bb4102b42efcd373759 # v3.5.0
         with:
           crate: cargo-udeps
       # Once with all targets, once without, to find anything that should be in
       # `dev` but is more general.
-      - uses: clechasseur/rs-cargo@v4
+      - uses: clechasseur/rs-cargo@2a8aa939121c79dd2b4305ed6bf83bc400ce1036 # v4.0.2
         with:
           command: udeps
           args: --all-targets
-      - uses: clechasseur/rs-cargo@v4
+      - uses: clechasseur/rs-cargo@2a8aa939121c79dd2b4305ed6bf83bc400ce1036 # v4.0.2
         with:
           command: udeps
 

@@ -29,7 +29,7 @@ jobs:
       actions: read
       issues: write
     steps:
-      - uses: astral-sh/setup-uv@v10.2.0
+      - uses: astral-sh/setup-uv@c18668ad3cf93ea998bef934396af7bb5c839dc7 # v10.2.0
         id: tend_uv
         env:
           UV_NO_MODIFY_PATH: "1"
@@ -247,7 +247,7 @@ jobs:
 
       - uses: ./.github/actions/tend-setup
         if: steps.check.outputs.count != '0' || steps.check.outputs.conflict_count != '0' || github.event_name == 'workflow_dispatch'
-      - uses: baptiste0928/cargo-install@v3
+      - uses: baptiste0928/cargo-install@8195d4f734a149db85385bb4102b42efcd373759 # v3.5.0
         if: steps.check.outputs.count != '0' || steps.check.outputs.conflict_count != '0' || github.event_name == 'workflow_dispatch'
         with:
           crate: cargo-llvm-cov

@@ -19,7 +19,7 @@ jobs:
         uses: actions/checkout@v7
       - run: ./.github/workflows/scripts/set_version.sh
       - name: 💰 Cache
-        uses: Swatinem/rust-cache@v2
+        uses: Swatinem/rust-cache@6323deb102c322ba6fcbdcafc7e3dddab59af2b6 # v2.9.2
         with:
           prefix-key: ${{ env.version }}-${{ hashFiles('./Cargo.lock') }}
           save-if: ${{ github.ref == 'refs/heads/main' }}
@@ -29,7 +29,7 @@ jobs:
           # https://github.com/Swatinem/rust-cache/issues/341.
           cache-bin: "false"
       - name: Build
-        uses: clechasseur/rs-cargo@v4
+        uses: clechasseur/rs-cargo@2a8aa939121c79dd2b4305ed6bf83bc400ce1036 # v4.0.2
         with:
           command: build
           # Currently requires a release build; would be useful to allow a debug build.
@@ -41,11 +41,11 @@ jobs:
         working-directory: prqlc/bindings/prqlc-c/examples/minimal-cpp
         run: make run
 
-      - uses: go-task/setup-task@v2
+      - uses: go-task/setup-task@a00fbb05ce67b35648be3c78cbc9fd85354c757e # v2.2.0
         with:
           repo-token: ${{ secrets.GITHUB_TOKEN }}
           version: 3.53.1
       - name: 🔧 Setup Zig
-        uses: mlugg/setup-zig@v2
+        uses: mlugg/setup-zig@d1434d08867e3ee9daa34448df10607b98908d29 # v2.2.1
       - name: Run example minimal-zig
         run: task zig

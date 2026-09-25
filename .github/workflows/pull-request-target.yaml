@@ -16,7 +16,7 @@ jobs:
     name: Validate PR title
     runs-on: ubuntu-24.04
     steps:
-      - uses: amannn/action-semantic-pull-request@v6
+      - uses: amannn/action-semantic-pull-request@48f256284bd46cdaab1048c3721360e808335d50 # v6.1.1
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
@@ -66,7 +66,7 @@ jobs:
       name: tend
       deployment: false
     steps:
-      - uses: tibdex/backport@v2
+      - uses: tibdex/backport@9565281eda0731b1d20c4025c43339fb0a23812e # v2.0.4
         with:
           # This is a personal access token from the @prql-bot
           github_token: ${{ secrets.TEND_BOT_TOKEN }}

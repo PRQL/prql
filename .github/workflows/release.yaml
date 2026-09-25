@@ -158,7 +158,7 @@ jobs:
           features: cli
       - name: Upload release artifact
         if: ${{ github.event_name == 'push' && github.ref_type == 'tag' }}
-        uses: softprops/action-gh-release@v3
+        uses: softprops/action-gh-release@efb35369e0ad2afab669f228072c1b0d510eae64 # v3.0.3
         with:
           tag_name: ${{ github.ref_name }}
           draft: true
@@ -207,7 +207,7 @@ jobs:
           profile: release
       - name: Upload release artifact
         if: ${{ github.event_name == 'push' && github.ref_type == 'tag' }}
-        uses: softprops/action-gh-release@v3
+        uses: softprops/action-gh-release@efb35369e0ad2afab669f228072c1b0d510eae64 # v3.0.3
         with:
           tag_name: ${{ github.ref_name }}
           draft: true
@@ -221,7 +221,7 @@ jobs:
     if: ${{ github.event_name == 'push' && github.ref_type == 'tag' }}
     steps:
       - name: publish
-        uses: vedantmgoyal2009/winget-releaser@v2
+        uses: vedantmgoyal2009/winget-releaser@4ffc7888bffd451b357355dc214d43bb9f23917e # v2
         with:
           identifier: PRQL.prqlc
           version: ${{ github.ref_name }}
@@ -261,7 +261,7 @@ jobs:
             exit 1
           fi
       - name: 📦 Build .deb package
-        uses: jiro4989/build-deb-action@v4
+        uses: jiro4989/build-deb-action@a883c65147d80579cb359548b9a902ff0a35ae5b # v4.3.0
         with:
           package: prqlc
           package_root: .debpkg
@@ -282,7 +282,7 @@ jobs:
           path: ./*.deb
       - name: Release
         if: ${{ github.event_name == 'push' && github.ref_type == 'tag' }}
-        uses: softprops/action-gh-release@v3
+        uses: softprops/action-gh-release@efb35369e0ad2afab669f228072c1b0d510eae64 # v3.0.3
         with:
           tag_name: ${{ github.ref_name }}
           draft: true
@@ -320,7 +320,7 @@ jobs:
             exit 1
           fi
       - name: 📦 Build .rpm package
-        uses: jiro4989/build-rpm-action@v2
+        uses: jiro4989/build-rpm-action@f11474937f502aaa8bb36d8c1a8ec6f8de536a0c # v2.5.0
         with:
           summary: CLI for PRQL, a modern language for transforming data
           package: prqlc
@@ -347,7 +347,7 @@ jobs:
       - run: rm prqlc-debuginfo-*.rpm
       - name: Release
         if: ${{ github.event_name == 'push' && github.ref_type == 'tag' }}
-        uses: softprops/action-gh-release@v3
+        uses: softprops/action-gh-release@efb35369e0ad2afab669f228072c1b0d510eae64 # v3.0.3
         with:
           tag_name: ${{ github.ref_name }}
           draft: true
@@ -386,10 +386,10 @@ jobs:
         run: cp -r prqlc/packages/snap/ .
       - name: 📦 Build Snap
         id: build
-        uses: snapcore/action-build@v1
+        uses: snapcore/action-build@3bdaa03e1ba6bf59a65f84a751d943d549a54e79 # v1.3.0
       - name: 🆙 Publish Snap
         if: ${{ github.event_name == 'push' && github.ref_type == 'tag' }}
-        uses: snapcore/action-publish@v1
+        uses: snapcore/action-publish@214b86e5ca036ead1668c79afb81e550e6c54d40 # v1.2.0
         env:
           SNAPCRAFT_STORE_CREDENTIALS:
             ${{ secrets.SNAPCRAFT_STORE_CREDENTIALS }}
@@ -448,7 +448,7 @@ jobs:
           pattern: ${{ matrix.package }}-*-release
           merge-multiple: true
       - name: Publish to PyPI
-        uses: PyO3/maturin-action@v1
+        uses: PyO3/maturin-action@e83996d129638aa358a18fbd1dfb82f0b0fb5d3b # v1.51.0
         with:
           command: upload
           args: --skip-existing *
@@ -497,7 +497,7 @@ jobs:
     steps:
       - name: 📂 Checkout code
         uses: actions/checkout@v7
-      - uses: baptiste0928/cargo-install@v3
+      - uses: baptiste0928/cargo-install@8195d4f734a149db85385bb4102b42efcd373759 # v3.5.0
         with:
           crate: cargo-release
       # Currently, we can only check prqlc-parser which is not dependent other local crates with --dry-run.
@@ -517,7 +517,7 @@ jobs:
     steps:
       - name: 📂 Checkout code
         uses: actions/checkout@v7
-      - uses: baptiste0928/cargo-install@v3
+      - uses: baptiste0928/cargo-install@8195d4f734a149db85385bb4102b42efcd373759 # v3.5.0
         with:
           crate: cargo-release
       # Auth is via crates.io Trusted Publishing (GitHub Actions OIDC). One
@@ -526,7 +526,7 @@ jobs:
       # workflow and environment.
       - name: Authenticate with crates.io
         id: auth
-        uses: rust-lang/crates-io-auth-action@v1
+        uses: rust-lang/crates-io-auth-action@c6f97d42243bad5fab37ca0427f495c86d5b1a18 # v1.0.5
       - run: cargo release publish --no-confirm --execute
         env:
           CARGO_REGISTRY_TOKEN: ${{ steps.auth.outputs.token }}

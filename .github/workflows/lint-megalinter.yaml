@@ -55,7 +55,7 @@ jobs:
 
         # You can override MegaLinter flavor used to have faster performances
         # More info at https://megalinter.io/flavors/
-        uses: oxsecurity/megalinter@v10.1.0
+        uses: oxsecurity/megalinter@9949bad031045f366be2467e00e8371a7328a2e2 # v10.1.0
 
         id: ml
 
@@ -112,7 +112,7 @@ jobs:
       # Create pull request if applicable
       # (for now works only on PR from same repository, not from forks)
       - name: Create Pull Request with applied fixes
-        uses: peter-evans/create-pull-request@v8
+        uses: peter-evans/create-pull-request@5f6978faf089d4d20b00c7766989d076bb2fc7f1 # v8.1.1
         id: cpr
         if: env.APPLY_FIXES_IF_PR == 'true'
         with:
@@ -134,7 +134,7 @@ jobs:
         run: sudo chown -Rc $UID .git/
 
       - name: Commit and push applied linter fixes
-        uses: stefanzweifel/git-auto-commit-action@v7
+        uses: stefanzweifel/git-auto-commit-action@4a55954c782fc1ea30b9056cd3e7a2b40ca8887d # v7.2.0
         if: env.APPLY_FIXES_IF_COMMIT == 'true'
         with:
           branch: >-

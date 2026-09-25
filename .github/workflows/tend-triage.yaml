@@ -46,7 +46,7 @@ jobs:
           token: ${{ secrets.TEND_BOT_TOKEN }}
 
       - uses: ./.github/actions/tend-setup
-      - uses: baptiste0928/cargo-install@v3
+      - uses: baptiste0928/cargo-install@8195d4f734a149db85385bb4102b42efcd373759 # v3.5.0
         with:
           crate: cargo-llvm-cov
       - run: |-

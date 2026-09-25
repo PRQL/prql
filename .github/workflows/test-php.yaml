@@ -20,13 +20,13 @@ jobs:
     steps:
       - name: 📂 Checkout code
         uses: actions/checkout@v7
-      - uses: go-task/setup-task@v2
+      - uses: go-task/setup-task@a00fbb05ce67b35648be3c78cbc9fd85354c757e # v2.2.0
         with:
           repo-token: ${{ secrets.GITHUB_TOKEN }}
           version: 3.53.1
       - run: ./.github/workflows/scripts/set_version.sh
       - name: 💰 Cache
-        uses: Swatinem/rust-cache@v2
+        uses: Swatinem/rust-cache@6323deb102c322ba6fcbdcafc7e3dddab59af2b6 # v2.9.2
         with:
           prefix-key: ${{ env.version }}-${{ hashFiles('./Cargo.lock') }}
           save-if: ${{ github.ref == 'refs/heads/main' }}

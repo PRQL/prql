@@ -68,7 +68,7 @@ jobs:
         uses: actions/checkout@v7
         with:
           fetch-tags: true
-      - uses: dorny/paths-filter@v4
+      - uses: dorny/paths-filter@ceb8a2b8f2d89434be7ff52d3de7ec3738c5cc9d # v4.0.3
         id: changes
         with:
           filters: |
@@ -369,7 +369,7 @@ jobs:
       - name: 📂 Checkout code
         uses: actions/checkout@v7
 
-      - uses: baptiste0928/cargo-install@v3
+      - uses: baptiste0928/cargo-install@8195d4f734a149db85385bb4102b42efcd373759 # v3.5.0
         with:
           crate: lychee
 
@@ -391,7 +391,7 @@ jobs:
       - name: Get modified files
         if: needs.rules.outputs.nightly != 'true'
         id: changed-files
-        uses: tj-actions/changed-files@v47
+        uses: tj-actions/changed-files@24d32ffd492484c1d75e0c0b894501ddb9d30d62 # v47.0.0
         with:
           files: |
             **/*.md
@@ -425,19 +425,19 @@ jobs:
     steps:
       - name: 📂 Checkout code
         uses: actions/checkout@v7
-      - uses: baptiste0928/cargo-install@v3
+      - uses: baptiste0928/cargo-install@8195d4f734a149db85385bb4102b42efcd373759 # v3.5.0
         with:
           crate: mdbook
-      - uses: baptiste0928/cargo-install@v3
+      - uses: baptiste0928/cargo-install@8195d4f734a149db85385bb4102b42efcd373759 # v3.5.0
         with:
           crate: mdbook-footnote
       # the link checker
-      - uses: baptiste0928/cargo-install@v3
+      - uses: baptiste0928/cargo-install@8195d4f734a149db85385bb4102b42efcd373759 # v3.5.0
         with:
           crate: hyperlink
       - run: ./.github/workflows/scripts/set_version.sh
       - name: Cache
-        uses: Swatinem/rust-cache@v2
+        uses: Swatinem/rust-cache@6323deb102c322ba6fcbdcafc7e3dddab59af2b6 # v2.9.2
         with:
           prefix-key: ${{ env.version }}-${{ hashFiles('./Cargo.lock') }}
           shared-key: web
@@ -463,11 +463,11 @@ jobs:
       - uses: actions/setup-python@v7
         with:
           python-version: "3.11"
-      - uses: baptiste0928/cargo-install@v3
+      - uses: baptiste0928/cargo-install@8195d4f734a149db85385bb4102b42efcd373759 # v3.5.0
         with:
           crate: cargo-llvm-cov
       - name: 💰 Cache
-        uses: Swatinem/rust-cache@v2
+        uses: Swatinem/rust-cache@6323deb102c322ba6fcbdcafc7e3dddab59af2b6 # v2.9.2
         with:
           prefix-key: ${{ env.version }}-${{ hashFiles('./Cargo.lock') }}
           save-if: ${{ github.ref == 'refs/heads/main' }}
@@ -510,7 +510,7 @@ jobs:
           # accuracy is important.
           ${{ github.repository_owner == 'prql' && github.event_name !=
           'schedule' }}
-        uses: codecov/codecov-action@v7
+        uses: codecov/codecov-action@303a32d7a59b442fa8d48b6a1cc6825c09c847a5 # v7.1.1
         with:
           files: cobertura.xml
           fail_ci_if_error: true
@@ -536,7 +536,7 @@ jobs:
       - name: 📂 Checkout code
         uses: actions/checkout@v7
       - name: 🧅 Setup Bun
-        uses: oven-sh/setup-bun@v2
+        uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2.2.0
         with:
           bun-version: latest
       - name: Install dependencies
@@ -549,7 +549,7 @@ jobs:
         working-directory: grammars/prql-lezer/
         run: bun run test
       - name: 🦋 Setup Raku
-        uses: Raku/setup-raku@v1
+        uses: Raku/setup-raku@b8b1a4ebe85ef112edfc65e9edc8c57735367e3f # v1.14.0
       # `prove6` is the TAP harness that runs the whole `t/` directory in one
       # command, as `grammars/raku/README.md` documents. `zef` ships with the
       # rakudo archive that `setup-raku` installs.
@@ -593,7 +593,7 @@ jobs:
     steps:
       - uses: actions/checkout@v7
       - name: Build and run devcontainer
-        uses: devcontainers/ci@v0.3
+        uses: devcontainers/ci@513af61f4de4f75d37e4438f184ba4358f0fc1ca # v0.3.1900000450
         with:
           runCmd: |
             set -euxo pipefail
@@ -609,7 +609,7 @@ jobs:
     steps:
       - name: 📂 Checkout code
         uses: actions/checkout@v7
-      - uses: baptiste0928/cargo-install@v3
+      - uses: baptiste0928/cargo-install@8195d4f734a149db85385bb4102b42efcd373759 # v3.5.0
         with:
           crate: cargo-msrv
           # TODO: remove this version pinning
@@ -634,15 +634,15 @@ jobs:
       - uses: actions/setup-python@v7
         with:
           python-version: "3.11"
-      - uses: baptiste0928/cargo-install@v3
+      - uses: baptiste0928/cargo-install@8195d4f734a149db85385bb4102b42efcd373759 # v3.5.0
         with:
           crate: cargo-hack
-      - uses: baptiste0928/cargo-install@v3
+      - uses: baptiste0928/cargo-install@8195d4f734a149db85385bb4102b42efcd373759 # v3.5.0
         with:
           crate: cargo-minimal-versions
       - run: ./.github/workflows/scripts/set_version.sh
       - name: 💰 Cache
-        uses: Swatinem/rust-cache@v2
+        uses: Swatinem/rust-cache@6323deb102c322ba6fcbdcafc7e3dddab59af2b6 # v2.9.2
         with:
           prefix-key: ${{ env.version }}-${{ hashFiles('./Cargo.lock') }}
           save-if: ${{ github.ref == 'refs/heads/main' }}
@@ -817,7 +817,7 @@ jobs:
     steps:
       - name: 📂 Checkout code
         uses: actions/checkout@v7
-      - uses: a-kenji/update-rust-toolchain@main
+      - uses: a-kenji/update-rust-toolchain@8f7a95eb982dcb01149292544e20df1df0fc762f # latest
         with:
           # Discussion in #1561
           minor-version-delta: 1

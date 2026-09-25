@@ -21,15 +21,15 @@ jobs:
 
       # Website requires Hugo
       - name: Setup Hugo
-        uses: peaceiris/actions-hugo@v3.2.1
+        uses: peaceiris/actions-hugo@2752ce1d29631191ea3f27c23495fa06139a5b78 # v3.2.1
 
-      - uses: baptiste0928/cargo-install@v3
+      - uses: baptiste0928/cargo-install@8195d4f734a149db85385bb4102b42efcd373759 # v3.5.0
         with:
           crate: mdbook
-      - uses: baptiste0928/cargo-install@v3
+      - uses: baptiste0928/cargo-install@8195d4f734a149db85385bb4102b42efcd373759 # v3.5.0
         with:
           crate: mdbook-footnote
-      - uses: baptiste0928/cargo-install@v3
+      - uses: baptiste0928/cargo-install@8195d4f734a149db85385bb4102b42efcd373759 # v3.5.0
         with:
           crate: wasm-pack
 
@@ -42,7 +42,7 @@ jobs:
 
       - run: ./.github/workflows/scripts/set_version.sh
       - name: 💰 Cache
-        uses: Swatinem/rust-cache@v2
+        uses: Swatinem/rust-cache@6323deb102c322ba6fcbdcafc7e3dddab59af2b6 # v2.9.2
         with:
           prefix-key: ${{ env.version }}-${{ hashFiles('./Cargo.lock') }}
           shared-key: web
@@ -54,7 +54,7 @@ jobs:
           # https://github.com/Swatinem/rust-cache/issues/341.
           cache-bin: "false"
 
-      - uses: go-task/setup-task@v2
+      - uses: go-task/setup-task@a00fbb05ce67b35648be3c78cbc9fd85354c757e # v2.2.0
         with:
           repo-token: ${{ secrets.GITHUB_TOKEN }}
           version: 3.53.1
@@ -73,7 +73,7 @@ jobs:
       - name: 📂 Checkout code
         uses: actions/checkout@v7
       - name: 🧅 Setup Bun
-        uses: oven-sh/setup-bun@v2
+        uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2.2.0
         with:
           bun-version: latest
       - name: Install CodeMirror demo dependencies

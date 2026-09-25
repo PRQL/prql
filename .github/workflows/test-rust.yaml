@@ -39,7 +39,7 @@ jobs:
         if:
           ${{ contains(inputs.features, 'test-dbs-external') &&
           env.DOCKERHUB_USERNAME != '' }}
-        uses: docker/login-action@v4.6.0
+        uses: docker/login-action@dbcb813823bdd20940b903addbd779551569679f # v4.6.0
         with:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
@@ -55,14 +55,14 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y musl-tools
       - run: rustup target add ${{ inputs.target }}
-      - uses: baptiste0928/cargo-install@v3
+      - uses: baptiste0928/cargo-install@8195d4f734a149db85385bb4102b42efcd373759 # v3.5.0
         with:
           crate: wasm-bindgen-cli
         if: inputs.target == 'wasm32-unknown-unknown'
-      - uses: baptiste0928/cargo-install@v3
+      - uses: baptiste0928/cargo-install@8195d4f734a149db85385bb4102b42efcd373759 # v3.5.0
         with:
           crate: cargo-insta
-      - uses: baptiste0928/cargo-install@v3
+      - uses: baptiste0928/cargo-install@8195d4f734a149db85385bb4102b42efcd373759 # v3.5.0
         with:
           crate: cargo-nextest
       - run: ./.github/workflows/scripts/set_version.sh
@@ -76,7 +76,7 @@ jobs:
             echo "cargo_lock_hash=$(shasum -a 256 Cargo.lock | cut -d' ' -f1)" >> "$GITHUB_ENV"
           fi
       - name: 💰 Cache
-        uses: Swatinem/rust-cache@v2
+        uses: Swatinem/rust-cache@6323deb102c322ba6fcbdcafc7e3dddab59af2b6 # v2.9.2
         id: cache
         with:
           # We add the hash of the Cargo.lock file to the key, to prevent the
@@ -120,7 +120,7 @@ jobs:
       # We split up the test compilation as recommended in
       # https://matklad.github.io/2021/09/04/fast-rust-builds.html
       - name: 🏭 Compile
-        uses: clechasseur/rs-cargo@v4
+        uses: clechasseur/rs-cargo@2a8aa939121c79dd2b4305ed6bf83bc400ce1036 # v4.0.2
         with:
           command: test
           args: >
@@ -128,7 +128,7 @@ jobs:
             --no-default-features --features=${{ inputs.features }}
       - name: Wait for database
         id: wait-for-db
-        uses: ifaxity/wait-on-action@v1.2.1
+        uses: ifaxity/wait-on-action@a7d13170ec542bdca4ef8ac4b15e9c6aa00a6866 # v1.2.1
         with:
           resource: "tcp:1433 tcp:3306 tcp:5432 tcp:9004"
           timeout: 60000
@@ -150,7 +150,7 @@ jobs:
           docker compose logs --no-color --tail=200
         working-directory: ./prqlc/prqlc/tests/integration/dbs
       - name: 📋 Test
-        uses: clechasseur/rs-cargo@v4
+        uses: clechasseur/rs-cargo@2a8aa939121c79dd2b4305ed6bf83bc400ce1036 # v4.0.2
         with:
           command: insta
           # Here, we also add:
@@ -171,14 +171,14 @@ jobs:
         if:
           inputs.os != 'windows-latest' && inputs.target !=
           'wasm32-unknown-unknown'
-        uses: clechasseur/rs-cargo@v4
+        uses: clechasseur/rs-cargo@2a8aa939121c79dd2b4305ed6bf83bc400ce1036 # v4.0.2
         with:
           command: test
           args: >
             --doc --target=${{ inputs.target }} --no-default-features
             --features=${{ inputs.features }}
       - name: 📎 Clippy
-        uses: clechasseur/rs-cargo@v4
+        uses: clechasseur/rs-cargo@2a8aa939121c79dd2b4305ed6bf83bc400ce1036 # v4.0.2
         with:
           command: clippy
           # Note that `--all-targets` doesn't refer to targets like
@@ -188,7 +188,7 @@ jobs:
             --all-targets --target=${{ inputs.target }} --no-default-features
             --features=${{ inputs.features }} -- -D warnings
       - name: ⌨️ Fmt
-        uses: clechasseur/rs-cargo@v4
+        uses: clechasseur/rs-cargo@2a8aa939121c79dd2b4305ed6bf83bc400ce1036 # v4.0.2
         with:
           command: fmt
           args: --all --check
@@ -203,7 +203,7 @@ jobs:
         # opposite case: their inputs are always strings, hence the `== 'true'`
         # in `.github/actions/time-compilation/action.yaml`.)
         if: inputs.nightly && inputs.target != 'wasm32-unknown-unknown'
-        uses: clechasseur/rs-cargo@v4
+        uses: clechasseur/rs-cargo@2a8aa939121c79dd2b4305ed6bf83bc400ce1036 # v4.0.2
         with:
           # `--no-deps`: cargo passes `--cap-lints allow` to registry
           # dependencies, so `RUSTDOCFLAGS: -Dwarnings` can only fire on our own
@@ -221,7 +221,7 @@ jobs:
         if:
           ${{ github.ref == 'refs/heads/main' && steps.cache.outputs.cache-hit
           == 'false' }}
-        uses: clechasseur/rs-cargo@v4
+        uses: clechasseur/rs-cargo@2a8aa939121c79dd2b4305ed6bf83bc400ce1036 # v4.0.2
         with:
           command: build
           args:
