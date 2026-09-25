@@ -647,9 +647,10 @@ mod tests {
                 &super::Options::default().no_signature()
             ).unwrap(),
             @"
-        WITH table_0 AS (
-          SELECT
-            DISTINCT ON (media_type_id) track_id,
+        WITH
+        table_0 AS (
+          SELECT DISTINCT
+            ON (media_type_id) track_id,
             media_type_id,
             name
           FROM
@@ -699,9 +700,10 @@ mod tests {
                 &super::Options::default().no_signature()
             ).unwrap(),
             @"
-        WITH table_0 AS (
-          SELECT
-            DISTINCT ON (media_type_id) track_id,
+        WITH
+        table_0 AS (
+          SELECT DISTINCT
+            ON (media_type_id) track_id,
             media_type_id,
             name
           FROM

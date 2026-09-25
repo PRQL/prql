@@ -1,0 +1,156 @@
+# PRQL Development Guidelines
+
+## Development Workflow
+
+Use a tiered testing approach—iterate quickly, validate thoroughly:
+
+**Inner loop** (during development, ~5s):
+
+```sh
+# Fast tests on core packages
+task prqlc:test
+
+# Filtered by test name
+cargo insta test -p prqlc --lib -- resolver
+cargo insta test -p prqlc --test integration -- date
+```
+
+**Before returning to user** (~30s):
+
+```sh
+# Comprehensive prqlc tests - sufficient for most changes
+task prqlc:pull-request
+```
+
+**Cross-binding changes only** (~2min):
+
+```sh
+# Only when changes affect JS/Python/wasm bindings
+task test-all
+```
+
+The test suite is configured to minimize token usage:
+
+- **Nextest** only shows failures and slow tests (not 600 PASS lines)
+- **Cargo builds** use `--quiet` flag (no compilation spam)
+- **Result**: ~52% reduction in output (1128 → 540 lines, ~4.5k tokens)
+
+## Tests
+
+Read `prqlc/prqlc/tests/AGENTS.md` before changing compiler tests.
+
+Prefer inline snapshots for almost all tests:
+
+```rust
+insta::assert_snapshot!(result, @"expected output");
+```
+
+Initialize tests with empty snapshots, then run with `--accept`:
+
+```rust
+insta::assert_snapshot!(result, @"");
+```
+
+The test commands above with `--accept` will fill in the result automatically.
+
+### Test Strategy
+
+**Prefer small inline `insta` snapshot tests** over full integration tests:
+
+- **Use inline tests** for most bug fixes and small features
+  - Add `#[test]` functions in a `#[cfg(test)]` module at the end of the file
+  - Use `insta::assert_snapshot!` for compact, readable test assertions
+  - Fast to run, easy to review in PRs
+
+- **Use integration tests** (`prqlc/prqlc/tests/integration/queries/*.prql`)
+  only when:
+  - Developing large, complex features that need comprehensive testing
+  - Testing end-to-end behavior across multiple compilation stages
+  - The test requires external resources or multi-file scenarios
+
+Example of a good inline test:
+
+```rust
+#[cfg(test)]
+mod test {
+    use insta::assert_snapshot;
+
+    #[test]
+    fn test_my_feature() {
+        let query = "from employees | filter country == 'USA'";
+        assert_snapshot!(crate::tests::compile(query).unwrap(), @"");
+    }
+}
+```
+
+## Running the CLI
+
+For viewing `prqlc` output, for any stage of the compilation process:
+
+```sh
+# Compile PRQL to SQL (the argument is a path; pipe to read from stdin)
+echo "from employees | filter country == 'USA'" | cargo run -q -p prqlc -- compile
+
+# Format PRQL code
+echo "from employees | filter country == 'USA'" | cargo run -q -p prqlc -- fmt
+
+# Or pass a file
+cargo run -q -p prqlc -- compile prqlc/prqlc/tests/integration/queries/aggregation.prql
+
+# See all available commands
+cargo run -q -p prqlc -- --help
+```
+
+## Linting
+
+Run all lints with
+
+```sh
+task lint
+```
+
+## Error Handling
+
+Never panic on user input or recoverable errors. Use proper error returns:
+
+- ❌ `.unwrap()` on operations that can fail with user input
+- ✅ `?` operator or `return Err(Error::new_simple("message"))`
+- ✅ `.expect("reason")` or `unreachable!()` only for compiler-bug invariants
+
+## Error Messages
+
+Error messages should avoid 2nd person (you/your). Use softer modal verbs like
+"might" for a friendlier tone:
+
+- ❌ "are you missing `from` statement?" → ✅ "`from` statement might be
+  missing?"
+- ❌ "did you forget to specify the column name?" → ✅ "column name might be
+  missing?"
+- ❌ "you can only use X" → ✅ "X requires Y" (for hard constraints)
+- ❌ "Have you forgotten an argument?" → ✅ "Argument might be missing?"
+
+## Changelog
+
+A user-facing change needs a `CHANGELOG.md` line in the same PR, under the
+matching heading, formatted `{message}, (@contributor, #X)` with `X` the PR
+number — which only exists once the PR is open, so add the entry in a follow-up
+commit rather than dropping it. Internal refactors, test-only changes and
+workflow regens don't need one. See
+`web/book/src/project/contributing/development.md` under **Contribution workflow
+› Commits**.
+
+## Documentation
+
+Build crate documentation with:
+
+```sh
+cargo doc -p prqlc
+```
+
+The generated HTML is at `target/doc/{crate_name}/index.html`. Follow its links
+to modules and functions.
+
+## Releases & Environment
+
+For releases or environment issues, see
+`web/book/src/project/contributing/development.md`.

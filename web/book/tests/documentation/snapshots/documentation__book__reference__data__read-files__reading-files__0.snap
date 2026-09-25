@@ -2,7 +2,8 @@
 source: web/book/tests/documentation/book.rs
 expression: "prql target:sql.duckdb\n\nfrom a = (read_parquet \"artists.parquet\")\njoin b = (read_csv \"albums.csv\") (a.artist_id == b.artist_id)\njoin c = (read_json \"metadata.json\") (a.artist_id == c.artist_id)\n"
 ---
-WITH table_0 AS (
+WITH
+table_0 AS (
   SELECT
     *
   FROM
