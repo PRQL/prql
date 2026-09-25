@@ -110,6 +110,8 @@ jobs:
     environment: release
     needs: create-draft
     if: ${{ github.event_name == 'push' && github.ref_type == 'tag' }}
+    permissions:
+      contents: read
     steps:
       - uses: actions/github-script@v9
         with:
@@ -219,6 +221,8 @@ jobs:
     environment: release
     needs: publish-release
     if: ${{ github.event_name == 'push' && github.ref_type == 'tag' }}
+    permissions:
+      contents: read
     steps:
       - name: publish
         uses: vedantmgoyal2009/winget-releaser@4ffc7888bffd451b357355dc214d43bb9f23917e # v2
@@ -379,6 +383,8 @@ jobs:
     environment: release
     needs: create-draft
     if: ${{ github.event_name == 'push' && github.ref_type == 'tag' }}
+    permissions:
+      contents: read
     steps:
       - name: 📂 Checkout code
         uses: actions/checkout@v7
@@ -421,6 +427,8 @@ jobs:
           - os: ubuntu-24.04
             package: prqlc-python
             target: source
+    permissions:
+      contents: read
     steps:
       - name: 📂 Checkout code
         uses: actions/checkout@v7

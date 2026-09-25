@@ -15,6 +15,8 @@ jobs:
   main:
     name: Validate PR title
     runs-on: ubuntu-24.04
+    permissions:
+      pull-requests: read
     steps:
       - uses: amannn/action-semantic-pull-request@48f256284bd46cdaab1048c3721360e808335d50 # v6.1.1
         env:
@@ -65,6 +67,8 @@ jobs:
     environment:
       name: tend
       deployment: false
+    permissions:
+      contents: read
     steps:
       - uses: tibdex/backport@9565281eda0731b1d20c4025c43339fb0a23812e # v2.0.4
         with:

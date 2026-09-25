@@ -50,6 +50,8 @@ jobs:
 
   cargo-bench:
     runs-on: ubuntu-24.04
+    permissions:
+      contents: read
     steps:
       - uses: actions/checkout@v7
       - uses: clechasseur/rs-cargo@2a8aa939121c79dd2b4305ed6bf83bc400ce1036 # v4.0.2
@@ -65,6 +67,8 @@ jobs:
     strategy:
       matrix:
         use_cache: [true, false]
+    permissions:
+      contents: read
     steps:
       - name: 📂 Checkout code
         uses: actions/checkout@v7
@@ -83,6 +87,8 @@ jobs:
 
   check-unused-dependencies:
     runs-on: ubuntu-24.04
+    permissions:
+      contents: read
     steps:
       - name: 📂 Checkout code
         uses: actions/checkout@v7

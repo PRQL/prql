@@ -20,6 +20,8 @@ env:
 
 jobs:
   build-web:
+    permissions:
+      contents: read
     uses: ./.github/workflows/build-web.yaml
 
   deploy-web:

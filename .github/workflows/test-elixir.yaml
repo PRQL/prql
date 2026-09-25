@@ -32,6 +32,8 @@ jobs:
         otp: ["25.1.2"]
         elixir: ["1.15.7"]
     runs-on: ${{matrix.os}}
+    permissions:
+      contents: read
     steps:
       # Step: Check out the code.
       - name: Checkout code

@@ -30,6 +30,8 @@ env:
 jobs:
   test-rust:
     runs-on: ${{ inputs.os }}
+    permissions:
+      contents: read
     steps:
       - name: 📂 Checkout code
         uses: actions/checkout@v7

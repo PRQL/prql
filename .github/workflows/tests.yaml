@@ -180,6 +180,8 @@ jobs:
   test-rust:
     needs: rules
     if: needs.rules.outputs.rust == 'true' || needs.rules.outputs.main == 'true'
+    permissions:
+      contents: read
     uses: ./.github/workflows/test-rust.yaml
     secrets: inherit
     strategy:
@@ -207,6 +209,8 @@ jobs:
     needs: rules
     if:
       needs.rules.outputs.python == 'true' || needs.rules.outputs.main == 'true'
+    permissions:
+      contents: read
     uses: ./.github/workflows/test-python.yaml
     with:
       # Only run on ubuntu unless there's a lang-specific change or we're
@@ -223,6 +227,8 @@ jobs:
   test-js:
     needs: rules
     if: needs.rules.outputs.js == 'true' || needs.rules.outputs.main == 'true'
+    permissions:
+      contents: read
     uses: ./.github/workflows/test-js.yaml
     with:
       # Only run on ubuntu unless there's a lang-specific change or we're running nightly.
@@ -235,16 +241,22 @@ jobs:
     needs: rules
     if:
       needs.rules.outputs.dotnet == 'true' || needs.rules.outputs.main == 'true'
+    permissions:
+      contents: read
     uses: ./.github/workflows/test-dotnet.yaml
 
   test-php:
     needs: rules
     if: needs.rules.outputs.php == 'true' || needs.rules.outputs.main == 'true'
+    permissions:
+      contents: read
     uses: ./.github/workflows/test-php.yaml
 
   test-java:
     needs: rules
     if: needs.rules.outputs.java == 'true' || needs.rules.outputs.main == 'true'
+    permissions:
+      contents: read
     uses: ./.github/workflows/test-java.yaml
     with:
       # Currently we never run windows
@@ -256,6 +268,8 @@ jobs:
     needs: rules
     if:
       needs.rules.outputs.elixir == 'true' || needs.rules.outputs.main == 'true'
+    permissions:
+      contents: read
     uses: ./.github/workflows/test-elixir.yaml
     with:
       # Currently we never run Mac, see prql-elixir docs for details
@@ -269,6 +283,8 @@ jobs:
     if:
       needs.rules.outputs.prqlc-c == 'true' || needs.rules.outputs.main ==
       'true'
+    permissions:
+      contents: read
     uses: ./.github/workflows/test-prqlc-c.yaml
 
   # Disabled due to https://github.com/PRQL/prql/pull/4876
@@ -331,6 +347,8 @@ jobs:
           # - os: ubuntu-24.04
           #   target: aarch64-unknown-linux-musl
 
+    permissions:
+      contents: read
     uses: ./.github/workflows/test-rust.yaml
     secrets: inherit
     with:
@@ -341,6 +359,8 @@ jobs:
   build-web:
     needs: rules
     if: needs.rules.outputs.web == 'true' || needs.rules.outputs.main == 'true'
+    permissions:
+      contents: read
     uses: ./.github/workflows/build-web.yaml
 
   lint-megalinter:
@@ -365,6 +385,8 @@ jobs:
     # Using lychee via pre-commit for consistency with local development.
     # Lychee has better retry support for transient network errors than markdown-link-check.
     runs-on: ubuntu-24.04
+    permissions:
+      contents: read
     steps:
       - name: 📂 Checkout code
         uses: actions/checkout@v7
@@ -422,6 +444,8 @@ jobs:
 
     runs-on: ubuntu-24.04
 
+    permissions:
+      contents: read
     steps:
       - name: 📂 Checkout code
         uses: actions/checkout@v7
@@ -456,6 +480,8 @@ jobs:
   measure-code-cov:
     runs-on: ubuntu-24.04
     needs: rules
+    permissions:
+      contents: read
     steps:
       - name: 📂 Checkout code
         uses: actions/checkout@v7
@@ -532,6 +558,8 @@ jobs:
     if:
       needs.rules.outputs.grammars == 'true' || needs.rules.outputs.main ==
       'true'
+    permissions:
+      contents: read
     steps:
       - name: 📂 Checkout code
         uses: actions/checkout@v7
@@ -590,6 +618,8 @@ jobs:
     needs: rules
     if: needs.rules.outputs.devcontainer-build == 'true'
     timeout-minutes: 30
+    permissions:
+      contents: read
     steps:
       - uses: actions/checkout@v7
       - name: Build and run devcontainer
@@ -606,6 +636,8 @@ jobs:
     runs-on: ubuntu-24.04
     needs: rules
     if: needs.rules.outputs.nightly == 'true'
+    permissions:
+      contents: read
     steps:
       - name: 📂 Checkout code
         uses: actions/checkout@v7
@@ -627,6 +659,8 @@ jobs:
     runs-on: ubuntu-24.04
     needs: rules
     if: needs.rules.outputs.nightly == 'true'
+    permissions:
+      contents: read
     steps:
       - name: 📂 Checkout code
         uses: actions/checkout@v7
@@ -681,6 +715,8 @@ jobs:
       - test-rust-main
       # - test-taskfile  # Disabled due to https://github.com/PRQL/prql/pull/4876
     runs-on: ubuntu-24.04
+    permissions:
+      contents: read
     steps:
       - name: Decide whether the needed jobs succeeded or failed
         # https://github.com/re-actors/alls-green/issues/23
@@ -752,6 +788,8 @@ jobs:
           - os: windows-latest
             target: x86_64-pc-windows-msvc
             features: default
+    permissions:
+      contents: read
     steps:
       - name: 📂 Checkout code
         uses: actions/checkout@v7
@@ -785,6 +823,8 @@ jobs:
           - os: windows-latest
             target: x86_64-pc-windows-msvc
             features: default
+    permissions:
+      contents: read
     steps:
       - name: 📂 Checkout code
         uses: actions/checkout@v7
@@ -814,6 +854,8 @@ jobs:
     environment:
       name: tend
       deployment: false
+    permissions:
+      contents: read
     steps:
       - name: 📂 Checkout code
         uses: actions/checkout@v7

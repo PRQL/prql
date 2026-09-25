@@ -27,6 +27,8 @@ jobs:
       fail-fast: false
       matrix:
         os: ${{ fromJSON(inputs.oss) }}
+    permissions:
+      contents: read
     steps:
       - name: 📂 Checkout code
         uses: actions/checkout@v7

@@ -30,6 +30,9 @@ jobs:
             runner: ubuntu-24.04-arm
     runs-on: ${{ matrix.runner }}
     timeout-minutes: 240
+    permissions:
+      contents: read
+      packages: write
     steps:
       - uses: actions/checkout@v7
       - name: Log in to Docker Hub
@@ -103,6 +106,9 @@ jobs:
     timeout-minutes: 30
     if: inputs.push
     needs: build
+    permissions:
+      contents: read
+      packages: write
     steps:
       - name: Download digests
         uses: actions/download-artifact@v8
