@@ -29,6 +29,8 @@
 
 **Fixes**:
 
+- Keep the outer frame after a nested `window`; transforms following the inner
+  `window` previously compiled with an unbounded `OVER ()`. (@prql-bot, #6375)
 - Report a circular `import` as an error rather than crashing with a stack
   overflow. (@prql-bot, #6376)
 - `prqlc experimental doc --format=html` now escapes HTML in the page it
