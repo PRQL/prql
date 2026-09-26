@@ -29,6 +29,13 @@
 
 **Fixes**:
 
+- `take` bounds at the extremes of `i64` no longer produce a panic or invalid
+  SQL. Combining nested ranges (`take 9223372036854775807.. | take 2..`)
+  overflowed while re-basing the inner bounds, panicking in a debug build and
+  silently emitting a wrapped `OFFSET` in a release one; it now reports a
+  compile error. Separately, a `LIMIT` at or above 2^32 was rendered with
+  sqlparser's `long` flag, so `take 5000000000` compiled to
+  `LIMIT 5000000000 L`, which no dialect parses. (@prql-bot, #6347)
 - Keep the outer frame after a nested `window`; transforms following the inner
   `window` previously compiled with an unbounded `OVER ()`. (@prql-bot, #6375)
 - Report a circular `import` as an error rather than crashing with a stack

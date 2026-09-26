@@ -770,11 +770,49 @@ pub(super) fn translate_sstring(
 pub(super) fn range_of_ranges(ranges: Vec<Range<rq::Expr>>) -> Result<Range<i64>> {
     let mut current = Range::default();
     for range in ranges {
-        let mut range = try_range_into_int(range)?;
+        // Kept before the conversion below, which consumes the bounds, so an
+        // overflow can be reported against the bound that caused it.
+        let start_span = range.start.as_ref().and_then(|bound| bound.span);
+        let end_span = range.end.as_ref().and_then(|bound| bound.span);
+        let range = try_range_into_int(range)?;
 
         // b = b + a.start -1 (take care of 1-based index!)
-        range.start = range.start.or_map(current.start, |a, b| a + b - 1);
-        range.end = range.end.map(|b| current.start.unwrap_or(1) + b - 1);
+        //
+        // Both bounds are checked: a `take` nested inside another one shifts
+        // its bounds by the outer range's start, and two bounds near
+        // `i64::MAX` sum past it. Overflowing here panics in a debug build and,
+        // because `[profile.release]` leaves `overflow-checks` off, silently
+        // wraps to a nonsense `LIMIT`/`OFFSET` in a release one — so an
+        // overflow that the intersection and emptiness check below cannot
+        // discard is reported as a compile error instead.
+        let start = match (range.start, current.start) {
+            (Some(a), Some(b)) => match shift_bound(a, b, start_span) {
+                Ok(start) => Some(start),
+                // A start past `i64::MAX` is past every representable end, so
+                // a bounded enclosing range selects nothing — the same result
+                // the emptiness check below reaches for `take 2..3 | take 5..`.
+                // Only an unbounded enclosing end leaves no representable
+                // answer.
+                Err(err) if current.end.is_none() => return Err(err),
+                Err(_) => return Ok(empty_range()),
+            },
+            (a, None) => a,
+            (None, b) => b,
+        };
+        let end = match range.end {
+            Some(b) => match shift_bound(b, current.start.unwrap_or(1), end_span) {
+                Ok(end) => Some(end),
+                // The intersection below clamps the end to the enclosing one,
+                // which is necessarily the smaller of the two once the shifted
+                // bound has run past `i64::MAX`. So an overflow the
+                // intersection would discard is not an error; only an
+                // unbounded enclosing range leaves it with no representable
+                // answer.
+                Err(err) => Some(current.end.ok_or(err)?),
+            },
+            None => None,
+        };
+        let mut range = Range { start, end };
 
         // b.end = min(a.end, b.end)
         range.end = current.end.or_map(range.end, i64::min);
@@ -783,13 +821,36 @@ pub(super) fn range_of_ranges(ranges: Vec<Range<rq::Expr>>) -> Result<Range<i64>
 
     if let Some((s, e)) = current.start.zip(current.end) {
         if e < s {
-            return Ok(Range {
-                start: None,
-                end: Some(0),
-            });
+            return Ok(empty_range());
         }
     }
     Ok(current)
+}
+
+/// The range that selects no rows.
+fn empty_range() -> Range<i64> {
+    Range {
+        start: None,
+        end: Some(0),
+    }
+}
+
+/// Shifts a 1-based range bound by the start of the range it is nested in,
+/// i.e. `bound + enclosing_start - 1`.
+///
+/// Subtracting before adding keeps the intermediate in range: lowering has
+/// already rejected bounds below 1, so `bound - 1` cannot underflow, and the
+/// sum then overflows only when the result genuinely exceeds `i64::MAX`.
+/// Adding first would reject `take ..9223372036854775807`, whose result is
+/// representable.
+fn shift_bound(bound: i64, enclosing_start: i64, span: Option<Span>) -> Result<i64> {
+    bound
+        .checked_sub(1)
+        .and_then(|shifted| shifted.checked_add(enclosing_start))
+        .ok_or_else(|| {
+            Error::new_simple("`take` bounds are too large to combine with the enclosing `take`")
+                .with_span(span)
+        })
 }
 
 fn unpack_as_int_literal(bound: rq::Expr) -> Result<i64> {
@@ -807,7 +868,11 @@ fn try_range_into_int(range: Range<rq::Expr>) -> Result<Range<i64>> {
 }
 
 pub(super) fn expr_of_i64(number: i64) -> sql_ast::Expr {
-    sql_ast::Expr::Value(Value::Number(number.to_string(), number.leading_zeros() < 32).into())
+    // The second field is sqlparser's `long` flag, which renders an `L` suffix
+    // — not a width hint. Every other number this module emits passes `false`,
+    // and `fetch_of_i64` renders the same value through `translate_literal`,
+    // so a dialect using FETCH already got it right where LIMIT did not.
+    sql_ast::Expr::Value(Value::Number(number.to_string(), false).into())
 }
 
 pub(super) fn fetch_of_i64(take: i64, ctx: &mut Context) -> Fetch {
@@ -1242,7 +1307,7 @@ impl From<sql_ast::Expr> for ExprOrSource {
 
 #[cfg(test)]
 mod test {
-    use insta::assert_yaml_snapshot;
+    use insta::{assert_snapshot, assert_yaml_snapshot};
 
     use super::*;
 
@@ -1320,5 +1385,113 @@ mod test {
         ");
 
         Ok(())
+    }
+
+    /// The end bound is shifted by the enclosing range's start, so it
+    /// overflows on its own inputs — covered separately from the start bound.
+    #[test]
+    fn test_range_of_ranges_overflow_end() {
+        let query = "from a | take 2.. | take ..9223372036854775807";
+        assert_snapshot!(crate::tests::compile(query).unwrap_err(), @"
+        Error:
+           ╭─[ :1:28 ]
+           │
+         1 │ from a | take 2.. | take ..9223372036854775807
+           │                            ─────────┬─────────
+           │                                     ╰─────────── `take` bounds are too large to combine with the enclosing `take`
+        ───╯
+        ");
+    }
+
+    /// An end bound that overflows while being shifted is still bounded by the
+    /// enclosing range's end, which the intersection picks — so this is an
+    /// ordinary query, not an overflow.
+    #[test]
+    fn test_range_of_ranges_overflowing_end_is_clamped_by_the_enclosing_end() {
+        let query = "from a | take 2..10 | take ..9223372036854775807";
+        assert_snapshot!(crate::tests::compile(query).unwrap(), @"
+        SELECT
+          *
+        FROM
+          a
+        LIMIT
+          9 OFFSET 1
+        ");
+    }
+
+    /// The error points at the bound that overflowed, not at whichever bound
+    /// of the same `take` happens to come first.
+    #[test]
+    fn test_range_of_ranges_overflow_points_at_the_offending_bound() {
+        let query = "from a | take 2.. | take 3..9223372036854775807";
+        assert_snapshot!(crate::tests::compile(query).unwrap_err(), @"
+        Error:
+           ╭─[ :1:29 ]
+           │
+         1 │ from a | take 2.. | take 3..9223372036854775807
+           │                             ─────────┬─────────
+           │                                      ╰─────────── `take` bounds are too large to combine with the enclosing `take`
+        ───╯
+        ");
+    }
+
+    /// A `LIMIT` above `u32::MAX` must render as a plain integer; sqlparser's
+    /// `long` flag would append an `L` that no dialect parses.
+    #[test]
+    fn test_large_limit_has_no_long_suffix() {
+        let query = "from a | take 5000000000";
+        assert_snapshot!(crate::tests::compile(query).unwrap(), @"
+        SELECT
+          *
+        FROM
+          a
+        LIMIT
+          5000000000
+        ");
+    }
+
+    /// An end bound at `i64::MAX` in the outermost `take` is representable —
+    /// only the intermediate of a naive `a + b - 1` would overflow.
+    #[test]
+    fn test_range_of_ranges_max_end_is_not_an_overflow() {
+        let query = "from a | take ..9223372036854775807";
+        assert_snapshot!(crate::tests::compile(query).unwrap(), @"
+        SELECT
+          *
+        FROM
+          a
+        LIMIT
+          9223372036854775807
+        ");
+    }
+
+    /// A start bound that overflows while being shifted has run past every
+    /// representable end, so a bounded enclosing range selects nothing — the
+    /// same result `take 2..3 | take 5..` reaches without overflowing.
+    #[test]
+    fn test_range_of_ranges_overflowing_start_is_empty_when_enclosing_end_is_bounded() {
+        let query = "from a | take 9223372036854775807..9223372036854775807 | take 2..";
+        assert_snapshot!(crate::tests::compile(query).unwrap(), @"
+        SELECT
+          *
+        FROM
+          a
+        LIMIT
+          0
+        ");
+    }
+
+    #[test]
+    fn test_range_of_ranges_overflow() {
+        let query = "from a | take 9223372036854775807.. | take 2..";
+        assert_snapshot!(crate::tests::compile(query).unwrap_err(), @"
+        Error:
+           ╭─[ :1:44 ]
+           │
+         1 │ from a | take 9223372036854775807.. | take 2..
+           │                                            ┬
+           │                                            ╰── `take` bounds are too large to combine with the enclosing `take`
+        ───╯
+        ");
     }
 }
