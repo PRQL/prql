@@ -551,3 +551,23 @@ fn recovery_returns_no_tokens_on_error() {
     ]
     "#);
 }
+
+#[test]
+fn test_lex_source_non_ascii_spans() {
+    // Spans count chars, not bytes, so a multi-byte char doesn't shift the
+    // spans of the tokens after it.
+    assert_debug_snapshot!(lex_source("# é\nx 'ü' y"), @r#"
+    Ok(
+        Tokens(
+            [
+                0..0: Start,
+                0..3: Comment(" é"),
+                3..4: NewLine,
+                4..5: Ident("x"),
+                6..9: Literal(String("ü")),
+                10..11: Ident("y"),
+            ],
+        ),
+    )
+    "#);
+}
