@@ -29,6 +29,12 @@
 
 **Fixes**:
 
+- `date.to_text` errors now name the format specifier the target dialect
+  rejected — `format specifier %P is not supported for Postgres` rather than
+  `PRQL doesn't support this format specifier`, whose span covers the whole
+  format string. An escape chrono doesn't recognize at all, such as `%Q`, now
+  reports an unrecognized specifier instead of BigQuery's
+  `format specifier Error is not supported for BigQuery`. (@prql-bot, #6351)
 - Keep the outer frame after a nested `window`; transforms following the inner
   `window` previously compiled with an unbounded `OVER ()`. (@prql-bot, #6375)
 - Report a circular `import` as an error rather than crashing with a stack
