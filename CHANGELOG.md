@@ -29,6 +29,14 @@
 
 **Fixes**:
 
+- An operator that can't be translated is now reported as an error rather than
+  aborting the compiler with `called Option::unwrap() on a None value`. Three
+  queries hit this: `date.to_text` on `sql.redshift`, which had no
+  implementation for that dialect; a query declaring its own
+  `internal std.<name>` for a name that doesn't exist; and one declaring an
+  `internal std.<name>` with fewer parameters than the operator reads. Redshift
+  also gains a `to_text` implementation, so the first now compiles to `TO_CHAR`,
+  supporting the same format specifiers as Postgres. (@prql-bot, #6352)
 - Keep the outer frame after a nested `window`; transforms following the inner
   `window` previously compiled with an unbounded `OVER ()`. (@prql-bot, #6375)
 - Report a circular `import` as an error rather than crashing with a stack
