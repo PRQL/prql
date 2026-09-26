@@ -193,7 +193,7 @@ fn process_array_in(
                 Ok(sql_ast::Expr::Value(Value::Boolean(false).into()))
             } else {
                 Ok(sql_ast::Expr::InList {
-                    expr: Box::new(translate_expr(col_expr.clone(), ctx)?.into_ast()),
+                    expr: Box::new(translate_predicate_operand(col_expr.clone(), ctx)?.into_ast()),
                     list: in_values
                         .iter()
                         .map(|a| Ok(translate_expr(a.clone(), ctx)?.into_ast()))
@@ -476,19 +476,10 @@ fn try_into_between(expr: rq::Expr, ctx: &mut Context) -> Result<Option<sql_ast:
                     // referenced at two source positions has different spans.
                     if a_l.kind == b_l.kind {
                         return Ok(Some(sql_ast::Expr::Between {
-                            expr: Box::new(
-                                translate_operand(a_l, true, 0, Associativity::Both, ctx)?
-                                    .into_ast(),
-                            ),
+                            expr: Box::new(translate_predicate_operand(a_l, ctx)?.into_ast()),
                             negated: false,
-                            low: Box::new(
-                                translate_operand(a_r, true, 0, Associativity::Both, ctx)?
-                                    .into_ast(),
-                            ),
-                            high: Box::new(
-                                translate_operand(b_r, true, 0, Associativity::Both, ctx)?
-                                    .into_ast(),
-                            ),
+                            low: Box::new(translate_predicate_operand(a_r, ctx)?.into_ast()),
+                            high: Box::new(translate_predicate_operand(b_r, ctx)?.into_ast()),
                         }));
                     }
                 }
@@ -1025,6 +1016,21 @@ pub(super) fn translate_operand(
     }
 }
 
+/// Translates an operand of `BETWEEN` or `IN`, parenthesizing it unless it
+/// binds more tightly than they do. Neither is associative, so an operand at
+/// the same level (e.g. a `LIKE`) is parenthesized too.
+fn translate_predicate_operand(expr: rq::Expr, ctx: &mut Context) -> Result<ExprOrSource> {
+    let expr = translate_expr(expr, ctx)?;
+    if expr.binding_strength() <= PREDICATE_STRENGTH {
+        Ok(expr.wrap_in_parenthesis())
+    } else {
+        Ok(expr)
+    }
+}
+
+/// Binding strength of `BETWEEN`, `IN` and `LIKE`.
+const PREDICATE_STRENGTH: i32 = 7;
+
 /// For an operation represented as `a child b` with a surrounding parent
 /// operation (e.g., `(a child b) parent c` or `a parent (b child c)`):
 ///
@@ -1116,13 +1122,14 @@ impl SQLExpression for sql_ast::Expr {
 
             sql_ast::Expr::UnaryOp { op, .. } => op.binding_strength(),
 
-            // `BETWEEN` and `LIKE` sit at the same level as each other, below
+            // `BETWEEN`, `IN` and `LIKE` sit at the same level as each other, below
             // `||`, in both PostgreSQL and SQLite. `7` follows PostgreSQL,
             // which puts that level above the comparison operators; SQLite
             // instead ranks it alongside `=` and below `< > <= >=`.
             sql_ast::Expr::Like { .. }
             | sql_ast::Expr::ILike { .. }
-            | sql_ast::Expr::Between { .. } => 7,
+            | sql_ast::Expr::Between { .. }
+            | sql_ast::Expr::InList { .. } => PREDICATE_STRENGTH,
 
             sql_ast::Expr::IsNull(_) | sql_ast::Expr::IsNotNull(_) => 5,
 
@@ -1320,5 +1327,41 @@ mod test {
         ");
 
         Ok(())
+    }
+
+    #[test]
+    fn test_between_operands_are_parenthesized() {
+        let query = "from t | filter x >= (b || c) && x <= (y && z)";
+        insta::assert_snapshot!(crate::tests::compile(query).unwrap(), @"
+        SELECT
+          *
+        FROM
+          t
+        WHERE
+          x BETWEEN (
+            b
+            OR c
+          ) AND (
+            y
+            AND z
+          )
+        ");
+    }
+
+    #[test]
+    fn test_in_operand_is_parenthesized() {
+        let query = "from t | filter ((a == b) | in [false]) && ((c || d) | in [true])";
+        insta::assert_snapshot!(crate::tests::compile(query).unwrap(), @"
+        SELECT
+          *
+        FROM
+          t
+        WHERE
+          (a = b) IN (false)
+          AND (
+            c
+            OR d
+          ) IN (true)
+        ");
     }
 }
