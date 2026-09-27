@@ -30,8 +30,8 @@
 **Fixes**:
 
 - Keep a malformed `\x` or `\u{...}` string escape as written rather than
-  changing the string: `"\x4g"` previously compiled to `'xg'`, and `"\u{}"`
-  to a NUL byte. (@prql-bot, #6383)
+  changing the string: `"\x4g"` previously compiled to `'xg'`, and `"\u{}"` to a
+  NUL byte. (@prql-bot, #6383)
 - Keep the outer frame after a nested `window`; transforms following the inner
   `window` previously compiled with an unbounded `OVER ()`. (@prql-bot, #6375)
 - Report a circular `import` as an error rather than crashing with a stack
