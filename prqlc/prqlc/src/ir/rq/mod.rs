@@ -6,7 +6,7 @@ use enum_as_inner::EnumAsInner;
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 
-pub use expr::{Expr, ExprKind, UnOp};
+pub use expr::{Expr, ExprKind};
 use expr::{InterpolateItem, Range, SwitchCase};
 pub use fold::*;
 pub use ids::*;
