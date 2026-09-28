@@ -110,9 +110,9 @@ fn java_string_with_exception<'local>(
             )),
         },
         Err(err) => {
-            let message = err.to_string();
-            let exception = env.find_class(jni_str!("java/lang/Exception"))?;
-            Err(match env.throw_new(exception, JNIString::from(message)) {
+            let class = jni_str!("java/lang/Exception");
+            let message = JNIString::from(err.to_string());
+            Err(match env.throw_new(class, message) {
                 Ok(()) => JniError::JavaException,
                 Err(e) => e,
             })
