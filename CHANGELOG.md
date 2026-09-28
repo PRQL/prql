@@ -33,6 +33,12 @@
   silently keeping the last one. `prql target:sql.mssql target:sql.postgres`
   previously compiled for Postgres, and a repeated `version` discarded all but
   the last requirement. (@prql-bot, #6384)
+- `date.to_text` errors now name the format specifier the target dialect
+  rejected — `format specifier %P is not supported for Postgres` rather than
+  `PRQL doesn't support this format specifier`, whose span covers the whole
+  format string. An escape chrono doesn't recognize at all, such as `%Q`, now
+  reports an unrecognized specifier instead of BigQuery's
+  `format specifier Error is not supported for BigQuery`. (@prql-bot, #6351)
 - Parenthesize a compound bound of `BETWEEN` or operand of `IN` in the generated
   SQL. `x >= 1 && x <= (y && z)` previously compiled to
   `x BETWEEN 1 AND y AND z`, and `(a || b) | in [true]` to `a OR b IN (true)`,
