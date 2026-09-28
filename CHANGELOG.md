@@ -29,6 +29,10 @@
 
 **Fixes**:
 
+- Parenthesize a compound bound of `BETWEEN` or operand of `IN` in the generated
+  SQL. `x >= 1 && x <= (y && z)` previously compiled to
+  `x BETWEEN 1 AND y AND z`, and `(a || b) | in [true]` to `a OR b IN (true)`,
+  both of which change the query's meaning. (@prql-bot, #6381)
 - Keep the outer frame after a nested `window`; transforms following the inner
   `window` previously compiled with an unbounded `OVER ()`. (@prql-bot, #6375)
 - Report a circular `import` as an error rather than crashing with a stack
