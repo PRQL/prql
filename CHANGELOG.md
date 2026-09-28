@@ -32,10 +32,24 @@
 - Keep a malformed `\x` or `\u{...}` string escape as written rather than
   changing the string: `"\x4g"` previously compiled to `'xg'`, and `"\u{}"` to a
   NUL byte. (@prql-bot, #6383)
+- `date.to_text` errors now name the format specifier the target dialect
+  rejected — `format specifier %P is not supported for Postgres` rather than
+  `PRQL doesn't support this format specifier`, whose span covers the whole
+  format string. An escape chrono doesn't recognize at all, such as `%Q`, now
+  reports an unrecognized specifier instead of BigQuery's
+  `format specifier Error is not supported for BigQuery`. (@prql-bot, #6351)
 - Parenthesize a compound bound of `BETWEEN` or operand of `IN` in the generated
   SQL. `x >= 1 && x <= (y && z)` previously compiled to
   `x BETWEEN 1 AND y AND z`, and `(a || b) | in [true]` to `a OR b IN (true)`,
   both of which change the query's meaning. (@prql-bot, #6381)
+- An operator that can't be translated is now reported as an error rather than
+  aborting the compiler with `called Option::unwrap() on a None value`. Three
+  queries hit this: `date.to_text` on `sql.redshift`, which had no
+  implementation for that dialect; a query declaring its own
+  `internal std.<name>` for a name that doesn't exist; and one declaring an
+  `internal std.<name>` with fewer parameters than the operator reads. Redshift
+  also gains a `to_text` implementation, so the first now compiles to `TO_CHAR`,
+  supporting the same format specifiers as Postgres. (@prql-bot, #6352)
 - Keep the outer frame after a nested `window`; transforms following the inner
   `window` previously compiled with an unbounded `OVER ()`. (@prql-bot, #6375)
 - Report a circular `import` as an error rather than crashing with a stack
