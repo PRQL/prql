@@ -45,25 +45,29 @@ pub(super) fn translate_operator(
     args: Vec<rq::Expr>,
     ctx: &mut Context,
 ) -> Result<SourceExpr> {
-    let (func_def, binding_strength, window_frame, coalesce) =
-        find_operator_impl(&name, ctx.dialect_enum).unwrap();
+    let Some((func_def, binding_strength, window_frame, coalesce)) =
+        find_operator_impl(&name, ctx.dialect_enum)
+    else {
+        return Err(unsupported_operator(&name, ctx.dialect_enum));
+    };
     let parent_binding_strength = binding_strength.unwrap_or(100);
 
     let params = func_def
         .named_params
         .iter()
         .chain(func_def.params.iter())
-        .map(|x| x.name.split('.').next_back().unwrap_or(x.name.as_str()));
+        .map(|x| x.name.split('.').next_back().unwrap_or(x.name.as_str()))
+        .collect_vec();
+
+    let param_count = params.len();
+    let arg_count = args.len();
 
     let args: HashMap<&str, _> = zip(params, args).collect();
 
     // body can only be an s-string
     let body = match &func_def.body.kind {
         pl::ExprKind::Literal(pl::Literal::Null) => {
-            return Err(Error::new_simple(format!(
-                "operator {} is not supported for dialect {}",
-                name, ctx.dialect_enum
-            )))
+            return Err(unsupported_operator(&name, ctx.dialect_enum))
         }
         pl::ExprKind::SString(items) => items,
         _ => panic!("Bad RQ operator implementation. Expected s-string or null"),
@@ -79,7 +83,15 @@ pub(super) fn translate_operator(
                 let ident = ident.as_ref().unwrap();
 
                 // lookup args
-                let arg = args.get(ident.name.as_str()).unwrap().clone();
+                //
+                // A query may declare its own `internal std.<name>` taking
+                // fewer arguments than the implementation's body reads, so
+                // this can come up empty.
+                let Some(arg) = args.get(ident.name.as_str()).cloned() else {
+                    return Err(Error::new_simple(format!(
+                        "operator {name} expects {param_count} arguments, found {arg_count}"
+                    )));
+                };
 
                 // binding strength
                 let required_strength = format
@@ -118,6 +130,14 @@ pub(super) fn translate_operator(
         binding_strength,
         window_frame,
     })
+}
+
+/// Raised both when the operator table has no entry for the dialect and when the
+/// entry is a `null` body marking it explicitly unsupported.
+fn unsupported_operator(name: &str, dialect: Dialect) -> Error {
+    Error::new_simple(format!(
+        "operator {name} is not supported for dialect {dialect}"
+    ))
 }
 
 fn find_operator_impl(
@@ -189,5 +209,74 @@ fn into_tuple_items(expr: pl::Expr) -> Result<Vec<(String, pl::ExprKind)>, pl::E
             .map(|item| Ok((item.alias.clone().unwrap(), item.kind)))
             .collect(),
         _ => Err(expr),
+    }
+}
+
+#[cfg(test)]
+mod test {
+    use insta::assert_snapshot;
+
+    /// `sql.redshift` maps date format specifiers like Postgres does, but had
+    /// no `to_text` implementation to emit, so the operator lookup found
+    /// nothing and panicked.
+    #[test]
+    fn redshift_date_to_text() {
+        assert_snapshot!(crate::tests::compile(
+            r#"
+            prql target:sql.redshift
+            from invoices
+            select (invoice_date | date.to_text "%d/%m/%Y")
+            "#
+        ).unwrap(), @r"
+        SELECT
+          TO_CHAR(invoice_date, 'DD/MM/YYYY')
+        FROM
+          invoices
+        ");
+    }
+
+    /// A query can declare its own `internal std.<name>`, so the operator
+    /// lookup can come up empty on any target — which used to panic rather
+    /// than report.
+    #[test]
+    fn unknown_internal_operator_is_reported() {
+        assert_snapshot!(crate::tests::compile(
+            r#"
+            let my_op = column -> internal std.no_such_operator
+            from invoices
+            select (my_op total)
+            "#
+        ).unwrap_err(), @"
+        Error:
+           ╭─[ :4:21 ]
+           │
+         4 │             select (my_op total)
+           │                     ─────┬─────
+           │                          ╰─────── operator std.no_such_operator is not supported for dialect generic
+        ───╯
+        ");
+    }
+
+    /// A declaration's own parameter list doesn't have to match the arity of
+    /// the operator it names, so the implementation's body can reference an
+    /// argument that was never passed — which used to panic rather than
+    /// report.
+    #[test]
+    fn internal_operator_arity_mismatch_is_reported() {
+        assert_snapshot!(crate::tests::compile(
+            r#"
+            let my_op = column -> internal std.lag
+            from invoices
+            select (my_op total)
+            "#
+        ).unwrap_err(), @"
+        Error:
+           ╭─[ :4:21 ]
+           │
+         4 │             select (my_op total)
+           │                     ─────┬─────
+           │                          ╰─────── operator std.lag expects 2 arguments, found 1
+        ───╯
+        ");
     }
 }
