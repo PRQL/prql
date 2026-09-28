@@ -29,6 +29,10 @@
 
 **Fixes**:
 
+- Parenthesize a compound bound of `BETWEEN` or operand of `IN` in the generated
+  SQL. `x >= 1 && x <= (y && z)` previously compiled to
+  `x BETWEEN 1 AND y AND z`, and `(a || b) | in [true]` to `a OR b IN (true)`,
+  both of which change the query's meaning. (@prql-bot, #6381)
 - An operator that can't be translated is now reported as an error rather than
   aborting the compiler with `called Option::unwrap() on a None value`. Three
   queries hit this: `date.to_text` on `sql.redshift`, which had no
