@@ -173,7 +173,7 @@ Here is the list of the specifiers currently supported:
 | `%n`  |                               | Literal newline (`\n`).                                          |
 | `%%`  |                               | Literal percent sign.                                            |
 
-Space-padded specifiers — chrono's `%_`-prefixed forms and their `%k` / `%l`
-aliases — are not supported by any dialect.
+Space-padded specifiers — chrono's `%_`-prefixed forms and their `%e` / `%k` /
+`%l` aliases — are not supported by any dialect.
 
 [^1]: This is different from chrono, for which `%f` represents nanoseconds
