@@ -29,6 +29,10 @@
 
 **Fixes**:
 
+- Report a repeated argument in the `prql` query header as an error rather than
+  silently keeping the last one. `prql target:sql.mssql target:sql.postgres`
+  previously compiled for Postgres, and a repeated `version` discarded all but
+  the last requirement. (@prql-bot, #6384)
 - Parenthesize a compound bound of `BETWEEN` or operand of `IN` in the generated
   SQL. `x >= 1 && x <= (y && z)` previously compiled to
   `x BETWEEN 1 AND y AND z`, and `(a || b) | in [true]` to `a OR b IN (true)`,
