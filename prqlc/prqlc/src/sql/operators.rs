@@ -167,8 +167,9 @@ fn find_operator_impl(
 
     let decl = func_def?;
 
-    let func_def = decl.kind.as_expr().unwrap();
-    let func_def = func_def.kind.as_func().unwrap();
+    // A query can name a module here too (`internal std.date`), which has no
+    // implementation to translate.
+    let func_def = decl.kind.as_expr()?.kind.as_func()?;
 
     let annotation = decl.annotations.iter().exactly_one().ok();
     let mut annotation = annotation
@@ -253,6 +254,28 @@ mod test {
          4 │             select (my_op total)
            │                     ─────┬─────
            │                          ╰─────── operator std.no_such_operator is not supported for dialect generic
+        ───╯
+        ");
+    }
+
+    /// `std.date` names a module rather than an operator, so the lookup finds
+    /// a declaration with no implementation — which used to panic rather than
+    /// report.
+    #[test]
+    fn internal_operator_naming_a_module_is_reported() {
+        assert_snapshot!(crate::tests::compile(
+            r#"
+            let my_op = column -> internal std.date
+            from invoices
+            select (my_op total)
+            "#
+        ).unwrap_err(), @"
+        Error:
+           ╭─[ :4:21 ]
+           │
+         4 │             select (my_op total)
+           │                     ─────┬─────
+           │                          ╰─────── operator std.date is not supported for dialect generic
         ───╯
         ");
     }
