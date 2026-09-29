@@ -47,6 +47,9 @@
   `internal std.<name>` with fewer parameters than the operator reads. Redshift
   also gains a `to_text` implementation, so the first now compiles to `TO_CHAR`,
   supporting the same format specifiers as Postgres. (@prql-bot, #6352)
+- Report an `internal std.<name>` declaration that names a module, such as
+  `std.date`, as an unsupported operator rather than aborting the compiler with
+  `called Option::unwrap() on a None value`. (@prql-bot, #6388)
 - Keep the outer frame after a nested `window`; transforms following the inner
   `window` previously compiled with an unbounded `OVER ()`. (@prql-bot, #6375)
 - Report a circular `import` as an error rather than crashing with a stack
