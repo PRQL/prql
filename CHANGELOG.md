@@ -50,6 +50,9 @@
 - Report an `internal std.<name>` declaration that names a module, such as
   `std.date`, as an unsupported operator rather than aborting the compiler with
   `called Option::unwrap() on a None value`. (@prql-bot, #6388)
+- `prqlc debug lineage` on a query with no main pipeline, such as `let x = 5`,
+  now reports the same `E0001` error as `prqlc compile` rather than panicking.
+  (@prql-bot, #6389)
 - Keep the outer frame after a nested `window`; transforms following the inner
   `window` previously compiled with an unbounded `OVER ()`. (@prql-bot, #6375)
 - Report a circular `import` as an error rather than crashing with a stack
