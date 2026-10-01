@@ -29,6 +29,9 @@
 
 **Fixes**:
 
+- Error labels after non-ASCII text now point at the right column, rather than
+  drifting right or crashing `prqlc` when a label ran past the end of the query.
+  (@prql-bot, #6378)
 - `date.to_text` errors now name the format specifier the target dialect
   rejected — `format specifier %P is not supported for Postgres` rather than
   `PRQL doesn't support this format specifier`, whose span covers the whole
