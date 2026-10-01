@@ -21,6 +21,30 @@ use crate::semantic::write_pl;
 use crate::utils::{toposort, IdGenerator};
 use crate::{Error, Reason, Result, Span, WithErrorInfo};
 
+/// The error for a query whose main pipeline can't be found, worded by
+/// whether the query declares anything at all.
+pub(crate) fn missing_main_error(root_mod: &RootModule, span: Option<Span>) -> Error {
+    let user_declared_names: Vec<_> = root_mod
+        .module
+        .names
+        .keys()
+        .filter(|name| *name != "std" && *name != "default_db")
+        .collect();
+
+    let error = if user_declared_names.is_empty() {
+        // No user declarations - empty query or only comments
+        // Message is self-explanatory, no hint needed
+        Error::new_simple("No PRQL query entered").with_code("E0001")
+    } else {
+        // Has declarations but no pipeline starting with 'from'
+        Error::new_simple("PRQL queries must begin with 'from'")
+            .with_code("E0001")
+            .push_hint("A query must start with a 'from' statement to define the main pipeline")
+    };
+
+    error.with_span(span)
+}
+
 /// Convert a resolved expression at path `main_path` relative to `root_mod`
 /// into RQ and make sure that:
 /// - transforms are not nested,
@@ -40,28 +64,9 @@ pub fn lower_to_ir(
 ) -> Result<(RelationalQuery, RootModule)> {
     // find main
     log::debug!("lookup for main pipeline in {main_path:?}");
-    let (_, main_ident) = root_mod.find_main_rel(main_path).map_err(|(_hint, span)| {
-        // Provide better error messages based on what's in the module
-        let user_declared_names: Vec<_> = root_mod
-            .module
-            .names
-            .keys()
-            .filter(|name| *name != "std" && *name != "default_db")
-            .collect();
-
-        let error = if user_declared_names.is_empty() {
-            // No user declarations - empty query or only comments
-            // Message is self-explanatory, no hint needed
-            Error::new_simple("No PRQL query entered").with_code("E0001")
-        } else {
-            // Has declarations but no pipeline starting with 'from'
-            Error::new_simple("PRQL queries must begin with 'from'")
-                .with_code("E0001")
-                .push_hint("A query must start with a 'from' statement to define the main pipeline")
-        };
-
-        error.with_span(span)
-    })?;
+    let (_, main_ident) = root_mod
+        .find_main_rel(main_path)
+        .map_err(|(_hint, span)| missing_main_error(&root_mod, span))?;
 
     // find & validate query def
     let def = root_mod.find_query_def(&main_ident);
