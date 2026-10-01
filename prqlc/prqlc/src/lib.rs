@@ -510,9 +510,14 @@ pub mod internal {
 
         let root_module = semantic::resolve(pl).map_err(ErrorMessages::from)?;
 
-        let (main, _) = root_module.find_main_rel(&[]).unwrap();
-        let mut fc =
-            semantic::reporting::collect_frames(*main.clone().into_relation_var().unwrap());
+        let (main, _) = root_module
+            .find_main_rel(&[])
+            .map_err(|(_, span)| semantic::missing_main_error(&root_module, span))?;
+        let main = main
+            .clone()
+            .into_relation_var()
+            .map_err(|_| semantic::missing_main_error(&root_module, None))?;
+        let mut fc = semantic::reporting::collect_frames(*main);
         fc.ast = ast;
 
         Ok(fc)
@@ -606,6 +611,24 @@ mod tests {
             },
         )
         "#);
+    }
+
+    /// Lineage of a query with no main pipeline reports the same error as
+    /// `compile`, rather than panicking.
+    #[test]
+    fn test_lineage_without_main_pipeline() {
+        use insta::assert_snapshot;
+
+        let lineage = |prql: &str| {
+            let pl = super::prql_to_pl(prql).unwrap();
+            let Err(errors) = super::internal::pl_to_lineage(pl) else {
+                panic!("expected an error");
+            };
+            errors.inner[0].reason.clone()
+        };
+
+        assert_snapshot!(lineage("let x = 5"), @"PRQL queries must begin with 'from'");
+        assert_snapshot!(lineage("5"), @"PRQL queries must begin with 'from'");
     }
 
     /// Confirm that all target names can be parsed.

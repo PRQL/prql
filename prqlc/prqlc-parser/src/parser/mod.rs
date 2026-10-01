@@ -35,14 +35,14 @@ pub fn parse_lr_to_pr(source_id: u16, lr: Vec<lr::Token>) -> (Option<Vec<pr::Stm
         })
         .collect();
 
-    // Use built-in Input impl for &[Token], then map_span to convert token indices to byte spans
+    // Use built-in Input impl for &[Token], then map_span to convert token indices to source spans
     let input = semantic_tokens
         .as_slice()
         .map_span(|simple_span: SimpleSpan| {
             let start_idx = simple_span.start();
             let end_idx = simple_span.end();
 
-            // Convert token indices to byte offsets in the source file
+            // Convert token indices to char offsets in the source file
             let start = semantic_tokens
                 .get(start_idx)
                 .map(|t| t.span.start)

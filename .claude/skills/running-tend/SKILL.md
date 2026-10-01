@@ -2,9 +2,9 @@
 name: running-tend
 description:
   PRQL-specific guidance for tend CI workflows. Adds a standing exception for
-  filing issues in other repos, PR title conventions, CI structure,
-  Dependabot-batch polling, weekly maintenance tasks, and issue-closing policy
-  on top of the bundled tend-ci-runner skills. Use when operating in CI.
+  filing issues in other repos, PR title conventions, CI structure, weekly
+  maintenance tasks, and issue-closing policy on top of the bundled
+  tend-ci-runner skills. Use when operating in CI.
 ---
 
 # Running Tend in PRQL
@@ -70,29 +70,6 @@ Then scope the resulting claim to match the command: a clean run there clears
 that one compilation unit, not the workspace — other crates and targets stay
 unchecked. Name the unit that was verified rather than repeating #6219's "clean
 across the workspace".
-
-## CI polling during the Dependabot batch
-
-Dependabot opens its whole batch over a couple of minutes (the 2026-08-03 batch
-ran 17:14:32 → 17:16:45; across 2026-06 to 2026-08 every batch has landed in
-17:12–17:19 UTC), so five or six `tests` matrices compete for runners at once.
-The surviving `tests` run on each PR then sits in `QUEUED` for a long time
-before it starts — run `30835855220` on #6130 took 73 minutes end to end
-(17:14:37 → 18:27:46), far past the 9-minute cap on the poll loop in
-`/tend-ci-runner:monitor-ci`.
-
-**Stop after one poll round when every pending check is `QUEUED`.** A `QUEUED`
-check has not been allocated a runner, so another round changes nothing: post
-the verdict, name the unverified checks, and end. If any pending check is
-`IN_PROGRESS`, keep polling — that work is advancing and may still settle.
-
-`poll_pr_checks.py` prints the still-pending checks by name without their
-states, so it can't tell those two cases apart. Project the states alongside it:
-
-```sh
-gh pr view <n> --json statusCheckRollup \
-  --jq '[.statusCheckRollup[] | {name: (.name // .context), status: (.status // .state)}]'
-```
 
 ## Verifying a change to the .NET binding
 
