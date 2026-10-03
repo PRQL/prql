@@ -16,7 +16,7 @@ doctest = false
 test = false
 
 [dependencies]
-jni = "0.21.1"
+jni = "0.22.4"
 prqlc = {path = "../../prqlc", default-features = false}
 
 [package.metadata.release]
