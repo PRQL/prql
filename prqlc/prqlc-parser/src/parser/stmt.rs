@@ -118,6 +118,20 @@ where
         .then_ignore(new_line())
         .validate(|args, extra, emit| {
             let span = extra.span();
+
+            // Collecting into a map would keep only the last of a repeated
+            // argument, silently discarding e.g. a `version` requirement.
+            let duplicates = args.iter().map(|(name, _)| name).duplicates().collect_vec();
+            if !duplicates.is_empty() {
+                emit.emit(Rich::custom(
+                    span,
+                    format!(
+                        "duplicate query definition arguments {}",
+                        duplicates.iter().map(|x| format!("`{x}`")).join(", ")
+                    ),
+                ));
+            }
+
             let mut args: HashMap<_, _> = args.into_iter().collect();
 
             let version = args.remove("version").and_then(|v| match v.kind {
@@ -317,6 +331,29 @@ mod tests {
                 ),
                 reason: Simple(
                     "target must be an identifier",
+                ),
+                hints: [],
+                code: None,
+            },
+        ]
+        "#);
+    }
+
+    #[test]
+    fn query_def_duplicate_argument() {
+        // A repeated argument used to keep only the last value, silently
+        // dropping the earlier `target`.
+        assert_debug_snapshot!(parse_query_def(r#"
+        prql target:sql.mssql target:sql.postgres
+        "#).unwrap_err(), @r#"
+        [
+            Error {
+                kind: Error,
+                span: Some(
+                    0:0-51,
+                ),
+                reason: Simple(
+                    "duplicate query definition arguments `target`",
                 ),
                 hints: [],
                 code: None,

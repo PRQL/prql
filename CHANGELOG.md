@@ -29,6 +29,10 @@
 
 **Fixes**:
 
+- Report a repeated argument in the `prql` query header as an error rather than
+  silently keeping the last one. `prql target:sql.mssql target:sql.postgres`
+  previously compiled for Postgres, and a repeated `version` discarded all but
+  the last requirement. (@prql-bot, #6384)
 - Error labels after non-ASCII text now point at the right column, rather than
   drifting right or crashing `prqlc` when a label ran past the end of the query.
   (@prql-bot, #6378)
