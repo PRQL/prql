@@ -29,6 +29,9 @@
 
 **Fixes**:
 
+- Keep a malformed `\x` or `\u{...}` string escape as written rather than
+  changing the string: `"\x4g"` previously compiled to `'xg'`, and `"\u{}"` to a
+  NUL byte. (@prql-bot, #6383)
 - Error labels after non-ASCII text now point at the right column, rather than
   drifting right or crashing `prqlc` when a label ran past the end of the query.
   (@prql-bot, #6378)

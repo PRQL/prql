@@ -647,37 +647,55 @@ fn parse_escape_sequence<'a>(
                 'r' => '\r',
                 't' => '\t',
                 'u' if input.peek() == Some('{') => {
+                    // `\u{...}` needs 1-6 hex digits, a closing `}` and a valid
+                    // code point; otherwise keep the text as written, like an
+                    // unknown escape
+                    let checkpoint = input.save();
                     input.next(); // consume '{'
                     let mut hex = String::new();
                     while let Some(ch) = input.peek() {
-                        if ch == '}' {
-                            input.next();
+                        if !ch.is_ascii_hexdigit() || hex.len() == 6 {
                             break;
                         }
-                        if ch.is_ascii_hexdigit() && hex.len() < 6 {
-                            hex.push(ch);
-                            input.next();
-                        } else {
-                            break;
+                        hex.push(ch);
+                        input.next();
+                    }
+                    let parsed = if !hex.is_empty() && input.peek() == Some('}') {
+                        u32::from_str_radix(&hex, 16).ok().and_then(char::from_u32)
+                    } else {
+                        None
+                    };
+                    match parsed {
+                        Some(c) => {
+                            input.next(); // consume '}'
+                            c
+                        }
+                        None => {
+                            input.rewind(checkpoint);
+                            next_ch
                         }
                     }
-                    char::from_u32(u32::from_str_radix(&hex, 16).unwrap_or(0)).unwrap_or('\u{FFFD}')
                 }
                 'x' => {
+                    // `\x` needs exactly two hex digits; otherwise keep the
+                    // text as written, like an unknown escape
+                    let checkpoint = input.save();
                     let mut hex = String::new();
-                    for _ in 0..2 {
-                        if let Some(ch) = input.peek() {
-                            if ch.is_ascii_hexdigit() {
+                    while hex.len() < 2 {
+                        match input.peek() {
+                            Some(ch) if ch.is_ascii_hexdigit() => {
                                 hex.push(ch);
                                 input.next();
                             }
+                            _ => break,
                         }
                     }
-                    if hex.len() == 2 {
-                        char::from_u32(u32::from_str_radix(&hex, 16).unwrap_or(0))
-                            .unwrap_or('\u{FFFD}')
-                    } else {
-                        next_ch // Just use the character after backslash
+                    match u32::from_str_radix(&hex, 16).ok().and_then(char::from_u32) {
+                        Some(c) if hex.len() == 2 => c,
+                        _ => {
+                            input.rewind(checkpoint);
+                            next_ch
+                        }
                     }
                 }
                 c if c == quote_char => quote_char, // Escaped quote
