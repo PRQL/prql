@@ -6448,6 +6448,29 @@ fn test_group_by_expression() {
 }
 
 #[test]
+fn test_aggregate_of_expression() {
+    // https://github.com/PRQL/prql/issues/3176 — an aggregate's argument can be
+    // an expression, not just a column.
+    assert_snapshot!(compile(
+        r###"
+    from t
+    group {y} (aggregate {
+      z = sum (1 - (x ?? 0))
+    })
+        "###,
+    )
+    .unwrap(), @"
+    SELECT
+      y,
+      COALESCE(SUM(1 - COALESCE(x, 0)), 0) AS z
+    FROM
+      t
+    GROUP BY
+      y
+    ");
+}
+
+#[test]
 fn test_table_declarations() {
     assert_snapshot!(compile(
         r###"
