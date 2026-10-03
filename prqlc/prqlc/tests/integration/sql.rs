@@ -651,17 +651,17 @@ fn test_precedence_05() {
 }
 
 #[test]
-#[ignore]
-// FIXME: right associativity of `pow` is not implemented yet
 fn test_pow_is_right_associative() {
     assert_snapshot!(compile(r#"
     from numbers
     select {
-      c ** a ** b
+      c ** a ** b,
+      (c ** a) ** b
     }
     "#).unwrap(), @r#"
     SELECT
-      POW(c, POW(a, b))
+      POW(c, POW(a, b)),
+      POW(POW(c, a), b)
     FROM
       numbers
     "#
