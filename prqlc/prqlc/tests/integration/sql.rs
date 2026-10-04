@@ -6471,6 +6471,29 @@ fn test_aggregate_of_expression() {
 }
 
 #[test]
+fn test_aggregate_of_cast() {
+    // https://github.com/PRQL/prql/issues/3534 — a cast inside an aggregate
+    // compiles the same as one derived beforehand.
+    assert_snapshot!(compile(
+        r###"
+    from artists
+    derive {artist_int = (artist_id | as int)}
+    aggregate {
+      total_int = sum artist_int,
+      total_cast = sum (artist_id | as int),
+    }
+        "###,
+    )
+    .unwrap(), @"
+    SELECT
+      COALESCE(SUM(CAST(artist_id AS int)), 0) AS total_int,
+      COALESCE(SUM(CAST(artist_id AS int)), 0) AS total_cast
+    FROM
+      artists
+    ");
+}
+
+#[test]
 fn test_table_declarations() {
     assert_snapshot!(compile(
         r###"
