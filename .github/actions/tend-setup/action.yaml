@@ -14,7 +14,7 @@ runs:
       uses: go-task/setup-task@v2
       with:
         repo-token: ${{ inputs.github-token }}
-        version: 3.53.1
+        version: 3.54.0
 
     # The following setup steps use uv to install pre-commit. Keep uv on PATH.
     - name: Setup uv
