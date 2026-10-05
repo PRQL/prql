@@ -132,7 +132,7 @@ fn replace_examples(text: &str) -> Result<String> {
     }
     let mut buf = String::new();
     let opts = pulldown_cmark_to_cmark::Options::default();
-    cmark_with_options(cmark_acc.into_iter(), &mut buf, parser_options, opts)?;
+    cmark_with_options(cmark_acc, &mut buf, parser_options, opts)?;
 
     Ok(buf)
 }
