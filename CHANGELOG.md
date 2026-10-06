@@ -29,6 +29,9 @@
 
 **Fixes**:
 
+- Report malformed relation literals — an unnamed column such as `from [{1}]`,
+  or a row that isn't a tuple — as compile errors instead of panicking.
+  (@prql-bot, #6413)
 - Error labels after non-ASCII text now point at the right column, rather than
   drifting right or crashing `prqlc` when a label ran past the end of the query.
   (@prql-bot, #6378)
