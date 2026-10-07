@@ -29,6 +29,9 @@
 
 **Fixes**:
 
+- A modulo or division on the right of a multiplication keeps its parentheses:
+  `19 * (year % 19)` previously compiled to `19 * year % 19`, which SQL
+  evaluates as `(19 * year) % 19`. (@prql-bot, #6418)
 - Error labels after non-ASCII text now point at the right column, rather than
   drifting right or crashing `prqlc` when a label ran past the end of the query.
   (@prql-bot, #6378)
