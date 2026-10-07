@@ -29,6 +29,9 @@
 
 **Fixes**:
 
+- A modulo or division on the right of a multiplication keeps its parentheses:
+  `19 * (year % 19)` previously compiled to `19 * year % 19`, which SQL
+  evaluates as `(19 * year) % 19`. (@prql-bot, #6418)
 - Report a repeated argument in the `prql` query header as an error rather than
   silently keeping the last one. `prql target:sql.mssql target:sql.postgres`
   previously compiled for Postgres, and a repeated `version` discarded all but

@@ -40,7 +40,7 @@
   "type": "module",
   "private": true,
   "overrides": {
-    "dompurify": "^3.4.13"
+    "dompurify": "^3.4.16"
   },
   "scripts": {
     "dev": "vite --host 0.0.0.0",
