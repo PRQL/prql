@@ -29,6 +29,9 @@
 
 **Fixes**:
 
+- A modulo or division on the right of a multiplication keeps its parentheses:
+  `19 * (year % 19)` previously compiled to `19 * year % 19`, which SQL
+  evaluates as `(19 * year) % 19`. (@prql-bot, #6418)
 - Keep a malformed `\x` or `\u{...}` string escape as written rather than
   changing the string: `"\x4g"` previously compiled to `'xg'`, and `"\u{}"` to a
   NUL byte. (@prql-bot, #6383)

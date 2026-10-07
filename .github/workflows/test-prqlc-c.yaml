@@ -44,8 +44,12 @@ jobs:
       - uses: go-task/setup-task@v2
         with:
           repo-token: ${{ secrets.GITHUB_TOKEN }}
-          version: 3.53.1
+          version: 3.54.0
       - name: 🔧 Setup Zig
         uses: mlugg/setup-zig@v2
+        with:
+          # Pinned so a new Zig release can't break CI; bump alongside the
+          # minimal-zig example when moving to a newer version.
+          version: 0.17.0
       - name: Run example minimal-zig
         run: task zig
