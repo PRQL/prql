@@ -29,6 +29,9 @@
 
 **Fixes**:
 
+- A modulo or division on the right of a multiplication keeps its parentheses:
+  `19 * (year % 19)` previously compiled to `19 * year % 19`, which SQL
+  evaluates as `(19 * year) % 19`. (@prql-bot, #6418)
 - `take` bounds at the extremes of `i64` no longer produce a panic or invalid
   SQL. Combining nested ranges (`take 9223372036854775807.. | take 2..`)
   overflowed while re-basing the inner bounds, panicking in a debug build and

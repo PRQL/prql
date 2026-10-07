@@ -400,6 +400,17 @@ fn translate_binary_operator(
     let left = translate_operand(left.clone(), true, strength, op.associativity(), ctx)?;
     let right = translate_operand(right.clone(), false, strength, op.associativity(), ctx)?;
 
+    // An associative parent only lets an equal-strength right operand drop its
+    // parentheses when that operand's own operator regroups with it, as in
+    // `a + (b - c)`. An s-string operand like `std.mod` or `std.div_f` hides
+    // its operator, and `a * (b % c)` is not `(a * b) % c`, so keep them.
+    let right = match right {
+        ExprOrSource::Source(source) if source.binding_strength == strength => {
+            ExprOrSource::Source(source).wrap_in_parenthesis()
+        }
+        right => right,
+    };
+
     let left = Box::new(left.into_ast());
     let right = Box::new(right.into_ast());
 
@@ -1535,6 +1546,29 @@ mod test {
             c
             OR d
           ) IN (true)
+        ");
+    }
+
+    #[test]
+    fn test_non_associative_right_operand_of_multiply_is_parenthesized() {
+        // `a * (b % c)` and `a * (b / c)` aren't `(a * b) % c` and `(a * b) / c`
+        let query = "
+        from t
+        select {
+          m = 19 * (y % 19),
+          d = 19 * (y / 2),
+          l = (y % 19) * 19,
+          a = 19 + (y - 2),
+        }
+        ";
+        insta::assert_snapshot!(crate::tests::compile(query).unwrap(), @"
+        SELECT
+          19 * (y % 19) AS m,
+          19 * (y / 2) AS d,
+          y % 19 * 19 AS l,
+          19 + y - 2 AS a
+        FROM
+          t
         ");
     }
 }

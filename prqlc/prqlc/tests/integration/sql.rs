@@ -651,17 +651,17 @@ fn test_precedence_05() {
 }
 
 #[test]
-#[ignore]
-// FIXME: right associativity of `pow` is not implemented yet
 fn test_pow_is_right_associative() {
     assert_snapshot!(compile(r#"
     from numbers
     select {
-      c ** a ** b
+      c ** a ** b,
+      (c ** a) ** b
     }
     "#).unwrap(), @r#"
     SELECT
-      POW(c, POW(a, b))
+      POW(c, POW(a, b)),
+      POW(POW(c, a), b)
     FROM
       numbers
     "#
@@ -6444,6 +6444,52 @@ fn test_group_by_expression() {
       x
     GROUP BY
       a + 1
+    ");
+}
+
+#[test]
+fn test_aggregate_of_expression() {
+    // https://github.com/PRQL/prql/issues/3176 — an aggregate's argument can be
+    // an expression, not just a column.
+    assert_snapshot!(compile(
+        r###"
+    from t
+    group {y} (aggregate {
+      z = sum (1 - (x ?? 0))
+    })
+        "###,
+    )
+    .unwrap(), @"
+    SELECT
+      y,
+      COALESCE(SUM(1 - COALESCE(x, 0)), 0) AS z
+    FROM
+      t
+    GROUP BY
+      y
+    ");
+}
+
+#[test]
+fn test_aggregate_of_cast() {
+    // https://github.com/PRQL/prql/issues/3534 — a cast inside an aggregate
+    // compiles the same as one derived beforehand.
+    assert_snapshot!(compile(
+        r###"
+    from artists
+    derive {artist_int = (artist_id | as int)}
+    aggregate {
+      total_int = sum artist_int,
+      total_cast = sum (artist_id | as int),
+    }
+        "###,
+    )
+    .unwrap(), @"
+    SELECT
+      COALESCE(SUM(CAST(artist_id AS int)), 0) AS total_int,
+      COALESCE(SUM(CAST(artist_id AS int)), 0) AS total_cast
+    FROM
+      artists
     ");
 }
 
