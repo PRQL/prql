@@ -29,6 +29,9 @@
 
 **Fixes**:
 
+- A modulo or division on the right of a multiplication keeps its parentheses:
+  `19 * (year % 19)` previously compiled to `19 * year % 19`, which SQL
+  evaluates as `(19 * year) % 19`. (@prql-bot, #6418)
 - Report malformed relation literals — an unnamed column such as `from [{1}]`,
   or a row that isn't a tuple — as compile errors instead of panicking.
   (@prql-bot, #6413)
