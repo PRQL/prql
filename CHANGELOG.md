@@ -200,6 +200,11 @@
 
 **Documentation**:
 
+- The `prqlc-js` README lists `get_targets()` among the exported functions, and
+  describes a thrown error's message as a JSON object whose `inner` field holds
+  the error array, as its own example reads it, rather than as a bare array.
+  (@prql-bot, #6424)
+
 - The .NET binding's README now documents the actual API. It advertised `ToJson`
   and `ToSql` static methods, which `PrqlCompiler` has never had — the binding
   exposes `Compile`, `PrqlToPl`, `PlToRq` and `RqToSql`, each returning a
