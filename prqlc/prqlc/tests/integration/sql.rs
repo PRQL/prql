@@ -3972,6 +3972,24 @@ fn test_target_clickhouse() {
 }
 
 #[test]
+fn test_mysql_mod_keeps_fractional_remainder() {
+    // `13.5 % 5` is 3.5; wrapping `MOD` in `ROUND` would return 4.
+    let query = r###"
+    prql target:sql.mysql
+    from t
+    derive {r = 13.5 % 5}
+    "###;
+
+    assert_snapshot!((compile(query).unwrap()), @"
+    SELECT
+      *,
+      MOD(13.5, 5) AS r
+    FROM
+      t
+    ");
+}
+
+#[test]
 fn test_ident_escaping() {
     // Generic
     let query = r#"

@@ -334,7 +334,7 @@ module mysql {
   let div_i = l r -> s"({l} DIV {r:12})"
 
   @{binding_strength=100}
-  let mod = l r -> s"ROUND(MOD({l:0}, {r:0}))"
+  let mod = l r -> s"MOD({l:0}, {r:0})"
 
   # Date functions
   module date {
