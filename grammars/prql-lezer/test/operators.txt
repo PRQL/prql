@@ -101,3 +101,19 @@ join customers (==customer_id)
 ==>
 
 Query(Pipeline(CallExpression(Identifier,ArgList(Identifier,ParenthesizedExpression(UnaryExpression(CompareOp,Identifier))))))
+
+# Unary operator !
+
+filter !foo
+
+==>
+
+Query(Pipeline(CallExpression(Identifier,ArgList(UnaryExpression(LogicOp,Identifier)))))
+
+# Unary operator ! binds tighter than &&
+
+filter !foo && bar
+
+==>
+
+Query(Pipeline(CallExpression(Identifier,ArgList(BinaryExpression(UnaryExpression(LogicOp,Identifier),LogicOp,Identifier)))))
