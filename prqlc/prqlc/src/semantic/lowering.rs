@@ -394,14 +394,16 @@ impl Lowerer {
                 let lit = RelationLiteral {
                     columns: columns
                         .iter()
-                        .map(|c| c.as_single().unwrap().clone().unwrap())
-                        .collect_vec(),
+                        .map(|c| match c {
+                            RelationColumn::Single(Some(name)) => Ok(name.clone()),
+                            _ => Err(Error::new_simple("relation literal columns require names")
+                                .with_span(expr.span)),
+                        })
+                        .try_collect()?,
                     rows: elements
                         .into_iter()
                         .map(|row| {
-                            row.kind
-                                .into_tuple()
-                                .unwrap()
+                            row.try_cast(|x| x.into_tuple(), Some("relation literal"), "tuples")?
                                 .into_iter()
                                 .map(|element| {
                                     element.try_cast(

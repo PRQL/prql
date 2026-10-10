@@ -32,6 +32,9 @@
 - A modulo or division on the right of a multiplication keeps its parentheses:
   `19 * (year % 19)` previously compiled to `19 * year % 19`, which SQL
   evaluates as `(19 * year) % 19`. (@prql-bot, #6418)
+- Report malformed relation literals — an unnamed column such as `from [{1}]`,
+  or a row that isn't a tuple — as compile errors instead of panicking.
+  (@prql-bot, #6413)
 - Keep a malformed `\x` or `\u{...}` string escape as written rather than
   changing the string: `"\x4g"` previously compiled to `'xg'`, and `"\u{}"` to a
   NUL byte. (@prql-bot, #6383)
@@ -203,6 +206,11 @@
 
 **Documentation**:
 
+- The `prqlc-js` README lists `get_targets()` among the exported functions, and
+  describes a thrown error's message as a JSON object whose `inner` field holds
+  the error array, as its own example reads it, rather than as a bare array.
+  (@prql-bot, #6424)
+
 - The .NET binding's README now documents the actual API. It advertised `ToJson`
   and `ToSql` static methods, which `PrqlCompiler` has never had — the binding
   exposes `Compile`, `PrqlToPl`, `PlToRq` and `RqToSql`, each returning a
@@ -291,6 +299,10 @@
   followed by something the compiler doesn't recognize as an escape, such as
   `"\z"`, parses rather than erroring — `prqlc` compiles it to `'z'` — but is
   not highlighted as an escape sequence. (@prql-bot, #6289)
+
+- The lezer grammar in `grammars/prql-lezer/` now parses the unary `!` operator,
+  such as `filter !a`, and highlights it as a logic operator. Previously the
+  expression parsed to an error node. (@prql-bot, #6425)
 
 **Internal changes**:
 
