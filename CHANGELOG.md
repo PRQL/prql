@@ -35,6 +35,13 @@
 - Report malformed relation literals — an unnamed column such as `from [{1}]`,
   or a row that isn't a tuple — as compile errors instead of panicking.
   (@prql-bot, #6413)
+- `take` bounds at the extremes of `i64` no longer produce a panic or invalid
+  SQL. Combining nested ranges (`take 9223372036854775807.. | take 2..`)
+  overflowed while re-basing the inner bounds, panicking in a debug build and
+  silently emitting a wrapped `OFFSET` in a release one; it now reports a
+  compile error. Separately, a `LIMIT` at or above 2^32 was rendered with
+  sqlparser's `long` flag, so `take 5000000000` compiled to
+  `LIMIT 5000000000 L`, which no dialect parses. (@prql-bot, #6347)
 - Keep a malformed `\x` or `\u{...}` string escape as written rather than
   changing the string: `"\x4g"` previously compiled to `'xg'`, and `"\u{}"` to a
   NUL byte. (@prql-bot, #6383)
