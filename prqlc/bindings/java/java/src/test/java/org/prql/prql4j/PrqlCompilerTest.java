@@ -22,4 +22,9 @@ public class PrqlCompilerTest {
     public void compileWithError() throws Exception {
        PrqlCompiler.toSql("from table | filter id >> 1", "sql.mysql", true, true);
     }
+
+    @Test(expected = IllegalArgumentException.class)
+    public void compileWithUnknownTarget() throws Exception {
+        PrqlCompiler.toSql("from my_table", "sql.not_a_dialect", true, true);
+    }
 }
