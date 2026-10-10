@@ -854,3 +854,32 @@ fn test_error_after_non_ascii() {
     ───╯
     "#);
 }
+
+#[test]
+fn test_relation_literal_invalid_shape() {
+    // Previously panicked in lowering on an unnamed column.
+    assert_snapshot!(compile(r###"
+    from [{1}]
+    "###).unwrap_err(), @"
+    Error:
+       ╭─[ :2:5 ]
+       │
+     2 │     from [{1}]
+       │     ─────┬────
+       │          ╰────── relation literal columns require names
+    ───╯
+    ");
+
+    // Previously panicked in lowering on a row that isn't a tuple.
+    assert_snapshot!(compile(r###"
+    from [{a = 1}, 3]
+    "###).unwrap_err(), @"
+    Error:
+       ╭─[ :2:20 ]
+       │
+     2 │     from [{a = 1}, 3]
+       │                    ┬
+       │                    ╰── relation literal expected tuples, but found `3`
+    ───╯
+    ");
+}
