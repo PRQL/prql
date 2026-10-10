@@ -153,7 +153,7 @@ input_file: prqlc/prqlc/tests/integration/queries/arithmetic.prql
 
 --- generic
 +++ mysql
-@@ -23,42 +23,42 @@
+@@ -23,42 +23,39 @@
    UNION ALL
    SELECT
      4 AS id,
@@ -176,6 +176,10 @@ input_file: prqlc/prqlc/tests/integration/queries/arithmetic.prql
 -  x_int % k_float AS r_if,
 -  x_float % k_int AS r_fi,
 -  x_float % k_float AS r_ff,
+-  ROUND(
+-    FLOOR(ABS(x_int / k_int)) * SIGN(x_int) * SIGN(k_int) * k_int + x_int % k_int,
+-    0
+-  ),
 +  (x_int / k_int),
 +  (x_int / k_float),
 +  (x_float / k_int),
@@ -184,28 +188,24 @@ input_file: prqlc/prqlc/tests/integration/queries/arithmetic.prql
 +  (x_int DIV k_float) AS q_if,
 +  (x_float DIV k_int) AS q_fi,
 +  (x_float DIV k_float) AS q_ff,
-+  ROUND(MOD(x_int, k_int)) AS r_ii,
-+  ROUND(MOD(x_int, k_float)) AS r_if,
-+  ROUND(MOD(x_float, k_int)) AS r_fi,
-+  ROUND(MOD(x_float, k_float)) AS r_ff,
-   ROUND(
--    FLOOR(ABS(x_int / k_int)) * SIGN(x_int) * SIGN(k_int) * k_int + x_int % k_int,
-+    (x_int DIV k_int) * k_int + ROUND(MOD(x_int, k_int)),
-     0
-   ),
++  MOD(x_int, k_int) AS r_ii,
++  MOD(x_int, k_float) AS r_if,
++  MOD(x_float, k_int) AS r_fi,
++  MOD(x_float, k_float) AS r_ff,
++  ROUND((x_int DIV k_int) * k_int + MOD(x_int, k_int), 0),
    ROUND(
 -    FLOOR(ABS(x_int / k_float)) * SIGN(x_int) * SIGN(k_float) * k_float + x_int % k_float,
-+    (x_int DIV k_float) * k_float + ROUND(MOD(x_int, k_float)),
++    (x_int DIV k_float) * k_float + MOD(x_int, k_float),
      0
    ),
    ROUND(
 -    FLOOR(ABS(x_float / k_int)) * SIGN(x_float) * SIGN(k_int) * k_int + x_float % k_int,
-+    (x_float DIV k_int) * k_int + ROUND(MOD(x_float, k_int)),
++    (x_float DIV k_int) * k_int + MOD(x_float, k_int),
      0
    ),
    ROUND(
 -    FLOOR(ABS(x_float / k_float)) * SIGN(x_float) * SIGN(k_float) * k_float + x_float % k_float,
-+    (x_float DIV k_float) * k_float + ROUND(MOD(x_float, k_float)),
++    (x_float DIV k_float) * k_float + MOD(x_float, k_float),
      0
    )
  FROM
