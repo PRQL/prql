@@ -292,6 +292,10 @@
   `"\z"`, parses rather than erroring — `prqlc` compiles it to `'z'` — but is
   not highlighted as an escape sequence. (@prql-bot, #6289)
 
+- The lezer grammar in `grammars/prql-lezer/` now parses the unary `!` operator,
+  such as `filter !a`, and highlights it as a logic operator. Previously the
+  expression parsed to an error node. (@prql-bot, #6425)
+
 **Internal changes**:
 
 **New Contributors**:
