@@ -1,6 +1,6 @@
 label: Top N by group
 prql: |
-  # Most recent employee in each role
+  # Employee who joined first in each role
   # Quite difficult in SQL...
   from employees
   group role (
