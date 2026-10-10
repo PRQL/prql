@@ -42,6 +42,9 @@
   compile error. Separately, a `LIMIT` at or above 2^32 was rendered with
   sqlparser's `long` flag, so `take 5000000000` compiled to
   `LIMIT 5000000000 L`, which no dialect parses. (@prql-bot, #6347)
+- Keep a malformed `\x` or `\u{...}` string escape as written rather than
+  changing the string: `"\x4g"` previously compiled to `'xg'`, and `"\u{}"` to a
+  NUL byte. (@prql-bot, #6383)
 - Error labels after non-ASCII text now point at the right column, rather than
   drifting right or crashing `prqlc` when a label ran past the end of the query.
   (@prql-bot, #6378)
