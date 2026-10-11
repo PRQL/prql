@@ -4,10 +4,14 @@
 
 ## Installation
 
+The package isn't published on Hex yet
+([#1510](https://github.com/PRQL/prql/issues/1510)). Depend on a local checkout
+of this repo instead; building it requires a Rust toolchain:
+
 ```elixir
 def deps do
   [
-    {:prql, "~> 0.1.0"}
+    {:prql, path: "path/to/prql/prqlc/bindings/elixir"}
   ]
 end
 ```
