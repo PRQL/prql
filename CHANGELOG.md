@@ -210,6 +210,11 @@
 
 **Documentation**:
 
+- The website's `og:image` meta tag points at the served
+  `/img/favicon-32x32.png` rather than `/static/img/favicon-32x32.png`, which
+  returns 404, so link previews of prql-lang.org can show the image. (@prql-bot,
+  #6430)
+
 - The `prqlc-js` README lists `get_targets()` among the exported functions, and
   describes a thrown error's message as a JSON object whose `inner` field holds
   the error array, as its own example reads it, rather than as a bare array.
