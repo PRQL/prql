@@ -210,6 +210,11 @@
 
 **Documentation**:
 
+- The Elixir bindings' README installs the package from a local checkout of the
+  repo rather than from Hex, where it isn't published. The book's VS Code page
+  points to the Extensions view (<kbd>Ctrl</kbd>-<kbd>Shift</kbd>-<kbd>X</kbd>)
+  rather than the Command Palette to find the extension. (@prql-bot, #6429)
+
 - The `prqlc-js` README lists `get_targets()` among the exported functions, and
   describes a thrown error's message as a JSON object whose `inner` field holds
   the error array, as its own example reads it, rather than as a bare array.
