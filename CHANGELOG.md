@@ -210,6 +210,11 @@
 
 **Documentation**:
 
+- The website's `og:image` meta tag points at the served
+  `/img/favicon-32x32.png` rather than `/static/img/favicon-32x32.png`, which
+  returns 404, so link previews of prql-lang.org can show the image. (@prql-bot,
+  #6430)
+
 - The Elixir bindings' README installs the package from a local checkout of the
   repo rather than from Hex, where it isn't published. The book's VS Code page
   points to the Extensions view (<kbd>Ctrl</kbd>-<kbd>Shift</kbd>-<kbd>X</kbd>)

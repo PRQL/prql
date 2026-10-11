@@ -75,7 +75,7 @@ params:
       - text: Follow us on [Twitter](https://twitter.com/prql_lang)
   description: PRQL is a modern language for transforming data
   images:
-    - static/img/favicon-32x32.png
+    - img/favicon-32x32.png
   title: PRQL
 
   license: "© 2022-2026, PRQL Developers. Apache 2.0 Licensed"
