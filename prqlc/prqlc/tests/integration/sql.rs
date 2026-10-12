@@ -5337,6 +5337,21 @@ fn test_loop_2() {
 }
 
 #[test]
+fn test_loop_nested() {
+    // A recursive CTE can't be nested inside another one's step, so the step
+    // would reference an outer CTE that hasn't been defined yet.
+    assert_snapshot!(compile(r#"
+    from x
+    loop (
+      filter a < 3
+      loop (filter a < 2)
+    )
+    "#).unwrap_err(),
+        @"Error: nested `loop` is not supported"
+    );
+}
+
+#[test]
 fn test_params() {
     assert_snapshot!(compile(r#"
     from invoices
