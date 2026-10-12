@@ -29,6 +29,9 @@
 
 **Fixes**:
 
+- A `loop` directly inside another `loop`'s step is reported as an error instead
+  of compiling to two recursive CTEs that reference each other, which databases
+  reject. (@prql-bot, #6432)
 - A modulo or division on the right of a multiplication keeps its parentheses:
   `19 * (year % 19)` previously compiled to `19 * year % 19`, which SQL
   evaluates as `(19 * year) % 19`. (@prql-bot, #6418)
