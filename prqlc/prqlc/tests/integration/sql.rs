@@ -2102,6 +2102,43 @@ fn test_window_functions_10() {
 }
 
 #[test]
+fn test_window_functions_first_last_frame() {
+    // `first` and `last` take the window frame, as aggregation functions do;
+    // without one, SQL's default frame ends at the current row, so
+    // `LAST_VALUE` returns the current row's value (#4249).
+    assert_snapshot!((compile(r###"
+    from t
+    sort x
+    window rows:-2..0 (
+      derive {f = first y, l = last y}
+    )
+    group g (
+      sort x
+      derive {group_last = last y}
+    )
+    "###).unwrap()), @"
+    SELECT
+      *,
+      FIRST_VALUE(y) OVER (
+        ORDER BY
+          x ROWS BETWEEN 2 PRECEDING AND CURRENT ROW
+      ) AS f,
+      LAST_VALUE(y) OVER (
+        ORDER BY
+          x ROWS BETWEEN 2 PRECEDING AND CURRENT ROW
+      ) AS l,
+      LAST_VALUE(y) OVER (
+        PARTITION BY
+          g
+        ORDER BY
+          x ROWS BETWEEN UNBOUNDED PRECEDING AND UNBOUNDED FOLLOWING
+      ) AS group_last
+    FROM
+      t
+    ");
+}
+
+#[test]
 fn test_window_functions_11() {
     assert_snapshot!((compile(r###"
     from employees
