@@ -80,9 +80,7 @@ an index.
   and helix. The grammar can be found at
   [https://github.com/PRQL/tree-sitter-prql](https://github.com/PRQL/tree-sitter-prql).
 
-- [vim](https://www.vim.org/) — used by terminal-based text editor Vim.
-  Instructions at
-  [`grammars/vim/`](https://github.com/PRQL/prql/tree/main/grammars/vim/). The
+- [vim](https://www.vim.org/) — used by terminal-based text editor Vim. The
   grammar is
   [upstream](https://github.com/vim/vim/blob/master/runtime/syntax/prql.vim).
   - [Neovim](https://neovim.io/) supported. Grammar is upstream.

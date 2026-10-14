@@ -22,6 +22,9 @@ pyo3 = {workspace = true}
 [dependencies]
 # Renamed to avoid conflicts in lib.rs
 prqlc_lib = {package = "prqlc", path = "../../prqlc", default-features = false}
+# For `DisplayOptions::VARIANTS`, which names the accepted `display` values in
+# the error for an unknown one.
+strum = {workspace = true}
 
 [dev-dependencies]
 insta = {workspace = true}

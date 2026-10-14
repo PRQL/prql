@@ -806,3 +806,80 @@ fn unknown_named_arg() {
     ───╯
     ");
 }
+
+#[test]
+fn test_error_after_non_ascii() {
+    // Multi-byte chars before an error mustn't shift its label, or push the
+    // span past the end of the source.
+    assert_snapshot!(compile(r#"
+    from t
+    derive {x = "éééééééééé"}
+    select {x, foo.bar.baz}
+    "#).unwrap_err(), @"
+    Error:
+       ╭─[ :4:16 ]
+       │
+     4 │     select {x, foo.bar.baz}
+       │                ─────┬─────
+       │                     ╰─────── Unknown name `foo.bar.baz`
+       │
+       │ Help: available columns: x
+    ───╯
+    ");
+
+    assert_snapshot!(compile(r#"
+    # café
+    from t
+    select {foo.bar.baz}
+    "#).unwrap_err(), @"
+    Error:
+       ╭─[ :4:13 ]
+       │
+     4 │     select {foo.bar.baz}
+       │             ─────┬─────
+       │                  ╰─────── Unknown name `foo.bar.baz`
+    ───╯
+    ");
+
+    assert_snapshot!(compile(r#"
+    from t
+    derive {x = f"éééé{foo.}"}
+    "#).unwrap_err(), @r#"
+    Error:
+       ╭─[ :3:28 ]
+       │
+     3 │     derive {x = f"éééé{foo.}"}
+       │                            ┬
+       │                            ╰── expected interpolated string or interp:backticks, but found "}"
+    ───╯
+    "#);
+}
+
+#[test]
+fn test_relation_literal_invalid_shape() {
+    // Previously panicked in lowering on an unnamed column.
+    assert_snapshot!(compile(r###"
+    from [{1}]
+    "###).unwrap_err(), @"
+    Error:
+       ╭─[ :2:5 ]
+       │
+     2 │     from [{1}]
+       │     ─────┬────
+       │          ╰────── relation literal columns require names
+    ───╯
+    ");
+
+    // Previously panicked in lowering on a row that isn't a tuple.
+    assert_snapshot!(compile(r###"
+    from [{a = 1}, 3]
+    "###).unwrap_err(), @"
+    Error:
+       ╭─[ :2:20 ]
+       │
+     2 │     from [{a = 1}, 3]
+       │                    ┬
+       │                    ╰── relation literal expected tuples, but found `3`
+    ───╯
+    ");
+}

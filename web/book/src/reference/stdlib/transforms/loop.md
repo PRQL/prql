@@ -3,22 +3,22 @@
 > _Experimental_
 
 ```prql no-eval
-loop {step_function} {initial_relation}
+loop (step_pipeline)
 ```
 
-Iteratively applies `step` function to `initial` relation until the `step`
-returns an empty table. Returns a relation that contains rows of initial
-relation and all intermediate relations.
+Iteratively applies `step_pipeline` to the relation piped into `loop`, until the
+pipeline returns an empty table. Returns a relation that contains rows of the
+initial relation and all intermediate relations.
 
 This behavior could be expressed with following pseudo-code:
 
 ```python
-def loop(step, initial):
+def loop(step_pipeline, initial):
     result = []
     current = initial
     while current is not empty:
         result = append(result, current)
-        current = step(current)
+        current = step_pipeline(current)
 
     return result
 ```
@@ -47,5 +47,5 @@ loop (
 > [!NOTE]
 > Currently, `loop` may produce references to the recursive CTE in
 > sub-queries, which is not supported by some database engines, e.g. SQLite. For
-> now, we suggest step functions are kept simple enough to fit into a single
+> now, we suggest step pipelines are kept simple enough to fit into a single
 > SELECT statement.

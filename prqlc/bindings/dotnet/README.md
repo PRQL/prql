@@ -2,8 +2,9 @@
 
 `prql-net` offers PRQL bindings for .NET as a `net10.0` library.
 
-It provides the `PrqlCompiler` class which contains the `ToJson` and `ToSql`
-static methods.
+It provides the static `PrqlCompiler` class, whose `Compile`, `PrqlToPl`,
+`PlToRq` and `RqToSql` methods each return a `Result` carrying the compiler's
+`Output` string and any `Messages`.
 
 It's still at an early stage, and isn't published to NuGet. Contributions are
 welcome.
@@ -27,8 +28,8 @@ var options = new PrqlCompilerOptions
     Format = false,
     SignatureComment = false,
 };
-var sql = PrqlCompiler.Compile("from employees", options);
-Console.WriteLine(sql);
+var result = PrqlCompiler.Compile("from employees", options);
+Console.WriteLine(result.Output);
 ```
 
 ## TODO

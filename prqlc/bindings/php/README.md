@@ -39,7 +39,7 @@ mkdir -p ~/.config/nix
 echo "experimental-features = nix-command flakes" >> ~/.config/nix/nix.conf
 ```
 
-Now you can spawn a shell from `prql-php/`:
+Now you can spawn a shell from `prqlc/bindings/php/`:
 
 ```sh
 nix shell github:loophp/nix-shell#env-php81 --impure

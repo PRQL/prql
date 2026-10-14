@@ -53,7 +53,7 @@ expressions like in Python.
 We can also use s-strings to produce a full table:
 
 ```prql
-from s"SELECT DISTINCT ON first_name, id, age FROM employees ORDER BY age ASC"
+from s"SELECT DISTINCT ON (first_name) first_name, id, age FROM employees ORDER BY first_name, age ASC"
 join s = s"SELECT * FROM salaries" (==id)
 ```
 

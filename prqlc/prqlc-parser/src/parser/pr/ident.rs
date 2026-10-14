@@ -21,13 +21,19 @@ impl Ident {
 
     /// Creates a new ident from a non-empty path.
     ///
-    /// Panics if path is empty.
-    pub fn from_path<S: ToString>(mut path: Vec<S>) -> Self {
-        let name = path.pop().unwrap().to_string();
-        Ident {
+    /// Panics if path is empty; use [Ident::try_from_path] for paths that
+    /// originate outside the compiler, such as deserialized input.
+    pub fn from_path<S: ToString>(path: Vec<S>) -> Self {
+        Ident::try_from_path(path).expect("ident path is empty")
+    }
+
+    /// Creates a new ident from a path, returning `None` if the path is empty.
+    pub fn try_from_path<S: ToString>(mut path: Vec<S>) -> Option<Self> {
+        let name = path.pop()?.to_string();
+        Some(Ident {
             path: path.into_iter().map(|x| x.to_string()).collect(),
             name,
-        }
+        })
     }
 
     pub fn len(&self) -> usize {
@@ -155,7 +161,9 @@ impl<'de> Deserialize<'de> for Ident {
     where
         D: Deserializer<'de>,
     {
-        <Vec<String> as Deserialize>::deserialize(deserializer).map(Ident::from_path)
+        let path = <Vec<String> as Deserialize>::deserialize(deserializer)?;
+        Ident::try_from_path(path)
+            .ok_or_else(|| serde::de::Error::invalid_length(0, &"an ident with at least one part"))
     }
 }
 
@@ -185,5 +193,26 @@ pub fn display_ident_part(f: &mut std::fmt::Formatter, s: &str) -> Result<(), st
         write!(f, "`{s}`")
     } else {
         write!(f, "{s}")
+    }
+}
+
+#[cfg(test)]
+mod test {
+    use insta::assert_snapshot;
+
+    use super::Ident;
+
+    #[test]
+    fn deserialize_empty_path() {
+        // An empty path used to panic in `from_path`, reachable from the public
+        // `json::to_pl` / `json::to_rq` entry points.
+        let err = serde_json::from_str::<Ident>("[]").unwrap_err();
+        assert_snapshot!(err, @"invalid length 0, expected an ident with at least one part");
+    }
+
+    #[test]
+    fn deserialize_path() {
+        let ident: Ident = serde_json::from_str(r#"["a","b","c"]"#).unwrap();
+        assert_snapshot!(ident, @"a.b.c");
     }
 }

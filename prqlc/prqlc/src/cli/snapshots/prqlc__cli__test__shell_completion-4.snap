@@ -7,10 +7,7 @@ info:
     - shell-completion
     - zsh
   env:
-    CLICOLOR_FORCE: ""
     NO_COLOR: "1"
-    RUST_BACKTRACE: ""
-    RUST_LOG: ""
 ---
 success: true
 exit_code: 0
@@ -91,7 +88,7 @@ _arguments "${_arguments_options[@]}" : \
 '--color=[Controls when to use color]:WHEN:(auto always never)' \
 '-h[Print help]' \
 '--help[Print help]' \
-":: :_prqlc__debug_commands" \
+":: :_prqlc__subcmd__debug_commands" \
 "*::: :->debug" \
 && ret=0
 
@@ -139,7 +136,7 @@ _arguments "${_arguments_options[@]}" : \
 ;;
 (help)
 _arguments "${_arguments_options[@]}" : \
-":: :_prqlc__debug__help_commands" \
+":: :_prqlc__subcmd__debug__subcmd__help_commands" \
 "*::: :->help" \
 && ret=0
 
@@ -182,7 +179,7 @@ _arguments "${_arguments_options[@]}" : \
 '--color=[Controls when to use color]:WHEN:(auto always never)' \
 '-h[Print help]' \
 '--help[Print help]' \
-":: :_prqlc__experimental_commands" \
+":: :_prqlc__subcmd__experimental_commands" \
 "*::: :->experimental" \
 && ret=0
 
@@ -215,7 +212,7 @@ _arguments "${_arguments_options[@]}" : \
 ;;
 (help)
 _arguments "${_arguments_options[@]}" : \
-":: :_prqlc__experimental__help_commands" \
+":: :_prqlc__subcmd__experimental__subcmd__help_commands" \
 "*::: :->help" \
 && ret=0
 
@@ -294,7 +291,7 @@ _arguments "${_arguments_options[@]}" : \
 ;;
 (help)
 _arguments "${_arguments_options[@]}" : \
-":: :_prqlc__help_commands" \
+":: :_prqlc__subcmd__help_commands" \
 "*::: :->help" \
 && ret=0
 
@@ -322,7 +319,7 @@ _arguments "${_arguments_options[@]}" : \
 ;;
 (debug)
 _arguments "${_arguments_options[@]}" : \
-":: :_prqlc__help__debug_commands" \
+":: :_prqlc__subcmd__help__subcmd__debug_commands" \
 "*::: :->debug" \
 && ret=0
 
@@ -354,7 +351,7 @@ esac
 ;;
 (experimental)
 _arguments "${_arguments_options[@]}" : \
-":: :_prqlc__help__experimental_commands" \
+":: :_prqlc__subcmd__help__subcmd__experimental_commands" \
 "*::: :->experimental" \
 && ret=0
 
@@ -427,18 +424,18 @@ _prqlc_commands() {
     )
     _describe -t commands 'prqlc commands' commands "$@"
 }
-(( $+functions[_prqlc__collect_commands] )) ||
-_prqlc__collect_commands() {
+(( $+functions[_prqlc__subcmd__collect_commands] )) ||
+_prqlc__subcmd__collect_commands() {
     local commands; commands=()
     _describe -t commands 'prqlc collect commands' commands "$@"
 }
-(( $+functions[_prqlc__compile_commands] )) ||
-_prqlc__compile_commands() {
+(( $+functions[_prqlc__subcmd__compile_commands] )) ||
+_prqlc__subcmd__compile_commands() {
     local commands; commands=()
     _describe -t commands 'prqlc compile commands' commands "$@"
 }
-(( $+functions[_prqlc__debug_commands] )) ||
-_prqlc__debug_commands() {
+(( $+functions[_prqlc__subcmd__debug_commands] )) ||
+_prqlc__subcmd__debug_commands() {
     local commands; commands=(
 'annotate:Parse, resolve & combine source with comments annotating relation type' \
 'lineage:Output column-level lineage graph' \
@@ -448,18 +445,18 @@ _prqlc__debug_commands() {
     )
     _describe -t commands 'prqlc debug commands' commands "$@"
 }
-(( $+functions[_prqlc__debug__annotate_commands] )) ||
-_prqlc__debug__annotate_commands() {
+(( $+functions[_prqlc__subcmd__debug__subcmd__annotate_commands] )) ||
+_prqlc__subcmd__debug__subcmd__annotate_commands() {
     local commands; commands=()
     _describe -t commands 'prqlc debug annotate commands' commands "$@"
 }
-(( $+functions[_prqlc__debug__ast_commands] )) ||
-_prqlc__debug__ast_commands() {
+(( $+functions[_prqlc__subcmd__debug__subcmd__ast_commands] )) ||
+_prqlc__subcmd__debug__subcmd__ast_commands() {
     local commands; commands=()
     _describe -t commands 'prqlc debug ast commands' commands "$@"
 }
-(( $+functions[_prqlc__debug__help_commands] )) ||
-_prqlc__debug__help_commands() {
+(( $+functions[_prqlc__subcmd__debug__subcmd__help_commands] )) ||
+_prqlc__subcmd__debug__subcmd__help_commands() {
     local commands; commands=(
 'annotate:Parse, resolve & combine source with comments annotating relation type' \
 'lineage:Output column-level lineage graph' \
@@ -469,43 +466,43 @@ _prqlc__debug__help_commands() {
     )
     _describe -t commands 'prqlc debug help commands' commands "$@"
 }
-(( $+functions[_prqlc__debug__help__annotate_commands] )) ||
-_prqlc__debug__help__annotate_commands() {
+(( $+functions[_prqlc__subcmd__debug__subcmd__help__subcmd__annotate_commands] )) ||
+_prqlc__subcmd__debug__subcmd__help__subcmd__annotate_commands() {
     local commands; commands=()
     _describe -t commands 'prqlc debug help annotate commands' commands "$@"
 }
-(( $+functions[_prqlc__debug__help__ast_commands] )) ||
-_prqlc__debug__help__ast_commands() {
+(( $+functions[_prqlc__subcmd__debug__subcmd__help__subcmd__ast_commands] )) ||
+_prqlc__subcmd__debug__subcmd__help__subcmd__ast_commands() {
     local commands; commands=()
     _describe -t commands 'prqlc debug help ast commands' commands "$@"
 }
-(( $+functions[_prqlc__debug__help__help_commands] )) ||
-_prqlc__debug__help__help_commands() {
+(( $+functions[_prqlc__subcmd__debug__subcmd__help__subcmd__help_commands] )) ||
+_prqlc__subcmd__debug__subcmd__help__subcmd__help_commands() {
     local commands; commands=()
     _describe -t commands 'prqlc debug help help commands' commands "$@"
 }
-(( $+functions[_prqlc__debug__help__json-schema_commands] )) ||
-_prqlc__debug__help__json-schema_commands() {
+(( $+functions[_prqlc__subcmd__debug__subcmd__help__subcmd__json-schema_commands] )) ||
+_prqlc__subcmd__debug__subcmd__help__subcmd__json-schema_commands() {
     local commands; commands=()
     _describe -t commands 'prqlc debug help json-schema commands' commands "$@"
 }
-(( $+functions[_prqlc__debug__help__lineage_commands] )) ||
-_prqlc__debug__help__lineage_commands() {
+(( $+functions[_prqlc__subcmd__debug__subcmd__help__subcmd__lineage_commands] )) ||
+_prqlc__subcmd__debug__subcmd__help__subcmd__lineage_commands() {
     local commands; commands=()
     _describe -t commands 'prqlc debug help lineage commands' commands "$@"
 }
-(( $+functions[_prqlc__debug__json-schema_commands] )) ||
-_prqlc__debug__json-schema_commands() {
+(( $+functions[_prqlc__subcmd__debug__subcmd__json-schema_commands] )) ||
+_prqlc__subcmd__debug__subcmd__json-schema_commands() {
     local commands; commands=()
     _describe -t commands 'prqlc debug json-schema commands' commands "$@"
 }
-(( $+functions[_prqlc__debug__lineage_commands] )) ||
-_prqlc__debug__lineage_commands() {
+(( $+functions[_prqlc__subcmd__debug__subcmd__lineage_commands] )) ||
+_prqlc__subcmd__debug__subcmd__lineage_commands() {
     local commands; commands=()
     _describe -t commands 'prqlc debug lineage commands' commands "$@"
 }
-(( $+functions[_prqlc__experimental_commands] )) ||
-_prqlc__experimental_commands() {
+(( $+functions[_prqlc__subcmd__experimental_commands] )) ||
+_prqlc__subcmd__experimental_commands() {
     local commands; commands=(
 'doc:Generate Markdown documentation' \
 'highlight:Syntax highlight' \
@@ -513,13 +510,13 @@ _prqlc__experimental_commands() {
     )
     _describe -t commands 'prqlc experimental commands' commands "$@"
 }
-(( $+functions[_prqlc__experimental__doc_commands] )) ||
-_prqlc__experimental__doc_commands() {
+(( $+functions[_prqlc__subcmd__experimental__subcmd__doc_commands] )) ||
+_prqlc__subcmd__experimental__subcmd__doc_commands() {
     local commands; commands=()
     _describe -t commands 'prqlc experimental doc commands' commands "$@"
 }
-(( $+functions[_prqlc__experimental__help_commands] )) ||
-_prqlc__experimental__help_commands() {
+(( $+functions[_prqlc__subcmd__experimental__subcmd__help_commands] )) ||
+_prqlc__subcmd__experimental__subcmd__help_commands() {
     local commands; commands=(
 'doc:Generate Markdown documentation' \
 'highlight:Syntax highlight' \
@@ -527,33 +524,33 @@ _prqlc__experimental__help_commands() {
     )
     _describe -t commands 'prqlc experimental help commands' commands "$@"
 }
-(( $+functions[_prqlc__experimental__help__doc_commands] )) ||
-_prqlc__experimental__help__doc_commands() {
+(( $+functions[_prqlc__subcmd__experimental__subcmd__help__subcmd__doc_commands] )) ||
+_prqlc__subcmd__experimental__subcmd__help__subcmd__doc_commands() {
     local commands; commands=()
     _describe -t commands 'prqlc experimental help doc commands' commands "$@"
 }
-(( $+functions[_prqlc__experimental__help__help_commands] )) ||
-_prqlc__experimental__help__help_commands() {
+(( $+functions[_prqlc__subcmd__experimental__subcmd__help__subcmd__help_commands] )) ||
+_prqlc__subcmd__experimental__subcmd__help__subcmd__help_commands() {
     local commands; commands=()
     _describe -t commands 'prqlc experimental help help commands' commands "$@"
 }
-(( $+functions[_prqlc__experimental__help__highlight_commands] )) ||
-_prqlc__experimental__help__highlight_commands() {
+(( $+functions[_prqlc__subcmd__experimental__subcmd__help__subcmd__highlight_commands] )) ||
+_prqlc__subcmd__experimental__subcmd__help__subcmd__highlight_commands() {
     local commands; commands=()
     _describe -t commands 'prqlc experimental help highlight commands' commands "$@"
 }
-(( $+functions[_prqlc__experimental__highlight_commands] )) ||
-_prqlc__experimental__highlight_commands() {
+(( $+functions[_prqlc__subcmd__experimental__subcmd__highlight_commands] )) ||
+_prqlc__subcmd__experimental__subcmd__highlight_commands() {
     local commands; commands=()
     _describe -t commands 'prqlc experimental highlight commands' commands "$@"
 }
-(( $+functions[_prqlc__fmt_commands] )) ||
-_prqlc__fmt_commands() {
+(( $+functions[_prqlc__subcmd__fmt_commands] )) ||
+_prqlc__subcmd__fmt_commands() {
     local commands; commands=()
     _describe -t commands 'prqlc fmt commands' commands "$@"
 }
-(( $+functions[_prqlc__help_commands] )) ||
-_prqlc__help_commands() {
+(( $+functions[_prqlc__subcmd__help_commands] )) ||
+_prqlc__subcmd__help_commands() {
     local commands; commands=(
 'parse:Parse into PL AST' \
 'lex:Lex into Lexer Representation' \
@@ -570,18 +567,18 @@ _prqlc__help_commands() {
     )
     _describe -t commands 'prqlc help commands' commands "$@"
 }
-(( $+functions[_prqlc__help__collect_commands] )) ||
-_prqlc__help__collect_commands() {
+(( $+functions[_prqlc__subcmd__help__subcmd__collect_commands] )) ||
+_prqlc__subcmd__help__subcmd__collect_commands() {
     local commands; commands=()
     _describe -t commands 'prqlc help collect commands' commands "$@"
 }
-(( $+functions[_prqlc__help__compile_commands] )) ||
-_prqlc__help__compile_commands() {
+(( $+functions[_prqlc__subcmd__help__subcmd__compile_commands] )) ||
+_prqlc__subcmd__help__subcmd__compile_commands() {
     local commands; commands=()
     _describe -t commands 'prqlc help compile commands' commands "$@"
 }
-(( $+functions[_prqlc__help__debug_commands] )) ||
-_prqlc__help__debug_commands() {
+(( $+functions[_prqlc__subcmd__help__subcmd__debug_commands] )) ||
+_prqlc__subcmd__help__subcmd__debug_commands() {
     local commands; commands=(
 'annotate:Parse, resolve & combine source with comments annotating relation type' \
 'lineage:Output column-level lineage graph' \
@@ -590,111 +587,111 @@ _prqlc__help__debug_commands() {
     )
     _describe -t commands 'prqlc help debug commands' commands "$@"
 }
-(( $+functions[_prqlc__help__debug__annotate_commands] )) ||
-_prqlc__help__debug__annotate_commands() {
+(( $+functions[_prqlc__subcmd__help__subcmd__debug__subcmd__annotate_commands] )) ||
+_prqlc__subcmd__help__subcmd__debug__subcmd__annotate_commands() {
     local commands; commands=()
     _describe -t commands 'prqlc help debug annotate commands' commands "$@"
 }
-(( $+functions[_prqlc__help__debug__ast_commands] )) ||
-_prqlc__help__debug__ast_commands() {
+(( $+functions[_prqlc__subcmd__help__subcmd__debug__subcmd__ast_commands] )) ||
+_prqlc__subcmd__help__subcmd__debug__subcmd__ast_commands() {
     local commands; commands=()
     _describe -t commands 'prqlc help debug ast commands' commands "$@"
 }
-(( $+functions[_prqlc__help__debug__json-schema_commands] )) ||
-_prqlc__help__debug__json-schema_commands() {
+(( $+functions[_prqlc__subcmd__help__subcmd__debug__subcmd__json-schema_commands] )) ||
+_prqlc__subcmd__help__subcmd__debug__subcmd__json-schema_commands() {
     local commands; commands=()
     _describe -t commands 'prqlc help debug json-schema commands' commands "$@"
 }
-(( $+functions[_prqlc__help__debug__lineage_commands] )) ||
-_prqlc__help__debug__lineage_commands() {
+(( $+functions[_prqlc__subcmd__help__subcmd__debug__subcmd__lineage_commands] )) ||
+_prqlc__subcmd__help__subcmd__debug__subcmd__lineage_commands() {
     local commands; commands=()
     _describe -t commands 'prqlc help debug lineage commands' commands "$@"
 }
-(( $+functions[_prqlc__help__experimental_commands] )) ||
-_prqlc__help__experimental_commands() {
+(( $+functions[_prqlc__subcmd__help__subcmd__experimental_commands] )) ||
+_prqlc__subcmd__help__subcmd__experimental_commands() {
     local commands; commands=(
 'doc:Generate Markdown documentation' \
 'highlight:Syntax highlight' \
     )
     _describe -t commands 'prqlc help experimental commands' commands "$@"
 }
-(( $+functions[_prqlc__help__experimental__doc_commands] )) ||
-_prqlc__help__experimental__doc_commands() {
+(( $+functions[_prqlc__subcmd__help__subcmd__experimental__subcmd__doc_commands] )) ||
+_prqlc__subcmd__help__subcmd__experimental__subcmd__doc_commands() {
     local commands; commands=()
     _describe -t commands 'prqlc help experimental doc commands' commands "$@"
 }
-(( $+functions[_prqlc__help__experimental__highlight_commands] )) ||
-_prqlc__help__experimental__highlight_commands() {
+(( $+functions[_prqlc__subcmd__help__subcmd__experimental__subcmd__highlight_commands] )) ||
+_prqlc__subcmd__help__subcmd__experimental__subcmd__highlight_commands() {
     local commands; commands=()
     _describe -t commands 'prqlc help experimental highlight commands' commands "$@"
 }
-(( $+functions[_prqlc__help__fmt_commands] )) ||
-_prqlc__help__fmt_commands() {
+(( $+functions[_prqlc__subcmd__help__subcmd__fmt_commands] )) ||
+_prqlc__subcmd__help__subcmd__fmt_commands() {
     local commands; commands=()
     _describe -t commands 'prqlc help fmt commands' commands "$@"
 }
-(( $+functions[_prqlc__help__help_commands] )) ||
-_prqlc__help__help_commands() {
+(( $+functions[_prqlc__subcmd__help__subcmd__help_commands] )) ||
+_prqlc__subcmd__help__subcmd__help_commands() {
     local commands; commands=()
     _describe -t commands 'prqlc help help commands' commands "$@"
 }
-(( $+functions[_prqlc__help__lex_commands] )) ||
-_prqlc__help__lex_commands() {
+(( $+functions[_prqlc__subcmd__help__subcmd__lex_commands] )) ||
+_prqlc__subcmd__help__subcmd__lex_commands() {
     local commands; commands=()
     _describe -t commands 'prqlc help lex commands' commands "$@"
 }
-(( $+functions[_prqlc__help__list-targets_commands] )) ||
-_prqlc__help__list-targets_commands() {
+(( $+functions[_prqlc__subcmd__help__subcmd__list-targets_commands] )) ||
+_prqlc__subcmd__help__subcmd__list-targets_commands() {
     local commands; commands=()
     _describe -t commands 'prqlc help list-targets commands' commands "$@"
 }
-(( $+functions[_prqlc__help__lsp_commands] )) ||
-_prqlc__help__lsp_commands() {
+(( $+functions[_prqlc__subcmd__help__subcmd__lsp_commands] )) ||
+_prqlc__subcmd__help__subcmd__lsp_commands() {
     local commands; commands=()
     _describe -t commands 'prqlc help lsp commands' commands "$@"
 }
-(( $+functions[_prqlc__help__parse_commands] )) ||
-_prqlc__help__parse_commands() {
+(( $+functions[_prqlc__subcmd__help__subcmd__parse_commands] )) ||
+_prqlc__subcmd__help__subcmd__parse_commands() {
     local commands; commands=()
     _describe -t commands 'prqlc help parse commands' commands "$@"
 }
-(( $+functions[_prqlc__help__shell-completion_commands] )) ||
-_prqlc__help__shell-completion_commands() {
+(( $+functions[_prqlc__subcmd__help__subcmd__shell-completion_commands] )) ||
+_prqlc__subcmd__help__subcmd__shell-completion_commands() {
     local commands; commands=()
     _describe -t commands 'prqlc help shell-completion commands' commands "$@"
 }
-(( $+functions[_prqlc__help__watch_commands] )) ||
-_prqlc__help__watch_commands() {
+(( $+functions[_prqlc__subcmd__help__subcmd__watch_commands] )) ||
+_prqlc__subcmd__help__subcmd__watch_commands() {
     local commands; commands=()
     _describe -t commands 'prqlc help watch commands' commands "$@"
 }
-(( $+functions[_prqlc__lex_commands] )) ||
-_prqlc__lex_commands() {
+(( $+functions[_prqlc__subcmd__lex_commands] )) ||
+_prqlc__subcmd__lex_commands() {
     local commands; commands=()
     _describe -t commands 'prqlc lex commands' commands "$@"
 }
-(( $+functions[_prqlc__list-targets_commands] )) ||
-_prqlc__list-targets_commands() {
+(( $+functions[_prqlc__subcmd__list-targets_commands] )) ||
+_prqlc__subcmd__list-targets_commands() {
     local commands; commands=()
     _describe -t commands 'prqlc list-targets commands' commands "$@"
 }
-(( $+functions[_prqlc__lsp_commands] )) ||
-_prqlc__lsp_commands() {
+(( $+functions[_prqlc__subcmd__lsp_commands] )) ||
+_prqlc__subcmd__lsp_commands() {
     local commands; commands=()
     _describe -t commands 'prqlc lsp commands' commands "$@"
 }
-(( $+functions[_prqlc__parse_commands] )) ||
-_prqlc__parse_commands() {
+(( $+functions[_prqlc__subcmd__parse_commands] )) ||
+_prqlc__subcmd__parse_commands() {
     local commands; commands=()
     _describe -t commands 'prqlc parse commands' commands "$@"
 }
-(( $+functions[_prqlc__shell-completion_commands] )) ||
-_prqlc__shell-completion_commands() {
+(( $+functions[_prqlc__subcmd__shell-completion_commands] )) ||
+_prqlc__subcmd__shell-completion_commands() {
     local commands; commands=()
     _describe -t commands 'prqlc shell-completion commands' commands "$@"
 }
-(( $+functions[_prqlc__watch_commands] )) ||
-_prqlc__watch_commands() {
+(( $+functions[_prqlc__subcmd__watch_commands] )) ||
+_prqlc__subcmd__watch_commands() {
     local commands; commands=()
     _describe -t commands 'prqlc watch commands' commands "$@"
 }

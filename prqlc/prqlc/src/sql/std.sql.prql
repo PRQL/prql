@@ -78,6 +78,10 @@ module math {
   let exp = column -> s"EXP({column:0})"
   let ln = column -> s"LN({column:0})"
   let log10 = column -> s"LOG10({column:0})"
+  # This compiles to a top-level `/`, so it needs the same binding strength as
+  # `div_f`; without it the result reports the s-string default of `100` and is
+  # emitted bare into a surrounding expression.
+  @{binding_strength=11}
   let log = base column -> s"LOG10({column:0}) / LOG10({base:0})"
   let sqrt = column -> s"SQRT({column:0})"
   let degrees = column -> s"DEGREES({column:0})"
@@ -88,7 +92,7 @@ module math {
   let asin = column -> s"ASIN({column:0})"
   let tan = column -> s"TAN({column:0})"
   let atan = column -> s"ATAN({column:0})"
-  # Note exponent goes first, so `pow 2 3` is 2^3
+  # Note exponent goes first, so `pow 2 3` is 3^2 and `x | pow 2` is x^2
   let pow = exponent column -> s"POW({column:0}, {exponent:0})"
   let round = n_digits column -> s"ROUND({column:0}, {n_digits:0})"
 }
@@ -115,8 +119,14 @@ module text {
   let length = column -> s"CHAR_LENGTH({column:0})"
   let extract = offset length column -> s"SUBSTRING({column:0}, {offset:0}, {length:0})"
   let replace = pattern replacement column -> s"REPLACE({column:0}, {pattern:0}, {replacement:0})"
+  # These compile to a top-level `LIKE`, which binds looser than `||` and than
+  # the arithmetic operators, so the result needs parentheses in those contexts.
+  # `7` is where `binding_strength` ranks `LIKE`.
+  @{binding_strength=7}
   let starts_with = prefix column -> s"{column:0} LIKE CONCAT({prefix:0}, '%')"
+  @{binding_strength=7}
   let contains = substr column -> s"{column:0} LIKE CONCAT('%', {substr:0}, '%')"
+  @{binding_strength=7}
   let ends_with = suffix column -> s"{column:0} LIKE CONCAT('%', {suffix:0})"
 }
 
@@ -152,7 +162,9 @@ let read_json = source -> s"read_json({source:0})"
 @{binding_strength=11}
 let mul = l r -> null
 
-@{binding_strength=100}
+# The body ends in `* SIGN(...) * SIGN(...)`, so the top-level operation is a
+# multiplication rather than the `FLOOR` call — `11`, where `mul` ranks.
+@{binding_strength=11}
 let div_i = l r -> s"FLOOR(ABS({l:11} / {r:12})) * SIGN({l:0}) * SIGN({r:0})"
 
 # We have a simple float division by default, but it can be overridden by
@@ -340,6 +352,17 @@ module mysql {
   let regex_search = text pattern -> s"REGEXP_LIKE({text:0}, {pattern:0}, 'c')"
 }
 
+module oracle {
+  # Text functions
+  module text {
+    # Oracle's `CONCAT` takes exactly two arguments before 23ai, so the generic
+    # three-argument form is rejected. `||` is available in every version.
+    # https://docs.oracle.com/en/database/oracle/oracle-database/21/sqlrf/CONCAT.html
+    @{binding_strength=7}
+    let contains = substr column -> s"{column:0} LIKE '%' || {substr:11} || '%'"
+  }
+}
+
 module postgres {
   @{binding_strength=11}
   let div_f = l r -> s"({l} * 1.0 / {r:12})"
@@ -379,7 +402,16 @@ module redshift {
   # Text functions
   module text {
     # https://docs.aws.amazon.com/redshift/latest/dg/r_concat_op.html
+    @{binding_strength=7}
     let contains = substr column -> s"{column:0} LIKE '%' || {substr:0} || '%'"
+  }
+
+  # Date functions
+  module date {
+    # Redshift's TO_CHAR takes the same Postgres-style format strings that
+    # `RedshiftDialect::translate_chrono_item` emits.
+    # https://docs.aws.amazon.com/redshift/latest/dg/r_TO_CHAR.html
+    let to_text = format column -> s"TO_CHAR({column:0}, {format:0})"
   }
 }
 
@@ -396,16 +428,24 @@ module sqlite {
   @{binding_strength=11}
   let div_f = l r -> s"({l} * 1.0 / {r:12})"
 
-  @{binding_strength=100}
+  # As with the generic definition, the top-level operation is the trailing
+  # `* SIGN(...)`, not the `CAST`.
+  @{binding_strength=11}
   let div_i = l r -> s"CAST(ABS({l:11} * 1.0 / {r:12}) AS INTEGER) * SIGN({l:0}) * SIGN({r:0})"
 
   # Text functions
   module text {
     # SQLite: https://www.sqlite.org/lang_corefunc.html
     let length = column -> s"LENGTH({column:0})"
-    let starts_with = prefix column -> s"{column:0} LIKE {prefix:0} || '%'"
-    let contains = substr column -> s"{column:0} LIKE '%' || {substr:0} || '%'"
-    let ends_with = suffix column -> s"{column:0} LIKE '%' || {suffix:0}"
+    # SQLite ranks `||` above both `*`/`/`/`%` and `+`/`-`, so an unparenthesized
+    # argument binds to the surrounding `'%'` literals rather than to itself.
+    # https://www.sqlite.org/lang_expr.html#operators_and_parse_affecting_attributes
+    @{binding_strength=7}
+    let starts_with = prefix column -> s"{column:0} LIKE {prefix:12} || '%'"
+    @{binding_strength=7}
+    let contains = substr column -> s"{column:0} LIKE '%' || {substr:12} || '%'"
+    @{binding_strength=7}
+    let ends_with = suffix column -> s"{column:0} LIKE '%' || {suffix:12}"
   }
 
   # Date functions

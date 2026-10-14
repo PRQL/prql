@@ -2,22 +2,22 @@
 name: running-tend
 description:
   PRQL-specific guidance for tend CI workflows. Adds a standing exception for
-  filing issues in other repos, PR title conventions, CI structure,
-  Dependabot-batch polling, weekly maintenance tasks, and issue-closing policy
-  on top of the generic tend-* skills. Use when operating in CI.
+  filing issues in other repos, PR title conventions, CI structure, weekly
+  maintenance tasks, and issue-closing policy on top of the bundled
+  tend-ci-runner skills. Use when operating in CI.
 ---
 
 # Running Tend in PRQL
 
 Tend-specific guidance for this repo. Project build commands, test strategy,
-error conventions, etc. are in `CLAUDE.md` — don't duplicate them here.
+error conventions, etc. are in `AGENTS.md` — don't duplicate them here.
 
 ## Filing issues in other repos
 
 Standing exception granted: file directly in agent-equipped targets (per
-**Filing Issues in Other Repos** in the bundled `running-in-ci` skill) without
-asking permission here first. The default rule (open an issue here asking
-permission first) still applies when the target shows no agent signals.
+**Filing issues** in the bundled `/tend-ci-runner:act-in-other-repos` skill)
+without asking permission here first. The default rule (open an issue here
+asking permission first) still applies when the target shows no agent signals.
 
 ## PR conventions
 
@@ -42,28 +42,62 @@ permission first) still applies when the target shows no agent signals.
   in #5753, so bot PRs must be merged manually by a maintainer (or via repo
   branch-protection auto-merge if a maintainer enables it on the PR).
 
-## CI polling during the Dependabot batch
+## Verifying a `rust-toolchain.toml` bump
 
-Dependabot opens its whole batch over a couple of minutes (the 2026-08-03 batch
-ran 17:14:32 → 17:16:45; across 2026-06 to 2026-08 every batch has landed in
-17:12–17:19 UTC), so five or six `tests` matrices compete for runners at once.
-The surviving `tests` run on each PR then sits in `QUEUED` for a long time
-before it starts — run `30835855220` on #6130 took 73 minutes end to end
-(17:14:37 → 18:27:46), far past the 9-minute cap on the poll loop in **CI
-Monitoring** in `running-in-ci`.
+The `update-rust-toolchain` action opens `build: Update rust toolchain version`
+with nobody owning it, so tend usually pushes the mechanical lint fixes a new
+clippy demands (the repo compiles with `-D warnings`). **Verify with the
+matrix's full feature set, not `--features=default`.** The `tests` matrix runs
+clippy as
+`--all-targets --no-default-features --features=default,test-dbs-external,lsp`,
+and code behind `test-dbs-external` — `prqlc/prqlc/tests/integration/dbs/` — is
+invisible to a `default`-only run.
 
-**Stop after one poll round when every pending check is `QUEUED`.** A `QUEUED`
-check has not been allocated a runner, so another round changes nothing: post
-the verdict, name the unverified checks, and end. If any pending check is
-`IN_PROGRESS`, keep polling — that work is advancing and may still settle.
+On #6219 (1.96.1 → 1.97.1) a session fixed the 7 `useless_borrows_in_formatting`
+sites `--features=default` exposed and posted "clean across the workspace", but
+an 8th in `dbs/runner.rs` was still red — so the posted claim was wrong, not
+just the branch.
 
-The `pending()` helper in **CI Monitoring** returns a count without the states,
-so it can't tell those two cases apart. Project the states alongside it:
+A whole-workspace `--all-targets` clippy on a cold cache exceeds the session
+budget. Scope it to the failing compilation unit instead (~9 minutes):
 
 ```sh
-gh pr view <n> --json statusCheckRollup \
-  --jq '[.statusCheckRollup[] | {name: (.name // .context), status: (.status // .state)}]'
+cargo clippy -p prqlc --test integration --target=x86_64-unknown-linux-gnu \
+  --no-default-features --features=default,test-dbs-external,lsp -- -D warnings
 ```
+
+Then scope the resulting claim to match the command: a clean run there clears
+that one compilation unit, not the workspace — other crates and targets stay
+unchecked. Name the unit that was verified rather than repeating #6219's "clean
+across the workspace".
+
+## Verifying a change to the .NET binding
+
+`prqlc/bindings/dotnet/` builds and tests from a session, but one sandbox
+constraint blocks it and doesn't name its own cause.
+
+**MSBuild's worker nodes can't start, and say nothing.** Creating an `AF_UNIX`
+socket is refused sandbox-wide — `socketpair` still works, so ordinary
+parent/child pipes are unaffected and only cross-process Unix-socket IPC is
+lost. A multi-node build dies in the node handshake and reports `Build FAILED.`
+with `0 Error(s)` and no diagnostic at all. **Pass `-m:1` to every `dotnet`
+command that drives MSBuild** — `build`, `test`, `restore`; `dotnet new` rejects
+it as an unknown option and doesn't need it. Without it a real failure is
+indistinguishable from this one, and a single-project build succeeds either way,
+which is why a quick probe misses it.
+
+With that, the whole `test-dotnet` job runs from the repo root:
+
+```sh
+cargo build -p prqlc-c
+dotnet build prqlc/bindings/dotnet -m:1
+cp target/debug/libprqlc_c.* prqlc/bindings/dotnet/PrqlCompiler/bin/Debug/net*/
+cp target/debug/libprqlc_c.* prqlc/bindings/dotnet/PrqlCompiler.Tests/bin/Debug/net*/
+dotnet test prqlc/bindings/dotnet -m:1
+```
+
+Restore prints `NU1903` for `Newtonsoft.Json` 9.0.1, pulled in transitively by
+`Microsoft.NET.Test.Sdk`. It predates any change under review — don't chase it.
 
 ## Weekly maintenance
 

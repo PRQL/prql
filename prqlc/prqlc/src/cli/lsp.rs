@@ -48,7 +48,7 @@ fn main_loop(connection: Connection) -> Result<(), Box<dyn Error + Sync + Send>>
                 }
                 eprintln!("got request: {req:?}");
                 let id = req.id.clone();
-                match cast::<GotoDefinition>(req) {
+                let req = match cast::<GotoDefinition>(req) {
                     Ok((id, params)) => {
                         eprintln!("got gotoDefinition request #{id}: {params:?}");
                         let result = Some(GotoDefinitionResponse::Array(Vec::new()));
@@ -71,7 +71,16 @@ fn main_loop(connection: Connection) -> Result<(), Box<dyn Error + Sync + Send>>
                     }
                     Err(ExtractError::MethodMismatch(req)) => req,
                 };
-                // ...
+                // Nothing else is implemented yet. The protocol requires a
+                // response to every request, so answer with `MethodNotFound`
+                // rather than dropping it — a client that waits on the reply
+                // would otherwise hang.
+                let resp = Response::new_err(
+                    id,
+                    ErrorCode::MethodNotFound as i32,
+                    format!("unsupported method `{}`", req.method),
+                );
+                connection.sender.send(Message::Response(resp))?;
             }
             Message::Response(resp) => {
                 eprintln!("got response: {resp:?}");
@@ -144,6 +153,51 @@ mod tests {
         assert_eq!(err.code, ErrorCode::InvalidParams as i32);
 
         // The loop survived the bad request and still handles later messages.
+        client
+            .sender
+            .send(Message::Notification(Notification {
+                method: "exit".to_string(),
+                params: serde_json::Value::Null,
+            }))
+            .unwrap();
+        done_rx
+            .recv_timeout(REPLY_TIMEOUT)
+            .expect("server should exit on `exit` rather than hang")
+            .unwrap();
+    }
+
+    /// A request for a method the stub doesn't implement used to fall through
+    /// the `match` with no reply at all, leaving the client waiting forever.
+    #[test]
+    fn unsupported_method_gets_an_error_response() {
+        let (server, client) = Connection::memory();
+        let (done_tx, done_rx) = std::sync::mpsc::channel();
+        std::thread::spawn(move || done_tx.send(main_loop(server)));
+
+        client
+            .sender
+            .send(Message::Request(Request {
+                id: RequestId::from(1),
+                method: "textDocument/hover".to_string(),
+                params: serde_json::json!({
+                    "textDocument": { "uri": "file:///query.prql" },
+                    "position": { "line": 0, "character": 0 },
+                }),
+            }))
+            .unwrap();
+
+        let reply = client
+            .receiver
+            .recv_timeout(REPLY_TIMEOUT)
+            .expect("server should reply to an unsupported method rather than hang");
+        let Message::Response(resp) = reply else {
+            panic!("expected a response");
+        };
+        assert_eq!(resp.id, RequestId::from(1));
+        let err = resp.response_result.unwrap_err();
+        assert_eq!(err.code, ErrorCode::MethodNotFound as i32);
+
+        // The loop survived the unsupported request and still handles later messages.
         client
             .sender
             .send(Message::Notification(Notification {

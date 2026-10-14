@@ -1,6 +1,5 @@
 name: tend-setup
-description:
-  Setup steps for tend CI workflows (Rust toolchain, caching, dev tools)
+description: Setup steps for tend CI workflows
 
 inputs:
   github-token:
@@ -15,32 +14,10 @@ runs:
       uses: go-task/setup-task@v2
       with:
         repo-token: ${{ inputs.github-token }}
-        version: 3.52.0
+        version: 3.54.0
 
-    - uses: baptiste0928/cargo-install@v3
+    # The following setup steps use uv to install pre-commit. Keep uv on PATH.
+    - name: Setup uv
+      uses: astral-sh/setup-uv@v10.2.0
       with:
-        crate: cargo-insta
-
-    - uses: baptiste0928/cargo-install@v3
-      with:
-        crate: cargo-nextest
-
-    - run: ./.github/workflows/scripts/set_version.sh
-      shell: bash
-
-    - name: Cache
-      uses: Swatinem/rust-cache@v2
-      with:
-        prefix-key: ${{ hashFiles('./Cargo.lock') }}
-        shared-key: rust-x86_64-unknown-linux-gnu
-        save-if: false
-        # Caching `~/.cargo/bin/` breaks the rustup `cargo`/`rustc` symlinks
-        # on the new macos-15 runner image — see
-        # https://github.com/Swatinem/rust-cache/issues/341.
-        cache-bin: "false"
-
-    - run: |
-        echo CARGO_TERM_COLOR=always >> $GITHUB_ENV
-        echo 'RUSTFLAGS=-C debuginfo=0' >> $GITHUB_ENV
-        echo 'RUSTDOCFLAGS=-Dwarnings' >> $GITHUB_ENV
-      shell: bash
+        enable-cache: false

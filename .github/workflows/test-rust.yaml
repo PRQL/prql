@@ -127,11 +127,28 @@ jobs:
             --no-run --locked --target=${{ inputs.target }}
             --no-default-features --features=${{ inputs.features }}
       - name: Wait for database
+        id: wait-for-db
         uses: ifaxity/wait-on-action@v1.2.1
         with:
           resource: "tcp:1433 tcp:3306 tcp:5432 tcp:9004"
           timeout: 60000
         if: ${{ contains(inputs.features, 'test-dbs-external') }}
+      - name: Dump database containers
+        # The step above only reports which port never opened, which isn't
+        # enough to tell a container that crashed from one that was merely
+        # slow. Dump the containers' own state & logs so the next occurrence is
+        # diagnosable from the failing run rather than needing a re-run.
+        #
+        # `df -h` covers the disk-exhaustion hypothesis, which the container
+        # logs alone don't answer: `Free up disk space` above is skipped on a
+        # cache hit, so on that path nothing prints the free space and mssql —
+        # the largest of the four images — is the first to fail to initialise.
+        if: ${{ failure() && steps.wait-for-db.outcome == 'failure' }}
+        run: |
+          df -h
+          docker compose ps --all
+          docker compose logs --no-color --tail=200
+        working-directory: ./prqlc/prqlc/tests/integration/dbs
       - name: 📋 Test
         uses: clechasseur/rs-cargo@v4
         with:
@@ -178,14 +195,26 @@ jobs:
       - name: 🗒️ Doc
         # Only running on nightly, because of
         # https://github.com/duckdb/duckdb-rs/issues/179#issuecomment-1710986020.
-        if:
-          inputs.nightly == 'true' && inputs.target != 'wasm32-unknown-unknown'
+        #
+        # `nightly` is a `workflow_call` input of `type: boolean`, so it arrives
+        # as a real boolean. Comparing it to the string `'true'` casts both to
+        # numbers — `true` to 1 and `'true'` to NaN — so the comparison is
+        # always false. Test it as a boolean instead. (Composite actions are the
+        # opposite case: their inputs are always strings, hence the `== 'true'`
+        # in `.github/actions/time-compilation/action.yaml`.)
+        if: inputs.nightly && inputs.target != 'wasm32-unknown-unknown'
         uses: clechasseur/rs-cargo@v4
         with:
+          # `--no-deps`: cargo passes `--cap-lints allow` to registry
+          # dependencies, so `RUSTDOCFLAGS: -Dwarnings` can only fire on our own
+          # crates — documenting the dependency tree adds no signal, only time.
+          # (It doesn't relieve the disk pressure in the issue linked above:
+          # that report already ran with `--no-deps`, and the 1.3GB it measured
+          # was the `libduckdb-sys` build artifact, not rustdoc output.)
           command: doc
           args:
-            --target=${{ inputs.target }} --no-default-features --features=${{
-            inputs.features }}
+            --no-deps --target=${{ inputs.target }} --no-default-features
+            --features=${{ inputs.features }}
       - name: Build extra targets for cache
         # When building the cache, we also run with `--all-targets` so that
         # prqlc builds can use the same cache.

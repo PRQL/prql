@@ -8,8 +8,16 @@ updates:
       interval: weekly
     commit-message:
       prefix: "chore: "
-    # Bump all patch versions of rust dependencies as a single PR
     groups:
+      # `pyo3-build-config` is released in lockstep with `pyo3` and expects to
+      # be on the same version, but ungrouped Dependabot raises a PR for each:
+      # #6258 bumped the helper alone while `pyo3` stayed two minors behind.
+      # Listed before `patch` because a dependency joins its first match.
+      pyo3:
+        patterns:
+          - "pyo3"
+          - "pyo3-build-config"
+      # Bump all patch versions of rust dependencies as a single PR
       patch:
         update-types:
           - patch

@@ -1,44 +1,43 @@
 use Test;
-use prql;
+use lib $?FILE.IO.parent.add('lib').Str;
+use PRQLTest;
 
 plan 10;
 
 # == Equals
-ok PRQL.parse('filter foo == bar');
-#query(pipeline(call-expression(identifier,arg-list(binary-expression(identifier,compare-op,identifier)))))
+parses-to 'filter foo == bar', 'statement(pipeline-statement(pipeline(call-expression(identifier«filter»,test(test-inner(binary-test(expression(identifier«foo»),compare-op«==»,expression(identifier«bar»))))))))';
 
 # != Not equals
-ok PRQL.parse('filter foo != bar');
-#query(pipeline(call-expression(identifier,arg-list(binary-expression(identifier,compare-op,identifier)))))
+parses-to 'filter foo != bar', 'statement(pipeline-statement(pipeline(call-expression(identifier«filter»,test(test-inner(binary-test(expression(identifier«foo»),compare-op«!=»,expression(identifier«bar»))))))))';
 
 # >= Greater than or equal
-ok PRQL.parse('filter foo >= bar');
-#query(pipeline(call-expression(identifier,arg-list(binary-expression(identifier,compare-op,identifier)))))
+parses-to 'filter foo >= bar', 'statement(pipeline-statement(pipeline(call-expression(identifier«filter»,test(test-inner(binary-test(expression(identifier«foo»),compare-op«>=»,expression(identifier«bar»))))))))';
 
 # <= Less than or equal
-ok PRQL.parse('filter foo <= bar');
-#query(pipeline(call-expression(identifier,arg-list(binary-expression(identifier,compare-op,identifier)))))
+parses-to 'filter foo <= bar', 'statement(pipeline-statement(pipeline(call-expression(identifier«filter»,test(test-inner(binary-test(expression(identifier«foo»),compare-op«<=»,expression(identifier«bar»))))))))';
 
 # ~= Regex match
-ok PRQL.parse('filter foo ~= bar');
-#query(pipeline(call-expression(identifier,arg-list(binary-expression(identifier,compare-op,identifier)))))
+parses-to 'filter foo ~= bar', 'statement(pipeline-statement(pipeline(call-expression(identifier«filter»,test(test-inner(binary-test(expression(identifier«foo»),compare-op«~=»,expression(identifier«bar»))))))))';
 
 # && And
-ok PRQL.parse('filter foo && bar');
-#query(pipeline(call-expression(identifier,arg-list(binary-expression(identifier,logic-op,identifier)))))
+parses-to 'filter foo && bar', 'statement(pipeline-statement(pipeline(call-expression(identifier«filter»,test(test-inner(binary-test(expression(identifier«foo»),logic-op«&&»,expression(identifier«bar»))))))))';
 
 # || Or
-ok PRQL.parse('filter foo || bar');
-#query(pipeline(call-expression(identifier,arg-list(binary-expression(identifier,logic-op,identifier)))))
+parses-to 'filter foo || bar', 'statement(pipeline-statement(pipeline(call-expression(identifier«filter»,test(test-inner(binary-test(expression(identifier«foo»),logic-op«||»,expression(identifier«bar»))))))))';
 
 # ?? Coalesce
-ok PRQL.parse('filter foo ?? bar');
-#query(pipeline(call-expression(identifier,arg-list(binary-expression(identifier,logic-op,identifier)))))
+parses-to 'filter foo ?? bar', 'statement(pipeline-statement(pipeline(call-expression(identifier«filter»,test(test-inner(binary-test(expression(identifier«foo»),logic-op«??»,expression(identifier«bar»))))))))';
+
+# The unary operator itself isn't recorded: `unary-expression` matches it in an
+# unnamed group (`('+' | '-') <expression>`) or as a bare literal
+# (`'==' <identifier>`), so `shape` has no name to render it under and
+# `sort { +name }` would assert the same shape as `-name`. As with the timezone
+# suffix in `t/datetime.rakutest`, the assertion is still operator-sensitive —
+# `.parse` anchors on the whole string, so an operator the grammar stopped
+# accepting fails the parse rather than passing with this shape.
 
 # Unary operator -
-ok PRQL.parse('sort { -name }');
-#query(pipeline(call-expression(identifier,arg-list(tuple-expression(unary-expression(arith-op,identifier))))))
+parses-to 'sort { -name }', 'statement(pipeline-statement(pipeline(call-expression(identifier«sort»,test(test-inner(expression(tuple-expression(expression(unary-expression(expression(identifier«name»)))))))))))';
 
 # Unary operator ==
-ok PRQL.parse('join customers (==customer_id)');
-#query(pipeline(call-expression(identifier,arg-list(identifier,parenthesized-expression(unary-expression(compare-op,identifier))))))
+parses-to 'join customers (==customer_id)', 'statement(pipeline-statement(pipeline(call-expression(identifier«join»,test(test-inner(expression(identifier«customers»))),test(test-inner(expression(parenthesized-expression(expression(unary-expression(identifier«customer_id»))))))))))';

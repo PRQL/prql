@@ -1,24 +1,23 @@
 use Test;
-use prql;
+use lib $?FILE.IO.parent.add('lib').Str;
+use PRQLTest;
 
 plan 5;
 
 # Tuple on one line
-ok PRQL.parse('test {foo, bar, baz}');
-#query(pipeline(call-expression(identifier,arg-list(tuple-expression(identifier,identifier,identifier)))))
+parses-to 'test {foo, bar, baz}', 'statement(pipeline-statement(pipeline(call-expression(identifier«test»,test(test-inner(expression(tuple-expression(expression(identifier«foo»),expression(identifier«bar»),expression(identifier«baz»)))))))))';
 
 # Tuple on multiple lines
-ok PRQL.parse(q:to/END/);
+parses-to q:to/END/, 'statement(pipeline-statement(pipeline(call-expression(identifier«test»,test(test-inner(expression(tuple-expression(expression(identifier«foo»),expression(identifier«bar»),expression(identifier«baz»)))))))))', :desc('Tuple on multiple lines');
 test {
   foo,
   bar,
   baz
 }
 END
-#query(pipeline(call-expression(identifier,arg-list(tuple-expression(identifier,identifier,identifier)))))
 
 # Tuple on multiple lines with blank lines
-ok PRQL.parse(q:to/END/);
+parses-to q:to/END/, 'statement(pipeline-statement(pipeline(call-expression(identifier«test»,test(test-inner(expression(tuple-expression(expression(identifier«foo»),expression(identifier«bar»),expression(identifier«baz»)))))))))', :desc('Tuple on multiple lines with blank lines');
 test {
 
   foo,
@@ -29,16 +28,13 @@ test {
 
 }
 END
-#query(pipeline(call-expression(identifier,arg-list(tuple-expression(identifier,identifier,identifier)))))
 
 # Tuple with key and value
-ok PRQL.parse('test {foo=bar}');
-#query(pipeline(call-expression(identifier,arg-list(tuple-expression(declaration-tuple(declaration-item,equals,identifier))))))
+parses-to 'test {foo=bar}', 'statement(pipeline-statement(pipeline(call-expression(identifier«test»,test(test-inner(expression(tuple-expression(declaration-tuple(identifier«foo»,expression(identifier«bar»))))))))))';
 
 # Tuple with keys and values
-ok PRQL.parse(q:to/END/);
+parses-to q:to/END/, 'statement(pipeline-statement(pipeline(call-expression(identifier«test»,test(test-inner(expression(tuple-expression(declaration-tuple(identifier«identifier»,expression(identifier«identifier»)),declaration-tuple(identifier«int»,expression(number(integer«3»))),declaration-tuple(identifier«float»,expression(number(float«3.14»))),declaration-tuple(identifier«string»,expression(string«"string"»))))))))))', :desc('Tuple with keys and values');
 test {identifier=identifier,int  =3, float=  3.14 ,
 string    =    "string"
 }
 END
-#query(pipeline(call-expression(identifier,arg-list(tuple-expression(declaration-tuple(declaration-item,equals,identifier),declaration-tuple(declaration-item,equals,integer),declaration-tuple(declaration-item,equals,float),declaration-tuple(declaration-item,equals,string))))))

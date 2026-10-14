@@ -1624,9 +1624,9 @@ fn test_unicode() {
             args:
               - Ident:
                   - tète
-                span: "0:5-10"
-          span: "0:0-10"
-      span: "0:0-10"
+                span: "0:5-9"
+          span: "0:0-9"
+      span: "0:0-9"
     "#);
 }
 

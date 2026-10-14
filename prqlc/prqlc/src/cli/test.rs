@@ -197,7 +197,8 @@ from long_query
     success: true
     exit_code: 0
     ----- stdout -----
-    WITH table_2 AS (
+    WITH
+    table_2 AS (
       SELECT
         title,
         COUNT(*) AS ct
@@ -213,7 +214,8 @@ from long_query
         ct
       LIMIT
         20
-    ), table_1 AS (
+    ),
+    table_1 AS (
       SELECT
         title,
         ct
@@ -225,7 +227,8 @@ from long_query
         ct
       LIMIT
         20
-    ), table_0 AS (
+    ),
+    table_0 AS (
       SELECT
         title,
         ct
@@ -237,7 +240,8 @@ from long_query
         ct
       LIMIT
         20
-    ), long_query AS (
+    ),
+    long_query AS (
       SELECT
         title,
         ct
@@ -281,12 +285,12 @@ fn compile_project() {
     success: true
     exit_code: 0
     ----- stdout -----
-    WITH table_1 AS (
+    WITH
+    table_1 AS (
       SELECT
         120 AS artist_id,
         DATE '2023-05-18' AS last_listen
-      UNION
-      ALL
+      UNION ALL
       SELECT
         7 AS artist_id,
         DATE '2023-05-16' AS last_listen
@@ -335,12 +339,12 @@ fn compile_project() {
     success: true
     exit_code: 0
     ----- stdout -----
-    WITH table_0 AS (
+    WITH
+    table_0 AS (
       SELECT
         120 AS artist_id,
         DATE '2023-05-18' AS last_listen
-      UNION
-      ALL
+      UNION ALL
       SELECT
         7 AS artist_id,
         DATE '2023-05-16' AS last_listen
@@ -668,6 +672,23 @@ fn lex() {
     ]
     ----- stderr -----
     "#);
+}
+
+/// `lsp` is off by default, and the subcommand exists either way — so before
+/// the fix a default build dispatched `prqlc lsp` into the IO commands, which
+/// have no `IoArgs` for it, and panicked on `unreachable!()`. It should report
+/// the missing feature instead.
+#[cfg(not(feature = "lsp"))]
+#[test]
+fn lsp_without_feature() {
+    assert_cmd_snapshot!(prqlc_command().args(["lsp"]), @"
+    success: false
+    exit_code: 1
+    ----- stdout -----
+
+    ----- stderr -----
+    `lsp` requires `prqlc` to be built with the `lsp` feature
+    ");
 }
 
 #[cfg(feature = "lsp")]

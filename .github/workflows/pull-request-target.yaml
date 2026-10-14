@@ -14,9 +14,11 @@ concurrency:
 jobs:
   main:
     name: Validate PR title
+    permissions:
+      pull-requests: read
     runs-on: ubuntu-24.04
     steps:
-      - uses: amannn/action-semantic-pull-request@v6
+      - uses: amannn/action-semantic-pull-request@48f256284bd46cdaab1048c3721360e808335d50 # v6
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
@@ -47,6 +49,8 @@ jobs:
   backport:
     # Backport to `web` branch on `pr-backport-web`
     name: Backport to `web` branch
+    # Backporting uses TEND_BOT_TOKEN; the job needs no GITHUB_TOKEN access.
+    permissions: {}
     runs-on: ubuntu-24.04
     # Confirm that it's merged and has a label to ensure nothing is backported without oversight
     if: |
@@ -66,7 +70,7 @@ jobs:
       name: tend
       deployment: false
     steps:
-      - uses: tibdex/backport@v2
+      - uses: tibdex/backport@9565281eda0731b1d20c4025c43339fb0a23812e # v2
         with:
           # This is a personal access token from the @prql-bot
           github_token: ${{ secrets.TEND_BOT_TOKEN }}

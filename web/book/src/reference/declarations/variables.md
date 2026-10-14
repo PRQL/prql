@@ -23,14 +23,14 @@ Syntactically, variables can take 3 forms.
 
 - The final expression of a pipeline defaults to taking the name `main`.
 
-  ```prql no-eval
+  ```prql
   from x
   ```
 
   ... is equivalent to:
 
-  ```prql no-eval
-  let main = x
+  ```prql
+  let main = (from x)
   ```
 
 When compiling to SQL, relational variables are compiled to Common Table

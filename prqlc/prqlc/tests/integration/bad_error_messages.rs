@@ -224,3 +224,42 @@ fn just_std() {
     ───╯
     ");
 }
+
+#[test]
+fn interpolation_span_after_escapes_or_triple_quotes() {
+    // The label should point at `foo`, but the interpolation's spans are
+    // computed from the decoded string at a fixed `+ 2` offset from the token,
+    // so each escape sequence shifts it one column left and triple quotes two.
+    // https://github.com/PRQL/prql/issues/6396
+    assert_snapshot!(compile(r#"
+    from t
+    select {x}
+    derive {y = f"\t\t\t\t{foo}"}
+    "#).unwrap_err(), @r#"
+    Error:
+       ╭─[ :4:24 ]
+       │
+     4 │     derive {y = f"\t\t\t\t{foo}"}
+       │                        ─┬─
+       │                         ╰─── Unknown name `foo`
+       │
+       │ Help: available columns: t.x
+    ───╯
+    "#);
+
+    assert_snapshot!(compile(r#"
+    from t
+    select {x}
+    derive {y = s"""aaaa{foo}"""}
+    "#).unwrap_err(), @r#"
+    Error:
+       ╭─[ :4:24 ]
+       │
+     4 │     derive {y = s"""aaaa{foo}"""}
+       │                        ─┬─
+       │                         ╰─── Unknown name `foo`
+       │
+       │ Help: available columns: t.x
+    ───╯
+    "#);
+}

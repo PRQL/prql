@@ -11,7 +11,7 @@ classifiers = [
 description = "Python bindings for prqlc, the PRQL compiler"
 dynamic = ["version"]
 name = "prqlc"
-requires-python = ">=3.9"
+requires-python = ">=3.10"
 
 [tool.maturin]
 # This is required because of https://github.com/PyO3/pyo3/pull/2135 (closed

@@ -1,4 +1,4 @@
-# Claude
+# PRQL Development Guidelines
 
 ## Development Workflow
 
@@ -36,6 +36,8 @@ The test suite is configured to minimize token usage:
 - **Result**: ~52% reduction in output (1128 → 540 lines, ~4.5k tokens)
 
 ## Tests
+
+Read `prqlc/prqlc/tests/AGENTS.md` before changing compiler tests.
 
 Prefer inline snapshots for almost all tests:
 
@@ -127,24 +129,34 @@ Error messages should avoid 2nd person (you/your). Use softer modal verbs like
 - ❌ "you can only use X" → ✅ "X requires Y" (for hard constraints)
 - ❌ "Have you forgotten an argument?" → ✅ "Argument might be missing?"
 
+## Changelog
+
+A user-facing change needs a `CHANGELOG.md` line in the same PR, under the
+matching heading, formatted `{message}, (@contributor, #X)` with `X` the PR
+number — which only exists once the PR is open, so add the entry in a follow-up
+commit rather than dropping it. Internal refactors, test-only changes and
+workflow regens don't need one. See
+`web/book/src/project/contributing/development.md` under **Contribution workflow
+› Commits**.
+
+Documentation counts as user-facing when it documents how to use PRQL: the
+book's tutorial, reference, bindings and integrations pages, the bindings'
+READMEs and API docs, and the website's pages on using PRQL and the metadata
+they serve (such as link-preview tags). Those get an entry under the
+`**Documentation**:` heading. Documentation about the project rather than its
+use — this file, `web/book/src/project/contributing/`, the website roadmap, a
+binding's `DEVELOPMENT.md` — doesn't need one.
+
 ## Documentation
 
-For Claude to view crate documentation:
+Build crate documentation with:
 
 ```sh
-# Build documentation for a specific crate
 cargo doc -p prqlc
-
-# Read the generated HTML documentation with the Read tool
-# The docs are generated at target/doc/{crate_name}/index.html
-Read target/doc/prqlc/index.html
-
-# For specific module documentation
-Read target/doc/prqlc/module_name/index.html
-
-# For function documentation
-Read target/doc/prqlc/fn.compile.html
 ```
+
+The generated HTML is at `target/doc/{crate_name}/index.html`. Follow its links
+to modules and functions.
 
 ## Releases & Environment
 

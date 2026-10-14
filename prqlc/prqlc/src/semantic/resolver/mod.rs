@@ -19,7 +19,9 @@ pub struct Resolver<'a> {
 
     default_namespace: Option<String>,
 
-    /// Sometimes ident closures must be resolved and sometimes not. See [test::test_func_call_resolve].
+    /// Set while resolving the name of a function call, so an ident that
+    /// refers to a function resolves to the function itself rather than being
+    /// folded as an expression.
     in_func_call_name: bool,
 
     /// Aliases declared by the tuples currently being resolved, innermost last.
@@ -36,9 +38,6 @@ pub struct Resolver<'a> {
 
     pub id: IdGenerator<usize>,
 }
-
-#[derive(Default, Clone)]
-pub struct ResolverOptions {}
 
 impl Resolver<'_> {
     pub fn new(root_mod: &mut RootModule) -> Resolver<'_> {

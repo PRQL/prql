@@ -121,11 +121,11 @@ const def = {
       [/'/, { token: "string.quote", bracket: "@close", next: "@pop" }],
     ],
 
-    whitespace: [
-      [/[ \t\r\n]+/, "white"],
-      [/\/\*/, "comment", "@comment"],
-      [/\/\/.*$/, "comment"],
-    ],
+    // PRQL's only comment syntax is `#`, handled by the `comment` state above.
+    // There are no `//` line comments or `/* */` block comments — `//` is the
+    // integer-division operator (`TokenKind::DivInt` in the lexer), so a rule
+    // matching it here would swallow the rest of the line as a comment.
+    whitespace: [[/[ \t\r\n]+/, "white"]],
   },
 };
 export default def;

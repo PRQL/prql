@@ -34,7 +34,9 @@ jobs:
       - name: Setup Node
         uses: actions/setup-node@v7
         with:
-          node-version: "21.x"
+          # mocha 12 requires `^20.19.0 || >=22.12.0`; Node 21 falls in the gap
+          # and is EOL. Matches the pin in `.github/actions/build-js`.
+          node-version: "24.x"
 
       - uses: baptiste0928/cargo-install@v3
         with:

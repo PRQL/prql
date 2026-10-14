@@ -22,6 +22,8 @@ function pl_to_prql(pl_json: string): string;
 function pl_to_rq(pl_json: string): string;
 
 function rq_to_sql(rq_json: string): string;
+
+function get_targets(): string[];
 ```
 
 ### From Node.js
@@ -47,26 +49,15 @@ const sql = prqlc.compile(`from employees | take 10`, opts);
 console.log(sql);
 ```
 
-Template literal
+A query over several lines
 
 ```javascript
 const prqlc = require("prqlc");
-const prql = (string) => prqlc.compile(string[0] || "");
 
-const sql = prql`from employees | select first_name`;
-console.log(sql);
-```
-
-Template literal with newlines
-
-```javascript
-const prqlc = require("prqlc");
-const prql = (string) => prqlc.compile(string[0] || "");
-
-const sql = prql`
-    from employees
-    select first_name
-`;
+const sql = prqlc.compile(`
+  from employees
+  select first_name
+`);
 console.log(sql);
 ```
 
@@ -76,7 +67,7 @@ console.log(sql);
 <html>
   <head>
     <script type="module">
-      import init, { compile } from "./dist/web/prql_js.js";
+      import init, { compile } from "./dist/web/prqlc_js.js";
       await init();
 
       const sql = compile("from employees | select first_name");
@@ -91,7 +82,7 @@ console.log(sql);
 ### From a framework or a bundler
 
 ```typescript
-import compile from "prqlc/dist/bundler";
+import { compile } from "prqlc/dist/bundler";
 
 const sql = compile(`from employees | select first_name`);
 console.log(sql);
@@ -99,7 +90,8 @@ console.log(sql);
 
 ## Errors
 
-Errors are returned as the following object, serialized as a JSON array:
+Errors are thrown with a JSON-serialized message: an object whose `inner` field
+is an array of the following:
 
 ```typescript
 interface ErrorMessage {
@@ -135,7 +127,7 @@ These errors can be caught as such:
 
 ```javascript
 try {
-  const sql = prqlJs.compile(`from employees | foo first_name`);
+  const sql = prqlc.compile(`from employees | foo first_name`);
 } catch (error) {
   const errorMessages = JSON.parse(error.message).inner;
 
@@ -174,7 +166,7 @@ PROFILE=dev npm run build
   generate bindings[^1].
 - We've added an `npm` layer on top of the usual approach of just using
   `wasm-pack`, so we can distribute a single package with targets of `node`,
-  `bundler` and `no-modules` — somewhat inverting the approach recommended by
+  `bundler` and `web` — somewhat inverting the approach recommended by
   `wasm-pack`. The build instruction goes in a `build` script, rather than a
   `pack` script.
 

@@ -2,3 +2,18 @@
 self-hosted-runner:
   labels:
     - macos-15-intel
+
+# actionlint does not yet know the `concurrency.queue` key, which GitHub added
+# and tend's generated `tend-review.yaml` uses. Upstream tracks it in
+# rhysd/actionlint#654 and #657; the PR adding support (#661) was closed
+# unmerged and the latest release (v1.7.12) still rejects it, so without an
+# ignore the nightly `uvx tend init` regeneration lands permanently red here.
+#
+# `tend init` now writes the entry below itself (tend 0.1.23), so the
+# equivalent entry #6252 added by hand is gone. It stays scoped to the
+# generated `tend-*` workflows, so a genuine typo in a hand-written workflow
+# is still caught. Remove once actionlint ships support.
+paths:
+  "**/.github/workflows/tend-*.yaml":
+    ignore:
+      - unexpected key "queue" for "concurrency" section

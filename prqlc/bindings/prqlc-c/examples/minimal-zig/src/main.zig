@@ -1,7 +1,5 @@
 const std = @import("std");
-const prql = @cImport({
-    @cInclude("../c/prqlc.h");
-});
+const prql = @import("prqlc");
 
 pub fn main() !void {
     var target = "sql.mssql".*;

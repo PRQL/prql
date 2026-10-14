@@ -246,7 +246,7 @@ pub(crate) mod external {
             self.protocol.execute(
                 &format!(
                     "LOAD DATA INFILE '{}' INTO TABLE {table_name} FIELDS TERMINATED BY ',' OPTIONALLY ENCLOSED BY '\"' LINES TERMINATED BY '\n' IGNORE 1 ROWS;",
-                    &csv_path_binding.parent().unwrap().join(local_new_path.file_name().unwrap()).to_str().unwrap()
+                    csv_path_binding.parent().unwrap().join(local_new_path.file_name().unwrap()).to_str().unwrap()
                 )
             ).unwrap();
             fs::remove_file(&local_new_path).unwrap();

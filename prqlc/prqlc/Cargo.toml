@@ -10,7 +10,7 @@ rust-version.workspace = true
 version.workspace = true
 
 # Required for `cargo-msrv`, which doesn't yet support workspaces
-metadata.msrv = "1.81.0"
+metadata.msrv = "1.85.0"
 
 build = "build.rs"
 
@@ -57,13 +57,13 @@ test-dbs-external = [
 prqlc-parser = { path = "../prqlc-parser", version = "0.13.15" }
 
 anstream = { version = "1.0.0", features = ["auto"] }
-ariadne = "0.5.1"
+ariadne = "0.6.0"
 chrono = "0.4.40"
 csv = "1.4.0"
 enum-as-inner = { workspace = true }
 itertools = { workspace = true }
 log = { workspace = true }
-regex = "1.12.3"
+regex = "1.12.4"
 schemars = { workspace = true }
 semver = { workspace = true }
 # serde is required for the `from_text` feature of PRQL, so we can't really put
@@ -71,8 +71,8 @@ semver = { workspace = true }
 serde = { workspace = true }
 serde_json = { workspace = true }
 serde_yaml = { workspace = true, optional = true }
-sqlformat = "0.3.5"
-sqlparser = { version = "0.62.0", features = [
+sqlformat = "0.5.0"
+sqlparser = { version = "0.63.0", features = [
   "serde",
   # enabling "recursive-protection" causes wasm compilation to fail on MacOS
 ], default-features = false }
@@ -88,7 +88,7 @@ vergen-gitcl = { version = "1.0.8", features = ["build"] }
 
 # unique dependencies from the CLI, marked as optional and included in the 'cli'
 # feature
-anyhow = { version = "1.0.102", features = ["backtrace"], optional = true }
+anyhow = { version = "1.0.103", features = ["backtrace"], optional = true }
 clap = { version = "4.5.61", features = [
   "derive",
   "env",
@@ -137,7 +137,7 @@ tokio-util = { version = "0.7.18", optional = true, features = ["compat"] }
 glob = { version = "0.3.3" }
 insta = { workspace = true }
 insta-cmd = { workspace = true }
-rstest = "0.26.1"
+rstest = "0.27.0"
 similar = { workspace = true }
 similar-asserts = { workspace = true }
 tempfile = { version = "3.27.0" }
