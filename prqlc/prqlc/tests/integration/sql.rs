@@ -8454,3 +8454,18 @@ fn test_parenthesized_alias_in_tuple() {
       t
     ");
 }
+
+#[test]
+fn test_parenthesized_alias_in_let_overridden_at_reference() {
+    // An alias where the variable is used wins over one in its definition.
+    assert_snapshot!(compile(r#"
+    let x = (y = 5)
+    from t
+    select {z = x}
+    "#).unwrap(), @"
+    SELECT
+      5 AS z
+    FROM
+      t
+    ");
+}
