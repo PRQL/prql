@@ -640,7 +640,8 @@ mod tests {
              | derive { sales = this.col1 } \
              | select { this.category, this.sales }"
         ).unwrap(), @"
-        WITH table_0 AS (
+        WITH
+        table_0 AS (
           SELECT
             category,
             COALESCE(SUM(amount), 0) AS _expr_0
