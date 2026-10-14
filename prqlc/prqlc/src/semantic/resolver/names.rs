@@ -14,6 +14,17 @@ use crate::WithErrorInfo;
 
 impl Resolver<'_> {
     pub(super) fn resolve_ident(&mut self, ident: &Ident) -> Result<Ident, Error> {
+        self.resolve_ident_through_imports(ident, &mut HashSet::new())
+    }
+
+    /// Resolves `ident`, following import declarations to their targets.
+    /// `imports_seen` holds the imports already followed, so a cycle of imports
+    /// is reported as an error instead of recursing forever.
+    fn resolve_ident_through_imports(
+        &mut self,
+        ident: &Ident,
+        imports_seen: &mut HashSet<Ident>,
+    ) -> Result<Ident, Error> {
         let mut res = if let Some(default_namespace) = self.default_namespace.clone() {
             self.resolve_ident_core(ident, Some(&default_namespace))
         } else {
@@ -38,7 +49,12 @@ impl Resolver<'_> {
                 let decl = self.root_mod.module.get(fq_ident).unwrap();
                 if let DeclKind::Import(target) = &decl.kind {
                     let target = target.clone();
-                    return self.resolve_ident(&target);
+                    if !imports_seen.insert(fq_ident.clone()) {
+                        return Err(Error::new_simple(format!(
+                            "circular import: `{fq_ident}` refers back to itself"
+                        )));
+                    }
+                    return self.resolve_ident_through_imports(&target, imports_seen);
                 }
             }
             Err(e) => {
@@ -374,4 +390,72 @@ fn ambiguous_error(idents: HashSet<Ident>, replace_name: Option<&String>) -> Err
     chunks.sort();
     let hint = format!("could be any of: {}", chunks.join(", "));
     Error::new_simple("Ambiguous name").push_hint(hint)
+}
+
+#[cfg(test)]
+mod tests {
+    use insta::assert_snapshot;
+
+    #[test]
+    fn test_self_import_is_an_error() {
+        let query = r#"
+        module a {
+          import x = a.x
+        }
+        from t | select {a.x}
+        "#;
+        assert_snapshot!(crate::tests::compile(query).unwrap_err(), @"
+        Error:
+           ╭─[ :5:26 ]
+           │
+         5 │         from t | select {a.x}
+           │                          ─┬─
+           │                           ╰─── circular import: `a.x` refers back to itself
+        ───╯
+        ");
+    }
+
+    #[test]
+    fn test_mutual_import_is_an_error() {
+        let query = r#"
+        module a {
+          import x = b.x
+        }
+        module b {
+          import x = a.x
+        }
+        from t | select {a.x}
+        "#;
+        assert_snapshot!(crate::tests::compile(query).unwrap_err(), @"
+        Error:
+           ╭─[ :8:26 ]
+           │
+         8 │         from t | select {a.x}
+           │                          ─┬─
+           │                           ╰─── circular import: `a.x` refers back to itself
+        ───╯
+        ");
+    }
+
+    #[test]
+    fn test_chained_imports_resolve() {
+        let query = r#"
+        module a {
+          import x = b.x
+        }
+        module b {
+          import x = c.y
+        }
+        module c {
+          let y = 1
+        }
+        from t | select {a.x}
+        "#;
+        assert_snapshot!(crate::tests::compile(query).unwrap(), @"
+        SELECT
+          1
+        FROM
+          t
+        ");
+    }
 }

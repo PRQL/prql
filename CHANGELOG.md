@@ -22,14 +22,71 @@
 
 - Add simple enumeration type, and dedicated support for name resolution when an
   enum is used as a function parameter. (@kgutwin, #6104)
+- Formatted SQL output changes with the upgrade of `sqlformat` to 0.5.0: a CTE's
+  name now starts on the line after `WITH`, and `PARTITION BY` puts its columns
+  on their own lines, as other clauses do. Pass `--no-format` for unformatted
+  output. (@prql-bot, #6257)
 
 **Fixes**:
 
+- A modulo or division on the right of a multiplication keeps its parentheses:
+  `19 * (year % 19)` previously compiled to `19 * year % 19`, which SQL
+  evaluates as `(19 * year) % 19`. (@prql-bot, #6418)
+- Report malformed relation literals — an unnamed column such as `from [{1}]`,
+  or a row that isn't a tuple — as compile errors instead of panicking.
+  (@prql-bot, #6413)
+- `take` bounds at the extremes of `i64` no longer produce a panic or invalid
+  SQL. Combining nested ranges (`take 9223372036854775807.. | take 2..`)
+  overflowed while re-basing the inner bounds, panicking in a debug build and
+  silently emitting a wrapped `OFFSET` in a release one; it now reports a
+  compile error. Separately, a `LIMIT` at or above 2^32 was rendered with
+  sqlparser's `long` flag, so `take 5000000000` compiled to
+  `LIMIT 5000000000 L`, which no dialect parses. (@prql-bot, #6347)
+- Error labels after non-ASCII text now point at the right column, rather than
+  drifting right or crashing `prqlc` when a label ran past the end of the query.
+  (@prql-bot, #6378)
+- `date.to_text` errors now name the format specifier the target dialect
+  rejected — `format specifier %P is not supported for Postgres` rather than
+  `PRQL doesn't support this format specifier`, whose span covers the whole
+  format string. An escape chrono doesn't recognize at all, such as `%Q`, now
+  reports an unrecognized specifier instead of BigQuery's
+  `format specifier Error is not supported for BigQuery`. (@prql-bot, #6351)
+- Parenthesize a compound bound of `BETWEEN` or operand of `IN` in the generated
+  SQL. `x >= 1 && x <= (y && z)` previously compiled to
+  `x BETWEEN 1 AND y AND z`, and `(a || b) | in [true]` to `a OR b IN (true)`,
+  both of which change the query's meaning. (@prql-bot, #6381)
+- An operator that can't be translated is now reported as an error rather than
+  aborting the compiler with `called Option::unwrap() on a None value`. Three
+  queries hit this: `date.to_text` on `sql.redshift`, which had no
+  implementation for that dialect; a query declaring its own
+  `internal std.<name>` for a name that doesn't exist; and one declaring an
+  `internal std.<name>` with fewer parameters than the operator reads. Redshift
+  also gains a `to_text` implementation, so the first now compiles to `TO_CHAR`,
+  supporting the same format specifiers as Postgres. (@prql-bot, #6352)
+- Report an `internal std.<name>` declaration that names a module, such as
+  `std.date`, as an unsupported operator rather than aborting the compiler with
+  `called Option::unwrap() on a None value`. (@prql-bot, #6388)
+- `prqlc debug lineage` on a query with no main pipeline, such as `let x = 5`,
+  now reports the same `E0001` error as `prqlc compile` rather than panicking.
+  (@prql-bot, #6389)
+- Keep the outer frame after a nested `window`; transforms following the inner
+  `window` previously compiled with an unbounded `OVER ()`. (@prql-bot, #6375)
+- Report a circular `import` as an error rather than crashing with a stack
+  overflow. (@prql-bot, #6376)
 - `prqlc experimental doc --format=html` now escapes HTML in the page it
   generates. A doc comment containing `<`, `>` or `&` — as ordinary prose such
   as `a < b` does — was interpolated verbatim, so a browser parsed it as markup
   and the text around it vanished from the rendered page; the same path let a
   doc comment inject arbitrary markup. (@prql-bot, #6327)
+
+- `prqlc compile --debug-log=<file>` no longer truncates the file it writes
+  without reporting an error. The HTML renderer used `Write::write`, which may
+  consume only part of the slice it is handed, and both formats left the
+  `BufWriter`'s final flush to `drop`, which discards its error — so a partial
+  write or a failure while flushing produced a short file and a successful exit.
+  A failure in the HTML branch now names the file it was writing and the I/O
+  error behind it, rather than reporting
+  `an error occurred when formatting an argument`. (@prql-bot, #6365)
 
 - `prqlc compile --debug-log=<file>.html` now escapes HTML in the page it
   generates. Query source, generated SQL, log text, declaration names and the
@@ -153,6 +210,21 @@
 
 **Documentation**:
 
+- The website's `og:image` meta tag points at the served
+  `/img/favicon-32x32.png` rather than `/static/img/favicon-32x32.png`, which
+  returns 404, so link previews of prql-lang.org can show the image. (@prql-bot,
+  #6430)
+
+- The Elixir bindings' README installs the package from a local checkout of the
+  repo rather than from Hex, where it isn't published. The book's VS Code page
+  points to the Extensions view (<kbd>Ctrl</kbd>-<kbd>Shift</kbd>-<kbd>X</kbd>)
+  rather than the Command Palette to find the extension. (@prql-bot, #6429)
+
+- The `prqlc-js` README lists `get_targets()` among the exported functions, and
+  describes a thrown error's message as a JSON object whose `inner` field holds
+  the error array, as its own example reads it, rather than as a bare array.
+  (@prql-bot, #6424)
+
 - The .NET binding's README now documents the actual API. It advertised `ToJson`
   and `ToSql` static methods, which `PrqlCompiler` has never had — the binding
   exposes `Compile`, `PrqlToPl`, `PlToRq` and `RqToSql`, each returning a
@@ -214,6 +286,12 @@
   unsatisfiable. Users still on 3.9 continue to resolve the last release that
   declared support for it. (@prql-bot, #6225)
 
+- The Raku grammar in `grammars/raku/` now parses the exponent forms the
+  compiler accepts: an uppercase `E`, and a sign on a decimal's exponent. Its
+  `integer` and `float` tokens each spelled the exponent out separately and the
+  two had drifted, so `1.5e-3`, `1.5e+3`, `1E10` and `1.5E10` did not parse.
+  Both now share one `exponent` token. (@prql-bot, #6366)
+
 - The Raku grammar in `grammars/raku/` now parses a triple-quoted string
   containing the quote character, such as `"""I said "hello"!"""`, and a string
   containing an escaped quote, such as `"\"hello\""` — including the f-string
@@ -235,6 +313,10 @@
   followed by something the compiler doesn't recognize as an escape, such as
   `"\z"`, parses rather than erroring — `prqlc` compiles it to `'z'` — but is
   not highlighted as an escape sequence. (@prql-bot, #6289)
+
+- The lezer grammar in `grammars/prql-lezer/` now parses the unary `!` operator,
+  such as `filter !a`, and highlights it as a logic operator. Previously the
+  expression parsed to an error node. (@prql-bot, #6425)
 
 **Internal changes**:
 

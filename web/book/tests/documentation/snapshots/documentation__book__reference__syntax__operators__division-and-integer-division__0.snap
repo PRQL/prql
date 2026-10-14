@@ -2,12 +2,12 @@
 source: web/book/tests/documentation/book.rs
 expression: "prql target:sql.sqlite\n\nfrom [\n  {a = 5, b = 2},\n  {a = 5, b = -2},\n]\nselect {\n  div_out = a / b,\n  int_div_out = a // b,\n}\n"
 ---
-WITH table_0 AS (
+WITH
+table_0 AS (
   SELECT
     5 AS a,
     2 AS b
-  UNION
-  ALL
+  UNION ALL
   SELECT
     5 AS a,
     -2 AS b

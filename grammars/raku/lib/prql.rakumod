@@ -208,14 +208,22 @@ grammar PRQL {
     }
 
     token integer {
-        | <.digit> [<.digit> | '_']* ['e' ['+' | '-']? <integer>]?
+        | <.digit> [<.digit> | '_']* <.exponent>?
         | '0x' [<.xdigit> | '_']+
         | '0b' <[01_]>+
         | '0o' <[0..7_]>+
     }
 
     token float {
-        \d [\d | '_']* '.' \d [\d | '_']* ['e' <integer>]?
+        \d [\d | '_']* '.' \d [\d | '_']* <.exponent>?
+    }
+
+    # Shared by `integer` and `float` so the two can't drift: the compiler's
+    # lexer accepts `e` or `E`, an optional sign, then digits with no
+    # underscores, for both. Non-capturing, so a number with an exponent is
+    # still a single leaf capture carrying its whole text.
+    token exponent {
+        <[eE]> ['+' | '-']? <.digit>+
     }
 
     token date {

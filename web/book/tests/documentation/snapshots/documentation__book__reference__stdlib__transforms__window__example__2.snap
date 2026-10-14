@@ -2,32 +2,28 @@
 source: web/book/tests/documentation/book.rs
 expression: "from [\n  {time_id=1, value=15},\n  {time_id=2, value=11},\n  {time_id=3, value=16},\n  {time_id=4, value=9},\n  {time_id=7, value=20},\n  {time_id=8, value=22},\n]\nwindow rows:-2..0 (\n  sort time_id\n  derive {sma3rows = average value}\n)\nwindow range:-2..0 (\n  sort time_id\n  derive {sma3range = average value}\n)\n"
 ---
-WITH table_0 AS (
+WITH
+table_0 AS (
   SELECT
     1 AS time_id,
     15 AS value
-  UNION
-  ALL
+  UNION ALL
   SELECT
     2 AS time_id,
     11 AS value
-  UNION
-  ALL
+  UNION ALL
   SELECT
     3 AS time_id,
     16 AS value
-  UNION
-  ALL
+  UNION ALL
   SELECT
     4 AS time_id,
     9 AS value
-  UNION
-  ALL
+  UNION ALL
   SELECT
     7 AS time_id,
     20 AS value
-  UNION
-  ALL
+  UNION ALL
   SELECT
     8 AS time_id,
     22 AS value

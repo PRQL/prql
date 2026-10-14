@@ -6,25 +6,25 @@ input_file: prqlc/prqlc/tests/integration/queries/read_csv.prql
 --- generic
 +++ clickhouse
 @@ -1,24 +1,24 @@
- WITH table_0 AS (
+ WITH
+ table_0 AS (
    SELECT
      *
    FROM
 -    read_csv('data_file_root/media_types.csv')
-+    file('data_file_root/media_types.csv', 'CSV')
++    file ('data_file_root/media_types.csv', 'CSV')
  ),
  table_2 AS (
    SELECT
      *
    FROM
      table_0
-   UNION
-   ALL
+   UNION ALL
    SELECT
      *
    FROM
 -    read_json('data_file_root/media_types.json')
-+    file('data_file_root/media_types.json', 'Json')
++    file ('data_file_root/media_types.json', 'Json')
  )
  SELECT
    *
@@ -36,7 +36,8 @@ input_file: prqlc/prqlc/tests/integration/queries/read_csv.prql
 --- generic
 +++ duckdb
 @@ -1,24 +1,24 @@
- WITH table_0 AS (
+ WITH
+ table_0 AS (
    SELECT
      *
    FROM
@@ -48,8 +49,7 @@ input_file: prqlc/prqlc/tests/integration/queries/read_csv.prql
      *
    FROM
      table_0
-   UNION
-   ALL
+   UNION ALL
    SELECT
      *
    FROM

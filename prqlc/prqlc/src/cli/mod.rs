@@ -583,14 +583,23 @@ pub fn write_log(path: &std::path::Path) -> Result<()> {
             "debug log was started, but it cannot be found after compilation"
         ));
     };
+    // `BufWriter` flushes on drop but discards any error it meets there, so
+    // each branch flushes explicitly: without it a full disk truncates the log
+    // and the command still reports success.
     match path.extension().and_then(|s| s.to_str()) {
         Some("json") => {
-            let file = BufWriter::new(File::create(path)?);
-            serde_json::to_writer(file, &debug_log)?;
+            let mut file = BufWriter::new(File::create(path)?);
+            serde_json::to_writer(&mut file, &debug_log)?;
+            file.flush()?;
         }
         Some("html") => {
-            let file = BufWriter::new(File::create(path)?);
-            debug::render_log_to_html(file, &debug_log)?;
+            let mut file = BufWriter::new(File::create(path)?);
+            // The cause is interpolated rather than attached with
+            // `.context()`: `main` prints the error with `{error}`, anyhow's
+            // `Display`, which shows the outermost message alone.
+            debug::render_log_to_html(&mut file, &debug_log)
+                .and_then(|()| file.flush())
+                .map_err(|err| anyhow!("failed to write the debug log to {path:?}: {err}"))?;
         }
         _ => {
             return Err(anyhow!("unknown debug log format for file {path:?}"));
@@ -793,7 +802,8 @@ sort full
         )
         .unwrap();
         assert_snapshot!(String::from_utf8(result).unwrap().trim(), @"
-        WITH x AS (
+        WITH
+        x AS (
           SELECT
             y,
             u

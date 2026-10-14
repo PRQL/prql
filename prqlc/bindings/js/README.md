@@ -22,6 +22,8 @@ function pl_to_prql(pl_json: string): string;
 function pl_to_rq(pl_json: string): string;
 
 function rq_to_sql(rq_json: string): string;
+
+function get_targets(): string[];
 ```
 
 ### From Node.js
@@ -88,7 +90,8 @@ console.log(sql);
 
 ## Errors
 
-Errors are returned as the following object, serialized as a JSON array:
+Errors are thrown with a JSON-serialized message: an object whose `inner` field
+is an array of the following:
 
 ```typescript
 interface ErrorMessage {

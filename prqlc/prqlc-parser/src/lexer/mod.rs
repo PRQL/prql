@@ -68,7 +68,7 @@ pub fn lex_source_recovery(source: &str, source_id: u16) -> (Option<Vec<Token>>,
     let result = lexer().parse(source).into_result();
 
     match result {
-        Ok(tokens) => (Some(insert_start(tokens.to_vec())), vec![]),
+        Ok(tokens) => (Some(insert_start(to_char_spans(source, tokens))), vec![]),
         Err(errors) => {
             // Convert chumsky Simple errors to our Error type
             let errors = errors
@@ -86,7 +86,7 @@ pub fn lex_source(source: &str) -> Result<Tokens, Vec<E>> {
     let result = lexer().parse(source).into_result();
 
     match result {
-        Ok(tokens) => Ok(Tokens(insert_start(tokens.to_vec()))),
+        Ok(tokens) => Ok(Tokens(insert_start(to_char_spans(source, tokens)))),
         Err(errors) => {
             // Convert chumsky Simple errors to our Error type
             let errors = errors
@@ -97,6 +97,27 @@ pub fn lex_source(source: &str) -> Result<Tokens, Vec<E>> {
             Err(errors)
         }
     }
+}
+
+/// Convert token spans from the byte offsets chumsky produces over `&str` to
+/// the char offsets the rest of the compiler (and ariadne) expects.
+fn to_char_spans(source: &str, mut tokens: Vec<Token>) -> Vec<Token> {
+    if source.is_ascii() {
+        return tokens;
+    }
+
+    // Char offset of every byte offset that falls on a char boundary, built
+    // once so the conversion stays linear in the source length.
+    let mut char_offsets = vec![0; source.len() + 1];
+    for (char_idx, (byte_idx, _)) in source.char_indices().enumerate() {
+        char_offsets[byte_idx] = char_idx;
+    }
+    char_offsets[source.len()] = source.chars().count();
+
+    for token in &mut tokens {
+        token.span = char_offsets[token.span.start]..char_offsets[token.span.end];
+    }
+    tokens
 }
 
 /// Insert a start token so later stages can treat the start of a file like a newline
