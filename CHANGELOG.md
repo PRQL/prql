@@ -31,6 +31,10 @@
 
 - `date.trunc` on the `sql.mysql` target now raises a compile error rather than
   emitting `DATE_TRUNC`, which MySQL doesn't have. (@prql-bot, #6434)
+
+- On the `sql.mysql` target, `%` no longer rounds a fractional remainder:
+  `13.5 % 5` now returns `3.5` rather than `4`. (@prql-bot, #6426)
+
 - A modulo or division on the right of a multiplication keeps its parentheses:
   `19 * (year % 19)` previously compiled to `19 * year % 19`, which SQL
   evaluates as `(19 * year) % 19`. (@prql-bot, #6418)
