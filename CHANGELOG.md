@@ -32,6 +32,10 @@
 - `first` and `last` respect the window frame: an explicit `window rows:...` was
   previously dropped, and `last` inside `group (sort ...)` returned the current
   row's value rather than the group's last. (@prql-bot, #6435)
+
+- On the `sql.mysql` target, `%` no longer rounds a fractional remainder:
+  `13.5 % 5` now returns `3.5` rather than `4`. (@prql-bot, #6426)
+
 - A modulo or division on the right of a multiplication keeps its parentheses:
   `19 * (year % 19)` previously compiled to `19 * year % 19`, which SQL
   evaluates as `(19 * year) % 19`. (@prql-bot, #6418)
