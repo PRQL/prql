@@ -29,6 +29,9 @@
 
 **Fixes**:
 
+- An alias written inside parentheses in a tuple item is kept:
+  `select {(y = a), b}` previously compiled to `SELECT a, b`, dropping the
+  alias. (@prql-bot, #6441)
 - A modulo or division on the right of a multiplication keeps its parentheses:
   `19 * (year % 19)` previously compiled to `19 * year % 19`, which SQL
   evaluates as `(19 * year) % 19`. (@prql-bot, #6418)
