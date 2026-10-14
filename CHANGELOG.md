@@ -29,6 +29,9 @@
 
 **Fixes**:
 
+- On the `sql.mysql` target, `%` no longer rounds a fractional remainder:
+  `13.5 % 5` now returns `3.5` rather than `4`. (@prql-bot, #6426)
+
 - A modulo or division on the right of a multiplication keeps its parentheses:
   `19 * (year % 19)` previously compiled to `19 * year % 19`, which SQL
   evaluates as `(19 * year) % 19`. (@prql-bot, #6418)
@@ -45,6 +48,10 @@
 - Keep a malformed `\x` or `\u{...}` string escape as written rather than
   changing the string: `"\x4g"` previously compiled to `'xg'`, and `"\u{}"` to a
   NUL byte. (@prql-bot, #6383)
+- Report a repeated argument in the `prql` query header as an error rather than
+  silently keeping the last one. `prql target:sql.mssql target:sql.postgres`
+  previously compiled for Postgres, and a repeated `version` discarded all but
+  the last requirement. (@prql-bot, #6384)
 - Error labels after non-ASCII text now point at the right column, rather than
   drifting right or crashing `prqlc` when a label ran past the end of the query.
   (@prql-bot, #6378)
@@ -212,6 +219,16 @@
   (@prql-bot, #6313)
 
 **Documentation**:
+
+- The website's `og:image` meta tag points at the served
+  `/img/favicon-32x32.png` rather than `/static/img/favicon-32x32.png`, which
+  returns 404, so link previews of prql-lang.org can show the image. (@prql-bot,
+  #6430)
+
+- The Elixir bindings' README installs the package from a local checkout of the
+  repo rather than from Hex, where it isn't published. The book's VS Code page
+  points to the Extensions view (<kbd>Ctrl</kbd>-<kbd>Shift</kbd>-<kbd>X</kbd>)
+  rather than the Command Palette to find the extension. (@prql-bot, #6429)
 
 - The `prqlc-js` README lists `get_targets()` among the exported functions, and
   describes a thrown error's message as a JSON object whose `inner` field holds
