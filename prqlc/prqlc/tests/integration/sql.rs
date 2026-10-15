@@ -1235,6 +1235,34 @@ fn test_remove_07() {
       AND table_0.y IS NULL
       AND t1.a > 3
     ");
+
+    assert_snapshot!(compile(r#"
+    from t1
+    select {a, b}
+    join side:left t2 = (from t2 | select {x, y}) (this.a == that.x && this.b == that.y)
+    filter (t2.x == null && t2.y == null && a == null)
+    select {a, b}
+    "#).unwrap(), @"
+    WITH
+    table_0 AS (
+      SELECT
+        x,
+        y
+      FROM
+        t2
+    )
+    SELECT
+      t1.a,
+      t1.b
+    FROM
+      t1
+      LEFT OUTER JOIN table_0 ON t1.a = table_0.x
+      AND t1.b = table_0.y
+    WHERE
+      table_0.x IS NULL
+      AND table_0.y IS NULL
+      AND t1.a IS NULL
+    ");
 }
 
 #[test]

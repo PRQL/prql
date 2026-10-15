@@ -347,7 +347,11 @@ pub(in crate::sql) fn except(
         let Some((filter_left, filter_right)) = collect_equals(filter) else {
             continue;
         };
-        if !(all_in(&bottom, filter_left) && all_null(filter_right)) {
+        let checked: Option<HashSet<CId>> = (filter_left.iter())
+            .map(|e| e.kind.as_column_ref().copied())
+            .collect();
+        let expected: HashSet<CId> = bottom.iter().copied().collect();
+        if !(checked == Some(expected) && all_null(filter_right)) {
             continue;
         }
 
@@ -488,12 +492,6 @@ pub(in crate::sql) fn intersect(
     Ok(res)
 }
 
-/// Returns true if all cids are in exprs
-fn all_in(cids: &[CId], exprs: Vec<&Expr>) -> bool {
-    let exprs = col_refs(exprs);
-    cids.iter().all(|c| exprs.contains(c))
-}
-
 fn all_null(exprs: Vec<&Expr>) -> bool {
     exprs
         .iter()
@@ -540,13 +538,6 @@ fn collect_equals(expr: &Expr) -> Option<(Vec<&Expr>, Vec<&Expr>)> {
     }
 
     Some((lefts, rights))
-}
-
-fn col_refs(exprs: Vec<&Expr>) -> Vec<CId> {
-    exprs
-        .into_iter()
-        .flat_map(|expr| expr.kind.as_column_ref().cloned())
-        .collect()
 }
 
 /// Pull Compute transforms in front of other transforms if possible.
