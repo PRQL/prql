@@ -249,19 +249,19 @@ jobs:
           cargo llvm-cov --version
         if: steps.check.outputs.count != '0' || steps.check.outputs.conflict_count != '0' || github.event_name == 'workflow_dispatch'
         shell: bash
-      - uses: max-sixty/tend/claude@0.3.13
+      - uses: max-sixty/tend/codex@0.3.13
         if: steps.check.outputs.count != '0' || steps.check.outputs.conflict_count != '0' || github.event_name == 'workflow_dispatch'
         with:
           github_token: ${{ secrets.TEND_BOT_TOKEN }}
           merge: restricted
-          claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
-          anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
+          openai_api_key: ${{ secrets.OPENAI_API_KEY }}
+          codex_auth_json: ${{ secrets.CODEX_AUTH_JSON }}
           bot_name: prql-bot
-          model: opus
+          model: gpt-6-sol
           checkout_mode: base
           base_branch: ${{ github.event.repository.default_branch }}
           prompt: |2
-            /tend-ci-runner:notifications
+            $notifications
 
             Notification snapshot cutoff: ${{ steps.check.outputs.cutoff }}
             Possible conflicted bot PR count: ${{ steps.check.outputs.conflict_count }}

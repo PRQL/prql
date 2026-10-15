@@ -1,4 +1,6 @@
 bot_name: prql-bot
+harness: codex
+model: gpt-6-sol
 secrets:
   # Docker Hub login is needed by test-rust.yaml on internal PRs (external-DB
   # tests); it's a low-value pull token, so it's intentionally repo-level.
