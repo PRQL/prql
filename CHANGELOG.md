@@ -29,6 +29,9 @@
 
 **Fixes**:
 
+- `first` and `last` respect the window frame: an explicit `window rows:...` was
+  previously dropped, and `last` inside `group (sort ...)` returned the current
+  row's value rather than the group's last. (@prql-bot, #6435)
 - `date.trunc` on the `sql.mysql` target now raises a compile error rather than
   emitting `DATE_TRUNC`, which MySQL doesn't have. (@prql-bot, #6434)
 - A join is no longer compiled to `INTERSECT ALL` or `EXCEPT ALL` when its
