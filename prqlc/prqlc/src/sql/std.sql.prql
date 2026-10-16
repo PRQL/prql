@@ -147,7 +147,6 @@ module date {
   # Clickhouse: https://clickhouse.com/docs/en/sql-reference/functions/date-time-functions#date_trunc
   # DuckDB: https://duckdb.org/docs/sql/functions/timestamp#date_truncdate_part-timestamp
   # MariaDB: https://mariadb.com/kb/en/date_format/
-  # MySQL: https://dev.mysql.com/doc/refman/8.4/en/date-and-time-functions.html#function_date-trunc
   # Postgres: https://www.postgresql.org/docs/current/functions-datetime.html#FUNCTIONS-DATETIME-TRUNC
   # SQLite: https://www.sqlite.org/lang_datefunc.html
   # MSSQL: https://learn.microsoft.com/en-us/sql/t-sql/functions/datetrunc-transact-sql
@@ -346,8 +345,8 @@ module mysql {
     let diff = unit start end -> s"TIMESTAMPDIFF({unit:0}, {start:0}, {end:0})"
     # MySQL uses NOW() function
     let now = -> s"NOW()"
-    # https://dev.mysql.com/doc/refman/8.4/en/date-and-time-functions.html#function_date-trunc
-    let trunc = unit column -> s"DATE_TRUNC({unit:0}, {column:0})"
+    # MySQL has no date truncation function
+    let trunc = unit column -> null
   }
 
   # 'c' for case-sensitive
