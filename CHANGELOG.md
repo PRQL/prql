@@ -29,6 +29,9 @@
 
 **Fixes**:
 
+- `first` and `last` respect the window frame: an explicit `window rows:...` was
+  previously dropped, and `last` inside `group (sort ...)` returned the current
+  row's value rather than the group's last. (@prql-bot, #6435)
 - An alias written inside parentheses in a tuple item is kept:
   `select {(y = a), b}` previously compiled to `SELECT a, b`, dropping the
   alias. (@prql-bot, #6441)
