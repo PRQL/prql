@@ -225,6 +225,9 @@
 
 **Documentation**:
 
+- The book's transforms reference lists `append` in its table of transforms.
+  (@prql-bot, #6444)
+
 - The website's `og:image` meta tag points at the served
   `/img/favicon-32x32.png` rather than `/static/img/favicon-32x32.png`, which
   returns 404, so link previews of prql-lang.org can show the image. (@prql-bot,
