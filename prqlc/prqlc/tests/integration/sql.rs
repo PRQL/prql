@@ -1121,6 +1121,152 @@ fn test_intersect_07() {
 }
 
 #[test]
+fn test_intersect_08() {
+    // A join condition beyond the column equalities must not be dropped by
+    // rewriting the join into INTERSECT.
+    assert_snapshot!(compile(r#"
+    from t1
+    select {a, b}
+    join t2 = (from t2 | select {x, y}) (this.a == that.x && this.b == that.y && this.a > 3)
+    select {a, b}
+    "#).unwrap(), @"
+    WITH
+    table_0 AS (
+      SELECT
+        x,
+        y
+      FROM
+        t2
+    )
+    SELECT
+      t1.a,
+      t1.b
+    FROM
+      t1
+      INNER JOIN table_0 ON t1.a = table_0.x
+      AND t1.b = table_0.y
+      AND t1.a > 3
+    ");
+}
+
+#[test]
+fn test_intersect_09() {
+    // INTERSECT compares columns by position, so the join must pair them in
+    // the same order: here `a` is compared with `y`, not `x`.
+    assert_snapshot!(compile(r#"
+    from t1
+    select {a, b}
+    join t2 = (from t2 | select {x, y}) (this.a == that.y && this.b == that.x)
+    select {a, b}
+    "#).unwrap(), @"
+    WITH
+    table_0 AS (
+      SELECT
+        x,
+        y
+      FROM
+        t2
+    )
+    SELECT
+      t1.a,
+      t1.b
+    FROM
+      t1
+      INNER JOIN table_0 ON t1.a = table_0.y
+      AND t1.b = table_0.x
+    ");
+}
+
+#[test]
+fn test_remove_07() {
+    // Extra conditions in the join or the null-check filter must not be
+    // dropped by rewriting into EXCEPT.
+    assert_snapshot!(compile(r#"
+    from t1
+    select {a, b}
+    join side:left t2 = (from t2 | select {x, y}) (this.a == that.x && this.b == that.y && this.a > 3)
+    filter (t2.x == null && t2.y == null)
+    select {a, b}
+    "#).unwrap(), @"
+    WITH
+    table_0 AS (
+      SELECT
+        x,
+        y
+      FROM
+        t2
+    )
+    SELECT
+      t1.a,
+      t1.b
+    FROM
+      t1
+      LEFT OUTER JOIN table_0 ON t1.a = table_0.x
+      AND t1.b = table_0.y
+      AND t1.a > 3
+    WHERE
+      table_0.x IS NULL
+      AND table_0.y IS NULL
+    ");
+
+    assert_snapshot!(compile(r#"
+    from t1
+    select {a, b}
+    join side:left t2 = (from t2 | select {x, y}) (this.a == that.x && this.b == that.y)
+    filter (t2.x == null && t2.y == null && a > 3)
+    select {a, b}
+    "#).unwrap(), @"
+    WITH
+    table_0 AS (
+      SELECT
+        x,
+        y
+      FROM
+        t2
+    )
+    SELECT
+      t1.a,
+      t1.b
+    FROM
+      t1
+      LEFT OUTER JOIN table_0 ON t1.a = table_0.x
+      AND t1.b = table_0.y
+    WHERE
+      table_0.x IS NULL
+      AND table_0.y IS NULL
+      AND t1.a > 3
+    ");
+
+    assert_snapshot!(compile(r#"
+    from t1
+    select {a, b}
+    join side:left t2 = (from t2 | select {x, y}) (this.a == that.x && this.b == that.y)
+    filter (t2.x == null && t2.y == null && a == null)
+    select {a, b}
+    "#).unwrap(), @"
+    WITH
+    table_0 AS (
+      SELECT
+        x,
+        y
+      FROM
+        t2
+    )
+    SELECT
+      t1.a,
+      t1.b
+    FROM
+      t1
+      LEFT OUTER JOIN table_0 ON t1.a = table_0.x
+      AND t1.b = table_0.y
+    WHERE
+      table_0.x IS NULL
+      AND table_0.y IS NULL
+      AND t1.a IS NULL
+    ");
+}
+
+#[test]
 fn test_sort_in_nested_join() {
     assert_snapshot!(compile(r#"
     from albums
