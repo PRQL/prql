@@ -24,7 +24,7 @@ table_0 AS (
       PARTITION BY
         genre_id
       ORDER BY
-        milliseconds
+        milliseconds ROWS BETWEEN UNBOUNDED PRECEDING AND UNBOUNDED FOLLOWING
     ) AS last_val,
     milliseconds,
     ROW_NUMBER() OVER (
