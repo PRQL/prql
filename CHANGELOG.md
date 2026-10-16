@@ -32,7 +32,11 @@
 - An alias written inside parentheses in a tuple item is kept:
   `select {(y = a), b}` previously compiled to `SELECT a, b`, dropping the
   alias. (@prql-bot, #6441)
-
+- A join is no longer compiled to `INTERSECT ALL` or `EXCEPT ALL` when its
+  condition has terms beyond the column equalities, or pairs the columns in a
+  different order. Joining `{a, b}` to `{x, y}` on
+  `this.a == that.x && this.b == that.y && this.a > 3` previously lost the
+  `a > 3`. (@prql-bot, #6443)
 - On the `sql.mysql` target, `%` no longer rounds a fractional remainder:
   `13.5 % 5` now returns `3.5` rather than `4`. (@prql-bot, #6426)
 
@@ -49,6 +53,10 @@
   compile error. Separately, a `LIMIT` at or above 2^32 was rendered with
   sqlparser's `long` flag, so `take 5000000000` compiled to
   `LIMIT 5000000000 L`, which no dialect parses. (@prql-bot, #6347)
+- Report a repeated argument in the `prql` query header as an error rather than
+  silently keeping the last one. `prql target:sql.mssql target:sql.postgres`
+  previously compiled for Postgres, and a repeated `version` discarded all but
+  the last requirement. (@prql-bot, #6384)
 - Error labels after non-ASCII text now point at the right column, rather than
   drifting right or crashing `prqlc` when a label ran past the end of the query.
   (@prql-bot, #6378)
