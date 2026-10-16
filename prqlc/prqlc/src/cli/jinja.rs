@@ -17,7 +17,7 @@ use std::collections::HashMap;
 
 use anyhow::Result;
 use minijinja::{
-    machinery::{Span, Token, WhitespaceConfig},
+    machinery::{Span, Token},
     syntax::SyntaxConfig,
 };
 use regex::Regex;
@@ -42,9 +42,7 @@ pub fn pre_process(source: &str) -> Result<(String, JinjaContext<'_>)> {
     let mut blocks = Vec::new();
     let mut current_block = Vec::new();
 
-    for res in
-        minijinja::machinery::tokenize(source, false, SyntaxConfig, WhitespaceConfig::default())
-    {
+    for res in minijinja::machinery::tokenize(source, false, SyntaxConfig::default()) {
         let (token, span) = res?;
 
         if let Token::TemplateData(data) = token {
