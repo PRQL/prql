@@ -125,10 +125,14 @@ fn deduplicate_select_items(items: &mut Vec<SelectItem>) {
     let mut seen = HashSet::new();
     items.retain(|select_item| match select_item {
         SelectItem::UnnamedExpr(sql_ast::Expr::CompoundIdentifier(idents)) => {
-            // If any of the identifiers hadn't been seen yet, retain the expr
-            idents.iter().any(|ident| seen.insert(ident.clone()))
+            // Key on the whole qualified path, so a table qualifier (e.g. `bar`
+            // in `bar.x`) is never conflated with a same-named column alias.
+            // Keying on `value` ignores `quote_style`, so items differing only
+            // in quoting dedup together (intended).
+            let key = idents.iter().map(|i| i.value.clone()).collect::<Vec<_>>();
+            seen.insert(key)
         }
-        SelectItem::ExprWithAlias { alias, .. } => seen.insert(alias.clone()),
+        SelectItem::ExprWithAlias { alias, .. } => seen.insert(vec![alias.value.clone()]),
         _ => true,
     });
 }
