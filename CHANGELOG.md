@@ -29,6 +29,11 @@
 
 **Fixes**:
 
+- A join is no longer compiled to `INTERSECT ALL` or `EXCEPT ALL` when its
+  condition has terms beyond the column equalities, or pairs the columns in a
+  different order. Joining `{a, b}` to `{x, y}` on
+  `this.a == that.x && this.b == that.y && this.a > 3` previously lost the
+  `a > 3`. (@prql-bot, #6443)
 - On the `sql.mysql` target, `%` no longer rounds a fractional remainder:
   `13.5 % 5` now returns `3.5` rather than `4`. (@prql-bot, #6426)
 
