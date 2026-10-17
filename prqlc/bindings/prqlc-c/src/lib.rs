@@ -165,7 +165,7 @@ pub struct Message {
     pub code: *const *const libc::c_char,
     /// Plain text of the error
     pub reason: *const libc::c_char,
-    /// Suggestions of how to fix the error, one per line; null when there are none
+    /// Suggestions of how to fix the error, one per line; null if none
     pub hint: *const *const libc::c_char,
     /// Character offset of error origin within a source file
     pub span: *const Span,
