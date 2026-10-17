@@ -62,7 +62,7 @@ typedef struct Message {
    */
   const char *reason;
   /**
-   * A list of suggestions of how to fix the error
+   * Suggestions of how to fix the error, one per line; null when there are none
    */
   const char *const *hint;
   /**
