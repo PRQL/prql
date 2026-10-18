@@ -31,8 +31,8 @@ from invoices
 join tracks (this.track_id==that.id)
 ```
 
-A name that isn't called refers to a column before a standard library name, so
-a column can be named like a function, module or type, such as `time`, `date` or
+A name that isn't called refers to a column before a standard library name, so a
+column can be named like a function, module or type, such as `time`, `date` or
 `count`:
 
 ```prql
