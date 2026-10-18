@@ -7756,6 +7756,93 @@ fn test_oracle_booleans_as_numbers() {
 }
 
 #[test]
+fn test_oracle_all_any_of_a_column() {
+    // A boolean column holds `1` / `0`, so `all` / `any` aggregate it as is.
+    assert_snapshot!(compile_with_sql_dialect(r###"
+    from t
+    group g (aggregate {a = all flag, b = any flag})
+    "###, sql::Dialect::Oracle
+    ).unwrap(), @r#"
+    SELECT
+      "g",
+      COALESCE(MIN("flag"), 1) AS "a",
+      COALESCE(MAX("flag"), 0) AS "b"
+    FROM
+      "t"
+    GROUP BY
+      "g"
+    "#);
+}
+
+#[test]
+fn test_oracle_predicate_as_function_argument() {
+    // A predicate passed to a function is a value, `1` / `0`.
+    assert_snapshot!(compile_with_sql_dialect(r###"
+    from t
+    derive {b = x > 0}
+    sort i
+    window (derive {c = lag 1 b})
+    select {c, d = coalesce (x > 0) false, e = (x > 0) == (y > 0)}
+    "###, sql::Dialect::Oracle
+    ).unwrap(), @r#"
+    WITH
+    "table_0" AS (
+      SELECT
+        LAG(
+          CASE
+            WHEN "x" > 0 THEN 1
+            WHEN NOT "x" > 0 THEN 0
+            ELSE NULL
+          END,
+          1
+        ) OVER (
+          ORDER BY
+            "i") AS "c",
+        COALESCE(
+          CASE
+            WHEN "x" > 0 THEN 1
+            WHEN NOT "x" > 0 THEN 0
+            ELSE NULL
+          END,
+          0
+        ) AS "d",
+        CASE
+          WHEN CASE
+            WHEN "x" > 0 THEN 1
+            WHEN NOT "x" > 0 THEN 0
+            ELSE NULL
+          END = CASE
+            WHEN "y" > 0 THEN 1
+            WHEN NOT "y" > 0 THEN 0
+            ELSE NULL
+          END THEN 1
+          WHEN NOT CASE
+            WHEN "x" > 0 THEN 1
+            WHEN NOT "x" > 0 THEN 0
+            ELSE NULL
+          END = CASE
+            WHEN "y" > 0 THEN 1
+            WHEN NOT "y" > 0 THEN 0
+            ELSE NULL
+          END THEN 0
+          ELSE NULL
+        END AS "e",
+        "i"
+      FROM
+        "t"
+    )
+    SELECT
+      "c",
+      "d",
+      "e"
+    FROM
+      "table_0"
+    ORDER BY
+      "i"
+    "#);
+}
+
+#[test]
 fn test_oracle_all_any() {
     assert_snapshot!(compile_with_sql_dialect(r###"
     from t
@@ -7770,6 +7857,7 @@ fn test_oracle_all_any() {
           CASE
             WHEN "x" > 0 THEN 1
             WHEN NOT "x" > 0 THEN 0
+            ELSE NULL
           END
         ),
         1
@@ -7779,6 +7867,7 @@ fn test_oracle_all_any() {
           CASE
             WHEN "n" = '' THEN 1
             WHEN NOT "n" = '' THEN 0
+            ELSE NULL
           END
         ),
         0
@@ -7793,6 +7882,7 @@ fn test_oracle_all_any() {
           CASE
             WHEN "x" > 0 THEN 1
             WHEN NOT "x" > 0 THEN 0
+            ELSE NULL
           END
         ),
         1

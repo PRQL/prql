@@ -356,12 +356,13 @@ module mysql {
 
 module oracle {
   # There's no BOOL_AND / BOOL_OR, and a boolean is carried as `1` / `0` before
-  # 23ai; a NULL stays NULL and is skipped, as by BOOL_AND / BOOL_OR.
+  # 23ai (a predicate argument is turned into one); a NULL is skipped, as by
+  # BOOL_AND / BOOL_OR.
   @{window_frame=true, coalesce="1"}
-  let all = column -> s"MIN(CASE WHEN {column:0} THEN 1 WHEN NOT {column:4} THEN 0 END)"
+  let all = column -> s"MIN({column:0})"
 
   @{window_frame=true, coalesce="0"}
-  let any = column -> s"MAX(CASE WHEN {column:0} THEN 1 WHEN NOT {column:4} THEN 0 END)"
+  let any = column -> s"MAX({column:0})"
 
   # Text functions
   module text {

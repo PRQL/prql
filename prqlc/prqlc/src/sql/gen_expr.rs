@@ -22,7 +22,7 @@ use crate::utils::{valid_ident, OrMap};
 use crate::{Error, Result, Span, WithErrorInfo};
 
 pub(super) fn translate_expr(expr: rq::Expr, ctx: &mut Context) -> Result<ExprOrSource> {
-    let expr = logical_operands_as_conditions(expr, ctx);
+    let expr = operands_as_conditions_or_values(expr, ctx);
     Ok(match expr.kind {
         rq::ExprKind::ColumnRef(cid) => translate_cid(cid, ctx)?,
 
@@ -242,16 +242,24 @@ fn predicate_as_value(predicate: rq::Expr) -> rq::Expr {
     }
 }
 
-/// The operands of `and`, `or` and `not` are conditions.
-fn logical_operands_as_conditions(expr: rq::Expr, ctx: &Context) -> rq::Expr {
+/// The operands of `and`, `or` and `not` are conditions; those of any other
+/// operator or function are values, so a predicate among them becomes `1` / `0`.
+fn operands_as_conditions_or_values(expr: rq::Expr, ctx: &Context) -> rq::Expr {
     if ctx.dialect.supports_boolean_values() {
         return expr;
     }
     match expr.kind {
-        rq::ExprKind::Operator { name, args }
-            if matches!(name.as_str(), "std.and" | "std.or" | "std.not") =>
-        {
-            let args = args.into_iter().map(|a| as_condition(a, ctx)).collect();
+        rq::ExprKind::Operator { name, args } => {
+            let args = if matches!(name.as_str(), "std.and" | "std.or" | "std.not") {
+                args.into_iter().map(|a| as_condition(a, ctx)).collect()
+            } else {
+                (args.into_iter())
+                    .map(|a| match truth_of(&a, ctx) {
+                        Truth::Predicate => predicate_as_value(a),
+                        _ => a,
+                    })
+                    .collect()
+            };
             rq::Expr {
                 kind: rq::ExprKind::Operator { name, args },
                 span: expr.span,
