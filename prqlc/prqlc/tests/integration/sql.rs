@@ -7670,6 +7670,59 @@ fn test_oracle_table_alias_omits_as() {
 }
 
 #[test]
+fn test_oracle_loop_lists_cte_columns() {
+    // Oracle's recursive subquery factoring has no `RECURSIVE` keyword, and the
+    // recursive query must name its columns.
+    assert_snapshot!(compile_with_sql_dialect(r###"
+    from employees
+    select {id = employee_id, boss = reports_to, depth = 0}
+    filter boss == null
+    loop (
+        join e = employees (this.id == that.reports_to)
+        select {id = e.employee_id, boss = e.reports_to, depth = depth + 1}
+    )
+    sort id
+    "###, sql::Dialect::Oracle
+    ).unwrap(), @r#"
+    WITH
+    "table_1" AS (
+      SELECT
+        "employee_id" AS "id",
+        "reports_to" AS "boss",
+        0 AS "depth"
+      FROM
+        "employees"
+    ),
+    "table_0" ("id", "boss", "depth") AS (
+      SELECT
+        "id",
+        "boss",
+        "depth"
+      FROM
+        "table_1"
+      WHERE
+        "boss" IS NULL
+      UNION ALL
+      SELECT
+        "e"."employee_id" AS "_expr_0",
+        "e"."reports_to" AS "_expr_1",
+        "table_0"."depth" + 1
+      FROM
+        "table_0"
+        INNER JOIN "employees" "e" ON "table_0"."id" = "e"."reports_to"
+    )
+    SELECT
+      "id",
+      "boss",
+      "depth"
+    FROM
+      "table_0" "table_2"
+    ORDER BY
+      "id"
+    "#);
+}
+
+#[test]
 fn test_sqlite_text_pattern_parenthesizes_compound_argument() {
     // SQLite ranks `||` above both `*`/`/`/`%` and `+`/`-`, so an
     // unparenthesized argument binds to the surrounding `'%'` literals instead

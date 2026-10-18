@@ -248,6 +248,13 @@ pub(super) trait DialectHandler: Any + Debug {
         None
     }
 
+    /// Whether a recursive CTE is introduced by `WITH RECURSIVE`. Dialects
+    /// without the keyword (Oracle) instead require the recursive CTE to list
+    /// its column names, `WITH t (a, b) AS (...)`.
+    fn with_recursive_keyword(&self) -> bool {
+        true
+    }
+
     /// Support for DISTINCT in set ops (UNION DISTINCT, INTERSECT DISTINCT)
     /// When not supported we fallback to implicit DISTINCT.
     fn set_ops_distinct(&self) -> bool {
@@ -779,6 +786,13 @@ impl DialectHandler for OracleDialect {
     // Oracle has no `AS` keyword for table aliases
     // https://docs.oracle.com/en/database/oracle/oracle-database/26/sqlrf/SELECT.html
     fn table_alias_uses_as(&self) -> bool {
+        false
+    }
+
+    // Recursive subquery factoring has no `RECURSIVE` keyword, and requires a
+    // column alias list on the recursive query.
+    // https://docs.oracle.com/en/database/oracle/oracle-database/19/sqlrf/SELECT.html#GUID-CFA006CA-6FF1-4972-821E-6996142A51C6__I2077142
+    fn with_recursive_keyword(&self) -> bool {
         false
     }
 }

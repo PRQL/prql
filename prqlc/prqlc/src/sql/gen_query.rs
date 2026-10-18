@@ -430,6 +430,7 @@ fn translate_cte(cte: Cte, ctx: &mut Context) -> Result<(sql_ast::Cte, bool)> {
 
     let cte_name = translate_ident(Some(cte_name), None, ctx).pop().unwrap();
 
+    let mut columns = Vec::new();
     let (query, recursive) = match cte.kind {
         // base case
         CteKind::Normal(rel) => (translate_relation(rel, ctx)?, false),
@@ -454,18 +455,55 @@ fn translate_cte(cte: Cte, ctx: &mut Context) -> Result<(sql_ast::Cte, bool)> {
             // This meant that it had to wrap any-non-first CTE into a *nested* WITH, so the inner
             // WITH could be RECURSIVE. If a dialect ever needs that, the removed implementation is
             // in the history of this file (deleted in #6190).
-            (inner_query, true)
+            if ctx.dialect.with_recursive_keyword() {
+                (inner_query, true)
+            } else {
+                // Without the keyword, the recursive CTE names its columns instead: those of
+                // the initial SELECT, which a UNION takes its column names from.
+                columns = initial_column_names(&inner_query.body).unwrap_or_default();
+                (inner_query, false)
+            }
         }
     };
 
+    let mut alias = cte_table_alias(cte_name);
+    alias.columns = columns
+        .into_iter()
+        .map(|name| sql_ast::TableAliasColumnDef {
+            name,
+            data_type: None,
+        })
+        .collect();
+
     let cte = sql_ast::Cte {
-        alias: cte_table_alias(cte_name),
+        alias,
         query: Box::new(query),
         from: None,
         materialized: None,
         closing_paren_token: sqlparser::ast::helpers::attached_token::AttachedToken::empty(),
     };
     Ok((cte, recursive))
+}
+
+/// The column names of a set expression: those of its first `SELECT`. `None`
+/// when one of them has no name of its own (a wildcard or an unaliased
+/// expression).
+fn initial_column_names(body: &SetExpr) -> Option<Vec<sql_ast::Ident>> {
+    match body {
+        SetExpr::Select(select) => (select.projection.iter())
+            .map(|item| match item {
+                SelectItem::ExprWithAlias { alias, .. } => Some(alias.clone()),
+                SelectItem::UnnamedExpr(sql_ast::Expr::Identifier(ident)) => Some(ident.clone()),
+                SelectItem::UnnamedExpr(sql_ast::Expr::CompoundIdentifier(parts)) => {
+                    parts.last().cloned()
+                }
+                _ => None,
+            })
+            .collect(),
+        SetExpr::SetOperation { left, .. } => initial_column_names(left),
+        SetExpr::Query(query) => initial_column_names(&query.body),
+        _ => None,
+    }
 }
 
 fn translate_relation_literal(data: RelationLiteral, ctx: &Context) -> Result<sql_ast::Query> {
