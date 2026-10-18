@@ -29,6 +29,9 @@
 
 **Fixes**:
 
+- f-strings compile to `||` rather than a variadic `CONCAT` on the `sql.oracle`
+  target, parenthesizing operands for Oracle's precedence, where `||` ranks with
+  `+` and `-`. (@calin2k, #6453)
 - `first` and `last` respect the window frame: an explicit `window rows:...` was
   previously dropped, and `last` inside `group (sort ...)` returned the current
   row's value rather than the group's last. (@prql-bot, #6435)
