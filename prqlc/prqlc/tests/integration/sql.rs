@@ -7670,6 +7670,119 @@ fn test_oracle_table_alias_omits_as() {
 }
 
 #[test]
+fn test_oracle_dates() {
+    // Oracle has no `DATE_TRUNC`: `TRUNC` takes a format model. Its
+    // `TIMESTAMP` literal separates date and time with a space.
+    assert_snapshot!(compile_with_sql_dialect(r###"
+    from t
+    filter d > @2024-01-31 && ts < @2025-06-01T10:30:00.123456
+    select {
+        y = (d | date.trunc "year"),
+        q = (d | date.trunc "quarter"),
+        m = (d | date.trunc "month"),
+        w = (d | date.trunc "week"),
+        dd = (ts | date.trunc "day"),
+        h = (ts | date.trunc "hour"),
+        mi = (ts | date.trunc "minute"),
+    }
+    "###, sql::Dialect::Oracle
+    ).unwrap(), @r#"
+    SELECT
+      TRUNC("d", 'YYYY') AS "y",
+      TRUNC("d", 'Q') AS "q",
+      TRUNC("d", 'MM') AS "m",
+      TRUNC("d", 'IW') AS "w",
+      TRUNC("ts", 'DD') AS "dd",
+      TRUNC("ts", 'HH24') AS "h",
+      TRUNC("ts", 'MI') AS "mi"
+    FROM
+      "t"
+    WHERE
+      "d" > DATE '2024-01-31'
+      AND "ts" < TIMESTAMP '2025-06-01 10:30:00.123456'
+    "#);
+
+    assert_snapshot!(compile_with_sql_dialect(r###"
+    from t
+    select {s = (d | date.trunc "second")}
+    "###, sql::Dialect::Oracle
+    ).unwrap_err(), @r#"
+    Error:
+       ╭─[ :3:33 ]
+       │
+     3 │     select {s = (d | date.trunc "second")}
+       │                                 ────┬───
+       │                                     ╰───── `date.trunc` to `second` is not supported on Oracle
+       │
+       │ Help: supported units: year, quarter, month, week, day, hour, minute
+    ───╯
+    "#);
+
+    assert_snapshot!(compile_with_sql_dialect(r###"
+    from t
+    select {x = @10:30:00}
+    "###, sql::Dialect::Oracle
+    ).unwrap_err(), @"Error: time literals are not supported on Oracle, which has no TIME type");
+}
+
+#[test]
+fn test_oracle_intervals() {
+    // `INTERVAL '3' DAY`, with a leading precision above two digits. There's no
+    // week, millisecond or microsecond field.
+    assert_snapshot!(compile_with_sql_dialect(r###"
+    from t
+    select {
+        a = d + 1days,
+        b = d - 2months,
+        c = d + 100days,
+        e = d + 2weeks,
+        f = ts + 1500milliseconds,
+        g = ts - 250microseconds,
+        h = d + 1000years,
+    }
+    "###, sql::Dialect::Oracle
+    ).unwrap(), @r#"
+    SELECT
+      "d" + INTERVAL '1' DAY AS "a",
+      "d" - INTERVAL '2' MONTH AS "b",
+      "d" + INTERVAL '100' DAY (3) AS "c",
+      "d" + INTERVAL '14' DAY AS "e",
+      "ts" + INTERVAL '1.5' SECOND AS "f",
+      "ts" - INTERVAL '0.00025' SECOND AS "g",
+      "d" + INTERVAL '1000' YEAR (4) AS "h"
+    FROM
+      "t"
+    "#);
+}
+
+#[test]
+fn test_oracle_date_to_text() {
+    // Oracle's `FM` is a toggle for the rest of the format model, so it is
+    // switched off again after each element.
+    assert_snapshot!(compile_with_sql_dialect(r###"
+    from t
+    select {
+        a = (d | date.to_text "%-d/%-m/%y"),
+        b = (d | date.to_text "%A %B %-d %Y at %I:%M:%S %p"),
+        c = (d | date.to_text "%+"),
+        e = (d | date.to_text "%H:%M:%S.%f, it's %a %b"),
+    }
+    "###, sql::Dialect::Oracle
+    ).unwrap(), @r#"
+    SELECT
+      TO_CHAR("d", 'FMDDFM/FMMMFM/YY') AS "a",
+      TO_CHAR(
+        "d",
+        'FMDayFM FMMonthFM FMDDFM YYYY "at" HH12:MI:SS AM'
+      ) AS "b",
+      TO_CHAR("d", 'YYYY-MM-DD"T"HH24:MI:SS.FF6"Z"') AS "c",
+      TO_CHAR("d", 'HH24:MI:SS.FF6, "it''s" Dy Mon') AS "e"
+    FROM
+      "t"
+    "#);
+}
+
+#[test]
 fn test_sqlite_text_pattern_parenthesizes_compound_argument() {
     // SQLite ranks `||` above both `*`/`/`/`%` and `+`/`-`, so an
     // unparenthesized argument binds to the surrounding `'%'` literals instead

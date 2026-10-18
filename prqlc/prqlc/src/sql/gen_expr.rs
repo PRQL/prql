@@ -224,7 +224,7 @@ fn process_date_trunc(
         ..
     }, col_expr] = args
     {
-        use crate::sql::dialect::{BigQueryDialect, MsSqlDialect};
+        use crate::sql::dialect::{BigQueryDialect, MsSqlDialect, OracleDialect};
 
         if ctx.dialect.is::<BigQueryDialect>() {
             // BigQuery: DATE_TRUNC(col, DAY) — unit is an unquoted uppercase keyword
@@ -265,6 +265,46 @@ fn process_date_trunc(
                             sql_ast::Ident::new(unit_lower),
                         ))),
                         FunctionArg::Unnamed(FunctionArgExpr::Expr(col)),
+                    ],
+                    clauses: vec![],
+                    duplicate_treatment: None,
+                }),
+                over: None,
+                filter: None,
+                null_treatment: None,
+                within_group: vec![],
+                parameters: sql_ast::FunctionArguments::None,
+                uses_odbc_syntax: false,
+            }));
+        } else if ctx.dialect.is::<OracleDialect>() {
+            // Oracle: TRUNC(col, 'MM') — the unit is a datetime format model
+            let format = match unit.to_lowercase().as_str() {
+                "year" => "YYYY",
+                "quarter" => "Q",
+                "month" => "MM",
+                "week" => "IW",
+                "day" => "DD",
+                "hour" => "HH24",
+                "minute" => "MI",
+                _ => {
+                    return Err(Error::new_simple(format!(
+                        "`date.trunc` to `{unit}` is not supported on Oracle"
+                    ))
+                    .push_hint("supported units: year, quarter, month, week, day, hour, minute")
+                    .with_span(unit_expr.span))
+                }
+            };
+            let col = translate_expr(col_expr.clone(), ctx)?.into_ast();
+            return Ok(sql_ast::Expr::Function(Function {
+                name: ObjectName(vec![sqlparser::ast::ObjectNamePart::Identifier(
+                    sql_ast::Ident::new("TRUNC"),
+                )]),
+                args: sql_ast::FunctionArguments::List(FunctionArgumentList {
+                    args: vec![
+                        FunctionArg::Unnamed(FunctionArgExpr::Expr(col)),
+                        FunctionArg::Unnamed(FunctionArgExpr::Expr(sql_ast::Expr::Value(
+                            Value::SingleQuotedString(format.to_string()).into(),
+                        ))),
                     ],
                     clauses: vec![],
                     duplicate_treatment: None,
@@ -531,6 +571,19 @@ pub(super) fn translate_literal(l: Literal, ctx: &Context) -> Result<sql_ast::Ex
         Literal::Float(f) => sql_ast::Expr::Value(Value::Number(format!("{f:?}"), false).into()),
         Literal::Integer(i) => sql_ast::Expr::Value(Value::Number(format!("{i}"), false).into()),
         Literal::Date(value) => translate_datetime_literal(sql_ast::DataType::Date, value, ctx),
+        Literal::Time(_) if ctx.dialect.is::<crate::sql::dialect::OracleDialect>() => {
+            return Err(Error::new_simple(
+                "time literals are not supported on Oracle, which has no TIME type",
+            ))
+        }
+        Literal::Timestamp(value) if ctx.dialect.is::<crate::sql::dialect::OracleDialect>() => {
+            // Oracle's TIMESTAMP literal separates the date and the time with a space
+            translate_datetime_literal(
+                sql_ast::DataType::Timestamp(None, sql_ast::TimezoneInfo::None),
+                value.replacen('T', " ", 1),
+                ctx,
+            )
+        }
         Literal::Time(value) => translate_datetime_literal(
             sql_ast::DataType::Time(None, sql_ast::TimezoneInfo::None),
             value,
@@ -541,6 +594,9 @@ pub(super) fn translate_literal(l: Literal, ctx: &Context) -> Result<sql_ast::Ex
             value,
             ctx,
         ),
+        Literal::ValueAndUnit(vau) if ctx.dialect.is::<crate::sql::dialect::OracleDialect>() => {
+            translate_oracle_interval(vau.n, &vau.unit)?
+        }
         Literal::ValueAndUnit(vau) => {
             let sql_parser_datetime = match vau.unit.as_str() {
                 "years" => DateTimeField::Year,
@@ -602,6 +658,57 @@ pub(super) fn translate_literal(l: Literal, ctx: &Context) -> Result<sql_ast::Ex
             }
         }
     })
+}
+
+/// Oracle's interval literals: `INTERVAL '3' DAY`. There's no week, millisecond
+/// or microsecond field, so those become days and fractional seconds, and a
+/// value of more than two digits needs a leading precision, `INTERVAL '100'
+/// DAY(3)`.
+/// <https://docs.oracle.com/en/database/oracle/oracle-database/19/sqlrf/Literals.html#GUID-DC8D1DAD-7D04-45EA-9546-82810CD09A9D>
+fn translate_oracle_interval(n: i64, unit: &str) -> Result<sql_ast::Expr> {
+    let fraction = |n: i64, digits: u32| {
+        let scale = 10_i64.pow(digits);
+        let sign = if n < 0 { "-" } else { "" };
+        let (whole, part) = (n.abs() / scale, n.abs() % scale);
+        let part = format!("{part:0width$}", width = digits as usize);
+        let part = part.trim_end_matches('0');
+        if part.is_empty() {
+            format!("{sign}{whole}")
+        } else {
+            format!("{sign}{whole}.{part}")
+        }
+    };
+    let (value, field) = match unit {
+        "years" => (n.to_string(), DateTimeField::Year),
+        "months" => (n.to_string(), DateTimeField::Month),
+        "weeks" => ((n * 7).to_string(), DateTimeField::Day),
+        "days" => (n.to_string(), DateTimeField::Day),
+        "hours" => (n.to_string(), DateTimeField::Hour),
+        "minutes" => (n.to_string(), DateTimeField::Minute),
+        "seconds" => (n.to_string(), DateTimeField::Second),
+        "milliseconds" => (fraction(n, 3), DateTimeField::Second),
+        "microseconds" => (fraction(n, 6), DateTimeField::Second),
+        _ => {
+            return Err(Error::new_simple(format!(
+                "Unsupported interval unit: {unit}"
+            )))
+        }
+    };
+    let digits = value
+        .trim_start_matches('-')
+        .split('.')
+        .next()
+        .map_or(1, |whole| whole.len() as u64);
+    Ok(sql_ast::Expr::Interval(sqlparser::ast::Interval {
+        value: Box::new(sql_ast::Expr::Value(
+            Value::SingleQuotedString(value).into(),
+        )),
+        leading_field: Some(field),
+        // Oracle's default leading precision is 2 digits
+        leading_precision: (digits > 2).then_some(digits),
+        last_field: None,
+        fractional_seconds_precision: None,
+    }))
 }
 
 fn translate_datetime_literal(
