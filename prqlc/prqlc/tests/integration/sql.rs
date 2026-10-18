@@ -7675,7 +7675,8 @@ fn test_oracle_dates() {
     // `TIMESTAMP` literal separates date and time with a space.
     assert_snapshot!(compile_with_sql_dialect(r###"
     from t
-    filter d > @2024-01-31 && ts < @2025-06-01T10:30:00.123456
+    filter d > @2024-01-31 && ts < @2025-06-01T10:30:00.123456 && ts > @2025-01-01T08:15
+    filter ts != @2025-03-01T12:00:00Z && ts != @2020-01-01T13:19:55-0800
     select {
         y = (d | date.trunc "year"),
         q = (d | date.trunc "quarter"),
@@ -7700,6 +7701,9 @@ fn test_oracle_dates() {
     WHERE
       "d" > DATE '2024-01-31'
       AND "ts" < TIMESTAMP '2025-06-01 10:30:00.123456'
+      AND "ts" > TIMESTAMP '2025-01-01 08:15:00'
+      AND "ts" <> TIMESTAMP '2025-03-01 12:00:00 +00:00'
+      AND "ts" <> TIMESTAMP '2020-01-01 13:19:55 -08:00'
     "#);
 
     assert_snapshot!(compile_with_sql_dialect(r###"

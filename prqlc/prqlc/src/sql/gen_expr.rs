@@ -577,10 +577,9 @@ pub(super) fn translate_literal(l: Literal, ctx: &Context) -> Result<sql_ast::Ex
             ))
         }
         Literal::Timestamp(value) if ctx.dialect.is::<crate::sql::dialect::OracleDialect>() => {
-            // Oracle's TIMESTAMP literal separates the date and the time with a space
             translate_datetime_literal(
                 sql_ast::DataType::Timestamp(None, sql_ast::TimezoneInfo::None),
-                value.replacen('T', " ", 1),
+                oracle_timestamp(&value),
                 ctx,
             )
         }
@@ -658,6 +657,29 @@ pub(super) fn translate_literal(l: Literal, ctx: &Context) -> Result<sql_ast::Ex
             }
         }
     })
+}
+
+/// Oracle's TIMESTAMP literal: `YYYY-MM-DD HH24:MI:SS[.FF][ ±HH:MM]` — a space
+/// rather than `T`, seconds required, and an offset with a colon (no `Z`).
+fn oracle_timestamp(value: &str) -> String {
+    let re = Regex::new(
+        r"^(\d{4}-\d{2}-\d{2})[T ](\d{2}:\d{2})(:\d{2}(?:\.\d+)?)?(Z|[+-]\d{2}(?::?\d{2})?)?$",
+    )
+    .unwrap();
+    let Some(c) = re.captures(value) else {
+        return value.replacen('T', " ", 1);
+    };
+    let seconds = c.get(3).map_or(":00", |m| m.as_str());
+    let offset = match c.get(4).map(|m| m.as_str()) {
+        None => String::new(),
+        Some("Z") => " +00:00".to_string(),
+        Some(o) => {
+            let digits: String = o[1..].chars().filter(|ch| *ch != ':').collect();
+            let minutes = digits.get(2..4).unwrap_or("00");
+            format!(" {}{}:{}", &o[..1], &digits[..2], minutes)
+        }
+    };
+    format!("{} {}{}{}", &c[1], &c[2], seconds, offset)
 }
 
 /// Oracle's interval literals: `INTERVAL '3' DAY`. There's no week, millisecond
