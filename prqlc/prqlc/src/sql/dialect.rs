@@ -248,6 +248,14 @@ pub(super) trait DialectHandler: Any + Debug {
         None
     }
 
+    /// Whether a boolean is a value: a condition can be a column, and `TRUE`
+    /// and `FALSE` exist. Without them (Oracle before 23ai), booleans are
+    /// carried as `1` / `0`: a condition used as a value becomes a `CASE`, and a
+    /// value used as a condition is compared with `1`.
+    fn supports_boolean_values(&self) -> bool {
+        true
+    }
+
     /// Support for DISTINCT in set ops (UNION DISTINCT, INTERSECT DISTINCT)
     /// When not supported we fallback to implicit DISTINCT.
     fn set_ops_distinct(&self) -> bool {
@@ -779,6 +787,12 @@ impl DialectHandler for OracleDialect {
     // Oracle has no `AS` keyword for table aliases
     // https://docs.oracle.com/en/database/oracle/oracle-database/26/sqlrf/SELECT.html
     fn table_alias_uses_as(&self) -> bool {
+        false
+    }
+
+    // Oracle's BOOLEAN is PL/SQL-only before 23ai.
+    // https://docs.oracle.com/en/database/oracle/oracle-database/19/sqlrf/Data-Types.html
+    fn supports_boolean_values(&self) -> bool {
         false
     }
 }

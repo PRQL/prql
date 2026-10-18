@@ -410,6 +410,7 @@ fn translate_join(
 ) -> Result<Join> {
     let relation = translate_relation_expr(with, ctx)?;
 
+    let filter = as_condition(filter, ctx);
     let constraint = JoinConstraint::On(translate_expr(filter, ctx)?.into_ast());
 
     Ok(Join {
@@ -493,7 +494,15 @@ fn translate_relation_literal(data: RelationLiteral, ctx: &Context) -> Result<sq
 
         return Ok(default_query(sql_ast::SetExpr::Select(Box::new(Select {
             projection: nulls,
-            selection: Some(sql_ast::Expr::Value(sql_ast::Value::Boolean(false).into())),
+            selection: Some(if ctx.dialect.supports_boolean_values() {
+                sql_ast::Expr::Value(sql_ast::Value::Boolean(false).into())
+            } else {
+                sql_ast::Expr::BinaryOp {
+                    left: Box::new(expr_of_i64(1)),
+                    op: sql_ast::BinaryOperator::Eq,
+                    right: Box::new(expr_of_i64(0)),
+                }
+            }),
             ..default_select()
         }))));
     }
@@ -577,6 +586,10 @@ pub(super) fn translate_query_operator(
 }
 
 fn filter_of_conditions(exprs: Vec<Expr>, context: &mut Context) -> Result<Option<sql_ast::Expr>> {
+    let exprs = exprs
+        .into_iter()
+        .map(|e| as_condition(e, context))
+        .collect();
     Ok(if let Some(cond) = all(exprs) {
         Some(translate_expr(cond, context)?.into_ast())
     } else {

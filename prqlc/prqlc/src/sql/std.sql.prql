@@ -355,6 +355,14 @@ module mysql {
 }
 
 module oracle {
+  # There's no BOOL_AND / BOOL_OR, and a boolean is carried as `1` / `0` before
+  # 23ai; a NULL stays NULL and is skipped, as by BOOL_AND / BOOL_OR.
+  @{window_frame=true, coalesce="1"}
+  let all = column -> s"MIN(CASE WHEN {column:0} THEN 1 WHEN NOT {column:4} THEN 0 END)"
+
+  @{window_frame=true, coalesce="0"}
+  let any = column -> s"MAX(CASE WHEN {column:0} THEN 1 WHEN NOT {column:4} THEN 0 END)"
+
   # Text functions
   module text {
     # Oracle's `CONCAT` takes exactly two arguments before 23ai, so the generic

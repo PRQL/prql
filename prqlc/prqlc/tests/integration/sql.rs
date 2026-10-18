@@ -7570,7 +7570,11 @@ fn test_oracle_text_contains_uses_double_pipe() {
     ).unwrap(), @r#"
     SELECT
       "name",
-      "name" LIKE '%' || 'pika' || '%' AS "has_substring"
+      CASE
+        WHEN "name" LIKE '%' || 'pika' || '%' THEN 1
+        WHEN NOT "name" LIKE '%' || 'pika' || '%' THEN 0
+        ELSE NULL
+      END AS "has_substring"
     FROM
       "employees"
     "#);
@@ -7591,7 +7595,11 @@ fn test_oracle_text_contains_parenthesizes_additive_argument() {
     ).unwrap(), @r#"
     SELECT
       "name",
-      "name" LIKE '%' || ("first_name" + "last_name") || '%' AS "has_substring"
+      CASE
+        WHEN "name" LIKE '%' || ("first_name" + "last_name") || '%' THEN 1
+        WHEN NOT "name" LIKE '%' || ("first_name" + "last_name") || '%' THEN 0
+        ELSE NULL
+      END AS "has_substring"
     FROM
       "employees"
     "#);
@@ -7666,6 +7674,129 @@ fn test_oracle_table_alias_omits_as() {
         FETCH FIRST
           5 ROWS ONLY
       ) table_3
+    "#);
+}
+
+#[test]
+fn test_oracle_booleans_as_numbers() {
+    // Before 23ai, Oracle has no BOOLEAN in SQL: a condition can't be a column,
+    // and there are no `TRUE` / `FALSE` literals. Booleans are carried as
+    // `1` / `0`, and a NULL condition stays NULL.
+    assert_snapshot!(compile_with_sql_dialect(r###"
+    from t
+    derive {b = x > 0, c = true, n = x == null}
+    select {id, b, c, n}
+    "###, sql::Dialect::Oracle
+    ).unwrap(), @r#"
+    SELECT
+      "id",
+      CASE
+        WHEN "x" > 0 THEN 1
+        WHEN NOT "x" > 0 THEN 0
+        ELSE NULL
+      END AS "b",
+      1 AS "c",
+      CASE
+        WHEN "x" IS NULL THEN 1
+        WHEN NOT "x" IS NULL THEN 0
+        ELSE NULL
+      END AS "n"
+    FROM
+      "t"
+    "#);
+
+    // A value in a condition position is compared with `1`.
+    assert_snapshot!(compile_with_sql_dialect(r###"
+    from t
+    derive {b = x > 0}
+    take 5
+    filter b && !flag
+    filter true
+    join u (this.id == that.id && that.active)
+    select {t.id, k = case [t.flag => "flag", true => "other"]}
+    "###, sql::Dialect::Oracle
+    ).unwrap(), @r#"
+    WITH
+    "table_1" AS (
+      SELECT
+        "id",
+        "flag",
+        CASE
+          WHEN "x" > 0 THEN 1
+          WHEN NOT "x" > 0 THEN 0
+          ELSE NULL
+        END AS "_expr_0"
+      FROM
+        "t" OFFSET 0 ROWS
+      FETCH FIRST
+        5 ROWS ONLY
+    ),
+    "table_0" AS (
+      SELECT
+        "id",
+        "flag"
+      FROM
+        "table_1"
+      WHERE
+        "_expr_0" = 1
+        AND NOT "flag" = 1
+        AND 1 = 1
+    )
+    SELECT
+      "table_0"."id",
+      CASE
+        WHEN "table_0"."flag" = 1 THEN 'flag'
+        ELSE 'other'
+      END AS "k"
+    FROM
+      "table_0"
+      INNER JOIN "u" ON "table_0"."id" = "u"."id"
+      AND "u"."active" = 1
+    "#);
+}
+
+#[test]
+fn test_oracle_all_any() {
+    assert_snapshot!(compile_with_sql_dialect(r###"
+    from t
+    group g (aggregate {a = all (x > 0), b = any (n == "")})
+    filter a
+    "###, sql::Dialect::Oracle
+    ).unwrap(), @r#"
+    SELECT
+      "g",
+      COALESCE(
+        MIN(
+          CASE
+            WHEN "x" > 0 THEN 1
+            WHEN NOT "x" > 0 THEN 0
+          END
+        ),
+        1
+      ) AS "a",
+      COALESCE(
+        MAX(
+          CASE
+            WHEN "n" = '' THEN 1
+            WHEN NOT "n" = '' THEN 0
+          END
+        ),
+        0
+      ) AS "b"
+    FROM
+      "t"
+    GROUP BY
+      "g"
+    HAVING
+      COALESCE(
+        MIN(
+          CASE
+            WHEN "x" > 0 THEN 1
+            WHEN NOT "x" > 0 THEN 0
+          END
+        ),
+        1
+      ) = 1
     "#);
 }
 
