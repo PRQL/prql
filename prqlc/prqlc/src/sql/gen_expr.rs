@@ -53,7 +53,7 @@ pub(super) fn translate_expr(expr: rq::Expr, ctx: &mut Context) -> Result<ExprOr
                         rq::ExprKind::Literal(Literal::Boolean(true))
                     )
                 })
-                .map(|def| translate_expr(def.value.clone(), ctx))
+                .map(|def| translate_expr(as_value(def.value.clone(), ctx), ctx))
                 .transpose()?
                 .map(|x| x.into_ast());
 
@@ -70,7 +70,7 @@ pub(super) fn translate_expr(expr: rq::Expr, ctx: &mut Context) -> Result<ExprOr
                 .map(|case| -> Result<_> {
                     let condition = as_condition(case.condition, ctx);
                     let condition = translate_expr(condition, ctx)?.into_ast();
-                    let result = translate_expr(case.value, ctx)?.into_ast();
+                    let result = translate_expr(as_value(case.value, ctx), ctx)?.into_ast();
                     Ok(sql_ast::CaseWhen { condition, result })
                 })
                 .try_collect()?;
@@ -213,6 +213,16 @@ pub(super) fn as_condition(expr: rq::Expr, ctx: &Context) -> rq::Expr {
     }
 }
 
+/// An expression for a position where SQL expects a value (an operand, a
+/// function argument, a `CASE` result): on dialects without boolean values, a
+/// predicate becomes `1` / `0`.
+fn as_value(expr: rq::Expr, ctx: &Context) -> rq::Expr {
+    if ctx.dialect.supports_boolean_values() || truth_of(&expr, ctx) != Truth::Predicate {
+        return expr;
+    }
+    predicate_as_value(expr)
+}
+
 /// `CASE WHEN p THEN 1 WHEN NOT p THEN 0 END`, which keeps a NULL as NULL.
 fn predicate_as_value(predicate: rq::Expr) -> rq::Expr {
     let span = predicate.span;
@@ -243,7 +253,7 @@ fn predicate_as_value(predicate: rq::Expr) -> rq::Expr {
 }
 
 /// The operands of `and`, `or` and `not` are conditions; those of any other
-/// operator or function are values, so a predicate among them becomes `1` / `0`.
+/// operator or function are values.
 fn operands_as_conditions_or_values(expr: rq::Expr, ctx: &Context) -> rq::Expr {
     if ctx.dialect.supports_boolean_values() {
         return expr;
@@ -253,12 +263,7 @@ fn operands_as_conditions_or_values(expr: rq::Expr, ctx: &Context) -> rq::Expr {
             let args = if matches!(name.as_str(), "std.and" | "std.or" | "std.not") {
                 args.into_iter().map(|a| as_condition(a, ctx)).collect()
             } else {
-                (args.into_iter())
-                    .map(|a| match truth_of(&a, ctx) {
-                        Truth::Predicate => predicate_as_value(a),
-                        _ => a,
-                    })
-                    .collect()
+                args.into_iter().map(|a| as_value(a, ctx)).collect()
             };
             rq::Expr {
                 kind: rq::ExprKind::Operator { name, args },

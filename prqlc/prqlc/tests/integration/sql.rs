@@ -7782,7 +7782,12 @@ fn test_oracle_predicate_as_function_argument() {
     derive {b = x > 0}
     sort i
     window (derive {c = lag 1 b})
-    select {c, d = coalesce (x > 0) false, e = (x > 0) == (y > 0)}
+    select {
+        c,
+        d = coalesce (x > 0) false,
+        e = (x > 0) == (y > 0),
+        f = case [x > 0 => y > 0, true => x < y],
+    }
     "###, sql::Dialect::Oracle
     ).unwrap(), @r#"
     WITH
@@ -7827,6 +7832,18 @@ fn test_oracle_predicate_as_function_argument() {
           END THEN 0
           ELSE NULL
         END AS "e",
+        CASE
+          WHEN "x" > 0 THEN CASE
+            WHEN "y" > 0 THEN 1
+            WHEN NOT "y" > 0 THEN 0
+            ELSE NULL
+          END
+          ELSE CASE
+            WHEN "x" < "y" THEN 1
+            WHEN NOT "x" < "y" THEN 0
+            ELSE NULL
+          END
+        END AS "f",
         "i"
       FROM
         "t"
@@ -7834,7 +7851,8 @@ fn test_oracle_predicate_as_function_argument() {
     SELECT
       "c",
       "d",
-      "e"
+      "e",
+      "f"
     FROM
       "table_0"
     ORDER BY
