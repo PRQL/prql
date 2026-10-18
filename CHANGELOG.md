@@ -29,6 +29,10 @@
 
 **Fixes**:
 
+- On the `sql.oracle` target, `date.trunc` compiles to `TRUNC`, `date.to_text`
+  to `TO_CHAR`, timestamp literals use a space, and intervals are quoted with a
+  leading precision where needed; `date.diff` and time literals are reported as
+  unsupported. (@calin2k, #6455)
 - `first` and `last` respect the window frame: an explicit `window rows:...` was
   previously dropped, and `last` inside `group (sort ...)` returned the current
   row's value rather than the group's last. (@prql-bot, #6435)
