@@ -1,0 +1,11 @@
+---
+source: web/book/tests/documentation/book.rs
+expression: "from invoices\njoin customers (==customer_id)\nderive t = invoices.time\n"
+---
+SELECT
+  invoices.*,
+  customers.*,
+  invoices.time AS t
+FROM
+  invoices
+  INNER JOIN customers ON invoices.customer_id = customers.customer_id
