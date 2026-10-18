@@ -7677,6 +7677,7 @@ fn test_oracle_dates() {
     from t
     filter d > @2024-01-31 && ts < @2025-06-01T10:30:00.123456 && ts > @2025-01-01T08:15
     filter ts != @2025-03-01T12:00:00Z && ts != @2020-01-01T13:19:55-0800
+    filter ts != @2025-01-01T08 && ts != @2025-01-01T08:15.5
     select {
         y = (d | date.trunc "year"),
         q = (d | date.trunc "quarter"),
@@ -7704,6 +7705,8 @@ fn test_oracle_dates() {
       AND "ts" > TIMESTAMP '2025-01-01 08:15:00'
       AND "ts" <> TIMESTAMP '2025-03-01 12:00:00 +00:00'
       AND "ts" <> TIMESTAMP '2020-01-01 13:19:55 -08:00'
+      AND "ts" <> TIMESTAMP '2025-01-01 08:00:00'
+      AND "ts" <> TIMESTAMP '2025-01-01 08:15:00.5'
     "#);
 
     assert_snapshot!(compile_with_sql_dialect(r###"
@@ -7757,6 +7760,12 @@ fn test_oracle_intervals() {
     FROM
       "t"
     "#);
+
+    assert_snapshot!(compile_with_sql_dialect(r###"
+    from t
+    select {c = ts + 2000000000000000000weeks}
+    "###, sql::Dialect::Oracle
+    ).unwrap_err(), @"Error: `2000000000000000000weeks` is too large an interval");
 }
 
 #[test]

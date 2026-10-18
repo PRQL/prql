@@ -782,12 +782,6 @@ impl DialectHandler for OracleDialect {
         false
     }
 
-    // `INTERVAL '3' DAY`; an unquoted number is a syntax error.
-    // https://docs.oracle.com/en/database/oracle/oracle-database/19/sqlrf/Literals.html#GUID-DC8D1DAD-7D04-45EA-9546-82810CD09A9D
-    fn interval_quoting_style(&self, _dtf: &DateTimeField) -> IntervalQuotingStyle {
-        IntervalQuotingStyle::ValueQuoted
-    }
-
     // https://docs.oracle.com/en/database/oracle/oracle-database/19/sqlrf/Format-Models.html
     // Unlike Postgres's, Oracle's `FM` is a toggle for the rest of the format,
     // so it's switched off again after the element it applies to.

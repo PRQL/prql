@@ -663,23 +663,24 @@ pub(super) fn translate_literal(l: Literal, ctx: &Context) -> Result<sql_ast::Ex
 /// rather than `T`, seconds required, and an offset with a colon (no `Z`).
 fn oracle_timestamp(value: &str) -> String {
     let re = Regex::new(
-        r"^(\d{4}-\d{2}-\d{2})[T ](\d{2}:\d{2})(:\d{2}(?:\.\d+)?)?(Z|[+-]\d{2}(?::?\d{2})?)?$",
+        r"^(\d{4}-\d{2}-\d{2})[T ](\d{2})(:\d{2})?(:\d{2})?(\.\d+)?(Z|[+-]\d{2}:?\d{2})?$",
     )
     .unwrap();
     let Some(c) = re.captures(value) else {
         return value.replacen('T', " ", 1);
     };
-    let seconds = c.get(3).map_or(":00", |m| m.as_str());
-    let offset = match c.get(4).map(|m| m.as_str()) {
+    let minutes = c.get(3).map_or(":00", |m| m.as_str());
+    let seconds = c.get(4).map_or(":00", |m| m.as_str());
+    let fraction = c.get(5).map_or("", |m| m.as_str());
+    let offset = match c.get(6).map(|m| m.as_str()) {
         None => String::new(),
         Some("Z") => " +00:00".to_string(),
         Some(o) => {
-            let digits: String = o[1..].chars().filter(|ch| *ch != ':').collect();
-            let minutes = digits.get(2..4).unwrap_or("00");
-            format!(" {}{}:{}", &o[..1], &digits[..2], minutes)
+            let o = o.replace(':', "");
+            format!(" {}:{}", &o[..3], &o[3..])
         }
     };
-    format!("{} {}{}{}", &c[1], &c[2], seconds, offset)
+    format!("{} {}{minutes}{seconds}{fraction}{offset}", &c[1], &c[2])
 }
 
 /// Oracle's interval literals: `INTERVAL '3' DAY`. There's no week, millisecond
@@ -703,7 +704,12 @@ fn translate_oracle_interval(n: i64, unit: &str) -> Result<sql_ast::Expr> {
     let (value, field) = match unit {
         "years" => (n.to_string(), DateTimeField::Year),
         "months" => (n.to_string(), DateTimeField::Month),
-        "weeks" => ((n * 7).to_string(), DateTimeField::Day),
+        "weeks" => {
+            let days = n
+                .checked_mul(7)
+                .ok_or_else(|| Error::new_simple(format!("`{n}weeks` is too large an interval")))?;
+            (days.to_string(), DateTimeField::Day)
+        }
         "days" => (n.to_string(), DateTimeField::Day),
         "hours" => (n.to_string(), DateTimeField::Hour),
         "minutes" => (n.to_string(), DateTimeField::Minute),
