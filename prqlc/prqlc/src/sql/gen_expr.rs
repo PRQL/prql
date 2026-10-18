@@ -445,7 +445,10 @@ fn translate_concat_operand(
         )
     );
 
-    if !is_concat_chain && needs_parentheses(&expr, is_left, strength, Associativity::Both) {
+    // The chain is built left-nested, so an operand of equal strength needs
+    // parentheses on the right: on Oracle, where `||` ranks with `+`/`-`,
+    // `a || b - c` is `(a || b) - c`.
+    if !is_concat_chain && needs_parentheses(&expr, is_left, strength, Associativity::Left) {
         Ok(expr.wrap_in_parenthesis().into_ast())
     } else {
         Ok(expr.into_ast())

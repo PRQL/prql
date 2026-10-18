@@ -7670,6 +7670,30 @@ fn test_oracle_table_alias_omits_as() {
 }
 
 #[test]
+fn test_oracle_fstring_uses_double_pipe() {
+    // Oracle's `CONCAT` takes two arguments before 23ai. `||` ranks with
+    // binary `+`/`-`, evaluated left to right, so an additive operand on the
+    // right needs parentheses: `'-' || x - y` would be `('-' || x) - y`.
+    assert_snapshot!(compile_with_sql_dialect(r###"
+    from t
+    derive {s = x + y, d = x - y, p = x * y}
+    select {
+        a = f"{s}-{d}-{p}",
+        b = f"  {n}  ",
+        c = f"{x}{y}" + 1,
+    }
+    "###, sql::Dialect::Oracle
+    ).unwrap(), @r#"
+    SELECT
+      "x" + "y" || '-' || ("x" - "y") || '-' || "x" * "y" AS "a",
+      '  ' || "n" || '  ' AS "b",
+      ("x" || "y") + 1 AS "c"
+    FROM
+      "t"
+    "#);
+}
+
+#[test]
 fn test_sqlite_text_pattern_parenthesizes_compound_argument() {
     // SQLite ranks `||` above both `*`/`/`/`%` and `+`/`-`, so an
     // unparenthesized argument binds to the surrounding `'%'` literals instead
