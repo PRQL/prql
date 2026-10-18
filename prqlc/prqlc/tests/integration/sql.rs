@@ -7670,6 +7670,80 @@ fn test_oracle_table_alias_omits_as() {
 }
 
 #[test]
+fn test_oracle_relation_literal_selects_from_dual() {
+    // Before 23ai, Oracle's `SELECT` requires a `FROM` clause; `DUAL` is its
+    // one-row table for selecting constants.
+    assert_snapshot!(compile_with_sql_dialect(r###"
+    from [{n = 1}, {n = 2}]
+    select {m = n + 1}
+    "###, sql::Dialect::Oracle
+    ).unwrap(), @r#"
+    WITH
+    "table_0" AS (
+      SELECT
+        1 AS "n"
+      FROM
+        DUAL
+      UNION ALL
+      SELECT
+        2 AS "n"
+      FROM
+        DUAL
+    )
+    SELECT
+      "n" + 1 AS "m"
+    FROM
+      "table_0"
+    "#);
+
+    assert_snapshot!(compile_with_sql_dialect(r###"
+    from [{track_id = 0, album_id = 1}]
+    join side:left [{album_id = 1, title = "Songs"}] (==album_id)
+    aggregate {c = count this}
+    "###, sql::Dialect::Oracle
+    ).unwrap(), @r#"
+    WITH
+    "table_0" AS (
+      SELECT
+        0 AS "track_id",
+        1 AS "album_id"
+      FROM
+        DUAL
+    ),
+    "table_1" AS (
+      SELECT
+        1 AS "album_id",
+        'Songs' AS "title"
+      FROM
+        DUAL
+    )
+    SELECT
+      COUNT(*) AS "c"
+    FROM
+      "table_0"
+      LEFT OUTER JOIN "table_1" ON "table_0"."album_id" = "table_1"."album_id"
+    "#);
+}
+
+#[test]
+fn test_relation_literal_without_dummy_table() {
+    // Dialects that accept a `SELECT` without `FROM` are unchanged.
+    assert_snapshot!(compile_with_sql_dialect(r###"
+    from [{n = 1}]
+    "###, sql::Dialect::Postgres
+    ).unwrap(), @"
+    WITH
+    table_0 AS (
+      SELECT
+        1 AS n)
+    SELECT
+      n
+    FROM
+      table_0
+    ");
+}
+
+#[test]
 fn test_sqlite_text_pattern_parenthesizes_compound_argument() {
     // SQLite ranks `||` above both `*`/`/`/`%` and `+`/`-`, so an
     // unparenthesized argument binds to the surrounding `'%'` literals instead

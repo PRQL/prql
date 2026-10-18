@@ -91,6 +91,10 @@ fn translate_select_pipeline(
         })
         .try_collect()?;
 
+    if from.is_empty() {
+        from = from_dummy_table(ctx);
+    }
+
     let joins = pipeline
         .pluck(|t| t.into_join())
         .into_iter()
@@ -493,6 +497,7 @@ fn translate_relation_literal(data: RelationLiteral, ctx: &Context) -> Result<sq
 
         return Ok(default_query(sql_ast::SetExpr::Select(Box::new(Select {
             projection: nulls,
+            from: from_dummy_table(ctx),
             selection: Some(sql_ast::Expr::Value(sql_ast::Value::Boolean(false).into())),
             ..default_select()
         }))));
@@ -510,6 +515,7 @@ fn translate_relation_literal(data: RelationLiteral, ctx: &Context) -> Result<sq
                     })
                 })
                 .try_collect()?,
+            from: from_dummy_table(ctx),
             ..default_select()
         }));
 
@@ -596,6 +602,30 @@ fn all(mut exprs: Vec<Expr>) -> Option<Expr> {
         };
     }
     Some(condition)
+}
+
+/// `FROM <dummy table>` for a `SELECT` with no source, on dialects that require
+/// a `FROM` clause; nothing elsewhere.
+fn from_dummy_table(ctx: &Context) -> Vec<TableWithJoins> {
+    (ctx.dialect.dummy_table().into_iter())
+        .map(|name| TableWithJoins {
+            relation: TableFactor::Table {
+                name: sql_ast::ObjectName(vec![sqlparser::ast::ObjectNamePart::Identifier(
+                    sql_ast::Ident::new(name),
+                )]),
+                alias: None,
+                args: None,
+                with_hints: vec![],
+                with_ordinality: false,
+                version: None,
+                partitions: vec![],
+                json_path: None,
+                sample: None,
+                index_hints: vec![],
+            },
+            joins: vec![],
+        })
+        .collect()
 }
 
 fn default_query(body: sql_ast::SetExpr) -> sql_ast::Query {
