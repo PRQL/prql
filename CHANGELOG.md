@@ -29,6 +29,10 @@
 
 **Fixes**:
 
+- `remove` and `intersect` compile to `MINUS` and `INTERSECT`, or to joins for
+  their multiset forms, on the `sql.oracle` target. Oracle has no `EXCEPT`,
+  `DISTINCT` quantifier, `EXCEPT ALL` or `INTERSECT ALL` before 21c. (@calin2k,
+  #6452)
 - `first` and `last` respect the window frame: an explicit `window rows:...` was
   previously dropped, and `last` inside `group (sort ...)` returned the current
   row's value rather than the group's last. (@prql-bot, #6435)
