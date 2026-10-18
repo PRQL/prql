@@ -29,6 +29,8 @@
 
 **Fixes**:
 
+- Relation literals select `FROM DUAL` on the `sql.oracle` target, since Oracle
+  requires a `FROM` clause before 23ai. (@calin2k, #6450)
 - `first` and `last` respect the window frame: an explicit `window rows:...` was
   previously dropped, and `last` inside `group (sort ...)` returned the current
   row's value rather than the group's last. (@prql-bot, #6435)
