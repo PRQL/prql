@@ -7723,6 +7723,64 @@ fn test_oracle_loop_lists_cte_columns() {
 }
 
 #[test]
+fn test_oracle_loop_lists_cte_columns_of_wrapped_initial() {
+    // A `take` wraps the initial query in a derived table, so its SELECT is a
+    // wildcard; the column list comes from the columns the loop is referenced by.
+    assert_snapshot!(compile_with_sql_dialect(r###"
+    from employees
+    select {employee_id, reports_to}
+    take 5
+    loop (
+        join x = employees (this.employee_id == that.reports_to)
+        select {x.employee_id, x.reports_to}
+    )
+    "###, sql::Dialect::Oracle
+    ).unwrap(), @r#"
+    WITH
+    "table_0" ("employee_id", "reports_to") AS (
+      SELECT
+        *
+      FROM
+        (
+          SELECT
+            "employee_id",
+            "reports_to"
+          FROM
+            "employees" OFFSET 0 ROWS
+          FETCH FIRST
+            5 ROWS ONLY
+        ) table_2
+      UNION ALL
+      SELECT
+        "x"."employee_id" AS "_expr_0",
+        "x"."reports_to" AS "_expr_1"
+      FROM
+        "table_0"
+        INNER JOIN "employees" "x" ON "table_0"."employee_id" = "x"."reports_to"
+    )
+    SELECT
+      "employee_id",
+      "reports_to"
+    FROM
+      "table_0" "table_1"
+    "#);
+
+    // Without a `select`, the columns aren't known.
+    assert_snapshot!(compile_with_sql_dialect(r###"
+    from employees
+    filter reports_to == null
+    loop (
+        join x = employees (this.employee_id == that.reports_to)
+        select {x.employee_id, x.reports_to}
+    )
+    "###, sql::Dialect::Oracle
+    ).unwrap_err(), @"
+    Error: the columns of a `loop` must be known on this dialect, which lists them on the recursive query
+    ↳ Hint: add a `select` before the `loop`
+    ");
+}
+
+#[test]
 fn test_sqlite_text_pattern_parenthesizes_compound_argument() {
     // SQLite ranks `||` above both `*`/`/`/`%` and `+`/`-`, so an
     // unparenthesized argument binds to the surrounding `'%'` literals instead

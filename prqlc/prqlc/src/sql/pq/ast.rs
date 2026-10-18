@@ -56,6 +56,9 @@ pub enum CteKind {
     Loop {
         initial: SqlRelation,
         step: SqlRelation,
+        /// Names of the columns the loop's result is referenced by, or `None`
+        /// when they aren't all known (a wildcard).
+        columns: Option<Vec<String>>,
     },
 }
 
@@ -229,9 +232,14 @@ pub trait PqFold: PqMapper<RelationExpr, RelationExpr, (), ()> {
             tid: cte.tid,
             kind: match cte.kind {
                 CteKind::Normal(rel) => CteKind::Normal(self.fold_sql_relation(rel)?),
-                CteKind::Loop { initial, step } => CteKind::Loop {
+                CteKind::Loop {
+                    initial,
+                    step,
+                    columns,
+                } => CteKind::Loop {
                     initial: self.fold_sql_relation(initial)?,
                     step: self.fold_sql_relation(step)?,
+                    columns,
                 },
             },
         })
