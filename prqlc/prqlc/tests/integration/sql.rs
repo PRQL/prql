@@ -7670,6 +7670,82 @@ fn test_oracle_table_alias_omits_as() {
 }
 
 #[test]
+fn test_oracle_math_functions() {
+    // Oracle has no `PI`, `LOG10`, `DEGREES`, `RADIANS`, `POW` or `%`, and its
+    // `LOG` takes the base first.
+    assert_snapshot!(compile_with_sql_dialect(r###"
+    from t
+    select {
+        a = math.pi,
+        b = math.log10 x,
+        c = math.log 2 x,
+        d = math.degrees (x + y),
+        e = math.radians x,
+        f = (x | math.pow 2),
+        g = x % (y + 1),
+        h = (x + 1) % 2 * 3,
+    }
+    "###, sql::Dialect::Oracle
+    ).unwrap(), @r#"
+    SELECT
+      ACOS(-1) AS "a",
+      LOG(10, "x") AS "b",
+      LOG(2, "x") AS "c",
+      (("x" + "y") * 180 / ACOS(-1)) AS "d",
+      ("x" * ACOS(-1) / 180) AS "e",
+      POWER("x", 2) AS "f",
+      MOD("x", "y" + 1) AS "g",
+      MOD("x" + 1, 2) * 3 AS "h"
+    FROM
+      "t"
+    "#);
+}
+
+#[test]
+fn test_oracle_text_functions() {
+    // `CHAR_LENGTH` and `SUBSTRING` don't exist on Oracle, and its `CONCAT`
+    // takes two arguments before 23ai.
+    assert_snapshot!(compile_with_sql_dialect(r###"
+    from t
+    filter (n | text.starts_with (p + q)) || (n | text.ends_with "os")
+    select {
+        a = (n | text.length),
+        b = (n | text.extract 2 5),
+    }
+    "###, sql::Dialect::Oracle
+    ).unwrap(), @r#"
+    SELECT
+      LENGTH("n") AS "a",
+      SUBSTR("n", 2, 5) AS "b"
+    FROM
+      "t"
+    WHERE
+      "n" LIKE ("p" + "q") || '%'
+      OR "n" LIKE '%' || 'os'
+    "#);
+}
+
+#[test]
+fn test_oracle_regex_and_concat_array() {
+    assert_snapshot!(compile_with_sql_dialect(r###"
+    from t
+    filter (n ~= "Lo.e")
+    group g (aggregate {s = concat_array n})
+    "###, sql::Dialect::Oracle
+    ).unwrap(), @r#"
+    SELECT
+      "g",
+      COALESCE(LISTAGG("n", ''), '') AS "s"
+    FROM
+      "t"
+    WHERE
+      REGEXP_LIKE("n", 'Lo.e')
+    GROUP BY
+      "g"
+    "#);
+}
+
+#[test]
 fn test_sqlite_text_pattern_parenthesizes_compound_argument() {
     // SQLite ranks `||` above both `*`/`/`/`%` and `+`/`-`, so an
     // unparenthesized argument binds to the surrounding `'%'` literals instead

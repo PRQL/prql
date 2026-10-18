@@ -355,13 +355,48 @@ module mysql {
 }
 
 module oracle {
+  # Oracle has no `%` operator.
+  # https://docs.oracle.com/en/database/oracle/oracle-database/19/sqlrf/MOD.html
+  @{binding_strength=100}
+  let mod = l r -> s"MOD({l:0}, {r:0})"
+
+  # Oracle has no `STRING_AGG`; `LISTAGG`'s `WITHIN GROUP` is optional from 19c.
+  # https://docs.oracle.com/en/database/oracle/oracle-database/19/sqlrf/LISTAGG.html
+  @{window_frame=true, coalesce="''"}
+  let concat_array = column -> s"LISTAGG({column:0}, '')"
+
+  # https://docs.oracle.com/en/database/oracle/oracle-database/19/sqlrf/Pattern-matching-Conditions.html
+  let regex_search = text pattern -> s"REGEXP_LIKE({text:0}, {pattern:0})"
+
+  # Mathematical functions
+  module math {
+    # https://docs.oracle.com/en/database/oracle/oracle-database/19/sqlrf/Numeric-Functions.html
+    # Oracle has no `PI`, `LOG10`, `DEGREES`, `RADIANS` or `POW`; `LOG` takes
+    # the base first.
+    let pi = -> s"ACOS(-1)"
+    let log10 = column -> s"LOG(10, {column:0})"
+    @{binding_strength=100}
+    let log = base column -> s"LOG({base:0}, {column:0})"
+    let degrees = column -> s"({column:11} * 180 / ACOS(-1))"
+    let radians = column -> s"({column:11} * ACOS(-1) / 180)"
+    let pow = exponent column -> s"POWER({column:0}, {exponent:0})"
+  }
+
   # Text functions
   module text {
+    # https://docs.oracle.com/en/database/oracle/oracle-database/19/sqlrf/Character-Functions-Returning-Number-Values.html
+    let length = column -> s"LENGTH({column:0})"
+    let extract = offset length column -> s"SUBSTR({column:0}, {offset:0}, {length:0})"
     # Oracle's `CONCAT` takes exactly two arguments before 23ai, so the generic
     # three-argument form is rejected. `||` is available in every version.
     # https://docs.oracle.com/en/database/oracle/oracle-database/21/sqlrf/CONCAT.html
+    # `||` ranks with binary `+`/`-`, so an additive argument needs parentheses.
+    @{binding_strength=7}
+    let starts_with = prefix column -> s"{column:0} LIKE {prefix:11} || '%'"
     @{binding_strength=7}
     let contains = substr column -> s"{column:0} LIKE '%' || {substr:11} || '%'"
+    @{binding_strength=7}
+    let ends_with = suffix column -> s"{column:0} LIKE '%' || {suffix:11}"
   }
 }
 
