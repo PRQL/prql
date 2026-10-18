@@ -7746,6 +7746,7 @@ fn test_oracle_intervals() {
         f = ts + 1500milliseconds,
         g = ts - 250microseconds,
         h = d + 1000years,
+        i = ts + 2000milliseconds,
     }
     "###, sql::Dialect::Oracle
     ).unwrap(), @r#"
@@ -7756,7 +7757,8 @@ fn test_oracle_intervals() {
       "d" + INTERVAL '14' DAY AS "e",
       "ts" + INTERVAL '1.5' SECOND AS "f",
       "ts" - INTERVAL '0.00025' SECOND AS "g",
-      "d" + INTERVAL '1000' YEAR (4) AS "h"
+      "d" + INTERVAL '1000' YEAR (4) AS "h",
+      "ts" + INTERVAL '2' SECOND AS "i"
     FROM
       "t"
     "#);
@@ -7779,6 +7781,7 @@ fn test_oracle_date_to_text() {
         b = (d | date.to_text "%A %B %-d %Y at %I:%M:%S %p"),
         c = (d | date.to_text "%+"),
         e = (d | date.to_text "%H:%M:%S.%f, it's %a %b"),
+        f = (d | date.to_text "%d.%m %-H"),
     }
     "###, sql::Dialect::Oracle
     ).unwrap(), @r#"
@@ -7789,9 +7792,39 @@ fn test_oracle_date_to_text() {
         'FMDayFM FMMonthFM FMDDFM YYYY "at" HH12:MI:SS AM'
       ) AS "b",
       TO_CHAR("d", 'YYYY-MM-DD"T"HH24:MI:SS.FF6"Z"') AS "c",
-      TO_CHAR("d", 'HH24:MI:SS.FF6, "it''s" Dy Mon') AS "e"
+      TO_CHAR("d", 'HH24:MI:SS.FF6, "it''s" Dy Mon') AS "e",
+      TO_CHAR("d", 'DD.MM FMHH24FM') AS "f"
     FROM
       "t"
+    "#);
+
+    // Oracle's format model has no way to escape a double quote inside quoted text.
+    assert_snapshot!(compile_with_sql_dialect(r###"
+    from t
+    select {a = (d | date.to_text "%d \"%m\"")}
+    "###, sql::Dialect::Oracle
+    ).unwrap_err(), @r#"
+    Error:
+       ╭─[ :3:35 ]
+       │
+     3 │     select {a = (d | date.to_text "%d \"%m\"")}
+       │                                   ─────┬─────
+       │                                        ╰─────── a double quote can't be part of a date format on Oracle
+    ───╯
+    "#);
+
+    assert_snapshot!(compile_with_sql_dialect(r###"
+    from t
+    select {a = (d | date.to_text "%e")}
+    "###, sql::Dialect::Oracle
+    ).unwrap_err(), @r#"
+    Error:
+       ╭─[ :3:35 ]
+       │
+     3 │     select {a = (d | date.to_text "%e")}
+       │                                   ──┬─
+       │                                     ╰─── format specifier `%_d` is not supported for Oracle
+    ───╯
     "#);
 }
 

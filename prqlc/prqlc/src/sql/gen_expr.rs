@@ -1465,6 +1465,17 @@ mod test {
     use super::*;
 
     #[test]
+    fn test_oracle_timestamp_unknown_form_only_replaces_the_t() {
+        // the lexer doesn't produce this, but nothing is dropped if it does
+        assert_eq!(oracle_timestamp("2025-01-01T08x"), "2025-01-01 08x");
+    }
+
+    #[test]
+    fn test_oracle_interval_unknown_unit() {
+        assert!(translate_oracle_interval(1, "fortnights").is_err());
+    }
+
+    #[test]
     fn test_range_of_ranges() -> Result<()> {
         fn from_ints(start: Option<i64>, end: Option<i64>) -> Range<rq::Expr> {
             let start = start.map(|x| rq::Expr {
