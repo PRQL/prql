@@ -61,6 +61,58 @@ fn should_run_query(dialect: Dialect, prql: &str) -> bool {
     }
 }
 
+/// A `{dialect}:skip` marker silences a query that a `Supported` dialect cannot
+/// run yet. Nothing checks those markers, so once the underlying bug is fixed
+/// the marker outlives its reason and the query silently stops being covered.
+///
+/// This test keeps the markers honest: every `skip` on a `Supported` dialect
+/// must still be necessary. If a query compiles *and* runs clean, the marker is
+/// stale and should be removed.
+#[cfg(any(feature = "test-dbs", feature = "test-dbs-external"))]
+mod skip_markers_are_necessary {
+    use super::*;
+    use crate::dbs::runners;
+
+    test_each_path! { in "./prqlc/prqlc/tests/integration/queries" => run }
+
+    fn run(prql_path: &Path) {
+        let test_name = prql_path.file_stem().unwrap().to_str().unwrap();
+        let prql = fs::read_to_string(prql_path).unwrap();
+
+        let mut stale = Vec::new();
+
+        for runner in runners() {
+            let mut runner = runner.lock().unwrap();
+            let dialect = runner.dialect();
+            let dialect_str = dialect.to_string().to_lowercase();
+
+            // Only a `skip` on a `Supported` dialect is an assertion that the
+            // dialect cannot handle the query yet. `Unsupported` dialects opt
+            // in with `:test`, and `Nascent` ones never run, so neither is a
+            // claim this test can falsify.
+            if !matches!(dialect.support_level(), SupportLevel::Supported) {
+                continue;
+            }
+            if !prql.contains(&format!("{dialect_str}:skip")) {
+                continue;
+            }
+
+            // The query must still fail. A row of results here means the marker
+            // is doing nothing but costing us coverage.
+            if runner.query(&prql).is_ok() {
+                stale.push(dialect_str);
+            }
+        }
+
+        assert!(
+            stale.is_empty(),
+            "{test_name}: {prql_path:?} still carries a skip marker for {stale:?}, \
+             but the query now runs clean. Remove the stale `{}:skip` marker.",
+            stale.first().map(|s| s.as_str()).unwrap_or("dialect")
+        );
+    }
+}
+
 mod compileall {
     use super::*;
     use similar::TextDiff;
