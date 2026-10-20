@@ -29,6 +29,8 @@
 
 **Fixes**:
 
+- `prqlc experimental highlight` keeps the `$` on parameters: `take $1` was
+  previously printed as `take 1`. (@prql-bot, #6468)
 - `first` and `last` respect the window frame: an explicit `window rows:...` was
   previously dropped, and `last` inside `group (sort ...)` returned the current
   row's value rather than the group's last. (@prql-bot, #6435)
