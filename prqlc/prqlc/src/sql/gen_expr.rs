@@ -397,6 +397,17 @@ fn translate_binary_operator(
 ) -> Result<sql_ast::Expr> {
     let strength = op.binding_strength();
 
+    // Comparison operands go through the stricter predicate rule: SQLite ranks
+    // `IN`, `LIKE` and `BETWEEN` alongside `=` and below `< > <= >=`, where
+    // PostgreSQL ranks them above both, and PostgreSQL doesn't chain
+    // comparisons at all. Parenthesizing every such operand reads the same
+    // under either ranking, e.g. `a = (b IN (1, 2))` or `a = (b = c)`.
+    if is_comparison(&op) {
+        let left = Box::new(translate_predicate_operand(left.clone(), ctx)?.into_ast());
+        let right = Box::new(translate_predicate_operand(right.clone(), ctx)?.into_ast());
+        return Ok(sql_ast::Expr::BinaryOp { left, op, right });
+    }
+
     let left = translate_operand(left.clone(), true, strength, op.associativity(), ctx)?;
     let right = translate_operand(right.clone(), false, strength, op.associativity(), ctx)?;
 
@@ -415,6 +426,11 @@ fn translate_binary_operator(
     let right = Box::new(right.into_ast());
 
     Ok(sql_ast::Expr::BinaryOp { left, op, right })
+}
+
+fn is_comparison(op: &BinaryOperator) -> bool {
+    use BinaryOperator::*;
+    matches!(op, Gt | Lt | GtEq | LtEq | Eq | NotEq)
 }
 
 /// Translates a single operand of a hand-built `||` chain, parenthesizing it
@@ -1546,6 +1562,33 @@ mod test {
             c
             OR d
           ) IN (true)
+        ");
+    }
+
+    #[test]
+    fn test_comparison_operand_is_parenthesized() {
+        // SQLite ranks `IN`, `LIKE` and `BETWEEN` alongside `=` and below
+        // `<`, and PostgreSQL doesn't chain comparisons, so a predicate or
+        // comparison operand of a comparison keeps its parentheses (#6466).
+        let query = r#"
+        from t
+        filter (a == (b | in [1, 2]))
+        filter (c < (d | in 1..3))
+        filter ((e | text.starts_with "x") == f)
+        filter (g == (h == i))
+        filter (j + 1 == k)
+        "#;
+        insta::assert_snapshot!(crate::tests::compile(query).unwrap(), @"
+        SELECT
+          *
+        FROM
+          t
+        WHERE
+          a = (b IN (1, 2))
+          AND c < (d BETWEEN 1 AND 3)
+          AND (e LIKE CONCAT('x', '%')) = f
+          AND g = (h = i)
+          AND j + 1 = k
         ");
     }
 
