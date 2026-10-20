@@ -23,8 +23,9 @@ pub(crate) fn highlight(tokens: &Tokens) -> String {
             } => output.push_str(&highlight_range(*bind_left, *bind_right, token.span.len())),
             // The lexer strips the backticks from a quoted ident, so a span
             // wider than the name means it was quoted — and `` `my tbl` ``
-            // written back bare would be a different program.
-            TokenKind::Ident(ident) if token.span.len() > ident.len() => {
+            // written back bare would be a different program. Spans count
+            // chars, not bytes, hence `chars().count()`.
+            TokenKind::Ident(ident) if token.span.len() > ident.chars().count() => {
                 output.push_str(&format!("`{}`", highlight_token_kind(&token.kind)))
             }
             kind => output.push_str(&highlight_token_kind(kind)),
@@ -242,13 +243,13 @@ take $limit
     #[test]
     fn highlight_quoted_ident() {
         assert_cmd_snapshot!(prqlc_command().args(["experimental", "highlight"]).pass_stdin(r#"from `my tbl`
-select {`a b`, `x.y`, c}
+select {`a b`, `x.y`, c, `ééé`, café}
 "#), @"
         success: true
         exit_code: 0
         ----- stdout -----
         from `my tbl`
-        select {`a b`, `x.y`, c}
+        select {`a b`, `x.y`, c, `ééé`, café}
 
         ----- stderr -----
         ");
