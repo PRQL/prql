@@ -78,7 +78,7 @@ fn highlight_token_kind(token: &TokenKind) -> String {
             Literal::String(_) => literal.yellow().to_string(),
             _ => literal.to_string(),
         }),
-        TokenKind::Param(param) => output.push_str(&param.purple().to_string()),
+        TokenKind::Param(_) => output.push_str(&format!("{}", token.purple())),
         // Unreachable: `highlight` intercepts `Range` before dispatching here,
         // and a `LineWrap` only ever carries comments. Kept for exhaustiveness;
         // width `0` renders the minimum padding.
@@ -207,6 +207,25 @@ take 1    ..  5
         take 1..   5
         take 1  ..  5
         take 1   ..   5
+
+        ----- stderr -----
+        ");
+    }
+
+    /// A param's `$` is what makes it a param — `take $1` and `take 1` are
+    /// different programs — so highlighting has to keep it.
+    #[test]
+    fn highlight_param() {
+        assert_cmd_snapshot!(prqlc_command().args(["experimental", "highlight"]).pass_stdin(r#"from x
+filter id == $1
+take $limit
+"#), @"
+        success: true
+        exit_code: 0
+        ----- stdout -----
+        from x
+        filter id == $1
+        take $limit
 
         ----- stderr -----
         ");
