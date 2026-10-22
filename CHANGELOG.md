@@ -53,6 +53,9 @@
   compile error. Separately, a `LIMIT` at or above 2^32 was rendered with
   sqlparser's `long` flag, so `take 5000000000` compiled to
   `LIMIT 5000000000 L`, which no dialect parses. (@prql-bot, #6347)
+- Keep a malformed `\x` or `\u{...}` string escape as written rather than
+  changing the string: `"\x4g"` previously compiled to `'xg'`, and `"\u{}"` to a
+  NUL byte. (@prql-bot, #6383)
 - Report a repeated argument in the `prql` query header as an error rather than
   silently keeping the last one. `prql target:sql.mssql target:sql.postgres`
   previously compiled for Postgres, and a repeated `version` discarded all but
