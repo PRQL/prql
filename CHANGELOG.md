@@ -225,6 +225,10 @@
 
 **Documentation**:
 
+- The C, C++ and PHP bindings describe `Message.hint` as a single string holding
+  the suggestions one per line, or null when there are none, rather than as a
+  list. (@prql-bot, #6446)
+
 - The website's `og:image` meta tag points at the served
   `/img/favicon-32x32.png` rather than `/static/img/favicon-32x32.png`, which
   returns 404, so link previews of prql-lang.org can show the image. (@prql-bot,
