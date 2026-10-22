@@ -8640,3 +8640,33 @@ fn test_sqlite_math_log_parenthesized_in_f_string() {
       x
     ");
 }
+
+#[test]
+fn test_parenthesized_alias_in_tuple() {
+    // The alias is kept, as it is for `select {y = a, b}`.
+    assert_snapshot!(compile(r#"
+    from t
+    select {(y = a), b}
+    "#).unwrap(), @"
+    SELECT
+      a AS y,
+      b
+    FROM
+      t
+    ");
+}
+
+#[test]
+fn test_parenthesized_alias_in_let_overridden_at_reference() {
+    // An alias where the variable is used wins over one in its definition.
+    assert_snapshot!(compile(r#"
+    let x = (y = 5)
+    from t
+    select {z = x}
+    "#).unwrap(), @"
+    SELECT
+      5 AS z
+    FROM
+      t
+    ");
+}
