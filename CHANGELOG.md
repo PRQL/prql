@@ -32,6 +32,9 @@
 - `first` and `last` respect the window frame: an explicit `window rows:...` was
   previously dropped, and `last` inside `group (sort ...)` returned the current
   row's value rather than the group's last. (@prql-bot, #6435)
+- A `loop` directly inside another `loop`'s step is reported as an error instead
+  of compiling to two recursive CTEs that reference each other, which databases
+  reject. (@prql-bot, #6432)
 - A join is no longer compiled to `INTERSECT ALL` or `EXCEPT ALL` when its
   condition has terms beyond the column equalities, or pairs the columns in a
   different order. Joining `{a, b}` to `{x, y}` on
