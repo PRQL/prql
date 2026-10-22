@@ -225,6 +225,8 @@
 
 **Documentation**:
 
+- The Python binding README lists the `display` option of `CompileOptions` and
+  marks `color` as deprecated. (@prql-bot, #6460)
 - The website's `og:image` meta tag points at the served
   `/img/favicon-32x32.png` rather than `/static/img/favicon-32x32.png`, which
   returns 404, so link previews of prql-lang.org can show the image. (@prql-bot,

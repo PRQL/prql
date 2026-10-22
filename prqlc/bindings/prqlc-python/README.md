@@ -80,6 +80,8 @@ class CompileOptions:
         format: bool = True,
         target: str = "sql.any",
         signature_comment: bool = True,
+        color: bool = False,
+        display: str = "plain",
     ) -> None:
     """Compilation options for SQL backend of the compiler.
 
@@ -93,6 +95,9 @@ class CompileOptions:
             function.
         signature_comment (bool): Emits the compiler signature as a comment after
             the generated SQL. Defaults to True.
+        color (bool): Deprecated and has no effect; use `display` instead.
+        display (str): How error messages are rendered: "plain" for plain text
+            or "ansi_color" for text with ANSI colors. Defaults to "plain".
 
     """
     ...
