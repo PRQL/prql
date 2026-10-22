@@ -29,6 +29,9 @@
 
 **Fixes**:
 
+- Passing something other than a tuple to `tuple_map`, `tuple_reduce`,
+  `tuple_zip`, `tuple_uniq` or `tuple_reverse` reports an error instead of
+  crashing the compiler. (@prql-bot, #6471)
 - `first` and `last` respect the window frame: an explicit `window rows:...` was
   previously dropped, and `last` inside `group (sort ...)` returned the current
   row's value rather than the group's last. (@prql-bot, #6435)
