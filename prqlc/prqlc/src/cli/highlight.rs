@@ -21,6 +21,13 @@ pub(crate) fn highlight(tokens: &Tokens) -> String {
                 bind_left,
                 bind_right,
             } => output.push_str(&highlight_range(*bind_left, *bind_right, token.span.len())),
+            // The lexer strips the backticks from a quoted ident, so a span
+            // wider than the name means it was quoted — and `` `my tbl` ``
+            // written back bare would be a different program. Spans count
+            // chars, not bytes, hence `chars().count()`.
+            TokenKind::Ident(ident) if token.span.len() > ident.chars().count() => {
+                output.push_str(&format!("`{}`", highlight_token_kind(&token.kind)))
+            }
             kind => output.push_str(&highlight_token_kind(kind)),
         }
         last = token.span.end;
@@ -78,7 +85,7 @@ fn highlight_token_kind(token: &TokenKind) -> String {
             Literal::String(_) => literal.yellow().to_string(),
             _ => literal.to_string(),
         }),
-        TokenKind::Param(param) => output.push_str(&param.purple().to_string()),
+        TokenKind::Param(_) => output.push_str(&format!("{}", token.purple())),
         // Unreachable: `highlight` intercepts `Range` before dispatching here,
         // and a `LineWrap` only ever carries comments. Kept for exhaustiveness;
         // width `0` renders the minimum padding.
@@ -207,6 +214,42 @@ take 1    ..  5
         take 1..   5
         take 1  ..  5
         take 1   ..   5
+
+        ----- stderr -----
+        ");
+    }
+
+    /// A param's `$` is what makes it a param — `take $1` and `take 1` are
+    /// different programs — so highlighting has to keep it.
+    #[test]
+    fn highlight_param() {
+        assert_cmd_snapshot!(prqlc_command().args(["experimental", "highlight"]).pass_stdin(r#"from x
+filter id == $1
+take $limit
+"#), @"
+        success: true
+        exit_code: 0
+        ----- stdout -----
+        from x
+        filter id == $1
+        take $limit
+
+        ----- stderr -----
+        ");
+    }
+
+    /// The lexer drops a quoted ident's backticks; `from my tbl` isn't the
+    /// program that was highlighted.
+    #[test]
+    fn highlight_quoted_ident() {
+        assert_cmd_snapshot!(prqlc_command().args(["experimental", "highlight"]).pass_stdin(r#"from `my tbl`
+select {`a b`, `x.y`, c, `ééé`, café}
+"#), @"
+        success: true
+        exit_code: 0
+        ----- stdout -----
+        from `my tbl`
+        select {`a b`, `x.y`, c, `ééé`, café}
 
         ----- stderr -----
         ");
