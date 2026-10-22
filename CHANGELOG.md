@@ -29,6 +29,9 @@
 
 **Fixes**:
 
+- `prqlc watch` no longer pastes the preceding PRQL into the generated SQL when
+  a Jinja interpolation starts a line, and no longer adds an extra space before
+  each interpolation. (@prql-bot, #6459)
 - `first` and `last` respect the window frame: an explicit `window rows:...` was
   previously dropped, and `last` inside `group (sort ...)` returned the current
   row's value rather than the group's last. (@prql-bot, #6435)
