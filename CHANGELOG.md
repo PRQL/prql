@@ -29,6 +29,10 @@
 
 **Fixes**:
 
+- A comparison keeps parentheses around an `IN`, `LIKE` or `BETWEEN` operand, or
+  a nested comparison: `a == (b | in [1, 2])` previously compiled to
+  `a = b IN (1, 2)`, which SQLite evaluates as `(a = b) IN (1, 2)`. (@prql-bot,
+  #6467)
 - `first` and `last` respect the window frame: an explicit `window rows:...` was
   previously dropped, and `last` inside `group (sort ...)` returned the current
   row's value rather than the group's last. (@prql-bot, #6435)
