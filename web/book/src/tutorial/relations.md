@@ -75,6 +75,12 @@ This is the same query as above, rewritten on multiple lines, and assigning
 Once we `select` certain columns, subsequent transforms will have access only to
 those columns named in the tuple.
 
+<!-- prettier-ignore -->
+> [!NOTE]
+> To select all of a relation's columns, use a wildcard such as
+> `invoices.*`. See [Wildcards](../reference/syntax/keywords.md#wildcards-)
+> for details.
+
 ### `derive` transform
 
 To add columns to a relation, we can use the `derive` function. Let's define a
