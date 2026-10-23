@@ -3,7 +3,7 @@
 use std::cmp::Ordering;
 
 use itertools::Itertools;
-use prqlc_parser::generic::{InterpolateItem, Range};
+use prqlc_parser::generic::{InterpolateItem, Range, SwitchCase};
 use regex::Regex;
 use sqlparser::ast::{
     self as sql_ast, BinaryOperator, DateTimeField, Fetch, Function, FunctionArg, FunctionArgExpr,
@@ -22,6 +22,7 @@ use crate::utils::{valid_ident, OrMap};
 use crate::{Error, Result, Span, WithErrorInfo};
 
 pub(super) fn translate_expr(expr: rq::Expr, ctx: &mut Context) -> Result<ExprOrSource> {
+    let expr = operands_as_conditions_or_values(expr, ctx);
     Ok(match expr.kind {
         rq::ExprKind::ColumnRef(cid) => translate_cid(cid, ctx)?,
 
@@ -52,7 +53,7 @@ pub(super) fn translate_expr(expr: rq::Expr, ctx: &mut Context) -> Result<ExprOr
                         rq::ExprKind::Literal(Literal::Boolean(true))
                     )
                 })
-                .map(|def| translate_expr(def.value.clone(), ctx))
+                .map(|def| translate_expr(as_value(def.value.clone(), ctx), ctx))
                 .transpose()?
                 .map(|x| x.into_ast());
 
@@ -67,8 +68,9 @@ pub(super) fn translate_expr(expr: rq::Expr, ctx: &mut Context) -> Result<ExprOr
             let conditions = cases
                 .into_iter()
                 .map(|case| -> Result<_> {
-                    let condition = translate_expr(case.condition, ctx)?.into_ast();
-                    let result = translate_expr(case.value, ctx)?.into_ast();
+                    let condition = as_condition(case.condition, ctx);
+                    let condition = translate_expr(condition, ctx)?.into_ast();
+                    let result = translate_expr(as_value(case.value, ctx), ctx)?.into_ast();
                     Ok(sql_ast::CaseWhen { condition, result })
                 })
                 .try_collect()?;
@@ -138,6 +140,141 @@ pub(super) fn translate_expr(expr: rq::Expr, ctx: &mut Context) -> Result<ExprOr
             })
         }
     })
+}
+
+/// How an expression stands in a condition, on dialects without boolean values
+/// (see [`super::dialect::DialectHandler::supports_boolean_values`]).
+#[derive(Debug, PartialEq, Eq)]
+enum Truth {
+    /// A comparison, logical operator or pattern test.
+    Predicate,
+    /// A value holding a boolean as `1` / `0`: a column, a boolean literal, or
+    /// `all` / `any`.
+    Value,
+    /// Anything else, such as an s-string, is left as written.
+    Unknown,
+}
+
+fn truth_of(expr: &rq::Expr, ctx: &Context) -> Truth {
+    match &expr.kind {
+        rq::ExprKind::Operator { name, .. } => match name.as_str() {
+            "std.eq"
+            | "std.ne"
+            | "std.gt"
+            | "std.lt"
+            | "std.gte"
+            | "std.lte"
+            | "std.and"
+            | "std.or"
+            | "std.not"
+            | "std.regex_search"
+            | "std.array_in"
+            | "std.text.starts_with"
+            | "std.text.contains"
+            | "std.text.ends_with" => Truth::Predicate,
+            "std.all" | "std.any" => Truth::Value,
+            _ => Truth::Unknown,
+        },
+        rq::ExprKind::Literal(Literal::Boolean(_)) => Truth::Value,
+        rq::ExprKind::ColumnRef(cid) => match ctx.anchor.column_decls.get(cid) {
+            // before the projection, a computed column is inlined
+            Some(ColumnDecl::Compute(compute)) if ctx.query.pre_projection => {
+                if compute.window.is_some() {
+                    Truth::Unknown
+                } else {
+                    truth_of(&compute.expr, ctx)
+                }
+            }
+            _ => Truth::Value,
+        },
+        _ => Truth::Unknown,
+    }
+}
+
+/// An expression for a position where SQL expects a condition: on dialects
+/// without boolean values, a value is compared with `1`.
+pub(super) fn as_condition(expr: rq::Expr, ctx: &Context) -> rq::Expr {
+    if ctx.dialect.supports_boolean_values() || truth_of(&expr, ctx) != Truth::Value {
+        return expr;
+    }
+    let span = expr.span;
+    rq::Expr {
+        kind: rq::ExprKind::Operator {
+            name: "std.eq".to_string(),
+            args: vec![
+                expr,
+                rq::Expr {
+                    kind: rq::ExprKind::Literal(Literal::Integer(1)),
+                    span,
+                },
+            ],
+        },
+        span,
+    }
+}
+
+/// An expression for a position where SQL expects a value (an operand, a
+/// function argument, a `CASE` result): on dialects without boolean values, a
+/// predicate becomes `1` / `0`.
+fn as_value(expr: rq::Expr, ctx: &Context) -> rq::Expr {
+    if ctx.dialect.supports_boolean_values() || truth_of(&expr, ctx) != Truth::Predicate {
+        return expr;
+    }
+    predicate_as_value(expr)
+}
+
+/// `CASE WHEN p THEN 1 WHEN NOT p THEN 0 END`, which keeps a NULL as NULL.
+fn predicate_as_value(predicate: rq::Expr) -> rq::Expr {
+    let span = predicate.span;
+    let int = |i| rq::Expr {
+        kind: rq::ExprKind::Literal(Literal::Integer(i)),
+        span,
+    };
+    let negated = rq::Expr {
+        kind: rq::ExprKind::Operator {
+            name: "std.not".to_string(),
+            args: vec![predicate.clone()],
+        },
+        span,
+    };
+    rq::Expr {
+        kind: rq::ExprKind::Case(vec![
+            SwitchCase {
+                condition: predicate,
+                value: int(1),
+            },
+            SwitchCase {
+                condition: negated,
+                value: int(0),
+            },
+        ]),
+        span,
+    }
+}
+
+/// The operands of `and`, `or` and `not` are conditions; those of any other
+/// operator or function are values.
+fn operands_as_conditions_or_values(expr: rq::Expr, ctx: &Context) -> rq::Expr {
+    if ctx.dialect.supports_boolean_values() {
+        return expr;
+    }
+    match expr.kind {
+        rq::ExprKind::Operator { name, args } => {
+            let args = if matches!(name.as_str(), "std.and" | "std.or" | "std.not") {
+                args.into_iter().map(|a| as_condition(a, ctx)).collect()
+            } else {
+                args.into_iter().map(|a| as_value(a, ctx)).collect()
+            };
+            rq::Expr {
+                kind: rq::ExprKind::Operator { name, args },
+                span: expr.span,
+            }
+        }
+        kind => rq::Expr {
+            kind,
+            span: expr.span,
+        },
+    }
 }
 
 /// Translates into IS NULL if possible
@@ -527,6 +664,9 @@ pub(super) fn translate_literal(l: Literal, ctx: &Context) -> Result<sql_ast::Ex
         Literal::String(s) | Literal::RawString(s) => {
             sql_ast::Expr::Value(Value::SingleQuotedString(s).into())
         }
+        Literal::Boolean(b) if !ctx.dialect.supports_boolean_values() => {
+            sql_ast::Expr::Value(Value::Number(if b { "1" } else { "0" }.into(), false).into())
+        }
         Literal::Boolean(b) => sql_ast::Expr::Value(Value::Boolean(b).into()),
         Literal::Float(f) => sql_ast::Expr::Value(Value::Number(format!("{f:?}"), false).into()),
         Literal::Integer(i) => sql_ast::Expr::Value(Value::Number(format!("{i}"), false).into()),
@@ -888,7 +1028,16 @@ pub(super) fn fetch_of_i64(take: i64, ctx: &mut Context) -> Fetch {
 }
 
 pub(super) fn translate_select_item(cid: rq::CId, ctx: &mut Context) -> Result<SelectItem> {
-    let expr = translate_cid(cid, ctx)?.into_ast();
+    let column = rq::Expr {
+        kind: rq::ExprKind::ColumnRef(cid),
+        span: None,
+    };
+    let expr =
+        if ctx.dialect.supports_boolean_values() || truth_of(&column, ctx) != Truth::Predicate {
+            translate_cid(cid, ctx)?.into_ast()
+        } else {
+            translate_expr(predicate_as_value(column), ctx)?.into_ast()
+        };
 
     let inferred_name = match &expr {
         // sql_ast::Expr::Identifier is used for s-strings

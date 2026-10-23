@@ -29,6 +29,10 @@
 
 **Fixes**:
 
+- Booleans are carried as `1` / `0` on the `sql.oracle` target, which has no
+  BOOLEAN in SQL before 23ai: a condition used as a column becomes a `CASE`, a
+  value used as a condition is compared with `1`, and `all` / `any` aggregate
+  `MIN` / `MAX`. (@calin2k, #6454)
 - `first` and `last` respect the window frame: an explicit `window rows:...` was
   previously dropped, and `last` inside `group (sort ...)` returned the current
   row's value rather than the group's last. (@prql-bot, #6435)
