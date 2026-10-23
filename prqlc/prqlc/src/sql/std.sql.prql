@@ -355,6 +355,14 @@ module mysql {
 }
 
 module oracle {
+  # Date functions
+  module date {
+    # https://docs.oracle.com/en/database/oracle/oracle-database/19/sqlrf/TO_CHAR-datetime.html
+    let to_text = format column -> s"TO_CHAR({column:0}, {format:0})"
+    # Oracle has no DATEDIFF equivalent
+    let diff = unit start end -> null
+  }
+
   # Text functions
   module text {
     # Oracle's `CONCAT` takes exactly two arguments before 23ai, so the generic

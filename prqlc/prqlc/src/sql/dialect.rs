@@ -781,6 +781,48 @@ impl DialectHandler for OracleDialect {
     fn table_alias_uses_as(&self) -> bool {
         false
     }
+
+    // https://docs.oracle.com/en/database/oracle/oracle-database/19/sqlrf/Format-Models.html
+    // Unlike Postgres's, Oracle's `FM` is a toggle for the rest of the format,
+    // so it's switched off again after the element it applies to.
+    fn translate_chrono_item(&self, item: Item) -> Result<String> {
+        Ok(match item {
+            Item::Numeric(Numeric::Year, Pad::Zero) => "YYYY".to_string(),
+            Item::Numeric(Numeric::YearMod100, Pad::Zero) => "YY".to_string(),
+            Item::Numeric(Numeric::Month, Pad::None) => "FMMMFM".to_string(),
+            Item::Numeric(Numeric::Month, Pad::Zero) => "MM".to_string(),
+            Item::Numeric(Numeric::Day, Pad::None) => "FMDDFM".to_string(),
+            Item::Numeric(Numeric::Day, Pad::Zero) => "DD".to_string(),
+            Item::Numeric(Numeric::Hour, Pad::None) => "FMHH24FM".to_string(),
+            Item::Numeric(Numeric::Hour, Pad::Zero) => "HH24".to_string(),
+            Item::Numeric(Numeric::Hour12, Pad::Zero) => "HH12".to_string(),
+            Item::Numeric(Numeric::Minute, Pad::Zero) => "MI".to_string(),
+            Item::Numeric(Numeric::Second, Pad::Zero) => "SS".to_string(),
+            Item::Numeric(Numeric::Nanosecond, Pad::Zero) => "FF6".to_string(), // Microseconds
+            Item::Fixed(Fixed::ShortMonthName) => "Mon".to_string(),
+            // Long names are blank-padded to the longest name without `FM`
+            Item::Fixed(Fixed::LongMonthName) => "FMMonthFM".to_string(),
+            Item::Fixed(Fixed::ShortWeekdayName) => "Dy".to_string(),
+            Item::Fixed(Fixed::LongWeekdayName) => "FMDayFM".to_string(),
+            Item::Fixed(Fixed::UpperAmPm) => "AM".to_string(),
+            Item::Fixed(Fixed::RFC3339) => "YYYY-MM-DD\"T\"HH24:MI:SS.FF6\"Z\"".to_string(),
+            Item::Literal(literal) if literal.contains('"') => {
+                return Err(Error::new_simple(
+                    "a double quote can't be part of a date format on Oracle",
+                ))
+            }
+            Item::Literal(literal) => {
+                // Text is quoted, so that it isn't read as format elements
+                if literal.chars().any(|c| c.is_ascii_alphanumeric()) {
+                    format!("\"{literal}\"")
+                } else {
+                    literal.replace('\'', "''")
+                }
+            }
+            Item::Space(spaces) => spaces.to_string(),
+            item => return Err(unsupported_format_specifier(&item, "Oracle")),
+        })
+    }
 }
 
 #[cfg(test)]
