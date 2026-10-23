@@ -672,7 +672,13 @@ fn combine_prql_and_frames(source: &str, frames: Vec<(Option<pr::Span>, pl::Line
         }
     }
     for line in lines.iter().skip(printed_lines_count) {
-        result.push(source.get_line_text(line.to_owned()).unwrap().to_string());
+        result.push(
+            source
+                .get_line_text(line.to_owned())
+                .unwrap()
+                .trim_end()
+                .to_string(),
+        );
     }
 
     result.into_iter().join("\n") + "\n"
@@ -748,6 +754,18 @@ sort full
         select {f"{l} {f}", full = full_name, gender}   # [?, full, initial_table.gender]
         sort full                                       # [?, full, initial_table.gender]
         "#);
+    }
+
+    #[test]
+    fn layouts_trailing_lines() {
+        // Lines after the last annotated line keep a single line break
+        let output = Command::execute(
+            &Command::Debug(DebugCommand::Annotate(IoArgs::default())),
+            &mut "from t\ntake 1\n# trailing\n# more\n".into(),
+            "",
+        )
+        .unwrap();
+        assert_debug_snapshot!(String::from_utf8(output).unwrap(), @r#""from t\ntake 1      # [7.*]\n# trailing\n# more\n""#);
     }
 
     /// Check we get an error on a bad input
