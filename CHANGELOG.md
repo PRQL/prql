@@ -223,6 +223,9 @@
   output path, say — left the watcher running silently and writing nothing.
   (@prql-bot, #6313)
 
+- `prqlc debug annotate` no longer prints a blank line after each line that
+  follows the last annotated line, such as trailing comments. (@prql-bot, #6477)
+
 **Documentation**:
 
 - The website's `og:image` meta tag points at the served
