@@ -7670,6 +7670,49 @@ fn test_oracle_table_alias_omits_as() {
 }
 
 #[test]
+fn test_oracle_qualifies_wildcard_beside_columns() {
+    // On Oracle a bare `*` must be the whole select list: `SELECT *, x` is
+    // ORA-00923, `SELECT t.*, x` is fine.
+    assert_snapshot!(compile_with_sql_dialect(r###"
+    from s.t
+    derive {y = x + 1}
+    "###, sql::Dialect::Oracle
+    ).unwrap(), @r#"
+    SELECT
+      "t".*,
+      "x" + 1 AS "y"
+    FROM
+      "s"."t"
+    "#);
+
+    assert_snapshot!(compile_with_sql_dialect(r###"
+    from a = t
+    take 3
+    derive {y = x + 1}
+    "###, sql::Dialect::Oracle
+    ).unwrap(), @r#"
+    SELECT
+      "a".*,
+      "x" + 1 AS "y"
+    FROM
+      "t" "a" OFFSET 0 ROWS
+    FETCH FIRST
+      3 ROWS ONLY
+    "#);
+
+    // A lone `*` stays bare.
+    assert_snapshot!(compile_with_sql_dialect(r###"
+    from t
+    "###, sql::Dialect::Oracle
+    ).unwrap(), @r#"
+    SELECT
+      *
+    FROM
+      "t"
+    "#);
+}
+
+#[test]
 fn test_sqlite_text_pattern_parenthesizes_compound_argument() {
     // SQLite ranks `||` above both `*`/`/`/`%` and `+`/`-`, so an
     // unparenthesized argument binds to the surrounding `'%'` literals instead

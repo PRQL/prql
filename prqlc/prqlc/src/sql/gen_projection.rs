@@ -138,6 +138,7 @@ pub(super) fn translate_select_items(
     mut excluded: Excluded,
     ctx: &mut Context,
 ) -> Result<Vec<SelectItem>> {
+    let qualify_wildcard = cols.len() > 1 && ctx.dialect.qualify_wildcard_beside_columns();
     let mut res: Vec<_> = cols
         .into_iter()
         .map(|cid| {
@@ -152,7 +153,13 @@ pub(super) fn translate_select_items(
             let t = &ctx.anchor.relation_instances[riid];
             let table_name = t.table_ref.name.clone().map(Ident::from_name);
 
-            let ident = translate_ident(table_name, Some("*".to_string()), ctx);
+            let ident = match table_name {
+                Some(table) if qualify_wildcard => (table.into_iter())
+                    .chain(std::iter::once("*".to_string()))
+                    .map(|part| translate_ident_part(part, ctx))
+                    .collect(),
+                table_name => translate_ident(table_name, Some("*".to_string()), ctx),
+            };
 
             // excluded columns
             let opts = (excluded.remove(&cid))

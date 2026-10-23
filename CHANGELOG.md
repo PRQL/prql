@@ -29,6 +29,8 @@
 
 **Fixes**:
 
+- A `*` next to other columns is qualified with its table on the `sql.oracle`
+  target, as Oracle requires (`SELECT "t".*, ...`). (@calin2k, #6456)
 - `first` and `last` respect the window frame: an explicit `window rows:...` was
   previously dropped, and `last` inside `group (sort ...)` returned the current
   row's value rather than the group's last. (@prql-bot, #6435)

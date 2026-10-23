@@ -248,6 +248,12 @@ pub(super) trait DialectHandler: Any + Debug {
         None
     }
 
+    /// Whether a `*` next to other select items must be qualified, `t.*, x`
+    /// rather than `*, x`.
+    fn qualify_wildcard_beside_columns(&self) -> bool {
+        false
+    }
+
     /// Support for DISTINCT in set ops (UNION DISTINCT, INTERSECT DISTINCT)
     /// When not supported we fallback to implicit DISTINCT.
     fn set_ops_distinct(&self) -> bool {
@@ -780,6 +786,12 @@ impl DialectHandler for OracleDialect {
     // https://docs.oracle.com/en/database/oracle/oracle-database/26/sqlrf/SELECT.html
     fn table_alias_uses_as(&self) -> bool {
         false
+    }
+
+    // A bare `*` must be the whole select list (ORA-00923 otherwise).
+    // https://docs.oracle.com/en/database/oracle/oracle-database/19/sqlrf/SELECT.html
+    fn qualify_wildcard_beside_columns(&self) -> bool {
+        true
     }
 }
 
