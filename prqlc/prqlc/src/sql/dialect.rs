@@ -781,6 +781,19 @@ impl DialectHandler for OracleDialect {
     fn table_alias_uses_as(&self) -> bool {
         false
     }
+
+    // `CONCAT` takes exactly two arguments before 23ai, so f-strings use `||`.
+    // https://docs.oracle.com/en/database/oracle/oracle-database/19/sqlrf/CONCAT.html
+    fn has_concat_function(&self) -> bool {
+        false
+    }
+
+    /// Oracle ranks `||` with binary `+` and `-`, evaluated left to right:
+    /// <https://docs.oracle.com/en/database/oracle/oracle-database/19/sqlrf/About-SQL-Operators.html>
+    /// That is `BinaryOperator::Plus`'s strength of `10`.
+    fn string_concat_binding_strength(&self) -> i32 {
+        10
+    }
 }
 
 #[cfg(test)]
