@@ -264,6 +264,11 @@ pub(super) trait DialectHandler: Any + Debug {
         self.except_all()
     }
 
+    /// The set operator for `EXCEPT`; Oracle spells it `MINUS`.
+    fn except_operator(&self) -> sqlparser::ast::SetOperator {
+        sqlparser::ast::SetOperator::Except
+    }
+
     /// Support for CONCAT function.
     /// When not supported we fallback to use `||` as concat operator.
     fn has_concat_function(&self) -> bool {
@@ -780,6 +785,22 @@ impl DialectHandler for OracleDialect {
     // https://docs.oracle.com/en/database/oracle/oracle-database/26/sqlrf/SELECT.html
     fn table_alias_uses_as(&self) -> bool {
         false
+    }
+
+    // Before 21c, Oracle's set operators are `UNION [ALL]`, `INTERSECT` and
+    // `MINUS`: no `DISTINCT` quantifier, no `EXCEPT` and no `INTERSECT ALL` /
+    // `EXCEPT ALL`, which fall back to joins.
+    // https://docs.oracle.com/en/database/oracle/oracle-database/19/sqlrf/The-UNION-ALL-INTERSECT-MINUS-Operators.html
+    fn set_ops_distinct(&self) -> bool {
+        false
+    }
+
+    fn except_all(&self) -> bool {
+        false
+    }
+
+    fn except_operator(&self) -> sqlparser::ast::SetOperator {
+        sqlparser::ast::SetOperator::Minus
     }
 }
 

@@ -7670,6 +7670,86 @@ fn test_oracle_table_alias_omits_as() {
 }
 
 #[test]
+fn test_oracle_set_operations() {
+    // Before 21c Oracle has `INTERSECT` and `MINUS` but no `EXCEPT`, no
+    // `DISTINCT` quantifier, and no `INTERSECT ALL` / `EXCEPT ALL`.
+    assert_snapshot!(compile_with_sql_dialect(r###"
+    let distinct = rel -> (from t = _param.rel | group {t.*} (take 1))
+    from a
+    select {x}
+    distinct
+    remove (from b | select {x} | distinct)
+    "###, sql::Dialect::Oracle
+    ).unwrap(), @r#"
+    WITH
+    "table_0" AS (
+      SELECT DISTINCT
+        "x"
+      FROM
+        "b"
+    )
+    SELECT
+      "x"
+    FROM
+      "a"
+    MINUS
+    SELECT
+      *
+    FROM
+      "table_0"
+    "#);
+
+    assert_snapshot!(compile_with_sql_dialect(r###"
+    let distinct = rel -> (from t = _param.rel | group {t.*} (take 1))
+    from a
+    select {x}
+    distinct
+    intersect (from b | select {x} | distinct)
+    "###, sql::Dialect::Oracle
+    ).unwrap(), @r#"
+    WITH
+    "table_0" AS (
+      SELECT DISTINCT
+        "x"
+      FROM
+        "b"
+    )
+    SELECT
+      "x"
+    FROM
+      "a"
+    INTERSECT
+    SELECT
+      *
+    FROM
+      "table_0"
+    "#);
+
+    // Without `distinct`, the multiset forms fall back to joins.
+    assert_snapshot!(compile_with_sql_dialect(r###"
+    from a
+    select {x}
+    remove (from b | select {x})
+    "###, sql::Dialect::Oracle
+    ).unwrap(), @r#"
+    WITH
+    "table_0" AS (
+      SELECT
+        "x"
+      FROM
+        "b"
+    )
+    SELECT
+      "a"."x"
+    FROM
+      "a"
+      LEFT OUTER JOIN "table_0" ON "a"."x" = "table_0"."x"
+    WHERE
+      "table_0"."x" IS NULL
+    "#);
+}
+
+#[test]
 fn test_sqlite_text_pattern_parenthesizes_compound_argument() {
     // SQLite ranks `||` above both `*`/`/`/`%` and `+`/`-`, so an
     // unparenthesized argument binds to the surrounding `'%'` literals instead

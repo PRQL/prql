@@ -287,7 +287,7 @@ fn translate_set_ops_pipeline(
 
         let op = match &transform {
             Union { .. } => sql_ast::SetOperator::Union,
-            Except { .. } => sql_ast::SetOperator::Except,
+            Except { .. } => context.dialect.except_operator(),
             Intersect { .. } => sql_ast::SetOperator::Intersect,
             Sort(_) => continue,
             _ => unreachable!(),
