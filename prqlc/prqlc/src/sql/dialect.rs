@@ -248,6 +248,12 @@ pub(super) trait DialectHandler: Any + Debug {
         None
     }
 
+    /// The table a `SELECT` reads from when it has no source of its own, on
+    /// dialects whose grammar requires a `FROM` clause.
+    fn dummy_table(&self) -> Option<&'static str> {
+        None
+    }
+
     /// Support for DISTINCT in set ops (UNION DISTINCT, INTERSECT DISTINCT)
     /// When not supported we fallback to implicit DISTINCT.
     fn set_ops_distinct(&self) -> bool {
@@ -780,6 +786,12 @@ impl DialectHandler for OracleDialect {
     // https://docs.oracle.com/en/database/oracle/oracle-database/26/sqlrf/SELECT.html
     fn table_alias_uses_as(&self) -> bool {
         false
+    }
+
+    // A `SELECT` needs a `FROM` before 23ai; `DUAL` is the one-row table for it.
+    // https://docs.oracle.com/en/database/oracle/oracle-database/19/sqlrf/Selecting-from-the-DUAL-Table.html
+    fn dummy_table(&self) -> Option<&'static str> {
+        Some("DUAL")
     }
 }
 
