@@ -225,6 +225,11 @@
 
 **Documentation**:
 
+- The book documents the `.*` wildcard: `rel.*` selects all of a relation's
+  columns, and `this.*` all columns of the current relation, including ones
+  computed earlier in the pipeline. The tutorial's `select` section links to it.
+  (@kevinhongzl, #6475)
+
 - The website's `og:image` meta tag points at the served
   `/img/favicon-32x32.png` rather than `/static/img/favicon-32x32.png`, which
   returns 404, so link previews of prql-lang.org can show the image. (@prql-bot,

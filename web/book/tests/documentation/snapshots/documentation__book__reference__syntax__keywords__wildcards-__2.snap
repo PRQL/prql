@@ -1,0 +1,10 @@
+---
+source: web/book/tests/documentation/book.rs
+expression: "from employees\nselect {first_name, salary}\nderive bonus = salary * 0.1\nselect (tuple_reverse this.*)\n"
+---
+SELECT
+  salary * 0.1 AS bonus,
+  salary,
+  first_name
+FROM
+  employees

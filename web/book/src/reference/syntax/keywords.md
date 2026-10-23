@@ -46,6 +46,50 @@ from invoices
 derive t = this.time
 ```
 
+## Wildcards (`.*`)
+
+A relation name followed by `.*` refers to all of that relation's columns:
+
+```prql
+from employees
+select {employees.*}
+```
+
+If the compiler knows a relation's columns — for example, after a `select` — a
+wildcard expands to those columns. Otherwise, such as for a table read directly
+with `from`, it compiles to `*` (or `alias.*` for an aliased relation).
+
+Wildcards can be used wherever a tuple of columns is expected, including in
+[`select`](../stdlib/transforms/select.md),
+[`select !{...}`](../stdlib/transforms/select.md#excluding-columns) and the
+[tuple functions](../stdlib/tuple.md).
+
+A wildcard is useful after a join, to keep every column from one side:
+
+```prql
+from e = employees
+join d = departments (==department_id)
+select {e.name, d.*}
+```
+
+Wildcards also work with [`this`](#this--that): `this.*` refers to all columns
+of the current relation, including columns computed earlier in the pipeline:
+
+```prql
+from employees
+select {first_name, salary}
+derive bonus = salary * 0.1
+select (tuple_reverse this.*)
+```
+
+Here, `bonus` is included even though it's derived after the `select`.
+
+<!-- prettier-ignore -->
+> [!NOTE]
+> `that.*` can't be used to select columns, because `that` only exists
+> inside a `join` condition. After a join, refer to the other relation by
+> name, as in `d.*` above.
+
 ## Quoting
 
 To use characters that would be otherwise invalid, identifiers can be surrounded

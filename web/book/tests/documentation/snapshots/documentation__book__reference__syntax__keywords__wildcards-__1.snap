@@ -1,0 +1,10 @@
+---
+source: web/book/tests/documentation/book.rs
+expression: "from e = employees\njoin d = departments (==department_id)\nselect {e.name, d.*}\n"
+---
+SELECT
+  e.name,
+  d.*
+FROM
+  employees AS e
+  INNER JOIN departments AS d ON e.department_id = d.department_id
