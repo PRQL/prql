@@ -61,8 +61,7 @@ with `from`, it compiles to `*` (or `alias.*` for an aliased relation).
 
 Wildcards can be used wherever a tuple of columns is expected, including in
 [`select`](../stdlib/transforms/select.md),
-[`select !{...}`](../stdlib/transforms/select.md#excluding-columns),
-[`group`](../stdlib/transforms/group.md) and the
+[`select !{...}`](../stdlib/transforms/select.md#excluding-columns) and the
 [tuple functions](../stdlib/tuple.md).
 
 A wildcard is useful after a join, to keep every column from one side:
