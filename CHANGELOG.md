@@ -29,6 +29,11 @@
 
 **Fixes**:
 
+- On the `sql.oracle` target, `math.pi`, `math.log10`, `math.log`,
+  `math.degrees`, `math.radians`, `math.pow`, `%`, `text.length`,
+  `text.extract`, `text.starts_with`, `text.ends_with`, `~=` and `concat_array`
+  compile to functions Oracle has: `ACOS(-1)`, `LOG`, `POWER`, `MOD`, `LENGTH`,
+  `SUBSTR`, `||`, `REGEXP_LIKE` and `LISTAGG`. (@calin2k, #6449)
 - `first` and `last` respect the window frame: an explicit `window rows:...` was
   previously dropped, and `last` inside `group (sort ...)` returned the current
   row's value rather than the group's last. (@prql-bot, #6435)
