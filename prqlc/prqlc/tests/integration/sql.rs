@@ -924,6 +924,99 @@ fn test_remove_06() {
 }
 
 #[test]
+fn test_std_names_as_columns() {
+    // https://github.com/PRQL/prql/issues/3912: a name that isn't called refers
+    // to a column before a standard-library function, module or type.
+    assert_snapshot!(compile(r#"
+    from events
+    filter timestamp > @2024-01-01 && count > 0
+    derive {upper = 5, avg_length = 6}
+    select {
+        date,
+        text,
+        range,
+        filter,
+        c = case [`upper` < avg_length => 'long'],
+        s = f"{date}-{count}",
+        d = (timestamp | as date),
+        n = count this,
+        u = (text | text.upper),
+    }
+    sort {-date}
+    "#).unwrap(), @r#"
+    SELECT
+      date,
+      text,
+      "range",
+      "filter",
+      CASE
+        WHEN 5 < 6 THEN 'long'
+        ELSE NULL
+      END AS c,
+      CONCAT(date, '-', count) AS s,
+      CAST(timestamp AS date) AS d,
+      COUNT(*) OVER () AS n,
+      UPPER(text) AS u
+    FROM
+      events
+    WHERE
+      timestamp > DATE '2024-01-01'
+      AND count > 0
+    ORDER BY
+      date DESC
+    "#);
+
+    // a column the query defines
+    assert_snapshot!(compile(r#"
+    from a
+    derive date = x
+    select date
+    "#).unwrap(), @"
+    SELECT
+      x AS date
+    FROM
+      a
+    ");
+
+    // a table, and qualified names after a join
+    assert_snapshot!(compile(r#"
+    from date
+    join b = text (==count)
+    select {date.rank, b.first}
+    "#).unwrap(), @r#"
+    SELECT
+      date.rank,
+      b."first"
+    FROM
+      date
+      INNER JOIN text AS b ON date.count = b.count
+    "#);
+
+    // inside a window
+    assert_snapshot!(compile(r#"
+    from t
+    window rolling:3 (derive {m = average count})
+    "#).unwrap(), @"
+    SELECT
+      *,
+      AVG(count) OVER (ROWS BETWEEN 2 PRECEDING AND CURRENT ROW) AS m
+    FROM
+      t
+    ");
+
+    // a function passed to a parameter of function type stays the function
+    assert_snapshot!(compile(r#"
+    from t
+    select {total = tuple_reduce initial:0 add {1, 2, 3}}
+    "#).unwrap(), @"
+    SELECT
+      0 + 1 + 2 + 3 AS total
+    FROM
+      t
+    ");
+}
+
+#[test]
 fn test_intersect_01() {
     assert_snapshot!(compile(r#"
     from album

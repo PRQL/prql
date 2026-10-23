@@ -182,9 +182,11 @@ fn test_basic_type_checking() {
 
 #[test]
 fn test_ambiguous() {
+    // A column named like a standard-library name is ambiguous only between
+    // the relations that could have it.
     assert_snapshot!(compile(r#"
     from a
-    derive date = x
+    join b (==id)
     select date
     "#)
     .unwrap_err(), @"
@@ -195,9 +197,7 @@ fn test_ambiguous() {
        │            ──┬─
        │              ╰─── Ambiguous name
        │
-       │ Help: could be any of: std.date, std.types.date, this.date
-       │
-       │ Note: available columns: date
+       │ Help: could be any of: a.date, b.date
     ───╯
     ");
 }
@@ -399,8 +399,15 @@ fn negative_number_in_transform() {
     sort -val
   )
   "###).unwrap_err(), @"
-    Error: expected a pipeline that resolves to a table, but found `internal std.sub`
-    ↳ Hint: wrap negative numbers in parentheses, e.g. `sort (-column_name)`
+    Error:
+       ╭─[ :4:5 ]
+       │
+     4 │     sort -val
+       │     ────┬────
+       │         ╰────── expected a function, but found ``(std.sub ...)``
+       │
+       │ Help: wrap negative numbers in parentheses, e.g. `sort (-column_name)`
+    ───╯
     ");
 }
 
