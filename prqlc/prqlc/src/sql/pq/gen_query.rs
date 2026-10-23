@@ -312,6 +312,14 @@ fn compile_loop(
     let from = ctx.anchor.relation_instances.get(from).unwrap();
     let from = &from.table_ref;
 
+    // the names the following pipeline refers to the loop's columns by
+    let columns = (from.columns.iter())
+        .map(|(col, _)| match col {
+            rq::RelationColumn::Single(name) => name.clone(),
+            rq::RelationColumn::Wildcard => None,
+        })
+        .collect();
+
     // this will be table decl that references the whole loop expression
     let loop_decl = ctx.anchor.table_decls.get_mut(&from.source).unwrap();
 
@@ -321,7 +329,11 @@ fn compile_loop(
     // push the whole thing into WITH of the main query
     ctx.ctes.push(pq::Cte {
         tid: from.source,
-        kind: pq::CteKind::Loop { initial, step },
+        kind: pq::CteKind::Loop {
+            initial,
+            step,
+            columns,
+        },
     });
 
     Ok(following)

@@ -29,6 +29,9 @@
 
 **Fixes**:
 
+- `loop` compiles to Oracle's recursive subquery factoring on the `sql.oracle`
+  target: no `RECURSIVE` keyword, and the recursive CTE lists its columns.
+  (@calin2k, #6451)
 - `first` and `last` respect the window frame: an explicit `window rows:...` was
   previously dropped, and `last` inside `group (sort ...)` returned the current
   row's value rather than the group's last. (@prql-bot, #6435)

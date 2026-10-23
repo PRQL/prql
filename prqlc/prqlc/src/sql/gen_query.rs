@@ -430,12 +430,17 @@ fn translate_cte(cte: Cte, ctx: &mut Context) -> Result<(sql_ast::Cte, bool)> {
 
     let cte_name = translate_ident(Some(cte_name), None, ctx).pop().unwrap();
 
+    let mut columns = Vec::new();
     let (query, recursive) = match cte.kind {
         // base case
         CteKind::Normal(rel) => (translate_relation(rel, ctx)?, false),
 
         // special: WITH RECURSIVE
-        CteKind::Loop { initial, step } => {
+        CteKind::Loop {
+            initial,
+            step,
+            columns: names,
+        } => {
             // compile initial
             let initial = query_to_set_expr(translate_relation(initial, ctx)?, ctx);
 
@@ -454,12 +459,36 @@ fn translate_cte(cte: Cte, ctx: &mut Context) -> Result<(sql_ast::Cte, bool)> {
             // This meant that it had to wrap any-non-first CTE into a *nested* WITH, so the inner
             // WITH could be RECURSIVE. If a dialect ever needs that, the removed implementation is
             // in the history of this file (deleted in #6190).
-            (inner_query, true)
+            if ctx.dialect.with_recursive_keyword() {
+                (inner_query, true)
+            } else {
+                // Without the keyword, the recursive CTE lists its column names instead.
+                let Some(names) = names else {
+                    return Err(Error::new_simple(
+                        "the columns of a `loop` must be known on this dialect, which lists \
+                         them on the recursive query",
+                    )
+                    .push_hint("add a `select` before the `loop`"));
+                };
+                columns = (names.into_iter())
+                    .map(|name| translate_ident_part(name, ctx))
+                    .collect();
+                (inner_query, false)
+            }
         }
     };
 
+    let mut alias = cte_table_alias(cte_name);
+    alias.columns = columns
+        .into_iter()
+        .map(|name| sql_ast::TableAliasColumnDef {
+            name,
+            data_type: None,
+        })
+        .collect();
+
     let cte = sql_ast::Cte {
-        alias: cte_table_alias(cte_name),
+        alias,
         query: Box::new(query),
         from: None,
         materialized: None,
