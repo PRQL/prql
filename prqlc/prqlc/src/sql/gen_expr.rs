@@ -754,16 +754,27 @@ pub(super) fn translate_sstring(
     items: Vec<InterpolateItem<rq::Expr>>,
     ctx: &mut Context,
 ) -> Result<String> {
-    Ok(items
-        .into_iter()
-        .map(|s_string_item| match s_string_item {
-            InterpolateItem::String(string) => Ok(string),
+    let mut text = String::new();
+    for item in items {
+        match item {
+            InterpolateItem::String(string) => text += &string,
             InterpolateItem::Expr { expr, .. } => {
-                translate_expr(*expr, ctx).map(|expr| expr.into_source())
+                let arg = translate_expr(*expr, ctx)?.into_source();
+                push_interpolated(&mut text, &arg);
             }
-        })
-        .collect::<Result<Vec<String>>>()?
-        .join(""))
+        }
+    }
+    Ok(text)
+}
+
+/// Appends an interpolated operand, parenthesizing it when `-` followed by
+/// `-` would otherwise start a SQL line comment (e.g. `-{x}` with `x = -1`).
+pub(super) fn push_interpolated(text: &mut String, arg: &str) {
+    if text.ends_with('-') && arg.starts_with('-') {
+        *text += &format!("({arg})");
+    } else {
+        *text += arg;
+    }
 }
 
 /// Aggregate several ordered ranges into one, computing the intersection.
@@ -1569,6 +1580,22 @@ mod test {
           19 + y - 2 AS a
         FROM
           t
+        ");
+    }
+
+    #[test]
+    fn test_sstring_negating_a_negative_operand() {
+        // `-{b}` with a negative `b` would otherwise emit `--1`, a SQL comment
+        let query = r#"
+        from a
+        derive {b = -1}
+        select {z = s"-{b}"}
+        "#;
+        insta::assert_snapshot!(crate::tests::compile(query).unwrap(), @"
+        SELECT
+          -(-1) AS z
+        FROM
+          a
         ");
     }
 }

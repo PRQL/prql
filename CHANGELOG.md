@@ -29,6 +29,9 @@
 
 **Fixes**:
 
+- Negating a value that already starts with `-`, whether with `-` or in an
+  s-string such as `s"-{x}"`, no longer emits `--`, which SQL reads as a line
+  comment: `-(-y)` previously compiled to `--y`. (@prql-bot, #6479)
 - `first` and `last` respect the window frame: an explicit `window rows:...` was
   previously dropped, and `last` inside `group (sort ...)` returned the current
   row's value rather than the group's last. (@prql-bot, #6435)
