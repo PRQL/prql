@@ -108,14 +108,7 @@ pub(super) fn translate_operator(
                     ctx,
                 )?;
 
-                let arg = arg.into_source();
-
-                // `-` followed by `-` would start a SQL line comment
-                if text.ends_with('-') && arg.starts_with('-') {
-                    text += &format!("({arg})");
-                } else {
-                    text += &arg;
-                }
+                super::gen_expr::push_interpolated(&mut text, &arg.into_source());
             }
             pl::InterpolateItem::String(s) => {
                 text += s;
