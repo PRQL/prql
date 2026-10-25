@@ -223,6 +223,10 @@
   output path, say — left the watcher running silently and writing nothing.
   (@prql-bot, #6313)
 
+- `prqlc fmt` keeps the decimal point on a float with a whole value. It printed
+  `1.0 / 2` as `1 / 2`, turning a float division into an integer division.
+  (@prql-bot, #6481)
+
 **Documentation**:
 
 - The website's `og:image` meta tag points at the served
