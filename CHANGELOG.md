@@ -40,6 +40,9 @@
   different order. Joining `{a, b}` to `{x, y}` on
   `this.a == that.x && this.b == that.y && this.a > 3` previously lost the
   `a > 3`. (@prql-bot, #6443)
+- A table s-string no longer drops the character after `SELECT` when no space
+  follows the keyword: `from s"select*from x"` previously compiled to
+  `SELECT from x`. (@prql-bot, #6447)
 - On the `sql.mysql` target, `%` no longer rounds a fractional remainder:
   `13.5 % 5` now returns `3.5` rather than `4`. (@prql-bot, #6426)
 
