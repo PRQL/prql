@@ -284,6 +284,9 @@
 
 **Web**:
 
+- The book's and website's PRQL syntax highlighting treats `\"`, `\'` and `\/`
+  as escapes, so a string containing an escaped quote no longer ends early.
+  (@prql-bot, #6488)
 - The playground no longer depends on `web-vitals`. `reportWebVitals` was called
   with no argument, and its body is guarded on that argument being a function —
   so the dynamic `import("web-vitals")` inside it never ran. It was Create React
