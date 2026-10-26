@@ -29,6 +29,9 @@
 
 **Fixes**:
 
+- `prqlc experimental highlight` keeps the `$` on parameters and the backticks
+  on quoted identifiers: `take $1` was previously printed as `take 1`, and
+  `` from `my tbl` `` as `from my tbl`. (@prql-bot, #6468)
 - Passing something other than a tuple to `tuple_map`, `tuple_reduce`,
   `tuple_zip`, `tuple_uniq` or `tuple_reverse` reports an error instead of
   crashing the compiler. (@prql-bot, #6471)
