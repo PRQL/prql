@@ -29,6 +29,9 @@
 
 **Fixes**:
 
+- `prqlc watch` no longer pastes the preceding PRQL into the generated SQL when
+  a Jinja interpolation starts a line, and no longer adds an extra space before
+  each interpolation. (@prql-bot, #6459)
 - Passing something other than a tuple to `tuple_map`, `tuple_reduce`,
   `tuple_zip`, `tuple_uniq` or `tuple_reverse` reports an error instead of
   crashing the compiler. (@prql-bot, #6471)
