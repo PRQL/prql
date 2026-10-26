@@ -345,7 +345,8 @@ impl Resolver<'_> {
                 // yes, this is not a transform, but this is the most appropriate place for it
 
                 let [init, func, list] = unpack::<3>(func.args);
-                let list_items = list.kind.into_tuple().unwrap();
+                let list_span = list.span;
+                let list_items = tuple_items(list, "`tuple_reduce`")?;
                 let num_items = list_items.len();
                 let mut list_iter = list_items.into_iter();
 
@@ -361,7 +362,7 @@ impl Resolver<'_> {
                                         .to_string(),
                                 found: "empty tuple".to_string(),
                             })
-                            .with_span(list.span)
+                            .with_span(list_span)
                             .push_hint("try adding an initial:<value> parameter")),
                             1 => {
                                 let item = list_iter.next().unwrap();
@@ -388,7 +389,8 @@ impl Resolver<'_> {
                 // yes, this is not a transform, but this is the most appropriate place for it
 
                 let [func, list] = unpack::<2>(func.args);
-                let list_items = list.kind.into_tuple().unwrap();
+                // `list` is cloned because its other fields are kept on the result.
+                let list_items = tuple_items(list.clone(), "`tuple_map`")?;
 
                 let list_items = list_items
                     .into_iter()
@@ -413,8 +415,8 @@ impl Resolver<'_> {
                 // yes, this is not a transform, but this is the most appropriate place for it
 
                 let [a, b] = unpack::<2>(func.args);
-                let a = a.kind.into_tuple().unwrap();
-                let b = b.kind.into_tuple().unwrap();
+                let a = tuple_items(a, "`tuple_zip`")?;
+                let b = tuple_items(b, "`tuple_zip`")?;
 
                 let mut res = Vec::new();
                 for (a, b) in std::iter::zip(a, b) {
@@ -449,7 +451,7 @@ impl Resolver<'_> {
                     }
                 };
 
-                let list_items = list.kind.into_tuple().unwrap();
+                let list_items = tuple_items(list, "`tuple_uniq`")?;
 
                 log::trace!("tuple_uniq before: {list_items:#?}");
 
@@ -486,7 +488,7 @@ impl Resolver<'_> {
 
             "tuple_reverse" => {
                 let [list] = unpack::<1>(func.args);
-                let list_items = list.kind.into_tuple().unwrap();
+                let list_items = tuple_items(list, "`tuple_reverse`")?;
 
                 log::trace!("tuple_reverse: {list_items:#?}");
 
@@ -499,8 +501,16 @@ impl Resolver<'_> {
                 // yes, this is not a transform, but this is the most appropriate place for it
 
                 let [list] = unpack::<1>(func.args);
-                let list = list.kind.into_tuple().unwrap();
-                let [a, b]: [Expr; 2] = list.try_into().unwrap();
+                let span = list.span;
+                let list = tuple_items(list, "`std._eq`")?;
+                let [a, b]: [Expr; 2] = list.try_into().map_err(|list: Vec<Expr>| {
+                    Error::new(Reason::Expected {
+                        who: Some("`std._eq`".to_string()),
+                        expected: "a tuple of 2 items".to_string(),
+                        found: format!("a tuple of {} items", list.len()),
+                    })
+                    .with_span(span)
+                })?;
 
                 let res = maybe_binop(Some(a), &["std", "eq"], Some(b)).unwrap();
                 return Ok(res);
@@ -736,6 +746,12 @@ impl Resolver<'_> {
             }
         })
     }
+}
+
+/// Unpacks the tuple argument of a std tuple function, reporting any other
+/// argument as an error.
+fn tuple_items(expr: Expr, who: &str) -> Result<Vec<Expr>> {
+    expr.try_cast(ExprKind::into_tuple, Some(who), "a tuple")
 }
 
 fn range_is_empty(range: &(Option<i64>, Option<i64>)) -> bool {
@@ -1331,6 +1347,77 @@ mod tests {
             "error message should interpolate the expr, got: {msg}"
         );
         assert!(msg.contains("to have table type"), "got: {msg}");
+    }
+
+    // The std tuple functions used to `unwrap` their tuple arguments, so a
+    // non-tuple argument panicked.
+    #[test]
+    fn test_tuple_functions_non_tuple_arg() {
+        let compile_err = |q: &str| crate::tests::compile(q).unwrap_err().to_string();
+
+        assert_snapshot!(compile_err("from t | derive {x = tuple_map (func a -> a) 5}"), @"
+        Error:
+           ╭─[ :1:46 ]
+           │
+         1 │ from t | derive {x = tuple_map (func a -> a) 5}
+           │                                              ┬
+           │                                              ╰── `tuple_map` expected a tuple, but found `5`
+        ───╯
+        ");
+        assert_snapshot!(compile_err("from t | derive {x = tuple_reduce std.add 5}"), @"
+        Error:
+           ╭─[ :1:43 ]
+           │
+         1 │ from t | derive {x = tuple_reduce std.add 5}
+           │                                           ┬
+           │                                           ╰── `tuple_reduce` expected a tuple, but found `5`
+        ───╯
+        ");
+        assert_snapshot!(compile_err("from t | derive {x = tuple_zip {a} 2}"), @"
+        Error:
+           ╭─[ :1:36 ]
+           │
+         1 │ from t | derive {x = tuple_zip {a} 2}
+           │                                    ┬
+           │                                    ╰── `tuple_zip` expected a tuple, but found `2`
+        ───╯
+        ");
+        assert_snapshot!(compile_err("from t | derive {x = tuple_uniq take:early 5}"), @"
+        Error:
+           ╭─[ :1:44 ]
+           │
+         1 │ from t | derive {x = tuple_uniq take:early 5}
+           │                                            ┬
+           │                                            ╰── `tuple_uniq` expected a tuple, but found `5`
+        ───╯
+        ");
+        assert_snapshot!(compile_err("from t | derive {x = tuple_reverse 5}"), @"
+        Error:
+           ╭─[ :1:36 ]
+           │
+         1 │ from t | derive {x = tuple_reverse 5}
+           │                                    ┬
+           │                                    ╰── `tuple_reverse` expected a tuple, but found `5`
+        ───╯
+        ");
+        assert_snapshot!(compile_err("from t | derive {x = std._eq 5}"), @"
+        Error:
+           ╭─[ :1:30 ]
+           │
+         1 │ from t | derive {x = std._eq 5}
+           │                              ┬
+           │                              ╰── `std._eq` expected a tuple, but found `5`
+        ───╯
+        ");
+        assert_snapshot!(compile_err("from t | derive {x = std._eq {1, 2, 3}}"), @"
+        Error:
+           ╭─[ :1:30 ]
+           │
+         1 │ from t | derive {x = std._eq {1, 2, 3}}
+           │                              ────┬────
+           │                                  ╰────── `std._eq` expected a tuple of 2 items, but found a tuple of 3 items
+        ───╯
+        ");
     }
 
     // `append` of relations with a different number of columns must produce a
