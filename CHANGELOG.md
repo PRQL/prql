@@ -229,6 +229,10 @@
 
 **Documentation**:
 
+- The book's `this` & `that` join example joins `tracks.artist_id` to
+  `artists.id` rather than `tracks.id` to `artists.artist_id`. (@prql-bot,
+  #6478)
+
 - The website's `og:image` meta tag points at the served
   `/img/favicon-32x32.png` rather than `/static/img/favicon-32x32.png`, which
   returns 404, so link previews of prql-lang.org can show the image. (@prql-bot,
