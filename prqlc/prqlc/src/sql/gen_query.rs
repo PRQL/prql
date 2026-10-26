@@ -536,14 +536,15 @@ pub(super) fn translate_query_sstring(
     let string = translate_sstring(items, ctx)?;
 
     let re = Regex::new(r"(?i)^SELECT\b").unwrap();
-    let prefix = string.trim().get(0..7).unwrap_or_default();
+    let trimmed = string.trim();
 
-    if re.is_match(prefix) {
-        if let Some(string) = string.trim().strip_prefix(prefix) {
+    if let Some(keyword) = re.find(trimmed) {
+        let rest = trimmed[keyword.end()..].trim_start();
+        if !rest.is_empty() {
             return Ok(default_query(sql_ast::SetExpr::Select(Box::new(
                 sql_ast::Select {
                     projection: vec![sql_ast::SelectItem::UnnamedExpr(sql_ast::Expr::Identifier(
-                        sql_ast::Ident::new(string),
+                        sql_ast::Ident::new(rest),
                     ))],
                     ..default_select()
                 },
@@ -967,6 +968,43 @@ mod test {
           table_2
         ORDER BY
           g
+        ");
+    }
+
+    #[test]
+    fn test_table_sstring_select_without_space() {
+        // The character after `SELECT` must be kept when no space follows it.
+        let sql = crate::tests::compile(r#"from s"select*from x""#).unwrap();
+        assert_snapshot!(sql, @"
+        WITH
+        table_0 AS (
+          SELECT
+            *
+          from
+            x
+        )
+        SELECT
+          *
+        FROM
+          table_0
+        ");
+
+        let sql = crate::tests::compile(r#"from s"SELECT(1) AS a""#).unwrap();
+        assert_snapshot!(sql, @"
+        WITH
+        table_0 AS (
+          SELECT
+            (1) AS a)
+        SELECT
+          a
+        FROM
+          table_0
+        ");
+
+        // A bare `SELECT` with nothing after it is still rejected.
+        assert_snapshot!(crate::tests::compile(r#"from s"SELECT""#).unwrap_err(), @"
+        Error: s-strings representing a table must start with `SELECT `
+        ↳ Hint: this is a limitation by current compiler implementation
         ");
     }
 }

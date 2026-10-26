@@ -66,7 +66,7 @@ the current & other table respectively:
 ```prql
 from tracks
 join side:inner artists (
-  this.id==that.artist_id
+  this.artist_id==that.id
 )
 ```
 
