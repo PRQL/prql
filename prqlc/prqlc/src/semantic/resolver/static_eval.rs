@@ -39,8 +39,7 @@ fn static_eval_rq_operator(mut expr: Expr) -> Expr {
             if let (ExprKind::Literal(left), ExprKind::Literal(right)) =
                 (&args[0].kind, &args[1].kind)
             {
-                // don't eval comparisons between different types of literals
-                if left.as_ref() == right.as_ref() {
+                if comparable_literals(left, right) {
                     return Expr::new(Literal::Boolean(left == right));
                 }
             }
@@ -49,8 +48,7 @@ fn static_eval_rq_operator(mut expr: Expr) -> Expr {
             if let (ExprKind::Literal(left), ExprKind::Literal(right)) =
                 (&args[0].kind, &args[1].kind)
             {
-                // don't eval comparisons between different types of literals
-                if left.as_ref() == right.as_ref() {
+                if comparable_literals(left, right) {
                     return Expr::new(Literal::Boolean(left != right));
                 }
             }
@@ -85,6 +83,20 @@ fn static_eval_rq_operator(mut expr: Expr) -> Expr {
     expr
 }
 
+/// Whether two literals can be compared at compile time by their values.
+///
+/// Literals of different types aren't compared. Times, timestamps and intervals
+/// aren't either: they are kept as written, and the database treats some
+/// differently written values as equal (`@10:00` and `@10:00:00`, `24hours` and
+/// `1days`).
+fn comparable_literals(left: &Literal, right: &Literal) -> bool {
+    left.as_ref() == right.as_ref()
+        && !matches!(
+            left,
+            Literal::Time(_) | Literal::Timestamp(_) | Literal::ValueAndUnit(_)
+        )
+}
+
 fn static_eval_case(mut expr: Expr) -> Expr {
     let items = expr.kind.into_case().unwrap();
     let mut res = Vec::with_capacity(items.len());
@@ -117,4 +129,36 @@ fn static_eval_case(mut expr: Expr) -> Expr {
 
     expr.kind = ExprKind::Case(res);
     expr
+}
+
+#[cfg(test)]
+mod tests {
+    use insta::assert_snapshot;
+
+    #[test]
+    fn test_eq_temporal_literals_not_folded() {
+        // Times, timestamps and intervals can be written in several ways that the
+        // database treats as equal, so comparing their source text would be wrong.
+        let query = "
+        from t
+        derive {
+          a = @2020-01-01T10:00 == @2020-01-01T10:00:00,
+          b = 24hours == 1days,
+          c = @10:00 != @10:00:00,
+          d = 1 == 1,
+          e = 'x' != 'x',
+        }
+        ";
+        assert_snapshot!(crate::tests::compile(query).unwrap(), @"
+        SELECT
+          *,
+          TIMESTAMP '2020-01-01T10:00' = TIMESTAMP '2020-01-01T10:00:00' AS a,
+          INTERVAL 24 HOUR = INTERVAL 1 DAY AS b,
+          TIME '10:00' <> TIME '10:00:00' AS c,
+          true AS d,
+          false AS e
+        FROM
+          t
+        ");
+    }
 }
