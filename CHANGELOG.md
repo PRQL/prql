@@ -29,6 +29,10 @@
 
 **Fixes**:
 
+- A comparison keeps parentheses around an `IN`, `LIKE` or `BETWEEN` operand, or
+  a nested comparison: `a == (b | in [1, 2])` previously compiled to
+  `a = b IN (1, 2)`, which SQLite evaluates as `(a = b) IN (1, 2)`. (@prql-bot,
+  #6467)
 - Passing something other than a tuple to `tuple_map`, `tuple_reduce`,
   `tuple_zip`, `tuple_uniq` or `tuple_reverse` reports an error instead of
   crashing the compiler. (@prql-bot, #6471)
