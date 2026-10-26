@@ -66,6 +66,35 @@ fn numbers() {
 
     // Octal notation
     test_number_parsing("0o777", Literal::Integer(511));
+
+    // Every digit is read, up to the largest i64
+    test_number_parsing("0xffffffffffff1", Literal::Integer(0xffffffffffff1));
+    test_number_parsing("0x7fffffffffffffff", Literal::Integer(i64::MAX));
+    test_number_parsing("0o7777777777777", Literal::Integer(0o7777777777777));
+    test_number_parsing(
+        "0b111111111111111111111111111111111",
+        Literal::Integer(0b111111111111111111111111111111111),
+    );
+}
+
+#[test]
+fn numbers_out_of_range() {
+    // A literal too large for an i64 is an error, not some other number.
+    assert_debug_snapshot!(lex_source("0x8000000000000000").unwrap_err(), @r#"
+    [
+        Error {
+            kind: Error,
+            span: Some(
+                0:2-18,
+            ),
+            reason: Unexpected {
+                found: "'8000000000000000'",
+            },
+            hints: [],
+            code: None,
+        },
+    ]
+    "#);
 }
 
 #[test]

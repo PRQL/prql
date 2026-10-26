@@ -29,6 +29,10 @@
 
 **Fixes**:
 
+- Hex and octal literals longer than 12 digits, and binary literals longer than
+  32, compile as one number rather than splitting into two tokens. A literal too
+  large for an `i64` is reported as an error instead of compiling to `0`.
+  (@prql-bot, #6490)
 - Passing something other than a tuple to `tuple_map`, `tuple_reduce`,
   `tuple_zip`, `tuple_uniq` or `tuple_reverse` reports an error instead of
   crashing the compiler. (@prql-bot, #6471)
