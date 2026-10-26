@@ -229,6 +229,8 @@
   output path, say — left the watcher running silently and writing nothing.
   (@prql-bot, #6313)
 
+- `prqlc debug annotate` no longer prints a blank line after each line that
+  follows the last annotated line, such as trailing comments. (@prql-bot, #6477)
 - `prqlc fmt` keeps the decimal point on a float with a whole value. It printed
   `1.0 / 2` as `1 / 2`, turning a float division into an integer division.
   (@prql-bot, #6481)
