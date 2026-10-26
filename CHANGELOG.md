@@ -29,6 +29,10 @@
 
 **Fixes**:
 
+- `==` and `!=` between two time, timestamp or interval literals are left to the
+  database instead of being decided at compile time by comparing how the values
+  are written: `@10:00 == @10:00:00` and `24hours == 1days` previously compiled
+  to `false`. (@prql-bot, #6485)
 - Passing something other than a tuple to `tuple_map`, `tuple_reduce`,
   `tuple_zip`, `tuple_uniq` or `tuple_reverse` reports an error instead of
   crashing the compiler. (@prql-bot, #6471)
