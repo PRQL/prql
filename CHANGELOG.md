@@ -285,6 +285,8 @@
   with no argument, and its body is guarded on that argument being a function —
   so the dynamic `import("web-vitals")` inside it never ran. It was Create React
   App boilerplate that outlived the migration to Vite. (@prql-bot, #6233)
+- The playground's manifest and `apple-touch-icon` link no longer point at
+  `icon192.png`, which was deleted in #543 and returned 404. (@prql-bot, #6448)
 
 **Integrations**:
 
