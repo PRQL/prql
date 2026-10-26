@@ -623,6 +623,15 @@ mod test {
     }
 
     #[test]
+    fn test_float() {
+        // A float written with a whole value must keep its decimal point, or it
+        // reads back as an integer and `1.0 / 2` turns into integer division.
+        assert_is_formatted(r#"let a = 1.0 / 2"#);
+        assert_is_formatted(r#"let a = 2.5"#);
+        assert_snapshot!(format_single_stmt("let a = 1e5"), @"let a = 100000.0");
+    }
+
+    #[test]
     fn test_unary() {
         assert_is_formatted(r#"sort {-duration}"#);
 
