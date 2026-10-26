@@ -32,6 +32,9 @@
 - `prqlc experimental highlight` keeps the `$` on parameters and the backticks
   on quoted identifiers: `take $1` was previously printed as `take 1`, and
   `` from `my tbl` `` as `from my tbl`. (@prql-bot, #6468)
+- Passing something other than a tuple to `tuple_map`, `tuple_reduce`,
+  `tuple_zip`, `tuple_uniq` or `tuple_reverse` reports an error instead of
+  crashing the compiler. (@prql-bot, #6471)
 - `first` and `last` respect the window frame: an explicit `window rows:...` was
   previously dropped, and `last` inside `group (sort ...)` returned the current
   row's value rather than the group's last. (@prql-bot, #6435)
@@ -40,6 +43,9 @@
   different order. Joining `{a, b}` to `{x, y}` on
   `this.a == that.x && this.b == that.y && this.a > 3` previously lost the
   `a > 3`. (@prql-bot, #6443)
+- A table s-string no longer drops the character after `SELECT` when no space
+  follows the keyword: `from s"select*from x"` previously compiled to
+  `SELECT from x`. (@prql-bot, #6447)
 - On the `sql.mysql` target, `%` no longer rounds a fractional remainder:
   `13.5 % 5` now returns `3.5` rather than `4`. (@prql-bot, #6426)
 
@@ -226,7 +232,15 @@
   output path, say — left the watcher running silently and writing nothing.
   (@prql-bot, #6313)
 
+- `prqlc fmt` keeps the decimal point on a float with a whole value. It printed
+  `1.0 / 2` as `1 / 2`, turning a float division into an integer division.
+  (@prql-bot, #6481)
+
 **Documentation**:
+
+- The book's `this` & `that` join example joins `tracks.artist_id` to
+  `artists.id` rather than `tracks.id` to `artists.artist_id`. (@prql-bot,
+  #6478)
 
 - The website's `og:image` meta tag points at the served
   `/img/favicon-32x32.png` rather than `/static/img/favicon-32x32.png`, which
@@ -277,6 +291,8 @@
   with no argument, and its body is guarded on that argument being a function —
   so the dynamic `import("web-vitals")` inside it never ran. It was Create React
   App boilerplate that outlived the migration to Vite. (@prql-bot, #6233)
+- The playground's manifest and `apple-touch-icon` link no longer point at
+  `icon192.png`, which was deleted in #543 and returned 404. (@prql-bot, #6448)
 
 **Integrations**:
 
