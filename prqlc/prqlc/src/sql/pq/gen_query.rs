@@ -12,7 +12,7 @@ use super::{postprocess, preprocess};
 use crate::debug;
 use crate::ir::rq::{self, RqFold};
 use crate::utils::BreakUp;
-use crate::{Result, Target};
+use crate::{Error, Result, Target};
 
 pub(in super::super) fn compile_query(
     query: rq::RelationalQuery,
@@ -274,6 +274,15 @@ fn compile_loop(
     let loop_ = following.remove(0);
     let step = loop_.into_super_and(|t| t.into_loop()).unwrap();
     let step = preprocess::preprocess(step, ctx)?;
+
+    // A loop directly in the step would recurse over this loop's own CTE,
+    // producing two recursive CTEs that reference each other.
+    if step
+        .iter()
+        .any(|t| matches!(t, pq::SqlTransform::Super(rq::Transform::Loop(_))))
+    {
+        return Err(Error::new_simple("nested `loop` is not supported"));
+    }
 
     // determine columns of the initial table
     let recursive_columns = ctx.anchor.determine_select_columns(&initial);
