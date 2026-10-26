@@ -235,6 +235,8 @@
 
 **Documentation**:
 
+- The book's transforms reference lists `append` in its table of transforms.
+  (@prql-bot, #6444)
 - The book's `this` & `that` join example joins `tracks.artist_id` to
   `artists.id` rather than `tracks.id` to `artists.artist_id`. (@prql-bot,
   #6478)
