@@ -30,7 +30,7 @@ sort join_date
 take 1
 ```
 
-To find the employee who joined first in each department, it's exactly the same
+To find the employee who joined first in each role, it's exactly the same
 pipeline, but within a `group` expression:
 
 ```prql
