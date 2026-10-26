@@ -149,6 +149,22 @@ fn quotes() {
 
     // Add more tests for our implementation
     test_basic_string(r#""hello world""#, true, "hello world");
+
+    // Hex and unicode escapes
+    test_basic_string(r#""\x41""#, true, "A");
+    test_basic_string(r#""\u{41}""#, true, "A");
+    test_basic_string(r#""\u{1F600}""#, true, "\u{1F600}");
+
+    // Malformed hex and unicode escapes keep their text, like an unknown escape
+    // does, rather than dropping or inventing characters
+    test_basic_string(r#""\x4g""#, true, "x4g");
+    test_basic_string(r#""\x""#, true, "x");
+    test_basic_string(r#""\u{}z""#, true, "u{}z");
+    test_basic_string(r#""\u{41""#, true, "u{41");
+    test_basic_string(r#""\u{41 }""#, true, "u{41 }");
+    test_basic_string(r#""\u{1234567}""#, true, "u{1234567}");
+    test_basic_string(r#""\u{110000}""#, true, "u{110000}");
+    test_basic_string(r#""\u{D800}""#, true, "u{D800}");
 }
 
 #[test]
