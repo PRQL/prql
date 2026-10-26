@@ -22,7 +22,7 @@ final class Message
      */
     public string $reason;
     /**
-     * A list of suggestions of how to fix the error.
+     * Suggestions of how to fix the error, one per line.
      */
     public ?string $hint = null;
     /**
