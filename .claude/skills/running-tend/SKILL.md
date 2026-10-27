@@ -29,7 +29,7 @@ asking permission first) still applies when the target shows no agent signals.
 ## CI structure
 
 - Main CI workflow: `tests` (watched by tend-ci-failures, which files a report
-  issue on a failed run on `main` and dispatches tend-triage to work it)
+  issue on a failed run on `main`; opening it starts tend-triage to work it)
 - Dependency management: Dependabot opens dependency PRs; tend-weekly reviews
   them and runs the tasks under Weekly maintenance below.
 - **tend's own action is excluded from Dependabot** (`max-sixty/tend` is in the
