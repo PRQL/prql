@@ -293,6 +293,12 @@
 
 **Integrations**:
 
+- The KSyntaxHighlighting (Kate) grammar in `grammars/KSyntaxHighlighting/` ends
+  a raw string at its closing quote, as the compiler does: it no longer treats
+  `\'` or `\\` inside `r'...'` as escapes, or `r'''` as a triple-quoted raw
+  string, either of which could carry the string highlight on past the end of
+  the string. (@prql-bot, #6501)
+
 - The `prqlc` JS/wasm package now reports an error for an unknown `target`,
   rather than silently compiling to generic SQL. A typo such as
   `opts.target = "sql.postgrez"` previously fell back to `sql.any`, so the
