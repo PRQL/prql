@@ -350,8 +350,8 @@
   expression parsed to an error node. (@prql-bot, #6425)
 
 - `prqlc-c` can now be built for `wasm32-unknown-emscripten`. It previously
-  compiled to an empty library on all wasm targets, so C/C++ programs built
-  with Emscripten could not use it. (@ywelsch, #6506)
+  compiled to an empty library on all wasm targets, so C/C++ programs built with
+  Emscripten could not use it. (@ywelsch, #6506)
 
 **Internal changes**:
 
