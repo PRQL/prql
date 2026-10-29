@@ -1,4 +1,6 @@
-#![cfg(not(target_family = "wasm"))]
+// Other wasm targets use the JS bindings instead. On Emscripten, the C API can
+// be linked into C/C++ programs.
+#![cfg(not(all(target_family = "wasm", not(target_os = "emscripten"))))]
 
 extern crate libc;
 
