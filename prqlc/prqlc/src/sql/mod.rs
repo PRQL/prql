@@ -152,7 +152,7 @@ mod test {
     fn test_backslash_does_not_corrupt_following_string_literal() {
         let sql = compile(
             r#"from files
-filter path == 'C:\\\\' || name == 'readme'"#,
+filter path == 'C:\\' || name == 'readme'"#,
             &Options::default().no_signature(),
         )
         .unwrap();
