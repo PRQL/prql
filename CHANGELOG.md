@@ -29,8 +29,8 @@
 
 **Fixes**:
 
-- Preserve SQL string literals containing a backslash before a quote by skipping
-  SQL formatting for those queries. (@ayushdoesdev, #6507)
+- Preserve SQL string literals containing a backslash immediately before a quote
+  when formatting generated SQL. (@ayushdoesdev, #6507)
 - Passing something other than a tuple to `tuple_map`, `tuple_reduce`,
   `tuple_zip`, `tuple_uniq` or `tuple_reverse` reports an error instead of
   crashing the compiler. (@prql-bot, #6471)
