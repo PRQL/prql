@@ -27,11 +27,12 @@ pub fn compile(query: rq::RelationalQuery, options: &Options) -> Result<String> 
     let sql = sql_ast.to_string();
 
     // formatting
-    // sqlformat currently treats backslashes as escapes in SQL string literals,
-    // although they are ordinary characters in the SQL dialects we emit. Until
-    // that tokenizer behavior is fixed upstream, avoid rewriting SQL containing
-    // a backslash: it can pair quotes incorrectly and change literal values.
-    let sql = if options.format && !sql.contains('\\') {
+    // sqlformat currently treats a backslash before a quote as an escape in SQL
+    // string literals, although backslashes are ordinary characters in the SQL
+    // dialects we emit. Until that tokenizer behavior is fixed upstream, avoid
+    // rewriting SQL containing `\\'` or `\\"`: it can pair quotes incorrectly and
+    // change literal values.
+    let sql = if options.format && !sql.contains("\\\\'") && !sql.contains("\\\\\\"") {
         let formatted = sqlformat::format(
             &sql,
             &sqlformat::QueryParams::default(),
