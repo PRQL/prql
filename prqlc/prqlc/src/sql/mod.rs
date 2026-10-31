@@ -30,7 +30,7 @@ pub fn compile(query: rq::RelationalQuery, options: &Options) -> Result<String> 
     // sqlformat currently treats a backslash before a quote as an escape in SQL
     // string literals, although backslashes are ordinary characters in the SQL
     // dialects we emit. Until that tokenizer behavior is fixed upstream, avoid
-    // rewriting SQL containing `\\'` or `\\"`: it can pair quotes incorrectly and
+    // rewriting SQL containing `\'` or `\"`: it can pair quotes incorrectly and
     // change literal values.
     let sql = if options.format && !sql.contains("\\'") && !sql.contains("\\\"") {
         let formatted = sqlformat::format(
