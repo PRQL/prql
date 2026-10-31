@@ -32,7 +32,7 @@ pub fn compile(query: rq::RelationalQuery, options: &Options) -> Result<String> 
     // dialects we emit. Until that tokenizer behavior is fixed upstream, avoid
     // rewriting SQL containing `\\'` or `\\"`: it can pair quotes incorrectly and
     // change literal values.
-    let sql = if options.format && !sql.contains("\\\\'") && !sql.contains("\\\\\\"") {
+    let sql = if options.format && !sql.contains("\\'") && !sql.contains("\\\"") {
         let formatted = sqlformat::format(
             &sql,
             &sqlformat::QueryParams::default(),
