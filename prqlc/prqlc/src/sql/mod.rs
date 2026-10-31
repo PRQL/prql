@@ -157,9 +157,6 @@ filter path == 'C:\\' || name == 'readme'"#,
         )
         .unwrap();
 
-        assert!(
-            sql.contains("name = 'readme'"),
-            "the following string literal was changed by formatting: {sql}"
-        );
+        insta::assert_snapshot!(sql, @r"SELECT * FROM files WHERE path = 'C:\' OR name = 'readme'");
     }
 }
