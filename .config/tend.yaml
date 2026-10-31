@@ -29,6 +29,6 @@ setup:
       cargo llvm-cov --version
     shell: bash
 workflows:
-  ci-fix:
+  ci-failures:
     watched_workflows:
       - tests
