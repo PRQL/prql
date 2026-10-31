@@ -27,7 +27,11 @@ pub fn compile(query: rq::RelationalQuery, options: &Options) -> Result<String> 
     let sql = sql_ast.to_string();
 
     // formatting
-    let sql = if options.format {
+    // sqlformat currently treats backslashes as escapes in SQL string literals,
+    // although they are ordinary characters in the SQL dialects we emit. Until
+    // that tokenizer behavior is fixed upstream, avoid rewriting SQL containing
+    // a backslash: it can pair quotes incorrectly and change literal values.
+    let sql = if options.format && !sql.contains('\\') {
         let formatted = sqlformat::format(
             &sql,
             &sqlformat::QueryParams::default(),
@@ -35,6 +39,8 @@ pub fn compile(query: rq::RelationalQuery, options: &Options) -> Result<String> 
         );
 
         formatted + "\n"
+    } else if options.format {
+        sql + "\n"
     } else {
         sql
     };
@@ -140,5 +146,20 @@ mod test {
     fn test_end_with_new_line() {
         let sql = compile("from a", &Options::default().no_signature()).unwrap();
         assert_eq!(sql, "SELECT\n  *\nFROM\n  a\n")
+    }
+
+    #[test]
+    fn test_backslash_does_not_corrupt_following_string_literal() {
+        let sql = compile(
+            r#"from files
+filter path == 'C:\\\\' || name == 'readme'"#,
+            &Options::default().no_signature(),
+        )
+        .unwrap();
+
+        assert!(
+            sql.contains("name = 'readme'"),
+            "the following string literal was changed by formatting: {sql}"
+        );
     }
 }
