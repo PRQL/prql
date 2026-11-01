@@ -33,6 +33,10 @@
   database instead of being decided at compile time by comparing how the values
   are written: `@10:00 == @10:00:00` and `24hours == 1days` previously compiled
   to `false`. (@prql-bot, #6485)
+- A comparison keeps parentheses around an `IN`, `LIKE` or `BETWEEN` operand,
+  SQLite's `REGEXP`, or a nested comparison: `a == (b | in [1, 2])` previously
+  compiled to `a = b IN (1, 2)`, which SQLite evaluates as `(a = b) IN (1, 2)`.
+  (@prql-bot, #6467)
 - The error for unknown arguments in a `prql` header lists them in the order
   written; the order previously changed from one compile to the next.
   (@prql-bot, #6486)
@@ -247,6 +251,11 @@
   (@prql-bot, #6481)
 
 **Documentation**:
+
+- The book's modules page shows the multi-file `prqlc compile` interface as it
+  works: the root module is the file starting with an uppercase letter, and the
+  pipeline identifier is the third argument, after the output. (@prql-bot,
+  #6499)
 
 - The book's `group` page says its `sort | take 1` example finds the first
   employee in each role, matching its `group role`, rather than in each
