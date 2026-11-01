@@ -33,6 +33,9 @@
   32, compile as one number rather than splitting into two tokens. A literal too
   large for an `i64` is reported as an error instead of compiling to `0`.
   (@prql-bot, #6490)
+- Negating a value that already starts with `-`, whether with `-` or in an
+  s-string such as `s"-{x}"`, no longer emits `--`, which SQL reads as a line
+  comment: `-(-y)` previously compiled to `--y`. (@prql-bot, #6479)
 - `==` and `!=` between two time, timestamp or interval literals are left to the
   database instead of being decided at compile time by comparing how the values
   are written: `@10:00 == @10:00:00` and `24hours == 1days` previously compiled
