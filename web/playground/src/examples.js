@@ -25,8 +25,8 @@ select {                             # "select" passes along only the named colu
 sort {-sum_income}                   # "sort" sorts the result; "-" is decreasing order
 take 1..10                           # Limit to a range - could also be "take 10"
 #
-# The "output.sql" tab at right shows the SQL generated from this PRQL query
-# The "output.arrow" tab shows the result of the query
+# The "Compiled SQL" tab at right shows the SQL generated from this PRQL query
+# The "Query Results" tab shows the result of the query
 `,
   ],
 
