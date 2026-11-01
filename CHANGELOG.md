@@ -29,6 +29,10 @@
 
 **Fixes**:
 
+- Hex and octal literals longer than 12 digits, and binary literals longer than
+  32, compile as one number rather than splitting into two tokens. A literal too
+  large for an `i64` is reported as an error instead of compiling to `0`.
+  (@prql-bot, #6490)
 - Negating a value that already starts with `-`, whether with `-` or in an
   s-string such as `s"-{x}"`, no longer emits `--`, which SQL reads as a line
   comment: `-(-y)` previously compiled to `--y`. (@prql-bot, #6479)
@@ -260,6 +264,9 @@
 
 - The Python binding README lists the `display` option of `CompileOptions` and
   marks `color` as deprecated. (@prql-bot, #6460)
+- The book's null-handling page no longer claims SQL's `DISTINCT` can return
+  several `NULL`s, or lists that as a difference from PRQL; `DISTINCT` treats
+  nulls as equal in both. (@prql-bot, #6504)
 - The C, C++ and PHP bindings describe `Message.hint` as a single string holding
   the suggestions one per line, or null when there are none, rather than as a
   list. (@prql-bot, #6446)
