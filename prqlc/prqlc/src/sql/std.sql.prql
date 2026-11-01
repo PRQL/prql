@@ -457,7 +457,8 @@ module sqlite {
     let trunc = unit column -> null
   }
 
-  @{binding_strength=9}
+  # SQLite ranks `REGEXP` with `LIKE`, alongside `=` and below `< > <= >=`.
+  @{binding_strength=7}
   let regex_search = text pattern -> s"{text} REGEXP {pattern}"
 }
 
