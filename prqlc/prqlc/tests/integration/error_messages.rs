@@ -883,3 +883,32 @@ fn test_relation_literal_invalid_shape() {
     ───╯
     ");
 }
+
+#[test]
+fn test_tuple_type_unpack_not_last() {
+    assert_snapshot!(compile(r###"
+    type t = {a = int, ..text, b = int}
+    from x
+    "###).unwrap_err(), @"
+    Error:
+       ╭─[ :2:26 ]
+       │
+     2 │     type t = {a = int, ..text, b = int}
+       │                          ──┬─
+       │                            ╰─── unpacking must come after all other fields
+    ───╯
+    ");
+
+    assert_snapshot!(compile(r###"
+    type t = {.., a = int}
+    from x
+    "###).unwrap_err(), @"
+    Error:
+       ╭─[ :2:14 ]
+       │
+     2 │     type t = {.., a = int}
+       │              ──────┬──────
+       │                    ╰──────── unpacking must come after all other fields
+    ───╯
+    ");
+}
