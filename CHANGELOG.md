@@ -284,6 +284,9 @@
 
 **Web**:
 
+- The book's and website's PRQL syntax highlighting treats `\"`, `\'` and `\/`
+  as escapes, so a string containing an escaped quote no longer ends early.
+  (@prql-bot, #6488)
 - The playground's results table shows a NULL timestamp as `null` rather than
   `1970-01-01T00:00:00.000Z`. (@prql-bot, #6489)
 - The playground no longer depends on `web-vitals`. `reportWebVitals` was called
