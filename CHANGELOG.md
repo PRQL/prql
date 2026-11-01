@@ -29,6 +29,9 @@
 
 **Fixes**:
 
+- The error for unknown arguments in a `prql` header lists them in the order
+  written; the order previously changed from one compile to the next.
+  (@prql-bot, #6486)
 - `prqlc watch` no longer pastes the preceding PRQL into the generated SQL when
   a Jinja interpolation starts a line, and no longer adds an extra space before
   each interpolation. (@prql-bot, #6459)
