@@ -29,6 +29,9 @@
 
 **Fixes**:
 
+- `prqlc watch` no longer pastes the preceding PRQL into the generated SQL when
+  a Jinja interpolation starts a line, and no longer adds an extra space before
+  each interpolation. (@prql-bot, #6459)
 - A tuple type with `..` before another field, such as `type t = {.., a = int}`,
   reports "unpacking must come after all other fields" instead of a generic
   `expected type expression` error. (@prql-bot, #6508)
