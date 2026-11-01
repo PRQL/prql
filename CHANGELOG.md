@@ -270,6 +270,10 @@
 - The strings reference lists the `\/` escape, says `\u{...}` takes one to six
   hex digits, and explains that a backslash before any other character is
   dropped, so `"\d+"` compiles to `'d+'`. (@prql-bot, #6510)
+- The FAQ's `SELECT` example aliases the computed column
+  (`SELECT x * 2 AS two_x FROM y`) rather than the table, and the book's syntax
+  summary links `|` to the Pipes page rather than Function calls. (@prql-bot,
+  #6505)
 - The C, C++ and PHP bindings describe `Message.hint` as a single string holding
   the suggestions one per line, or null when there are none, rather than as a
   list. (@prql-bot, #6446)
