@@ -264,6 +264,9 @@
 - The book's null-handling page no longer claims SQL's `DISTINCT` can return
   several `NULL`s, or lists that as a difference from PRQL; `DISTINCT` treats
   nulls as equal in both. (@prql-bot, #6504)
+- The strings reference lists the `\/` escape, says `\u{...}` takes one to six
+  hex digits, and explains that a backslash before any other character is
+  dropped, so `"\d+"` compiles to `'d+'`. (@prql-bot, #6510)
 - The FAQ's `SELECT` example aliases the computed column
   (`SELECT x * 2 AS two_x FROM y`) rather than the table, and the book's syntax
   summary links `|` to the Pipes page rather than Function calls. (@prql-bot,
