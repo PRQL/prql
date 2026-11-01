@@ -122,8 +122,7 @@ pub struct FuncCall {
     pub named_args: HashMap<String, Expr>,
 }
 
-/// Function called with possibly missing positional arguments.
-/// May also contain environment that is needed to evaluate the body.
+/// Function definition (a lambda), with its parameters and body.
 #[derive(Debug, PartialEq, Clone, Serialize, Deserialize, JsonSchema)]
 pub struct Func {
     /// Type requirement for the function body expression.

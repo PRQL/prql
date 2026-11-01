@@ -208,8 +208,6 @@
         <StringDetect attribute="F-String" String="f'"                  insensitive="true" context="#pop!Single A-F-String"/>
         <StringDetect attribute="F-String" String="f&quot;"             insensitive="true" context="#pop!Single Q-F-String"/>
 
-        <StringDetect attribute="R-String" String="r'''"                insensitive="true" context="#pop!Triple A-R-String" beginRegion="Triple A-region"/>
-        <StringDetect attribute="R-String" String="r&quot;&quot;&quot;" insensitive="true" context="#pop!Triple Q-R-String" beginRegion="Triple Q-region"/>
         <StringDetect attribute="R-String" String="r'"                  insensitive="true" context="#pop!Single A-R-String"/>
         <StringDetect attribute="R-String" String="r&quot;"             insensitive="true" context="#pop!Single Q-R-String"/>
 
@@ -266,15 +264,6 @@
         <StringDetect attribute="F-String" String="'''" context="#pop" endRegion="Triple A-region"/>
       </context>
 
-      <context name="Triple A-R-String" attribute="R-String" lineEndContext="#stay" noIndentationBasedFolding="true">
-        <DetectSpaces attribute="R-String"/>
-        <DetectIdentifier attribute="R-String"/>
-        <Detect2Chars attribute="R-String" char="\" char1="'"/>
-        <Detect2Chars attribute="R-String" char="\" char1="\"/>
-        <IncludeRules context="stringformat"/>
-        <StringDetect attribute="R-String" String="'''" context="#pop" endRegion="Triple A-region"/>
-      </context>
-
       <context name="Triple A-S-String" attribute="S-String" lineEndContext="#stay" noIndentationBasedFolding="true">
         <DetectSpaces attribute="S-String"/>
         <DetectIdentifier attribute="S-String"/>
@@ -298,15 +287,6 @@
         <IncludeRules context="stringescape"/>
         <IncludeRules context="stringinterpolation"/>
         <StringDetect attribute="F-String" String="&quot;&quot;&quot;" context="#pop" endRegion="Triple Q-region"/>
-      </context>
-
-      <context name="Triple Q-R-String" attribute="R-String" lineEndContext="#stay" noIndentationBasedFolding="true">
-        <DetectSpaces attribute="R-String"/>
-        <DetectIdentifier attribute="R-String"/>
-        <Detect2Chars attribute="R-String" char="\" char1="&quot;"/>
-        <Detect2Chars attribute="R-String" char="\" char1="\"/>
-        <IncludeRules context="stringformat"/>
-        <StringDetect attribute="R-String" String="&quot;&quot;&quot;" context="#pop" endRegion="Triple Q-region"/>
       </context>
 
       <context name="Triple Q-S-String" attribute="S-String" lineEndContext="#stay" noIndentationBasedFolding="true">
@@ -337,11 +317,8 @@
       <context name="Single A-R-String" attribute="R-String" lineEndContext="#pop!UnfinishedStringError">
         <DetectSpaces attribute="R-String"/>
         <DetectIdentifier attribute="R-String"/>
-        <Detect2Chars attribute="R-String" char="\" char1="'"/>
-        <Detect2Chars attribute="R-String" char="\" char1="\"/>
         <IncludeRules context="stringformat"/>
         <DetectChar attribute="R-String" char="'" context="#pop"/>
-        <LineContinue attribute="R-String" context="#stay"/>
       </context>
 
       <context name="Single A-S-String" attribute="S-String" lineEndContext="#pop!UnfinishedStringError">
@@ -372,11 +349,8 @@
       <context name="Single Q-R-String" attribute="R-String" lineEndContext="#pop!UnfinishedStringError">
         <DetectSpaces attribute="R-String"/>
         <DetectIdentifier attribute="R-String"/>
-        <Detect2Chars attribute="R-String" char="\" char1="&quot;"/>
-        <Detect2Chars attribute="R-String" char="\" char1="\"/>
         <IncludeRules context="stringformat"/>
         <DetectChar attribute="R-String" char="&quot;" context="#pop"/>
-        <LineContinue attribute="R-String" context="#stay"/>
       </context>
 
       <context name="Single Q-S-String" attribute="S-String" lineEndContext="#pop!UnfinishedStringError">
