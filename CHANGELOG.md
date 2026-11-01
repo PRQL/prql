@@ -244,6 +244,10 @@
 
 **Documentation**:
 
+- The book's `group` page says its `sort | take 1` example finds the first
+  employee in each role, matching its `group role`, rather than in each
+  department. (@prql-bot, #6487)
+
 - The book's transforms reference lists `append` in its table of transforms.
   (@prql-bot, #6444)
 - The playground's default query and the book's annotated example refer to the
