@@ -91,30 +91,9 @@ fn find_span(source: &str, spans: Vec<Span>) -> &str {
     let start = spans.first().unwrap();
     let end = spans.last().unwrap();
 
-    let mut start_index = 0;
-    let mut end_index = source.len();
-
-    let mut line = 1;
-    let mut col = 0;
-    // `char_indices` yields byte offsets, so the slice below stays on char
+    // Span offsets are byte offsets into `source`, so the slice stays on char
     // boundaries even when `source` contains multi-byte characters.
-    for (index, char) in source.char_indices() {
-        if char == '\n' {
-            line += 1;
-            col = 0;
-            continue;
-        } else {
-            col += 1;
-        }
-
-        if line == start.start_line && col == start.start_col {
-            start_index = index;
-        }
-        if line == end.end_line && col == end.end_col {
-            end_index = index + char.len_utf8();
-        }
-    }
-    &source[start_index..end_index]
+    &source[start.start_offset as usize..end.end_offset as usize]
 }
 
 /// Replace anchors with their values.
@@ -150,10 +129,7 @@ mod test {
 
     #[test]
     fn test_find_span() {
-        let text = r#"line 1 col 13
-        line 2 col 21
-        some text line 3 col 31 more text
-        "#;
+        let text = "line 1\n  {{ foo }} line 2";
 
         assert_eq!(
             super::find_span(
@@ -161,25 +137,41 @@ mod test {
                 vec![
                     Span {
                         start_line: 2,
-                        start_col: 9,
-                        start_offset: 0,
-                        end_line: 1234,
-                        end_col: 5678,
-                        end_offset: 0
+                        start_col: 2,
+                        start_offset: 9,
+                        end_line: 2,
+                        end_col: 4,
+                        end_offset: 11
                     },
                     Span {
-                        start_line: 9999,
-                        start_col: 65535,
-                        start_offset: 0,
-                        end_line: 3,
-                        end_col: 31,
-                        end_offset: 0
+                        start_line: 2,
+                        start_col: 9,
+                        start_offset: 16,
+                        end_line: 2,
+                        end_col: 11,
+                        end_offset: 18
                     }
                 ]
             ),
-            r#"line 2 col 21
-        some text line 3 col 31"#
+            "{{ foo }}"
         );
+    }
+
+    #[test]
+    fn test_interpolation_at_line_start() {
+        // An interpolation in the first column must capture only itself, not
+        // everything from the start of the file.
+        let src = "from a\n{{ foo }}\nfrom b = {{ bar }}";
+        let (pre_proc_text, ctx) = pre_process(src).unwrap();
+        insta::assert_yaml_snapshot!(pre_proc_text, @r#""from a\n_jinja_0\nfrom b = _jinja_1""#);
+        insta::assert_yaml_snapshot!(ctx.anchor_map["_jinja_0"], @r#""{{ foo }}""#);
+        insta::assert_yaml_snapshot!(ctx.anchor_map["_jinja_1"], @r#""{{ bar }}""#);
+        let post_proc_text = post_process(&pre_proc_text, ctx);
+        insta::assert_snapshot!(post_proc_text, @"
+        from a
+        {{ foo }}
+        from b = {{ bar }}
+        ");
     }
 
     #[test]
@@ -187,7 +179,7 @@ mod test {
         let src = r###"from in_process = {{ source('salesforce', 'in_process') }}"###;
         let (pre_proc_text, ctx) = pre_process(src).unwrap();
         insta::assert_yaml_snapshot!(pre_proc_text, @"from in_process = _jinja_0");
-        insta::assert_yaml_snapshot!(ctx.anchor_map["_jinja_0"], @r#"" {{ source('salesforce', 'in_process') }}""#);
+        insta::assert_yaml_snapshot!(ctx.anchor_map["_jinja_0"], @r#""{{ source('salesforce', 'in_process') }}""#);
     }
 
     #[test]
@@ -195,7 +187,7 @@ mod test {
         let src = r###"from in_process = {{ source('salesforce', 'in_process') }}"###;
         let (pre_proc_text, ctx) = pre_process(src).unwrap();
         let post_proc_text = post_process(&pre_proc_text, ctx);
-        insta::assert_yaml_snapshot!(post_proc_text, @r#""from in_process =  {{ source('salesforce', 'in_process') }}""#);
+        insta::assert_yaml_snapshot!(post_proc_text, @r#""from in_process = {{ source('salesforce', 'in_process') }}""#);
     }
 
     #[test]
@@ -206,7 +198,7 @@ mod test {
         let src = r###"from café = {{ source('salesforce', 'in_process') }}"###;
         let (pre_proc_text, ctx) = pre_process(src).unwrap();
         insta::assert_yaml_snapshot!(pre_proc_text, @"from café = _jinja_0");
-        insta::assert_yaml_snapshot!(ctx.anchor_map["_jinja_0"], @r#"" {{ source('salesforce', 'in_process') }}""#);
+        insta::assert_yaml_snapshot!(ctx.anchor_map["_jinja_0"], @r#""{{ source('salesforce', 'in_process') }}""#);
     }
 
     #[test]
@@ -215,6 +207,6 @@ mod test {
         let (pre_proc_text, ctx) = pre_process(src).unwrap();
         insta::assert_yaml_snapshot!(ctx.header, @r#"- "{{ config(materialized = \"table\") }}""#);
         let post_proc_text = post_process(&pre_proc_text, ctx);
-        insta::assert_yaml_snapshot!(post_proc_text, @r#""{{ config(materialized = \"table\") }}\n\\nfrom in_process =  {{ source('salesforce', 'in_process') }}""#);
+        insta::assert_yaml_snapshot!(post_proc_text, @r#""{{ config(materialized = \"table\") }}\n\\nfrom in_process = {{ source('salesforce', 'in_process') }}""#);
     }
 }
