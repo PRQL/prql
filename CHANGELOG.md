@@ -29,6 +29,10 @@
 
 **Fixes**:
 
+- `==` and `!=` between two time, timestamp or interval literals are left to the
+  database instead of being decided at compile time by comparing how the values
+  are written: `@10:00 == @10:00:00` and `24hours == 1days` previously compiled
+  to `false`. (@prql-bot, #6485)
 - `prqlc experimental highlight` keeps the `$` on parameters and the backticks
   on quoted identifiers: `take $1` was previously printed as `take 1`, and
   `` from `my tbl` `` as `from my tbl`. (@prql-bot, #6468)
@@ -256,6 +260,9 @@
 - The book's null-handling page no longer claims SQL's `DISTINCT` can return
   several `NULL`s, or lists that as a difference from PRQL; `DISTINCT` treats
   nulls as equal in both. (@prql-bot, #6504)
+- The C, C++ and PHP bindings describe `Message.hint` as a single string holding
+  the suggestions one per line, or null when there are none, rather than as a
+  list. (@prql-bot, #6446)
 
 - The book's modules page shows the multi-file `prqlc compile` interface as it
   works: the root module is the file starting with an uppercase letter, and the
