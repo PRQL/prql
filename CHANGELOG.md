@@ -257,6 +257,9 @@
 
 - The Python binding README lists the `display` option of `CompileOptions` and
   marks `color` as deprecated. (@prql-bot, #6460)
+- The C, C++ and PHP bindings describe `Message.hint` as a single string holding
+  the suggestions one per line, or null when there are none, rather than as a
+  list. (@prql-bot, #6446)
 
 - The book's modules page shows the multi-file `prqlc compile` interface as it
   works: the root module is the file starting with an uppercase letter, and the
