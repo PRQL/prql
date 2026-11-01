@@ -235,6 +235,9 @@
 
 **Documentation**:
 
+- The strings reference lists the `\/` escape, says `\u{...}` takes one to six
+  hex digits, and explains that a backslash before any other character is
+  dropped, so `"\d+"` compiles to `'d+'`. (@prql-bot, #6510)
 - The book's `this` & `that` join example joins `tracks.artist_id` to
   `artists.id` rather than `tracks.id` to `artists.artist_id`. (@prql-bot,
   #6478)
