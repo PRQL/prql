@@ -235,6 +235,9 @@
 
 **Documentation**:
 
+- The playground's default query and the book's annotated example refer to the
+  playground's "Compiled SQL" and "Query Results" tabs by their labels rather
+  than as "output.sql" and "output.arrow". (@prql-bot, #6511)
 - The book's `this` & `that` join example joins `tracks.artist_id` to
   `artists.id` rather than `tracks.id` to `artists.artist_id`. (@prql-bot,
   #6478)
