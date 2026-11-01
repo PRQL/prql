@@ -29,6 +29,10 @@
 
 **Fixes**:
 
+- `==` and `!=` between two time, timestamp or interval literals are left to the
+  database instead of being decided at compile time by comparing how the values
+  are written: `@10:00 == @10:00:00` and `24hours == 1days` previously compiled
+  to `false`. (@prql-bot, #6485)
 - `prqlc experimental highlight` keeps the `$` on parameters and the backticks
   on quoted identifiers: `take $1` was previously printed as `take 1`, and
   `` from `my tbl` `` as `from my tbl`. (@prql-bot, #6468)
