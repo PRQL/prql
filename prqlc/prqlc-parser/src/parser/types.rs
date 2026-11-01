@@ -67,18 +67,21 @@ where
                         ctrl('}').ignored().or(ctrl(',').ignored()).or(end()),
                     )),
             )
-            .try_map(|fields, span| {
+            // Emitted rather than returned from `try_map`, which would fail the
+            // whole alternative and leave only a generic "expected type
+            // expression" error.
+            .validate(|fields, extra, emit| {
                 let without_last = &fields[0..fields.len().saturating_sub(1)];
 
                 if let Some(unpack) = without_last.iter().find_map(|f| f.as_wildcard()) {
-                    let err_span = unpack.as_ref().and_then(|s| s.span).unwrap_or(span);
-                    return Err(Rich::custom(
+                    let err_span = unpack.as_ref().and_then(|s| s.span).unwrap_or(extra.span());
+                    emit.emit(Rich::custom(
                         err_span,
                         "unpacking must come after all other fields",
                     ));
                 }
 
-                Ok(fields)
+                fields
             })
             .map(TyKind::Tuple)
             .labelled("tuple")
