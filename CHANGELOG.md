@@ -29,6 +29,10 @@
 
 **Fixes**:
 
+- A comparison keeps parentheses around an `IN`, `LIKE` or `BETWEEN` operand,
+  SQLite's `REGEXP`, or a nested comparison: `a == (b | in [1, 2])` previously
+  compiled to `a = b IN (1, 2)`, which SQLite evaluates as `(a = b) IN (1, 2)`.
+  (@prql-bot, #6467)
 - The error for unknown arguments in a `prql` header lists them in the order
   written; the order previously changed from one compile to the next.
   (@prql-bot, #6486)
