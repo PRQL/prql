@@ -29,6 +29,9 @@
 
 **Fixes**:
 
+- A tuple type with `..` before another field, such as `type t = {.., a = int}`,
+  reports "unpacking must come after all other fields" instead of a generic
+  `expected type expression` error. (@prql-bot, #6508)
 - Passing something other than a tuple to `tuple_map`, `tuple_reduce`,
   `tuple_zip`, `tuple_uniq` or `tuple_reverse` reports an error instead of
   crashing the compiler. (@prql-bot, #6471)
@@ -235,6 +238,9 @@
 
 **Documentation**:
 
+- The playground's default query and the book's annotated example refer to the
+  playground's "Compiled SQL" and "Query Results" tabs by their labels rather
+  than as "output.sql" and "output.arrow". (@prql-bot, #6511)
 - The book's `this` & `that` join example joins `tracks.artist_id` to
   `artists.id` rather than `tracks.id` to `artists.artist_id`. (@prql-bot,
   #6478)
