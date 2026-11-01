@@ -30,8 +30,8 @@
 **Fixes**:
 
 - A tuple type with `..` before another field, such as `type t = {.., a = int}`,
-  reports "unpacking must come after all other fields" at the `..` instead of a
-  generic `expected type expression` error. (@prql-bot, #6508)
+  reports "unpacking must come after all other fields" instead of a generic
+  `expected type expression` error. (@prql-bot, #6508)
 - Passing something other than a tuple to `tuple_map`, `tuple_reduce`,
   `tuple_zip`, `tuple_uniq` or `tuple_reverse` reports an error instead of
   crashing the compiler. (@prql-bot, #6471)
