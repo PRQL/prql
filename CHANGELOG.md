@@ -32,6 +32,9 @@
 - `prqlc watch` no longer pastes the preceding PRQL into the generated SQL when
   a Jinja interpolation starts a line, and no longer adds an extra space before
   each interpolation. (@prql-bot, #6459)
+- A tuple type with `..` before another field, such as `type t = {.., a = int}`,
+  reports "unpacking must come after all other fields" instead of a generic
+  `expected type expression` error. (@prql-bot, #6508)
 - Passing something other than a tuple to `tuple_map`, `tuple_reduce`,
   `tuple_zip`, `tuple_uniq` or `tuple_reverse` reports an error instead of
   crashing the compiler. (@prql-bot, #6471)
@@ -238,6 +241,9 @@
 
 **Documentation**:
 
+- The playground's default query and the book's annotated example refer to the
+  playground's "Compiled SQL" and "Query Results" tabs by their labels rather
+  than as "output.sql" and "output.arrow". (@prql-bot, #6511)
 - The book's `this` & `that` join example joins `tracks.artist_id` to
   `artists.id` rather than `tracks.id` to `artists.artist_id`. (@prql-bot,
   #6478)
@@ -287,6 +293,11 @@
 
 **Web**:
 
+- The book's and website's PRQL syntax highlighting treats `\"`, `\'` and `\/`
+  as escapes, so a string containing an escaped quote no longer ends early.
+  (@prql-bot, #6488)
+- The playground's results table shows a NULL timestamp as `null` rather than
+  `1970-01-01T00:00:00.000Z`. (@prql-bot, #6489)
 - The playground no longer depends on `web-vitals`. `reportWebVitals` was called
   with no argument, and its body is guarded on that argument being a function —
   so the dynamic `import("web-vitals")` inside it never ran. It was Create React
@@ -295,6 +306,12 @@
   `icon192.png`, which was deleted in #543 and returned 404. (@prql-bot, #6448)
 
 **Integrations**:
+
+- The KSyntaxHighlighting (Kate) grammar in `grammars/KSyntaxHighlighting/` ends
+  a raw string at its closing quote, as the compiler does: it no longer treats
+  `\'` or `\\` inside `r'...'` as escapes, or `r'''` as a triple-quoted raw
+  string, either of which could carry the string highlight on past the end of
+  the string. (@prql-bot, #6501)
 
 - The `prqlc` JS/wasm package now reports an error for an unknown `target`,
   rather than silently compiling to generic SQL. A typo such as
