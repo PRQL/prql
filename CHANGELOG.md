@@ -244,6 +244,11 @@
 
 **Documentation**:
 
+- The book's modules page shows the multi-file `prqlc compile` interface as it
+  works: the root module is the file starting with an uppercase letter, and the
+  pipeline identifier is the third argument, after the output. (@prql-bot,
+  #6499)
+
 - The book's `group` page says its `sort | take 1` example finds the first
   employee in each role, matching its `group role`, rather than in each
   department. (@prql-bot, #6487)
