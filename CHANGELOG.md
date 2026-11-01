@@ -29,6 +29,9 @@
 
 **Fixes**:
 
+- The error for unknown arguments in a `prql` header lists them in the order
+  written; the order previously changed from one compile to the next.
+  (@prql-bot, #6486)
 - `prqlc watch` no longer pastes the preceding PRQL into the generated SQL when
   a Jinja interpolation starts a line, and no longer adds an extra space before
   each interpolation. (@prql-bot, #6459)
@@ -244,6 +247,10 @@
 - The C, C++ and PHP bindings describe `Message.hint` as a single string holding
   the suggestions one per line, or null when there are none, rather than as a
   list. (@prql-bot, #6446)
+- The book's `group` page says its `sort | take 1` example finds the first
+  employee in each role, matching its `group role`, rather than in each
+  department. (@prql-bot, #6487)
+
 - The book's transforms reference lists `append` in its table of transforms.
   (@prql-bot, #6444)
 - The playground's default query and the book's annotated example refer to the
