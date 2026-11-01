@@ -284,6 +284,8 @@
 
 **Web**:
 
+- The playground's results table shows a NULL timestamp as `null` rather than
+  `1970-01-01T00:00:00.000Z`. (@prql-bot, #6489)
 - The playground no longer depends on `web-vitals`. `reportWebVitals` was called
   with no argument, and its body is guarded on that argument being a function —
   so the dynamic `import("web-vitals")` inside it never ran. It was Create React
