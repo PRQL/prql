@@ -33,6 +33,9 @@
   a nested comparison: `a == (b | in [1, 2])` previously compiled to
   `a = b IN (1, 2)`, which SQLite evaluates as `(a = b) IN (1, 2)`. (@prql-bot,
   #6467)
+- `prqlc watch` no longer pastes the preceding PRQL into the generated SQL when
+  a Jinja interpolation starts a line, and no longer adds an extra space before
+  each interpolation. (@prql-bot, #6459)
 - A tuple type with `..` before another field, such as `type t = {.., a = int}`,
   reports "unpacking must come after all other fields" instead of a generic
   `expected type expression` error. (@prql-bot, #6508)
@@ -242,6 +245,8 @@
 
 **Documentation**:
 
+- The book's transforms reference lists `append` in its table of transforms.
+  (@prql-bot, #6444)
 - The playground's default query and the book's annotated example refer to the
   playground's "Compiled SQL" and "Query Results" tabs by their labels rather
   than as "output.sql" and "output.arrow". (@prql-bot, #6511)
