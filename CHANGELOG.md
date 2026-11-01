@@ -238,6 +238,8 @@
 
 **Documentation**:
 
+- The book's transforms reference lists `append` in its table of transforms.
+  (@prql-bot, #6444)
 - The playground's default query and the book's annotated example refer to the
   playground's "Compiled SQL" and "Query Results" tabs by their labels rather
   than as "output.sql" and "output.arrow". (@prql-bot, #6511)
