@@ -29,6 +29,9 @@
 
 **Fixes**:
 
+- `prqlc watch` no longer pastes the preceding PRQL into the generated SQL when
+  a Jinja interpolation starts a line, and no longer adds an extra space before
+  each interpolation. (@prql-bot, #6459)
 - A tuple type with `..` before another field, such as `type t = {.., a = int}`,
   reports "unpacking must come after all other fields" instead of a generic
   `expected type expression` error. (@prql-bot, #6508)
@@ -241,6 +244,8 @@
 - The C, C++ and PHP bindings describe `Message.hint` as a single string holding
   the suggestions one per line, or null when there are none, rather than as a
   list. (@prql-bot, #6446)
+- The book's transforms reference lists `append` in its table of transforms.
+  (@prql-bot, #6444)
 - The playground's default query and the book's annotated example refer to the
   playground's "Compiled SQL" and "Query Results" tabs by their labels rather
   than as "output.sql" and "output.arrow". (@prql-bot, #6511)
