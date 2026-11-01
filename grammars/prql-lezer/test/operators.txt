@@ -125,3 +125,11 @@ derive x = (distance | in 0..20 | f 1)
 ==>
 
 Query(Pipeline(CallExpression(Identifier,ArgList(Declaration(DeclarationItem,Equals,NestedPipeline(Pipeline(Identifier,"|",CallExpression(Identifier,ArgList(RangeExpression)),"|",CallExpression(Identifier,ArgList(Integer)))))))))
+
+# Pipe into a bare function after a call
+
+derive x = (distance | in 0..20 | g)
+
+==>
+
+Query(Pipeline(CallExpression(Identifier,ArgList(Declaration(DeclarationItem,Equals,NestedPipeline(Pipeline(Identifier,"|",CallExpression(Identifier,ArgList(RangeExpression)),"|",Identifier)))))))
