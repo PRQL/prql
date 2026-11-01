@@ -80,11 +80,11 @@ Query(Pipeline(CallExpression(Identifier,ArgList(BinaryExpression(Identifier,Log
 
 # in Membership
 
-filter foo in bar
+filter (foo | in [1, 2])
 
 ==>
 
-Query(Pipeline(CallExpression(Identifier,ArgList(BinaryExpression(Identifier,in,Identifier)))))
+Query(Pipeline(CallExpression(Identifier,ArgList(NestedPipeline(Pipeline(Identifier,"|",CallExpression(Identifier,ArgList(ArrayExpression(Integer,Integer)))))))))
 
 # Unary operator -
 
@@ -117,3 +117,11 @@ filter !foo && bar
 ==>
 
 Query(Pipeline(CallExpression(Identifier,ArgList(BinaryExpression(UnaryExpression(LogicOp,Identifier),LogicOp,Identifier)))))
+
+# Pipe into a call with arguments
+
+derive x = (distance | in 0..20 | f 1)
+
+==>
+
+Query(Pipeline(CallExpression(Identifier,ArgList(Declaration(DeclarationItem,Equals,NestedPipeline(Pipeline(Identifier,"|",CallExpression(Identifier,ArgList(RangeExpression)),"|",CallExpression(Identifier,ArgList(Integer)))))))))

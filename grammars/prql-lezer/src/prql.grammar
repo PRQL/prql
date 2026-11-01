@@ -25,7 +25,7 @@ Module { kw<"module"> Identifier "{" statements "}" }
 
 pipelineStatement { Pipeline (~ambigNewline newline+ | end)}
 
-Pipeline { CallExpression (pipe CallExpression)* | expression "|" Identifier }
+Pipeline { CallExpression (pipe CallExpression)* | expression "|" (Identifier | CallExpression) (pipe CallExpression)* }
 
 pipe { "|" | ~ambigNewline newline+ }
 
@@ -63,7 +63,7 @@ testInner { binaryTest | unaryTest | expression }
 binaryTest[@name="BinaryExpression"] {
   testInner !or LogicOp<"||" | "??"> testInner |
   testInner !and LogicOp<"&&"> testInner |
-  testInner !compare (CompareOp<"==" | "!=" | "~=" | ">=" | "<=" | ">" | "<"> | kw<"in">) testInner
+  testInner !compare CompareOp<"==" | "!=" | "~=" | ">=" | "<=" | ">" | "<"> testInner
 }
 
 unaryTest[@name="UnaryExpression"] { !prefix LogicOp<"!"> testInner }
