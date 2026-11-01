@@ -261,6 +261,9 @@
 
 - The Python binding README lists the `display` option of `CompileOptions` and
   marks `color` as deprecated. (@prql-bot, #6460)
+- The book's null-handling page no longer claims SQL's `DISTINCT` can return
+  several `NULL`s, or lists that as a difference from PRQL; `DISTINCT` treats
+  nulls as equal in both. (@prql-bot, #6504)
 - The C, C++ and PHP bindings describe `Message.hint` as a single string holding
   the suggestions one per line, or null when there are none, rather than as a
   list. (@prql-bot, #6446)
