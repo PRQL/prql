@@ -1593,6 +1593,29 @@ mod test {
     }
 
     #[test]
+    fn test_comparison_operand_regexp_is_parenthesized_sqlite() {
+        // SQLite ranks `REGEXP` with `LIKE`, so it takes the same parentheses
+        // as a comparison operand.
+        let query = r#"
+        prql target:sql.sqlite
+        from t
+        filter (a == (b ~= "x"))
+        filter ((c ~= "y") < d)
+        filter (e ~= "z")
+        "#;
+        insta::assert_snapshot!(crate::tests::compile(query).unwrap(), @"
+        SELECT
+          *
+        FROM
+          t
+        WHERE
+          a = (b REGEXP 'x')
+          AND (c REGEXP 'y') < d
+          AND e REGEXP 'z'
+        ");
+    }
+
+    #[test]
     fn test_non_associative_right_operand_of_multiply_is_parenthesized() {
         // `a * (b % c)` and `a * (b / c)` aren't `(a * b) % c` and `(a * b) / c`
         let query = "
