@@ -32,6 +32,9 @@
 - `prqlc experimental highlight` keeps the `$` on parameters and the backticks
   on quoted identifiers: `take $1` was previously printed as `take 1`, and
   `` from `my tbl` `` as `from my tbl`. (@prql-bot, #6468)
+- The error for unknown arguments in a `prql` header lists them in the order
+  written; the order previously changed from one compile to the next.
+  (@prql-bot, #6486)
 - `prqlc watch` no longer pastes the preceding PRQL into the generated SQL when
   a Jinja interpolation starts a line, and no longer adds an extra space before
   each interpolation. (@prql-bot, #6459)
@@ -243,6 +246,10 @@
   (@prql-bot, #6481)
 
 **Documentation**:
+
+- The book's `group` page says its `sort | take 1` example finds the first
+  employee in each role, matching its `group role`, rather than in each
+  department. (@prql-bot, #6487)
 
 - The book's transforms reference lists `append` in its table of transforms.
   (@prql-bot, #6444)
