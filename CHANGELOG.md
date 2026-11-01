@@ -287,6 +287,8 @@
 - The book's and website's PRQL syntax highlighting treats `\"`, `\'` and `\/`
   as escapes, so a string containing an escaped quote no longer ends early.
   (@prql-bot, #6488)
+- The playground's results table shows a NULL timestamp as `null` rather than
+  `1970-01-01T00:00:00.000Z`. (@prql-bot, #6489)
 - The playground no longer depends on `web-vitals`. `reportWebVitals` was called
   with no argument, and its body is guarded on that argument being a function —
   so the dynamic `import("web-vitals")` inside it never ran. It was Create React
@@ -295,6 +297,12 @@
   `icon192.png`, which was deleted in #543 and returned 404. (@prql-bot, #6448)
 
 **Integrations**:
+
+- The KSyntaxHighlighting (Kate) grammar in `grammars/KSyntaxHighlighting/` ends
+  a raw string at its closing quote, as the compiler does: it no longer treats
+  `\'` or `\\` inside `r'...'` as escapes, or `r'''` as a triple-quoted raw
+  string, either of which could carry the string highlight on past the end of
+  the string. (@prql-bot, #6501)
 
 - The `prqlc` JS/wasm package now reports an error for an unknown `target`,
   rather than silently compiling to generic SQL. A typo such as
