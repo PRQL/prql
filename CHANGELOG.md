@@ -29,6 +29,9 @@
 
 **Fixes**:
 
+- Binary, hex and octal literals accept `_` between digits, as decimal literals
+  do: `0b1111_0000` previously failed to compile with `Unknown name _0000`.
+  (@prql-bot, #6520)
 - Hex and octal literals longer than 12 digits, and binary literals longer than
   32, compile as one number rather than splitting into two tokens. A literal too
   large for an `i64` is reported as an error instead of compiling to `0`.
