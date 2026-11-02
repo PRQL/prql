@@ -29,6 +29,30 @@
 
 **Fixes**:
 
+- Hex and octal literals longer than 12 digits, and binary literals longer than
+  32, compile as one number rather than splitting into two tokens. A literal too
+  large for an `i64` is reported as an error instead of compiling to `0`.
+  (@prql-bot, #6490)
+- Negating a value that already starts with `-`, whether with `-` or in an
+  s-string such as `s"-{x}"`, no longer emits `--`, which SQL reads as a line
+  comment: `-(-y)` previously compiled to `--y`. (@prql-bot, #6479)
+- `==` and `!=` between two time, timestamp or interval literals are left to the
+  database instead of being decided at compile time by comparing how the values
+  are written: `@10:00 == @10:00:00` and `24hours == 1days` previously compiled
+  to `false`. (@prql-bot, #6485)
+- `prqlc experimental highlight` keeps the `$` on parameters and the backticks
+  on quoted identifiers: `take $1` was previously printed as `take 1`, and
+  `` from `my tbl` `` as `from my tbl`. (@prql-bot, #6468)
+- A comparison keeps parentheses around an `IN`, `LIKE` or `BETWEEN` operand,
+  SQLite's `REGEXP`, or a nested comparison: `a == (b | in [1, 2])` previously
+  compiled to `a = b IN (1, 2)`, which SQLite evaluates as `(a = b) IN (1, 2)`.
+  (@prql-bot, #6467)
+- The error for unknown arguments in a `prql` header lists them in the order
+  written; the order previously changed from one compile to the next.
+  (@prql-bot, #6486)
+- `prqlc watch` no longer pastes the preceding PRQL into the generated SQL when
+  a Jinja interpolation starts a line, and no longer adds an extra space before
+  each interpolation. (@prql-bot, #6459)
 - A tuple type with `..` before another field, such as `type t = {.., a = int}`,
   reports "unpacking must come after all other fields" instead of a generic
   `expected type expression` error. (@prql-bot, #6508)
@@ -238,6 +262,33 @@
 
 **Documentation**:
 
+- The Python binding README lists the `display` option of `CompileOptions` and
+  marks `color` as deprecated. (@prql-bot, #6460)
+- The book's null-handling page no longer claims SQL's `DISTINCT` can return
+  several `NULL`s, or lists that as a difference from PRQL; `DISTINCT` treats
+  nulls as equal in both. (@prql-bot, #6504)
+- The strings reference lists the `\/` escape, says `\u{...}` takes one to six
+  hex digits, and explains that a backslash before any other character is
+  dropped, so `"\d+"` compiles to `'d+'`. (@prql-bot, #6510)
+- The FAQ's `SELECT` example aliases the computed column
+  (`SELECT x * 2 AS two_x FROM y`) rather than the table, and the book's syntax
+  summary links `|` to the Pipes page rather than Function calls. (@prql-bot,
+  #6505)
+- The C, C++ and PHP bindings describe `Message.hint` as a single string holding
+  the suggestions one per line, or null when there are none, rather than as a
+  list. (@prql-bot, #6446)
+
+- The book's modules page shows the multi-file `prqlc compile` interface as it
+  works: the root module is the file starting with an uppercase letter, and the
+  pipeline identifier is the third argument, after the output. (@prql-bot,
+  #6499)
+
+- The book's `group` page says its `sort | take 1` example finds the first
+  employee in each role, matching its `group role`, rather than in each
+  department. (@prql-bot, #6487)
+
+- The book's transforms reference lists `append` in its table of transforms.
+  (@prql-bot, #6444)
 - The playground's default query and the book's annotated example refer to the
   playground's "Compiled SQL" and "Query Results" tabs by their labels rather
   than as "output.sql" and "output.arrow". (@prql-bot, #6511)

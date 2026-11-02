@@ -235,14 +235,16 @@ module mod_b {
   identifier of a module that has a `main` pipeline) and,
 - a "file loader", which can load files on-demand.
 
-The path to the root module can be automatically detected by searching for
-`.prql` files starting with `_` in the current working directory.
+When `prqlc compile` is given a directory, it loads every `.prql` file in it.
+The root module is the file whose name starts with an uppercase letter (for
+example `Project.prql`), and every other file becomes a module named after its
+path, so `sales/projections.prql` is the module `sales.projections`.
 
-Example prqlc usage:
+Example prqlc usage, where the second argument is the output (`-` for stdout)
+and the third is the identifier of the pipeline to compile:
 
 ```
-$ prqlc compile _project.prql sales.projections.orders_2024
-$ prqlc compile sales.projections.orders_2024
+$ prqlc compile my_project/ - sales.projections.orders_2024
 ```
 
 **Single-file interface** requires a single argument; the PRQL source. Any
