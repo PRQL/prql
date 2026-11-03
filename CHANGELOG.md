@@ -32,10 +32,17 @@
 - Binary, hex and octal literals accept `_` between digits, as decimal literals
   do: `0b1111_0000` previously failed to compile with `Unknown name _0000`.
   (@prql-bot, #6520)
+- `prqlc fmt` writes an unpacked tuple-type field as `..text` and an untyped
+  field as `*`, as they are written in source: `{a = int, ..text}` was
+  previously formatted to `{a = int, text..}`, which doesn't parse. (@prql-bot,
+  #6524)
 - Hex and octal literals longer than 12 digits, and binary literals longer than
   32, compile as one number rather than splitting into two tokens. A literal too
   large for an `i64` is reported as an error instead of compiling to `0`.
   (@prql-bot, #6490)
+- Negating a value that already starts with `-`, whether with `-` or in an
+  s-string such as `s"-{x}"`, no longer emits `--`, which SQL reads as a line
+  comment: `-(-y)` previously compiled to `--y`. (@prql-bot, #6479)
 - `==` and `!=` between two time, timestamp or interval literals are left to the
   database instead of being decided at compile time by comparing how the values
   are written: `@10:00 == @10:00:00` and `24hours == 1days` previously compiled
@@ -267,6 +274,13 @@
 - The book's null-handling page no longer claims SQL's `DISTINCT` can return
   several `NULL`s, or lists that as a difference from PRQL; `DISTINCT` treats
   nulls as equal in both. (@prql-bot, #6504)
+- The strings reference lists the `\/` escape, says `\u{...}` takes one to six
+  hex digits, and explains that a backslash before any other character is
+  dropped, so `"\d+"` compiles to `'d+'`. (@prql-bot, #6510)
+- The FAQ's `SELECT` example aliases the computed column
+  (`SELECT x * 2 AS two_x FROM y`) rather than the table, and the book's syntax
+  summary links `|` to the Pipes page rather than Function calls. (@prql-bot,
+  #6505)
 - The C, C++ and PHP bindings describe `Message.hint` as a single string holding
   the suggestions one per line, or null when there are none, rather than as a
   list. (@prql-bot, #6446)
