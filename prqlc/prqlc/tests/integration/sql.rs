@@ -3380,8 +3380,8 @@ fn test_join_pipeline_with_unnamed_columns() {
     WITH
     table_0 AS (
       SELECT
-        a + 1,
-        b + 1,
+        a + 1 AS _expr_0,
+        b + 1 AS _expr_1,
         x
       FROM
         u
@@ -3414,6 +3414,53 @@ fn test_join_pipeline_with_unnamed_columns() {
     FROM
       t
       INNER JOIN table_0 ON t.x = table_0.x
+    ");
+
+    // without a trailing `select`, the unnamed columns are selected from the
+    // CTE, so they need names; this used to panic
+    assert_snapshot!((compile(r###"
+    from t
+    join (from u | select {a + 1, b + 1, x}) (==x)
+    "###).unwrap()), @"
+    WITH
+    table_0 AS (
+      SELECT
+        a + 1 AS _expr_0,
+        b + 1 AS _expr_1,
+        x
+      FROM
+        u
+    )
+    SELECT
+      t.*,
+      table_0._expr_0 AS _expr_2,
+      table_0._expr_1 AS _expr_3,
+      table_0.x
+    FROM
+      t
+      INNER JOIN table_0 ON t.x = table_0.x
+    ");
+
+    // a generated name skips one the pipeline already uses
+    assert_snapshot!((compile(r###"
+    from t
+    join (from u | select {a + 1, _expr_0 = x}) (==_expr_0)
+    select {t.x, _expr_0}
+    "###).unwrap()), @"
+    WITH
+    table_0 AS (
+      SELECT
+        a + 1 AS _expr_1,
+        x AS _expr_0
+      FROM
+        u
+    )
+    SELECT
+      t.x,
+      table_0._expr_0
+    FROM
+      t
+      INNER JOIN table_0 ON t._expr_0 = table_0._expr_0
     ");
 }
 
@@ -4012,7 +4059,7 @@ fn test_nonatomic_table() {
     a AS (
       SELECT
         country,
-        count(*)
+        count(*) AS _expr_0
       FROM
         table_0
       GROUP BY
@@ -7141,7 +7188,7 @@ fn test_append_select_multiple() {
           SELECT
             employee_id,
             reports_to,
-            employee_id + 1
+            employee_id + 1 AS _expr_0
           FROM
             employees
           LIMIT
