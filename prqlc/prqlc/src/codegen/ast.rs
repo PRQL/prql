@@ -667,6 +667,16 @@ mod test {
         assert_is_formatted(r#"let a = func x <int> y <text>:"d" -> x"#);
     }
 
+    /// Tuple-type fields are written in the syntax the parser reads: unpacking
+    /// as `..text` (not `text..`) and an untyped field as `*` (not `?`).
+    #[test]
+    fn test_tuple_type_fields() {
+        assert_is_formatted(r#"type t = {a = int, ..text}"#);
+        assert_is_formatted(r#"type t = {a = int, ..}"#);
+        assert_is_formatted(r#"type t = {a = *, *}"#);
+        assert_is_formatted(r#"let f = func x <{b = *, ..}> -> x"#);
+    }
+
     /// The parser partitions parameters by whether they have a default, so
     /// `params` never carries one and `named_params` always does. A PL AST
     /// deserialized from JSON — which `pl_to_prql` also accepts — is under no
