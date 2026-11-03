@@ -899,6 +899,8 @@ impl Lowerer {
                     let cid = self.lookup_cid(id, Some(&ident.name)).with_span(span)?;
 
                     rq::ExprKind::ColumnRef(cid)
+                } else if expr.ty.as_ref().is_some_and(|x| x.is_relation()) {
+                    return Err(table_variable_as_scalar(span));
                 } else {
                     // fallback: unresolved ident
                     // Let's hope that the database engine can resolve it.
@@ -950,11 +952,7 @@ impl Lowerer {
                 // Check for relation types used as operator arguments
                 for arg in &args {
                     if arg.ty.as_ref().is_some_and(|x| x.is_relation()) {
-                        return Err(Error::new_simple(
-                            "table variable cannot be used as a scalar value",
-                        )
-                        .push_hint("use a join instead, or inline the subquery")
-                        .with_span(arg.span));
+                        return Err(table_variable_as_scalar(arg.span));
                     }
                 }
 
@@ -1008,6 +1006,22 @@ impl Lowerer {
             .map(|i| {
                 Ok(match i {
                     InterpolateItem::String(s) => InterpolateItem::String(s),
+                    // A table variable interpolated into an s-string is
+                    // written as its name, for the database to resolve.
+                    InterpolateItem::Expr { expr, .. }
+                        if expr.kind.is_ident()
+                            && expr.target_id.is_none()
+                            && expr.ty.as_ref().is_some_and(|x| x.is_relation()) =>
+                    {
+                        let name = expr.kind.into_ident().unwrap().name;
+                        InterpolateItem::Expr {
+                            expr: Box::new(rq::Expr {
+                                kind: rq::ExprKind::SString(vec![InterpolateItem::String(name)]),
+                                span: expr.span,
+                            }),
+                            format: None,
+                        }
+                    }
                     InterpolateItem::Expr { expr, .. } => InterpolateItem::Expr {
                         expr: Box::new(self.lower_expr(*expr)?),
                         format: None,
@@ -1145,6 +1159,12 @@ fn str_lit(string: String) -> rq::Expr {
         kind: rq::ExprKind::Literal(Literal::String(string)),
         span: None,
     }
+}
+
+fn table_variable_as_scalar(span: Option<Span>) -> Error {
+    Error::new_simple("table variable cannot be used as a scalar value")
+        .push_hint("use a join instead, or inline the subquery")
+        .with_span(span)
 }
 
 fn validate_take_range(range: &Range<rq::Expr>, span: Option<Span>) -> Result<()> {
