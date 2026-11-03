@@ -29,6 +29,10 @@
 
 **Fixes**:
 
+- A table variable used as a value in `derive`, `select`, `group`, `sort` or a
+  `case` branch reports `table variable cannot be used as a scalar value`, as it
+  already did as an operator argument. `derive x = t` previously compiled to the
+  bare name `t`. (@prql-bot, #6525)
 - Hex and octal literals longer than 12 digits, and binary literals longer than
   32, compile as one number rather than splitting into two tokens. A literal too
   large for an `i64` is reported as an error instead of compiling to `0`.
