@@ -33,6 +33,10 @@
   later columns through the joined CTE: `x` in
   `join (from u | select {a + 1, b + 1, x}) (==x)` previously compiled to the
   out-of-scope `u.x`. (@prql-bot, #6527)
+- Joining a pipeline that selects an unnamed expression no longer panics when
+  the joined columns are selected implicitly, as in
+  `from t | join (from u | select {a + 1, x}) (==x)`; the expression is now
+  given a generated name in the CTE. (@prql-bot, #6528)
 - `prqlc fmt` writes an unpacked tuple-type field as `..text` and an untyped
   field as `*`, as they are written in source: `{a = int, ..text}` was
   previously formatted to `{a = int, text..}`, which doesn't parse. (@prql-bot,
