@@ -29,6 +29,10 @@
 
 **Fixes**:
 
+- `prqlc fmt` writes an unpacked tuple-type field as `..text` and an untyped
+  field as `*`, as they are written in source: `{a = int, ..text}` was
+  previously formatted to `{a = int, text..}`, which doesn't parse.
+  (@prql-bot, #6524)
 - Hex and octal literals longer than 12 digits, and binary literals longer than
   32, compile as one number rather than splitting into two tokens. A literal too
   large for an `i64` is reported as an error instead of compiling to `0`.
