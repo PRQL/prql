@@ -1,7 +1,7 @@
 //! Context for the PQ anchoring stage: tracks table, column, and relation-instance
 //! declarations, and generates fresh IDs and names for tables and columns as RQ is
 //! lowered towards SQL.
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 use std::iter::zip;
 
 use enum_as_inner::EnumAsInner;
@@ -316,10 +316,20 @@ impl QueryLoader {
             return;
         }
 
+        // a generated name must not shadow a column the relation already names
+        let taken: HashSet<String> = (table.relation.columns.iter())
+            .filter_map(|col| col.as_single().cloned().flatten())
+            .collect();
+
         let mut names = Vec::new();
         for col in &mut table.relation.columns {
             if let RelationColumn::Single(None) = col {
-                let name = self.context.col_name.gen();
+                let name = loop {
+                    let name = self.context.col_name.gen();
+                    if !taken.contains(&name) {
+                        break name;
+                    }
+                };
                 *col = RelationColumn::Single(Some(name.clone()));
                 names.push(name);
             }
