@@ -3393,6 +3393,28 @@ fn test_join_pipeline_with_unnamed_columns() {
       t
       INNER JOIN table_0 ON t.x = table_0.x
     ");
+
+    // a wildcard in the joined pipeline's select
+    assert_snapshot!((compile(r###"
+    from t
+    join (from u | select {u.*, x}) (==x)
+    select {t.b, x}
+    "###).unwrap()), @"
+    WITH
+    table_0 AS (
+      SELECT
+        *,
+        x
+      FROM
+        u
+    )
+    SELECT
+      t.b,
+      table_0.x
+    FROM
+      t
+      INNER JOIN table_0 ON t.x = table_0.x
+    ");
 }
 
 #[test]

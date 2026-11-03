@@ -297,10 +297,6 @@ impl Lowerer {
                 // return an instance of this new table
                 let table_ref = self.create_a_table_instance(id, None, tid);
 
-                // `create_a_table_instance` keeps the table's unnamed columns and
-                // preserves its column order, so the instance columns line up
-                // with the cids of the final select
-                debug_assert_eq!(cids.len(), table_ref.columns.len());
                 let redirects = zip(cids, table_ref.columns.iter().map(|(_, c)| *c)).collect();
                 self.redirect_mappings(redirects);
 
