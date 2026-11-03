@@ -297,6 +297,10 @@ impl Lowerer {
                 // return an instance of this new table
                 let table_ref = self.create_a_table_instance(id, None, tid);
 
+                // `create_a_table_instance` keeps the table's unnamed columns and
+                // preserves its column order, so the instance columns line up
+                // with the cids of the final select
+                debug_assert_eq!(cids.len(), table_ref.columns.len());
                 let redirects = zip(cids, table_ref.columns.iter().map(|(_, c)| *c)).collect();
                 self.redirect_mappings(redirects);
 
@@ -484,9 +488,12 @@ impl Lowerer {
         // create instance columns from table columns
         let table = self.table_buffer.iter().find(|t| t.id == tid).unwrap();
 
+        // deduplicate named columns and wildcards, but keep every unnamed
+        // column: each is a distinct value, not a repeat of the previous one
+        let mut seen = HashSet::new();
         let columns = (table.relation.columns.iter())
+            .filter(|col| matches!(col, RelationColumn::Single(None)) || seen.insert(*col))
             .cloned()
-            .unique()
             .map(|col| (col, self.cid.gen()))
             .collect_vec();
 
