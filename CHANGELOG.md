@@ -29,6 +29,10 @@
 
 **Fixes**:
 
+- Joining a pipeline that selects two or more unnamed expressions references its
+  later columns through the joined CTE: `x` in
+  `join (from u | select {a + 1, b + 1, x}) (==x)` previously compiled to the
+  out-of-scope `u.x`. (@prql-bot, #6527)
 - Hex and octal literals longer than 12 digits, and binary literals longer than
   32, compile as one number rather than splitting into two tokens. A literal too
   large for an `i64` is reported as an error instead of compiling to `0`.
