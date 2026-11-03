@@ -68,7 +68,7 @@ impl WriteSource for pr::TyTupleField {
     fn write(&self, opt: WriteOpt) -> Option<String> {
         match self {
             Self::Wildcard(generic_el) => match generic_el {
-                Some(el) => Some(format!("{}..", el.write(opt)?)),
+                Some(el) => Some(format!("..{}", el.write(opt)?)),
                 None => Some("..".to_string()),
             },
             Self::Single(name, expr) => {
@@ -81,7 +81,7 @@ impl WriteSource for pr::TyTupleField {
                 if let Some(expr) = expr {
                     r += &expr.write(opt)?;
                 } else {
-                    r += "?";
+                    r += "*";
                 }
                 Some(r)
             }
