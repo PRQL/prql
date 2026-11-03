@@ -3369,6 +3369,55 @@ fn test_join_side_literal_via_func_err() {
 }
 
 #[test]
+fn test_join_pipeline_with_unnamed_columns() {
+    // Regression test for issue #6526: with two unnamed columns in the joined
+    // pipeline, `x` was referenced through `u` instead of through the CTE
+    assert_snapshot!((compile(r###"
+    from t
+    join (from u | select {a + 1, b + 1, x}) (==x)
+    select {t.a, x}
+    "###).unwrap()), @"
+    WITH
+    table_0 AS (
+      SELECT
+        a + 1,
+        b + 1,
+        x
+      FROM
+        u
+    )
+    SELECT
+      t.a,
+      table_0.x
+    FROM
+      t
+      INNER JOIN table_0 ON t.x = table_0.x
+    ");
+
+    // a wildcard in the joined pipeline's select
+    assert_snapshot!((compile(r###"
+    from t
+    join (from u | select {u.*, x}) (==x)
+    select {t.b, x}
+    "###).unwrap()), @"
+    WITH
+    table_0 AS (
+      SELECT
+        *,
+        x
+      FROM
+        u
+    )
+    SELECT
+      t.b,
+      table_0.x
+    FROM
+      t
+      INNER JOIN table_0 ON t.x = table_0.x
+    ");
+}
+
+#[test]
 fn test_join_with_param_name_collision() {
     // Regression test for issue #5015
     // When joining tables that both have a column named "source",
