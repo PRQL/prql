@@ -634,10 +634,9 @@ mod tests {
     /// Confirm that all target names can be parsed.
     #[test]
     fn test_target_names() {
-        let _: Vec<_> = Target::names()
-            .into_iter()
-            .map(|name| Target::from_str(&name))
-            .collect();
+        for name in Target::names() {
+            assert!(Target::from_str(&name).is_ok(), "can't parse target {name}");
+        }
     }
 
     /// Regression test for #4633: sort inside group should not leak to outer query after join.
