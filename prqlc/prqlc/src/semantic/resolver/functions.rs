@@ -427,7 +427,10 @@ impl Resolver<'_> {
             self.default_namespace = None;
         };
 
+        self.arg_expects_func = matches!(expr.kind, ExprKind::Ident(_))
+            && (param.ty.as_ref()).is_some_and(|t| t.kind.is_function());
         let res = self.fold_expr(expr);
+        self.arg_expects_func = false;
         self.default_namespace = prev_namespace;
         res
     }

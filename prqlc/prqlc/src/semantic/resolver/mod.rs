@@ -24,6 +24,15 @@ pub struct Resolver<'a> {
     /// folded as an expression.
     in_func_call_name: bool,
 
+    /// Set while resolving a name written in a query (not in the standard
+    /// library) that stands as a value where a function isn't expected. Such a
+    /// name refers to a column before a standard-library name (`date`, `count`).
+    columns_before_std: bool,
+
+    /// Set while resolving an argument that is a single name, for a parameter
+    /// of function type (`tuple_reduce add`, `group x (take)`).
+    arg_expects_func: bool,
+
     /// Aliases declared by the tuples currently being resolved, innermost last.
     ///
     /// Tuple fields are resolved one at a time and each alias is inserted into
@@ -46,6 +55,8 @@ impl Resolver<'_> {
             current_module_path: Vec::new(),
             default_namespace: None,
             in_func_call_name: false,
+            columns_before_std: false,
+            arg_expects_func: false,
             in_flight_tuple_aliases: Vec::new(),
             id: IdGenerator::new(),
         }

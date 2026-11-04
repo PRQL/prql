@@ -7,7 +7,7 @@ use crate::ir::decl::{Decl, DeclKind, Module};
 use crate::ir::pl::{Expr, ExprKind};
 use crate::pr::Ident;
 use crate::pr::TyKind;
-use crate::semantic::{NS_INFER, NS_INFER_MODULE, NS_SELF, NS_THAT, NS_THIS};
+use crate::semantic::{NS_INFER, NS_INFER_MODULE, NS_SELF, NS_STD, NS_THAT, NS_THIS};
 use crate::Error;
 use crate::Result;
 use crate::WithErrorInfo;
@@ -122,7 +122,38 @@ impl Resolver<'_> {
         }
 
         // base case: direct lookup
-        let decls = self.root_mod.module.lookup(ident);
+        let mut decls = self.root_mod.module.lookup(ident);
+
+        // A bare name that is called refers to a standard-library function
+        // before a column of the same name (`count this`).
+        if self.in_func_call_name
+            && ident.path.is_empty()
+            && decls.iter().any(is_in_std)
+            && decls.iter().any(|d| !is_in_std(d))
+        {
+            decls.retain(is_in_std);
+        }
+
+        // A bare name that isn't being called and would otherwise refer to the
+        // standard library (`date`, `count`, `text` …) is a column of the
+        // relation, when it has one by that name or can infer one.
+        if self.columns_before_std && ident.path.is_empty() && decls.iter().any(is_in_std) {
+            if decls.iter().any(|d| !is_in_std(d)) {
+                decls.retain(|d| !is_in_std(d));
+            } else {
+                let target = match default_namespace {
+                    Some(ns) => ident.clone().prepend(vec![ns.clone()]),
+                    None => ident.clone(),
+                };
+                match self.resolve_ident_fallback(&target, NS_INFER) {
+                    Ok(inferred) => return Ok(inferred),
+                    // e.g. after a join, both relations could have the column
+                    Err(Some(ambiguous)) => return Err(ambiguous),
+                    Err(None) => {}
+                }
+            }
+        }
+
         match decls.len() {
             // no match: try match *
             0 => {}
@@ -390,6 +421,11 @@ fn ambiguous_error(idents: HashSet<Ident>, replace_name: Option<&String>) -> Err
     chunks.sort();
     let hint = format!("could be any of: {}", chunks.join(", "));
     Error::new_simple("Ambiguous name").push_hint(hint)
+}
+
+/// Whether a fully-qualified name is declared in the standard library.
+fn is_in_std(ident: &Ident) -> bool {
+    ident.path.first().is_some_and(|p| p == NS_STD)
 }
 
 #[cfg(test)]
