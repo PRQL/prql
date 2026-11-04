@@ -50,7 +50,7 @@ struct Message {
   const char *const *code;
   /// Plain text of the error
   const char *reason;
-  /// A list of suggestions of how to fix the error
+  /// Suggestions of how to fix the error, one per line; null if none
   const char *const *hint;
   /// Character offset of error origin within a source file
   const Span *span;

@@ -397,6 +397,17 @@ fn translate_binary_operator(
 ) -> Result<sql_ast::Expr> {
     let strength = op.binding_strength();
 
+    // Comparison operands go through the stricter predicate rule: SQLite ranks
+    // `IN`, `LIKE` and `BETWEEN` alongside `=` and below `< > <= >=`, where
+    // PostgreSQL ranks them above both, and PostgreSQL doesn't chain
+    // comparisons at all. Parenthesizing every such operand reads the same
+    // under either ranking, e.g. `a = (b IN (1, 2))` or `a = (b = c)`.
+    if is_comparison(&op) {
+        let left = Box::new(translate_predicate_operand(left.clone(), ctx)?.into_ast());
+        let right = Box::new(translate_predicate_operand(right.clone(), ctx)?.into_ast());
+        return Ok(sql_ast::Expr::BinaryOp { left, op, right });
+    }
+
     let left = translate_operand(left.clone(), true, strength, op.associativity(), ctx)?;
     let right = translate_operand(right.clone(), false, strength, op.associativity(), ctx)?;
 
@@ -415,6 +426,11 @@ fn translate_binary_operator(
     let right = Box::new(right.into_ast());
 
     Ok(sql_ast::Expr::BinaryOp { left, op, right })
+}
+
+fn is_comparison(op: &BinaryOperator) -> bool {
+    use BinaryOperator::*;
+    matches!(op, Gt | Lt | GtEq | LtEq | Eq | NotEq)
 }
 
 /// Translates a single operand of a hand-built `||` chain, parenthesizing it
@@ -754,16 +770,27 @@ pub(super) fn translate_sstring(
     items: Vec<InterpolateItem<rq::Expr>>,
     ctx: &mut Context,
 ) -> Result<String> {
-    Ok(items
-        .into_iter()
-        .map(|s_string_item| match s_string_item {
-            InterpolateItem::String(string) => Ok(string),
+    let mut text = String::new();
+    for item in items {
+        match item {
+            InterpolateItem::String(string) => text += &string,
             InterpolateItem::Expr { expr, .. } => {
-                translate_expr(*expr, ctx).map(|expr| expr.into_source())
+                let arg = translate_expr(*expr, ctx)?.into_source();
+                push_interpolated(&mut text, &arg);
             }
-        })
-        .collect::<Result<Vec<String>>>()?
-        .join(""))
+        }
+    }
+    Ok(text)
+}
+
+/// Appends an interpolated operand, parenthesizing it when `-` followed by
+/// `-` would otherwise start a SQL line comment (e.g. `-{x}` with `x = -1`).
+pub(super) fn push_interpolated(text: &mut String, arg: &str) {
+    if text.ends_with('-') && arg.starts_with('-') {
+        *text += &format!("({arg})");
+    } else {
+        *text += arg;
+    }
 }
 
 /// Aggregate several ordered ranges into one, computing the intersection.
@@ -1550,6 +1577,56 @@ mod test {
     }
 
     #[test]
+    fn test_comparison_operand_is_parenthesized() {
+        // SQLite ranks `IN`, `LIKE` and `BETWEEN` alongside `=` and below
+        // `<`, and PostgreSQL doesn't chain comparisons, so a predicate or
+        // comparison operand of a comparison keeps its parentheses (#6466).
+        let query = r#"
+        from t
+        filter (a == (b | in [1, 2]))
+        filter (c < (d | in 1..3))
+        filter ((e | text.starts_with "x") == f)
+        filter (g == (h == i))
+        filter (j + 1 == k)
+        "#;
+        insta::assert_snapshot!(crate::tests::compile(query).unwrap(), @"
+        SELECT
+          *
+        FROM
+          t
+        WHERE
+          a = (b IN (1, 2))
+          AND c < (d BETWEEN 1 AND 3)
+          AND (e LIKE CONCAT('x', '%')) = f
+          AND g = (h = i)
+          AND j + 1 = k
+        ");
+    }
+
+    #[test]
+    fn test_comparison_operand_regexp_is_parenthesized_sqlite() {
+        // SQLite ranks `REGEXP` with `LIKE`, so it takes the same parentheses
+        // as a comparison operand.
+        let query = r#"
+        prql target:sql.sqlite
+        from t
+        filter (a == (b ~= "x"))
+        filter ((c ~= "y") < d)
+        filter (e ~= "z")
+        "#;
+        insta::assert_snapshot!(crate::tests::compile(query).unwrap(), @"
+        SELECT
+          *
+        FROM
+          t
+        WHERE
+          a = (b REGEXP 'x')
+          AND (c REGEXP 'y') < d
+          AND e REGEXP 'z'
+        ");
+    }
+
+    #[test]
     fn test_non_associative_right_operand_of_multiply_is_parenthesized() {
         // `a * (b % c)` and `a * (b / c)` aren't `(a * b) % c` and `(a * b) / c`
         let query = "
@@ -1569,6 +1646,22 @@ mod test {
           19 + y - 2 AS a
         FROM
           t
+        ");
+    }
+
+    #[test]
+    fn test_sstring_negating_a_negative_operand() {
+        // `-{b}` with a negative `b` would otherwise emit `--1`, a SQL comment
+        let query = r#"
+        from a
+        derive {b = -1}
+        select {z = s"-{b}"}
+        "#;
+        insta::assert_snapshot!(crate::tests::compile(query).unwrap(), @"
+        SELECT
+          -(-1) AS z
+        FROM
+          a
         ");
     }
 }

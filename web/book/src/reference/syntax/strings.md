@@ -71,6 +71,7 @@ recognized escape sequences are:
 | `\\`            | Backslash (\)                 |
 | `\'`            | Single quote (')              |
 | `\"`            | Double quote (")              |
+| `\/`            | Forward slash (/)             |
 | `\b`            | Backspace                     |
 | `\f`            | Formfeed                      |
 | `\n`            | ASCII Linefeed (LF)           |
@@ -78,3 +79,10 @@ recognized escape sequences are:
 | `\t`            | ASCII Horizontal Tab (TAB)    |
 | `\xhh`          | Character with hex value hh   |
 | `\u{xxxx}`      | Character with hex value xxxx |
+
+The hex value in `\u{...}` can have from one to six digits, so `"\u{41}"` and
+`"\u{01F422}"` are both valid.
+
+A backslash before any other character is dropped and the character is kept, so
+`"\d+"` compiles to `'d+'`. To pass a backslash through to SQL — for example in
+a regular expression — write `\\` or use an [r-string](./r-strings.md).
