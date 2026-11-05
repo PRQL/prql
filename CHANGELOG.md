@@ -278,6 +278,9 @@
 
 - The Python binding README lists the `display` option of `CompileOptions` and
   marks `color` as deprecated. (@prql-bot, #6460)
+- The JavaScript binding README documents an error's `span` as the
+  `"{source_id}:{start}-{end}"` string it is serialized as, rather than a pair
+  of numbers. (@prql-bot, #6530)
 - The book's null-handling page no longer claims SQL's `DISTINCT` can return
   several `NULL`s, or lists that as a difference from PRQL; `DISTINCT` treats
   nulls as equal in both. (@prql-bot, #6504)
