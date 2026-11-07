@@ -85,7 +85,6 @@ each use their own form:
 | Generic    | `DATE_TRUNC('day', event_time)`   |
 | DuckDB     | `DATE_TRUNC('day', event_time)`   |
 | Postgres   | `DATE_TRUNC('day', event_time)`   |
-| MySQL      | `DATE_TRUNC('day', event_time)`   |
 | Clickhouse | `DATE_TRUNC('day', event_time)`   |
 | Snowflake  | `DATE_TRUNC('day', "event_time")` |
 | MSSQL      | `DATETRUNC(day, event_time)`      |
@@ -93,8 +92,8 @@ each use their own form:
 
 <!-- prettier-ignore -->
 > [!NOTE]
-> SQLite has no date-truncation function, so `date.trunc` raises an error when
-> compiling for that dialect.
+> SQLite and MySQL have no date-truncation function, so `date.trunc` raises an
+> error when compiling for those dialects.
 
 ### `diff`
 

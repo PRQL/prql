@@ -387,12 +387,14 @@ fn date_trunc_snowflake() {
     "#);
 }
 
-#[test]
-fn date_trunc_unsupported_dialects() {
-    // SQLite has no DATE_TRUNC function
+#[rstest]
+#[case::sqlite(sql::Dialect::SQLite)]
+#[case::mysql(sql::Dialect::MySql)]
+fn date_trunc_unsupported_dialects(#[case] dialect: sql::Dialect) {
+    // Neither SQLite nor MySQL has a DATE_TRUNC function
     assert!(compile_with_sql_dialect(
         r#"from events | select (event_time | date.trunc "day")"#,
-        sql::Dialect::SQLite
+        dialect
     )
     .is_err());
 }
@@ -426,7 +428,6 @@ fn date_to_text_bigquery_rfc3339() {
 #[case::duckdb(sql::Dialect::DuckDb, "DATE_TRUNC('day', event_time)")]
 #[case::postgres(sql::Dialect::Postgres, "DATE_TRUNC('day', event_time)")]
 #[case::mssql(sql::Dialect::MsSql, "DATETRUNC(day, event_time)")]
-#[case::mysql(sql::Dialect::MySql, "DATE_TRUNC('day', event_time)")]
 #[case::clickhouse(sql::Dialect::ClickHouse, "DATE_TRUNC('day', event_time)")]
 #[case::bigquery(sql::Dialect::BigQuery, "DATE_TRUNC(event_time, DAY)")]
 fn date_trunc_operator(#[case] dialect: sql::Dialect, #[case] expected_date_trunc: &'static str) {
