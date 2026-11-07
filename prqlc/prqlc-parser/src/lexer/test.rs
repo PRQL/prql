@@ -600,3 +600,54 @@ fn test_lex_source_non_ascii_spans() {
     )
     "#);
 }
+
+#[test]
+fn test_lex_param() {
+    assert_debug_snapshot!(lex_source("$1 $foo_bar $a.b"), @r#"
+    Ok(
+        Tokens(
+            [
+                0..0: Start,
+                0..2: Param("1"),
+                3..11: Param("foo_bar"),
+                12..16: Param("a.b"),
+            ],
+        ),
+    )
+    "#);
+    // A `$` with no name after it isn't a parameter.
+    assert_debug_snapshot!(lex_source("$"), @r#"
+    Err(
+        [
+            Error {
+                kind: Error,
+                span: Some(
+                    0:1-1,
+                ),
+                reason: Unexpected {
+                    found: "end of input",
+                },
+                hints: [],
+                code: None,
+            },
+        ],
+    )
+    "#);
+    assert_debug_snapshot!(lex_source("$.a"), @r#"
+    Err(
+        [
+            Error {
+                kind: Error,
+                span: Some(
+                    0:1-2,
+                ),
+                reason: Unexpected {
+                    found: "'.'",
+                },
+                hints: [],
+                code: None,
+            },
+        ],
+    )
+    "#);
+}
