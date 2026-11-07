@@ -12,7 +12,6 @@ export const prqlHighlightSpec = {
   module: t.moduleKeyword,
   let: t.definitionKeyword,
   case: t.controlKeyword,
-  in: t.operatorKeyword,
   Annotation: t.annotation,
   Comment: t.lineComment,
   Docblock: t.docString,
