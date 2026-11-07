@@ -436,8 +436,13 @@ where
         .validate(
             |(name, args): (Expr, Vec<(Option<String>, Expr)>), extra, emit| {
                 let span = extra.span();
+                // Not a call: keep the expression whole, so an alias or doc
+                // comment it carries, as in `{(y = a)}`, is not dropped.
                 if args.is_empty() {
-                    return name.kind;
+                    return Expr {
+                        span: Some(span),
+                        ..name
+                    };
                 }
 
                 let mut named_args = HashMap::new();
@@ -466,9 +471,9 @@ where
                     args: positional,
                     named_args,
                 })
+                .into_expr(span)
             },
         )
-        .map_with(|kind, extra| ExprKind::into_expr(kind, extra.span()))
         .labelled("function call")
         .boxed()
 }
