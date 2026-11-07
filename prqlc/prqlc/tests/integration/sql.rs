@@ -4798,6 +4798,37 @@ fn test_table_variable_in_scalar_context() {
        │ Help: use a join instead, or inline the subquery
     ───╯
     ");
+
+    // Outside an operator, a table variable was compiled to its bare name:
+    // `derive is_mod = mod_id` gave `SELECT *, mod_id FROM modlog`.
+    for (transform, column) in [
+        ("derive is_mod = mod_id", 17),
+        ("select {actor_id, m = mod_id}", 23),
+        ("group mod_id (aggregate {c = count this})", 7),
+        ("sort mod_id", 6),
+        ("derive x = case [actor_id == 1 => mod_id]", 35),
+    ] {
+        let query =
+            format!("let mod_id = (from users | select id | take 1)\nfrom modlog\n{transform}");
+        let err = compile(&query).unwrap_err().to_string();
+        assert!(
+            err.contains("table variable cannot be used as a scalar value")
+                && err.contains(&format!("[ :3:{column} ]")),
+            "{transform}:\n{err}"
+        );
+    }
+
+    // Interpolated into an s-string, a table variable still compiles, written
+    // by name. (Its CTE is dropped, which is #1762.)
+    compile(
+        r#"
+    let mod_id = (from users | select id | take 1)
+
+    from modlog
+    derive is_mod = s"actor_id IN (SELECT id FROM {mod_id})"
+    "#,
+    )
+    .unwrap();
 }
 
 #[test]

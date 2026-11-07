@@ -29,6 +29,10 @@
 
 **Fixes**:
 
+- A table variable used as a value in `derive`, `select`, `group`, `sort` or a
+  `case` branch reports `table variable cannot be used as a scalar value`, as it
+  already did as an operator argument. `derive x = t` previously compiled to the
+  bare name `t`. (@prql-bot, #6525)
 - Joining a pipeline that selects two or more unnamed expressions references its
   later columns through the joined CTE: `x` in
   `join (from u | select {a + 1, b + 1, x}) (==x)` previously compiled to the
