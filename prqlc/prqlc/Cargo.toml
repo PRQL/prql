@@ -44,13 +44,13 @@ test-dbs-external = [
   "test-dbs",
   "postgres",
   "mysql",
-  "tiberius",
+  "mssql",
   "futures",
   "tokio",
   "tokio-util",
   "connector_arrow/src_mysql",
   "connector_arrow/src_postgres",
-  "connector_arrow/src_tiberius",
+  "connector_arrow/src_mssql",
 ]
 
 [dependencies]
@@ -58,7 +58,7 @@ prqlc-parser = { path = "../prqlc-parser", version = "0.13.15" }
 
 anstream = { version = "1.0.0", features = ["auto"] }
 ariadne = "0.6.0"
-chrono = "0.4.40"
+chrono = "0.4.42"
 csv = "1.4.0"
 enum-as-inner = { workspace = true }
 itertools = { workspace = true }
@@ -111,26 +111,26 @@ minijinja = { version = "3.0.0", features = [
 # For integration tests. These are gated by the `test-dbs` and `test-dbs-external` features,
 # rather than dev-dependencies, because dev-dependencies can't be optional.
 
-connector_arrow = { version = "0.11.0", optional = true }
-duckdb = { version = "1.10501.0", optional = true, features = [
+connector_arrow = { version = "0.13.0", optional = true }
+duckdb = { version = "1.20000.1", optional = true, features = [
   "bundled",
   "chrono",
 ] }
 futures = { version = "0.3.32", optional = true }
 mysql = { version = "28", optional = true }
 postgres = { version = "0.19.10", optional = true }
-rusqlite = { version = "0.39.0", optional = true, features = [
+rusqlite = { version = "0.41.1", optional = true, features = [
   "bundled",
   "csvtab",
 ] }
-tiberius = { version = "0.12.3", optional = true, default-features = false, features = [
+mssql = { version = "1.1.0", optional = true, default-features = false, features = [
   "sql-browser-tokio",
   "bigdecimal",
   "time",
   "rustls",
   "tds73",
 ] }
-tokio = { version = "1.52.3", optional = true, features = ["full"] }
+tokio = { version = "1.53.0", optional = true, features = ["full"] }
 tokio-util = { version = "0.7.18", optional = true, features = ["compat"] }
 
 [dev-dependencies]
