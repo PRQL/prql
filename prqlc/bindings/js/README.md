@@ -103,8 +103,9 @@ interface ErrorMessage {
   reason: string;
   /// A list of suggestions of how to fix the error
   hints: string[];
-  /// Character offset of error origin within a source file
-  span: [number, number] | null;
+  /// Character offsets of the error origin, as `"{source_id}:{start}-{end}"`
+  /// (for example `"1:17-20"`)
+  span: string | null;
 
   /// Annotated code, containing cause and hints.
   display: string | null;
