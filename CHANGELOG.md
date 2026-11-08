@@ -29,6 +29,10 @@
 
 **Fixes**:
 
+- `prqlc fmt` keeps the parentheses around a function call or a `func` used as a
+  parameter default or an annotation, such as `func x y:(math.abs 1) -> x` or
+  `@(binding_strength 1)`. Dropping them produced output that failed to parse or
+  compile. (@prql-bot, #6537)
 - Binary, hex and octal literals accept `_` between digits, as decimal literals
   do: `0b1111_0000` previously failed to compile with `Unknown name _0000`.
   (@prql-bot, #6520)
@@ -36,6 +40,10 @@
   later columns through the joined CTE: `x` in
   `join (from u | select {a + 1, b + 1, x}) (==x)` previously compiled to the
   out-of-scope `u.x`. (@prql-bot, #6527)
+- Joining a pipeline that selects an unnamed expression no longer panics when
+  the joined columns are selected implicitly, as in
+  `from t | join (from u | select {a + 1, x}) (==x)`; the expression is now
+  given a generated name in the CTE. (@prql-bot, #6528)
 - `prqlc fmt` writes an unpacked tuple-type field as `..text` and an untyped
   field as `*`, as they are written in source: `{a = int, ..text}` was
   previously formatted to `{a = int, text..}`, which doesn't parse. (@prql-bot,
@@ -267,6 +275,8 @@
   output path, say — left the watcher running silently and writing nothing.
   (@prql-bot, #6313)
 
+- `prqlc debug annotate` no longer prints a blank line after each line that
+  follows the last annotated line, such as trailing comments. (@prql-bot, #6477)
 - `prqlc fmt` keeps the decimal point on a float with a whole value. It printed
   `1.0 / 2` as `1 / 2`, turning a float division into an integer division.
   (@prql-bot, #6481)
@@ -275,6 +285,9 @@
 
 - The Python binding README lists the `display` option of `CompileOptions` and
   marks `color` as deprecated. (@prql-bot, #6460)
+- The JavaScript binding README documents an error's `span` as the
+  `"{source_id}:{start}-{end}"` string it is serialized as, rather than a pair
+  of numbers. (@prql-bot, #6530)
 - The book's null-handling page no longer claims SQL's `DISTINCT` can return
   several `NULL`s, or lists that as a difference from PRQL; `DISTINCT` treats
   nulls as equal in both. (@prql-bot, #6504)

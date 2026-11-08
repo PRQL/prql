@@ -28,7 +28,7 @@ python-source = "python"
 [dependency-groups]
 dev = [
   "pytest >= 7",
-  "ty>=0.0.27",
+  "ty>=0.0.97",
 ]
 
 [tool.ty.src]

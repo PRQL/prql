@@ -28,7 +28,7 @@ def _install_prqlc(session: Session) -> None:
         "prqlc",
     )
     # Install dev dependencies separately since we're using dependency-groups
-    session.install("pytest>=7", "ty>=0.0.27")
+    session.install("pytest>=7", "ty>=0.0.97")
 
 
 @nox.session(python=VERSIONS)  # type: ignore[misc]
