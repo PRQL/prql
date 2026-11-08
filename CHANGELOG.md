@@ -33,6 +33,9 @@
   parameter default or an annotation, such as `func x y:(math.abs 1) -> x` or
   `@(binding_strength 1)`. Dropping them produced output that failed to parse or
   compile. (@prql-bot, #6537)
+- `prqlc fmt` keeps the parentheses around an aliased parameter default, such as
+  `func x y:(a = 1) -> x + y`. Dropping them produced output that failed to
+  parse. (@prql-bot, #6539)
 - Binary, hex and octal literals accept `_` between digits, as decimal literals
   do: `0b1111_0000` previously failed to compile with `Unknown name _0000`.
   (@prql-bot, #6520)
