@@ -29,6 +29,10 @@
 
 **Fixes**:
 
+- `prqlc fmt` keeps the parentheses around a function call or a `func` used as a
+  parameter default or an annotation, such as `func x y:(math.abs 1) -> x` or
+  `@(binding_strength 1)`. Dropping them produced output that failed to parse or
+  compile. (@prql-bot, #6537)
 - Joining a pipeline that selects two or more unnamed expressions references its
   later columns through the joined CTE: `x` in
   `join (from u | select {a + 1, b + 1, x}) (==x)` previously compiled to the
