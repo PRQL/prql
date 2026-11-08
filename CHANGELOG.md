@@ -33,6 +33,9 @@
   parameter default or an annotation, such as `func x y:(math.abs 1) -> x` or
   `@(binding_strength 1)`. Dropping them produced output that failed to parse or
   compile. (@prql-bot, #6537)
+- `prqlc fmt` keeps the parentheses around an aliased parameter default, such as
+  `func x y:(a = 1) -> x + y`. Dropping them produced output that failed to
+  parse. (@prql-bot, #6539)
 - A table variable used as a value in `derive`, `select`, `group`, `sort` or a
   `case` branch reports `table variable cannot be used as a scalar value`, as it
   already did as an operator argument. `derive x = t` previously compiled to the
