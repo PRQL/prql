@@ -15,8 +15,12 @@ pub(crate) fn write_expr(expr: &pr::Expr) -> String {
 /// Writes an expr in a position the parser reads as a plain expression rather
 /// than a function call: a parameter default or an annotation. A function call
 /// or a `func` there needs parentheses, or its arguments are read as whatever
-/// follows.
+/// follows. An alias is written ahead of any parentheses on its expr, so an
+/// aliased expr is parenthesized whole.
 fn write_operand(expr: &pr::Expr, mut opt: WriteOpt) -> Option<String> {
+    if expr.alias.is_some() {
+        return expr.write_between("(", ")", opt);
+    }
     opt.context_strength = opt.context_strength.max(FUNC_CALL_STRENGTH);
     expr.write(opt)
 }
@@ -686,6 +690,14 @@ mod test {
         assert_is_formatted(r#"let f = func x y:(math.abs 1) -> x + y"#);
         assert_is_formatted(r#"let f = func x y:(func z -> z) -> x"#);
         assert_is_formatted(r#"let f = func x y:1 + 2 -> x + y"#);
+    }
+
+    /// An alias is written before the parenthesization of its expr, so an
+    /// aliased default came out bare as `y:a = 1`, which doesn't parse.
+    #[test]
+    fn test_func_param_default_with_alias() {
+        assert_is_formatted(r#"let f = func x y:(a = 1) -> x + y"#);
+        assert_is_formatted(r#"let f = func x y:(a = math.abs 1) -> x + y"#);
     }
 
     /// Tuple-type fields are written in the syntax the parser reads: unpacking
