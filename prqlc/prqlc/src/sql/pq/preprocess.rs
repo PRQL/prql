@@ -338,15 +338,20 @@ pub(in crate::sql) fn except(
 
         // join_cond must be a join over all columns
         // (this could be loosened to check only the relation key)
-        let (join_left, join_right) = collect_equals(join_cond)?;
-        if !all_in(&top, join_left) || !all_in(&bottom, join_right) {
+        if !joins_by_position(&top, &bottom, join_cond) {
             continue;
         }
 
         // filter has to check for nullability of bottom
         // (this could be loosened to check only for nulls in a previously non-nullable column)
-        let (filter_left, filter_right) = collect_equals(filter)?;
-        if !(all_in(&bottom, filter_left) && all_null(filter_right)) {
+        let Some((filter_left, filter_right)) = collect_equals(filter) else {
+            continue;
+        };
+        let checked: Option<HashSet<CId>> = (filter_left.iter())
+            .map(|e| e.kind.as_column_ref().copied())
+            .collect();
+        let expected: HashSet<CId> = bottom.iter().copied().collect();
+        if !(checked == Some(expected) && all_null(filter_right)) {
             continue;
         }
 
@@ -425,8 +430,7 @@ pub(in crate::sql) fn intersect(
 
         // join_cond must be a join over all columns
         // (this could be loosened to check only the relation key)
-        let (left, right) = collect_equals(join_cond)?;
-        if !(all_in(&top, left) && all_in(&bottom, right)) {
+        if !joins_by_position(&top, &bottom, join_cond) {
             continue;
         }
 
@@ -488,21 +492,31 @@ pub(in crate::sql) fn intersect(
     Ok(res)
 }
 
-/// Returns true if all cids are in exprs
-fn all_in(cids: &[CId], exprs: Vec<&Expr>) -> bool {
-    let exprs = col_refs(exprs);
-    cids.iter().all(|c| exprs.contains(c))
-}
-
 fn all_null(exprs: Vec<&Expr>) -> bool {
     exprs
         .iter()
         .all(|e| matches!(e.kind, ExprKind::Literal(Literal::Null)))
 }
 
+/// Returns true if `cond` equates each column of `top` with the column of
+/// `bottom` at the same position, and checks nothing else. Set operations
+/// compare columns by position, so any other condition would change the result.
+fn joins_by_position(top: &[CId], bottom: &[CId], cond: &Expr) -> bool {
+    let Some((left, right)) = collect_equals(cond) else {
+        return false;
+    };
+    let pairs: Option<HashSet<(CId, CId)>> = (left.iter().zip(right))
+        .map(|(l, r)| Some((*l.kind.as_column_ref()?, *r.kind.as_column_ref()?)))
+        .collect();
+    let expected: HashSet<(CId, CId)> = top.iter().copied().zip(bottom.iter().copied()).collect();
+
+    top.len() == bottom.len() && pairs == Some(expected)
+}
+
 /// Converts `(a == b) and ((c == d) and (e == f))`
-/// into `([a, c, e], [b, d, f])`
-fn collect_equals(expr: &Expr) -> Result<(Vec<&Expr>, Vec<&Expr>)> {
+/// into `([a, c, e], [b, d, f])`.
+/// Returns `None` if `expr` contains anything other than `==` and `&&`.
+fn collect_equals(expr: &Expr) -> Option<(Vec<&Expr>, Vec<&Expr>)> {
     let mut lefts = Vec::new();
     let mut rights = Vec::new();
 
@@ -520,17 +534,10 @@ fn collect_equals(expr: &Expr) -> Result<(Vec<&Expr>, Vec<&Expr>)> {
             lefts.extend(l);
             rights.extend(r);
         }
-        _ => (),
+        _ => return None,
     }
 
-    Ok((lefts, rights))
-}
-
-fn col_refs(exprs: Vec<&Expr>) -> Vec<CId> {
-    exprs
-        .into_iter()
-        .flat_map(|expr| expr.kind.as_column_ref().cloned())
-        .collect()
+    Some((lefts, rights))
 }
 
 /// Pull Compute transforms in front of other transforms if possible.

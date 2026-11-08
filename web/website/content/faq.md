@@ -65,7 +65,7 @@ And there are many projects similar to PRQL:
   is a functional language for data, also with a pipeline concept. It doesn't
   compile to SQL but states that it can access external data.
 - [Malloy](https://github.com/looker-open-source/malloy) from Looker &
-  [**@lloydtabb**](https://github.com/lloydtabb) in a new language which
+  [**@lloydtabb**](https://github.com/lloydtabb) is a new language which
   combines a declarative syntax for querying with a modelling layer.
 - [EdgeDB](https://www.edgedb.com/) is an alternative to SQL focused on
   traditional transactional workloads (as opposed to PRQL's focus on analytical
@@ -138,7 +138,7 @@ SQL uses `SELECT` for all of these:
 - Selecting or computing columns, without changing the shape of the data:
 
   ```sql
-  SELECT x * 2 FROM y as two_x
+  SELECT x * 2 AS two_x FROM y
   ```
 
 - Reducing a column into a single row, with a reduction function:

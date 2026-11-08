@@ -44,7 +44,7 @@ That's sufficient for making an initial contribution to the compiler.
 > & instructions.
 
 For more advanced development; for example compiling for wasm or previewing the
-website, we have two options:
+website, we have a few options:
 
 ### Option 1: Use the project's `task`
 
@@ -174,7 +174,9 @@ change!
 
 - If a change is user-facing, please add a line in
   [**`CHANGELOG.md`**](https://github.com/PRQL/prql/blob/main/CHANGELOG.md),
-  with `{message}, ({@contributor, #X})` where `X` is the PR number.
+  with `{message}, (@contributor, #X)` where `X` is the PR number. The PR number
+  only exists once the PR is open, so the entry usually lands in a follow-up
+  commit on the same branch.
   - If there's a missing entry, a follow-up PR containing just the changelog
     entry is welcome.
 - We're using [Conventional Commits](https://www.conventionalcommits.org)
@@ -463,8 +465,11 @@ Currently we release in a semi-automated way:
    [Changelog](https://github.com/PRQL/prql/blob/main/CHANGELOG.md). Rename the
    `## [unreleased]` heading to the new version and date (matching the format of
    the entries below it) and curate its entries. Leave no `## [unreleased]`
-   section; step 5 recreates it. GitHub will produce a draft at
-   <https://github.com/PRQL/prql/releases/new>, including "New Contributors".
+   section; step 5 recreates it. This section becomes the release's notes
+   verbatim — the release workflow reads it out of `CHANGELOG.md` at the tagged
+   commit — so the heading must start with `## $version`, and a tag pushed
+   without a matching section fails the release rather than publishing empty
+   notes.
 
    Generate the line that introduces the enumerated changes with:
 
@@ -476,41 +481,36 @@ Currently we release in a semi-automated way:
    thank them in the changelog entry, e.g.
    `(@pr-author, #5639; reported by @issue-reporter)`.
 
-3. Ensure all changes intended for the release are merged to `main`. Then create
-   the release (which creates the tag on the latest commit on `main`):
-
-   **Web UI:** Go to
-   [Draft a new release](https://github.com/PRQL/prql/releases/new){{footnote: Only
-       maintainers have access to this page.}},
-   copy the changelog entry into the release
-   description{{footnote: Unfortunately GitHub's markdown parser
-        interprets linebreaks as newlines. I haven't found a better way of
-        editing the markdown to look reasonable than manually editing the text
-        or asking LLM to help.}}, enter the tag to be created, and hit
-   "Publish".
-
-   **CLI:**
+3. Ensure all changes intended for the release are merged to `main`. Then push
+   the tag:
 
    ```sh
-   gh release create $version --title "$version" --notes "$(cat <<'EOF'
-   <paste changelog entry here>
-   EOF
-   )"
+   git switch main && git pull
+   git tag $version && git push origin $version
    ```
 
-4. From there the tag and release are created, and the
-   [release workflow](https://github.com/PRQL/prql/blob/main/.github/workflows/release.yaml)
-   publishes the packages and the website. Its publishing jobs sit behind the
-   `release` and `github-pages` environments, so approve the pending deployments
-   on the run's page.
+4. The tag starts the
+   [release workflow](https://github.com/PRQL/prql/blob/main/.github/workflows/release.yaml),
+   which creates the GitHub release as a **draft** with the changelog section as
+   its notes, uploads the `prqlc` binaries, `.deb`s and `.rpm`s into the draft,
+   and publishes it once they have all landed. It then publishes the packages
+   and the website. Its publishing jobs sit behind the `release` and
+   `github-pages` environments, so approve the pending deployments on the run's
+   page.
+
+   The draft is the reason the tag rather than the release starts this: GitHub's
+   immutable-releases setting refuses asset uploads to a release that is already
+   published, so nothing may be uploaded after the release goes live. If the run
+   fails partway, an unpublished draft is left behind — delete it before
+   re-running, or the re-run uploads into it a second time.
 
 5. Run
-   `cargo release patch --no-publish --no-push --execute --no-verify --no-confirm --no-tag && task prqlc:test-all && cargo insta test --accept -p mdbook-prql`
+   `cargo release patch --no-publish --no-push --execute --no-verify --no-confirm --no-tag && task prqlc:test-all`
    to bump to the next development version, then PR the resulting commit. This
    recreates the `## [unreleased]` section for the next cycle. The version is
-   embedded in snapshots in two workspaces, so both test commands are needed:
-   `task prqlc:test-all` covers `prqlc`'s docs-generator snapshots, and
-   `cargo insta test -p mdbook-prql` covers the book's `prql.version` example.
+   embedded in snapshots in both `prqlc` and the book, and `task prqlc:test-all`
+   accepts both: `prqlc`'s docs-generator snapshots and the book's
+   `prql.version` example.
 
 <!-- `version` and `replace` must run in one `cargo release` invocation (not separate `cargo release version` + `cargo release replace` steps) so the `prev_version` replacement for the prqlc version constraint in target.md resolves. -->
 

@@ -11,6 +11,25 @@ pub use toposort::toposort;
 
 use crate::Result;
 
+/// Escape text for interpolation into HTML, both as element content and inside
+/// a double-quoted attribute value. Callers interpolate free-form prose (doc
+/// comments) and near-arbitrary identifiers (backtick-quoted names), so neither
+/// can be trusted to be HTML-safe.
+pub fn escape_html(text: &str) -> String {
+    let mut escaped = String::with_capacity(text.len());
+    for c in text.chars() {
+        match c {
+            '&' => escaped.push_str("&amp;"),
+            '<' => escaped.push_str("&lt;"),
+            '>' => escaped.push_str("&gt;"),
+            '"' => escaped.push_str("&quot;"),
+            '\'' => escaped.push_str("&#39;"),
+            _ => escaped.push(c),
+        }
+    }
+    escaped
+}
+
 pub trait OrMap<T> {
     /// Merges two options into one using `f`.
     /// If one of the options is None, results defaults to the other one.

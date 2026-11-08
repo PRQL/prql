@@ -1,6 +1,6 @@
 label: Dialects
 prql: |
-  prql target:sql.mssql  # Will generate TOP rather than LIMIT
+  prql target:sql.mssql  # Will generate OFFSET/FETCH rather than LIMIT
 
   from employees
   sort age
@@ -12,5 +12,5 @@ sql: |
     employees
   ORDER BY
     age OFFSET 0 ROWS
-  FETCH
-    FIRST 10 ROWS ONLY
+  FETCH FIRST
+    10 ROWS ONLY

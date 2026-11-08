@@ -19,7 +19,9 @@ pub struct Resolver<'a> {
 
     default_namespace: Option<String>,
 
-    /// Sometimes ident closures must be resolved and sometimes not. See [test::test_func_call_resolve].
+    /// Set while resolving the name of a function call, so an ident that
+    /// refers to a function resolves to the function itself rather than being
+    /// folded as an expression.
     in_func_call_name: bool,
 
     /// Aliases declared by the tuples currently being resolved, innermost last.
@@ -112,12 +114,9 @@ pub(super) mod test {
     }
 
     #[test]
-    #[ignore]
     fn test_non_existent_function() {
-        // `myfunc` is a valid reference to a column and
-        // a column can be a function, right?
-        // If not, how would we express that with type system?
-        parse_and_resolve(r#"from mytable | filter (myfunc col1)"#).unwrap_err();
+        let err = parse_and_resolve(r#"from mytable | filter (myfunc col1)"#).unwrap_err();
+        insta::assert_snapshot!(err.0[0].reason.to_string(), @"expected a function, but found `this.mytable.myfunc`");
     }
 
     #[test]
@@ -432,9 +431,8 @@ pub(super) mod test {
 
     #[test]
     fn test_append_union_all_columns_same_input() {
-        // This test exercises the All columns path with same input_id (lines 765-766)
-        // to ensure code coverage for merging except sets when both All columns
-        // come from the same input.
+        // Appending two relations whose `All` columns come from the same input
+        // merges their except sets.
         use crate::ir::pl::{
             Expr, ExprKind, Lineage, LineageColumn, LineageInput, TransformCall, TransformKind,
         };

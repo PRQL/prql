@@ -11,7 +11,8 @@ sql: |
   SELECT
     *,
     SUM(paycheck) OVER (
-      PARTITION BY employee_id
+      PARTITION BY
+        employee_id
       ORDER BY
         month ROWS BETWEEN 11 PRECEDING AND CURRENT ROW
     ) AS trail_12_m_comp

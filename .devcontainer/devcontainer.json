@@ -9,7 +9,11 @@
     "ghcr.io/eitsupi/devcontainer-features/jq-likes:2": {
       "yqVersion": "latest"
     },
-    "ghcr.io/eitsupi/devcontainer-features/duckdb-cli:1": {},
+    // DuckDB 2.0 renamed its CLI release assets, which this feature can't yet
+    // download; keep it on 1.x, matching the `duckdb` crate
+    "ghcr.io/eitsupi/devcontainer-features/duckdb-cli:1": {
+      "version": "1"
+    },
     "ghcr.io/rocker-org/devcontainer-features/apt-packages:1": {
       "packages": "cmake,sqlite3"
     }

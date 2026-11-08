@@ -7,7 +7,7 @@ use prqlc_parser::generic::{InterpolateItem, Range};
 use regex::Regex;
 use sqlparser::ast::{
     self as sql_ast, BinaryOperator, DateTimeField, Fetch, Function, FunctionArg, FunctionArgExpr,
-    FunctionArgumentList, ObjectName, OrderByExpr, SelectItem, UnaryOperator, Value,
+    FunctionArgumentList, ObjectName, OrderByExpr, OrderBySort, SelectItem, UnaryOperator, Value,
     WindowFrameBound, WindowSpec,
 };
 
@@ -193,7 +193,7 @@ fn process_array_in(
                 Ok(sql_ast::Expr::Value(Value::Boolean(false).into()))
             } else {
                 Ok(sql_ast::Expr::InList {
-                    expr: Box::new(translate_expr(col_expr.clone(), ctx)?.into_ast()),
+                    expr: Box::new(translate_predicate_operand(col_expr.clone(), ctx)?.into_ast()),
                     list: in_values
                         .iter()
                         .map(|a| Ok(translate_expr(a.clone(), ctx)?.into_ast()))
@@ -367,12 +367,17 @@ fn process_concat(expr: &rq::Expr, ctx: &mut Context) -> Result<sql_ast::Expr> {
     } else {
         let concat_args = collect_concat_args(expr);
 
+        // Operands need parenthesizing against the dialect's ranking of `||`,
+        // which differs between dialects: SQLite ranks it above `* / %`, while
+        // Redshift (like PostgreSQL) ranks it below binary `+`/`-`.
+        let strength = ctx.dialect.string_concat_binding_strength();
+
         let mut iter = concat_args.into_iter();
         let first_expr = iter.next().unwrap();
-        let mut current_expr = translate_expr(first_expr.clone(), ctx)?.into_ast();
+        let mut current_expr = translate_concat_operand(first_expr.clone(), true, strength, ctx)?;
 
         for arg in iter {
-            let translated_arg = translate_expr(arg.clone(), ctx)?.into_ast();
+            let translated_arg = translate_concat_operand(arg.clone(), false, strength, ctx)?;
             current_expr = sql_ast::Expr::BinaryOp {
                 left: Box::new(current_expr),
                 op: BinaryOperator::StringConcat,
@@ -392,13 +397,75 @@ fn translate_binary_operator(
 ) -> Result<sql_ast::Expr> {
     let strength = op.binding_strength();
 
+    // Comparison operands go through the stricter predicate rule: SQLite ranks
+    // `IN`, `LIKE` and `BETWEEN` alongside `=` and below `< > <= >=`, where
+    // PostgreSQL ranks them above both, and PostgreSQL doesn't chain
+    // comparisons at all. Parenthesizing every such operand reads the same
+    // under either ranking, e.g. `a = (b IN (1, 2))` or `a = (b = c)`.
+    if is_comparison(&op) {
+        let left = Box::new(translate_predicate_operand(left.clone(), ctx)?.into_ast());
+        let right = Box::new(translate_predicate_operand(right.clone(), ctx)?.into_ast());
+        return Ok(sql_ast::Expr::BinaryOp { left, op, right });
+    }
+
     let left = translate_operand(left.clone(), true, strength, op.associativity(), ctx)?;
     let right = translate_operand(right.clone(), false, strength, op.associativity(), ctx)?;
+
+    // An associative parent only lets an equal-strength right operand drop its
+    // parentheses when that operand's own operator regroups with it, as in
+    // `a + (b - c)`. An s-string operand like `std.mod` or `std.div_f` hides
+    // its operator, and `a * (b % c)` is not `(a * b) % c`, so keep them.
+    let right = match right {
+        ExprOrSource::Source(source) if source.binding_strength == strength => {
+            ExprOrSource::Source(source).wrap_in_parenthesis()
+        }
+        right => right,
+    };
 
     let left = Box::new(left.into_ast());
     let right = Box::new(right.into_ast());
 
     Ok(sql_ast::Expr::BinaryOp { left, op, right })
+}
+
+fn is_comparison(op: &BinaryOperator) -> bool {
+    use BinaryOperator::*;
+    matches!(op, Gt | Lt | GtEq | LtEq | Eq | NotEq)
+}
+
+/// Translates a single operand of a hand-built `||` chain, parenthesizing it
+/// against the dialect's ranking of `||`.
+///
+/// An operand that is itself a `||` chain is left alone. Its strength comes
+/// from `BinaryOperator::binding_strength`'s generic `_ => 9` arm rather than
+/// from the dialect, so on a dialect that ranks `||` above `9` the same
+/// operator would be compared against two different strengths and the child
+/// wrapped needlessly. `||` is associative, so a chain never needs parentheses
+/// against another chain either way.
+fn translate_concat_operand(
+    arg: rq::Expr,
+    is_left: bool,
+    strength: i32,
+    ctx: &mut Context,
+) -> Result<sql_ast::Expr> {
+    let expr = translate_expr(arg, ctx)?;
+
+    let is_concat_chain = matches!(
+        &expr,
+        ExprOrSource::Expr(inner) if matches!(
+            **inner,
+            sql_ast::Expr::BinaryOp {
+                op: BinaryOperator::StringConcat,
+                ..
+            }
+        )
+    );
+
+    if !is_concat_chain && needs_parentheses(&expr, is_left, strength, Associativity::Both) {
+        Ok(expr.wrap_in_parenthesis().into_ast())
+    } else {
+        Ok(expr.into_ast())
+    }
 }
 
 fn collect_concat_args(expr: &rq::Expr) -> Vec<&rq::Expr> {
@@ -436,19 +503,10 @@ fn try_into_between(expr: rq::Expr, ctx: &mut Context) -> Result<Option<sql_ast:
                     // referenced at two source positions has different spans.
                     if a_l.kind == b_l.kind {
                         return Ok(Some(sql_ast::Expr::Between {
-                            expr: Box::new(
-                                translate_operand(a_l, true, 0, Associativity::Both, ctx)?
-                                    .into_ast(),
-                            ),
+                            expr: Box::new(translate_predicate_operand(a_l, ctx)?.into_ast()),
                             negated: false,
-                            low: Box::new(
-                                translate_operand(a_r, true, 0, Associativity::Both, ctx)?
-                                    .into_ast(),
-                            ),
-                            high: Box::new(
-                                translate_operand(b_r, true, 0, Associativity::Both, ctx)?
-                                    .into_ast(),
-                            ),
+                            low: Box::new(translate_predicate_operand(a_r, ctx)?.into_ast()),
+                            high: Box::new(translate_predicate_operand(b_r, ctx)?.into_ast()),
                         }));
                     }
                 }
@@ -712,16 +770,27 @@ pub(super) fn translate_sstring(
     items: Vec<InterpolateItem<rq::Expr>>,
     ctx: &mut Context,
 ) -> Result<String> {
-    Ok(items
-        .into_iter()
-        .map(|s_string_item| match s_string_item {
-            InterpolateItem::String(string) => Ok(string),
+    let mut text = String::new();
+    for item in items {
+        match item {
+            InterpolateItem::String(string) => text += &string,
             InterpolateItem::Expr { expr, .. } => {
-                translate_expr(*expr, ctx).map(|expr| expr.into_source())
+                let arg = translate_expr(*expr, ctx)?.into_source();
+                push_interpolated(&mut text, &arg);
             }
-        })
-        .collect::<Result<Vec<String>>>()?
-        .join(""))
+        }
+    }
+    Ok(text)
+}
+
+/// Appends an interpolated operand, parenthesizing it when `-` followed by
+/// `-` would otherwise start a SQL line comment (e.g. `-{x}` with `x = -1`).
+pub(super) fn push_interpolated(text: &mut String, arg: &str) {
+    if text.ends_with('-') && arg.starts_with('-') {
+        *text += &format!("({arg})");
+    } else {
+        *text += arg;
+    }
 }
 
 /// Aggregate several ordered ranges into one, computing the intersection.
@@ -730,11 +799,49 @@ pub(super) fn translate_sstring(
 pub(super) fn range_of_ranges(ranges: Vec<Range<rq::Expr>>) -> Result<Range<i64>> {
     let mut current = Range::default();
     for range in ranges {
-        let mut range = try_range_into_int(range)?;
+        // Kept before the conversion below, which consumes the bounds, so an
+        // overflow can be reported against the bound that caused it.
+        let start_span = range.start.as_ref().and_then(|bound| bound.span);
+        let end_span = range.end.as_ref().and_then(|bound| bound.span);
+        let range = try_range_into_int(range)?;
 
         // b = b + a.start -1 (take care of 1-based index!)
-        range.start = range.start.or_map(current.start, |a, b| a + b - 1);
-        range.end = range.end.map(|b| current.start.unwrap_or(1) + b - 1);
+        //
+        // Both bounds are checked: a `take` nested inside another one shifts
+        // its bounds by the outer range's start, and two bounds near
+        // `i64::MAX` sum past it. Overflowing here panics in a debug build and,
+        // because `[profile.release]` leaves `overflow-checks` off, silently
+        // wraps to a nonsense `LIMIT`/`OFFSET` in a release one — so an
+        // overflow that the intersection and emptiness check below cannot
+        // discard is reported as a compile error instead.
+        let start = match (range.start, current.start) {
+            (Some(a), Some(b)) => match shift_bound(a, b, start_span) {
+                Ok(start) => Some(start),
+                // A start past `i64::MAX` is past every representable end, so
+                // a bounded enclosing range selects nothing — the same result
+                // the emptiness check below reaches for `take 2..3 | take 5..`.
+                // Only an unbounded enclosing end leaves no representable
+                // answer.
+                Err(err) if current.end.is_none() => return Err(err),
+                Err(_) => return Ok(empty_range()),
+            },
+            (a, None) => a,
+            (None, b) => b,
+        };
+        let end = match range.end {
+            Some(b) => match shift_bound(b, current.start.unwrap_or(1), end_span) {
+                Ok(end) => Some(end),
+                // The intersection below clamps the end to the enclosing one,
+                // which is necessarily the smaller of the two once the shifted
+                // bound has run past `i64::MAX`. So an overflow the
+                // intersection would discard is not an error; only an
+                // unbounded enclosing range leaves it with no representable
+                // answer.
+                Err(err) => Some(current.end.ok_or(err)?),
+            },
+            None => None,
+        };
+        let mut range = Range { start, end };
 
         // b.end = min(a.end, b.end)
         range.end = current.end.or_map(range.end, i64::min);
@@ -743,13 +850,36 @@ pub(super) fn range_of_ranges(ranges: Vec<Range<rq::Expr>>) -> Result<Range<i64>
 
     if let Some((s, e)) = current.start.zip(current.end) {
         if e < s {
-            return Ok(Range {
-                start: None,
-                end: Some(0),
-            });
+            return Ok(empty_range());
         }
     }
     Ok(current)
+}
+
+/// The range that selects no rows.
+fn empty_range() -> Range<i64> {
+    Range {
+        start: None,
+        end: Some(0),
+    }
+}
+
+/// Shifts a 1-based range bound by the start of the range it is nested in,
+/// i.e. `bound + enclosing_start - 1`.
+///
+/// Subtracting before adding keeps the intermediate in range: lowering has
+/// already rejected bounds below 1, so `bound - 1` cannot underflow, and the
+/// sum then overflows only when the result genuinely exceeds `i64::MAX`.
+/// Adding first would reject `take ..9223372036854775807`, whose result is
+/// representable.
+fn shift_bound(bound: i64, enclosing_start: i64, span: Option<Span>) -> Result<i64> {
+    bound
+        .checked_sub(1)
+        .and_then(|shifted| shifted.checked_add(enclosing_start))
+        .ok_or_else(|| {
+            Error::new_simple("`take` bounds are too large to combine with the enclosing `take`")
+                .with_span(span)
+        })
 }
 
 fn unpack_as_int_literal(bound: rq::Expr) -> Result<i64> {
@@ -767,7 +897,11 @@ fn try_range_into_int(range: Range<rq::Expr>) -> Result<Range<i64>> {
 }
 
 pub(super) fn expr_of_i64(number: i64) -> sql_ast::Expr {
-    sql_ast::Expr::Value(Value::Number(number.to_string(), number.leading_zeros() < 32).into())
+    // The second field is sqlparser's `long` flag, which renders an `L` suffix
+    // — not a width hint. Every other number this module emits passes `false`,
+    // and `fetch_of_i64` renders the same value through `translate_literal`,
+    // so a dialect using FETCH already got it right where LIMIT did not.
+    sql_ast::Expr::Value(Value::Number(number.to_string(), false).into())
 }
 
 pub(super) fn fetch_of_i64(take: i64, ctx: &mut Context) -> Fetch {
@@ -852,7 +986,7 @@ fn translate_windowed(
         order_by.push(OrderByExpr {
             expr: sql_ast::Expr::Value(Value::Number("1".to_string(), false).into()),
             options: sqlparser::ast::OrderByOptions {
-                asc: None,
+                sort: None,
                 nulls_first: None,
             },
             with_fill: None,
@@ -917,10 +1051,10 @@ pub(super) fn translate_column_sort(
     Ok(OrderByExpr {
         expr: translate_cid(sort.column, ctx)?.into_ast(),
         options: sqlparser::ast::OrderByOptions {
-            asc: if matches!(sort.direction, SortDirection::Asc) {
+            sort: if matches!(sort.direction, SortDirection::Asc) {
                 None // default order is ASC, so there is no need to emit it
             } else {
-                Some(false)
+                Some(OrderBySort::Desc)
             },
             nulls_first: None,
         },
@@ -984,6 +1118,21 @@ pub(super) fn translate_operand(
         Ok(expr)
     }
 }
+
+/// Translates an operand of `BETWEEN` or `IN`, parenthesizing it unless it
+/// binds more tightly than they do. Neither is associative, so an operand at
+/// the same level (e.g. a `LIKE`) is parenthesized too.
+fn translate_predicate_operand(expr: rq::Expr, ctx: &mut Context) -> Result<ExprOrSource> {
+    let expr = translate_expr(expr, ctx)?;
+    if expr.binding_strength() <= PREDICATE_STRENGTH {
+        Ok(expr.wrap_in_parenthesis())
+    } else {
+        Ok(expr)
+    }
+}
+
+/// Binding strength of `BETWEEN`, `IN` and `LIKE`.
+const PREDICATE_STRENGTH: i32 = 7;
 
 /// For an operation represented as `a child b` with a surrounding parent
 /// operation (e.g., `(a child b) parent c` or `a parent (b child c)`):
@@ -1076,7 +1225,14 @@ impl SQLExpression for sql_ast::Expr {
 
             sql_ast::Expr::UnaryOp { op, .. } => op.binding_strength(),
 
-            sql_ast::Expr::Like { .. } | sql_ast::Expr::ILike { .. } => 7,
+            // `BETWEEN`, `IN` and `LIKE` sit at the same level as each other, below
+            // `||`, in both PostgreSQL and SQLite. `7` follows PostgreSQL,
+            // which puts that level above the comparison operators; SQLite
+            // instead ranks it alongside `=` and below `< > <= >=`.
+            sql_ast::Expr::Like { .. }
+            | sql_ast::Expr::ILike { .. }
+            | sql_ast::Expr::Between { .. }
+            | sql_ast::Expr::InList { .. } => PREDICATE_STRENGTH,
 
             sql_ast::Expr::IsNull(_) | sql_ast::Expr::IsNotNull(_) => 5,
 
@@ -1196,7 +1352,7 @@ impl From<sql_ast::Expr> for ExprOrSource {
 
 #[cfg(test)]
 mod test {
-    use insta::assert_yaml_snapshot;
+    use insta::{assert_snapshot, assert_yaml_snapshot};
 
     use super::*;
 
@@ -1274,5 +1430,238 @@ mod test {
         ");
 
         Ok(())
+    }
+
+    /// The end bound is shifted by the enclosing range's start, so it
+    /// overflows on its own inputs — covered separately from the start bound.
+    #[test]
+    fn test_range_of_ranges_overflow_end() {
+        let query = "from a | take 2.. | take ..9223372036854775807";
+        assert_snapshot!(crate::tests::compile(query).unwrap_err(), @"
+        Error:
+           ╭─[ :1:28 ]
+           │
+         1 │ from a | take 2.. | take ..9223372036854775807
+           │                            ─────────┬─────────
+           │                                     ╰─────────── `take` bounds are too large to combine with the enclosing `take`
+        ───╯
+        ");
+    }
+
+    /// An end bound that overflows while being shifted is still bounded by the
+    /// enclosing range's end, which the intersection picks — so this is an
+    /// ordinary query, not an overflow.
+    #[test]
+    fn test_range_of_ranges_overflowing_end_is_clamped_by_the_enclosing_end() {
+        let query = "from a | take 2..10 | take ..9223372036854775807";
+        assert_snapshot!(crate::tests::compile(query).unwrap(), @"
+        SELECT
+          *
+        FROM
+          a
+        LIMIT
+          9 OFFSET 1
+        ");
+    }
+
+    /// The error points at the bound that overflowed, not at whichever bound
+    /// of the same `take` happens to come first.
+    #[test]
+    fn test_range_of_ranges_overflow_points_at_the_offending_bound() {
+        let query = "from a | take 2.. | take 3..9223372036854775807";
+        assert_snapshot!(crate::tests::compile(query).unwrap_err(), @"
+        Error:
+           ╭─[ :1:29 ]
+           │
+         1 │ from a | take 2.. | take 3..9223372036854775807
+           │                             ─────────┬─────────
+           │                                      ╰─────────── `take` bounds are too large to combine with the enclosing `take`
+        ───╯
+        ");
+    }
+
+    /// A `LIMIT` above `u32::MAX` must render as a plain integer; sqlparser's
+    /// `long` flag would append an `L` that no dialect parses.
+    #[test]
+    fn test_large_limit_has_no_long_suffix() {
+        let query = "from a | take 5000000000";
+        assert_snapshot!(crate::tests::compile(query).unwrap(), @"
+        SELECT
+          *
+        FROM
+          a
+        LIMIT
+          5000000000
+        ");
+    }
+
+    /// An end bound at `i64::MAX` in the outermost `take` is representable —
+    /// only the intermediate of a naive `a + b - 1` would overflow.
+    #[test]
+    fn test_range_of_ranges_max_end_is_not_an_overflow() {
+        let query = "from a | take ..9223372036854775807";
+        assert_snapshot!(crate::tests::compile(query).unwrap(), @"
+        SELECT
+          *
+        FROM
+          a
+        LIMIT
+          9223372036854775807
+        ");
+    }
+
+    /// A start bound that overflows while being shifted has run past every
+    /// representable end, so a bounded enclosing range selects nothing — the
+    /// same result `take 2..3 | take 5..` reaches without overflowing.
+    #[test]
+    fn test_range_of_ranges_overflowing_start_is_empty_when_enclosing_end_is_bounded() {
+        let query = "from a | take 9223372036854775807..9223372036854775807 | take 2..";
+        assert_snapshot!(crate::tests::compile(query).unwrap(), @"
+        SELECT
+          *
+        FROM
+          a
+        LIMIT
+          0
+        ");
+    }
+
+    #[test]
+    fn test_range_of_ranges_overflow() {
+        let query = "from a | take 9223372036854775807.. | take 2..";
+        assert_snapshot!(crate::tests::compile(query).unwrap_err(), @"
+        Error:
+           ╭─[ :1:44 ]
+           │
+         1 │ from a | take 9223372036854775807.. | take 2..
+           │                                            ┬
+           │                                            ╰── `take` bounds are too large to combine with the enclosing `take`
+        ───╯
+        ");
+    }
+
+    #[test]
+    fn test_between_operands_are_parenthesized() {
+        let query = "from t | filter x >= (b || c) && x <= (y && z)";
+        insta::assert_snapshot!(crate::tests::compile(query).unwrap(), @"
+        SELECT
+          *
+        FROM
+          t
+        WHERE
+          x BETWEEN (
+            b
+            OR c
+          ) AND (
+            y
+            AND z
+          )
+        ");
+    }
+
+    #[test]
+    fn test_in_operand_is_parenthesized() {
+        let query = "from t | filter ((a == b) | in [false]) && ((c || d) | in [true])";
+        insta::assert_snapshot!(crate::tests::compile(query).unwrap(), @"
+        SELECT
+          *
+        FROM
+          t
+        WHERE
+          (a = b) IN (false)
+          AND (
+            c
+            OR d
+          ) IN (true)
+        ");
+    }
+
+    #[test]
+    fn test_comparison_operand_is_parenthesized() {
+        // SQLite ranks `IN`, `LIKE` and `BETWEEN` alongside `=` and below
+        // `<`, and PostgreSQL doesn't chain comparisons, so a predicate or
+        // comparison operand of a comparison keeps its parentheses (#6466).
+        let query = r#"
+        from t
+        filter (a == (b | in [1, 2]))
+        filter (c < (d | in 1..3))
+        filter ((e | text.starts_with "x") == f)
+        filter (g == (h == i))
+        filter (j + 1 == k)
+        "#;
+        insta::assert_snapshot!(crate::tests::compile(query).unwrap(), @"
+        SELECT
+          *
+        FROM
+          t
+        WHERE
+          a = (b IN (1, 2))
+          AND c < (d BETWEEN 1 AND 3)
+          AND (e LIKE CONCAT('x', '%')) = f
+          AND g = (h = i)
+          AND j + 1 = k
+        ");
+    }
+
+    #[test]
+    fn test_comparison_operand_regexp_is_parenthesized_sqlite() {
+        // SQLite ranks `REGEXP` with `LIKE`, so it takes the same parentheses
+        // as a comparison operand.
+        let query = r#"
+        prql target:sql.sqlite
+        from t
+        filter (a == (b ~= "x"))
+        filter ((c ~= "y") < d)
+        filter (e ~= "z")
+        "#;
+        insta::assert_snapshot!(crate::tests::compile(query).unwrap(), @"
+        SELECT
+          *
+        FROM
+          t
+        WHERE
+          a = (b REGEXP 'x')
+          AND (c REGEXP 'y') < d
+          AND e REGEXP 'z'
+        ");
+    }
+
+    #[test]
+    fn test_non_associative_right_operand_of_multiply_is_parenthesized() {
+        // `a * (b % c)` and `a * (b / c)` aren't `(a * b) % c` and `(a * b) / c`
+        let query = "
+        from t
+        select {
+          m = 19 * (y % 19),
+          d = 19 * (y / 2),
+          l = (y % 19) * 19,
+          a = 19 + (y - 2),
+        }
+        ";
+        insta::assert_snapshot!(crate::tests::compile(query).unwrap(), @"
+        SELECT
+          19 * (y % 19) AS m,
+          19 * (y / 2) AS d,
+          y % 19 * 19 AS l,
+          19 + y - 2 AS a
+        FROM
+          t
+        ");
+    }
+
+    #[test]
+    fn test_sstring_negating_a_negative_operand() {
+        // `-{b}` with a negative `b` would otherwise emit `--1`, a SQL comment
+        let query = r#"
+        from a
+        derive {b = -1}
+        select {z = s"-{b}"}
+        "#;
+        insta::assert_snapshot!(crate::tests::compile(query).unwrap(), @"
+        SELECT
+          -(-1) AS z
+        FROM
+          a
+        ");
     }
 }

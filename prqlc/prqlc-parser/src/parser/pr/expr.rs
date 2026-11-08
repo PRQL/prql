@@ -21,8 +21,6 @@ impl Expr {
     }
 }
 
-// The following code is tested by the tests_misc crate to match expr.rs in prqlc.
-
 /// Expr is anything that has a value and thus a type.
 /// Most of these can contain other [Expr] themselves; literals should be [ExprKind::Literal].
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize, JsonSchema)]
@@ -124,8 +122,7 @@ pub struct FuncCall {
     pub named_args: HashMap<String, Expr>,
 }
 
-/// Function called with possibly missing positional arguments.
-/// May also contain environment that is needed to evaluate the body.
+/// Function definition (a lambda), with its parameters and body.
 #[derive(Debug, PartialEq, Clone, Serialize, Deserialize, JsonSchema)]
 pub struct Func {
     /// Type requirement for the function body expression.

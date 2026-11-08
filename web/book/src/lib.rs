@@ -64,7 +64,8 @@ pub fn code_block_lang_tags(event: &Event) -> Option<Vec<LangTag>> {
 }
 
 fn replace_examples(text: &str) -> Result<String> {
-    let mut parser = Parser::new_ext(text, Options::all());
+    let parser_options = Options::all();
+    let mut parser = Parser::new_ext(text, parser_options);
     let mut cmark_acc = vec![];
 
     while let Some(event) = parser.next() {
@@ -131,7 +132,7 @@ fn replace_examples(text: &str) -> Result<String> {
     }
     let mut buf = String::new();
     let opts = pulldown_cmark_to_cmark::Options::default();
-    cmark_with_options(cmark_acc.into_iter(), &mut buf, opts)?;
+    cmark_with_options(cmark_acc, &mut buf, parser_options, opts)?;
 
     Ok(buf)
 }
@@ -271,7 +272,6 @@ this is an error
     </div>
 
     </div>
-
 
     ````python
     import sys

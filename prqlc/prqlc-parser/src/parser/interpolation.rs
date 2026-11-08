@@ -11,14 +11,18 @@ pub(crate) fn parse(string: String, span_base: Span) -> Result<Vec<InterpolateIt
 
     let (output, errors) = res.into_output_errors();
 
+    // chumsky's spans over `&str` are byte offsets, but `span_base` and the
+    // rest of the compiler count chars.
+    let to_char = |byte_idx: usize| string[..byte_idx].chars().count();
+
     if !errors.is_empty() {
         return Err(errors
             .into_iter()
             .map(|e| {
                 // Adjust span to be relative to span_base
                 let span = Span {
-                    start: span_base.start + e.span().start,
-                    end: span_base.start + e.span().end,
+                    start: span_base.start + to_char(e.span().start),
+                    end: span_base.start + to_char(e.span().end),
                     source_id: span_base.source_id,
                 };
 
@@ -76,8 +80,8 @@ pub(crate) fn parse(string: String, span_base: Span) -> Result<Vec<InterpolateIt
             InterpolateItem::Expr { expr, format } => {
                 let adjusted_expr = Box::new(Expr {
                     span: expr.span.map(|s| Span {
-                        start: span_base.start + s.start,
-                        end: span_base.start + s.end,
+                        start: span_base.start + to_char(s.start),
+                        end: span_base.start + to_char(s.end),
                         source_id: span_base.source_id,
                     }),
                     ..(*expr)

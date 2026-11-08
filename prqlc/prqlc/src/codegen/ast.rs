@@ -180,19 +180,23 @@ impl WriteSource for pr::ExprKind {
             Func(c) => {
                 let mut r = "func ".to_string();
 
-                for param in &c.params {
+                // The parser partitions parameters by whether they have a
+                // default, so `params` never carries one and `named_params`
+                // always does. A PL AST deserialized from JSON is under no such
+                // constraint, so write whatever each parameter actually holds
+                // rather than what its list implies: a parameter with no default
+                // is a positional one, and one with a default is named.
+                for param in c.params.iter().chain(&c.named_params) {
                     r += opt.consume(&write_ident_part(&param.name))?;
-                    r += opt.consume(" ")?;
                     if let Some(ty) = &param.ty {
+                        r += opt.consume(" ")?;
                         let ty = ty.write_between("<", ">", opt.clone())?;
                         r += opt.consume(&ty)?;
-                        r += opt.consume(" ")?;
                     }
-                }
-                for param in &c.named_params {
-                    r += opt.consume(&write_ident_part(&param.name))?;
-                    r += opt.consume(":")?;
-                    r += opt.consume(&param.default_value.as_ref().unwrap().write(opt.clone())?)?;
+                    if let Some(default_value) = &param.default_value {
+                        r += opt.consume(":")?;
+                        r += opt.consume(&default_value.write(opt.clone())?)?;
+                    }
                     r += opt.consume(" ")?;
                 }
                 r += opt.consume("-> ")?;
@@ -340,9 +344,14 @@ fn write_ident(ident: &pr::Ident) -> String {
 fn valid_prql_ident() -> &'static Regex {
     static VALID_PRQL_IDENT: OnceLock<Regex> = OnceLock::new();
     VALID_PRQL_IDENT.get_or_init(|| {
+        // Mirrors `ident_part()` in the lexer, minus its acceptance of
+        // non-ASCII alphabetics — quoting one of those is merely noisy, while
+        // leaving a name bare that the lexer won't accept breaks the output.
+        // `*` is here because `write_ident` uses this for `a.*`.
+        //
         // Pomsky expression (regex is to Pomsky what SQL is to PRQL):
-        // ^ ('*' | [ascii_alpha '_$'] [ascii_alpha ascii_digit '_$']* ) $
-        Regex::new(r"^(?:\*|[a-zA-Z_$][a-zA-Z0-9_$]*)$").unwrap()
+        // ^ ('*' | [ascii_alpha '_'] [ascii_alpha ascii_digit '_']* ) $
+        Regex::new(r"^(?:\*|[a-zA-Z_][a-zA-Z0-9_]*)$").unwrap()
     })
 }
 
@@ -614,6 +623,15 @@ mod test {
     }
 
     #[test]
+    fn test_float() {
+        // A float written with a whole value must keep its decimal point, or it
+        // reads back as an integer and `1.0 / 2` turns into integer division.
+        assert_is_formatted(r#"let a = 1.0 / 2"#);
+        assert_is_formatted(r#"let a = 2.5"#);
+        assert_snapshot!(format_single_stmt("let a = 1e5"), @"let a = 100000.0");
+    }
+
+    #[test]
     fn test_unary() {
         assert_is_formatted(r#"sort {-duration}"#);
 
@@ -635,6 +653,72 @@ mod test {
     #[test]
     fn test_func() {
         assert_is_formatted(r#"let a = func x y:false -> x and y"#);
+    }
+
+    /// A type annotation on a parameter with a default used to be dropped, so
+    /// `fmt` silently removed the constraint: `f x:"str"` against
+    /// `func x <int>:5` is a type error before formatting and compiles clean
+    /// after it.
+    #[test]
+    fn test_typed_func_params() {
+        assert_is_formatted(r#"let a = func x <int> -> x"#);
+        assert_is_formatted(r#"let a = func x <int>:5 -> x"#);
+        assert_is_formatted(r#"let a = func x <int>:5 y <text>:"d" -> x"#);
+        assert_is_formatted(r#"let a = func x <int> y <text>:"d" -> x"#);
+    }
+
+    /// Tuple-type fields are written in the syntax the parser reads: unpacking
+    /// as `..text` (not `text..`) and an untyped field as `*` (not `?`).
+    #[test]
+    fn test_tuple_type_fields() {
+        assert_is_formatted(r#"type t = {a = int, ..text}"#);
+        assert_is_formatted(r#"type t = {a = int, ..}"#);
+        assert_is_formatted(r#"type t = {a = *, *}"#);
+        assert_is_formatted(r#"let f = func x <{b = *, ..}> -> x"#);
+    }
+
+    /// The parser partitions parameters by whether they have a default, so
+    /// `params` never carries one and `named_params` always does. A PL AST
+    /// deserialized from JSON — which `pl_to_prql` also accepts — is under no
+    /// such constraint, so a parameter is written as what it holds rather than
+    /// as what its list implies. Writing a `named_params` entry without a
+    /// default used to panic, and a `params` entry's default was dropped.
+    #[test]
+    fn test_func_params_mismatching_their_list() {
+        /// `x <int>`, with the default supplied by the caller.
+        fn param(default_value: Option<pr::Expr>) -> pr::FuncParam {
+            pr::FuncParam {
+                name: "x".to_string(),
+                ty: Some(pr::Ty::new(pr::TyKind::Ident(pr::Ident::from_name("int")))),
+                default_value: default_value.map(Box::new),
+            }
+        }
+
+        fn write_func(params: Vec<pr::FuncParam>, named_params: Vec<pr::FuncParam>) -> String {
+            let func = pr::Expr::new(pr::ExprKind::Func(
+                pr::Func {
+                    return_ty: None,
+                    body: Box::new(pr::Expr::new(pr::ExprKind::Ident(pr::Ident::from_name(
+                        "x".to_string(),
+                    )))),
+                    params,
+                    named_params,
+                }
+                .into(),
+            ));
+            func.write(WriteOpt::default()).unwrap()
+        }
+
+        let five = || pr::Expr::new(pr::ExprKind::Literal(pr::Literal::Integer(5)));
+
+        // A `named_params` entry with no default is a positional parameter.
+        assert_snapshot!(write_func(vec![], vec![param(None)]), @"func x <int> -> x");
+
+        // A `params` entry with a default keeps it.
+        assert_snapshot!(
+            write_func(vec![param(Some(five()))], vec![]),
+            @"func x <int>:5 -> x"
+        );
     }
 
     #[test]
@@ -811,6 +895,17 @@ let `case` = 5
             assert_is_formatted(&format!("let `{word}` = 5"));
             assert_is_formatted(&format!("from t\nselect {{`{word}`}}"));
         }
+    }
+
+    /// `$` is not an ident character in PRQL — the lexer reads it as the start
+    /// of a `$param` token — so a name containing one has to keep its
+    /// backticks. `valid_prql_ident` accepted `$` because it was copied from
+    /// the SQL-side `utils::valid_ident`, where Postgres does allow it.
+    #[test]
+    fn test_quoted_dollar_in_name() {
+        assert_is_formatted("from t\nselect {`a$b`}");
+        assert_is_formatted("from t\nselect {x = t.`$foo`}");
+        assert_is_formatted("let `$foo` = 5");
     }
 
     /// Named arguments need their backticks too. Unlike the declaration names

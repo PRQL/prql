@@ -257,9 +257,11 @@ tasks:
       different features for that relative to `cargo build`.
     vars:
       PACKAGES:
+        # `--no-deps` restricts `.packages` to the workspace's own crates.
+        # Reading `.workspace_members` instead would give Cargo's opaque
+        # package IDs rather than plain names.
         sh:
-          cargo metadata --format-version=1 | jq -r '.workspace_members[] |
-          split(" ")[0]'
+          cargo metadata --format-version=1 --no-deps | jq -r '.packages[].name'
     preconditions:
       - sh: command -v jq
         msg: "jq is not available. Please install it to continue."
@@ -274,9 +276,11 @@ tasks:
       Run tests, excluding some internal crates
     vars:
       PACKAGES:
+        # `--no-deps` restricts `.packages` to the workspace's own crates.
+        # Reading `.workspace_members` instead would give Cargo's opaque
+        # package IDs rather than plain names.
         sh:
-          cargo metadata --format-version=1 | jq -r '.workspace_members[] |
-          split(" ")[0]'
+          cargo metadata --format-version=1 --no-deps | jq -r '.packages[].name'
     cmds:
       - |
         cargo test {{ range without (splitLines .PACKAGES) "prqlc-parser" }} -p={{ . }} {{ end }}

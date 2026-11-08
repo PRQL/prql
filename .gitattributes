@@ -11,5 +11,7 @@
 *.min.css -diff
 *.min.css.map -diff
 package-lock.json -diff
-# mdbook expects the file to be named highlight.js so we cannot rename it to .min.js
-highlight.js -diff
+# mdbook expects the file to be named highlight.js so we cannot rename it to
+# .min.js. The path is spelled out because a bare `highlight.js` also matches
+# `grammars/prql-lezer/src/highlight.js`, which is hand-written source.
+web/book/theme/highlight.js -diff

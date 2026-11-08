@@ -111,7 +111,8 @@ impl std::fmt::Display for Literal {
         match self {
             Literal::Null => write!(f, "null")?,
             Literal::Integer(i) => write!(f, "{i}")?,
-            Literal::Float(i) => write!(f, "{i}")?,
+            // `{:?}` keeps the decimal point on whole values (`1.0`, not `1`)
+            Literal::Float(i) => write!(f, "{i:?}")?,
 
             Literal::String(s) => {
                 write!(

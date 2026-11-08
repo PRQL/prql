@@ -1,24 +1,23 @@
 use Test;
-use prql;
+use lib $?FILE.IO.parent.add('lib').Str;
+use PRQLTest;
 
 plan 6;
 
 # Array on one line
-ok PRQL.parse('filter [foo, bar, baz]');
-#query(pipeline(call-expression(identifier,arg-list(array-expression(identifier,identifier,identifier)))))
+parses-to 'filter [foo, bar, baz]', 'statement(pipeline-statement(pipeline(call-expression(identifier«filter»,test(test-inner(expression(array-expression(test(test-inner(expression(identifier«foo»))),test(test-inner(expression(identifier«bar»))),test(test-inner(expression(identifier«baz»)))))))))))';
 
 # Array on multiple lines
-ok PRQL.parse(q:to/END/);
+parses-to q:to/END/, 'statement(pipeline-statement(pipeline(call-expression(identifier«filter»,test(test-inner(expression(array-expression(test(test-inner(expression(identifier«foo»))),test(test-inner(expression(identifier«bar»))),test(test-inner(expression(identifier«baz»)))))))))))', :desc('Array on multiple lines');
 filter [
   foo,
   bar,
   baz
 ]
 END
-#query(pipeline(call-expression(identifier,arg-list(array-expression(identifier,identifier,identifier)))))
 
 # Array on multiple lines with blank lines
-ok PRQL.parse(q:to/END/);
+parses-to q:to/END/, 'statement(pipeline-statement(pipeline(call-expression(identifier«filter»,test(test-inner(expression(array-expression(test(test-inner(expression(identifier«foo»))),test(test-inner(expression(identifier«bar»))),test(test-inner(expression(identifier«baz»)))))))))))', :desc('Array on multiple lines with blank lines');
 filter [
 
   foo,
@@ -29,16 +28,12 @@ filter [
 
 ]
 END
-#query(pipeline(call-expression(identifier,arg-list(array-expression(identifier,identifier,identifier)))))
 
 # Array of integers
-ok PRQL.parse('filter [1, 2, 3]');
-#query(pipeline(call-expression(identifier,arg-list(array-expression(integer,integer,integer)))))
+parses-to 'filter [1, 2, 3]', 'statement(pipeline-statement(pipeline(call-expression(identifier«filter»,test(test-inner(expression(array-expression(test(test-inner(expression(number(integer«1»)))),test(test-inner(expression(number(integer«2»)))),test(test-inner(expression(number(integer«3»))))))))))))';
 
 # Array of floats
-ok PRQL.parse('filter [1.1, 2.2, 3.3]');
-#query(pipeline(call-expression(identifier,arg-list(array-expression(float,float,float)))))
+parses-to 'filter [1.1, 2.2, 3.3]', 'statement(pipeline-statement(pipeline(call-expression(identifier«filter»,test(test-inner(expression(array-expression(test(test-inner(expression(number(float«1.1»)))),test(test-inner(expression(number(float«2.2»)))),test(test-inner(expression(number(float«3.3»))))))))))))';
 
 # Array of strings
-ok PRQL.parse('filter ["string", f"format", r"raw", s"server"]');
-#query(pipeline(call-expression(identifier,arg-list(array-expression(string,f-string,r-string,s-string)))))
+parses-to 'filter ["string", f"format", r"raw", s"server"]', 'statement(pipeline-statement(pipeline(call-expression(identifier«filter»,test(test-inner(expression(array-expression(test(test-inner(expression(string«"string"»))),test(test-inner(expression(f-string«f"format"»))),test(test-inner(expression(r-string«r"raw"»))),test(test-inner(expression(s-string«s"server"»)))))))))))';

@@ -9,7 +9,8 @@ SELECT
       day ROWS BETWEEN 3 PRECEDING AND 3 FOLLOWING
   ) AS centered_weekly_average,
   SUM(value) OVER (
-    PARTITION BY order_month
+    PARTITION BY
+      order_month
     ORDER BY
       day ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW
   ) AS monthly_running_total

@@ -10,8 +10,7 @@ SELECT
   NULL AS email
 FROM
   employees_1
-UNION
-ALL
+UNION ALL
 SELECT
   id,
   name,

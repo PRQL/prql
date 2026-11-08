@@ -44,9 +44,3 @@ pub enum ExprKind {
 
     Array(Vec<Expr>),
 }
-
-#[derive(Debug, PartialEq, Eq, Clone, Serialize, Deserialize, JsonSchema)]
-pub enum UnOp {
-    Neg,
-    Not,
-}

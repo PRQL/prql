@@ -118,6 +118,26 @@ where
         .then_ignore(new_line())
         .validate(|args, extra, emit| {
             let span = extra.span();
+
+            // Collecting into a map would keep only the last of a repeated
+            // argument, silently discarding e.g. a `version` requirement.
+            let duplicates = args.iter().map(|(name, _)| name).duplicates().collect_vec();
+            if !duplicates.is_empty() {
+                emit.emit(Rich::custom(
+                    span,
+                    format!(
+                        "duplicate query definition arguments {}",
+                        duplicates.iter().map(|x| format!("`{x}`")).join(", ")
+                    ),
+                ));
+            }
+
+            // Kept so that unknown arguments are reported in the order written.
+            let names = args
+                .iter()
+                .map(|(name, _)| name.clone())
+                .unique()
+                .collect_vec();
             let mut args: HashMap<_, _> = args.into_iter().collect();
 
             let version = args.remove("version").and_then(|v| match v.kind {
@@ -159,7 +179,11 @@ where
                     span,
                     format!(
                         "unknown query definition arguments {}",
-                        args.keys().map(|x| format!("`{x}`")).join(", ")
+                        names
+                            .iter()
+                            .filter(|name| args.contains_key(*name))
+                            .map(|x| format!("`{x}`"))
+                            .join(", ")
                     ),
                 ));
             }
@@ -175,7 +199,7 @@ where
 /// A variable definition could be any of:
 /// - `let foo = 5`
 /// - `from artists` — captured as a "main"
-/// - `from artists | into x` — captured as an "into"`
+/// - `from artists | into x` — captured as an "into"
 fn var_def<'a, I>() -> impl Parser<'a, I, StmtKind, ParserError<'a>> + Clone
 where
     I: Input<'a, Token = lr::Token, Span = Span> + BorrowInput<'a> + chumsky::input::ValueInput<'a>,
@@ -270,7 +294,7 @@ where
 
 #[cfg(test)]
 mod tests {
-    use insta::{assert_debug_snapshot, assert_yaml_snapshot};
+    use insta::{assert_debug_snapshot, assert_snapshot, assert_yaml_snapshot};
 
     use super::*;
     use crate::error::Error;
@@ -302,6 +326,17 @@ mod tests {
     }
 
     #[test]
+    fn query_def_unknown_args_in_written_order() {
+        let errors = parse_query_def(
+            r#"
+        prql d:1 b:2 version:"0" c:3 a:4
+        "#,
+        )
+        .unwrap_err();
+        assert_snapshot!(errors[0].reason.to_string(), @"unknown query definition arguments `d`, `b`, `c`, `a`");
+    }
+
+    #[test]
     fn query_def_target_string_literal() {
         // A `target` given as a string literal rather than an identifier
         // should report that it must be an identifier (the valid form is
@@ -317,6 +352,29 @@ mod tests {
                 ),
                 reason: Simple(
                     "target must be an identifier",
+                ),
+                hints: [],
+                code: None,
+            },
+        ]
+        "#);
+    }
+
+    #[test]
+    fn query_def_duplicate_argument() {
+        // A repeated argument used to keep only the last value, silently
+        // dropping the earlier `target`.
+        assert_debug_snapshot!(parse_query_def(r#"
+        prql target:sql.mssql target:sql.postgres
+        "#).unwrap_err(), @r#"
+        [
+            Error {
+                kind: Error,
+                span: Some(
+                    0:0-51,
+                ),
+                reason: Simple(
+                    "duplicate query definition arguments `target`",
                 ),
                 hints: [],
                 code: None,

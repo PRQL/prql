@@ -7,7 +7,7 @@ use crate::ir::decl;
 use crate::ir::pl::{self, new_binop};
 use crate::pr;
 use crate::semantic::{NS_THAT, NS_THIS};
-use crate::{Error, Result};
+use crate::{Error, Result, WithErrorInfo};
 
 /// An AST pass that maps AST to PL.
 pub fn expand_expr(expr: pr::Expr) -> Result<pl::Expr> {
@@ -140,15 +140,20 @@ fn expand_unary(pr::UnaryExpr { op, expr }: pr::UnaryExpr) -> Result<pl::ExprKin
         Not => ["std", "not"],
         Add => return Ok(expr.kind),
         EqSelf => {
+            // The span is attached so these report with a source location, like
+            // every other compile error.
+            let span = expr.span;
             let pl::ExprKind::Ident(ident) = expr.kind else {
-                return Err(Error::new_simple(
-                    "self-equality operator requires a column name",
-                ));
+                return Err(
+                    Error::new_simple("self-equality operator requires a column name")
+                        .with_span(span),
+                );
             };
             if !ident.path.is_empty() {
                 return Err(Error::new_simple(
                     "self-equality operator does not support namespace prefix",
-                ));
+                )
+                .with_span(span));
             }
 
             let left = pl::Expr {
@@ -520,4 +525,43 @@ fn new_internal_stmt(name: String, internal: String) -> pr::StmtKind {
         value: Some(Box::new(pr::Expr::new(pr::ExprKind::Internal(internal)))),
         ty: None,
     })
+}
+
+#[cfg(test)]
+mod test {
+    use insta::assert_snapshot;
+
+    use crate::tests::compile;
+
+    #[test]
+    fn eq_self_on_a_non_ident_reports_a_span() {
+        assert_snapshot!(compile(r"
+        from a
+        join b (==5)
+        ").unwrap_err(), @"
+        Error:
+           ╭─[ :3:19 ]
+           │
+         3 │         join b (==5)
+           │                   ┬
+           │                   ╰── self-equality operator requires a column name
+        ───╯
+        ");
+    }
+
+    #[test]
+    fn eq_self_with_a_namespace_reports_a_span() {
+        assert_snapshot!(compile(r"
+        from a
+        join b (==x.y)
+        ").unwrap_err(), @"
+        Error:
+           ╭─[ :3:19 ]
+           │
+         3 │         join b (==x.y)
+           │                   ─┬─
+           │                    ╰─── self-equality operator does not support namespace prefix
+        ───╯
+        ");
+    }
 }

@@ -583,14 +583,23 @@ pub fn write_log(path: &std::path::Path) -> Result<()> {
             "debug log was started, but it cannot be found after compilation"
         ));
     };
+    // `BufWriter` flushes on drop but discards any error it meets there, so
+    // each branch flushes explicitly: without it a full disk truncates the log
+    // and the command still reports success.
     match path.extension().and_then(|s| s.to_str()) {
         Some("json") => {
-            let file = BufWriter::new(File::create(path)?);
-            serde_json::to_writer(file, &debug_log)?;
+            let mut file = BufWriter::new(File::create(path)?);
+            serde_json::to_writer(&mut file, &debug_log)?;
+            file.flush()?;
         }
         Some("html") => {
-            let file = BufWriter::new(File::create(path)?);
-            debug::render_log_to_html(file, &debug_log)?;
+            let mut file = BufWriter::new(File::create(path)?);
+            // The cause is interpolated rather than attached with
+            // `.context()`: `main` prints the error with `{error}`, anyhow's
+            // `Display`, which shows the outermost message alone.
+            debug::render_log_to_html(&mut file, &debug_log)
+                .and_then(|()| file.flush())
+                .map_err(|err| anyhow!("failed to write the debug log to {path:?}: {err}"))?;
         }
         _ => {
             return Err(anyhow!("unknown debug log format for file {path:?}"));
@@ -663,7 +672,13 @@ fn combine_prql_and_frames(source: &str, frames: Vec<(Option<pr::Span>, pl::Line
         }
     }
     for line in lines.iter().skip(printed_lines_count) {
-        result.push(source.get_line_text(line.to_owned()).unwrap().to_string());
+        result.push(
+            source
+                .get_line_text(line.to_owned())
+                .unwrap()
+                .trim_end()
+                .to_string(),
+        );
     }
 
     result.into_iter().join("\n") + "\n"
@@ -741,6 +756,18 @@ sort full
         "#);
     }
 
+    #[test]
+    fn layouts_trailing_lines() {
+        // Lines after the last annotated line keep a single line break
+        let output = Command::execute(
+            &Command::Debug(DebugCommand::Annotate(IoArgs::default())),
+            &mut "from t\ntake 1\n# trailing\n# more\n".into(),
+            "",
+        )
+        .unwrap();
+        assert_debug_snapshot!(String::from_utf8(output).unwrap(), @r#""from t\ntake 1      # [7.*]\n# trailing\n# more\n""#);
+    }
+
     /// Check we get an error on a bad input
     #[test]
     fn compile_bad() {
@@ -793,7 +820,8 @@ sort full
         )
         .unwrap();
         assert_snapshot!(String::from_utf8(result).unwrap().trim(), @"
-        WITH x AS (
+        WITH
+        x AS (
           SELECT
             y,
             u

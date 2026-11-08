@@ -22,8 +22,142 @@
 
 - Add simple enumeration type, and dedicated support for name resolution when an
   enum is used as a function parameter. (@kgutwin, #6104)
+- Formatted SQL output changes with the upgrade of `sqlformat` to 0.5.0: a CTE's
+  name now starts on the line after `WITH`, and `PARTITION BY` puts its columns
+  on their own lines, as other clauses do. Pass `--no-format` for unformatted
+  output. (@prql-bot, #6257)
 
 **Fixes**:
+
+- Joining a pipeline that selects two or more unnamed expressions references its
+  later columns through the joined CTE: `x` in
+  `join (from u | select {a + 1, b + 1, x}) (==x)` previously compiled to the
+  out-of-scope `u.x`. (@prql-bot, #6527)
+- Joining a pipeline that selects an unnamed expression no longer panics when
+  the joined columns are selected implicitly, as in
+  `from t | join (from u | select {a + 1, x}) (==x)`; the expression is now
+  given a generated name in the CTE. (@prql-bot, #6528)
+- `prqlc fmt` writes an unpacked tuple-type field as `..text` and an untyped
+  field as `*`, as they are written in source: `{a = int, ..text}` was
+  previously formatted to `{a = int, text..}`, which doesn't parse. (@prql-bot,
+  #6524)
+- Hex and octal literals longer than 12 digits, and binary literals longer than
+  32, compile as one number rather than splitting into two tokens. A literal too
+  large for an `i64` is reported as an error instead of compiling to `0`.
+  (@prql-bot, #6490)
+- Negating a value that already starts with `-`, whether with `-` or in an
+  s-string such as `s"-{x}"`, no longer emits `--`, which SQL reads as a line
+  comment: `-(-y)` previously compiled to `--y`. (@prql-bot, #6479)
+- `==` and `!=` between two time, timestamp or interval literals are left to the
+  database instead of being decided at compile time by comparing how the values
+  are written: `@10:00 == @10:00:00` and `24hours == 1days` previously compiled
+  to `false`. (@prql-bot, #6485)
+- `prqlc experimental highlight` keeps the `$` on parameters and the backticks
+  on quoted identifiers: `take $1` was previously printed as `take 1`, and
+  `` from `my tbl` `` as `from my tbl`. (@prql-bot, #6468)
+- A comparison keeps parentheses around an `IN`, `LIKE` or `BETWEEN` operand,
+  SQLite's `REGEXP`, or a nested comparison: `a == (b | in [1, 2])` previously
+  compiled to `a = b IN (1, 2)`, which SQLite evaluates as `(a = b) IN (1, 2)`.
+  (@prql-bot, #6467)
+- The error for unknown arguments in a `prql` header lists them in the order
+  written; the order previously changed from one compile to the next.
+  (@prql-bot, #6486)
+- `prqlc watch` no longer pastes the preceding PRQL into the generated SQL when
+  a Jinja interpolation starts a line, and no longer adds an extra space before
+  each interpolation. (@prql-bot, #6459)
+- A tuple type with `..` before another field, such as `type t = {.., a = int}`,
+  reports "unpacking must come after all other fields" instead of a generic
+  `expected type expression` error. (@prql-bot, #6508)
+- Passing something other than a tuple to `tuple_map`, `tuple_reduce`,
+  `tuple_zip`, `tuple_uniq` or `tuple_reverse` reports an error instead of
+  crashing the compiler. (@prql-bot, #6471)
+- `first` and `last` respect the window frame: an explicit `window rows:...` was
+  previously dropped, and `last` inside `group (sort ...)` returned the current
+  row's value rather than the group's last. (@prql-bot, #6435)
+- A join is no longer compiled to `INTERSECT ALL` or `EXCEPT ALL` when its
+  condition has terms beyond the column equalities, or pairs the columns in a
+  different order. Joining `{a, b}` to `{x, y}` on
+  `this.a == that.x && this.b == that.y && this.a > 3` previously lost the
+  `a > 3`. (@prql-bot, #6443)
+- A table s-string no longer drops the character after `SELECT` when no space
+  follows the keyword: `from s"select*from x"` previously compiled to
+  `SELECT from x`. (@prql-bot, #6447)
+- On the `sql.mysql` target, `%` no longer rounds a fractional remainder:
+  `13.5 % 5` now returns `3.5` rather than `4`. (@prql-bot, #6426)
+
+- A modulo or division on the right of a multiplication keeps its parentheses:
+  `19 * (year % 19)` previously compiled to `19 * year % 19`, which SQL
+  evaluates as `(19 * year) % 19`. (@prql-bot, #6418)
+- Report malformed relation literals — an unnamed column such as `from [{1}]`,
+  or a row that isn't a tuple — as compile errors instead of panicking.
+  (@prql-bot, #6413)
+- `take` bounds at the extremes of `i64` no longer produce a panic or invalid
+  SQL. Combining nested ranges (`take 9223372036854775807.. | take 2..`)
+  overflowed while re-basing the inner bounds, panicking in a debug build and
+  silently emitting a wrapped `OFFSET` in a release one; it now reports a
+  compile error. Separately, a `LIMIT` at or above 2^32 was rendered with
+  sqlparser's `long` flag, so `take 5000000000` compiled to
+  `LIMIT 5000000000 L`, which no dialect parses. (@prql-bot, #6347)
+- Report a repeated argument in the `prql` query header as an error rather than
+  silently keeping the last one. `prql target:sql.mssql target:sql.postgres`
+  previously compiled for Postgres, and a repeated `version` discarded all but
+  the last requirement. (@prql-bot, #6384)
+- Error labels after non-ASCII text now point at the right column, rather than
+  drifting right or crashing `prqlc` when a label ran past the end of the query.
+  (@prql-bot, #6378)
+- `date.to_text` errors now name the format specifier the target dialect
+  rejected — `format specifier %P is not supported for Postgres` rather than
+  `PRQL doesn't support this format specifier`, whose span covers the whole
+  format string. An escape chrono doesn't recognize at all, such as `%Q`, now
+  reports an unrecognized specifier instead of BigQuery's
+  `format specifier Error is not supported for BigQuery`. (@prql-bot, #6351)
+- Parenthesize a compound bound of `BETWEEN` or operand of `IN` in the generated
+  SQL. `x >= 1 && x <= (y && z)` previously compiled to
+  `x BETWEEN 1 AND y AND z`, and `(a || b) | in [true]` to `a OR b IN (true)`,
+  both of which change the query's meaning. (@prql-bot, #6381)
+- An operator that can't be translated is now reported as an error rather than
+  aborting the compiler with `called Option::unwrap() on a None value`. Three
+  queries hit this: `date.to_text` on `sql.redshift`, which had no
+  implementation for that dialect; a query declaring its own
+  `internal std.<name>` for a name that doesn't exist; and one declaring an
+  `internal std.<name>` with fewer parameters than the operator reads. Redshift
+  also gains a `to_text` implementation, so the first now compiles to `TO_CHAR`,
+  supporting the same format specifiers as Postgres. (@prql-bot, #6352)
+- Report an `internal std.<name>` declaration that names a module, such as
+  `std.date`, as an unsupported operator rather than aborting the compiler with
+  `called Option::unwrap() on a None value`. (@prql-bot, #6388)
+- `prqlc debug lineage` on a query with no main pipeline, such as `let x = 5`,
+  now reports the same `E0001` error as `prqlc compile` rather than panicking.
+  (@prql-bot, #6389)
+- Keep the outer frame after a nested `window`; transforms following the inner
+  `window` previously compiled with an unbounded `OVER ()`. (@prql-bot, #6375)
+- Report a circular `import` as an error rather than crashing with a stack
+  overflow. (@prql-bot, #6376)
+- `prqlc experimental doc --format=html` now escapes HTML in the page it
+  generates. A doc comment containing `<`, `>` or `&` — as ordinary prose such
+  as `a < b` does — was interpolated verbatim, so a browser parsed it as markup
+  and the text around it vanished from the rendered page; the same path let a
+  doc comment inject arbitrary markup. (@prql-bot, #6327)
+
+- `prqlc compile --debug-log=<file>` no longer truncates the file it writes
+  without reporting an error. The HTML renderer used `Write::write`, which may
+  consume only part of the slice it is handed, and both formats left the
+  `BufWriter`'s final flush to `drop`, which discards its error — so a partial
+  write or a failure while flushing produced a short file and a successful exit.
+  A failure in the HTML branch now names the file it was writing and the I/O
+  error behind it, rather than reporting
+  `an error occurred when formatting an argument`. (@prql-bot, #6365)
+
+- `prqlc compile --debug-log=<file>.html` now escapes HTML in the page it
+  generates. Query source, generated SQL, log text, declaration names and the
+  labels in the AST views were interpolated verbatim, so a query as ordinary as
+  `filter a < b` lost text from the rendered page, and a string literal could
+  inject arbitrary markup. (@prql-bot, #6327)
+
+- A relation defined by a table s-string now keeps the column order of the SQL
+  it wraps, rather than sorting the columns by name. A `from` over
+  `s"SELECT b, a FROM t"` compiled to `SELECT a, b`, returning the columns in an
+  order the query never asked for. (@prql-bot, #6297)
 
 - `prqlc lsp` now reports that `prqlc` was built without the `lsp` feature,
   rather than panicking with `internal error: entered unreachable code`. The
@@ -43,28 +177,222 @@
   a compile error, but it was rendered as `take 1..5`, which compiles to
   `LIMIT 5`. (@prql-bot, #6232)
 
+- `prqlc lsp` now answers a request for an unimplemented method with a
+  `MethodNotFound` error rather than dropping it. Only `textDocument/definition`
+  and `shutdown` are handled, and every other request fell through the match
+  with no reply at all — LSP requires a response to every request, so a client
+  that waits on one hung. (@prql-bot, #6282)
+
+- The two errors from the self-equality operator — `==5` and `==x.y` in a `join`
+  — now report a source location. They were raised without a span, so they
+  printed as a bare `Error: self-equality operator requires a column name` with
+  no snippet pointing at the offending expression. (@prql-bot, #6283)
+
 - `text.contains` now compiles to `||` concatenation on the `sql.oracle` target,
   rather than a three-argument `CONCAT`. Oracle's `CONCAT` takes exactly two
   arguments before 23ai, so the generated query was rejected outright. This
   matches the existing `sql.redshift` override. (@prql-bot, #6267)
 
+- `text.contains`, `text.starts_with` and `text.ends_with` now parenthesize
+  their argument on the `sql.sqlite` target. SQLite ranks `||` above both
+  `*`/`/`/`%` and `+`/`-`, so an arithmetic argument bound to the surrounding
+  `'%'` literals instead of to itself — `text.contains (a + b)` compiled to
+  `col LIKE '%' || a + b || '%'`, which SQLite parses as
+  `('%' || a) + (b || '%')` and evaluates to a number rather than a pattern.
+  (@prql-bot, #6272)
+
+- f-strings now parenthesize operand expressions on the `sql.sqlite` and
+  `sql.redshift` targets, which emit `||` rather than `CONCAT`. Operands were
+  passed through without any precedence check, so `f"pre{a * b}post"` compiled
+  to `'pre' || a * b || 'post'`, which SQLite parses as
+  `('pre' || a) * (b || 'post')` and evaluates to a number rather than a string.
+  `BETWEEN` operands, which bind looser than `||` in both dialects, are
+  parenthesized too. Operands that expand from an s-string still follow that
+  s-string's declared binding strength. (@prql-bot, #6273)
+
+- `text.contains`, `text.starts_with` and `text.ends_with` now parenthesize
+  their _result_ when it is used inside an f-string on the `sql.sqlite` and
+  `sql.redshift` targets. The definitions compile to a top-level `LIKE`, but
+  declared no `binding_strength`, so they reported the s-string default of `100`
+  and were emitted bare into the `||` chain. With
+  `c = (nm | text.contains 'z')`, `f"{c}!"` compiled to
+  `nm LIKE '%' || 'z' || '%' || '!'`, which tests `nm` against the pattern
+  `%z%!` rather than appending `'!'` to the result. They now declare `7`, where
+  `LIKE` ranks. (@prql-bot, #6285)
+
+- `math.log` and integer division (`//`) now declare the binding strength of the
+  operator they compile to, so they are parenthesized when used as an operand.
+  `math.log` compiles to a top-level `/` but declared none, so it reported the
+  s-string default of `100`: `1 / (a | math.log 2)` compiled to
+  `1 / LOG10(a) / LOG10(2)`, which divides by the product of the two logarithms
+  rather than by their quotient. The generic and `sql.sqlite` `div_i`
+  definitions end in `* SIGN(...) * SIGN(...)`, so their top-level operation is
+  a multiplication, but they declared `100` as though the leading `FLOOR`/`CAST`
+  call wrapped the whole body — `1 / (a // b)` compiled to
+  `1 / FLOOR(ABS(a / b)) * SIGN(a) * SIGN(b)`, multiplying by the signs instead
+  of dividing by the quotient. Both now declare `11`, where `*` and `/` rank.
+  (@prql-bot, #6286)
+
+- `take` now compiles to `OFFSET n ROWS FETCH FIRST n ROWS ONLY` on the
+  `sql.oracle` target, rather than `LIMIT n OFFSET n`. Oracle has no `LIMIT`
+  clause, so `take 15..20` produced a query that the database rejects outright.
+  (@prql-bot, #6292)
+
+- Table aliases no longer carry an `AS` keyword on the `sql.oracle` target.
+  Oracle's `table_reference` grammar is `table_reference [ t_alias ]`, so
+  `from a = bar` compiled to `SELECT * FROM "bar" AS "a"`, which the database
+  rejects; it now compiles to `SELECT * FROM "bar" "a"`. Column aliases, which
+  Oracle does accept `AS` for, are unchanged. (@prql-bot, #6306)
+
+- `prqlc fmt` now keeps the type annotation on a function parameter that has a
+  default value. `func x <int>:5 -> x` was formatted as `func x:5 -> x`, which
+  still parses but drops a constraint the compiler was enforcing, so a mistyped
+  argument that was rejected before formatting compiled clean after it. A
+  parameter whose default disagrees with the list it is stored in — only
+  reachable through a PL AST deserialized by `json::to_pl` — is now written as
+  what it holds rather than panicking or silently dropping the default.
+  (@prql-bot, #6311)
+
+- `prqlc fmt` now keeps the backticks on a name containing `$`. A name written
+  as `` `a$b` `` was formatted bare, and the lexer reads the result as `a`
+  applied to the parameter `$b`, so the formatted output no longer compiled. The
+  codegen's "needs backticks" rule accepted `$` because it was copied from the
+  SQL side, where Postgres does allow it in an identifier. (@prql-bot, #6322)
+
+- `prqlc watch` no longer exits when a `.prql` file in the watched tree fails to
+  compile. The initial pass aborted on the first error, so the command never
+  reached the watch loop — precisely the state watch mode exists to iterate out
+  of. Both the initial pass and the watch loop now print the failing path
+  alongside the error and carry on. The loop previously discarded every error it
+  hit, so a failure that produces no compiler diagnostic — an unwritable `.sql`
+  output path, say — left the watcher running silently and writing nothing.
+  (@prql-bot, #6313)
+
+- `prqlc debug annotate` no longer prints a blank line after each line that
+  follows the last annotated line, such as trailing comments. (@prql-bot, #6477)
+- `prqlc fmt` keeps the decimal point on a float with a whole value. It printed
+  `1.0 / 2` as `1 / 2`, turning a float division into an integer division.
+  (@prql-bot, #6481)
+
 **Documentation**:
+
+- The Python binding README lists the `display` option of `CompileOptions` and
+  marks `color` as deprecated. (@prql-bot, #6460)
+- The JavaScript binding README documents an error's `span` as the
+  `"{source_id}:{start}-{end}"` string it is serialized as, rather than a pair
+  of numbers. (@prql-bot, #6530)
+- The book's null-handling page no longer claims SQL's `DISTINCT` can return
+  several `NULL`s, or lists that as a difference from PRQL; `DISTINCT` treats
+  nulls as equal in both. (@prql-bot, #6504)
+- The strings reference lists the `\/` escape, says `\u{...}` takes one to six
+  hex digits, and explains that a backslash before any other character is
+  dropped, so `"\d+"` compiles to `'d+'`. (@prql-bot, #6510)
+- The FAQ's `SELECT` example aliases the computed column
+  (`SELECT x * 2 AS two_x FROM y`) rather than the table, and the book's syntax
+  summary links `|` to the Pipes page rather than Function calls. (@prql-bot,
+  #6505)
+- The C, C++ and PHP bindings describe `Message.hint` as a single string holding
+  the suggestions one per line, or null when there are none, rather than as a
+  list. (@prql-bot, #6446)
+
+- The book's modules page shows the multi-file `prqlc compile` interface as it
+  works: the root module is the file starting with an uppercase letter, and the
+  pipeline identifier is the third argument, after the output. (@prql-bot,
+  #6499)
+
+- The book's `group` page says its `sort | take 1` example finds the first
+  employee in each role, matching its `group role`, rather than in each
+  department. (@prql-bot, #6487)
+
+- The book's transforms reference lists `append` in its table of transforms.
+  (@prql-bot, #6444)
+- The playground's default query and the book's annotated example refer to the
+  playground's "Compiled SQL" and "Query Results" tabs by their labels rather
+  than as "output.sql" and "output.arrow". (@prql-bot, #6511)
+- The book's `this` & `that` join example joins `tracks.artist_id` to
+  `artists.id` rather than `tracks.id` to `artists.artist_id`. (@prql-bot,
+  #6478)
+
+- The website's `og:image` meta tag points at the served
+  `/img/favicon-32x32.png` rather than `/static/img/favicon-32x32.png`, which
+  returns 404, so link previews of prql-lang.org can show the image. (@prql-bot,
+  #6430)
+
+- The Elixir bindings' README installs the package from a local checkout of the
+  repo rather than from Hex, where it isn't published. The book's VS Code page
+  points to the Extensions view (<kbd>Ctrl</kbd>-<kbd>Shift</kbd>-<kbd>X</kbd>)
+  rather than the Command Palette to find the extension. (@prql-bot, #6429)
+
+- The `prqlc-js` README lists `get_targets()` among the exported functions, and
+  describes a thrown error's message as a JSON object whose `inner` field holds
+  the error array, as its own example reads it, rather than as a bare array.
+  (@prql-bot, #6424)
+
+- The .NET binding's README now documents the actual API. It advertised `ToJson`
+  and `ToSql` static methods, which `PrqlCompiler` has never had — the binding
+  exposes `Compile`, `PrqlToPl`, `PlToRq` and `RqToSql`, each returning a
+  `Result` — and its usage example printed the `Result` object rather than its
+  `Output`. The XML doc comments had the same mismatch, and documented a
+  `FormatException` on every method that nothing throws — a query that cannot be
+  compiled is reported in the returned `Result`'s `Messages`. (@prql-bot, #6344)
+
+- The `loop` reference page now shows the transform's real signature. It read
+  `loop {step_function} {initial_relation}`, but `{...}` is tuple syntax and
+  `std.loop` takes a pipeline plus the relation piped into it, so a query
+  written as documented failed to compile. (@prql-bot, #6342)
+
+- The `prql-java` README now documents the actual API. It advertised a
+  single-argument `toSql(String query)` in package `org.prqllang.prql4j`; the
+  binding really exposes `toSql(query, target, format, signature)`, `toJson` and
+  `format` in package `org.prql.prql4j`, so the usage example as written would
+  not compile. `DEVELOPMENT.md` also described publishing to Maven as a working
+  step, but the `publish-prql-java` release job has been commented out since
+  #850 and no `org.prqllang` artifact exists on Maven Central. (@prql-bot,
+  #6281)
+
+- The `prqlc` npm README no longer documents a template-literal tag function
+  that silently discarded everything after the first interpolation — a query
+  containing any `${...}` compiled only the text before it. The two examples
+  using it are replaced by a direct `compile` call on a plain template literal.
+  (@prql-bot, #6309)
 
 **Web**:
 
+- The book's and website's PRQL syntax highlighting treats `\"`, `\'` and `\/`
+  as escapes, so a string containing an escaped quote no longer ends early.
+  (@prql-bot, #6488)
+- The playground's results table shows a NULL timestamp as `null` rather than
+  `1970-01-01T00:00:00.000Z`. (@prql-bot, #6489)
 - The playground no longer depends on `web-vitals`. `reportWebVitals` was called
   with no argument, and its body is guarded on that argument being a function —
   so the dynamic `import("web-vitals")` inside it never ran. It was Create React
   App boilerplate that outlived the migration to Vite. (@prql-bot, #6233)
+- The playground's manifest and `apple-touch-icon` link no longer point at
+  `icon192.png`, which was deleted in #543 and returned 404. (@prql-bot, #6448)
 
 **Integrations**:
+
+- The KSyntaxHighlighting (Kate) grammar in `grammars/KSyntaxHighlighting/` ends
+  a raw string at its closing quote, as the compiler does: it no longer treats
+  `\'` or `\\` inside `r'...'` as escapes, or `r'''` as a triple-quoted raw
+  string, either of which could carry the string highlight on past the end of
+  the string. (@prql-bot, #6501)
 
 - The `prqlc` JS/wasm package now reports an error for an unknown `target`,
   rather than silently compiling to generic SQL. A typo such as
   `opts.target = "sql.postgrez"` previously fell back to `sql.any`, so the
-  caller got working-but-wrong SQL with no signal. The Python and C bindings
-  already propagated this error; an unset (empty) `target` still means
-  `sql.any`. (@prql-bot, #6238)
+  caller got working-but-wrong SQL with no signal. The C binding already
+  propagated this error, as did Python's `rq_to_sql` (but not Python's `compile`
+  — see #6303); an unset (empty) `target` still means `sql.any`. (@prql-bot,
+  #6238)
+
+- `prqlc.compile` in the Python package now reports which option was invalid,
+  rather than a bare `Invalid options`. A typo such as `target="sql.postgrez"`
+  raises ``ValueError: Error: target `"sql.postgrez"` not found``, and an
+  unknown `display` names both the rejected value and the accepted ones:
+  `Invalid display option: "rainbow"; expected one of: plain, ansi_color`.
+  `rq_to_sql` already propagated the underlying error through the same
+  `convert_options`, so both entry points now surface it. (@prql-bot, #6303)
 
 - The `prqlc` Python package now declares `requires-python = ">=3.10"`. Python
   3.9 reached end-of-life in October 2025 and was never exercised by the test
@@ -73,6 +401,38 @@
   candidate that itself requires 3.10+ leaves the 3.9 resolution fork
   unsatisfiable. Users still on 3.9 continue to resolve the last release that
   declared support for it. (@prql-bot, #6225)
+
+- The Raku grammar in `grammars/raku/` now parses the exponent forms the
+  compiler accepts: an uppercase `E`, and a sign on a decimal's exponent. Its
+  `integer` and `float` tokens each spelled the exponent out separately and the
+  two had drifted, so `1.5e-3`, `1.5e+3`, `1E10` and `1.5E10` did not parse.
+  Both now share one `exponent` token. (@prql-bot, #6366)
+
+- The Raku grammar in `grammars/raku/` now parses a triple-quoted string
+  containing the quote character, such as `"""I said "hello"!"""`, and a string
+  containing an escaped quote, such as `"\"hello\""` — including the f-string
+  and s-string forms, which share the same `escape` token. Both are documented
+  PRQL, but the grammar ran a triple-quoted body only up to the first quote
+  character, and its `escape` token covered neither `\\` nor an escaped quote.
+  (@prql-bot, #6288)
+
+- The lezer grammar in `grammars/prql-lezer/` now parses a triple-quoted string
+  containing the quote character, such as `"""I said "hello"!"""`, and a string
+  containing an escaped quote, such as `"\"hello\""` — including the f-string
+  and s-string forms. Both are documented PRQL, but the triple-quoted body ran
+  only up to the first quote character, and the `Escape` token covered neither
+  `\\` nor an escaped quote. This is the same pair of bugs fixed for the Raku
+  grammar in #6288. An escape sequence that directly follows a quote inside a
+  triple-quoted string, such as `"""a"\nb"""`, no longer highlights as an error,
+  and an r-string holding an unmatched brace, such as `r"{a"`, now highlights as
+  an r-string rather than an identifier followed by a plain string. A backslash
+  followed by something the compiler doesn't recognize as an escape, such as
+  `"\z"`, parses rather than erroring — `prqlc` compiles it to `'z'` — but is
+  not highlighted as an escape sequence. (@prql-bot, #6289)
+
+- The lezer grammar in `grammars/prql-lezer/` now parses the unary `!` operator,
+  such as `filter !a`, and highlights it as a logic operator. Previously the
+  expression parsed to an error node. (@prql-bot, #6425)
 
 **Internal changes**:
 

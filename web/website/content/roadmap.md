@@ -29,12 +29,13 @@ will be tools that engineers use to build data pipelines, like
 
 #### Standard library
 
-Currently, the standard library is
-[quite limited](https://github.com/PRQL/prql/blob/main/prqlc/prqlc/src/semantic/std.prql).
-It contains only basic arithmetic functions (`AVERAGE`, `SUM`) and lacks
-functions for string manipulation, date handling and many math functions. We're
-looking to gradually introduce these as needed, and reduce the need for
-s-strings.
+The
+[standard library](https://github.com/PRQL/prql/blob/main/prqlc/prqlc/src/semantic/std.prql)
+now covers aggregations and window functions, plus `math`, `text` and `date`
+modules and a set of tuple functions. It's still narrower than a mature SQL
+dialect's — `date`, for instance, stops at `now`, `to_text`, `diff` and `trunc`
+— so we're looking to keep introducing functions as needed, and reduce the need
+for s-strings.
 
 One challenge here is the variety of functionalities and syntax of target DBMSs;
 e.g. there's no standard regex function.
@@ -133,12 +134,12 @@ dataframe of a performance-optimized library (such as
 [Polars](https://www.pola.rs/)) or a Google Sheets spreadsheet. Alternatively,
 we could even convert RQ to [Substrait](https://substrait.io/).
 
-### PRQL IDE
+#### PRQL IDE
 
 We'd like to make it easier to try PRQL. We currently have the playground, which
 compiles PRQL and runs queries with a DuckDB wasm module, but there's much more
-we could do. Could we support for importing arbitrary CSV and parquet input
-files and then exporting the results? Could it integrate an LSP?
+we could do. Could we support importing arbitrary CSV and parquet input files
+and then exporting the results? Could it integrate an LSP?
 
 We can balance this against building integrations with existing tools.
 

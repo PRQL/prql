@@ -7,6 +7,7 @@ pub mod reporting;
 mod resolver;
 
 pub use lowering::lower_to_ir;
+pub(crate) use lowering::missing_main_error;
 
 use self::resolver::Resolver;
 use crate::ir::decl::{Module, RootModule};

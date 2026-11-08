@@ -208,14 +208,22 @@ grammar PRQL {
     }
 
     token integer {
-        | <.digit> [<.digit> | '_']* ['e' ['+' | '-']? <integer>]?
+        | <.digit> [<.digit> | '_']* <.exponent>?
         | '0x' [<.xdigit> | '_']+
         | '0b' <[01_]>+
         | '0o' <[0..7_]>+
     }
 
     token float {
-        \d [\d | '_']* '.' \d [\d | '_']* ['e' <integer>]?
+        \d [\d | '_']* '.' \d [\d | '_']* <.exponent>?
+    }
+
+    # Shared by `integer` and `float` so the two can't drift: the compiler's
+    # lexer accepts `e` or `E`, an optional sign, then digits with no
+    # underscores, for both. Non-capturing, so a number with an exponent is
+    # still a single leaf capture carrying its whole text.
+    token exponent {
+        <[eE]> ['+' | '-']? <.digit>+
     }
 
     token date {
@@ -241,12 +249,16 @@ grammar PRQL {
         <dimension>
     }
 
+    # The lexer keeps the character following an unrecognized escape, so the
+    # last alternative is any character rather than a fixed set. That also
+    # covers `\\`, `\'` and `\"`, which a `<[bfnrt]>` set left out.
+    # https://prql-lang.org/book/reference/syntax/strings.html#escape-sequences
     token escape {
         '\\'
         (
         | 'x' <xdigit> <xdigit>
         | 'u' '{' <xdigit>+ '}'
-        | <[bfnrt]>
+        | .
         )
     }
 
@@ -295,9 +307,13 @@ grammar PRQL {
         '&&' | '||' | '??'
     }
 
+    # The bodies here and in `s-string` and `string` exclude `\`, so a
+    # backslash is only ever consumed by `<escape>`. Otherwise an escaped
+    # quote such as `"\""` could be read as a plain `\` followed by the
+    # closing quote, cutting the string short.
     token f-string {
-        | 'f"' (<-[\"]> | <escape>)* '"'
-        | 'f\'' (<-[\']> | <escape>)* '\''
+        | 'f"' (<-[\\\"]> | <escape>)* '"'
+        | 'f\'' (<-[\\\']> | <escape>)* '\''
     }
 
     token r-string {
@@ -306,14 +322,18 @@ grammar PRQL {
     }
 
     token s-string {
-        | 's"' (<-[\"]> | <escape>)* '"'
-        | 's\'' (<-[\']> | <escape>)* '\''
+        | 's"' (<-[\\\"]> | <escape>)* '"'
+        | 's\'' (<-[\\\']> | <escape>)* '\''
     }
 
+    # A triple-quoted string may contain the quote character itself, so its
+    # body runs to the first closing triple quote rather than stopping at the
+    # first quote — `"""I said "hello"!"""` is a documented form.
+    # https://prql-lang.org/book/reference/syntax/strings.html
     token string {
-        | '"""' (<-[\"]> | <escape>)* '"""'
-        | '"' (<-[\"]> | <escape>)* '"'
-        | '\'' (<-[\']> | <escape>)* '\''
-        | '\'\'\'' (<-[\']> | <escape>)* '\'\'\''
+        | '"""' [<!before '"""'> [<-[\\]> | <escape>]]* '"""'
+        | '\'\'\'' [<!before '\'\'\''> [<-[\\]> | <escape>]]* '\'\'\''
+        | '"' (<-[\\\"]> | <escape>)* '"'
+        | '\'' (<-[\\\']> | <escape>)* '\''
     }
 }

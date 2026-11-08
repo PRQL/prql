@@ -197,3 +197,24 @@ derive {
 ==>
 
 Query(Pipeline(CallExpression(Identifier,ArgList(TupleExpression(DeclarationTuple(DeclarationItem,Equals,NestedPipeline(Pipeline(Identifier,Identifier))))))))
+
+# Query definition
+
+prql target:sql.duckdb
+
+from foo
+
+==>
+
+Query(QueryDefinition(prql,NamedArg(ArgumentName,Identifier)),Pipeline(CallExpression(Identifier,ArgList(Identifier))))
+
+# Case expression
+
+derive x = case {
+  a => 1,
+  true => 2
+}
+
+==>
+
+Query(Pipeline(CallExpression(Identifier,ArgList(Declaration(DeclarationItem,Equals,CaseExpression(case,TupleExpression(CaseBranch(Identifier,Integer),CaseBranch(Boolean,Integer))))))))

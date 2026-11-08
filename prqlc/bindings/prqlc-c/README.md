@@ -25,8 +25,8 @@ dependencies, for example:
   `prql_to_pl` / `pl_to_rq` entry points.
 - [examples/minimal-cpp](examples/minimal-cpp) — the same flow using the
   generated C++ header.
-- [examples/minimal-zig](examples/minimal-zig) — a Zig example using `@cImport`
-  against `prqlc.h`.
+- [examples/minimal-zig](examples/minimal-zig) — a Zig example that translates
+  `prqlc.h` into a Zig module with `addTranslateC`.
 
 The full FFI surface is documented inline in [prqlc.h](prqlc.h).
 
