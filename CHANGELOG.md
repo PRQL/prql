@@ -362,6 +362,9 @@
   containing any `${...}` compiled only the text before it. The two examples
   using it are replaced by a direct `compile` call on a plain template literal.
   (@prql-bot, #6309)
+- The syntax-highlighting page names highlight.js, rather than Handlebars, as
+  the highlighter the book's and website's PRQL grammars are written for.
+  (@prql-bot, #6548)
 
 **Web**:
 
