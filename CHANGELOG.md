@@ -29,6 +29,10 @@
 
 **Fixes**:
 
+- `group {a} (take 1)` no longer compiles to `SELECT DISTINCT` when a step after
+  it reads another column, such as
+  `group {a} (take 1) | filter b > 0 | select {a}`. DISTINCT then compared
+  `(a, b)` and returned more than one row per `a`. (@prql-bot, #6547)
 - `prqlc fmt` keeps the parentheses around a function call or a `func` used as a
   parameter default or an annotation, such as `func x y:(math.abs 1) -> x` or
   `@(binding_strength 1)`. Dropping them produced output that failed to parse or
