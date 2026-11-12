@@ -22,9 +22,9 @@ cargo insta test -p prqlc --test integration -- date
 task prqlc:pull-request
 ```
 
-The ~30s assumes a warm build. From a cold `target/` — every fresh CI
-checkout — it compiles all the bindings and reruns the suite under coverage,
-which takes 10–30+ minutes. There, `task prqlc:test` plus
+The ~30s assumes a warm build. From a cold `target/` — every fresh CI checkout —
+it compiles all the bindings and reruns the suite under coverage, which takes
+10–30+ minutes. There, `task prqlc:test` plus
 `cargo clippy -p prqlc --all-targets -- -D warnings` is enough before pushing;
 CI runs the full suite.
 
