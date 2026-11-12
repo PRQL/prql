@@ -3119,6 +3119,39 @@ fn test_distinct_09() {
 }
 
 #[test]
+fn test_distinct_10() {
+    // `b` is dropped by the final select but still read by the filter, so the
+    // relation applying DISTINCT outputs it too. `DISTINCT a, b` would keep a
+    // row per distinct `(a, b)` rather than one per `a`.
+    assert_snapshot!(compile("
+    from t
+    select {a, b}
+    group {a} (take 1)
+    filter b > 0
+    select {a}
+    ").unwrap(), @"
+    WITH
+    table_0 AS (
+      SELECT
+        a,
+        b,
+        ROW_NUMBER() OVER (
+          PARTITION BY
+            a) AS _expr_0
+      FROM
+        t
+    )
+    SELECT
+      a
+    FROM
+      table_0
+    WHERE
+      _expr_0 <= 1
+      AND b > 0
+    ");
+}
+
+#[test]
 fn test_distinct_on_01() {
     assert_snapshot!((compile(r###"
     prql target:sql.postgres
