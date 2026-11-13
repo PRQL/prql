@@ -36,6 +36,9 @@
 - `prqlc fmt` keeps the parentheses around an aliased parameter default, such as
   `func x y:(a = 1) -> x + y`. Dropping them produced output that failed to
   parse. (@prql-bot, #6539)
+- Binary, hex and octal literals accept `_` between digits, as decimal literals
+  do: `0b1111_0000` previously failed to compile with `Unknown name _0000`.
+  (@prql-bot, #6520)
 - Joining a pipeline that selects two or more unnamed expressions references its
   later columns through the joined CTE: `x` in
   `join (from u | select {a + 1, b + 1, x}) (==x)` previously compiled to the
