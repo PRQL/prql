@@ -382,6 +382,10 @@
 
 **Integrations**:
 
+- The lezer grammar in `grammars/prql-lezer/` parses a parenthesized pipeline
+  into a call with arguments, such as `derive x = (distance | in 0..20)`, and no
+  longer treats `in` as an infix operator, which PRQL doesn't have. (@prql-bot,
+  #6509)
 - The KSyntaxHighlighting (Kate) grammar in `grammars/KSyntaxHighlighting/` ends
   a raw string at its closing quote, as the compiler does: it no longer treats
   `\'` or `\\` inside `r'...'` as escapes, or `r'''` as a triple-quoted raw

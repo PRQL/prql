@@ -53,9 +53,6 @@ describe("highlight", () => {
       ["{", t.brace.toString()],
       ["}", t.brace.toString()],
     ]);
-    assert.deepStrictEqual(tagged("from x\nfilter a in b\n"), [
-      ["in", t.operatorKeyword.toString()],
-    ]);
   });
 
   it("tags brackets, braces and separators", () => {
