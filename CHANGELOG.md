@@ -36,6 +36,9 @@
 - `prqlc fmt` keeps the parentheses around an aliased parameter default, such as
   `func x y:(a = 1) -> x + y`. Dropping them produced output that failed to
   parse. (@prql-bot, #6539)
+- A `$` with no parameter name after it, as in `filter id == $`, is now a lexer
+  error rather than compiling to invalid SQL; a name starting with `.`, as in
+  `$.a`, is rejected too. (@prql-bot, #6536)
 - Joining a pipeline that selects two or more unnamed expressions references its
   later columns through the joined CTE: `x` in
   `join (from u | select {a + 1, b + 1, x}) (==x)` previously compiled to the
@@ -283,6 +286,9 @@
 
 **Documentation**:
 
+- The book's parameters page states which characters a parameter name can
+  contain, rather than calling it an arbitrary alphanumeric string. (@prql-bot,
+  #6536)
 - The Python binding README lists the `display` option of `CompileOptions` and
   marks `color` as deprecated. (@prql-bot, #6460)
 - The JavaScript binding README documents an error's `span` as the

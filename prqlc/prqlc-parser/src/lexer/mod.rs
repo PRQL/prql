@@ -241,9 +241,14 @@ fn keyword<'a>() -> impl Parser<'a, ParserInput<'a>, TokenKind, ParserError<'a>>
 fn param<'a>() -> impl Parser<'a, ParserInput<'a>, TokenKind, ParserError<'a>> {
     just('$')
         .ignore_then(
+            // A name must follow the `$`, and can't start with a `.`
             any()
-                .filter(|c: &char| c.is_alphanumeric() || *c == '_' || *c == '.')
-                .repeated()
+                .filter(|c: &char| c.is_alphanumeric() || *c == '_')
+                .then(
+                    any()
+                        .filter(|c: &char| c.is_alphanumeric() || *c == '_' || *c == '.')
+                        .repeated(),
+                )
                 .to_slice()
                 .map(|s: &str| s.to_string()),
         )
