@@ -131,7 +131,7 @@ pub(in crate::sql) fn distinct(
     use Transform::*;
 
     let mut res = Vec::new();
-    for transform in pipeline.clone() {
+    for (index, transform) in pipeline.iter().cloned().enumerate() {
         match transform {
             Super(Take(rq::Take { ref partition, .. })) if partition.is_empty() => {
                 res.push(transform);
@@ -153,7 +153,12 @@ pub(in crate::sql) fn distinct(
                 // Check whether the columns within the partition are the same
                 // as the columns in the table; otherwise we can't use DISTINCT.
                 let columns_in_frame = ctx.anchor.determine_select_columns(&pipeline.clone());
-                let matching_columns = vecs_contain_same_elements(&columns_in_frame, &partition);
+                // The final select can drop a column that a later transform
+                // still reads, e.g. `group {a} (take 1) | filter b > 0 | select {a}`.
+                // The relation that applies DISTINCT then has to output `b`
+                // too, so DISTINCT would compare `(a, b)` rather than `a`.
+                let matching_columns = vecs_contain_same_elements(&columns_in_frame, &partition)
+                    && !reads_non_partition_column(&pipeline, index, &partition, ctx);
 
                 if take_only_first && sort.is_empty() && matching_columns {
                     // DISTINCT
@@ -183,6 +188,39 @@ pub(in crate::sql) fn distinct(
         }
     }
     Ok(res)
+}
+
+/// Whether a transform after the `take` at `index` reads a column of the
+/// take's input other than the partition columns.
+fn reads_non_partition_column(
+    pipeline: &[SqlTransform],
+    index: usize,
+    partition: &[CId],
+    ctx: &Context,
+) -> bool {
+    let mut input_columns = HashSet::new();
+    for transform in &pipeline[..index] {
+        match transform {
+            SqlTransform::From(riid) | SqlTransform::Join { with: riid, .. } => {
+                let relation = &ctx.anchor.relation_instances[riid];
+                input_columns.extend(relation.table_ref.columns.iter().map(|(_, cid)| *cid));
+            }
+            SqlTransform::Super(Transform::Compute(compute)) => {
+                input_columns.insert(compute.id);
+            }
+            _ => {}
+        }
+    }
+
+    pipeline[index + 1..].iter().any(|transform| {
+        let cids = match transform {
+            SqlTransform::Super(t) => CidCollector::collect_t(t.clone()).1,
+            SqlTransform::Join { filter, .. } => CidCollector::collect(filter.clone()),
+            _ => Vec::new(),
+        };
+        cids.iter()
+            .any(|cid| input_columns.contains(cid) && !partition.contains(cid))
+    })
 }
 
 fn into_column_sort(partition: &[CId]) -> Vec<ColumnSort<CId>> {
