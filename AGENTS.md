@@ -15,6 +15,11 @@ cargo insta test -p prqlc --lib -- resolver
 cargo insta test -p prqlc --test integration -- date
 ```
 
+The CLI tests in `prqlc/prqlc/src/cli/` run the `target/debug/prqlc` executable
+via `get_cargo_bin`. A run filtered to `--bins` or `--bin prqlc` doesn't rebuild
+that executable, so run `cargo build -p prqlc` first — otherwise those tests
+check the old binary, and `--accept` snapshots its output.
+
 **Before returning to user** (~30s):
 
 ```sh
