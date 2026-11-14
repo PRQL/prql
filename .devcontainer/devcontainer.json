@@ -2,8 +2,9 @@
 {
   "image": "ghcr.io/prql/prql-devcontainer-base:latest",
   "features": {
-    // Hugo 0.170.0 dropped the `Linux-64bit` release asset names this feature
-    // downloads; keep it on the last release that ships them
+    // Unpinned (`latest`), this feature's Hugo download 404s in CI since Hugo
+    // 0.170.0 (#6552), though that release still ships the asset it builds;
+    // a pinned version installs and skips the feature's `latest` lookup
     "ghcr.io/devcontainers/features/hugo:1": {
       "version": "0.169.0"
     },
