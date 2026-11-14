@@ -162,17 +162,23 @@ mod debug_lineage {
 
 #[cfg(any(feature = "test-dbs", feature = "test-dbs-external"))]
 mod results {
-
-    use itertools::Itertools;
-
     use super::*;
     use crate::dbs::{batch_to_csv, runners};
+    use itertools::Itertools;
 
     test_each_path! { in "./prqlc/prqlc/tests/integration/queries" => run }
 
     fn run(prql_path: &Path) {
         let test_name = prql_path.file_stem().unwrap().to_str().unwrap();
         let prql = fs::read_to_string(prql_path).unwrap();
+
+        // A `{dialect}:skip` marker on a `Supported` dialect claims the dialect
+        // cannot run this query yet. Nothing revisits that claim, so once the
+        // underlying bug is fixed the query stays excluded and quietly loses
+        // coverage. Check the claim here, where the runner is already set up,
+        // rather than in a test of its own: `runners()` builds the schema on
+        // first use, and a separate test process would race with this one.
+        let mut stale_skips: Vec<String> = Vec::new();
 
         // for each of the runners, get the query
         let results: Vec<(Dialect, String)> = runners()
@@ -181,6 +187,13 @@ mod results {
                 let mut runner = runner.lock().unwrap();
                 let dialect = runner.dialect();
                 if !should_run_query(dialect, &prql) {
+                    let marker = format!("{}:skip", dialect.to_string().to_lowercase());
+                    if prql.contains(&marker)
+                        && matches!(dialect.support_level(), SupportLevel::Supported)
+                        && runner.query(&prql).is_ok()
+                    {
+                        stale_skips.push(dialect.to_string());
+                    }
                     return None;
                 }
 
@@ -219,5 +232,11 @@ mod results {
                 dialect
             );
         }
+
+        assert!(
+            stale_skips.is_empty(),
+            "{test_name}: marked `{{dialect}}:skip` for {stale_skips:?}, but the query now \
+             runs clean. The skip marker is stale and the coverage is lost — remove it."
+        );
     }
 }
