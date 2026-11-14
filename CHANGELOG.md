@@ -274,6 +274,9 @@
   hit, so a failure that produces no compiler diagnostic — an unwritable `.sql`
   output path, say — left the watcher running silently and writing nothing.
   (@prql-bot, #6313)
+- Allow a derived column to share its name with the source relation (e.g.
+  `from sales.sales | derive {sales = ...}`), which previously failed to resolve
+  the remaining columns. (@lukapeschke, #6020)
 
 - `prqlc debug annotate` no longer prints a blank line after each line that
   follows the last annotated line, such as trailing comments. (@prql-bot, #6477)
