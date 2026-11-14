@@ -2,7 +2,12 @@
 {
   "image": "ghcr.io/prql/prql-devcontainer-base:latest",
   "features": {
-    "ghcr.io/devcontainers/features/hugo:1": {},
+    // Unpinned (`latest`), this feature's Hugo download 404s in CI since Hugo
+    // 0.170.0 (#6552), though that release still ships the asset it builds;
+    // a pinned version installs and skips the feature's `latest` lookup
+    "ghcr.io/devcontainers/features/hugo:1": {
+      "version": "0.169.0"
+    },
     "ghcr.io/devcontainers/features/python:1": {},
     "ghcr.io/devcontainers/features/node:2": {},
     "ghcr.io/eitsupi/devcontainer-features/go-task:1": {},
