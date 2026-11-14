@@ -91,9 +91,12 @@ impl pl::PlFold for Resolver<'_> {
                         .map(|i| i.to_string())
                         .collect::<Vec<_>>()
                 );
-                let fq_ident = self
-                    .resolve_ident(&ident)
-                    .map_err(|e| e.with_span(node.span))?;
+                let from_std = span.is_some_and(|span| span.source_id == STD_LIB_SOURCE_ID);
+                let expects_func = std::mem::take(&mut self.arg_expects_func);
+                self.columns_before_std = !from_std && !expects_func && !self.in_func_call_name;
+                let fq_ident = self.resolve_ident(&ident);
+                self.columns_before_std = false;
+                let fq_ident = fq_ident.map_err(|e| e.with_span(node.span))?;
                 log::debug!("... resolved to {fq_ident}");
                 let entry = self.root_mod.module.get(&fq_ident).unwrap();
                 log::debug!("... which is {entry}");
@@ -193,7 +196,19 @@ impl pl::PlFold for Resolver<'_> {
                 let name = Box::new(self.fold_expr(*name)?);
                 self.in_func_call_name = old;
 
-                let func = name.try_cast(|n| n.into_func(), None, "a function")?;
+                let func = name
+                    .try_cast(|n| n.into_func(), None, "a function")
+                    .map_err(|e| match &e.reason {
+                        // `sort -val` is parsed as `sort - val`
+                        Reason::Expected { found, .. }
+                            if found.trim_start_matches('`').starts_with("(std.sub ") =>
+                        {
+                            e.push_hint(
+                                "wrap negative numbers in parentheses, e.g. `sort (-column_name)`",
+                            )
+                        }
+                        _ => e,
+                    })?;
 
                 // fold function
                 let func = self
