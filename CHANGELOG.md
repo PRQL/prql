@@ -29,6 +29,10 @@
 
 **Fixes**:
 
+- `group {a} (take 1)` no longer compiles to `SELECT DISTINCT` when a step after
+  it reads another column, such as
+  `group {a} (take 1) | filter b > 0 | select {a}`. DISTINCT then compared
+  `(a, b)` and returned more than one row per `a`. (@prql-bot, #6547)
 - Selecting a column that isn't declared from a CTE that joins two tables now
   compiles when only the second table has a wildcard. Previously the column was
   attributed to the first table, which failed with `does not have wildcard`.
