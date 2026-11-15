@@ -29,6 +29,10 @@
 
 **Fixes**:
 
+- Selecting a column that isn't declared from a CTE that joins two tables now
+  compiles when only the second table has a wildcard. Previously the column was
+  attributed to the first table, which failed with `does not have wildcard`.
+  (@prql-bot, #6558)
 - `prqlc fmt` keeps the parentheses around a function call or a `func` used as a
   parameter default or an annotation, such as `func x y:(math.abs 1) -> x` or
   `@(binding_strength 1)`. Dropping them produced output that failed to parse or
