@@ -17,14 +17,14 @@ impl Resolver<'_> {
         let table_decl = table.kind.as_table_decl_mut().unwrap();
 
         let Some(columns) = table_decl.ty.as_mut().and_then(|t| t.as_relation_mut()) else {
-            return Err(format!("Variable {table_ident:?} is not a relation."));
+            return Err(format!("Variable {table_ident} is not a relation."));
         };
 
         let has_wildcard = columns
             .iter()
             .any(|c| matches!(c, TyTupleField::Wildcard(_)));
         if !has_wildcard {
-            return Err(format!("Table {table_ident:?} does not have wildcard."));
+            return Err(format!("Table {table_ident} does not have wildcard."));
         }
 
         let exists = columns.iter().any(|c| match c {
@@ -44,22 +44,22 @@ impl Resolver<'_> {
                     .filter_map(|c| c.as_all())
                     .collect_vec();
 
-                match wildcard_inputs.len() {
-                    0 => return Err(format!("Cannot infer where {table_ident}.{col_name} is from")),
-                    1 => {
-                        let (input_id, _) = wildcard_inputs.into_iter().next().unwrap();
+                // When several sources have wildcards, the column could come
+                // from any of them. The CTE selects all of their columns, so
+                // charging it to the first one still produces valid SQL and
+                // the database resolves the name (#4723).
+                let Some((input_id, _)) = wildcard_inputs.first() else {
+                    return Err(format!(
+                        "Cannot infer where {table_ident}.{col_name} is from"
+                    ));
+                };
 
-                        // input_id comes from LineageColumn::All in frame.columns.
-                        // Should be valid, but if this panics, see #5280 and lowering.rs
-                        // for the pattern where columns reference out-of-scope inputs.
-                        let input = frame.find_input(*input_id).unwrap();
-                        let table_ident = input.table.clone();
-                        self.infer_table_column(&table_ident, col_name)?;
-                    }
-                    _ => {
-                        return Err(format!("Cannot infer where {table_ident}.{col_name} is from. It could be any of {wildcard_inputs:?}"))
-                    }
-                }
+                // input_id comes from LineageColumn::All in frame.columns.
+                // Should be valid, but if this panics, see #5280 and lowering.rs
+                // for the pattern where columns reference out-of-scope inputs.
+                let input = frame.find_input(**input_id).unwrap();
+                let table_ident = input.table.clone();
+                self.infer_table_column(&table_ident, col_name)?;
             }
         }
 
@@ -74,30 +74,17 @@ impl Resolver<'_> {
         input_id: usize,
     ) -> Lineage {
         let table_decl = self.root_mod.module.get(table_fq).unwrap();
-        let TableDecl { ty, expr } = table_decl.kind.as_table_decl().unwrap();
+        let TableDecl { ty, .. } = table_decl.kind.as_table_decl().unwrap();
 
-        // For CTEs (RelationVar), trace lineage back to the underlying source tables.
-        // For UNIONs and JOINs, this includes all underlying source tables.
-        let underlying_inputs = match expr {
-            TableExpr::RelationVar(rel) => rel.lineage.as_ref().map(|l| &l.inputs),
-            _ => None,
-        };
-
-        let inputs = match underlying_inputs {
-            Some(inputs) if !inputs.is_empty() => inputs
-                .iter()
-                .map(|inp| LineageInput {
-                    id: input_id,
-                    name: input_name.clone(),
-                    table: inp.table.clone(),
-                })
-                .collect(),
-            _ => vec![LineageInput {
-                id: input_id,
-                name: input_name.clone(),
-                table: table_fq.clone(),
-            }],
-        };
+        // A CTE stays the input here, so that column inference reaches the
+        // CTE's own declaration and from there its wildcard source. Tracing a
+        // CTE back to its source tables happens when reporting lineage, in
+        // `semantic::reporting::trace_inputs_to_source_tables`.
+        let inputs = vec![LineageInput {
+            id: input_id,
+            name: input_name.clone(),
+            table: table_fq.clone(),
+        }];
 
         // TODO: can this panic?
         let columns = ty.as_ref().unwrap().as_relation().unwrap();
