@@ -33,6 +33,10 @@
   it reads another column, such as
   `group {a} (take 1) | filter b > 0 | select {a}`. DISTINCT then compared
   `(a, b)` and returned more than one row per `a`. (@prql-bot, #6547)
+- Selecting a column that isn't declared from a CTE that joins two tables now
+  compiles when only the second table has a wildcard. Previously the column was
+  attributed to the first table, which failed with `does not have wildcard`.
+  (@prql-bot, #6558)
 - A join against a table with unknown columns, such as
   `from a | join b (==id) | select {a.id}`, stays a join instead of compiling to
   `INTERSECT ALL SELECT * FROM b` (or `EXCEPT ALL` for the anti-join form),
