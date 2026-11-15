@@ -30,7 +30,7 @@ an index.
   applications. File is at
   [`grammars/GtkSourceView/`](https://github.com/PRQL/prql/tree/main/grammars/GtkSourceView/).
 
-- [Handlebars](https://handlebarsjs.com/) — currently duplicated:
+- [highlight.js](https://highlightjs.org/) — currently duplicated:
   - The book:
     [`book/highlight-prql.js`](https://github.com/PRQL/prql/blob/main/web/book/highlight-prql.js)
   - The website (outside of the book & playground):

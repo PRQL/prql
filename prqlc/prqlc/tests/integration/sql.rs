@@ -1177,6 +1177,43 @@ fn test_intersect_09() {
 }
 
 #[test]
+fn test_intersect_10() {
+    // `b`'s columns are unknown, so `SELECT * FROM b` may return more columns
+    // than the join compares; a semi-join on one column must stay a join.
+    assert_snapshot!(compile(r#"
+    from a
+    join b (==id)
+    select {a.id}
+    "#).unwrap(), @"
+    SELECT
+      a.id
+    FROM
+      a
+      INNER JOIN b ON a.id = b.id
+    ");
+}
+
+#[test]
+fn test_remove_08() {
+    // As in `test_intersect_10`, an anti-join against a table with unknown
+    // columns must stay a join rather than become `EXCEPT ... SELECT *`.
+    assert_snapshot!(compile(r#"
+    from a
+    join side:left b (==id)
+    filter b.id == null
+    select {a.id}
+    "#).unwrap(), @"
+    SELECT
+      a.id
+    FROM
+      a
+      LEFT OUTER JOIN b ON a.id = b.id
+    WHERE
+      b.id IS NULL
+    ");
+}
+
+#[test]
 fn test_remove_07() {
     // Extra conditions in the join or the null-check filter must not be
     // dropped by rewriting into EXCEPT.

@@ -5,6 +5,7 @@ use itertools::Itertools;
 
 use super::anchor::{infer_complexity, CidCollector, Complexity};
 use super::ast::*;
+use super::context::RelationInstance;
 
 use crate::ir::generic::{ColumnSort, SortDirection, WindowFrame, WindowKind};
 use crate::ir::pl::{JoinSide, Literal};
@@ -374,6 +375,12 @@ pub(in crate::sql) fn except(
         let top = ctx.anchor.determine_select_columns(&res[0..res.len() - 2]);
         let bottom = with.table_ref.columns.iter().map(|(_, c)| *c).collect_vec();
 
+        // The set operation reads bottom as `SELECT *`, so it is equivalent
+        // only if no column of bottom was pruned away.
+        if !is_unpruned(with) {
+            continue;
+        }
+
         // join_cond must be a join over all columns
         // (this could be loosened to check only the relation key)
         if !joins_by_position(&top, &bottom, join_cond) {
@@ -464,6 +471,13 @@ pub(in crate::sql) fn intersect(
         let with = ctx.anchor.relation_instances.get_mut(with).unwrap();
 
         let bottom = with.table_ref.columns.iter().map(|(_, c)| *c).collect_vec();
+
+        // The set operation reads bottom as `SELECT *`, so it is equivalent
+        // only if no column of bottom was pruned away.
+        if !is_unpruned(with) {
+            continue;
+        }
+
         let top = ctx.anchor.determine_select_columns(&res[0..res.len() - 1]);
 
         // join_cond must be a join over all columns
@@ -528,6 +542,12 @@ pub(in crate::sql) fn intersect(
     }
 
     Ok(res)
+}
+
+/// Returns true if pruning kept every column of the relation instance, so the
+/// columns the pipeline references are all the columns `SELECT *` returns.
+fn is_unpruned(relation: &RelationInstance) -> bool {
+    relation.table_ref.columns.len() == relation.original_cids.len()
 }
 
 fn all_null(exprs: Vec<&Expr>) -> bool {

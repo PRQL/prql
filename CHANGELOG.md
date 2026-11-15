@@ -33,6 +33,10 @@
   it reads another column, such as
   `group {a} (take 1) | filter b > 0 | select {a}`. DISTINCT then compared
   `(a, b)` and returned more than one row per `a`. (@prql-bot, #6547)
+- A join against a table with unknown columns, such as
+  `from a | join b (==id) | select {a.id}`, stays a join instead of compiling to
+  `INTERSECT ALL SELECT * FROM b` (or `EXCEPT ALL` for the anti-join form),
+  which had mismatched column counts. (@prql-bot, #6556)
 - `prqlc fmt` keeps the parentheses around a function call or a `func` used as a
   parameter default or an annotation, such as `func x y:(math.abs 1) -> x` or
   `@(binding_strength 1)`. Dropping them produced output that failed to parse or
@@ -366,6 +370,9 @@
   containing any `${...}` compiled only the text before it. The two examples
   using it are replaced by a direct `compile` call on a plain template literal.
   (@prql-bot, #6309)
+- The syntax-highlighting page names highlight.js, rather than Handlebars, as
+  the highlighter the book's and website's PRQL grammars are written for.
+  (@prql-bot, #6548)
 
 **Web**:
 
