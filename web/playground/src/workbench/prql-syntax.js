@@ -72,6 +72,12 @@ const def = {
       // comments
       { include: "@comment" },
 
+      // raw strings; their content is literal up to the matching quote, so a
+      // backslash doesn't escape it (`r"C:\dir\"` is a complete string). These
+      // come before identifiers, which would otherwise claim the `r`.
+      [/r"[^"]*"/, "string"],
+      [/r'[^']*'/, "string"],
+
       // named-args
       [/(\w+)\s*:/, { cases: { $1: "key" } }],
 
