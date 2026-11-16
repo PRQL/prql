@@ -32,6 +32,9 @@
 - `prqlc watch` keeps a Jinja interpolation intact when digits directly follow
   it, and no longer wraps one in identifier quotes on Snowflake and Oracle.
   (@prql-bot, #6567)
+- `date.to_text` on ClickHouse escapes an apostrophe inside a word in the format
+  string, such as `"%H o'clock"`. It previously ended the quoted Joda section
+  early, so the rest of the word was read as pattern letters. (@prql-bot, #6568)
 - `date.to_text` on Postgres, Redshift and MSSQL escapes a `"` or `\` that sits
   next to letters in the format string, such as `"%Y x\"y %d"`. It previously
   closed the quoted section early, producing a wrong date or, on MSSQL, an
@@ -388,6 +391,9 @@
 
 **Web**:
 
+- The playground editor's highlighting treats `\"` and `\'` inside a string as
+  escapes, so a string containing an escaped quote no longer ends early.
+  (@prql-bot, #6565)
 - The book's and website's PRQL syntax highlighting treats `\"`, `\'` and `\/`
   as escapes, so a string containing an escaped quote no longer ends early.
   (@prql-bot, #6488)
