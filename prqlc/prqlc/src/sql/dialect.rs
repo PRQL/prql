@@ -391,9 +391,10 @@ impl DialectHandler for PostgresDialect {
                     // If the literal contains alphanumeric characters, we need to quote it
                     // to avoid it being interpreted as a pattern understood by Postgres.
                     // We hence need to put it in double quotes to force it to be interpreted as literal text.
-                    // chrono can keep a `"` inside such a literal (e.g. `x"y`), which
-                    // would close the quoted section early, so escape it.
-                    format!("\"{}\"", literal.replace('"', "\\\""))
+                    // chrono can keep a `"` or `\` inside such a literal (e.g. `x"y`).
+                    // Inside the quoted section a backslash escapes the next character,
+                    // so escape backslashes first, then the `"` that would close it early.
+                    format!("\"{}\"", literal.replace('\\', "\\\\").replace('"', "\\\""))
                 } else {
                     literal.replace('\'', "''").replace('"', "\\\"")
                 }
@@ -448,9 +449,10 @@ impl DialectHandler for RedshiftDialect {
                     // If the literal contains alphanumeric characters, we need to quote it
                     // to avoid it being interpreted as a pattern understood by Redshift.
                     // We hence need to put it in double quotes to force it to be interpreted as literal text.
-                    // chrono can keep a `"` inside such a literal (e.g. `x"y`), which
-                    // would close the quoted section early, so escape it.
-                    format!("\"{}\"", literal.replace('"', "\\\""))
+                    // chrono can keep a `"` or `\` inside such a literal (e.g. `x"y`).
+                    // Inside the quoted section a backslash escapes the next character,
+                    // so escape backslashes first, then the `"` that would close it early.
+                    format!("\"{}\"", literal.replace('\\', "\\\\").replace('"', "\\\""))
                 } else {
                     literal.replace('\'', "''").replace('"', "\\\"")
                 }
@@ -547,9 +549,10 @@ impl DialectHandler for MsSqlDialect {
                     // If the literal contains alphanumeric characters, we need to quote it
                     // to avoid it being interpreted as a pattern understood by MSSQL.
                     // We hence need to put it in double quotes to force it to be interpreted as literal text.
-                    // chrono can keep a `"` inside such a literal (e.g. `x"y`), which
-                    // would close the quoted section early, so escape it.
-                    format!("\"{}\"", literal.replace('"', "\\\""))
+                    // chrono can keep a `"` or `\` inside such a literal (e.g. `x"y`).
+                    // Inside the quoted section a backslash escapes the next character,
+                    // so escape backslashes first, then the `"` that would close it early.
+                    format!("\"{}\"", literal.replace('\\', "\\\\").replace('"', "\\\""))
                 } else {
                     // MSSQL uses single quotes around
                     literal
@@ -1087,6 +1090,22 @@ mod tests {
         assert_snapshot!(
             MsSqlDialect.translate_prql_date_format(format).unwrap(),
             @r#"yyyy "x\"y" dd"#);
+    }
+
+    /// A literal backslash before the `"` must be escaped too, otherwise the
+    /// inserted backslash pairs with it and the `"` closes the section.
+    #[test]
+    fn backslash_and_double_quote_inside_quoted_literal_are_escaped() {
+        let format = r#"%Y x\"y %d"#;
+        assert_snapshot!(
+            PostgresDialect.translate_prql_date_format(format).unwrap(),
+            @r#"YYYY "x\\\"y" DD"#);
+        assert_snapshot!(
+            RedshiftDialect.translate_prql_date_format(format).unwrap(),
+            @r#"YYYY "x\\\"y" DD"#);
+        assert_snapshot!(
+            MsSqlDialect.translate_prql_date_format(format).unwrap(),
+            @r#"yyyy "x\\\"y" dd"#);
     }
 }
 
