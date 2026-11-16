@@ -814,9 +814,23 @@ jobs:
     environment:
       name: tend
       deployment: false
+    # `github.token` is written to ~/.curlrc below, so keep it read-only; the
+    # PR itself is opened with `TEND_BOT_TOKEN`.
+    permissions:
+      contents: read
     steps:
       - name: 📂 Checkout code
         uses: actions/checkout@v7
+      # The action lists rust-lang/rust releases with an unauthenticated
+      # `curl` to api.github.com, which shares the runner IP's 60 requests/hour
+      # and fails on `jq` when the API answers with an error object. Its curl
+      # reads ~/.curlrc, so authenticate it with the job's read-only token.
+      - name: Authenticate the action's GitHub API request
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          printf 'header = "Authorization: Bearer %s"\n' "$GH_TOKEN" > ~/.curlrc
+          chmod 600 ~/.curlrc
       - uses: a-kenji/update-rust-toolchain@main
         with:
           # Discussion in #1561
