@@ -387,12 +387,13 @@ impl DialectHandler for PostgresDialect {
             Item::Fixed(Fixed::UpperAmPm) => "AM".to_string(),
             Item::Fixed(Fixed::RFC3339) => "YYYY-MM-DD\"T\"HH24:MI:SS.USZ".to_string(),
             Item::Literal(literal) => {
-                // literals are split at every non alphanumeric character
                 if literal.chars().any(|c| c.is_ascii_alphanumeric()) {
                     // If the literal contains alphanumeric characters, we need to quote it
                     // to avoid it being interpreted as a pattern understood by Postgres.
-                    // We hence need to put it in double quotes to force it to be interpreted as literal text
-                    format!("\"{literal}\"")
+                    // We hence need to put it in double quotes to force it to be interpreted as literal text.
+                    // chrono can keep a `"` inside such a literal (e.g. `x"y`), which
+                    // would close the quoted section early, so escape it.
+                    format!("\"{}\"", literal.replace('"', "\\\""))
                 } else {
                     literal.replace('\'', "''").replace('"', "\\\"")
                 }
@@ -443,12 +444,13 @@ impl DialectHandler for RedshiftDialect {
             Item::Fixed(Fixed::UpperAmPm) => "AM".to_string(),
             Item::Fixed(Fixed::RFC3339) => "YYYY-MM-DD\"T\"HH24:MI:SS.USZ".to_string(),
             Item::Literal(literal) => {
-                // literals are split at every non alphanumeric character
                 if literal.chars().any(|c| c.is_ascii_alphanumeric()) {
                     // If the literal contains alphanumeric characters, we need to quote it
                     // to avoid it being interpreted as a pattern understood by Redshift.
-                    // We hence need to put it in double quotes to force it to be interpreted as literal text
-                    format!("\"{literal}\"")
+                    // We hence need to put it in double quotes to force it to be interpreted as literal text.
+                    // chrono can keep a `"` inside such a literal (e.g. `x"y`), which
+                    // would close the quoted section early, so escape it.
+                    format!("\"{}\"", literal.replace('"', "\\\""))
                 } else {
                     literal.replace('\'', "''").replace('"', "\\\"")
                 }
@@ -541,12 +543,13 @@ impl DialectHandler for MsSqlDialect {
             Item::Fixed(Fixed::UpperAmPm) => "tt".to_string(),
             Item::Fixed(Fixed::RFC3339) => "yyyy-MM-dd'T'HH:mm:ss.ffffff'Z'".to_string(),
             Item::Literal(literal) => {
-                // literals are split at every non alphanumeric character
                 if literal.chars().any(|c| c.is_ascii_alphanumeric()) {
                     // If the literal contains alphanumeric characters, we need to quote it
                     // to avoid it being interpreted as a pattern understood by MSSQL.
-                    // We hence need to put it in double quotes to force it to be interpreted as literal text
-                    format!("\"{literal}\"")
+                    // We hence need to put it in double quotes to force it to be interpreted as literal text.
+                    // chrono can keep a `"` inside such a literal (e.g. `x"y`), which
+                    // would close the quoted section early, so escape it.
+                    format!("\"{}\"", literal.replace('"', "\\\""))
                 } else {
                     // MSSQL uses single quotes around
                     literal
@@ -1067,6 +1070,23 @@ mod tests {
                 .unwrap_err()
                 .reason,
             @"format specifier `%_d` is not supported for Postgres");
+    }
+
+    /// chrono keeps a `"` inside a literal that also has letters, such as
+    /// `x"y`, so the double-quoted section wrapping it must escape the `"`
+    /// rather than let it close the section early.
+    #[test]
+    fn double_quote_inside_quoted_literal_is_escaped() {
+        let format = r#"%Y x"y %d"#;
+        assert_snapshot!(
+            PostgresDialect.translate_prql_date_format(format).unwrap(),
+            @r#"YYYY "x\"y" DD"#);
+        assert_snapshot!(
+            RedshiftDialect.translate_prql_date_format(format).unwrap(),
+            @r#"YYYY "x\"y" DD"#);
+        assert_snapshot!(
+            MsSqlDialect.translate_prql_date_format(format).unwrap(),
+            @r#"yyyy "x\"y" dd"#);
     }
 }
 
