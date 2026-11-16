@@ -23,6 +23,9 @@ use minijinja::{
 use regex::Regex;
 
 const ANCHOR_PREFIX: &str = "_jinja_";
+/// Closes an anchor, so text that directly follows an interpolation (such as
+/// the digits in `{{ ref('orders') }}2024`) can't merge into its id.
+const ANCHOR_SUFFIX: &str = "_";
 
 #[derive(Debug)]
 pub enum JinjaBlock<'a> {
@@ -73,7 +76,7 @@ pub fn pre_process(source: &str) -> Result<(String, JinjaContext<'_>)> {
                 if let Some(Token::Ident("config" | "set")) = tokens.get(1) {
                     context.header.push(source_span);
                 } else {
-                    let id = format!("{ANCHOR_PREFIX}{next_anchor_id}");
+                    let id = format!("{ANCHOR_PREFIX}{next_anchor_id}{ANCHOR_SUFFIX}");
                     next_anchor_id += 1;
 
                     anchored_source += &id;
@@ -105,18 +108,33 @@ pub fn post_process(source: &str, context: JinjaContext) -> String {
         res += "\n";
     }
 
-    let re = Regex::new(&format!(r"{ANCHOR_PREFIX}\d+")).unwrap();
+    // An anchor compiles as an identifier, so a target that always quotes
+    // identifiers (Snowflake, Oracle) wraps it in quotes. An interpolation
+    // stands for SQL rather than for a name, so quotes enclosing exactly one
+    // anchor are dropped along with it.
+    let re = Regex::new(&format!(
+        r#""({ANCHOR_PREFIX}\d+{ANCHOR_SUFFIX})"|`({ANCHOR_PREFIX}\d+{ANCHOR_SUFFIX})`|\[({ANCHOR_PREFIX}\d+{ANCHOR_SUFFIX})\]|({ANCHOR_PREFIX}\d+{ANCHOR_SUFFIX})"#
+    ))
+    .unwrap();
 
     let mut last_index = 0;
     for cap in re.captures_iter(source) {
-        let cap = cap.get(0).unwrap();
-        let index = cap.start();
-        let anchor_id = cap.as_str();
+        let whole = cap.get(0).unwrap();
+        let anchor_id = cap
+            .iter()
+            .skip(1)
+            .flatten()
+            .next()
+            .expect("one alternative matched")
+            .as_str();
 
-        res += &source[last_index..index];
-        res += context.anchor_map.get(anchor_id).unwrap_or(&anchor_id);
+        res += &source[last_index..whole.start()];
+        match context.anchor_map.get(anchor_id) {
+            Some(value) => res += value,
+            None => res += whole.as_str(),
+        }
 
-        last_index = index + anchor_id.len();
+        last_index = whole.end();
     }
     res += &source[last_index..];
 
@@ -125,6 +143,8 @@ pub fn post_process(source: &str, context: JinjaContext) -> String {
 
 #[cfg(test)]
 mod test {
+    use insta::assert_snapshot;
+
     use super::{post_process, pre_process, Span};
 
     #[test]
@@ -163,9 +183,9 @@ mod test {
         // everything from the start of the file.
         let src = "from a\n{{ foo }}\nfrom b = {{ bar }}";
         let (pre_proc_text, ctx) = pre_process(src).unwrap();
-        insta::assert_yaml_snapshot!(pre_proc_text, @r#""from a\n_jinja_0\nfrom b = _jinja_1""#);
-        insta::assert_yaml_snapshot!(ctx.anchor_map["_jinja_0"], @r#""{{ foo }}""#);
-        insta::assert_yaml_snapshot!(ctx.anchor_map["_jinja_1"], @r#""{{ bar }}""#);
+        insta::assert_yaml_snapshot!(pre_proc_text, @r#""from a\n_jinja_0_\nfrom b = _jinja_1_""#);
+        insta::assert_yaml_snapshot!(ctx.anchor_map["_jinja_0_"], @r#""{{ foo }}""#);
+        insta::assert_yaml_snapshot!(ctx.anchor_map["_jinja_1_"], @r#""{{ bar }}""#);
         let post_proc_text = post_process(&pre_proc_text, ctx);
         insta::assert_snapshot!(post_proc_text, @"
         from a
@@ -178,8 +198,8 @@ mod test {
     fn test_pre_process() {
         let src = r###"from in_process = {{ source('salesforce', 'in_process') }}"###;
         let (pre_proc_text, ctx) = pre_process(src).unwrap();
-        insta::assert_yaml_snapshot!(pre_proc_text, @"from in_process = _jinja_0");
-        insta::assert_yaml_snapshot!(ctx.anchor_map["_jinja_0"], @r#""{{ source('salesforce', 'in_process') }}""#);
+        insta::assert_yaml_snapshot!(pre_proc_text, @"from in_process = _jinja_0_");
+        insta::assert_yaml_snapshot!(ctx.anchor_map["_jinja_0_"], @r#""{{ source('salesforce', 'in_process') }}""#);
     }
 
     #[test]
@@ -197,8 +217,61 @@ mod test {
         // slice would land mid-character.
         let src = r###"from café = {{ source('salesforce', 'in_process') }}"###;
         let (pre_proc_text, ctx) = pre_process(src).unwrap();
-        insta::assert_yaml_snapshot!(pre_proc_text, @"from café = _jinja_0");
-        insta::assert_yaml_snapshot!(ctx.anchor_map["_jinja_0"], @r#""{{ source('salesforce', 'in_process') }}""#);
+        insta::assert_yaml_snapshot!(pre_proc_text, @"from café = _jinja_0_");
+        insta::assert_yaml_snapshot!(ctx.anchor_map["_jinja_0_"], @r#""{{ source('salesforce', 'in_process') }}""#);
+    }
+
+    fn compile_with_jinja(src: &str) -> String {
+        let (prql, ctx) = pre_process(src).unwrap();
+        let opts = prqlc::Options::default().no_signature();
+        let sql = prqlc::compile(&prql, &opts).unwrap();
+        post_process(&sql, ctx)
+    }
+
+    #[test]
+    fn test_interpolation_followed_by_digits() {
+        assert_snapshot!(compile_with_jinja("from {{ ref('orders') }}2024"), @"
+        SELECT
+          *
+        FROM
+          {{ ref('orders') }}2024
+        ");
+    }
+
+    #[test]
+    fn test_interpolation_not_quoted_on_always_quoting_target() {
+        assert_snapshot!(compile_with_jinja(
+            "prql target:sql.snowflake\nfrom {{ ref('orders') }}\nfilter amount > {{ var('min') }}"
+        ), @r#"
+        SELECT
+          *
+        FROM
+          {{ ref('orders') }}
+        WHERE
+          "amount" > {{ var('min') }}
+        "#);
+        assert_snapshot!(compile_with_jinja(
+            "prql target:sql.oracle\nfrom {{ ref('orders') }}"
+        ), @"
+        SELECT
+          *
+        FROM
+          {{ ref('orders') }}
+        ");
+    }
+
+    #[test]
+    fn test_interpolation_in_string_literal_keeps_quotes() {
+        assert_snapshot!(compile_with_jinja(
+            "prql target:sql.snowflake\nfrom orders\nfilter name == '{{ var(\"n\") }}'"
+        ), @r#"
+        SELECT
+          *
+        FROM
+          "orders"
+        WHERE
+          "name" = '{{ var("n") }}'
+        "#);
     }
 
     #[test]
