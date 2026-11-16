@@ -117,9 +117,12 @@ pub fn post_process(source: &str, context: JinjaContext) -> String {
     // character inside one can't pair with a quote outside it, and a token
     // that merely starts with an anchor (`"_jinja_0_""x"`) keeps its quotes.
     // Anchors within any other quoted token are replaced in place.
+    // A PostgreSQL dollar-quoted literal (`$$…$$`, `$tag$…$tag$`) is matched
+    // by its opening tag and runs to the matching closing tag; the regex
+    // crate has no backreferences, so that end is found below.
     let anchor = format!(r"{ANCHOR_PREFIX}\d+{ANCHOR_SUFFIX}");
     let re = Regex::new(&format!(
-        r#"'(?:[^']|'')*'|"(?:[^"]|"")*"|`(?:[^`]|``)*`|{anchor}"#
+        r#"'(?:[^']|'')*'|"(?:[^"]|"")*"|`(?:[^`]|``)*`|\$(?:[A-Za-z_][A-Za-z0-9_]*)?\$|{anchor}"#
     ))
     .unwrap();
     let bare_anchor = Regex::new(&anchor).unwrap();
@@ -127,16 +130,24 @@ pub fn post_process(source: &str, context: JinjaContext) -> String {
     let substitute = |anchor_id: &str| context.anchor_map.get(anchor_id).copied();
 
     let mut last_index = 0;
-    for token in re.find_iter(source) {
+    while let Some(token) = re.find_at(source, last_index) {
         res += &source[last_index..token.start()];
-        let text = token.as_str();
+        let mut end = token.end();
 
         // The text an identifier's quotes enclose, or the token itself when bare.
-        let contents = match text.as_bytes()[0] {
-            b'"' | b'`' => Some(&text[1..text.len() - 1]),
+        let contents = match token.as_str().as_bytes()[0] {
+            b'"' | b'`' => Some(&token.as_str()[1..token.len() - 1]),
+            b'$' => {
+                // An unclosed dollar quote runs to the end of the source.
+                end = source[end..]
+                    .find(token.as_str())
+                    .map_or(source.len(), |i| end + i + token.len());
+                None
+            }
             b'\'' => None,
-            _ => Some(text),
+            _ => Some(token.as_str()),
         };
+        let text = &source[token.start()..end];
         match contents
             .filter(|c| exact_anchor.is_match(c))
             .and_then(substitute)
@@ -149,7 +160,7 @@ pub fn post_process(source: &str, context: JinjaContext) -> String {
             }
         }
 
-        last_index = token.end();
+        last_index = end;
     }
     res += &source[last_index..];
 
@@ -356,6 +367,17 @@ filter amount != 'x'"#
         let opts = prqlc::Options::default().no_signature().no_format();
         let sql = prqlc::compile(&prql, &opts).unwrap();
         assert_snapshot!(post_process(&sql, ctx), @"SELECT arr[{{ var('i') }}] AS x FROM t");
+    }
+
+    #[test]
+    fn test_double_quotes_in_dollar_quoted_literal_kept() {
+        let (prql, ctx) = pre_process(
+            "prql target:sql.postgres\nfrom t\nselect {x = s'$$\"{{ var(\"name\") }}\"$$', y = s'$q$ \"a\" $q$', z = {{ var('z') }}}",
+        )
+        .unwrap();
+        let opts = prqlc::Options::default().no_signature().no_format();
+        let sql = prqlc::compile(&prql, &opts).unwrap();
+        assert_snapshot!(post_process(&sql, ctx), @r#"SELECT $$"{{ var("name") }}"$$ AS x, $q$ "a" $q$ AS y, {{ var('z') }} AS z FROM t"#);
     }
 
     #[test]
