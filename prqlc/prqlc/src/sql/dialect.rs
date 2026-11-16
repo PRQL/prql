@@ -917,8 +917,10 @@ mod tests {
     #[test]
     fn bigquery_translate_space() {
         let bq = BigQueryDialect;
-        assert_snapshot!(bq.translate_chrono_item(Item::Space(" ")).unwrap(), @"");
-        assert_snapshot!(bq.translate_chrono_item(Item::Space("  ")).unwrap(), @"");
+        // `assert_eq!` rather than an inline snapshot: insta trims trailing
+        // whitespace, so a whitespace-only snapshot would also match `""`.
+        assert_eq!(bq.translate_chrono_item(Item::Space(" ")).unwrap(), " ");
+        assert_eq!(bq.translate_chrono_item(Item::Space("  ")).unwrap(), "  ");
     }
 
     #[test]
@@ -998,8 +1000,9 @@ mod tests {
     #[test]
     fn clickhouse_translate_space() {
         let ch = ClickHouseDialect;
-        assert_snapshot!(ch.translate_chrono_item(Item::Space(" ")).unwrap(), @" ");
-        assert_snapshot!(ch.translate_chrono_item(Item::Space("  ")).unwrap(), @"  ");
+        // See `bigquery_translate_space` for why these aren't snapshots.
+        assert_eq!(ch.translate_chrono_item(Item::Space(" ")).unwrap(), " ");
+        assert_eq!(ch.translate_chrono_item(Item::Space("  ")).unwrap(), "  ");
     }
 
     // -- unsupported-specifier errors --
