@@ -641,8 +641,12 @@ impl DialectHandler for ClickHouseDialect {
                 // literals are split at every non alphanumeric character
                 if literal.chars().any(|c| c.is_ascii_alphanumeric()) {
                     // Wrap alphanumeric literals in single quotes so Joda treats
-                    // them as literal text rather than pattern letters.
-                    format!("'{literal}'")
+                    // them as literal text rather than pattern letters. An
+                    // apostrophe inside would end the quoted section, so it
+                    // needs Joda's `''` escape; like the punctuation branch
+                    // below, write it as `\'\'`, which sqlparser emits as-is
+                    // (it would collapse a bare `''` into one quote).
+                    format!("'{}'", literal.replace('\'', "\\'\\'"))
                 } else {
                     // Punctuation is literal in a Joda pattern, but an apostrophe
                     // would otherwise open a quoted section. Escape it as a pair
@@ -991,6 +995,9 @@ mod tests {
         // Alphanumeric runs are wrapped in single quotes so Joda treats them as
         // literal text rather than pattern letters.
         assert_snapshot!(ch.translate_chrono_item(Item::Literal("foo")).unwrap(), @"'foo'");
+        // An apostrophe inside an alphanumeric literal is escaped as a pair so
+        // the quoted section doesn't end there.
+        assert_snapshot!(ch.translate_chrono_item(Item::Literal("o'clock")).unwrap(), @r"'o\'\'clock'");
         // A literal apostrophe is rendered as an escaped pair so it survives,
         // through the single-quoted SQL string literal it's embedded in, into
         // the Joda pattern as `''` (Joda's escape for a literal apostrophe).
@@ -1111,6 +1118,27 @@ mod tests {
         assert_snapshot!(
             MsSqlDialect.translate_prql_date_format(format).unwrap(),
             @r#"yyyy "x\\\"y" dd"#);
+    }
+
+    /// On ClickHouse an apostrophe inside a word such as `o'clock` is doubled
+    /// within the quoted Joda section, so the section doesn't end there.
+    #[test]
+    fn apostrophe_inside_quoted_literal_is_doubled_on_clickhouse() {
+        let prql = r#"from t | derive {a = (d | date.to_text "%H o'clock")}"#;
+        let sql = crate::compile(
+            prql,
+            &crate::Options::default()
+                .no_signature()
+                .with_target(crate::Target::Sql(Some(Dialect::ClickHouse))),
+        )
+        .unwrap();
+        assert_snapshot!(sql, @r"
+        SELECT
+          *,
+          formatDateTimeInJodaSyntax(d, 'HH ''o\'\'clock''') AS a
+        FROM
+          t
+        ");
     }
 
     /// Outside a quoted section MSSQL (.NET) also reads `\` as an escape, so a
