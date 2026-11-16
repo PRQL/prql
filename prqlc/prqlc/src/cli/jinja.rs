@@ -111,12 +111,13 @@ pub fn post_process(source: &str, context: JinjaContext) -> String {
     // An anchor compiles as an identifier, so a target that always quotes
     // identifiers (Snowflake, Oracle) wraps it in quotes. An interpolation
     // stands for SQL rather than for a name, so quotes enclosing exactly one
-    // anchor are dropped along with it. Single-quoted string literals are
-    // matched first so that double quotes inside them are kept; anchors within
-    // a literal are replaced in place.
+    // anchor are dropped along with it. Other quoted tokens (string literals
+    // and identifiers) are matched whole, so a quote character inside one
+    // (`'"{{ x }}"'`, `"it's"`) can't pair with a quote outside it; anchors
+    // within such a token are replaced in place, keeping its quotes.
     let anchor = format!(r"{ANCHOR_PREFIX}\d+{ANCHOR_SUFFIX}");
     let re = Regex::new(&format!(
-        r#"'(?:[^']|'')*'|"({anchor})"|`({anchor})`|\[({anchor})\]|({anchor})"#
+        r#""({anchor})"|`({anchor})`|\[({anchor})\]|({anchor})|'(?:[^']|'')*'|"(?:[^"]|"")*"|`(?:[^`]|``)*`"#
     ))
     .unwrap();
     let bare_anchor = Regex::new(&anchor).unwrap();
@@ -133,7 +134,7 @@ pub fn post_process(source: &str, context: JinjaContext) -> String {
                 Some(value) => res += value,
                 None => res += whole.as_str(),
             },
-            // A string literal: replace anchors inside it, keeping its quotes.
+            // Another quoted token: replace anchors inside it, keeping its quotes.
             None => {
                 res += &bare_anchor.replace_all(whole.as_str(), |c: &regex::Captures| {
                     substitute(&c[0]).unwrap_or(&c[0]).to_string()
@@ -280,6 +281,36 @@ filter name == "\"{{ var('n') }}\" it's""#
           "orders"
         WHERE
           "name" = '"{{ var('n') }}" it''s'
+        "#);
+    }
+
+    #[test]
+    fn test_apostrophe_in_quoted_identifier() {
+        assert_snapshot!(compile_with_jinja(
+            r#"prql target:sql.snowflake
+from {{ ref('orders') }}
+select {`it's`, amount}
+filter amount != 'x'"#
+        ), @r#"
+        SELECT
+          "it's",
+          "amount"
+        FROM
+          {{ ref('orders') }}
+        WHERE
+          "amount" <> 'x'
+        "#);
+    }
+
+    #[test]
+    fn test_interpolation_joined_to_text_in_quoted_identifier() {
+        assert_snapshot!(compile_with_jinja(
+            "prql target:sql.snowflake\nfrom {{ ref('orders') }}2024"
+        ), @r#"
+        SELECT
+          *
+        FROM
+          "{{ ref('orders') }}2024"
         "#);
     }
 
