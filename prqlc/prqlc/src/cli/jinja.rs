@@ -111,27 +111,34 @@ pub fn post_process(source: &str, context: JinjaContext) -> String {
     // An anchor compiles as an identifier, so a target that always quotes
     // identifiers (Snowflake, Oracle) wraps it in quotes. An interpolation
     // stands for SQL rather than for a name, so quotes enclosing exactly one
-    // anchor are dropped along with it.
+    // anchor are dropped along with it. Single-quoted string literals are
+    // matched first so that double quotes inside them are kept; anchors within
+    // a literal are replaced in place.
+    let anchor = format!(r"{ANCHOR_PREFIX}\d+{ANCHOR_SUFFIX}");
     let re = Regex::new(&format!(
-        r#""({ANCHOR_PREFIX}\d+{ANCHOR_SUFFIX})"|`({ANCHOR_PREFIX}\d+{ANCHOR_SUFFIX})`|\[({ANCHOR_PREFIX}\d+{ANCHOR_SUFFIX})\]|({ANCHOR_PREFIX}\d+{ANCHOR_SUFFIX})"#
+        r#"'(?:[^']|'')*'|"({anchor})"|`({anchor})`|\[({anchor})\]|({anchor})"#
     ))
     .unwrap();
+    let bare_anchor = Regex::new(&anchor).unwrap();
+    let substitute = |anchor_id: &str| context.anchor_map.get(anchor_id).copied();
 
     let mut last_index = 0;
     for cap in re.captures_iter(source) {
         let whole = cap.get(0).unwrap();
-        let anchor_id = cap
-            .iter()
-            .skip(1)
-            .flatten()
-            .next()
-            .expect("one alternative matched")
-            .as_str();
-
         res += &source[last_index..whole.start()];
-        match context.anchor_map.get(anchor_id) {
-            Some(value) => res += value,
-            None => res += whole.as_str(),
+
+        match cap.iter().skip(1).flatten().next() {
+            // A quoted or bare anchor.
+            Some(anchor_id) => match substitute(anchor_id.as_str()) {
+                Some(value) => res += value,
+                None => res += whole.as_str(),
+            },
+            // A string literal: replace anchors inside it, keeping its quotes.
+            None => {
+                res += &bare_anchor.replace_all(whole.as_str(), |c: &regex::Captures| {
+                    substitute(&c[0]).unwrap_or(&c[0]).to_string()
+                })
+            }
         }
 
         last_index = whole.end();
@@ -258,6 +265,22 @@ mod test {
         FROM
           {{ ref('orders') }}
         ");
+    }
+
+    #[test]
+    fn test_double_quotes_in_string_literal_kept() {
+        assert_snapshot!(compile_with_jinja(
+            r#"prql target:sql.snowflake
+from orders
+filter name == "\"{{ var('n') }}\" it's""#
+        ), @r#"
+        SELECT
+          *
+        FROM
+          "orders"
+        WHERE
+          "name" = '"{{ var('n') }}" it''s'
+        "#);
     }
 
     #[test]
