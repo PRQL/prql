@@ -385,6 +385,9 @@
 
 **Web**:
 
+- The playground editor's highlighting treats `\"` and `\'` inside a string as
+  escapes, so a string containing an escaped quote no longer ends early.
+  (@prql-bot, #6565)
 - The book's and website's PRQL syntax highlighting treats `\"`, `\'` and `\/`
   as escapes, so a string containing an escaped quote no longer ends early.
   (@prql-bot, #6488)
