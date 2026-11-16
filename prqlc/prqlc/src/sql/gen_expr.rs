@@ -192,13 +192,16 @@ fn process_array_in(
                 // We can instead optimize this to a condition that is always false
                 Ok(sql_ast::Expr::Value(Value::Boolean(false).into()))
             } else {
-                Ok(sql_ast::Expr::InList {
+                Ok(sql_ast::Expr::In {
                     expr: Box::new(translate_predicate_operand(col_expr.clone(), ctx)?.into_ast()),
-                    list: in_values
-                        .iter()
-                        .map(|a| Ok(translate_expr(a.clone(), ctx)?.into_ast()))
-                        .collect::<Result<Vec<sql_ast::Expr>>>()?,
+                    target: sql_ast::InTarget::List(
+                        in_values
+                            .iter()
+                            .map(|a| Ok(translate_expr(a.clone(), ctx)?.into_ast()))
+                            .collect::<Result<Vec<sql_ast::Expr>>>()?,
+                    ),
                     negated: false,
+                    global: false,
                 })
             }
         }
@@ -1232,7 +1235,7 @@ impl SQLExpression for sql_ast::Expr {
             sql_ast::Expr::Like { .. }
             | sql_ast::Expr::ILike { .. }
             | sql_ast::Expr::Between { .. }
-            | sql_ast::Expr::InList { .. } => PREDICATE_STRENGTH,
+            | sql_ast::Expr::In { .. } => PREDICATE_STRENGTH,
 
             sql_ast::Expr::IsNull(_) | sql_ast::Expr::IsNotNull(_) => 5,
 
