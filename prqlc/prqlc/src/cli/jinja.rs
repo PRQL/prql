@@ -119,10 +119,15 @@ pub fn post_process(source: &str, context: JinjaContext) -> String {
     // Anchors within any other quoted token are replaced in place.
     // A PostgreSQL dollar-quoted literal (`$$…$$`, `$tag$…$tag$`) is matched
     // by its opening tag and runs to the matching closing tag; the regex
-    // crate has no backreferences, so that end is found below.
+    // crate has no backreferences, so that end is found below. Its tag
+    // follows the rules of an unquoted identifier without `$`, where any
+    // non-ASCII character counts as a letter. A PostgreSQL escape string
+    // (`E'…'`) also takes backslash escapes such as `\'`.
     let anchor = format!(r"{ANCHOR_PREFIX}\d+{ANCHOR_SUFFIX}");
+    let tag_start = r"[A-Za-z_\x{80}-\x{10FFFF}]";
+    let tag_char = r"[A-Za-z0-9_\x{80}-\x{10FFFF}]";
     let re = Regex::new(&format!(
-        r#"'(?:[^']|'')*'|"(?:[^"]|"")*"|`(?:[^`]|``)*`|\$(?:[A-Za-z_][A-Za-z0-9_]*)?\$|{anchor}"#
+        r#"\b[Ee]'(?:[^'\\]|\\[\s\S]|'')*'|'(?:[^']|'')*'|"(?:[^"]|"")*"|`(?:[^`]|``)*`|\$(?:{tag_start}{tag_char}*)?\$|{anchor}"#
     ))
     .unwrap();
     let bare_anchor = Regex::new(&anchor).unwrap();
@@ -133,6 +138,21 @@ pub fn post_process(source: &str, context: JinjaContext) -> String {
     while let Some(token) = re.find_at(source, last_index) {
         res += &source[last_index..token.start()];
         let mut end = token.end();
+
+        // `$` can also continue an unquoted identifier (`a$b$`), where it
+        // doesn't open a dollar quote.
+        if token.as_str().starts_with('$')
+            && source[..token.start()]
+                .chars()
+                .next_back()
+                .is_some_and(|c| {
+                    c.is_ascii_alphanumeric() || matches!(c, '_' | '$') || !c.is_ascii()
+                })
+        {
+            res += "$";
+            last_index = token.start() + 1;
+            continue;
+        }
 
         // The text an identifier's quotes enclose, or the token itself when bare.
         let contents = match token.as_str().as_bytes()[0] {
@@ -378,6 +398,27 @@ filter amount != 'x'"#
         let opts = prqlc::Options::default().no_signature().no_format();
         let sql = prqlc::compile(&prql, &opts).unwrap();
         assert_snapshot!(post_process(&sql, ctx), @r#"SELECT $$"{{ var("name") }}"$$ AS x, $q$ "a" $q$ AS y, {{ var('z') }} AS z FROM t"#);
+    }
+
+    #[test]
+    fn test_postgres_escape_string_and_non_ascii_dollar_tag_kept() {
+        // `E'…'` takes backslash escapes, so `\'` doesn't end it, and a dollar
+        // tag can hold any letter, including non-ASCII ones such as `é`.
+        let src = r#"SELECT E'it\'s "_jinja_0_"' AS x, e'\\' AS y, $é$"_jinja_0_"$é$ AS z, "_jinja_0_" FROM t"#;
+        let mut ctx = super::JinjaContext::default();
+        ctx.anchor_map
+            .insert("_jinja_0_".to_string(), "{{ var('name') }}");
+        assert_snapshot!(post_process(src, ctx), @r#"SELECT E'it\'s "{{ var('name') }}"' AS x, e'\\' AS y, $é$"{{ var('name') }}"$é$ AS z, {{ var('name') }} FROM t"#);
+    }
+
+    #[test]
+    fn test_dollar_inside_identifier_is_not_a_dollar_quote() {
+        // PostgreSQL identifiers can contain `$`, so `a$b$` isn't a dollar quote.
+        let src = r#"SELECT a$b$, "_jinja_0_" FROM t"#;
+        let mut ctx = super::JinjaContext::default();
+        ctx.anchor_map
+            .insert("_jinja_0_".to_string(), "{{ var('name') }}");
+        assert_snapshot!(post_process(src, ctx), @"SELECT a$b$, {{ var('name') }} FROM t");
     }
 
     #[test]
