@@ -119,7 +119,7 @@ pub fn post_process(source: &str, context: JinjaContext) -> String {
     // Anchors within any other quoted token are replaced in place.
     let anchor = format!(r"{ANCHOR_PREFIX}\d+{ANCHOR_SUFFIX}");
     let re = Regex::new(&format!(
-        r#"'(?:[^']|'')*'|"(?:[^"]|"")*"|`(?:[^`]|``)*`|\[{anchor}(?:[^\]]|\]\])*\]|{anchor}"#
+        r#"'(?:[^']|'')*'|"(?:[^"]|"")*"|`(?:[^`]|``)*`|{anchor}"#
     ))
     .unwrap();
     let bare_anchor = Regex::new(&anchor).unwrap();
@@ -133,7 +133,7 @@ pub fn post_process(source: &str, context: JinjaContext) -> String {
 
         // The text an identifier's quotes enclose, or the token itself when bare.
         let contents = match text.as_bytes()[0] {
-            b'"' | b'`' | b'[' => Some(&text[1..text.len() - 1]),
+            b'"' | b'`' => Some(&text[1..text.len() - 1]),
             b'\'' => None,
             _ => Some(text),
         };
@@ -344,6 +344,18 @@ filter amount != 'x'"#
         ctx.anchor_map
             .insert("_jinja_0_".to_string(), r#"{{ var("name") }}"#);
         assert_snapshot!(post_process(src, ctx), @r#"SELECT "{{ var("name") }}""suffix", `{{ var("name") }}``x`, {{ var("name") }} FROM t"#);
+    }
+
+    #[test]
+    fn test_interpolation_in_brackets_keeps_brackets() {
+        // No target quotes identifiers with `[…]`, so brackets around an
+        // anchor come from SQL such as an s-string index, and stay.
+        let (prql, ctx) =
+            pre_process("prql target:sql.duckdb\nfrom t\nselect {x = s\"arr[{{ var('i') }}]\"}")
+                .unwrap();
+        let opts = prqlc::Options::default().no_signature().no_format();
+        let sql = prqlc::compile(&prql, &opts).unwrap();
+        assert_snapshot!(post_process(&sql, ctx), @"SELECT arr[{{ var('i') }}] AS x FROM t");
     }
 
     #[test]
