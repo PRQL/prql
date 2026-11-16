@@ -554,8 +554,10 @@ impl DialectHandler for MsSqlDialect {
                     // so escape backslashes first, then the `"` that would close it early.
                     format!("\"{}\"", literal.replace('\\', "\\\\").replace('"', "\\\""))
                 } else {
-                    // MSSQL uses single quotes around
+                    // MSSQL uses single quotes around.
+                    // A backslash escapes the next character here too, so escape it first.
                     literal
+                        .replace('\\', "\\\\")
                         .replace('"', "\\\"")
                         .replace('\'', "\"\'\"")
                         .replace('%', "\\%")
@@ -1106,6 +1108,18 @@ mod tests {
         assert_snapshot!(
             MsSqlDialect.translate_prql_date_format(format).unwrap(),
             @r#"yyyy "x\\\"y" dd"#);
+    }
+
+    /// Outside a quoted section MSSQL (.NET) also reads `\` as an escape, so a
+    /// literal backslash must be doubled before the `"` is escaped.
+    #[test]
+    fn backslash_outside_quoted_literal_is_escaped_on_mssql() {
+        assert_snapshot!(
+            MsSqlDialect.translate_prql_date_format(r#"%Y \" %d"#).unwrap(),
+            @r#"yyyy \\\" dd"#);
+        assert_snapshot!(
+            MsSqlDialect.translate_prql_date_format(r"%Y \ %d").unwrap(),
+            @r"yyyy \\ dd");
     }
 }
 

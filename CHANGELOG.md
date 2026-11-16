@@ -32,7 +32,8 @@
 - `date.to_text` on Postgres, Redshift and MSSQL escapes a `"` or `\` that sits
   next to letters in the format string, such as `"%Y x\"y %d"`. It previously
   closed the quoted section early, producing a wrong date or, on MSSQL, an
-  error. (@prql-bot, #6560)
+  error. MSSQL also escapes a `\` elsewhere in the format string, such as
+  `"%Y \" %d"`. (@prql-bot, #6560)
 - `group {a} (take 1)` no longer compiles to `SELECT DISTINCT` when a step after
   it reads another column, such as
   `group {a} (take 1) | filter b > 0 | select {a}`. DISTINCT then compared
