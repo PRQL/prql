@@ -29,6 +29,9 @@
 
 **Fixes**:
 
+- `prqlc watch` keeps a Jinja interpolation intact when digits directly follow
+  it, and no longer wraps one in identifier quotes on Snowflake and Oracle.
+  (@prql-bot, #6567)
 - `date.to_text` on Postgres, Redshift and MSSQL escapes a `"` or `\` that sits
   next to letters in the format string, such as `"%Y x\"y %d"`. It previously
   closed the quoted section early, producing a wrong date or, on MSSQL, an
