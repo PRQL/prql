@@ -646,7 +646,14 @@ impl DialectHandler for ClickHouseDialect {
                     // needs Joda's `''` escape; like the punctuation branch
                     // below, write it as `\'\'`, which sqlparser emits as-is
                     // (it would collapse a bare `''` into one quote).
-                    format!("'{}'", literal.replace('\'', "\\'\\'"))
+                    // A trailing apostrophe is escaped after the closing quote
+                    // instead: sqlparser treats a quote that follows `\'` as
+                    // already escaped, so `\'\''` would leave the closing quote
+                    // undoubled and end the SQL string early. Joda still reads
+                    // `'foo'''` as `foo'`.
+                    let body = literal.trim_end_matches('\'');
+                    let trailing = "\\'\\'".repeat(literal.len() - body.len());
+                    format!("'{}'{trailing}", body.replace('\'', "\\'\\'"))
                 } else {
                     // Punctuation is literal in a Joda pattern, but an apostrophe
                     // would otherwise open a quoted section. Escape it as a pair
@@ -998,6 +1005,9 @@ mod tests {
         // An apostrophe inside an alphanumeric literal is escaped as a pair so
         // the quoted section doesn't end there.
         assert_snapshot!(ch.translate_chrono_item(Item::Literal("o'clock")).unwrap(), @r"'o\'\'clock'");
+        // A trailing apostrophe is escaped after the closing quote instead, so
+        // sqlparser still doubles that quote.
+        assert_snapshot!(ch.translate_chrono_item(Item::Literal("foo'")).unwrap(), @r"'foo'\'\'");
         // A literal apostrophe is rendered as an escaped pair so it survives,
         // through the single-quoted SQL string literal it's embedded in, into
         // the Joda pattern as `''` (Joda's escape for a literal apostrophe).
