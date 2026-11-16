@@ -113,11 +113,13 @@ const def = {
 
     string: [
       [/[^\\"]+/, "string"],
+      [/\\./, "string.escape"],
       [/"/, { token: "string.quote", bracket: "@close", next: "@pop" }],
     ],
 
     stringSingle: [
       [/[^\\']+/, "string"],
+      [/\\./, "string.escape"],
       [/'/, { token: "string.quote", bracket: "@close", next: "@pop" }],
     ],
 
