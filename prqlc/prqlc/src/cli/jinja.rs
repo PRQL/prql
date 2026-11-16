@@ -110,39 +110,46 @@ pub fn post_process(source: &str, context: JinjaContext) -> String {
 
     // An anchor compiles as an identifier, so a target that always quotes
     // identifiers (Snowflake, Oracle) wraps it in quotes. An interpolation
-    // stands for SQL rather than for a name, so quotes enclosing exactly one
-    // anchor are dropped along with it. Other quoted tokens (string literals
-    // and identifiers) are matched whole, so a quote character inside one
-    // (`'"{{ x }}"'`, `"it's"`) can't pair with a quote outside it; anchors
-    // within such a token are replaced in place, keeping its quotes.
+    // stands for SQL rather than for a name, so a quoted identifier whose
+    // entire contents are one anchor is replaced along with its quotes. Each
+    // quoted token (string literal or identifier, including escaped quotes
+    // such as `''` or `""`) is matched whole before that check, so a quote
+    // character inside one can't pair with a quote outside it, and a token
+    // that merely starts with an anchor (`"_jinja_0_""x"`) keeps its quotes.
+    // Anchors within any other quoted token are replaced in place.
     let anchor = format!(r"{ANCHOR_PREFIX}\d+{ANCHOR_SUFFIX}");
     let re = Regex::new(&format!(
-        r#""({anchor})"|`({anchor})`|\[({anchor})\]|({anchor})|'(?:[^']|'')*'|"(?:[^"]|"")*"|`(?:[^`]|``)*`"#
+        r#"'(?:[^']|'')*'|"(?:[^"]|"")*"|`(?:[^`]|``)*`|\[{anchor}(?:[^\]]|\]\])*\]|{anchor}"#
     ))
     .unwrap();
     let bare_anchor = Regex::new(&anchor).unwrap();
+    let exact_anchor = Regex::new(&format!("^{anchor}$")).unwrap();
     let substitute = |anchor_id: &str| context.anchor_map.get(anchor_id).copied();
 
     let mut last_index = 0;
-    for cap in re.captures_iter(source) {
-        let whole = cap.get(0).unwrap();
-        res += &source[last_index..whole.start()];
+    for token in re.find_iter(source) {
+        res += &source[last_index..token.start()];
+        let text = token.as_str();
 
-        match cap.iter().skip(1).flatten().next() {
-            // A quoted or bare anchor.
-            Some(anchor_id) => match substitute(anchor_id.as_str()) {
-                Some(value) => res += value,
-                None => res += whole.as_str(),
-            },
-            // Another quoted token: replace anchors inside it, keeping its quotes.
+        // The text an identifier's quotes enclose, or the token itself when bare.
+        let contents = match text.as_bytes()[0] {
+            b'"' | b'`' | b'[' => Some(&text[1..text.len() - 1]),
+            b'\'' => None,
+            _ => Some(text),
+        };
+        match contents
+            .filter(|c| exact_anchor.is_match(c))
+            .and_then(substitute)
+        {
+            Some(value) => res += value,
             None => {
-                res += &bare_anchor.replace_all(whole.as_str(), |c: &regex::Captures| {
+                res += &bare_anchor.replace_all(text, |c: &regex::Captures| {
                     substitute(&c[0]).unwrap_or(&c[0]).to_string()
                 })
             }
         }
 
-        last_index = whole.end();
+        last_index = token.end();
     }
     res += &source[last_index..];
 
@@ -326,6 +333,17 @@ filter amount != 'x'"#
         WHERE
           "name" = '{{ var("n") }}'
         "#);
+    }
+
+    #[test]
+    fn test_anchor_prefix_of_quoted_identifier() {
+        // `"_jinja_0_""suffix"` is one identifier containing an escaped quote;
+        // its quotes enclose more than the anchor, so they stay.
+        let src = r#"SELECT "_jinja_0_""suffix", `_jinja_0_``x`, "_jinja_0_" FROM t"#;
+        let mut ctx = super::JinjaContext::default();
+        ctx.anchor_map
+            .insert("_jinja_0_".to_string(), r#"{{ var("name") }}"#);
+        assert_snapshot!(post_process(src, ctx), @r#"SELECT "{{ var("name") }}""suffix", `{{ var("name") }}``x`, {{ var("name") }} FROM t"#);
     }
 
     #[test]
