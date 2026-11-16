@@ -814,6 +814,10 @@ jobs:
     environment:
       name: tend
       deployment: false
+    # `github.token` is written to ~/.curlrc below, so keep it read-only; the
+    # PR itself is opened with `TEND_BOT_TOKEN`.
+    permissions:
+      contents: read
     steps:
       - name: 📂 Checkout code
         uses: actions/checkout@v7
