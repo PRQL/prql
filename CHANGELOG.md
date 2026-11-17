@@ -629,8 +629,7 @@
 
 **Integrations**:
 
-- [Kakoune](https://kakoune.org/) 2026.04.12 has ng for PRQL.
-  (@vanillajonathan)
+- [Kakoune](https://kakoune.org/) 2026.04.12 has ng for PRQL. (@vanillajonathan)
 
 **Internal changes**:
 
