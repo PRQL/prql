@@ -467,6 +467,8 @@
   such as `filter !a`, and highlights it as a logic operator. Previously the
   expression parsed to an error node. (@prql-bot, #6425)
 
+- Prism.js (v2 branch) has syntax highlighting for PRQL. (@vanillajonathan)
+
 **Internal changes**:
 
 **New Contributors**:
@@ -627,7 +629,7 @@
 
 **Integrations**:
 
-- [Kakoune](https://kakoune.org/) 2026.04.12 has syntax highlighting for PRQL.
+- [Kakoune](https://kakoune.org/) 2026.04.12 has ng for PRQL.
   (@vanillajonathan)
 
 **Internal changes**:
