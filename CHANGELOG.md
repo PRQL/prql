@@ -29,6 +29,9 @@
 
 **Fixes**:
 
+- `from_text format:json` with `columns` and `data` reports an error when a row
+  has a different number of values than `columns`. It previously compiled to a
+  `UNION ALL` with mismatched column counts. (@prql-bot, #6580)
 - `prqlc compile --debug-log` no longer panics on a call with a named argument
   called `id`. (@prql-bot, #6578)
 - `date.to_text` on ClickHouse escapes an apostrophe inside a word in the format
