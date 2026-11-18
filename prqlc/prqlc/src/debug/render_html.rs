@@ -424,6 +424,8 @@ fn write_json_ast_node<W: Write>(
                     .is_some_and(|v| v.is_null() || v.is_i64())
                 || (properties.len() == 1
                     && !is_node_contents
+                    && !properties.contains_key("id")
+                    && !properties.contains_key("span")
                     && properties.values().next().unwrap().is_object());
             if is_ast_node {
                 return write_ast_node_from_object(w, properties);
@@ -973,6 +975,24 @@ mod tests {
             false,
         )
         .unwrap();
+
+        // A lone `id:` named argument leaves a single key, which must not
+        // trip the single-key heuristic either.
+        let mut w_single = String::new();
+        write_json_ast_node(
+            &mut w_single,
+            serde_json::json!({"id": {"Literal": {"Integer": 1}, "span": "1:56-57"}}),
+            false,
+        )
+        .unwrap();
+        assert_snapshot!(w_single, @r#"
+        <div class="json-object">
+        <span>id: </span><div class="json-value"><details class=ast-node open tabindex=2><summary class=header><h2 class=clickable>Literal</h2><span class="span">1:56-57</span></summary><content class="contents indent"><div class="json-object">
+        <span>Integer: </span><div class="json-value">1</div>
+        </div>
+        </content></details></div>
+        </div>
+        "#);
 
         assert_snapshot!(w, @r#"
         <div class="json-object">
