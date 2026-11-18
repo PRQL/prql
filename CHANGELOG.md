@@ -32,6 +32,8 @@
 - `from_text format:json` with `columns` and `data` reports an error when a row
   has a different number of values than `columns`. It previously compiled to a
   `UNION ALL` with mismatched column counts. (@prql-bot, #6580)
+- `prqlc compile --debug-log` no longer panics on a call with a named argument
+  called `id`. (@prql-bot, #6578)
 - `date.to_text` on ClickHouse escapes an apostrophe inside a word in the format
   string, such as `"%H o'clock"`. It previously ended the quoted Joda section
   early, so the rest of the word was read as pattern letters. (@prql-bot, #6568)
@@ -388,6 +390,8 @@
 - The syntax-highlighting page names highlight.js, rather than Handlebars, as
   the highlighter the book's and website's PRQL grammars are written for.
   (@prql-bot, #6548)
+- The syntax-highlighting page lists Prism.js, whose v2 branch has a PRQL
+  grammar. (@prql-bot, #6577)
 
 **Web**:
 
