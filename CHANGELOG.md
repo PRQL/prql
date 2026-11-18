@@ -385,6 +385,8 @@
 - The syntax-highlighting page names highlight.js, rather than Handlebars, as
   the highlighter the book's and website's PRQL grammars are written for.
   (@prql-bot, #6548)
+- The syntax-highlighting page lists Prism.js, whose v2 branch has a PRQL
+  grammar. (@prql-bot, #6577)
 
 **Web**:
 
