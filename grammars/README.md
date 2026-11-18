@@ -64,6 +64,10 @@ an index.
   the Monaco editor, which we use for the Playground. The grammar is at
   [`playground/src/workbench/prql-syntax.js`](https://github.com/PRQL/prql/blob/main/web/playground/src/workbench/prql-syntax.js).
 
+- [Prism](https://prismjs.com/) — supported on Prism's v2 branch; not in the v1
+  releases. The grammar is upstream
+  ([prql.js](https://github.com/PrismJS/prism/blob/v2/src/languages/prql.js)).
+
 - [Pygments](https://pygments.org/) — Python library used by Wikipedia,
   Bitbucket, Sphinx and [more](https://pygments.org/faq/#who-uses-pygments). The
   grammar is upstream
