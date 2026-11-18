@@ -32,6 +32,8 @@
 - `prqlc watch` keeps a Jinja interpolation intact when digits directly follow
   it, and no longer wraps one in identifier quotes on Snowflake and Oracle.
   (@prql-bot, #6567)
+- `prqlc compile --debug-log` no longer panics on a call with a named argument
+  called `id`. (@prql-bot, #6578)
 - `date.to_text` on ClickHouse escapes an apostrophe inside a word in the format
   string, such as `"%H o'clock"`. It previously ended the quoted Joda section
   early, so the rest of the word was read as pattern letters. (@prql-bot, #6568)
@@ -388,6 +390,8 @@
 - The syntax-highlighting page names highlight.js, rather than Handlebars, as
   the highlighter the book's and website's PRQL grammars are written for.
   (@prql-bot, #6548)
+- The syntax-highlighting page lists Prism.js, whose v2 branch has a PRQL
+  grammar. (@prql-bot, #6577)
 
 **Web**:
 
@@ -469,6 +473,9 @@
 - The lezer grammar in `grammars/prql-lezer/` now parses the unary `!` operator,
   such as `filter !a`, and highlights it as a logic operator. Previously the
   expression parsed to an error node. (@prql-bot, #6425)
+
+- [Prism.js](https://prismjs.com/) (v2 branch) has syntax highlighting for PRQL.
+  (@vanillajonathan, #6576)
 
 **Internal changes**:
 
