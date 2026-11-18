@@ -29,6 +29,8 @@
 
 **Fixes**:
 
+- `prqlc compile --debug-log` no longer panics on a call with a named argument
+  called `id`. (@prql-bot, #6578)
 - `date.to_text` on ClickHouse escapes an apostrophe inside a word in the format
   string, such as `"%H o'clock"`. It previously ended the quoted Joda section
   early, so the rest of the word was read as pattern letters. (@prql-bot, #6568)

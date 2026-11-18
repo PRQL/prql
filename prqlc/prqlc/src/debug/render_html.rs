@@ -411,10 +411,21 @@ fn write_json_ast_node<W: Write>(
             Ok(())
         }
         serde_json::Value::Object(properties) => {
-            let is_ast_node = properties.contains_key("span")
-                || properties.contains_key("id")
+            // An AST node's `id` is an integer and its `span` a string, or
+            // either is null. The value types matter as well as the keys:
+            // `FuncCall::named_args` is an object keyed by argument names, so a
+            // call such as `f id:1` carries an `"id"` key whose value is an
+            // expression object.
+            let is_ast_node = properties
+                .get("span")
+                .is_some_and(|v| v.is_null() || v.is_string())
+                || properties
+                    .get("id")
+                    .is_some_and(|v| v.is_null() || v.is_i64())
                 || (properties.len() == 1
                     && !is_node_contents
+                    && !properties.contains_key("id")
+                    && !properties.contains_key("span")
                     && properties.values().next().unwrap().is_object());
             if is_ast_node {
                 return write_ast_node_from_object(w, properties);
@@ -944,6 +955,56 @@ mod tests {
         <span>Literal: </span><div class="json-value">x</div>
         </div>
         </content></details>
+        "#);
+    }
+
+    /// A named argument called `id` or `span` becomes a key of
+    /// `FuncCall::named_args` whose value is an expression object. That object
+    /// must render as plain properties, not as an AST node — treating it as
+    /// one read the expression as the node's `id` and panicked.
+    #[test]
+    fn named_args_called_id_or_span() {
+        let mut w = String::new();
+
+        write_json_ast_node(
+            &mut w,
+            serde_json::json!({
+                "id": {"Literal": {"Integer": 1}, "span": "1:56-57"},
+                "span": {"Literal": {"Integer": 2}, "span": "1:58-59"},
+            }),
+            false,
+        )
+        .unwrap();
+
+        // A lone `id:` named argument leaves a single key, which must not
+        // trip the single-key heuristic either.
+        let mut w_single = String::new();
+        write_json_ast_node(
+            &mut w_single,
+            serde_json::json!({"id": {"Literal": {"Integer": 1}, "span": "1:56-57"}}),
+            false,
+        )
+        .unwrap();
+        assert_snapshot!(w_single, @r#"
+        <div class="json-object">
+        <span>id: </span><div class="json-value"><details class=ast-node open tabindex=2><summary class=header><h2 class=clickable>Literal</h2><span class="span">1:56-57</span></summary><content class="contents indent"><div class="json-object">
+        <span>Integer: </span><div class="json-value">1</div>
+        </div>
+        </content></details></div>
+        </div>
+        "#);
+
+        assert_snapshot!(w, @r#"
+        <div class="json-object">
+        <span>id: </span><div class="json-value"><details class=ast-node open tabindex=2><summary class=header><h2 class=clickable>Literal</h2><span class="span">1:56-57</span></summary><content class="contents indent"><div class="json-object">
+        <span>Integer: </span><div class="json-value">1</div>
+        </div>
+        </content></details></div>
+        <span>span: </span><div class="json-value"><details class=ast-node open tabindex=2><summary class=header><h2 class=clickable>Literal</h2><span class="span">1:58-59</span></summary><content class="contents indent"><div class="json-object">
+        <span>Integer: </span><div class="json-value">2</div>
+        </div>
+        </content></details></div>
+        </div>
         "#);
     }
 
