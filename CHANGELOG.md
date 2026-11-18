@@ -29,6 +29,9 @@
 
 **Fixes**:
 
+- `from_text format:json` with `columns` and `data` reports an error when a row
+  has a different number of values than `columns`. It previously compiled to a
+  `UNION ALL` with mismatched column counts. (@prql-bot, #6580)
 - `date.to_text` on ClickHouse escapes an apostrophe inside a word in the format
   string, such as `"%H o'clock"`. It previously ended the quoted Joda section
   early, so the rest of the word was read as pattern letters. (@prql-bot, #6568)
