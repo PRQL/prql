@@ -32,6 +32,9 @@
 - `prqlc watch` keeps a Jinja interpolation intact when digits directly follow
   it, and no longer wraps one in identifier quotes on Snowflake and Oracle.
   (@prql-bot, #6567)
+- `from_text format:json` with `columns` and `data` reports an error when a row
+  has a different number of values than `columns`. It previously compiled to a
+  `UNION ALL` with mismatched column counts. (@prql-bot, #6580)
 - `prqlc compile --debug-log` no longer panics on a call with a named argument
   called `id`. (@prql-bot, #6578)
 - `date.to_text` on ClickHouse escapes an apostrophe inside a word in the format
