@@ -1304,6 +1304,22 @@ mod from_text {
         let JsonFormat2 { columns, data } =
             serde_json::from_str(text).map_err(|x| x.to_string())?;
 
+        // Rows are matched to `columns` by position, so a row of a different
+        // length would emit a `UNION ALL` whose branches have different
+        // numbers of columns.
+        if let Some((index, row)) = data
+            .iter()
+            .enumerate()
+            .find(|(_, row)| row.len() != columns.len())
+        {
+            return Err(format!(
+                "json: row {} has a different number of values ({}) than `columns` ({})",
+                index + 1,
+                row.len(),
+                columns.len()
+            ));
+        }
+
         Ok(RelationLiteral {
             columns,
             rows: data
@@ -1319,6 +1335,24 @@ mod tests {
     use insta::{assert_snapshot, assert_yaml_snapshot};
 
     use crate::semantic::test::parse_resolve_and_lower;
+
+    /// The `{columns, data}` JSON form matches each row to `columns` by
+    /// position, so a row with too few or too many values has to be rejected,
+    /// as the CSV form already does.
+    #[test]
+    fn test_from_text_json_row_length_mismatch() {
+        let short = r#"from_text format:json '{"columns": ["a", "b"], "data": [[1, 2], [3]]}'"#;
+        assert_snapshot!(crate::tests::compile(short).unwrap_err(), @"
+        Error: While parsing rows: invalid type: map, expected a sequence at line 1 column 0
+        While parsing object: json: row 2 has a different number of values (1) than `columns` (2)
+        ");
+
+        let long = r#"from_text format:json '{"columns": ["a"], "data": [[1, 2]]}'"#;
+        assert_snapshot!(crate::tests::compile(long).unwrap_err(), @"
+        Error: While parsing rows: invalid type: map, expected a sequence at line 1 column 0
+        While parsing object: json: row 1 has a different number of values (2) than `columns` (1)
+        ");
+    }
 
     // `infer_lineage` errors when an input expr has no lineage. The error
     // message must interpolate the expr rather than emitting the literal
