@@ -8,7 +8,7 @@ use crate::ir::decl::{Decl, DeclKind, Module};
 use crate::ir::pl::*;
 use crate::pr::{Ty, TyFunc, TyKind};
 use crate::semantic::resolver::types;
-use crate::semantic::{NS_PARAM, NS_THAT, NS_THIS};
+use crate::semantic::{write_pl, NS_PARAM, NS_THAT, NS_THIS};
 use crate::Result;
 use crate::{Error, Reason, Span, WithErrorInfo};
 
@@ -268,8 +268,9 @@ impl Resolver<'_> {
             for (index, arg, is_last) in resolved_relations {
                 if partial_application_position.is_none() {
                     let frame = arg.lineage.as_ref().ok_or_else(|| {
-                        // Provide helpful error for empty arrays/tuples used directly
-                        // (not from functions like std.from_text which set lineage properly)
+                        // An argument without lineage isn't a relation, e.g. a
+                        // literal `5` in `5 | select a`. (Functions like
+                        // std.from_text set lineage on their result.)
                         match &arg.kind {
                             ExprKind::Array(v) if v.is_empty() => Error::new(Reason::Expected {
                                 who: None,
@@ -283,7 +284,12 @@ impl Resolver<'_> {
                                 found: "an empty tuple `{}`".to_string(),
                             })
                             .with_span(arg.span),
-                            _ => Error::new_bug(4317).with_span(closure.body.span),
+                            _ => Error::new(Reason::Expected {
+                                who: None,
+                                expected: "a table or query".to_string(),
+                                found: format!("`{}`", write_pl(arg.clone())),
+                            })
+                            .with_span(arg.span),
                         }
                     })?;
                     if is_last {
