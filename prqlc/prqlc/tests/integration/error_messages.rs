@@ -445,6 +445,62 @@ fn empty_tuple_or_array_from() {
 }
 
 #[test]
+fn non_relation_transform_input() {
+    // A literal in a transform's relation position previously gave a
+    // location-less internal compiler error (#4317)
+    assert_snapshot!(compile(r###"
+    5 | select a
+    "###).unwrap_err(), @"
+    Error:
+       ╭─[ :2:5 ]
+       │
+     2 │     5 | select a
+       │     ┬
+       │     ╰── expected a table or query, but found `5`
+    ───╯
+    ");
+
+    assert_snapshot!(compile(r###"
+    from t
+    derive x 5
+    "###).unwrap_err(), @"
+    Error:
+       ╭─[ :3:14 ]
+       │
+     3 │     derive x 5
+       │              ┬
+       │              ╰── expected a table or query, but found `5`
+    ───╯
+    ");
+
+    assert_snapshot!(compile(r###"
+    from t
+    take 1 "a"
+    "###).unwrap_err(), @r#"
+    Error:
+       ╭─[ :3:12 ]
+       │
+     3 │     take 1 "a"
+       │            ─┬─
+       │             ╰─── expected a table or query, but found `"a"`
+    ───╯
+    "#);
+
+    assert_snapshot!(compile(r###"
+    from foo
+    select lower "mooo"
+    "###).unwrap_err(), @r#"
+    Error:
+       ╭─[ :3:18 ]
+       │
+     3 │     select lower "mooo"
+       │                  ───┬──
+       │                     ╰──── expected a table or query, but found `"mooo"`
+    ───╯
+    "#);
+}
+
+#[test]
 fn window_rows_expects_range() {
     // Issue #5601: window with invalid rows parameter should produce error, not panic
     assert_snapshot!(compile(r###"
