@@ -29,6 +29,11 @@
 
 **Fixes**:
 
+- `prqlc compile` on a directory with more than one root-level file starting
+  with an uppercase letter reports the candidates as an error. It previously
+  picked one of them at random as the root module. Files inside an uppercase
+  directory, such as `Sales/orders.prql`, are no longer treated as the root.
+  (@prql-bot, #6584)
 - `from_text format:json` with `columns` and `data` reports an error when a row
   has a different number of values than `columns`. It previously compiled to a
   `UNION ALL` with mismatched column counts. (@prql-bot, #6580)
