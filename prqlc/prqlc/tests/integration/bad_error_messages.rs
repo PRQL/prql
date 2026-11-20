@@ -112,7 +112,9 @@ fn interpolation_end() {
 
 #[test]
 fn select_with_extra_fstr() {
-    // Should complain in the same way as `select lower "mooo"`
+    // Should complain in the same way as `select lower "mooo"`: "expected a
+    // table or query, but found `\"mooo\"`" (see
+    // error_messages::non_relation_transform_input)
     assert_snapshot!(compile(r#"
     from foo
     select lower f"{x}/{y}"
