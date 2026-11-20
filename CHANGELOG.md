@@ -34,6 +34,9 @@
   successfully without formatting anything. `lex`, `debug annotate` and
   `experimental highlight` report the same rather than claiming to have found
   multiple sources. (@prql-bot, #6587)
+- A `group` whose only step is `sort`, such as `group a (sort b)`, no longer
+  raises an internal compiler error when another transform follows it or when
+  its input is itself a transform. (@prql-bot, #6586)
 - A literal passed as a transform's input, such as `5 | select a` or
   `from t | derive x 5`, reports `expected a table or query` at the literal. It
   previously gave an internal compiler error with no location. (@prql-bot,
