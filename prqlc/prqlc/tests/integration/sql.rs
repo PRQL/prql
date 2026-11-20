@@ -7973,6 +7973,77 @@ fn test_group_with_only_sort() {
 }
 
 #[test]
+fn test_group_with_only_sort_then_transform() {
+    // A group whose only step is `sort` drops the sort, but the group's `by`
+    // columns must still be lowered: the group's lineage, and so every later
+    // transform, references them.
+    assert_snapshot!(compile(r###"
+    from t
+    group a (sort b)
+    take 1
+    "###).unwrap(), @"
+    SELECT
+      *
+    FROM
+      t
+    LIMIT
+      1
+    ");
+
+    assert_snapshot!(compile(r###"
+    from t
+    group a (sort b)
+    derive {c = 1}
+    "###).unwrap(), @"
+    SELECT
+      *,
+      1 AS c
+    FROM
+      t
+    ");
+
+    assert_snapshot!(compile(r###"
+    from t
+    group a (sort b)
+    select {a, b}
+    "###).unwrap(), @"
+    SELECT
+      a,
+      b
+    FROM
+      t
+    ");
+
+    // Also when the group's input is itself a transform.
+    assert_snapshot!(compile(r###"
+    from t
+    select {a, b}
+    group a (sort b)
+    "###).unwrap(), @"
+    SELECT
+      a,
+      b
+    FROM
+      t
+    ");
+
+    assert_snapshot!(compile(r###"
+    from t
+    derive {c = 1}
+    group a (sort b)
+    take 1
+    "###).unwrap(), @"
+    SELECT
+      *,
+      1 AS c
+    FROM
+      t
+    LIMIT
+      1
+    ");
+}
+
+#[test]
 fn test_group_empty_preserves_sort() {
     // Issue #5100: Empty group {} should preserve inner sort.
     assert_snapshot!(compile(r###"

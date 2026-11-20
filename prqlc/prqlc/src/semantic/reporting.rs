@@ -195,7 +195,9 @@ impl PlFold for FrameCollector {
                         | pl::TransformKind::Window {
                             pipeline: ref e, ..
                         } => {
-                            tcc.push(e.id.unwrap());
+                            // The flattener can synthesize an empty `derive` whose
+                            // assigns carry no id (a group whose only step is `sort`).
+                            tcc.extend(e.id);
                         }
                         pl::TransformKind::Aggregate { assigns: ref e } => {
                             tcc.push(e.id.unwrap());
@@ -263,5 +265,23 @@ impl PlFold for FrameCollector {
             kind: self.fold_expr_kind(expr.kind)?,
             ..expr
         })
+    }
+}
+
+#[cfg(test)]
+mod test {
+    #[test]
+    fn test_lineage_group_with_only_sort() {
+        // The flattener replaces a group whose only step is `sort` with an
+        // empty derive; collecting its lineage must not panic.
+        for query in [
+            "from t | group a (sort b)",
+            "from t | group a (sort b) | take 1",
+            "from t | select {a, b} | group a (sort b)",
+        ] {
+            let pl = crate::prql_to_pl(query).unwrap();
+            let fc = crate::internal::pl_to_lineage(pl).unwrap();
+            assert!(!fc.frames.is_empty(), "{query}");
+        }
     }
 }
