@@ -29,6 +29,11 @@
 
 **Fixes**:
 
+- `prqlc fmt` on a file without a `.prql` extension, or a directory with no
+  `.prql` files, reports that no `.prql` files were found. It previously exited
+  successfully without formatting anything. `lex`, `debug annotate` and
+  `experimental highlight` report the same rather than claiming to have found
+  multiple sources. (@prql-bot, #6587)
 - `from_text format:json` with `columns` and `data` reports an error when a row
   has a different number of values than `columns`. It previously compiled to a
   `UNION ALL` with mismatched column counts. (@prql-bot, #6580)
