@@ -236,9 +236,9 @@ module mod_b {
 - a "file loader", which can load files on-demand.
 
 When `prqlc compile` is given a directory, it loads every `.prql` file in it.
-The root module is the file directly in that directory whose name starts with
-an uppercase letter (for example `Project.prql`); there must be only one such
-file. Every other file becomes a module named after its path, so
+The root module is the file directly in that directory whose name starts with an
+uppercase letter (for example `Project.prql`); there must be only one such file.
+Every other file becomes a module named after its path, so
 `sales/projections.prql` is the module `sales.projections`.
 
 Example prqlc usage, where the second argument is the output (`-` for stdout)
