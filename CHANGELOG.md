@@ -29,6 +29,9 @@
 
 **Fixes**:
 
+- A `group` whose only step is `sort`, such as `group a (sort b)`, no longer
+  raises an internal compiler error when another transform follows it or when
+  its input is itself a transform. (@prql-bot, #6586)
 - `from_text format:json` with `columns` and `data` reports an error when a row
   has a different number of values than `columns`. It previously compiled to a
   `UNION ALL` with mismatched column counts. (@prql-bot, #6580)
