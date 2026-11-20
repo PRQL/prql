@@ -84,6 +84,7 @@ impl PlFold for Flattener {
                         }
 
                         let input = self.fold_expr(*t.input)?;
+                        let input_id = input.id;
 
                         let pipeline = pipeline.kind.into_func().unwrap();
 
@@ -97,25 +98,34 @@ impl PlFold for Flattener {
                         let pipeline = self.fold_expr(*pipeline.body)?;
 
                         self.replace_map.remove(&param_id);
-                        self.partition = None;
+                        let by = self.partition.take();
                         self.sort.clear();
                         self.sort_undone = sort_undone;
 
-                        // If the pipeline simplified to a non-TransformCall (e.g., sort was
-                        // dropped), use the pipeline's lineage since the original GROUP lineage
-                        // may reference expressions that no longer exist in the tree.
-                        // Otherwise, preserve the GROUP's lineage which includes the `by` columns.
-                        let lineage = if matches!(pipeline.kind, ExprKind::TransformCall(_)) {
-                            expr.lineage
-                        } else {
-                            pipeline.lineage
-                        };
+                        if pipeline.id != input_id {
+                            return Ok(Expr {
+                                ty: expr.ty,
+                                lineage: expr.lineage,
+                                ..pipeline
+                            });
+                        }
 
-                        return Ok(Expr {
-                            ty: expr.ty,
-                            lineage,
-                            ..pipeline
+                        // No transform of the group's pipeline survived (e.g. a lone sort
+                        // was dropped), so the body folded back to the group's input and
+                        // nothing carries the partition. The `by` columns would then never
+                        // be lowered, yet the group's lineage — and every later transform —
+                        // references them. Keep them declared with an empty derive that
+                        // carries the partition.
+                        expr.kind = ExprKind::TransformCall(TransformCall {
+                            input: Box::new(pipeline),
+                            kind: Box::new(TransformKind::Derive {
+                                assigns: Box::new(Expr::new(ExprKind::Tuple(vec![]))),
+                            }),
+                            partition: by,
+                            frame: self.window.clone(),
+                            sort: vec![],
                         });
+                        return Ok(expr);
                     }
                     TransformKind::Window {
                         kind,
