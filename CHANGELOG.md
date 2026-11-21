@@ -29,6 +29,11 @@
 
 **Fixes**:
 
+- `prqlc compile` on a directory with more than one root-level file starting
+  with an uppercase letter reports the candidates as an error. It previously
+  picked one of them at random as the root module. Files inside an uppercase
+  directory, such as `Sales/orders.prql`, are no longer treated as the root.
+  (@prql-bot, #6584)
 - `sql.mysql` compiles a milliseconds interval such as `5milliseconds` to
   `INTERVAL 5000 MICROSECOND`, since MySQL has no `MILLISECOND` unit, and
   `sql.postgres` compiles a timestamp or time with an offset or `Z` to
