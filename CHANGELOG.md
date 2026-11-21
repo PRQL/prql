@@ -29,6 +29,9 @@
 
 **Fixes**:
 
+- `prqlc watch` keeps a Jinja interpolation intact when digits directly follow
+  it, and no longer wraps one in identifier quotes on Snowflake and Oracle.
+  (@prql-bot, #6567)
 - `sql.mysql` compiles a milliseconds interval such as `5milliseconds` to
   `INTERVAL 5000 MICROSECOND`, since MySQL has no `MILLISECOND` unit, and
   `sql.postgres` compiles a timestamp or time with an offset or `Z` to
