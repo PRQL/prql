@@ -29,6 +29,11 @@
 
 **Fixes**:
 
+- `sql.mysql` compiles a milliseconds interval such as `5milliseconds` to
+  `INTERVAL 5000 MICROSECOND`, since MySQL has no `MILLISECOND` unit, and
+  `sql.postgres` compiles a timestamp with an offset or `Z` to
+  `TIMESTAMPTZ '…'`, which keeps the offset that `TIMESTAMP '…'` dropped.
+  (@prql-bot, #6593)
 - A `group` whose only step is `sort`, such as `group a (sort b)`, no longer
   raises an internal compiler error when another transform follows it or when
   its input is itself a transform. (@prql-bot, #6586)
