@@ -34,6 +34,11 @@
   successfully without formatting anything. `lex`, `debug annotate` and
   `experimental highlight` report the same rather than claiming to have found
   multiple sources. (@prql-bot, #6587)
+- `sql.mysql` compiles a milliseconds interval such as `5milliseconds` to
+  `INTERVAL 5000 MICROSECOND`, since MySQL has no `MILLISECOND` unit, and
+  `sql.postgres` compiles a timestamp or time with an offset or `Z` to
+  `TIMESTAMPTZ '…'` or `TIMETZ '…'`, which keep the offset that `TIMESTAMP '…'`
+  and `TIME '…'` dropped. (@prql-bot, #6593)
 - A `case` expression piped into `in`, such as
   `(case [a => 1, true => 2]) | in [1, 3]`, compiles to `CASE ... END IN (...)`.
   It previously raised
