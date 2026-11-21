@@ -29,6 +29,11 @@
 
 **Fixes**:
 
+- `prqlc fmt` on a file without a `.prql` extension, or a directory with no
+  `.prql` files, reports that no `.prql` files were found. It previously exited
+  successfully without formatting anything. `lex`, `debug annotate` and
+  `experimental highlight` report the same rather than claiming to have found
+  multiple sources. (@prql-bot, #6587)
 - `sql.mysql` compiles a milliseconds interval such as `5milliseconds` to
   `INTERVAL 5000 MICROSECOND`, since MySQL has no `MILLISECOND` unit, and
   `sql.postgres` compiles a timestamp or time with an offset or `Z` to
