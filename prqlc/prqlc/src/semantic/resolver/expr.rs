@@ -136,7 +136,14 @@ impl pl::PlFold for Resolver<'_> {
                                 self.fold_expr(expr)?
                             }
                         }
-                        _ => self.fold_expr(expr.as_ref().clone())?,
+                        _ => {
+                            // An alias at the reference, as in `select {z = x}`,
+                            // takes precedence over one in the definition, as
+                            // in `let x = (y = 5)`.
+                            let mut expr = expr.as_ref().clone();
+                            expr.alias = alias.clone().or(expr.alias);
+                            self.fold_expr(expr)?
+                        }
                     },
 
                     DeclKind::InstanceOf(_, ty) => {
