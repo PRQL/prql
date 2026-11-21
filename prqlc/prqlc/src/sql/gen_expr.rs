@@ -551,16 +551,14 @@ pub(super) fn translate_literal(l: Literal, ctx: &Context) -> Result<sql_ast::Ex
         Literal::Float(f) => sql_ast::Expr::Value(Value::Number(format!("{f:?}"), false).into()),
         Literal::Integer(i) => sql_ast::Expr::Value(Value::Number(format!("{i}"), false).into()),
         Literal::Date(value) => translate_datetime_literal(sql_ast::DataType::Date, value, ctx),
-        Literal::Time(value) => translate_datetime_literal(
-            sql_ast::DataType::Time(None, sql_ast::TimezoneInfo::None),
-            value,
-            ctx,
-        ),
-        Literal::Timestamp(value) => translate_datetime_literal(
-            sql_ast::DataType::Timestamp(None, sql_ast::TimezoneInfo::None),
-            value,
-            ctx,
-        ),
+        Literal::Time(value) => {
+            let tz = timezone_info(&value, ctx);
+            translate_datetime_literal(sql_ast::DataType::Time(None, tz), value, ctx)
+        }
+        Literal::Timestamp(value) => {
+            let tz = timezone_info(&value, ctx);
+            translate_datetime_literal(sql_ast::DataType::Timestamp(None, tz), value, ctx)
+        }
         Literal::ValueAndUnit(vau) => {
             let sql_parser_datetime = match vau.unit.as_str() {
                 "years" => DateTimeField::Year,
@@ -579,12 +577,22 @@ pub(super) fn translate_literal(l: Literal, ctx: &Context) -> Result<sql_ast::Ex
                     )))
                 }
             };
+            // MySQL's interval units stop at `MICROSECOND`; it has no `MILLISECOND`.
+            let (n, sql_parser_datetime) = if sql_parser_datetime == DateTimeField::Millisecond
+                && ctx.dialect.is::<crate::sql::dialect::MySqlDialect>()
+            {
+                let n = vau.n.checked_mul(1000).ok_or_else(|| {
+                    Error::new_simple(format!("Interval `{}milliseconds` is too large", vau.n))
+                })?;
+                (n, DateTimeField::Microsecond)
+            } else {
+                (vau.n, sql_parser_datetime)
+            };
             match ctx.dialect.interval_quoting_style(&sql_parser_datetime) {
                 IntervalQuotingStyle::ValueAndUnitQuoted => {
                     //postgres requires quotes around number and unit together eg '3 WEEK'
                     let value = Box::new(sql_ast::Expr::Value(
-                        Value::SingleQuotedString(format!("{} {}", vau.n, sql_parser_datetime))
-                            .into(),
+                        Value::SingleQuotedString(format!("{} {}", n, sql_parser_datetime)).into(),
                     ));
                     sql_ast::Expr::Interval(sqlparser::ast::Interval {
                         value,
@@ -595,7 +603,7 @@ pub(super) fn translate_literal(l: Literal, ctx: &Context) -> Result<sql_ast::Ex
                     })
                 }
                 IntervalQuotingStyle::NoQuotes => {
-                    let value = Box::new(translate_literal(Literal::Integer(vau.n), ctx)?);
+                    let value = Box::new(translate_literal(Literal::Integer(n), ctx)?);
                     sql_ast::Expr::Interval(sqlparser::ast::Interval {
                         value,
                         leading_field: Some(sql_parser_datetime),
@@ -609,7 +617,7 @@ pub(super) fn translate_literal(l: Literal, ctx: &Context) -> Result<sql_ast::Ex
                 IntervalQuotingStyle::ValueQuoted => {
                     // Adding single quotes around the number
                     let value = Box::new(sql_ast::Expr::Value(
-                        Value::SingleQuotedString(vau.n.to_string()).into(),
+                        Value::SingleQuotedString(n.to_string()).into(),
                     ));
                     sql_ast::Expr::Interval(sqlparser::ast::Interval {
                         value,
@@ -622,6 +630,20 @@ pub(super) fn translate_literal(l: Literal, ctx: &Context) -> Result<sql_ast::Ex
             }
         }
     })
+}
+
+/// The time zone of a `TIME` or `TIMESTAMP` literal's type.
+///
+/// Postgres reads `TIME '…'` and `TIMESTAMP '…'` as types without a time zone
+/// and discards an offset, so a value ending in one (`Z`, `+05:00`, `-0800`)
+/// is a `TIMETZ` or `TIMESTAMPTZ` there.
+fn timezone_info(value: &str, ctx: &Context) -> sql_ast::TimezoneInfo {
+    let offset = Regex::new(r"(Z|[+-]\d{2}:?\d{2})$").unwrap();
+    if ctx.dialect.is::<crate::sql::dialect::PostgresDialect>() && offset.is_match(value) {
+        sql_ast::TimezoneInfo::Tz
+    } else {
+        sql_ast::TimezoneInfo::None
+    }
 }
 
 fn translate_datetime_literal(
@@ -1666,6 +1688,53 @@ mod test {
           -(-1) AS z
         FROM
           a
+        ");
+    }
+
+    #[test]
+    fn test_mysql_milliseconds_interval() {
+        // MySQL's interval units stop at MICROSECOND
+        let query = r#"
+        prql target:sql.mysql
+        from t
+        derive {a = d + 5milliseconds, b = d + 5microseconds}
+        "#;
+        insta::assert_snapshot!(crate::tests::compile(query).unwrap(), @"
+        SELECT
+          *,
+          d + INTERVAL 5000 MICROSECOND AS a,
+          d + INTERVAL 5 MICROSECOND AS b
+        FROM
+          t
+        ");
+    }
+
+    #[test]
+    fn test_postgres_datetime_with_offset() {
+        // `TIME '…'` and `TIMESTAMP '…'` literals on Postgres ignore the offset
+        let query = r#"
+        prql target:sql.postgres
+        from t
+        derive {
+            a = @2020-01-01T10:00:00+05:00,
+            b = @2020-01-01T10:00:00Z,
+            c = @2020-01-01T10:00:00-0800,
+            d = @2020-01-01T10:00:00,
+            e = @10:00+05:00,
+            f = @10:00,
+        }
+        "#;
+        insta::assert_snapshot!(crate::tests::compile(query).unwrap(), @"
+        SELECT
+          *,
+          TIMESTAMPTZ '2020-01-01T10:00:00+0500' AS a,
+          TIMESTAMPTZ '2020-01-01T10:00:00Z' AS b,
+          TIMESTAMPTZ '2020-01-01T10:00:00-0800' AS c,
+          TIMESTAMP '2020-01-01T10:00:00' AS d,
+          TIMETZ '10:00+0500' AS e,
+          TIME '10:00' AS f
+        FROM
+          t
         ");
     }
 }
