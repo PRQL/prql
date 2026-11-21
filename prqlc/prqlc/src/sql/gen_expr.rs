@@ -551,21 +551,12 @@ pub(super) fn translate_literal(l: Literal, ctx: &Context) -> Result<sql_ast::Ex
         Literal::Float(f) => sql_ast::Expr::Value(Value::Number(format!("{f:?}"), false).into()),
         Literal::Integer(i) => sql_ast::Expr::Value(Value::Number(format!("{i}"), false).into()),
         Literal::Date(value) => translate_datetime_literal(sql_ast::DataType::Date, value, ctx),
-        Literal::Time(value) => translate_datetime_literal(
-            sql_ast::DataType::Time(None, sql_ast::TimezoneInfo::None),
-            value,
-            ctx,
-        ),
+        Literal::Time(value) => {
+            let tz = timezone_info(&value, ctx);
+            translate_datetime_literal(sql_ast::DataType::Time(None, tz), value, ctx)
+        }
         Literal::Timestamp(value) => {
-            // Postgres reads `TIMESTAMP '…'` as `timestamp without time zone`
-            // and discards an offset, so a value with one is a `TIMESTAMPTZ`.
-            let tz = if ctx.dialect.is::<crate::sql::dialect::PostgresDialect>()
-                && has_utc_offset(&value)
-            {
-                sql_ast::TimezoneInfo::Tz
-            } else {
-                sql_ast::TimezoneInfo::None
-            };
+            let tz = timezone_info(&value, ctx);
             translate_datetime_literal(sql_ast::DataType::Timestamp(None, tz), value, ctx)
         }
         Literal::ValueAndUnit(vau) => {
@@ -641,10 +632,18 @@ pub(super) fn translate_literal(l: Literal, ctx: &Context) -> Result<sql_ast::Ex
     })
 }
 
-/// Whether a timestamp literal ends in a UTC offset (`Z`, `+05:00`, `-0800`).
-fn has_utc_offset(value: &str) -> bool {
+/// The time zone of a `TIME` or `TIMESTAMP` literal's type.
+///
+/// Postgres reads `TIME '…'` and `TIMESTAMP '…'` as types without a time zone
+/// and discards an offset, so a value ending in one (`Z`, `+05:00`, `-0800`)
+/// is a `TIMETZ` or `TIMESTAMPTZ` there.
+fn timezone_info(value: &str, ctx: &Context) -> sql_ast::TimezoneInfo {
     let offset = Regex::new(r"(Z|[+-]\d{2}:?\d{2})$").unwrap();
-    offset.is_match(value)
+    if ctx.dialect.is::<crate::sql::dialect::PostgresDialect>() && offset.is_match(value) {
+        sql_ast::TimezoneInfo::Tz
+    } else {
+        sql_ast::TimezoneInfo::None
+    }
 }
 
 fn translate_datetime_literal(
@@ -1711,8 +1710,8 @@ mod test {
     }
 
     #[test]
-    fn test_postgres_timestamp_with_offset() {
-        // A `TIMESTAMP '…'` literal on Postgres ignores the offset
+    fn test_postgres_datetime_with_offset() {
+        // `TIME '…'` and `TIMESTAMP '…'` literals on Postgres ignore the offset
         let query = r#"
         prql target:sql.postgres
         from t
@@ -1721,6 +1720,8 @@ mod test {
             b = @2020-01-01T10:00:00Z,
             c = @2020-01-01T10:00:00-0800,
             d = @2020-01-01T10:00:00,
+            e = @10:00+05:00,
+            f = @10:00,
         }
         "#;
         insta::assert_snapshot!(crate::tests::compile(query).unwrap(), @"
@@ -1729,7 +1730,9 @@ mod test {
           TIMESTAMPTZ '2020-01-01T10:00:00+0500' AS a,
           TIMESTAMPTZ '2020-01-01T10:00:00Z' AS b,
           TIMESTAMPTZ '2020-01-01T10:00:00-0800' AS c,
-          TIMESTAMP '2020-01-01T10:00:00' AS d
+          TIMESTAMP '2020-01-01T10:00:00' AS d,
+          TIMETZ '10:00+0500' AS e,
+          TIME '10:00' AS f
         FROM
           t
         ");
