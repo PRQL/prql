@@ -180,6 +180,7 @@ fn process_array_in(
                 | rq::ExprKind::Literal(_)
                 | rq::ExprKind::SString(_)
                 | rq::ExprKind::Param(_)
+                | rq::ExprKind::Case(_)
                 | rq::ExprKind::Operator { name: _, args: _ },
             ..
         }, rq::Expr {

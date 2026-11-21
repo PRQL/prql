@@ -1954,6 +1954,24 @@ fn test_in_no_values() {
 }
 
 #[test]
+fn test_in_values_case() {
+    assert_snapshot!((compile(r#"
+    from employees
+    filter ((case [title == "CEO" => 1, true => 2]) | in [1, 3])
+    "#).unwrap()), @"
+    SELECT
+      *
+    FROM
+      employees
+    WHERE
+      CASE
+        WHEN title = 'CEO' THEN 1
+        ELSE 2
+      END IN (1, 3)
+    ");
+}
+
+#[test]
 fn test_in_values_err_01() {
     assert_snapshot!((compile(r###"
     from employees

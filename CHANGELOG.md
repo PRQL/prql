@@ -34,6 +34,11 @@
   `sql.postgres` compiles a timestamp with an offset or `Z` to
   `TIMESTAMPTZ '…'`, which keeps the offset that `TIMESTAMP '…'` dropped.
   (@prql-bot, #6593)
+- A `case` expression piped into `in`, such as
+  `(case [a => 1, true => 2]) | in [1, 3]`, compiles to `CASE ... END IN (...)`.
+  It previously raised
+  ``args to `std.array_in` must be an expression and an array``. (@prql-bot,
+  #6591)
 - A `group` whose only step is `sort`, such as `group a (sort b)`, no longer
   raises an internal compiler error when another transform follows it or when
   its input is itself a transform. (@prql-bot, #6586)
