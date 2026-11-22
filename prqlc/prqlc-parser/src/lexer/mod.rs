@@ -528,21 +528,30 @@ fn number<'a>() -> impl Parser<'a, ParserInput<'a>, Literal, ParserError<'a>> {
     integer
         .then(optional_component(frac, |f| f))
         .then(optional_component(exp, |e| e))
-        .map(|((int_part, frac_part), exp_part)| {
+        // A whole number that doesn't fit in an i64, or a float that
+        // overflows to infinity, is an error rather than a silently different
+        // number.
+        .validate(|((int_part, frac_part), exp_part), extra, emitter| {
             // Construct the number string and remove underscores
+            let is_float = !frac_part.is_empty() || !exp_part.is_empty();
             let num_str = format!("{}{}{}", int_part, frac_part, exp_part)
                 .chars()
                 .filter(|&c| c != '_')
                 .collect::<String>();
 
-            // Try to parse as integer first, then as float
-            if let Ok(i) = num_str.parse::<i64>() {
-                Literal::Integer(i)
-            } else if let Ok(f) = num_str.parse::<f64>() {
-                Literal::Float(f)
+            let literal = if is_float {
+                num_str
+                    .parse::<f64>()
+                    .ok()
+                    .filter(|f| f.is_finite())
+                    .map(Literal::Float)
             } else {
-                Literal::Integer(0) // Fallback
-            }
+                num_str.parse::<i64>().ok().map(Literal::Integer)
+            };
+            literal.unwrap_or_else(|| {
+                emitter.emit(Simple::new(None, extra.span()));
+                Literal::Integer(0)
+            })
         })
 }
 
@@ -610,10 +619,17 @@ fn value_and_unit<'a>() -> impl Parser<'a, ParserInput<'a>, Literal, ParserError
     ));
 
     // Parse the integer value followed by a unit
-    parse_integer().then(unit).then_ignore(end_expr()).map(
-        |(number_str, unit_str): (&str, &str)| {
-            // Parse the number (removing underscores), defaulting to 1 if parsing fails
-            let n = number_str.replace('_', "").parse::<i64>().unwrap_or(1);
+    parse_integer().then(unit).then_ignore(end_expr()).validate(
+        |(number_str, unit_str): (&str, &str), extra, emitter| {
+            // Parse the number (removing underscores). One too large for an
+            // i64 is an error rather than a silently different interval.
+            let n = number_str
+                .replace('_', "")
+                .parse::<i64>()
+                .unwrap_or_else(|_| {
+                    emitter.emit(Simple::new(None, extra.span()));
+                    0
+                });
             Literal::ValueAndUnit(ValueAndUnit {
                 n,
                 unit: unit_str.to_string(),
