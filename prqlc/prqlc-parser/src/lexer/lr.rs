@@ -202,8 +202,12 @@ fn escape_all_except_quotes(s: &str) -> String {
     for ch in s.chars() {
         if ch == '"' || ch == '\'' {
             result.push(ch);
-        } else {
+        } else if ch.is_ascii() {
             result.extend(ch.escape_default());
+        } else {
+            // `escape_debug` keeps printable non-ASCII text as written but still
+            // escapes invisible characters such as `\u{200b}` and `\u{202e}`.
+            result.extend(ch.escape_debug());
         }
     }
     result
