@@ -29,6 +29,8 @@
 
 **Fixes**:
 
+- `prqlc fmt` keeps non-ASCII characters in a string literal as written, rather
+  than rewriting `"日本"` as `"\u{65e5}\u{672c}"`. (@prql-bot, #6596)
 - `sql.mysql` compiles a milliseconds interval such as `5milliseconds` to
   `INTERVAL 5000 MICROSECOND`, since MySQL has no `MILLISECOND` unit, and
   `sql.postgres` compiles a timestamp or time with an offset or `Z` to
