@@ -10,6 +10,25 @@ use crate::utils::IdGenerator;
 use crate::Result;
 use crate::{Error, Reason, Span, WithErrorInfo};
 
+impl Resolver<'_> {
+    /// Resolves the name in a type annotation to the type it declares.
+    fn resolve_type_ident(&mut self, ident: &pl::Ident) -> Result<Ty> {
+        let fq_ident = self.resolve_ident(ident)?;
+
+        let decl = self.root_mod.module.get(&fq_ident).unwrap();
+        let decl_ty = decl.kind.as_ty().ok_or_else(|| {
+            Error::new(Reason::Expected {
+                who: None,
+                expected: "a type".to_string(),
+                found: decl.to_string(),
+            })
+        })?;
+        let mut ty = decl_ty.clone();
+        ty.name = ty.name.or(Some(fq_ident.name));
+        Ok(ty)
+    }
+}
+
 impl pl::PlFold for Resolver<'_> {
     fn fold_stmts(&mut self, _: Vec<pl::Stmt>) -> Result<Vec<pl::Stmt>> {
         unreachable!()
@@ -21,23 +40,14 @@ impl pl::PlFold for Resolver<'_> {
                 self.root_mod.module.shadow(NS_THIS);
                 self.root_mod.module.shadow(NS_THAT);
 
-                let fq_ident = self.resolve_ident(&ident)?;
-
-                let decl = self.root_mod.module.get(&fq_ident).unwrap();
-                let decl_ty = decl.kind.as_ty().ok_or_else(|| {
-                    Error::new(Reason::Expected {
-                        who: None,
-                        expected: "a type".to_string(),
-                        found: decl.to_string(),
-                    })
-                })?;
-                let mut ty = decl_ty.clone();
-                ty.name = ty.name.or(Some(fq_ident.name));
+                // Resolve and look up the name while `this` and `that` are
+                // shadowed, then restore them whether or not that succeeded.
+                let resolved = self.resolve_type_ident(&ident);
 
                 self.root_mod.module.unshadow(NS_THIS);
                 self.root_mod.module.unshadow(NS_THAT);
 
-                ty
+                resolved.map_err(|e| e.with_span_fallback(ty.span))?
             }
             _ => pl::fold_type(self, ty)?,
         })

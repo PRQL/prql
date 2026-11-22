@@ -29,6 +29,9 @@
 
 **Fixes**:
 
+- An unknown name or a non-type in a type annotation, such as `let x <zzz> = 1`
+  or `type a = zzz`, now reports an error pointing at the annotation rather than
+  one with no location. (@prql-bot, #6597)
 - `prqlc fmt` keeps non-ASCII characters in a string literal as written, rather
   than rewriting `"日本"` as `"\u{65e5}\u{672c}"`. (@prql-bot, #6596)
 - `sql.mysql` compiles a milliseconds interval such as `5milliseconds` to
