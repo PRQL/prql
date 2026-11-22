@@ -613,7 +613,36 @@ fn compile_no_prql_files() {
     ----- stdout -----
 
     ----- stderr -----
-    Error: No `.prql` files found in the source tree
+    Error: No `.prql` files found in `README.md`
+    ");
+}
+
+#[test]
+fn no_prql_files() {
+    let temp_dir = TempDir::new().expect("Failed to create temp directory");
+    let txt = temp_dir.path().join("query.txt");
+    std::fs::write(&txt, "from    tracks\n").unwrap();
+
+    // `fmt` previously exited successfully without touching the file
+    assert_cmd_snapshot!(prqlc_command().args(["fmt", "query.txt"]).current_dir(temp_dir.path()), @"
+    success: false
+    exit_code: 1
+    ----- stdout -----
+
+    ----- stderr -----
+    Error: No `.prql` files found in `query.txt`
+    ");
+    assert_eq!(std::fs::read_to_string(&txt).unwrap(), "from    tracks\n");
+
+    // `lex` previously reported finding multiple sources
+    std::fs::create_dir(temp_dir.path().join("empty")).unwrap();
+    assert_cmd_snapshot!(prqlc_command().args(["lex", "empty"]).current_dir(temp_dir.path()), @"
+    success: false
+    exit_code: 1
+    ----- stdout -----
+
+    ----- stderr -----
+    Error: No `.prql` files found in `empty`
     ");
 }
 
