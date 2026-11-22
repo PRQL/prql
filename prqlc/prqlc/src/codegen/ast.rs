@@ -626,9 +626,11 @@ mod test {
 
     #[test]
     fn test_non_ascii_string() {
-        // Non-ASCII text stays as written; control characters are still escaped
+        // Non-ASCII text stays as written; control and invisible characters
+        // are still escaped
         assert_is_formatted(r#"derive x = "日本 🎉 café""#);
         assert_snapshot!(format_single_stmt("derive x = \"a\\tb\\u{7}c\""), @r#"derive x = "a\tb\u{7}c""#);
+        assert_is_formatted(r#"derive x = "a\u{200b}b\u{202e}c""#);
     }
 
     #[test]
