@@ -625,6 +625,11 @@ fn read_files(input: &mut clio::ClioPath) -> Result<SourceTree> {
 
         sources.insert(path, file_contents);
     }
+    if sources.is_empty() {
+        let error =
+            prqlc::Error::new_simple(format!("No `.prql` files found in `{}`", root.display()));
+        return Err(prqlc::ErrorMessages::from(error).into());
+    }
     Ok(SourceTree::new(sources, Some(root.to_path_buf())))
 }
 
