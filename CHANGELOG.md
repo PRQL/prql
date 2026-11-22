@@ -29,6 +29,8 @@
 
 **Fixes**:
 
+- `prqlc fmt` keeps non-ASCII characters in a string literal as written, rather
+  than rewriting `"日本"` as `"\u{65e5}\u{672c}"`. (@prql-bot, #6596)
 - A decimal integer or interval too large for a 64-bit integer, such as
   `99999999999999999999` or `99999999999999999999days`, and a float that
   overflows, such as `1e400`, are now errors. They previously compiled to
