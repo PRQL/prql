@@ -29,12 +29,20 @@
 
 **Fixes**:
 
+- An unknown name or a non-type in a type annotation, such as `let x <zzz> = 1`
+  or `type a = zzz`, now reports an error pointing at the annotation rather than
+  one with no location. (@prql-bot, #6597)
 - `prqlc fmt` keeps non-ASCII characters in a string literal as written, rather
   than rewriting `"日本"` as `"\u{65e5}\u{672c}"`. (@prql-bot, #6596)
 - A decimal integer or interval too large for a 64-bit integer, such as
   `99999999999999999999` or `99999999999999999999days`, and a float that
   overflows, such as `1e400`, are now errors. They previously compiled to
   `1e20`, `INTERVAL 1 DAY` and `inf`. (@prql-bot, #6595)
+- `prqlc compile` on a directory with more than one root-level file starting
+  with an uppercase letter reports the candidates as an error. It previously
+  picked one of them at random as the root module. Files inside an uppercase
+  directory, such as `Sales/orders.prql`, are no longer treated as the root.
+  (@prql-bot, #6584)
 - `sql.mysql` compiles a milliseconds interval such as `5milliseconds` to
   `INTERVAL 5000 MICROSECOND`, since MySQL has no `MILLISECOND` unit, and
   `sql.postgres` compiles a timestamp or time with an offset or `Z` to
