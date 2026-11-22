@@ -29,6 +29,8 @@
 
 **Fixes**:
 
+- `prqlc fmt` keeps non-ASCII characters in a string literal as written, rather
+  than rewriting `"日本"` as `"\u{65e5}\u{672c}"`. (@prql-bot, #6596)
 - `prqlc compile` on a directory with more than one root-level file starting
   with an uppercase letter reports the candidates as an error. It previously
   picked one of them at random as the root module. Files inside an uppercase
