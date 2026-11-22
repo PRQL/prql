@@ -21,7 +21,12 @@ impl pl::PlFold for Resolver<'_> {
                 self.root_mod.module.shadow(NS_THIS);
                 self.root_mod.module.shadow(NS_THAT);
 
-                let fq_ident = self.resolve_ident(&ident)?;
+                let fq_ident = self.resolve_ident(&ident);
+
+                self.root_mod.module.unshadow(NS_THIS);
+                self.root_mod.module.unshadow(NS_THAT);
+
+                let fq_ident = fq_ident.map_err(|e| e.with_span_fallback(ty.span))?;
 
                 let decl = self.root_mod.module.get(&fq_ident).unwrap();
                 let decl_ty = decl.kind.as_ty().ok_or_else(|| {
@@ -30,13 +35,10 @@ impl pl::PlFold for Resolver<'_> {
                         expected: "a type".to_string(),
                         found: decl.to_string(),
                     })
+                    .with_span(ty.span)
                 })?;
                 let mut ty = decl_ty.clone();
                 ty.name = ty.name.or(Some(fq_ident.name));
-
-                self.root_mod.module.unshadow(NS_THIS);
-                self.root_mod.module.unshadow(NS_THAT);
-
                 ty
             }
             _ => pl::fold_type(self, ty)?,

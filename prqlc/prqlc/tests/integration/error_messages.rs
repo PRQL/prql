@@ -968,3 +968,47 @@ fn test_tuple_type_unpack_not_last() {
     ───╯
     ");
 }
+
+#[test]
+fn test_type_annotation_errors_have_spans() {
+    // An unknown name in a type annotation, and a name that isn't a type
+    assert_snapshot!(compile(r###"
+    let x <zzz> = 1
+    from t
+    "###).unwrap_err(), @"
+    Error:
+       ╭─[ :2:12 ]
+       │
+     2 │     let x <zzz> = 1
+       │            ─┬─
+       │             ╰─── Unknown name `zzz`
+    ───╯
+    ");
+
+    assert_snapshot!(compile(r###"
+    let y = 1
+    let x <y> = 1
+    from t
+    "###).unwrap_err(), @"
+    Error:
+       ╭─[ :3:12 ]
+       │
+     3 │     let x <y> = 1
+       │            ┬
+       │            ╰── expected a type, but found Expr: 1
+    ───╯
+    ");
+
+    assert_snapshot!(compile(r###"
+    type a = zzz
+    from t
+    "###).unwrap_err(), @"
+    Error:
+       ╭─[ :2:14 ]
+       │
+     2 │     type a = zzz
+       │              ─┬─
+       │               ╰─── Unknown name `zzz`
+    ───╯
+    ");
+}
