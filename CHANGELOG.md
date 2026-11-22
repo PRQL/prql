@@ -29,6 +29,10 @@
 
 **Fixes**:
 
+- Match a relation literal's later rows to the first row's columns by name
+  rather than position. `from [{a=1, b=2}, {b=3, a=4}]` previously read the
+  second row as `a=3, b=4`; a row with missing, extra or partly-named fields is
+  now a compile error instead of wrong data or invalid SQL. (@prql-bot, #6598)
 - An unknown name or a non-type in a type annotation, such as `let x <zzz> = 1`
   or `type a = zzz`, now reports an error pointing at the annotation rather than
   one with no location. (@prql-bot, #6597)
