@@ -625,6 +625,13 @@ mod test {
     }
 
     #[test]
+    fn test_non_ascii_string() {
+        // Non-ASCII text stays as written; control characters are still escaped
+        assert_is_formatted(r#"derive x = "日本 🎉 café""#);
+        assert_snapshot!(format_single_stmt("derive x = \"a\\tb\\u{7}c\""), @r#"derive x = "a\tb\u{7}c""#);
+    }
+
+    #[test]
     fn test_double_braces() {
         assert_is_formatted(
             r#"let has_valid_title = s"regexp_contains(title, '([a-z0-9]*-){{2,}}')""#,

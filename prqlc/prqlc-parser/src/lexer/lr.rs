@@ -200,7 +200,9 @@ fn quote_string(s: &str, allow_escape: bool) -> String {
 fn escape_all_except_quotes(s: &str) -> String {
     let mut result = String::new();
     for ch in s.chars() {
-        if ch == '"' || ch == '\'' {
+        // `escape_default` escapes everything outside printable ASCII; keep
+        // non-ASCII text as written, escaping only control characters.
+        if ch == '"' || ch == '\'' || (!ch.is_ascii() && !ch.is_control()) {
             result.push(ch);
         } else {
             result.extend(ch.escape_default());
