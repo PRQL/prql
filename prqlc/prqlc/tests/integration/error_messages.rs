@@ -999,6 +999,21 @@ fn test_type_annotation_errors_have_spans() {
     ───╯
     ");
 
+    // `that` resolves to a module that only exists while the annotation is
+    // being resolved
+    assert_snapshot!(compile(r###"
+    let x <that> = 1
+    from t
+    "###).unwrap_err(), @"
+    Error:
+       ╭─[ :2:12 ]
+       │
+     2 │     let x <that> = 1
+       │            ──┬─
+       │              ╰─── expected a type, but found Module(Module { names: {} })
+    ───╯
+    ");
+
     assert_snapshot!(compile(r###"
     type a = zzz
     from t
