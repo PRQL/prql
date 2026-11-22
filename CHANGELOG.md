@@ -29,6 +29,8 @@
 
 **Fixes**:
 
+- `prqlc fmt` keeps non-ASCII characters in a string literal as written, rather
+  than rewriting `"日本"` as `"\u{65e5}\u{672c}"`. (@prql-bot, #6596)
 - `prqlc watch` keeps a Jinja interpolation intact when digits directly follow
   it, and no longer wraps one in identifier quotes on Snowflake and Oracle.
   (@prql-bot, #6567)
