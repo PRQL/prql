@@ -941,6 +941,73 @@ fn test_relation_literal_invalid_shape() {
 }
 
 #[test]
+fn test_relation_literal_mismatched_rows() {
+    // Previously matched to the first row's columns by position, so `b` was
+    // silently renamed to `a`.
+    assert_snapshot!(compile(r###"
+    from [{a = 1}, {b = 2}]
+    "###).unwrap_err(), @"
+    Error:
+       ╭─[ :2:20 ]
+       │
+     2 │     from [{a = 1}, {b = 2}]
+       │                    ───┬───
+       │                       ╰───── relation literal row has fields `b`, but the first row has `a`
+    ───╯
+    ");
+
+    // Previously dropped the extra `b`.
+    assert_snapshot!(compile(r###"
+    from [{a = 1}, {a = 2, b = 3}]
+    "###).unwrap_err(), @"
+    Error:
+       ╭─[ :2:20 ]
+       │
+     2 │     from [{a = 1}, {a = 2, b = 3}]
+       │                    ───────┬──────
+       │                           ╰──────── relation literal row has fields `a`, `b`, but the first row has `a`
+    ───╯
+    ");
+
+    // Previously produced a `UNION ALL` with mismatched column counts.
+    assert_snapshot!(compile(r###"
+    from [{a = 1, b = 2}, {a = 2}]
+    "###).unwrap_err(), @"
+    Error:
+       ╭─[ :2:27 ]
+       │
+     2 │     from [{a = 1, b = 2}, {a = 2}]
+       │                           ───┬───
+       │                              ╰───── relation literal row has fields `a`, but the first row has `a`, `b`
+    ───╯
+    ");
+
+    assert_snapshot!(compile(r###"
+    from [{a = 1, b = 2}, {3}]
+    "###).unwrap_err(), @"
+    Error:
+       ╭─[ :2:27 ]
+       │
+     2 │     from [{a = 1, b = 2}, {3}]
+       │                           ─┬─
+       │                            ╰─── relation literal row has 1 value, but the first row has 2 columns (`a`, `b`)
+    ───╯
+    ");
+
+    assert_snapshot!(compile(r###"
+    from [{a = 1, b = 2}, {3, b = 4}]
+    "###).unwrap_err(), @"
+    Error:
+       ╭─[ :2:27 ]
+       │
+     2 │     from [{a = 1, b = 2}, {3, b = 4}]
+       │                           ─────┬────
+       │                                ╰────── relation literal row has fields <unnamed>, `b`, but the first row has `a`, `b`
+    ───╯
+    ");
+}
+
+#[test]
 fn test_tuple_type_unpack_not_last() {
     assert_snapshot!(compile(r###"
     type t = {a = int, ..text, b = int}

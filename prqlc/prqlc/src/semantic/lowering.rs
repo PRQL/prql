@@ -45,6 +45,58 @@ pub(crate) fn missing_main_error(root_mod: &RootModule, span: Option<Span>) -> E
     error.with_span(span)
 }
 
+/// Orders a relation literal row's fields to match the literal's columns.
+///
+/// The columns come from the first row. A row with the same field names, in any
+/// order, is reordered to match them; a row with no names is matched by
+/// position. Rows with missing, extra or partly-named fields are rejected, since
+/// matching them by position would silently put values in the wrong columns.
+fn align_relation_literal_row(fields: Vec<pl::Expr>, columns: &[String]) -> Result<Vec<pl::Expr>> {
+    let names = fields.iter().map(|f| f.alias.clone()).collect_vec();
+    let expected = || columns.iter().map(|c| format!("`{c}`")).join(", ");
+
+    if names.iter().all(|n| n.is_none()) {
+        if fields.len() != columns.len() {
+            return Err(Error::new_simple(format!(
+                "relation literal row has {} value{}, but the first row has {} columns ({})",
+                fields.len(),
+                if fields.len() == 1 { "" } else { "s" },
+                columns.len(),
+                expected()
+            )));
+        }
+        return Ok(fields);
+    }
+
+    let same_names = names.len() == columns.len()
+        && names.iter().all(|n| n.is_some())
+        && names.iter().flatten().sorted().dedup().count() == columns.len()
+        && columns.iter().all(|c| names.contains(&Some(c.clone())));
+    if !same_names {
+        let found = names
+            .iter()
+            .map(|n| {
+                n.as_ref()
+                    .map_or_else(|| "<unnamed>".to_string(), |n| format!("`{n}`"))
+            })
+            .join(", ");
+        return Err(Error::new_simple(format!(
+            "relation literal row has fields {found}, but the first row has {}",
+            expected()
+        )));
+    }
+
+    let mut fields = fields.into_iter().map(Some).collect_vec();
+    Ok(columns
+        .iter()
+        .map(|c| {
+            let pos = names.iter().position(|n| n.as_ref() == Some(c));
+            pos.and_then(|pos| fields[pos].take())
+                .expect("each column matches exactly one field")
+        })
+        .collect())
+}
+
 /// Convert a resolved expression at path `main_path` relative to `root_mod`
 /// into RQ and make sure that:
 /// - transforms are not nested,
@@ -391,30 +443,39 @@ impl Lowerer {
                     })
                     .try_collect()?;
 
+                let column_names: Vec<String> = columns
+                    .iter()
+                    .map(|c| match c {
+                        RelationColumn::Single(Some(name)) => Ok(name.clone()),
+                        _ => Err(Error::new_simple("relation literal columns require names")
+                            .with_span(expr.span)),
+                    })
+                    .try_collect()?;
+
+                let rows = elements
+                    .into_iter()
+                    .map(|row| {
+                        let span = row.span;
+                        let fields =
+                            row.try_cast(|x| x.into_tuple(), Some("relation literal"), "tuples")?;
+                        let fields = align_relation_literal_row(fields, &column_names)
+                            .map_err(|e| e.with_span(span))?;
+                        fields
+                            .into_iter()
+                            .map(|element| {
+                                element.try_cast(
+                                    |x| x.into_literal(),
+                                    Some("relation literal"),
+                                    "literals",
+                                )
+                            })
+                            .try_collect()
+                    })
+                    .try_collect()?;
+
                 let lit = RelationLiteral {
-                    columns: columns
-                        .iter()
-                        .map(|c| match c {
-                            RelationColumn::Single(Some(name)) => Ok(name.clone()),
-                            _ => Err(Error::new_simple("relation literal columns require names")
-                                .with_span(expr.span)),
-                        })
-                        .try_collect()?,
-                    rows: elements
-                        .into_iter()
-                        .map(|row| {
-                            row.try_cast(|x| x.into_tuple(), Some("relation literal"), "tuples")?
-                                .into_iter()
-                                .map(|element| {
-                                    element.try_cast(
-                                        |x| x.into_literal(),
-                                        Some("relation literal"),
-                                        "literals",
-                                    )
-                                })
-                                .try_collect()
-                        })
-                        .try_collect()?,
+                    columns: column_names,
+                    rows,
                 };
 
                 log::debug!("lowering literal relation table, columns = {columns:?}");
