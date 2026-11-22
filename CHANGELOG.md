@@ -29,6 +29,10 @@
 
 **Fixes**:
 
+- A decimal integer or interval too large for a 64-bit integer, such as
+  `99999999999999999999` or `99999999999999999999days`, and a float that
+  overflows, such as `1e400`, are now errors. They previously compiled to
+  `1e20`, `INTERVAL 1 DAY` and `inf`. (@prql-bot, #6595)
 - `sql.mysql` compiles a milliseconds interval such as `5milliseconds` to
   `INTERVAL 5000 MICROSECOND`, since MySQL has no `MILLISECOND` unit, and
   `sql.postgres` compiles a timestamp or time with an offset or `Z` to
