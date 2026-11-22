@@ -29,6 +29,9 @@
 
 **Fixes**:
 
+- An unknown name or a non-type in a type annotation, such as `let x <zzz> = 1`
+  or `type a = zzz`, now reports an error pointing at the annotation rather than
+  one with no location. (@prql-bot, #6597)
 - `prqlc fmt` keeps non-ASCII characters in a string literal as written, rather
   than rewriting `"日本"` as `"\u{65e5}\u{672c}"`. (@prql-bot, #6596)
 - `prqlc fmt` on a file without a `.prql` extension, or a directory with no
@@ -36,6 +39,11 @@
   successfully without formatting anything. `lex`, `debug annotate` and
   `experimental highlight` report the same rather than claiming to have found
   multiple sources. (@prql-bot, #6587)
+- `prqlc compile` on a directory with more than one root-level file starting
+  with an uppercase letter reports the candidates as an error. It previously
+  picked one of them at random as the root module. Files inside an uppercase
+  directory, such as `Sales/orders.prql`, are no longer treated as the root.
+  (@prql-bot, #6584)
 - `sql.mysql` compiles a milliseconds interval such as `5milliseconds` to
   `INTERVAL 5000 MICROSECOND`, since MySQL has no `MILLISECOND` unit, and
   `sql.postgres` compiles a timestamp or time with an offset or `Z` to

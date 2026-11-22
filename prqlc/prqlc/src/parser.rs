@@ -93,7 +93,7 @@ fn linearize_tree(tree: &SourceTree) -> Result<Vec<SourceFile<'_>>> {
     } else if let Some(root) = tree.sources.get_key_value(&PathBuf::from("")) {
         // if there is an empty path, that's the root
         root_path = root.0;
-    } else if let Some(root) = tree.sources.keys().find(path_starts_with_uppercase) {
+    } else if let Some(root) = find_uppercase_root(tree)? {
         root_path = root;
     } else {
         if tree.sources.is_empty() {
@@ -180,10 +180,44 @@ pub(crate) fn is_mod_def_for(stmt: &pr::Stmt, name: &str) -> bool {
     stmt.kind.as_module_def().is_some_and(|x| x.name == name)
 }
 
-fn path_starts_with_uppercase(p: &&PathBuf) -> bool {
-    p.components()
-        .next()
-        .and_then(|x| x.as_os_str().to_str())
+/// Finds the root module among files in the root directory whose name starts
+/// with an uppercase letter. Errors when more than one file qualifies, rather
+/// than picking one by hash map iteration order.
+fn find_uppercase_root(tree: &SourceTree) -> Result<Option<&PathBuf>> {
+    let candidates: Vec<&PathBuf> = tree
+        .sources
+        .keys()
+        .filter(|p| is_uppercase_root_file(p))
+        .sorted()
+        .collect();
+
+    match candidates.as_slice() {
+        [] => Ok(None),
+        [root] => Ok(Some(root)),
+        _ => {
+            let file_names = candidates
+                .iter()
+                .map(|p| format!(" - {}", p.to_str().unwrap_or_default()))
+                .join("\n");
+            Err(Error::new_simple(format!(
+                "Found more than one root module candidate:\n{file_names}"
+            ))
+            .push_hint("keep only one file starting with an uppercase letter in the root directory")
+            .with_code("E0002"))
+        }
+    }
+}
+
+/// Whether the path is a file directly in the root directory whose name starts
+/// with an uppercase letter. A file inside an uppercase directory doesn't count.
+fn is_uppercase_root_file(p: &Path) -> bool {
+    let mut components = p.components();
+    let (Some(first), None) = (components.next(), components.next()) else {
+        return false;
+    };
+    first
+        .as_os_str()
+        .to_str()
         .and_then(|x| x.chars().next())
         .is_some_and(|x| x.is_uppercase())
 }
@@ -201,4 +235,49 @@ pub fn os_path_to_prql_path(path: &Path) -> Result<Vec<String>> {
                 .ok_or_else(|| Error::new_simple(format!("Invalid file path: {path:?}")))
         })
         .try_collect()
+}
+
+#[cfg(test)]
+mod test {
+    use insta::assert_snapshot;
+
+    use super::*;
+
+    fn tree(files: &[(&str, &str)]) -> SourceTree {
+        SourceTree::new(
+            files
+                .iter()
+                .map(|(path, content)| (PathBuf::from(path), content.to_string())),
+            None,
+        )
+    }
+
+    fn root_of(tree: &SourceTree) -> Result<String> {
+        let files = linearize_tree(tree)?;
+        let root = files.last().unwrap();
+        assert!(root.module_path.is_empty());
+        Ok(root.file_path.to_str().unwrap().to_string())
+    }
+
+    #[test]
+    fn test_uppercase_root() {
+        let tree = tree(&[
+            ("Project.prql", "from a"),
+            ("other.prql", "from b"),
+            ("Sales/orders.prql", "from c"),
+        ]);
+        assert_snapshot!(root_of(&tree).unwrap(), @"Project.prql");
+    }
+
+    #[test]
+    fn test_multiple_uppercase_roots() {
+        let tree = tree(&[("Project.prql", "from a"), ("Other.prql", "from b")]);
+        assert_snapshot!(root_of(&tree).unwrap_err().to_string(), @r#"Error { kind: Error, span: None, reason: Simple("Found more than one root module candidate:\n - Other.prql\n - Project.prql"), hints: ["keep only one file starting with an uppercase letter in the root directory"], code: Some("E0002") }"#);
+    }
+
+    #[test]
+    fn test_uppercase_directory_is_not_root() {
+        let tree = tree(&[("Foo/bar.prql", "from a"), ("b.prql", "from b")]);
+        assert_snapshot!(root_of(&tree).unwrap_err().to_string(), @r#"Error { kind: Error, span: None, reason: Simple("Cannot find the root module within the following files:\n - Foo/bar.prql\n - b.prql"), hints: ["add a file that starts with uppercase letter to the root directory"], code: Some("E0002") }"#);
+    }
 }
