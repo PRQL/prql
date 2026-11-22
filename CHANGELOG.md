@@ -34,6 +34,11 @@
   one with no location. (@prql-bot, #6597)
 - `prqlc fmt` keeps non-ASCII characters in a string literal as written, rather
   than rewriting `"日本"` as `"\u{65e5}\u{672c}"`. (@prql-bot, #6596)
+- `prqlc fmt` on a file without a `.prql` extension, or a directory with no
+  `.prql` files, reports that no `.prql` files were found. It previously exited
+  successfully without formatting anything. `lex`, `debug annotate` and
+  `experimental highlight` report the same rather than claiming to have found
+  multiple sources. (@prql-bot, #6587)
 - `prqlc watch` keeps a Jinja interpolation intact when digits directly follow
   it, and no longer wraps one in identifier quotes on Snowflake and Oracle.
   (@prql-bot, #6567)
