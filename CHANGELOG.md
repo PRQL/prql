@@ -29,6 +29,10 @@
 
 **Fixes**:
 
+- The book and website syntax highlighters, and the CotEditor and GtkSourceView
+  grammars, highlight the `intersect`, `remove` and `loop` transforms and
+  `tuple_map`/`tuple_zip`, and no longer highlight `union`, `every`, `map` or
+  `zip`, which aren't in the standard library. (@prql-bot, #6600)
 - Match a relation literal's later rows to the first row's columns by name
   rather than position. `from [{a=1, b=2}, {b=3, a=4}]` previously read the
   second row as `a=3, b=4`; a row with missing, extra or partly-named fields is
