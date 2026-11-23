@@ -7,9 +7,9 @@
 - **`integration/queries/*.prql`** — Integration tests generating up to 6
   snapshots each (`lex`, `compile`, `compileall`, `fmt`, `debug_lineage`,
   `results`), run by `integration/queries.rs`. Use sparingly. Header comments
-  such as `# sqlite:skip` or `# mssql:test` select which dialects run the query
-  against a database; `# generic:skip` also drops the `compile` and
-  `compileall` snapshots.
+  such as `# sqlite:skip` or `# mssql:test` select which dialects the query is
+  compiled for in `compileall` and run against in `results`; `# generic:skip`
+  also drops the `compile` and `compileall` snapshots.
 - **`integration/error_messages.rs`** — Tests for compiler error diagnostics.
 - **`integration/bad_error_messages.rs`** — Error messages known to be poor.
   When a fix improves one, move its test to `error_messages.rs`.
