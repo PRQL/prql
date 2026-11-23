@@ -45,7 +45,6 @@ commands:
   - beginString: average
   - beginString: concat_array
   - beginString: count
-  - beginString: every
   - beginString: min
   - beginString: max
   - beginString: stddev
@@ -54,8 +53,8 @@ commands:
   - beginString: read_json
   - beginString: read_parquet
   - beginString: all
-  - beginString: map
-  - beginString: zip
+  - beginString: tuple_map
+  - beginString: tuple_zip
   - beginString: from_text
   - beginString: lower
   - beginString: upper
