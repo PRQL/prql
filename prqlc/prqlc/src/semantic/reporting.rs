@@ -3,6 +3,7 @@ use std::collections::HashMap;
 use schemars::JsonSchema;
 use serde::Serialize;
 
+use crate::ir::decl::{RootModule, TableExpr};
 use crate::ir::pl;
 use crate::ir::pl::PlFold;
 use crate::pr;
@@ -45,6 +46,55 @@ pub fn collect_frames(expr: pl::Expr) -> FrameCollector {
     }
 
     collector
+}
+
+/// Replaces each input that reads from a CTE with the tables the CTE reads
+/// from, recursively, so lineage reports source tables rather than CTEs.
+/// The replacements keep the input's `id` and `name`.
+pub fn trace_inputs_to_source_tables(fc: &mut FrameCollector, root_mod: &RootModule) {
+    for (_, lineage) in &mut fc.frames {
+        lineage.inputs = std::mem::take(&mut lineage.inputs)
+            .into_iter()
+            .flat_map(|input| {
+                source_tables(root_mod, &input.table, &mut Vec::new())
+                    .into_iter()
+                    .map(move |table| pl::LineageInput {
+                        table,
+                        ..input.clone()
+                    })
+            })
+            .collect();
+    }
+}
+
+fn source_tables(
+    root_mod: &RootModule,
+    table: &pr::Ident,
+    visiting: &mut Vec<pr::Ident>,
+) -> Vec<pr::Ident> {
+    let cte_inputs = root_mod
+        .module
+        .get(table)
+        .and_then(|decl| decl.kind.as_table_decl())
+        .and_then(|decl| match &decl.expr {
+            TableExpr::RelationVar(rel) => rel.lineage.as_ref(),
+            _ => None,
+        })
+        .map(|lineage| &lineage.inputs)
+        .filter(|inputs| !inputs.is_empty());
+
+    match cte_inputs {
+        Some(inputs) if !visiting.contains(table) => {
+            visiting.push(table.clone());
+            let tables = inputs
+                .iter()
+                .flat_map(|inp| source_tables(root_mod, &inp.table, visiting))
+                .collect();
+            visiting.pop();
+            tables
+        }
+        _ => vec![table.clone()],
+    }
 }
 
 #[derive(Debug, Clone, PartialEq, Serialize, JsonSchema)]
@@ -145,7 +195,9 @@ impl PlFold for FrameCollector {
                         | pl::TransformKind::Window {
                             pipeline: ref e, ..
                         } => {
-                            tcc.push(e.id.unwrap());
+                            // The flattener can synthesize an empty `derive` whose
+                            // assigns carry no id (a group whose only step is `sort`).
+                            tcc.extend(e.id);
                         }
                         pl::TransformKind::Aggregate { assigns: ref e } => {
                             tcc.push(e.id.unwrap());
@@ -213,5 +265,23 @@ impl PlFold for FrameCollector {
             kind: self.fold_expr_kind(expr.kind)?,
             ..expr
         })
+    }
+}
+
+#[cfg(test)]
+mod test {
+    #[test]
+    fn test_lineage_group_with_only_sort() {
+        // The flattener replaces a group whose only step is `sort` with an
+        // empty derive; collecting its lineage must not panic.
+        for query in [
+            "from t | group a (sort b)",
+            "from t | group a (sort b) | take 1",
+            "from t | select {a, b} | group a (sort b)",
+        ] {
+            let pl = crate::prql_to_pl(query).unwrap();
+            let fc = crate::internal::pl_to_lineage(pl).unwrap();
+            assert!(!fc.frames.is_empty(), "{query}");
+        }
     }
 }

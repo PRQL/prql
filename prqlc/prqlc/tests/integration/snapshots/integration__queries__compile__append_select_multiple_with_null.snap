@@ -34,7 +34,7 @@ SELECT
 FROM
   (
     SELECT
-      NULL,
+      NULL AS _expr_1,
       invoice_id
     FROM
       invoice_items

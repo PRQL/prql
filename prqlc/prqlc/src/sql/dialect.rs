@@ -387,12 +387,14 @@ impl DialectHandler for PostgresDialect {
             Item::Fixed(Fixed::UpperAmPm) => "AM".to_string(),
             Item::Fixed(Fixed::RFC3339) => "YYYY-MM-DD\"T\"HH24:MI:SS.USZ".to_string(),
             Item::Literal(literal) => {
-                // literals are split at every non alphanumeric character
                 if literal.chars().any(|c| c.is_ascii_alphanumeric()) {
                     // If the literal contains alphanumeric characters, we need to quote it
                     // to avoid it being interpreted as a pattern understood by Postgres.
-                    // We hence need to put it in double quotes to force it to be interpreted as literal text
-                    format!("\"{literal}\"")
+                    // We hence need to put it in double quotes to force it to be interpreted as literal text.
+                    // chrono can keep a `"` or `\` inside such a literal (e.g. `x"y`).
+                    // Inside the quoted section a backslash escapes the next character,
+                    // so escape backslashes first, then the `"` that would close it early.
+                    format!("\"{}\"", literal.replace('\\', "\\\\").replace('"', "\\\""))
                 } else {
                     literal.replace('\'', "''").replace('"', "\\\"")
                 }
@@ -443,12 +445,14 @@ impl DialectHandler for RedshiftDialect {
             Item::Fixed(Fixed::UpperAmPm) => "AM".to_string(),
             Item::Fixed(Fixed::RFC3339) => "YYYY-MM-DD\"T\"HH24:MI:SS.USZ".to_string(),
             Item::Literal(literal) => {
-                // literals are split at every non alphanumeric character
                 if literal.chars().any(|c| c.is_ascii_alphanumeric()) {
                     // If the literal contains alphanumeric characters, we need to quote it
                     // to avoid it being interpreted as a pattern understood by Redshift.
-                    // We hence need to put it in double quotes to force it to be interpreted as literal text
-                    format!("\"{literal}\"")
+                    // We hence need to put it in double quotes to force it to be interpreted as literal text.
+                    // chrono can keep a `"` or `\` inside such a literal (e.g. `x"y`).
+                    // Inside the quoted section a backslash escapes the next character,
+                    // so escape backslashes first, then the `"` that would close it early.
+                    format!("\"{}\"", literal.replace('\\', "\\\\").replace('"', "\\\""))
                 } else {
                     literal.replace('\'', "''").replace('"', "\\\"")
                 }
@@ -541,15 +545,19 @@ impl DialectHandler for MsSqlDialect {
             Item::Fixed(Fixed::UpperAmPm) => "tt".to_string(),
             Item::Fixed(Fixed::RFC3339) => "yyyy-MM-dd'T'HH:mm:ss.ffffff'Z'".to_string(),
             Item::Literal(literal) => {
-                // literals are split at every non alphanumeric character
                 if literal.chars().any(|c| c.is_ascii_alphanumeric()) {
                     // If the literal contains alphanumeric characters, we need to quote it
                     // to avoid it being interpreted as a pattern understood by MSSQL.
-                    // We hence need to put it in double quotes to force it to be interpreted as literal text
-                    format!("\"{literal}\"")
+                    // We hence need to put it in double quotes to force it to be interpreted as literal text.
+                    // chrono can keep a `"` or `\` inside such a literal (e.g. `x"y`).
+                    // Inside the quoted section a backslash escapes the next character,
+                    // so escape backslashes first, then the `"` that would close it early.
+                    format!("\"{}\"", literal.replace('\\', "\\\\").replace('"', "\\\""))
                 } else {
-                    // MSSQL uses single quotes around
+                    // MSSQL uses single quotes around.
+                    // A backslash escapes the next character here too, so escape it first.
                     literal
+                        .replace('\\', "\\\\")
                         .replace('"', "\\\"")
                         .replace('\'', "\"\'\"")
                         .replace('%', "\\%")
@@ -633,8 +641,19 @@ impl DialectHandler for ClickHouseDialect {
                 // literals are split at every non alphanumeric character
                 if literal.chars().any(|c| c.is_ascii_alphanumeric()) {
                     // Wrap alphanumeric literals in single quotes so Joda treats
-                    // them as literal text rather than pattern letters.
-                    format!("'{literal}'")
+                    // them as literal text rather than pattern letters. An
+                    // apostrophe inside would end the quoted section, so it
+                    // needs Joda's `''` escape; like the punctuation branch
+                    // below, write it as `\'\'`, which sqlparser emits as-is
+                    // (it would collapse a bare `''` into one quote).
+                    // A trailing apostrophe is escaped after the closing quote
+                    // instead: sqlparser treats a quote that follows `\'` as
+                    // already escaped, so `\'\''` would leave the closing quote
+                    // undoubled and end the SQL string early. Joda still reads
+                    // `'foo'''` as `foo'`.
+                    let body = literal.trim_end_matches('\'');
+                    let trailing = "\\'\\'".repeat(literal.len() - body.len());
+                    format!("'{}'{trailing}", body.replace('\'', "\\'\\'"))
                 } else {
                     // Punctuation is literal in a Joda pattern, but an apostrophe
                     // would otherwise open a quoted section. Escape it as a pair
@@ -909,8 +928,10 @@ mod tests {
     #[test]
     fn bigquery_translate_space() {
         let bq = BigQueryDialect;
-        assert_snapshot!(bq.translate_chrono_item(Item::Space(" ")).unwrap(), @"");
-        assert_snapshot!(bq.translate_chrono_item(Item::Space("  ")).unwrap(), @"");
+        // `assert_eq!` rather than an inline snapshot: insta trims trailing
+        // whitespace, so a whitespace-only snapshot would also match `""`.
+        assert_eq!(bq.translate_chrono_item(Item::Space(" ")).unwrap(), " ");
+        assert_eq!(bq.translate_chrono_item(Item::Space("  ")).unwrap(), "  ");
     }
 
     #[test]
@@ -981,6 +1002,12 @@ mod tests {
         // Alphanumeric runs are wrapped in single quotes so Joda treats them as
         // literal text rather than pattern letters.
         assert_snapshot!(ch.translate_chrono_item(Item::Literal("foo")).unwrap(), @"'foo'");
+        // An apostrophe inside an alphanumeric literal is escaped as a pair so
+        // the quoted section doesn't end there.
+        assert_snapshot!(ch.translate_chrono_item(Item::Literal("o'clock")).unwrap(), @r"'o\'\'clock'");
+        // A trailing apostrophe is escaped after the closing quote instead, so
+        // sqlparser still doubles that quote.
+        assert_snapshot!(ch.translate_chrono_item(Item::Literal("foo'")).unwrap(), @r"'foo'\'\'");
         // A literal apostrophe is rendered as an escaped pair so it survives,
         // through the single-quoted SQL string literal it's embedded in, into
         // the Joda pattern as `''` (Joda's escape for a literal apostrophe).
@@ -990,8 +1017,9 @@ mod tests {
     #[test]
     fn clickhouse_translate_space() {
         let ch = ClickHouseDialect;
-        assert_snapshot!(ch.translate_chrono_item(Item::Space(" ")).unwrap(), @" ");
-        assert_snapshot!(ch.translate_chrono_item(Item::Space("  ")).unwrap(), @"  ");
+        // See `bigquery_translate_space` for why these aren't snapshots.
+        assert_eq!(ch.translate_chrono_item(Item::Space(" ")).unwrap(), " ");
+        assert_eq!(ch.translate_chrono_item(Item::Space("  ")).unwrap(), "  ");
     }
 
     // -- unsupported-specifier errors --
@@ -1067,6 +1095,72 @@ mod tests {
                 .unwrap_err()
                 .reason,
             @"format specifier `%_d` is not supported for Postgres");
+    }
+
+    /// chrono keeps a `"` inside a literal that also has letters, such as
+    /// `x"y`, so the double-quoted section wrapping it must escape the `"`
+    /// rather than let it close the section early.
+    #[test]
+    fn double_quote_inside_quoted_literal_is_escaped() {
+        let format = r#"%Y x"y %d"#;
+        assert_snapshot!(
+            PostgresDialect.translate_prql_date_format(format).unwrap(),
+            @r#"YYYY "x\"y" DD"#);
+        assert_snapshot!(
+            RedshiftDialect.translate_prql_date_format(format).unwrap(),
+            @r#"YYYY "x\"y" DD"#);
+        assert_snapshot!(
+            MsSqlDialect.translate_prql_date_format(format).unwrap(),
+            @r#"yyyy "x\"y" dd"#);
+    }
+
+    /// A literal backslash before the `"` must be escaped too, otherwise the
+    /// inserted backslash pairs with it and the `"` closes the section.
+    #[test]
+    fn backslash_and_double_quote_inside_quoted_literal_are_escaped() {
+        let format = r#"%Y x\"y %d"#;
+        assert_snapshot!(
+            PostgresDialect.translate_prql_date_format(format).unwrap(),
+            @r#"YYYY "x\\\"y" DD"#);
+        assert_snapshot!(
+            RedshiftDialect.translate_prql_date_format(format).unwrap(),
+            @r#"YYYY "x\\\"y" DD"#);
+        assert_snapshot!(
+            MsSqlDialect.translate_prql_date_format(format).unwrap(),
+            @r#"yyyy "x\\\"y" dd"#);
+    }
+
+    /// On ClickHouse an apostrophe inside a word such as `o'clock` is doubled
+    /// within the quoted Joda section, so the section doesn't end there.
+    #[test]
+    fn apostrophe_inside_quoted_literal_is_doubled_on_clickhouse() {
+        let prql = r#"from t | derive {a = (d | date.to_text "%H o'clock")}"#;
+        let sql = crate::compile(
+            prql,
+            &crate::Options::default()
+                .no_signature()
+                .with_target(crate::Target::Sql(Some(Dialect::ClickHouse))),
+        )
+        .unwrap();
+        assert_snapshot!(sql, @r"
+        SELECT
+          *,
+          formatDateTimeInJodaSyntax(d, 'HH ''o\'\'clock''') AS a
+        FROM
+          t
+        ");
+    }
+
+    /// Outside a quoted section MSSQL (.NET) also reads `\` as an escape, so a
+    /// literal backslash must be doubled before the `"` is escaped.
+    #[test]
+    fn backslash_outside_quoted_literal_is_escaped_on_mssql() {
+        assert_snapshot!(
+            MsSqlDialect.translate_prql_date_format(r#"%Y \" %d"#).unwrap(),
+            @r#"yyyy \\\" dd"#);
+        assert_snapshot!(
+            MsSqlDialect.translate_prql_date_format(r"%Y \ %d").unwrap(),
+            @r"yyyy \\ dd");
     }
 }
 

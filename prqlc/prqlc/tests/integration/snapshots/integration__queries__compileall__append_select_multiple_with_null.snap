@@ -55,7 +55,7 @@ input_file: prqlc/prqlc/tests/integration/queries/append_select_multiple_with_nu
 -FROM
 -  (
 -    SELECT
--      NULL,
+-      NULL AS _expr_1,
 -      invoice_id
 -    FROM
 -      invoice_items
@@ -64,7 +64,7 @@ input_file: prqlc/prqlc/tests/integration/queries/append_select_multiple_with_nu
 -  ) AS table_6
 +(
 +  SELECT
-+    NULL,
++    NULL AS _expr_1,
 +    invoice_id
 +  FROM
 +    invoice_items
@@ -124,7 +124,7 @@ input_file: prqlc/prqlc/tests/integration/queries/append_select_multiple_with_nu
 -FROM
 -  (
 -    SELECT
--      NULL,
+-      NULL AS _expr_1,
 -      invoice_id
 -    FROM
 -      invoice_items
@@ -133,7 +133,7 @@ input_file: prqlc/prqlc/tests/integration/queries/append_select_multiple_with_nu
 -  ) AS table_6
 +(
 +  SELECT
-+    NULL,
++    NULL AS _expr_1,
 +    invoice_id
 +  FROM
 +    invoice_items

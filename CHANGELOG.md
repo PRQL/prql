@@ -29,6 +29,113 @@
 
 **Fixes**:
 
+- The book and website syntax highlighters, and the CotEditor and GtkSourceView
+  grammars, highlight the `intersect`, `remove` and `loop` transforms and
+  `tuple_map`/`tuple_zip`, and no longer highlight `union`, `every`, `map` or
+  `zip`, which aren't in the standard library. (@prql-bot, #6600)
+- An unknown name or a non-type in a type annotation, such as `let x <zzz> = 1`
+  or `type a = zzz`, now reports an error pointing at the annotation rather than
+  one with no location. (@prql-bot, #6597)
+- `prqlc fmt` keeps non-ASCII characters in a string literal as written, rather
+  than rewriting `"日本"` as `"\u{65e5}\u{672c}"`. (@prql-bot, #6596)
+- `prqlc fmt` on a file without a `.prql` extension, or a directory with no
+  `.prql` files, reports that no `.prql` files were found. It previously exited
+  successfully without formatting anything. `lex`, `debug annotate` and
+  `experimental highlight` report the same rather than claiming to have found
+  multiple sources. (@prql-bot, #6587)
+- `prqlc compile` on a directory with more than one root-level file starting
+  with an uppercase letter reports the candidates as an error. It previously
+  picked one of them at random as the root module. Files inside an uppercase
+  directory, such as `Sales/orders.prql`, are no longer treated as the root.
+  (@prql-bot, #6584)
+- `sql.mysql` compiles a milliseconds interval such as `5milliseconds` to
+  `INTERVAL 5000 MICROSECOND`, since MySQL has no `MILLISECOND` unit, and
+  `sql.postgres` compiles a timestamp or time with an offset or `Z` to
+  `TIMESTAMPTZ '…'` or `TIMETZ '…'`, which keep the offset that `TIMESTAMP '…'`
+  and `TIME '…'` dropped. (@prql-bot, #6593)
+- A `case` expression piped into `in`, such as
+  `(case [a => 1, true => 2]) | in [1, 3]`, compiles to `CASE ... END IN (...)`.
+  It previously raised
+  ``args to `std.array_in` must be an expression and an array``. (@prql-bot,
+  #6591)
+- A `group` whose only step is `sort`, such as `group a (sort b)`, no longer
+  raises an internal compiler error when another transform follows it or when
+  its input is itself a transform. (@prql-bot, #6586)
+- A literal passed as a transform's input, such as `5 | select a` or
+  `from t | derive x 5`, reports `expected a table or query` at the literal. It
+  previously gave an internal compiler error with no location. (@prql-bot,
+  #6585)
+- `from_text format:json` with `columns` and `data` reports an error when a row
+  has a different number of values than `columns`. It previously compiled to a
+  `UNION ALL` with mismatched column counts. (@prql-bot, #6580)
+- `prqlc compile --debug-log` no longer panics on a call with a named argument
+  called `id`. (@prql-bot, #6578)
+- `date.to_text` on ClickHouse escapes an apostrophe inside a word in the format
+  string, such as `"%H o'clock"`. It previously ended the quoted Joda section
+  early, so the rest of the word was read as pattern letters. (@prql-bot, #6568)
+- `date.to_text` on Postgres, Redshift and MSSQL escapes a `"` or `\` that sits
+  next to letters in the format string, such as `"%Y x\"y %d"`. It previously
+  closed the quoted section early, producing a wrong date or, on MSSQL, an
+  error. MSSQL also escapes a `\` elsewhere in the format string, such as
+  `"%Y \" %d"`. (@prql-bot, #6560)
+- `group {a} (take 1)` no longer compiles to `SELECT DISTINCT` when a step after
+  it reads another column, such as
+  `group {a} (take 1) | filter b > 0 | select {a}`. DISTINCT then compared
+  `(a, b)` and returned more than one row per `a`. (@prql-bot, #6547)
+- Selecting a column that isn't declared from a CTE that joins two tables now
+  compiles when only the second table has a wildcard. Previously the column was
+  attributed to the first table, which failed with `does not have wildcard`.
+  (@prql-bot, #6558)
+- A join against a table with unknown columns, such as
+  `from a | join b (==id) | select {a.id}`, stays a join instead of compiling to
+  `INTERSECT ALL SELECT * FROM b` (or `EXCEPT ALL` for the anti-join form),
+  which had mismatched column counts. (@prql-bot, #6556)
+- `prqlc fmt` keeps the parentheses around a function call or a `func` used as a
+  parameter default or an annotation, such as `func x y:(math.abs 1) -> x` or
+  `@(binding_strength 1)`. Dropping them produced output that failed to parse or
+  compile. (@prql-bot, #6537)
+- `prqlc fmt` keeps the parentheses around an aliased parameter default, such as
+  `func x y:(a = 1) -> x + y`. Dropping them produced output that failed to
+  parse. (@prql-bot, #6539)
+- Joining a pipeline that selects two or more unnamed expressions references its
+  later columns through the joined CTE: `x` in
+  `join (from u | select {a + 1, b + 1, x}) (==x)` previously compiled to the
+  out-of-scope `u.x`. (@prql-bot, #6527)
+- Joining a pipeline that selects an unnamed expression no longer panics when
+  the joined columns are selected implicitly, as in
+  `from t | join (from u | select {a + 1, x}) (==x)`; the expression is now
+  given a generated name in the CTE. (@prql-bot, #6528)
+- `prqlc fmt` writes an unpacked tuple-type field as `..text` and an untyped
+  field as `*`, as they are written in source: `{a = int, ..text}` was
+  previously formatted to `{a = int, text..}`, which doesn't parse. (@prql-bot,
+  #6524)
+- Hex and octal literals longer than 12 digits, and binary literals longer than
+  32, compile as one number rather than splitting into two tokens. A literal too
+  large for an `i64` is reported as an error instead of compiling to `0`.
+  (@prql-bot, #6490)
+- Negating a value that already starts with `-`, whether with `-` or in an
+  s-string such as `s"-{x}"`, no longer emits `--`, which SQL reads as a line
+  comment: `-(-y)` previously compiled to `--y`. (@prql-bot, #6479)
+- `==` and `!=` between two time, timestamp or interval literals are left to the
+  database instead of being decided at compile time by comparing how the values
+  are written: `@10:00 == @10:00:00` and `24hours == 1days` previously compiled
+  to `false`. (@prql-bot, #6485)
+- `prqlc experimental highlight` keeps the `$` on parameters and the backticks
+  on quoted identifiers: `take $1` was previously printed as `take 1`, and
+  `` from `my tbl` `` as `from my tbl`. (@prql-bot, #6468)
+- A comparison keeps parentheses around an `IN`, `LIKE` or `BETWEEN` operand,
+  SQLite's `REGEXP`, or a nested comparison: `a == (b | in [1, 2])` previously
+  compiled to `a = b IN (1, 2)`, which SQLite evaluates as `(a = b) IN (1, 2)`.
+  (@prql-bot, #6467)
+- The error for unknown arguments in a `prql` header lists them in the order
+  written; the order previously changed from one compile to the next.
+  (@prql-bot, #6486)
+- `prqlc watch` no longer pastes the preceding PRQL into the generated SQL when
+  a Jinja interpolation starts a line, and no longer adds an extra space before
+  each interpolation. (@prql-bot, #6459)
+- A tuple type with `..` before another field, such as `type t = {.., a = int}`,
+  reports "unpacking must come after all other fields" instead of a generic
+  `expected type expression` error. (@prql-bot, #6508)
 - Passing something other than a tuple to `tuple_map`, `tuple_reduce`,
   `tuple_zip`, `tuple_uniq` or `tuple_reverse` reports an error instead of
   crashing the compiler. (@prql-bot, #6471)
@@ -229,12 +336,47 @@
   output path, say — left the watcher running silently and writing nothing.
   (@prql-bot, #6313)
 
+- `prqlc debug annotate` no longer prints a blank line after each line that
+  follows the last annotated line, such as trailing comments. (@prql-bot, #6477)
 - `prqlc fmt` keeps the decimal point on a float with a whole value. It printed
   `1.0 / 2` as `1 / 2`, turning a float division into an integer division.
   (@prql-bot, #6481)
 
 **Documentation**:
 
+- The Python binding README lists the `display` option of `CompileOptions` and
+  marks `color` as deprecated. (@prql-bot, #6460)
+- The JavaScript binding README documents an error's `span` as the
+  `"{source_id}:{start}-{end}"` string it is serialized as, rather than a pair
+  of numbers. (@prql-bot, #6530)
+- The book's null-handling page no longer claims SQL's `DISTINCT` can return
+  several `NULL`s, or lists that as a difference from PRQL; `DISTINCT` treats
+  nulls as equal in both. (@prql-bot, #6504)
+- The strings reference lists the `\/` escape, says `\u{...}` takes one to six
+  hex digits, and explains that a backslash before any other character is
+  dropped, so `"\d+"` compiles to `'d+'`. (@prql-bot, #6510)
+- The FAQ's `SELECT` example aliases the computed column
+  (`SELECT x * 2 AS two_x FROM y`) rather than the table, and the book's syntax
+  summary links `|` to the Pipes page rather than Function calls. (@prql-bot,
+  #6505)
+- The C, C++ and PHP bindings describe `Message.hint` as a single string holding
+  the suggestions one per line, or null when there are none, rather than as a
+  list. (@prql-bot, #6446)
+
+- The book's modules page shows the multi-file `prqlc compile` interface as it
+  works: the root module is the file starting with an uppercase letter, and the
+  pipeline identifier is the third argument, after the output. (@prql-bot,
+  #6499)
+
+- The book's `group` page says its `sort | take 1` example finds the first
+  employee in each role, matching its `group role`, rather than in each
+  department. (@prql-bot, #6487)
+
+- The book's transforms reference lists `append` in its table of transforms.
+  (@prql-bot, #6444)
+- The playground's default query and the book's annotated example refer to the
+  playground's "Compiled SQL" and "Query Results" tabs by their labels rather
+  than as "output.sql" and "output.arrow". (@prql-bot, #6511)
 - The book's `this` & `that` join example joins `tracks.artist_id` to
   `artists.id` rather than `tracks.id` to `artists.artist_id`. (@prql-bot,
   #6478)
@@ -281,9 +423,22 @@
   containing any `${...}` compiled only the text before it. The two examples
   using it are replaced by a direct `compile` call on a plain template literal.
   (@prql-bot, #6309)
+- The syntax-highlighting page names highlight.js, rather than Handlebars, as
+  the highlighter the book's and website's PRQL grammars are written for.
+  (@prql-bot, #6548)
+- The syntax-highlighting page lists Prism.js, whose v2 branch has a PRQL
+  grammar. (@prql-bot, #6577)
 
 **Web**:
 
+- The playground editor's highlighting treats `\"` and `\'` inside a string as
+  escapes, so a string containing an escaped quote no longer ends early.
+  (@prql-bot, #6565)
+- The book's and website's PRQL syntax highlighting treats `\"`, `\'` and `\/`
+  as escapes, so a string containing an escaped quote no longer ends early.
+  (@prql-bot, #6488)
+- The playground's results table shows a NULL timestamp as `null` rather than
+  `1970-01-01T00:00:00.000Z`. (@prql-bot, #6489)
 - The playground no longer depends on `web-vitals`. `reportWebVitals` was called
   with no argument, and its body is guarded on that argument being a function —
   so the dynamic `import("web-vitals")` inside it never ran. It was Create React
@@ -292,6 +447,12 @@
   `icon192.png`, which was deleted in #543 and returned 404. (@prql-bot, #6448)
 
 **Integrations**:
+
+- The KSyntaxHighlighting (Kate) grammar in `grammars/KSyntaxHighlighting/` ends
+  a raw string at its closing quote, as the compiler does: it no longer treats
+  `\'` or `\\` inside `r'...'` as escapes, or `r'''` as a triple-quoted raw
+  string, either of which could carry the string highlight on past the end of
+  the string. (@prql-bot, #6501)
 
 - The `prqlc` JS/wasm package now reports an error for an unknown `target`,
   rather than silently compiling to generic SQL. A typo such as
@@ -348,6 +509,9 @@
 - The lezer grammar in `grammars/prql-lezer/` now parses the unary `!` operator,
   such as `filter !a`, and highlights it as a logic operator. Previously the
   expression parsed to an error node. (@prql-bot, #6425)
+
+- [Prism.js](https://prismjs.com/) (v2 branch) has syntax highlighting for PRQL.
+  (@vanillajonathan, #6576)
 
 - `prqlc-c` can now be built for `wasm32-unknown-emscripten`. It previously
   compiled to an empty library on all wasm targets, so C/C++ programs built with

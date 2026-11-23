@@ -308,7 +308,7 @@ pub(crate) mod external {
     }
 
     pub(crate) struct MsSqlTestRunner {
-        protocol: connector_arrow::tiberius::TiberiusConnection<
+        protocol: connector_arrow::mssql::MssqlConnection<
             tokio_util::compat::Compat<tokio::net::TcpStream>,
         >,
         data_file_root: String,
@@ -319,11 +319,11 @@ pub(crate) mod external {
             use std::sync::Arc;
             use tokio_util::compat::TokioAsyncWriteCompatExt;
 
-            let mut config = tiberius::Config::new();
+            let mut config = mssql::Config::new();
             config.host("localhost");
             config.port(1433);
             config.trust_cert();
-            config.authentication(tiberius::AuthMethod::sql_server("sa", "Wordpass123##"));
+            config.authentication(mssql::AuthMethod::sql_server("sa", "Wordpass123##"));
 
             let rt = Arc::new(
                 tokio::runtime::Builder::new_current_thread()
@@ -336,12 +336,12 @@ pub(crate) mod external {
                 .block_on(async {
                     let tcp = tokio::net::TcpStream::connect(config.get_addr()).await?;
                     tcp.set_nodelay(true).unwrap();
-                    tiberius::Client::connect(config, tcp.compat_write()).await
+                    mssql::Client::connect(config, tcp.compat_write()).await
                 })
                 .unwrap();
 
             Self {
-                protocol: connector_arrow::tiberius::TiberiusConnection::new(rt, client),
+                protocol: connector_arrow::mssql::MssqlConnection::new(rt, client),
                 data_file_root,
             }
         }

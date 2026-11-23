@@ -1,7 +1,7 @@
 //! Context for the PQ anchoring stage: tracks table, column, and relation-instance
 //! declarations, and generates fresh IDs and names for tables and columns as RQ is
 //! lowered towards SQL.
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 use std::iter::zip;
 
 use enum_as_inner::EnumAsInner;
@@ -259,11 +259,23 @@ impl AnchorContext {
 /// Loads info about [Query] into [AnchorContext]
 struct QueryLoader {
     context: AnchorContext,
+
+    /// Names generated for the unnamed output columns of each table, in order.
+    unnamed_column_names: HashMap<TId, Vec<String>>,
 }
 
 impl QueryLoader {
-    fn load(context: AnchorContext, query: RelationalQuery) -> (AnchorContext, Relation) {
-        let mut loader = QueryLoader { context };
+    fn load(context: AnchorContext, mut query: RelationalQuery) -> (AnchorContext, Relation) {
+        let mut loader = QueryLoader {
+            context,
+            unnamed_column_names: HashMap::new(),
+        };
+
+        // Unnamed output columns of a table can be referenced from its instances,
+        // so they need names. Generate them up front, before any table refs are loaded.
+        for t in &mut query.tables {
+            loader.name_unnamed_columns(t);
+        }
 
         for t in query.tables {
             loader.load_table(t).unwrap();
@@ -298,6 +310,34 @@ impl QueryLoader {
         self.context.table_decls.insert(decl.id, sql_decl);
         Ok(())
     }
+
+    fn name_unnamed_columns(&mut self, table: &mut TableDecl) {
+        if matches!(table.relation.kind, RelationKind::ExternRef(_)) {
+            return;
+        }
+
+        // a generated name must not shadow a column the relation already names
+        let taken: HashSet<String> = (table.relation.columns.iter())
+            .filter_map(|col| col.as_single().cloned().flatten())
+            .collect();
+
+        let mut names = Vec::new();
+        for col in &mut table.relation.columns {
+            if let RelationColumn::Single(None) = col {
+                let name = loop {
+                    let name = self.context.col_name.gen();
+                    if !taken.contains(&name) {
+                        break name;
+                    }
+                };
+                *col = RelationColumn::Single(Some(name.clone()));
+                names.push(name);
+            }
+        }
+        if !names.is_empty() {
+            self.unnamed_column_names.insert(table.id, names);
+        }
+    }
 }
 
 impl RqFold for QueryLoader {
@@ -306,7 +346,16 @@ impl RqFold for QueryLoader {
         Ok(compute)
     }
 
-    fn fold_table_ref(&mut self, table_ref: TableRef) -> Result<TableRef> {
+    fn fold_table_ref(&mut self, mut table_ref: TableRef) -> Result<TableRef> {
+        // instances keep every unnamed column of their table, in order
+        if let Some(names) = self.unnamed_column_names.get(&table_ref.source) {
+            let unnamed = (table_ref.columns.iter_mut())
+                .map(|(col, _)| col)
+                .filter(|col| matches!(col, RelationColumn::Single(None)));
+            for (col, name) in zip(unnamed, names) {
+                *col = RelationColumn::Single(Some(name.clone()));
+            }
+        }
         Ok(table_ref)
     }
 }

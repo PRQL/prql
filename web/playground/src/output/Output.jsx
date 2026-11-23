@@ -86,7 +86,8 @@ class Output extends React.Component {
             return (x) => new Date(x / 1000000).toISOString();
           }
           */
-          return (x) => new Date(x).toISOString();
+          // A NULL stays NULL rather than becoming the epoch.
+          return (x) => (x == null ? x : new Date(x).toISOString());
         }
         return (x) => x;
       });

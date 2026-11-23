@@ -5,6 +5,7 @@ use itertools::Itertools;
 
 use super::anchor::{infer_complexity, CidCollector, Complexity};
 use super::ast::*;
+use super::context::RelationInstance;
 
 use crate::ir::generic::{ColumnSort, SortDirection, WindowFrame, WindowKind};
 use crate::ir::pl::{JoinSide, Literal};
@@ -131,7 +132,7 @@ pub(in crate::sql) fn distinct(
     use Transform::*;
 
     let mut res = Vec::new();
-    for transform in pipeline.clone() {
+    for (index, transform) in pipeline.iter().cloned().enumerate() {
         match transform {
             Super(Take(rq::Take { ref partition, .. })) if partition.is_empty() => {
                 res.push(transform);
@@ -153,7 +154,12 @@ pub(in crate::sql) fn distinct(
                 // Check whether the columns within the partition are the same
                 // as the columns in the table; otherwise we can't use DISTINCT.
                 let columns_in_frame = ctx.anchor.determine_select_columns(&pipeline.clone());
-                let matching_columns = vecs_contain_same_elements(&columns_in_frame, &partition);
+                // The final select can drop a column that a later transform
+                // still reads, e.g. `group {a} (take 1) | filter b > 0 | select {a}`.
+                // The relation that applies DISTINCT then has to output `b`
+                // too, so DISTINCT would compare `(a, b)` rather than `a`.
+                let matching_columns = vecs_contain_same_elements(&columns_in_frame, &partition)
+                    && !reads_non_partition_column(&pipeline, index, &partition, ctx);
 
                 if take_only_first && sort.is_empty() && matching_columns {
                     // DISTINCT
@@ -183,6 +189,39 @@ pub(in crate::sql) fn distinct(
         }
     }
     Ok(res)
+}
+
+/// Whether a transform after the `take` at `index` reads a column of the
+/// take's input other than the partition columns.
+fn reads_non_partition_column(
+    pipeline: &[SqlTransform],
+    index: usize,
+    partition: &[CId],
+    ctx: &Context,
+) -> bool {
+    let mut input_columns = HashSet::new();
+    for transform in &pipeline[..index] {
+        match transform {
+            SqlTransform::From(riid) | SqlTransform::Join { with: riid, .. } => {
+                let relation = &ctx.anchor.relation_instances[riid];
+                input_columns.extend(relation.table_ref.columns.iter().map(|(_, cid)| *cid));
+            }
+            SqlTransform::Super(Transform::Compute(compute)) => {
+                input_columns.insert(compute.id);
+            }
+            _ => {}
+        }
+    }
+
+    pipeline[index + 1..].iter().any(|transform| {
+        let cids = match transform {
+            SqlTransform::Super(t) => CidCollector::collect_t(t.clone()).1,
+            SqlTransform::Join { filter, .. } => CidCollector::collect(filter.clone()),
+            _ => Vec::new(),
+        };
+        cids.iter()
+            .any(|cid| input_columns.contains(cid) && !partition.contains(cid))
+    })
 }
 
 fn into_column_sort(partition: &[CId]) -> Vec<ColumnSort<CId>> {
@@ -336,6 +375,12 @@ pub(in crate::sql) fn except(
         let top = ctx.anchor.determine_select_columns(&res[0..res.len() - 2]);
         let bottom = with.table_ref.columns.iter().map(|(_, c)| *c).collect_vec();
 
+        // The set operation reads bottom as `SELECT *`, so it is equivalent
+        // only if no column of bottom was pruned away.
+        if !is_unpruned(with) {
+            continue;
+        }
+
         // join_cond must be a join over all columns
         // (this could be loosened to check only the relation key)
         if !joins_by_position(&top, &bottom, join_cond) {
@@ -426,6 +471,13 @@ pub(in crate::sql) fn intersect(
         let with = ctx.anchor.relation_instances.get_mut(with).unwrap();
 
         let bottom = with.table_ref.columns.iter().map(|(_, c)| *c).collect_vec();
+
+        // The set operation reads bottom as `SELECT *`, so it is equivalent
+        // only if no column of bottom was pruned away.
+        if !is_unpruned(with) {
+            continue;
+        }
+
         let top = ctx.anchor.determine_select_columns(&res[0..res.len() - 1]);
 
         // join_cond must be a join over all columns
@@ -490,6 +542,12 @@ pub(in crate::sql) fn intersect(
     }
 
     Ok(res)
+}
+
+/// Returns true if pruning kept every column of the relation instance, so the
+/// columns the pipeline references are all the columns `SELECT *` returns.
+fn is_unpruned(relation: &RelationInstance) -> bool {
+    relation.table_ref.columns.len() == relation.original_cids.len()
 }
 
 fn all_null(exprs: Vec<&Expr>) -> bool {

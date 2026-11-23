@@ -108,7 +108,7 @@ pub(super) fn translate_operator(
                     ctx,
                 )?;
 
-                text += &arg.into_source();
+                super::gen_expr::push_interpolated(&mut text, &arg.into_source());
             }
             pl::InterpolateItem::String(s) => {
                 text += s;
@@ -216,6 +216,26 @@ fn into_tuple_items(expr: pl::Expr) -> Result<Vec<(String, pl::ExprKind)>, pl::E
 #[cfg(test)]
 mod test {
     use insta::assert_snapshot;
+
+    /// `neg` renders as `-{l}`, so negating an operand that itself starts with
+    /// `-` (another negation, or a negative literal) used to emit `--`, which
+    /// SQL reads as the start of a line comment.
+    #[test]
+    fn negating_a_negative_operand() {
+        assert_snapshot!(crate::tests::compile(
+            r#"
+            from a
+            derive {b = -1}
+            select {x = -(-y), z = -b}
+            "#
+        ).unwrap(), @"
+        SELECT
+          -(- y) AS x,
+          -(-1) AS z
+        FROM
+          a
+        ");
+    }
 
     /// `sql.redshift` maps date format specifiers like Postgres does, but had
     /// no `to_text` implementation to emit, so the operator lookup found

@@ -22,7 +22,6 @@ const formatting = function (hljs) {
     "average",
     "concat_array",
     "count",
-    "every",
     "max",
     "min",
     "stddev",
@@ -33,8 +32,8 @@ const formatting = function (hljs) {
     "read_parquet",
     // List functions
     "all",
-    "map",
-    "zip",
+    "tuple_map",
+    "tuple_zip",
     "_eq",
     "_is_null",
     // Misc functions
@@ -72,11 +71,13 @@ const formatting = function (hljs) {
     "filter",
     "from",
     "group",
+    "intersect",
     "join",
+    "loop",
+    "remove",
     "select",
     "sort",
     "take",
-    "union",
     "window",
   ];
 
@@ -100,7 +101,7 @@ const formatting = function (hljs) {
 
   const CHAR_ESCAPE = {
     scope: "char.escape",
-    match: /\\\\|\\([bfnrt]|u{[0-9A-Fa-f]{1,6}}|x[0-9A-Fa-f]{2})/,
+    match: /\\\\|\\(["'/bfnrt]|u{[0-9A-Fa-f]{1,6}}|x[0-9A-Fa-f]{2})/,
   };
 
   return {

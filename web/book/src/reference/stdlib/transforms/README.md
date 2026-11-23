@@ -31,6 +31,7 @@ These are the currently available transforms:
 | `take`      | [Pick rows based on their position](./take.md)                                  | `TOP`, `LIMIT`, `OFFSET`    |
 | `group`     | [Partition rows into groups and apply a pipeline to each of them](./group.md)   | `GROUP BY`, `PARTITION BY`  |
 | `aggregate` | [Summarize many rows into one row](./aggregate.md)                              | `SELECT foo(...)`           |
+| `append`    | [Concatenate two tables, stacking their rows](./append.md)                      | `UNION ALL`                 |
 | `window`    | [Apply a pipeline to overlapping segments of rows](./window.md)                 | `OVER`, `ROWS`, `RANGE`     |
 | `loop`      | [Iteratively apply a pipeline to a relation until it's empty](./loop.md)        | `WITH RECURSIVE ...`        |
 

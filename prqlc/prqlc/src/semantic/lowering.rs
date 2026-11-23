@@ -484,9 +484,12 @@ impl Lowerer {
         // create instance columns from table columns
         let table = self.table_buffer.iter().find(|t| t.id == tid).unwrap();
 
+        // deduplicate named columns and wildcards, but keep every unnamed
+        // column: each is a distinct value, not a repeat of the previous one
+        let mut seen = HashSet::new();
         let columns = (table.relation.columns.iter())
+            .filter(|col| matches!(col, RelationColumn::Single(None)) || seen.insert(*col))
             .cloned()
-            .unique()
             .map(|col| (col, self.cid.gen()))
             .collect_vec();
 

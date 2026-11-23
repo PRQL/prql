@@ -445,6 +445,62 @@ fn empty_tuple_or_array_from() {
 }
 
 #[test]
+fn non_relation_transform_input() {
+    // A literal in a transform's relation position previously gave a
+    // location-less internal compiler error (#4317)
+    assert_snapshot!(compile(r###"
+    5 | select a
+    "###).unwrap_err(), @"
+    Error:
+       ╭─[ :2:5 ]
+       │
+     2 │     5 | select a
+       │     ┬
+       │     ╰── expected a table or query, but found `5`
+    ───╯
+    ");
+
+    assert_snapshot!(compile(r###"
+    from t
+    derive x 5
+    "###).unwrap_err(), @"
+    Error:
+       ╭─[ :3:14 ]
+       │
+     3 │     derive x 5
+       │              ┬
+       │              ╰── expected a table or query, but found `5`
+    ───╯
+    ");
+
+    assert_snapshot!(compile(r###"
+    from t
+    take 1 "a"
+    "###).unwrap_err(), @r#"
+    Error:
+       ╭─[ :3:12 ]
+       │
+     3 │     take 1 "a"
+       │            ─┬─
+       │             ╰─── expected a table or query, but found `"a"`
+    ───╯
+    "#);
+
+    assert_snapshot!(compile(r###"
+    from foo
+    select lower "mooo"
+    "###).unwrap_err(), @r#"
+    Error:
+       ╭─[ :3:18 ]
+       │
+     3 │     select lower "mooo"
+       │                  ───┬──
+       │                     ╰──── expected a table or query, but found `"mooo"`
+    ───╯
+    "#);
+}
+
+#[test]
 fn window_rows_expects_range() {
     // Issue #5601: window with invalid rows parameter should produce error, not panic
     assert_snapshot!(compile(r###"
@@ -880,6 +936,94 @@ fn test_relation_literal_invalid_shape() {
      2 │     from [{a = 1}, 3]
        │                    ┬
        │                    ╰── relation literal expected tuples, but found `3`
+    ───╯
+    ");
+}
+
+#[test]
+fn test_tuple_type_unpack_not_last() {
+    assert_snapshot!(compile(r###"
+    type t = {a = int, ..text, b = int}
+    from x
+    "###).unwrap_err(), @"
+    Error:
+       ╭─[ :2:26 ]
+       │
+     2 │     type t = {a = int, ..text, b = int}
+       │                          ──┬─
+       │                            ╰─── unpacking must come after all other fields
+    ───╯
+    ");
+
+    assert_snapshot!(compile(r###"
+    type t = {.., a = int}
+    from x
+    "###).unwrap_err(), @"
+    Error:
+       ╭─[ :2:14 ]
+       │
+     2 │     type t = {.., a = int}
+       │              ──────┬──────
+       │                    ╰──────── unpacking must come after all other fields
+    ───╯
+    ");
+}
+
+#[test]
+fn test_type_annotation_errors_have_spans() {
+    // An unknown name in a type annotation, and a name that isn't a type
+    assert_snapshot!(compile(r###"
+    let x <zzz> = 1
+    from t
+    "###).unwrap_err(), @"
+    Error:
+       ╭─[ :2:12 ]
+       │
+     2 │     let x <zzz> = 1
+       │            ─┬─
+       │             ╰─── Unknown name `zzz`
+    ───╯
+    ");
+
+    assert_snapshot!(compile(r###"
+    let y = 1
+    let x <y> = 1
+    from t
+    "###).unwrap_err(), @"
+    Error:
+       ╭─[ :3:12 ]
+       │
+     3 │     let x <y> = 1
+       │            ┬
+       │            ╰── expected a type, but found Expr: 1
+    ───╯
+    ");
+
+    // `that` resolves to a module that only exists while the annotation is
+    // being resolved
+    assert_snapshot!(compile(r###"
+    let x <that> = 1
+    from t
+    "###).unwrap_err(), @"
+    Error:
+       ╭─[ :2:12 ]
+       │
+     2 │     let x <that> = 1
+       │            ──┬─
+       │              ╰─── expected a type, but found Module(Module { names: {} })
+    ───╯
+    ");
+
+    assert_snapshot!(compile(r###"
+    type a = zzz
+    from t
+    "###).unwrap_err(), @"
+    Error:
+       ╭─[ :2:14 ]
+       │
+     2 │     type a = zzz
+       │              ─┬─
+       │               ╰─── Unknown name `zzz`
     ───╯
     ");
 }

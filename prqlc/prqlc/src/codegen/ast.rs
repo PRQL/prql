@@ -12,6 +12,19 @@ pub(crate) fn write_expr(expr: &pr::Expr) -> String {
     expr.write(WriteOpt::new_width(u16::MAX)).unwrap()
 }
 
+/// Writes an expr in a position the parser reads as a plain expression rather
+/// than a function call: a parameter default or an annotation. A function call
+/// or a `func` there needs parentheses, or its arguments are read as whatever
+/// follows. An alias is written ahead of any parentheses on its expr, so an
+/// aliased expr is parenthesized whole.
+fn write_operand(expr: &pr::Expr, mut opt: WriteOpt) -> Option<String> {
+    if expr.alias.is_some() {
+        return expr.write_between("(", ")", opt);
+    }
+    opt.context_strength = opt.context_strength.max(FUNC_CALL_STRENGTH);
+    expr.write(opt)
+}
+
 fn write_within<T: WriteSource>(
     node: &T,
     parent: &pr::ExprKind,
@@ -195,7 +208,7 @@ impl WriteSource for pr::ExprKind {
                     }
                     if let Some(default_value) = &param.default_value {
                         r += opt.consume(":")?;
-                        r += opt.consume(&default_value.write(opt.clone())?)?;
+                        r += opt.consume(&write_operand(default_value, opt.clone())?)?;
                     }
                     r += opt.consume(" ")?;
                 }
@@ -249,6 +262,8 @@ fn break_line_within_parenthesis<T: WriteSource>(expr: &T, mut opt: WriteOpt) ->
     Some(r)
 }
 
+const FUNC_CALL_STRENGTH: u8 = 10;
+
 fn binding_strength(expr: &pr::ExprKind) -> u8 {
     match expr {
         // For example, if it's an Ident, it's basically infinite — a simple
@@ -280,7 +295,7 @@ fn binding_strength(expr: &pr::ExprKind) -> u8 {
 
         // Weaker than a child assign, since `select x = 1`
         // Weaker than a binary operator, since `filter x == 1`
-        pr::ExprKind::FuncCall(_) => 10,
+        pr::ExprKind::FuncCall(_) => FUNC_CALL_STRENGTH,
         pr::ExprKind::Func(_) => 7,
 
         // other nodes should not contain any inner exprs
@@ -387,7 +402,7 @@ impl WriteSource for pr::Stmt {
 
         for annotation in &self.annotations {
             r += "@";
-            r += &annotation.expr.write(opt.clone())?;
+            r += &write_operand(&annotation.expr, opt.clone())?;
             r += "\n";
             r += &opt.write_indent();
             opt.reset_line()?;
@@ -610,6 +625,15 @@ mod test {
     }
 
     #[test]
+    fn test_non_ascii_string() {
+        // Non-ASCII text stays as written; control and invisible characters
+        // are still escaped
+        assert_is_formatted(r#"derive x = "日本 🎉 café""#);
+        assert_snapshot!(format_single_stmt("derive x = \"a\\tb\\u{7}c\""), @r#"derive x = "a\tb\u{7}c""#);
+        assert_is_formatted(r#"derive x = "a\u{200b}b\u{202e}c""#);
+    }
+
+    #[test]
     fn test_double_braces() {
         assert_is_formatted(
             r#"let has_valid_title = s"regexp_contains(title, '([a-z0-9]*-){{2,}}')""#,
@@ -665,6 +689,34 @@ mod test {
         assert_is_formatted(r#"let a = func x <int>:5 -> x"#);
         assert_is_formatted(r#"let a = func x <int>:5 y <text>:"d" -> x"#);
         assert_is_formatted(r#"let a = func x <int> y <text>:"d" -> x"#);
+    }
+
+    /// The parser reads a parameter default as a plain expression, so a
+    /// function call or a `func` there needs parentheses: without them
+    /// `y:(math.abs 1)` came out as `y:math.abs 1`, which doesn't parse.
+    #[test]
+    fn test_func_param_default_needing_parentheses() {
+        assert_is_formatted(r#"let f = func x y:(math.abs 1) -> x + y"#);
+        assert_is_formatted(r#"let f = func x y:(func z -> z) -> x"#);
+        assert_is_formatted(r#"let f = func x y:1 + 2 -> x + y"#);
+    }
+
+    /// An alias is written before the parenthesization of its expr, so an
+    /// aliased default came out bare as `y:a = 1`, which doesn't parse.
+    #[test]
+    fn test_func_param_default_with_alias() {
+        assert_is_formatted(r#"let f = func x y:(a = 1) -> x + y"#);
+        assert_is_formatted(r#"let f = func x y:(a = math.abs 1) -> x + y"#);
+    }
+
+    /// Tuple-type fields are written in the syntax the parser reads: unpacking
+    /// as `..text` (not `text..`) and an untyped field as `*` (not `?`).
+    #[test]
+    fn test_tuple_type_fields() {
+        assert_is_formatted(r#"type t = {a = int, ..text}"#);
+        assert_is_formatted(r#"type t = {a = int, ..}"#);
+        assert_is_formatted(r#"type t = {a = *, *}"#);
+        assert_is_formatted(r#"let f = func x <{b = *, ..}> -> x"#);
     }
 
     /// The parser partitions parameters by whether they have a default, so
@@ -779,6 +831,18 @@ let negative = ..-100
 @deprecated
 module hello {
 }
+"#,
+        );
+    }
+
+    /// An annotation holding a function call keeps its parentheses; written
+    /// bare, `@binding_strength 1` reads the `1` as a separate statement.
+    #[test]
+    fn test_annotation_with_func_call() {
+        assert_is_formatted(
+            r#"
+@(binding_strength 1)
+let f = func x -> x
 "#,
         );
     }

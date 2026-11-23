@@ -54,7 +54,8 @@ impl Resolver<'_> {
 
 #[cfg(test)]
 pub(super) mod test {
-    use insta::assert_yaml_snapshot;
+    use insta::{assert_snapshot, assert_yaml_snapshot};
+    use itertools::Itertools;
 
     use crate::ir::pl::{Expr, Lineage, PlFold};
     use crate::{Errors, Result};
@@ -114,12 +115,9 @@ pub(super) mod test {
     }
 
     #[test]
-    #[ignore]
     fn test_non_existent_function() {
-        // `myfunc` is a valid reference to a column and
-        // a column can be a function, right?
-        // If not, how would we express that with type system?
-        parse_and_resolve(r#"from mytable | filter (myfunc col1)"#).unwrap_err();
+        let err = parse_and_resolve(r#"from mytable | filter (myfunc col1)"#).unwrap_err();
+        insta::assert_snapshot!(err.0[0].reason.to_string(), @"expected a function, but found `this.mytable.myfunc`");
     }
 
     #[test]
@@ -434,9 +432,8 @@ pub(super) mod test {
 
     #[test]
     fn test_append_union_all_columns_same_input() {
-        // This test exercises the All columns path with same input_id (lines 765-766)
-        // to ensure code coverage for merging except sets when both All columns
-        // come from the same input.
+        // Appending two relations whose `All` columns come from the same input
+        // merges their except sets.
         use crate::ir::pl::{
             Expr, ExprKind, Lineage, LineageColumn, LineageInput, TransformCall, TransformKind,
         };
@@ -610,5 +607,61 @@ pub(super) mod test {
             "Should contain contractors table, got {:?}",
             tables
         );
+    }
+
+    #[test]
+    fn test_infer_column_through_joined_cte() {
+        // #6557: only the second table of the join has a wildcard, so `zz`
+        // must be inferred through the CTE to `y`, not charged to `x`.
+        let query = r#"
+        module default_db {
+            let x <[{a = int}]>
+            let y <[{a = int, ..}]>
+        }
+        let t = (from x | join y (==a))
+        from t | select {zz}
+        "#;
+        assert_snapshot!(crate::tests::compile(query).unwrap(), @"
+        WITH
+        t AS (
+          SELECT
+            x.a,
+            y.*
+          FROM
+            x
+            INNER JOIN y ON x.a = y.a
+        )
+        SELECT
+          zz
+        FROM
+          t
+        ");
+    }
+
+    #[test]
+    fn test_nested_cte_lineage_traces_to_source_tables() {
+        use crate::internal::pl_to_lineage;
+
+        let query = r#"
+        let t = (
+            from employees
+            join departments (==dept_id)
+            select {employees.salary, departments.name}
+        )
+        let u = (from t | filter salary > 0)
+        from u
+        select {name}
+        "#;
+
+        let pl = crate::prql_to_pl(query).unwrap();
+        let fc = pl_to_lineage(pl).unwrap();
+        let final_lineage = &fc.frames.last().unwrap().1;
+
+        let inputs = final_lineage
+            .inputs
+            .iter()
+            .map(|inp| format!("{} -> {}", inp.name, inp.table))
+            .join(", ");
+        assert_snapshot!(inputs, @"u -> default_db.employees, u -> default_db.departments");
     }
 }

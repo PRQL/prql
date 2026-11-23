@@ -445,7 +445,6 @@ pub fn literal<'a>() -> impl Parser<'a, ParserInput<'a>, Literal, ParserError<'a
 fn parse_number_with_base<'a>(
     prefix: &'static str,
     base: u32,
-    max_digits: usize,
     valid_digit: impl Fn(&char) -> bool + 'a,
 ) -> impl Parser<'a, ParserInput<'a>, Literal, ParserError<'a>> {
     just(prefix)
@@ -455,26 +454,30 @@ fn parse_number_with_base<'a>(
                 .filter(valid_digit)
                 .repeated()
                 .at_least(1)
-                .at_most(max_digits)
                 .to_slice()
-                .map(move |digits: &str| {
+                // A value that doesn't fit in an i64 is an error rather than
+                // a silently different number.
+                .validate(move |digits: &str, extra, emitter| {
                     i64::from_str_radix(digits, base)
                         .map(Literal::Integer)
-                        .unwrap_or(Literal::Integer(0))
+                        .unwrap_or_else(|_| {
+                            emitter.emit(Simple::new(None, extra.span()));
+                            Literal::Integer(0)
+                        })
                 }),
         )
 }
 
 fn binary_number<'a>() -> impl Parser<'a, ParserInput<'a>, Literal, ParserError<'a>> {
-    parse_number_with_base("0b", 2, 32, |c| *c == '0' || *c == '1')
+    parse_number_with_base("0b", 2, |c| *c == '0' || *c == '1')
 }
 
 fn hexadecimal_number<'a>() -> impl Parser<'a, ParserInput<'a>, Literal, ParserError<'a>> {
-    parse_number_with_base("0x", 16, 12, |c| c.is_ascii_hexdigit())
+    parse_number_with_base("0x", 16, |c| c.is_ascii_hexdigit())
 }
 
 fn octal_number<'a>() -> impl Parser<'a, ParserInput<'a>, Literal, ParserError<'a>> {
-    parse_number_with_base("0o", 8, 12, |c| ('0'..='7').contains(c))
+    parse_number_with_base("0o", 8, |c| ('0'..='7').contains(c))
 }
 
 fn number<'a>() -> impl Parser<'a, ParserInput<'a>, Literal, ParserError<'a>> {

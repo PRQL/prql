@@ -1177,6 +1177,43 @@ fn test_intersect_09() {
 }
 
 #[test]
+fn test_intersect_10() {
+    // `b`'s columns are unknown, so `SELECT * FROM b` may return more columns
+    // than the join compares; a semi-join on one column must stay a join.
+    assert_snapshot!(compile(r#"
+    from a
+    join b (==id)
+    select {a.id}
+    "#).unwrap(), @"
+    SELECT
+      a.id
+    FROM
+      a
+      INNER JOIN b ON a.id = b.id
+    ");
+}
+
+#[test]
+fn test_remove_08() {
+    // As in `test_intersect_10`, an anti-join against a table with unknown
+    // columns must stay a join rather than become `EXCEPT ... SELECT *`.
+    assert_snapshot!(compile(r#"
+    from a
+    join side:left b (==id)
+    filter b.id == null
+    select {a.id}
+    "#).unwrap(), @"
+    SELECT
+      a.id
+    FROM
+      a
+      LEFT OUTER JOIN b ON a.id = b.id
+    WHERE
+      b.id IS NULL
+    ");
+}
+
+#[test]
 fn test_remove_07() {
     // Extra conditions in the join or the null-check filter must not be
     // dropped by rewriting into EXCEPT.
@@ -1913,6 +1950,24 @@ fn test_in_no_values() {
       employees
     WHERE
       false
+    ");
+}
+
+#[test]
+fn test_in_values_case() {
+    assert_snapshot!((compile(r#"
+    from employees
+    filter ((case [title == "CEO" => 1, true => 2]) | in [1, 3])
+    "#).unwrap()), @"
+    SELECT
+      *
+    FROM
+      employees
+    WHERE
+      CASE
+        WHEN title = 'CEO' THEN 1
+        ELSE 2
+      END IN (1, 3)
     ");
 }
 
@@ -3119,6 +3174,39 @@ fn test_distinct_09() {
 }
 
 #[test]
+fn test_distinct_10() {
+    // `b` is dropped by the final select but still read by the filter, so the
+    // relation applying DISTINCT outputs it too. `DISTINCT a, b` would keep a
+    // row per distinct `(a, b)` rather than one per `a`.
+    assert_snapshot!(compile("
+    from t
+    select {a, b}
+    group {a} (take 1)
+    filter b > 0
+    select {a}
+    ").unwrap(), @"
+    WITH
+    table_0 AS (
+      SELECT
+        a,
+        b,
+        ROW_NUMBER() OVER (
+          PARTITION BY
+            a) AS _expr_0
+      FROM
+        t
+    )
+    SELECT
+      a
+    FROM
+      table_0
+    WHERE
+      _expr_0 <= 1
+      AND b > 0
+    ");
+}
+
+#[test]
 fn test_distinct_on_01() {
     assert_snapshot!((compile(r###"
     prql target:sql.postgres
@@ -3366,6 +3454,102 @@ fn test_join_side_literal_via_func_err() {
        │ Help: Type `JoinSide` expands to `enum {inner = "inner", left = "left", right = "right", full = "full"}`
     ───╯
     "#);
+}
+
+#[test]
+fn test_join_pipeline_with_unnamed_columns() {
+    // Regression test for issue #6526: with two unnamed columns in the joined
+    // pipeline, `x` was referenced through `u` instead of through the CTE
+    assert_snapshot!((compile(r###"
+    from t
+    join (from u | select {a + 1, b + 1, x}) (==x)
+    select {t.a, x}
+    "###).unwrap()), @"
+    WITH
+    table_0 AS (
+      SELECT
+        a + 1 AS _expr_0,
+        b + 1 AS _expr_1,
+        x
+      FROM
+        u
+    )
+    SELECT
+      t.a,
+      table_0.x
+    FROM
+      t
+      INNER JOIN table_0 ON t.x = table_0.x
+    ");
+
+    // a wildcard in the joined pipeline's select
+    assert_snapshot!((compile(r###"
+    from t
+    join (from u | select {u.*, x}) (==x)
+    select {t.b, x}
+    "###).unwrap()), @"
+    WITH
+    table_0 AS (
+      SELECT
+        *,
+        x
+      FROM
+        u
+    )
+    SELECT
+      t.b,
+      table_0.x
+    FROM
+      t
+      INNER JOIN table_0 ON t.x = table_0.x
+    ");
+
+    // without a trailing `select`, the unnamed columns are selected from the
+    // CTE, so they need names; this used to panic
+    assert_snapshot!((compile(r###"
+    from t
+    join (from u | select {a + 1, b + 1, x}) (==x)
+    "###).unwrap()), @"
+    WITH
+    table_0 AS (
+      SELECT
+        a + 1 AS _expr_0,
+        b + 1 AS _expr_1,
+        x
+      FROM
+        u
+    )
+    SELECT
+      t.*,
+      table_0._expr_0 AS _expr_2,
+      table_0._expr_1 AS _expr_3,
+      table_0.x
+    FROM
+      t
+      INNER JOIN table_0 ON t.x = table_0.x
+    ");
+
+    // a generated name skips one the pipeline already uses
+    assert_snapshot!((compile(r###"
+    from t
+    join (from u | select {a + 1, _expr_0 = x}) (==_expr_0)
+    select {t.x, _expr_0}
+    "###).unwrap()), @"
+    WITH
+    table_0 AS (
+      SELECT
+        a + 1 AS _expr_1,
+        x AS _expr_0
+      FROM
+        u
+    )
+    SELECT
+      t.x,
+      table_0._expr_0
+    FROM
+      t
+      INNER JOIN table_0 ON t._expr_0 = table_0._expr_0
+    ");
 }
 
 #[test]
@@ -3963,7 +4147,7 @@ fn test_nonatomic_table() {
     a AS (
       SELECT
         country,
-        count(*)
+        count(*) AS _expr_0
       FROM
         table_0
       GROUP BY
@@ -7092,7 +7276,7 @@ fn test_append_select_multiple() {
           SELECT
             employee_id,
             reports_to,
-            employee_id + 1
+            employee_id + 1 AS _expr_0
           FROM
             employees
           LIMIT
@@ -7803,6 +7987,77 @@ fn test_group_with_only_sort() {
       *
     FROM
       employees AS a
+    ");
+}
+
+#[test]
+fn test_group_with_only_sort_then_transform() {
+    // A group whose only step is `sort` drops the sort, but the group's `by`
+    // columns must still be lowered: the group's lineage, and so every later
+    // transform, references them.
+    assert_snapshot!(compile(r###"
+    from t
+    group a (sort b)
+    take 1
+    "###).unwrap(), @"
+    SELECT
+      *
+    FROM
+      t
+    LIMIT
+      1
+    ");
+
+    assert_snapshot!(compile(r###"
+    from t
+    group a (sort b)
+    derive {c = 1}
+    "###).unwrap(), @"
+    SELECT
+      *,
+      1 AS c
+    FROM
+      t
+    ");
+
+    assert_snapshot!(compile(r###"
+    from t
+    group a (sort b)
+    select {a, b}
+    "###).unwrap(), @"
+    SELECT
+      a,
+      b
+    FROM
+      t
+    ");
+
+    // Also when the group's input is itself a transform.
+    assert_snapshot!(compile(r###"
+    from t
+    select {a, b}
+    group a (sort b)
+    "###).unwrap(), @"
+    SELECT
+      a,
+      b
+    FROM
+      t
+    ");
+
+    assert_snapshot!(compile(r###"
+    from t
+    derive {c = 1}
+    group a (sort b)
+    take 1
+    "###).unwrap(), @"
+    SELECT
+      *,
+      1 AS c
+    FROM
+      t
+    LIMIT
+      1
     ");
 }
 

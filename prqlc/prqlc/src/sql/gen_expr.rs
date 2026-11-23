@@ -180,6 +180,7 @@ fn process_array_in(
                 | rq::ExprKind::Literal(_)
                 | rq::ExprKind::SString(_)
                 | rq::ExprKind::Param(_)
+                | rq::ExprKind::Case(_)
                 | rq::ExprKind::Operator { name: _, args: _ },
             ..
         }, rq::Expr {
@@ -192,13 +193,16 @@ fn process_array_in(
                 // We can instead optimize this to a condition that is always false
                 Ok(sql_ast::Expr::Value(Value::Boolean(false).into()))
             } else {
-                Ok(sql_ast::Expr::InList {
+                Ok(sql_ast::Expr::In {
                     expr: Box::new(translate_predicate_operand(col_expr.clone(), ctx)?.into_ast()),
-                    list: in_values
-                        .iter()
-                        .map(|a| Ok(translate_expr(a.clone(), ctx)?.into_ast()))
-                        .collect::<Result<Vec<sql_ast::Expr>>>()?,
+                    target: sql_ast::InTarget::List(
+                        in_values
+                            .iter()
+                            .map(|a| Ok(translate_expr(a.clone(), ctx)?.into_ast()))
+                            .collect::<Result<Vec<sql_ast::Expr>>>()?,
+                    ),
                     negated: false,
+                    global: false,
                 })
             }
         }
@@ -397,6 +401,17 @@ fn translate_binary_operator(
 ) -> Result<sql_ast::Expr> {
     let strength = op.binding_strength();
 
+    // Comparison operands go through the stricter predicate rule: SQLite ranks
+    // `IN`, `LIKE` and `BETWEEN` alongside `=` and below `< > <= >=`, where
+    // PostgreSQL ranks them above both, and PostgreSQL doesn't chain
+    // comparisons at all. Parenthesizing every such operand reads the same
+    // under either ranking, e.g. `a = (b IN (1, 2))` or `a = (b = c)`.
+    if is_comparison(&op) {
+        let left = Box::new(translate_predicate_operand(left.clone(), ctx)?.into_ast());
+        let right = Box::new(translate_predicate_operand(right.clone(), ctx)?.into_ast());
+        return Ok(sql_ast::Expr::BinaryOp { left, op, right });
+    }
+
     let left = translate_operand(left.clone(), true, strength, op.associativity(), ctx)?;
     let right = translate_operand(right.clone(), false, strength, op.associativity(), ctx)?;
 
@@ -415,6 +430,11 @@ fn translate_binary_operator(
     let right = Box::new(right.into_ast());
 
     Ok(sql_ast::Expr::BinaryOp { left, op, right })
+}
+
+fn is_comparison(op: &BinaryOperator) -> bool {
+    use BinaryOperator::*;
+    matches!(op, Gt | Lt | GtEq | LtEq | Eq | NotEq)
 }
 
 /// Translates a single operand of a hand-built `||` chain, parenthesizing it
@@ -531,16 +551,14 @@ pub(super) fn translate_literal(l: Literal, ctx: &Context) -> Result<sql_ast::Ex
         Literal::Float(f) => sql_ast::Expr::Value(Value::Number(format!("{f:?}"), false).into()),
         Literal::Integer(i) => sql_ast::Expr::Value(Value::Number(format!("{i}"), false).into()),
         Literal::Date(value) => translate_datetime_literal(sql_ast::DataType::Date, value, ctx),
-        Literal::Time(value) => translate_datetime_literal(
-            sql_ast::DataType::Time(None, sql_ast::TimezoneInfo::None),
-            value,
-            ctx,
-        ),
-        Literal::Timestamp(value) => translate_datetime_literal(
-            sql_ast::DataType::Timestamp(None, sql_ast::TimezoneInfo::None),
-            value,
-            ctx,
-        ),
+        Literal::Time(value) => {
+            let tz = timezone_info(&value, ctx);
+            translate_datetime_literal(sql_ast::DataType::Time(None, tz), value, ctx)
+        }
+        Literal::Timestamp(value) => {
+            let tz = timezone_info(&value, ctx);
+            translate_datetime_literal(sql_ast::DataType::Timestamp(None, tz), value, ctx)
+        }
         Literal::ValueAndUnit(vau) => {
             let sql_parser_datetime = match vau.unit.as_str() {
                 "years" => DateTimeField::Year,
@@ -559,12 +577,22 @@ pub(super) fn translate_literal(l: Literal, ctx: &Context) -> Result<sql_ast::Ex
                     )))
                 }
             };
+            // MySQL's interval units stop at `MICROSECOND`; it has no `MILLISECOND`.
+            let (n, sql_parser_datetime) = if sql_parser_datetime == DateTimeField::Millisecond
+                && ctx.dialect.is::<crate::sql::dialect::MySqlDialect>()
+            {
+                let n = vau.n.checked_mul(1000).ok_or_else(|| {
+                    Error::new_simple(format!("Interval `{}milliseconds` is too large", vau.n))
+                })?;
+                (n, DateTimeField::Microsecond)
+            } else {
+                (vau.n, sql_parser_datetime)
+            };
             match ctx.dialect.interval_quoting_style(&sql_parser_datetime) {
                 IntervalQuotingStyle::ValueAndUnitQuoted => {
                     //postgres requires quotes around number and unit together eg '3 WEEK'
                     let value = Box::new(sql_ast::Expr::Value(
-                        Value::SingleQuotedString(format!("{} {}", vau.n, sql_parser_datetime))
-                            .into(),
+                        Value::SingleQuotedString(format!("{} {}", n, sql_parser_datetime)).into(),
                     ));
                     sql_ast::Expr::Interval(sqlparser::ast::Interval {
                         value,
@@ -575,7 +603,7 @@ pub(super) fn translate_literal(l: Literal, ctx: &Context) -> Result<sql_ast::Ex
                     })
                 }
                 IntervalQuotingStyle::NoQuotes => {
-                    let value = Box::new(translate_literal(Literal::Integer(vau.n), ctx)?);
+                    let value = Box::new(translate_literal(Literal::Integer(n), ctx)?);
                     sql_ast::Expr::Interval(sqlparser::ast::Interval {
                         value,
                         leading_field: Some(sql_parser_datetime),
@@ -589,7 +617,7 @@ pub(super) fn translate_literal(l: Literal, ctx: &Context) -> Result<sql_ast::Ex
                 IntervalQuotingStyle::ValueQuoted => {
                     // Adding single quotes around the number
                     let value = Box::new(sql_ast::Expr::Value(
-                        Value::SingleQuotedString(vau.n.to_string()).into(),
+                        Value::SingleQuotedString(n.to_string()).into(),
                     ));
                     sql_ast::Expr::Interval(sqlparser::ast::Interval {
                         value,
@@ -602,6 +630,20 @@ pub(super) fn translate_literal(l: Literal, ctx: &Context) -> Result<sql_ast::Ex
             }
         }
     })
+}
+
+/// The time zone of a `TIME` or `TIMESTAMP` literal's type.
+///
+/// Postgres reads `TIME '…'` and `TIMESTAMP '…'` as types without a time zone
+/// and discards an offset, so a value ending in one (`Z`, `+05:00`, `-0800`)
+/// is a `TIMETZ` or `TIMESTAMPTZ` there.
+fn timezone_info(value: &str, ctx: &Context) -> sql_ast::TimezoneInfo {
+    let offset = Regex::new(r"(Z|[+-]\d{2}:?\d{2})$").unwrap();
+    if ctx.dialect.is::<crate::sql::dialect::PostgresDialect>() && offset.is_match(value) {
+        sql_ast::TimezoneInfo::Tz
+    } else {
+        sql_ast::TimezoneInfo::None
+    }
 }
 
 fn translate_datetime_literal(
@@ -754,16 +796,27 @@ pub(super) fn translate_sstring(
     items: Vec<InterpolateItem<rq::Expr>>,
     ctx: &mut Context,
 ) -> Result<String> {
-    Ok(items
-        .into_iter()
-        .map(|s_string_item| match s_string_item {
-            InterpolateItem::String(string) => Ok(string),
+    let mut text = String::new();
+    for item in items {
+        match item {
+            InterpolateItem::String(string) => text += &string,
             InterpolateItem::Expr { expr, .. } => {
-                translate_expr(*expr, ctx).map(|expr| expr.into_source())
+                let arg = translate_expr(*expr, ctx)?.into_source();
+                push_interpolated(&mut text, &arg);
             }
-        })
-        .collect::<Result<Vec<String>>>()?
-        .join(""))
+        }
+    }
+    Ok(text)
+}
+
+/// Appends an interpolated operand, parenthesizing it when `-` followed by
+/// `-` would otherwise start a SQL line comment (e.g. `-{x}` with `x = -1`).
+pub(super) fn push_interpolated(text: &mut String, arg: &str) {
+    if text.ends_with('-') && arg.starts_with('-') {
+        *text += &format!("({arg})");
+    } else {
+        *text += arg;
+    }
 }
 
 /// Aggregate several ordered ranges into one, computing the intersection.
@@ -1205,7 +1258,7 @@ impl SQLExpression for sql_ast::Expr {
             sql_ast::Expr::Like { .. }
             | sql_ast::Expr::ILike { .. }
             | sql_ast::Expr::Between { .. }
-            | sql_ast::Expr::InList { .. } => PREDICATE_STRENGTH,
+            | sql_ast::Expr::In { .. } => PREDICATE_STRENGTH,
 
             sql_ast::Expr::IsNull(_) | sql_ast::Expr::IsNotNull(_) => 5,
 
@@ -1550,6 +1603,56 @@ mod test {
     }
 
     #[test]
+    fn test_comparison_operand_is_parenthesized() {
+        // SQLite ranks `IN`, `LIKE` and `BETWEEN` alongside `=` and below
+        // `<`, and PostgreSQL doesn't chain comparisons, so a predicate or
+        // comparison operand of a comparison keeps its parentheses (#6466).
+        let query = r#"
+        from t
+        filter (a == (b | in [1, 2]))
+        filter (c < (d | in 1..3))
+        filter ((e | text.starts_with "x") == f)
+        filter (g == (h == i))
+        filter (j + 1 == k)
+        "#;
+        insta::assert_snapshot!(crate::tests::compile(query).unwrap(), @"
+        SELECT
+          *
+        FROM
+          t
+        WHERE
+          a = (b IN (1, 2))
+          AND c < (d BETWEEN 1 AND 3)
+          AND (e LIKE CONCAT('x', '%')) = f
+          AND g = (h = i)
+          AND j + 1 = k
+        ");
+    }
+
+    #[test]
+    fn test_comparison_operand_regexp_is_parenthesized_sqlite() {
+        // SQLite ranks `REGEXP` with `LIKE`, so it takes the same parentheses
+        // as a comparison operand.
+        let query = r#"
+        prql target:sql.sqlite
+        from t
+        filter (a == (b ~= "x"))
+        filter ((c ~= "y") < d)
+        filter (e ~= "z")
+        "#;
+        insta::assert_snapshot!(crate::tests::compile(query).unwrap(), @"
+        SELECT
+          *
+        FROM
+          t
+        WHERE
+          a = (b REGEXP 'x')
+          AND (c REGEXP 'y') < d
+          AND e REGEXP 'z'
+        ");
+    }
+
+    #[test]
     fn test_non_associative_right_operand_of_multiply_is_parenthesized() {
         // `a * (b % c)` and `a * (b / c)` aren't `(a * b) % c` and `(a * b) / c`
         let query = "
@@ -1567,6 +1670,69 @@ mod test {
           19 * (y / 2) AS d,
           y % 19 * 19 AS l,
           19 + y - 2 AS a
+        FROM
+          t
+        ");
+    }
+
+    #[test]
+    fn test_sstring_negating_a_negative_operand() {
+        // `-{b}` with a negative `b` would otherwise emit `--1`, a SQL comment
+        let query = r#"
+        from a
+        derive {b = -1}
+        select {z = s"-{b}"}
+        "#;
+        insta::assert_snapshot!(crate::tests::compile(query).unwrap(), @"
+        SELECT
+          -(-1) AS z
+        FROM
+          a
+        ");
+    }
+
+    #[test]
+    fn test_mysql_milliseconds_interval() {
+        // MySQL's interval units stop at MICROSECOND
+        let query = r#"
+        prql target:sql.mysql
+        from t
+        derive {a = d + 5milliseconds, b = d + 5microseconds}
+        "#;
+        insta::assert_snapshot!(crate::tests::compile(query).unwrap(), @"
+        SELECT
+          *,
+          d + INTERVAL 5000 MICROSECOND AS a,
+          d + INTERVAL 5 MICROSECOND AS b
+        FROM
+          t
+        ");
+    }
+
+    #[test]
+    fn test_postgres_datetime_with_offset() {
+        // `TIME '…'` and `TIMESTAMP '…'` literals on Postgres ignore the offset
+        let query = r#"
+        prql target:sql.postgres
+        from t
+        derive {
+            a = @2020-01-01T10:00:00+05:00,
+            b = @2020-01-01T10:00:00Z,
+            c = @2020-01-01T10:00:00-0800,
+            d = @2020-01-01T10:00:00,
+            e = @10:00+05:00,
+            f = @10:00,
+        }
+        "#;
+        insta::assert_snapshot!(crate::tests::compile(query).unwrap(), @"
+        SELECT
+          *,
+          TIMESTAMPTZ '2020-01-01T10:00:00+0500' AS a,
+          TIMESTAMPTZ '2020-01-01T10:00:00Z' AS b,
+          TIMESTAMPTZ '2020-01-01T10:00:00-0800' AS c,
+          TIMESTAMP '2020-01-01T10:00:00' AS d,
+          TIMETZ '10:00+0500' AS e,
+          TIME '10:00' AS f
         FROM
           t
         ");

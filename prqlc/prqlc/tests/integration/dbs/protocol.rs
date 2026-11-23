@@ -73,7 +73,7 @@ pub(crate) mod external {
     }
 
     impl<S: AsyncRead + AsyncWrite + Unpin + Send> DbProtocol
-        for connector_arrow::tiberius::TiberiusConnection<S>
+        for connector_arrow::mssql::MssqlConnection<S>
     {
         fn query(&mut self, sql: &str) -> Result<RecordBatch> {
             let mut statement = connector_arrow::api::Connector::query(self, sql)?;

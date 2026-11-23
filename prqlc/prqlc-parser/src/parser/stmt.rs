@@ -132,6 +132,12 @@ where
                 ));
             }
 
+            // Kept so that unknown arguments are reported in the order written.
+            let names = args
+                .iter()
+                .map(|(name, _)| name.clone())
+                .unique()
+                .collect_vec();
             let mut args: HashMap<_, _> = args.into_iter().collect();
 
             let version = args.remove("version").and_then(|v| match v.kind {
@@ -173,7 +179,11 @@ where
                     span,
                     format!(
                         "unknown query definition arguments {}",
-                        args.keys().map(|x| format!("`{x}`")).join(", ")
+                        names
+                            .iter()
+                            .filter(|name| args.contains_key(*name))
+                            .map(|x| format!("`{x}`"))
+                            .join(", ")
                     ),
                 ));
             }
@@ -189,7 +199,7 @@ where
 /// A variable definition could be any of:
 /// - `let foo = 5`
 /// - `from artists` — captured as a "main"
-/// - `from artists | into x` — captured as an "into"`
+/// - `from artists | into x` — captured as an "into"
 fn var_def<'a, I>() -> impl Parser<'a, I, StmtKind, ParserError<'a>> + Clone
 where
     I: Input<'a, Token = lr::Token, Span = Span> + BorrowInput<'a> + chumsky::input::ValueInput<'a>,
@@ -284,7 +294,7 @@ where
 
 #[cfg(test)]
 mod tests {
-    use insta::{assert_debug_snapshot, assert_yaml_snapshot};
+    use insta::{assert_debug_snapshot, assert_snapshot, assert_yaml_snapshot};
 
     use super::*;
     use crate::error::Error;
@@ -313,6 +323,17 @@ mod tests {
 
     fn parse_query_def(source: &str) -> Result<Stmt, Vec<Error>> {
         crate::parse_test!(source, query_def().then_ignore(end()))
+    }
+
+    #[test]
+    fn query_def_unknown_args_in_written_order() {
+        let errors = parse_query_def(
+            r#"
+        prql d:1 b:2 version:"0" c:3 a:4
+        "#,
+        )
+        .unwrap_err();
+        assert_snapshot!(errors[0].reason.to_string(), @"unknown query definition arguments `d`, `b`, `c`, `a`");
     }
 
     #[test]

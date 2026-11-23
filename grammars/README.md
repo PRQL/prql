@@ -30,7 +30,7 @@ an index.
   applications. File is at
   [`grammars/GtkSourceView/`](https://github.com/PRQL/prql/tree/main/grammars/GtkSourceView/).
 
-- [Handlebars](https://handlebarsjs.com/) — currently duplicated:
+- [highlight.js](https://highlightjs.org/) — currently duplicated:
   - The book:
     [`book/highlight-prql.js`](https://github.com/PRQL/prql/blob/main/web/book/highlight-prql.js)
   - The website (outside of the book & playground):
@@ -63,6 +63,10 @@ an index.
 - [Monarch](https://microsoft.github.io/monaco-editor/monarch.html) — used by
   the Monaco editor, which we use for the Playground. The grammar is at
   [`playground/src/workbench/prql-syntax.js`](https://github.com/PRQL/prql/blob/main/web/playground/src/workbench/prql-syntax.js).
+
+- [Prism](https://prismjs.com/) — supported on Prism's v2 branch; not in the v1
+  releases. The grammar is upstream
+  ([prql.js](https://github.com/PrismJS/prism/blob/v2/src/languages/prql.js)).
 
 - [Pygments](https://pygments.org/) — Python library used by Wikipedia,
   Bitbucket, Sphinx and [more](https://pygments.org/faq/#who-uses-pygments). The
