@@ -18,11 +18,15 @@ attributes:
     regularExpression: true
 keywords:
   - beginString: aggregate
+  - beginString: append
   - beginString: derive
   - beginString: filter
   - beginString: from
   - beginString: group
+  - beginString: intersect
   - beginString: join
+  - beginString: loop
+  - beginString: remove
   - beginString: select
   - beginString: sort
   - beginString: take
