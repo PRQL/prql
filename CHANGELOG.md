@@ -29,6 +29,10 @@
 
 **Fixes**:
 
+- The book and website syntax highlighters, and the CotEditor and GtkSourceView
+  grammars, highlight the `intersect`, `remove` and `loop` transforms and
+  `tuple_map`/`tuple_zip`, and no longer highlight `union`, `every`, `map` or
+  `zip`, which aren't in the standard library. (@prql-bot, #6600)
 - An unknown name or a non-type in a type annotation, such as `let x <zzz> = 1`
   or `type a = zzz`, now reports an error pointing at the annotation rather than
   one with no location. (@prql-bot, #6597)

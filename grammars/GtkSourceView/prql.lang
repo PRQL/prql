@@ -112,7 +112,6 @@
       <keyword>average</keyword>
       <keyword>concat_array</keyword>
       <keyword>count</keyword>
-      <keyword>every</keyword>
       <keyword>max|min</keyword>
       <keyword>stddev</keyword>
       <keyword>sum</keyword>
@@ -126,8 +125,8 @@
 
     <context id="list-functions" style-ref="function">
       <keyword>all</keyword>
-      <keyword>map</keyword>
-      <keyword>zip</keyword>
+      <keyword>tuple_map</keyword>
+      <keyword>tuple_zip</keyword>
       <keyword>_eq</keyword>
       <keyword>_is_null</keyword>
     </context>
@@ -160,11 +159,15 @@
 
     <context id="transform-type-definitions" style-ref="function">
       <keyword>aggregate</keyword>
+      <keyword>append</keyword>
       <keyword>derive</keyword>
       <keyword>filter</keyword>
       <keyword>from</keyword>
       <keyword>group</keyword>
+      <keyword>intersect</keyword>
       <keyword>join</keyword>
+      <keyword>loop</keyword>
+      <keyword>remove</keyword>
       <keyword>select</keyword>
       <keyword>sort</keyword>
       <keyword>take</keyword>
