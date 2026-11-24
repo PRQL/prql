@@ -30,11 +30,15 @@
 
     <list name="builtinfuncs">
       <item>aggregate</item>
+      <item>append</item>
       <item>derive</item>
       <item>filter</item>
       <item>from</item>
       <item>group</item>
+      <item>intersect</item>
       <item>join</item>
+      <item>loop</item>
+      <item>remove</item>
       <item>select</item>
       <item>sort</item>
       <item>take</item>
