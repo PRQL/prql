@@ -29,6 +29,10 @@
 
 **Fixes**:
 
+- The Kate, nano and Emacs grammars highlight the `append`, `intersect`, `loop`
+  and `remove` transforms, and the CodeMirror demo no longer offers `every`,
+  `map` or `zip`, which aren't in the standard library, as completions.
+  (@prql-bot, #6611)
 - The book and website syntax highlighters, and the CotEditor and GtkSourceView
   grammars, highlight the `intersect`, `remove` and `loop` transforms and
   `tuple_map`/`tuple_zip`, and no longer highlight `union`, `every`, `map` or

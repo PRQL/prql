@@ -38,7 +38,6 @@ const globals: readonly Completion[] = ["false", "null", "true"]
       "average",
       "concat_array",
       "count",
-      "every",
       "max",
       "min",
       "stddev",
@@ -49,8 +48,8 @@ const globals: readonly Completion[] = ["false", "null", "true"]
       "read_parquet",
       // list-functions
       "all",
-      "map",
-      "zip",
+      "tuple_map",
+      "tuple_zip",
       "_eq",
       "_is_null",
       // misc-functions
@@ -68,11 +67,15 @@ const globals: readonly Completion[] = ["false", "null", "true"]
   .concat(
     [
       "aggregate",
+      "append",
       "derive",
       "filter",
       "from",
       "group",
+      "intersect",
       "join",
+      "loop",
+      "remove",
       "select",
       "sort",
       "take",
