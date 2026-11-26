@@ -47,6 +47,20 @@ jobs:
           # on the new macos-15 runner image — see
           # https://github.com/Swatinem/rust-cache/issues/341.
           cache-bin: "false"
+      # `./mvnw` downloads the Maven distribution and every dependency from
+      # Maven Central on each run, and Maven Central rate-limits CI runners
+      # with HTTP 429 (#6603, #6614). Caching `~/.m2` skips those downloads.
+      - name: 💰 Cache Maven
+        uses: actions/cache@v6
+        with:
+          path: |
+            ~/.m2/repository
+            ~/.m2/wrapper
+          key:
+            ${{ runner.os }}-maven-${{
+            hashFiles('prqlc/bindings/java/java/pom.xml',
+            'prqlc/bindings/java/java/.mvn/wrapper/maven-wrapper.properties') }}
+          restore-keys: ${{ runner.os }}-maven-
       - name: Maven test
         working-directory: prqlc/bindings/java/java/
         run: ./mvnw test
