@@ -725,7 +725,7 @@ fn transform_param_not_a_literal() {
        │
      3 │     join y (==id) side:s"left"
        │                        ───┬───
-       │                           ╰───── `side` expected inner, left, right or full, but found `s"left"`
+       │                           ╰───── `side` expected inner, left, right, full or asof, but found `s"left"`
     ───╯
     "#);
 

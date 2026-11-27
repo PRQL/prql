@@ -3,7 +3,7 @@
 Adds columns from another relation, matching rows based on a condition.
 
 ```prql no-eval
-join side:{inner|left|right|full} rel (condition)
+join side:{inner|left|right|full|asof} rel (condition)
 ```
 
 ## Parameters
@@ -78,4 +78,19 @@ equality operator":
 ```prql
 from employees
 join positions (==emp_no)
+```
+
+---
+
+An ASOF join matches each row with the _nearest_ row of the other relation, for
+example the latest price at or before each trade. Its condition needs exactly
+one `<`, `<=`, `>` or `>=` comparison, which decides what "nearest" means; any
+other parts, such as `==ticker` below, must match exactly. ASOF joins are
+currently supported for Snowflake:
+
+```prql
+prql target:sql.snowflake
+
+from trades
+join side:asof prices (==ticker && this.traded_at >= that.priced_at)
 ```

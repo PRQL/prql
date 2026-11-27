@@ -113,6 +113,9 @@ pub enum JoinSide {
     Left,
     Right,
     Full,
+    /// Joins each row to the nearest match of an inequality, such as the
+    /// latest price at or before a trade.
+    AsOf,
 }
 
 impl Expr {

@@ -16,7 +16,7 @@ use super::pq::ast::{Cte, CteKind, RelationExpr, RelationExprKind, SqlRelation, 
 use super::{Context, Dialect};
 use crate::debug;
 use crate::ir::pl::{JoinSide, Literal};
-use crate::ir::rq::{CId, Expr, ExprKind, RelationLiteral, RelationalQuery};
+use crate::ir::rq::{new_binop, CId, Expr, ExprKind, RelationLiteral, RelationalQuery};
 use crate::utils::{BreakUp, Pluck};
 use crate::{Error, Result, WithErrorInfo};
 use prqlc_parser::generic::InterpolateItem;
@@ -411,18 +411,71 @@ fn translate_join(
 ) -> Result<Join> {
     let relation = translate_relation_expr(with, ctx)?;
 
-    let constraint = JoinConstraint::On(translate_expr(filter, ctx)?.into_ast());
+    let join_operator = match side {
+        JoinSide::Inner => JoinOperator::Inner(translate_join_on(filter, ctx)?),
+        JoinSide::Left => JoinOperator::LeftOuter(translate_join_on(filter, ctx)?),
+        JoinSide::Right => JoinOperator::RightOuter(translate_join_on(filter, ctx)?),
+        JoinSide::Full => JoinOperator::FullOuter(translate_join_on(filter, ctx)?),
+        JoinSide::AsOf => translate_asof_join(filter, ctx)?,
+    };
 
     Ok(Join {
         relation,
-        join_operator: match side {
-            JoinSide::Inner => JoinOperator::Inner(constraint),
-            JoinSide::Left => JoinOperator::LeftOuter(constraint),
-            JoinSide::Right => JoinOperator::RightOuter(constraint),
-            JoinSide::Full => JoinOperator::FullOuter(constraint),
-        },
+        join_operator,
         global: false,
     })
+}
+
+fn translate_join_on(filter: Expr, ctx: &mut Context) -> Result<JoinConstraint> {
+    Ok(JoinConstraint::On(translate_expr(filter, ctx)?.into_ast()))
+}
+
+/// An ASOF join matches each row with the nearest row that satisfies a single
+/// inequality, which goes into `MATCH_CONDITION`. Any other conditions, such as
+/// equalities on a key, go into `ON`.
+fn translate_asof_join(filter: Expr, ctx: &mut Context) -> Result<JoinOperator> {
+    let span = filter.span;
+    if !ctx.dialect.supports_asof_join() {
+        return Err(Error::new_simple(
+            "`side:asof` requires a dialect with ASOF joins, such as `sql.snowflake`",
+        )
+        .with_span(span));
+    }
+
+    let (inequalities, others): (Vec<_>, Vec<_>) = conjuncts(filter).into_iter().partition(
+        |expr| matches!(&expr.kind, ExprKind::Operator { name, .. } if is_inequality(name)),
+    );
+
+    let Ok([match_condition]) = <[Expr; 1]>::try_from(inequalities) else {
+        return Err(Error::new_simple(
+            "the condition of `side:asof` requires exactly one `<`, `<=`, `>` or `>=` comparison",
+        )
+        .with_span(span));
+    };
+
+    let match_condition = translate_expr(match_condition, ctx)?.into_ast();
+    let constraint = match others.into_iter().reduce(|a, b| new_binop(a, "std.and", b)) {
+        Some(on) => translate_join_on(on, ctx)?,
+        None => JoinConstraint::None,
+    };
+    Ok(JoinOperator::AsOf {
+        match_condition,
+        constraint,
+    })
+}
+
+/// Splits `a && b && c` into `[a, b, c]`.
+fn conjuncts(expr: Expr) -> Vec<Expr> {
+    match expr.kind {
+        ExprKind::Operator { name, args } if name == "std.and" => {
+            args.into_iter().flat_map(conjuncts).collect()
+        }
+        kind => vec![Expr { kind, ..expr }],
+    }
+}
+
+fn is_inequality(operator_name: &str) -> bool {
+    matches!(operator_name, "std.lt" | "std.lte" | "std.gt" | "std.gte")
 }
 
 fn translate_cte(cte: Cte, ctx: &mut Context) -> Result<(sql_ast::Cte, bool)> {

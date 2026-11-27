@@ -3410,7 +3410,7 @@ fn test_join_side_literal_err() {
        │                   ─┬
        │                    ╰── function std.join, param `side` expected type `JoinSide`, but found type `int`
        │
-       │ Help: Type `JoinSide` expands to `enum {inner = "inner", left = "left", right = "right", full = "full"}`
+       │ Help: Type `JoinSide` expands to `enum {inner = "inner", left = "left", right = "right", full = "full", asof = "asof"}`
     ───╯
     "#);
 }
@@ -3451,9 +3451,105 @@ fn test_join_side_literal_via_func_err() {
        │                                    ───┬──
        │                                       ╰──── function my_join, param `s` expected type `JoinSide`, but found type `text`
        │
-       │ Help: Type `JoinSide` expands to `enum {inner = "inner", left = "left", right = "right", full = "full"}`
+       │ Help: Type `JoinSide` expands to `enum {inner = "inner", left = "left", right = "right", full = "full", asof = "asof"}`
     ───╯
     "#);
+}
+
+#[test]
+fn test_join_asof() {
+    // the inequality becomes MATCH_CONDITION, the rest of the condition ON
+    assert_snapshot!(compile_with_sql_dialect(r###"
+    from trades
+    join side:asof prices (this.ticker == that.ticker && this.traded_at >= that.priced_at)
+    select {trades.ticker, trades.traded_at, prices.price}
+    "###, sql::Dialect::Snowflake).unwrap(), @r#"
+    SELECT
+      "trades"."ticker",
+      "trades"."traded_at",
+      "prices"."price"
+    FROM
+      "trades"
+      ASOF JOIN "prices" MATCH_CONDITION ("trades"."traded_at" >= "prices"."priced_at") ON "trades"."ticker" = "prices"."ticker"
+    "#);
+
+    // the inequality can be anywhere in the condition, and alone
+    assert_snapshot!(compile_with_sql_dialect(r###"
+    from trades
+    join side:asof prices (this.a == that.a && that.priced_at < this.traded_at && this.b == that.b)
+    "###, sql::Dialect::Snowflake).unwrap(), @r#"
+    SELECT
+      "trades".*,
+      "prices".*
+    FROM
+      "trades"
+      ASOF JOIN "prices" MATCH_CONDITION ("prices"."priced_at" < "trades"."traded_at") ON "trades"."a" = "prices"."a"
+      AND "trades"."b" = "prices"."b"
+    "#);
+
+    assert_snapshot!(compile_with_sql_dialect(r###"
+    from trades
+    join side:asof prices (this.traded_at >= that.priced_at)
+    "###, sql::Dialect::Snowflake).unwrap(), @r#"
+    SELECT
+      "trades".*,
+      "prices".*
+    FROM
+      "trades"
+      ASOF JOIN "prices" MATCH_CONDITION ("trades"."traded_at" >= "prices"."priced_at")
+    "#);
+}
+
+#[test]
+fn test_join_asof_err() {
+    // dialects without ASOF joins
+    for dialect in [
+        sql::Dialect::Generic,
+        sql::Dialect::DuckDb,
+        sql::Dialect::Postgres,
+    ] {
+        let err = compile_with_sql_dialect(
+            "from trades | join side:asof prices (this.t >= that.t)",
+            dialect,
+        )
+        .unwrap_err();
+        assert_eq!(
+            err.inner[0].reason,
+            "`side:asof` requires a dialect with ASOF joins, such as `sql.snowflake`"
+        );
+    }
+
+    // the condition needs exactly one inequality
+    for condition in [
+        "this.k == that.k",
+        "this.t >= that.t && this.u <= that.u",
+        "this.t >= that.t || this.k == that.k",
+    ] {
+        let err = compile_with_sql_dialect(
+            &format!("from trades | join side:asof prices ({condition})"),
+            sql::Dialect::Snowflake,
+        )
+        .unwrap_err();
+        assert_eq!(
+            err.inner[0].reason,
+            "the condition of `side:asof` requires exactly one `<`, `<=`, `>` or `>=` comparison"
+        );
+    }
+
+    assert_snapshot!(compile(r###"
+    prql target:sql.duckdb
+
+    from trades
+    join side:asof prices (this.traded_at >= that.priced_at)
+    "###).unwrap_err(), @"
+    Error:
+       ╭─[ :5:28 ]
+       │
+     5 │     join side:asof prices (this.traded_at >= that.priced_at)
+       │                            ────────────────┬───────────────
+       │                                            ╰───────────────── `side:asof` requires a dialect with ASOF joins, such as `sql.snowflake`
+    ───╯
+    ");
 }
 
 #[test]
