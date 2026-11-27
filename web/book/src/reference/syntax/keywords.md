@@ -31,19 +31,31 @@ from invoices
 join tracks (this.track_id==that.id)
 ```
 
-`this` can also be used to remove any column ambiguity. For example, currently
-using a bare `time` as a column name will fail, because it's also a type:
+A name that isn't called refers to a column before a standard library name, so a
+column can be named like a function, module or type, such as `time`, `date` or
+`count`:
 
-```prql error no-fmt
+```prql
 from invoices
 derive t = time
 ```
 
-But with `this.time`, we can remove the ambiguity:
+`this` can also be used to remove any column ambiguity. After a join, a bare
+name could refer to a column of either relation:
+
+```prql error no-fmt
+from invoices
+join customers (==customer_id)
+derive t = time
+```
+
+But with the relation's name, or `this.time` when there's only one relation, we
+can remove the ambiguity:
 
 ```prql
 from invoices
-derive t = this.time
+join customers (==customer_id)
+derive t = invoices.time
 ```
 
 ## Quoting

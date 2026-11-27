@@ -1,9 +1,13 @@
 ---
 source: web/book/tests/documentation/book.rs
-expression: "from invoices\nderive t = this.time\n"
+expression: "from invoices\njoin customers (==customer_id)\nderive t = time\n"
 ---
-SELECT
-  *,
-  time AS t
-FROM
-  invoices
+Error:
+   ╭─[ :3:12 ]
+   │
+ 3 │ derive t = time
+   │            ──┬─
+   │              ╰─── Ambiguous name
+   │
+   │ Help: could be any of: customers.time, invoices.time
+───╯

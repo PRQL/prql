@@ -17,6 +17,10 @@
 - _Breaking_: The compile target `sql.glaredb` has been removed, since it was
   never tested after GlareDB's full rewrite, and GlareDB seems to be no longer
   maintained. (@eitsupi, #6172)
+- A name that isn't called now refers to a column before a standard-library
+  function, module or type of the same name, so columns such as `date`, `time`,
+  `count` or `range` can be used by their bare name. A called name still refers
+  to the function (`count this`). (@calin2k, #6457)
 
 **Features**:
 
