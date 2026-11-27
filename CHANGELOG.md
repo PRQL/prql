@@ -517,6 +517,10 @@
 - [Prism.js](https://prismjs.com/) (v2 branch) has syntax highlighting for PRQL.
   (@vanillajonathan, #6576)
 
+- `prqlc-c` can now be built for `wasm32-unknown-emscripten`. It previously
+  compiled to an empty library on all wasm targets, so C/C++ programs built with
+  Emscripten could not use it. (@ywelsch, #6506)
+
 **Internal changes**:
 
 **New Contributors**:
