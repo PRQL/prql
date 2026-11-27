@@ -26,6 +26,9 @@
   name now starts on the line after `WITH`, and `PARTITION BY` puts its columns
   on their own lines, as other clauses do. Pass `--no-format` for unformatted
   output. (@prql-bot, #6257)
+- Add `join side:asof` for ASOF joins, which match each row with the nearest row
+  by a `<`, `<=`, `>` or `>=` comparison. Supported for Snowflake
+  (`ASOF JOIN … MATCH_CONDITION`). (@AHSharan, #6617)
 
 **Fixes**:
 
