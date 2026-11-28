@@ -35,5 +35,8 @@
     "test": "mocha tests"
   },
   "types": "dist/node/prqlc_js.d.ts",
-  "version": "0.13.15"
+  "version": "0.13.15",
+  "overrides": {
+    "minimatch": "^11.0.1"
+  }
 }
