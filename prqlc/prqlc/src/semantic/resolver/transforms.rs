@@ -102,7 +102,7 @@ impl Resolver<'_> {
                     let ident = side.clone().try_cast(
                         ExprKind::into_literal,
                         Some("`side`"),
-                        "inner, left, right or full",
+                        "inner, left, right, full or asof",
                     )?;
 
                     // these must match the values of JoinSide defined in std.prql
@@ -111,11 +111,12 @@ impl Resolver<'_> {
                         "\"left\"" => JoinSide::Left,
                         "\"right\"" => JoinSide::Right,
                         "\"full\"" => JoinSide::Full,
+                        "\"asof\"" => JoinSide::AsOf,
 
                         val => {
                             return Err(Error::new(Reason::Expected {
                                 who: Some("`side`".to_string()),
-                                expected: "inner, left, right or full".to_string(),
+                                expected: "inner, left, right, full or asof".to_string(),
                                 found: val.to_string(),
                             })
                             .with_span(span))

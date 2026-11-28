@@ -296,6 +296,11 @@ pub(super) trait DialectHandler: Any + Debug {
         false
     }
 
+    /// Whether `ASOF JOIN ... MATCH_CONDITION (...)` is supported.
+    fn supports_asof_join(&self) -> bool {
+        false
+    }
+
     /// Get the date format for the given dialect
     /// PRQL uses the same format as `chrono` crate
     /// (see https://docs.rs/chrono/latest/chrono/format/strftime/index.html)
@@ -710,6 +715,11 @@ impl DialectHandler for BigQueryDialect {
 }
 
 impl DialectHandler for SnowflakeDialect {
+    fn supports_asof_join(&self) -> bool {
+        // https://docs.snowflake.com/en/sql-reference/constructs/asof-join
+        true
+    }
+
     fn ident_quoting_style(&self) -> IdentQuotingStyle {
         // Due to snowflake's identifier casing rules, identifiers are always quoted
         // https://docs.snowflake.com/en/sql-reference/identifiers-syntax#label-identifier-casing

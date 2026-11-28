@@ -1,0 +1,10 @@
+---
+source: web/book/tests/documentation/book.rs
+expression: "prql target:sql.snowflake\n\nfrom trades\njoin side:asof prices (==ticker && this.traded_at >= that.priced_at)\n"
+---
+SELECT
+  "trades".*,
+  "prices".*
+FROM
+  "trades"
+  ASOF JOIN "prices" MATCH_CONDITION ("trades"."traded_at" >= "prices"."priced_at") ON "trades"."ticker" = "prices"."ticker"

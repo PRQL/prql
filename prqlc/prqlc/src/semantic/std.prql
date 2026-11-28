@@ -103,6 +103,7 @@ enum JoinSide {
   left = "left",
   right = "right",
   full = "full",
+  asof = "asof",
 }
 
 let join = func
