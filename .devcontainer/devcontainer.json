@@ -2,7 +2,13 @@
 {
   "image": "ghcr.io/prql/prql-devcontainer-base:latest",
   "features": {
-    "ghcr.io/devcontainers/features/hugo:1": {},
+    // Pinned: on `latest` the feature looks the version up through an
+    // unauthenticated api.github.com call, and a rate-limited reply leaves
+    // the version empty so the download 404s (devcontainers/features#458).
+    // Bump by hand; `build-web` installs Hugo separately.
+    "ghcr.io/devcontainers/features/hugo:1": {
+      "version": "0.170.1"
+    },
     "ghcr.io/devcontainers/features/python:1": {},
     "ghcr.io/devcontainers/features/node:2": {},
     "ghcr.io/eitsupi/devcontainer-features/go-task:1": {},
