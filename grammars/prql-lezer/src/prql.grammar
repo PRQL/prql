@@ -44,9 +44,15 @@ CallExpression { Identifier ArgList { (NamedArg | Declaration | test)+ } }
 NamedArg { ArgumentName { identPart } ":" expression }
 Declaration { DeclarationItem { identPart } "=" expression }
 DeclarationTuple { DeclarationItem { identPart } "=" expression }
-CaseBranch { expression "=>" expression }
+CaseBranch { test "=>" test }
 // Possibly we could only accept case branches inside the TupleExpression?
-CaseExpression { kw<"case"> TupleExpression }
+CaseExpression { kw<"case"> (TupleExpression | caseArray) }
+
+// The bracketed `case [...]` form; named ArrayExpression so it highlights like
+// other arrays.
+caseArray[@name="ArrayExpression"] {
+  "[" newline* CaseBranch (("," newline*) CaseBranch)* ","? newline* "]"
+}
 
 NestedPipeline { "(" newline* Pipeline ~ambigNewline newline? ")" }
 
