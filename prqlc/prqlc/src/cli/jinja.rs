@@ -23,6 +23,9 @@ use minijinja::{
 use regex::Regex;
 
 const ANCHOR_PREFIX: &str = "_jinja_";
+/// Closes an anchor, so text that directly follows an interpolation (such as
+/// the digits in `{{ ref('orders') }}2024`) can't merge into its id.
+const ANCHOR_SUFFIX: &str = "_";
 
 #[derive(Debug)]
 pub enum JinjaBlock<'a> {
@@ -73,7 +76,7 @@ pub fn pre_process(source: &str) -> Result<(String, JinjaContext<'_>)> {
                 if let Some(Token::Ident("config" | "set")) = tokens.get(1) {
                     context.header.push(source_span);
                 } else {
-                    let id = format!("{ANCHOR_PREFIX}{next_anchor_id}");
+                    let id = format!("{ANCHOR_PREFIX}{next_anchor_id}{ANCHOR_SUFFIX}");
                     next_anchor_id += 1;
 
                     anchored_source += &id;
@@ -105,18 +108,79 @@ pub fn post_process(source: &str, context: JinjaContext) -> String {
         res += "\n";
     }
 
-    let re = Regex::new(&format!(r"{ANCHOR_PREFIX}\d+")).unwrap();
+    // An anchor compiles as an identifier, so a target that always quotes
+    // identifiers (Snowflake, Oracle) wraps it in quotes. An interpolation
+    // stands for SQL rather than for a name, so a quoted identifier whose
+    // entire contents are one anchor is replaced along with its quotes. Each
+    // quoted token (string literal or identifier, including escaped quotes
+    // such as `''` or `""`) is matched whole before that check, so a quote
+    // character inside one can't pair with a quote outside it, and a token
+    // that merely starts with an anchor (`"_jinja_0_""x"`) keeps its quotes.
+    // Anchors within any other quoted token are replaced in place.
+    // A PostgreSQL dollar-quoted literal (`$$…$$`, `$tag$…$tag$`) is matched
+    // by its opening tag and runs to the matching closing tag; the regex
+    // crate has no backreferences, so that end is found below. Its tag
+    // follows the rules of an unquoted identifier without `$`, where any
+    // non-ASCII character counts as a letter. A PostgreSQL escape string
+    // (`E'…'`) also takes backslash escapes such as `\'`.
+    let anchor = format!(r"{ANCHOR_PREFIX}\d+{ANCHOR_SUFFIX}");
+    let tag_start = r"[A-Za-z_\x{80}-\x{10FFFF}]";
+    let tag_char = r"[A-Za-z0-9_\x{80}-\x{10FFFF}]";
+    let re = Regex::new(&format!(
+        r#"\b[Ee]'(?:[^'\\]|\\[\s\S]|'')*'|'(?:[^']|'')*'|"(?:[^"]|"")*"|`(?:[^`]|``)*`|\$(?:{tag_start}{tag_char}*)?\$|{anchor}"#
+    ))
+    .unwrap();
+    let bare_anchor = Regex::new(&anchor).unwrap();
+    let exact_anchor = Regex::new(&format!("^{anchor}$")).unwrap();
+    let substitute = |anchor_id: &str| context.anchor_map.get(anchor_id).copied();
 
     let mut last_index = 0;
-    for cap in re.captures_iter(source) {
-        let cap = cap.get(0).unwrap();
-        let index = cap.start();
-        let anchor_id = cap.as_str();
+    while let Some(token) = re.find_at(source, last_index) {
+        res += &source[last_index..token.start()];
+        let mut end = token.end();
 
-        res += &source[last_index..index];
-        res += context.anchor_map.get(anchor_id).unwrap_or(&anchor_id);
+        // `$` can also continue an unquoted identifier (`a$b$`), where it
+        // doesn't open a dollar quote.
+        if token.as_str().starts_with('$')
+            && source[..token.start()]
+                .chars()
+                .next_back()
+                .is_some_and(|c| {
+                    c.is_ascii_alphanumeric() || matches!(c, '_' | '$') || !c.is_ascii()
+                })
+        {
+            res += "$";
+            last_index = token.start() + 1;
+            continue;
+        }
 
-        last_index = index + anchor_id.len();
+        // The text an identifier's quotes enclose, or the token itself when bare.
+        let contents = match token.as_str().as_bytes()[0] {
+            b'"' | b'`' => Some(&token.as_str()[1..token.len() - 1]),
+            b'$' => {
+                // An unclosed dollar quote runs to the end of the source.
+                end = source[end..]
+                    .find(token.as_str())
+                    .map_or(source.len(), |i| end + i + token.len());
+                None
+            }
+            b'\'' => None,
+            _ => Some(token.as_str()),
+        };
+        let text = &source[token.start()..end];
+        match contents
+            .filter(|c| exact_anchor.is_match(c))
+            .and_then(substitute)
+        {
+            Some(value) => res += value,
+            None => {
+                res += &bare_anchor.replace_all(text, |c: &regex::Captures| {
+                    substitute(&c[0]).unwrap_or(&c[0]).to_string()
+                })
+            }
+        }
+
+        last_index = end;
     }
     res += &source[last_index..];
 
@@ -125,6 +189,8 @@ pub fn post_process(source: &str, context: JinjaContext) -> String {
 
 #[cfg(test)]
 mod test {
+    use insta::assert_snapshot;
+
     use super::{post_process, pre_process, Span};
 
     #[test]
@@ -163,9 +229,9 @@ mod test {
         // everything from the start of the file.
         let src = "from a\n{{ foo }}\nfrom b = {{ bar }}";
         let (pre_proc_text, ctx) = pre_process(src).unwrap();
-        insta::assert_yaml_snapshot!(pre_proc_text, @r#""from a\n_jinja_0\nfrom b = _jinja_1""#);
-        insta::assert_yaml_snapshot!(ctx.anchor_map["_jinja_0"], @r#""{{ foo }}""#);
-        insta::assert_yaml_snapshot!(ctx.anchor_map["_jinja_1"], @r#""{{ bar }}""#);
+        insta::assert_yaml_snapshot!(pre_proc_text, @r#""from a\n_jinja_0_\nfrom b = _jinja_1_""#);
+        insta::assert_yaml_snapshot!(ctx.anchor_map["_jinja_0_"], @r#""{{ foo }}""#);
+        insta::assert_yaml_snapshot!(ctx.anchor_map["_jinja_1_"], @r#""{{ bar }}""#);
         let post_proc_text = post_process(&pre_proc_text, ctx);
         insta::assert_snapshot!(post_proc_text, @"
         from a
@@ -178,8 +244,8 @@ mod test {
     fn test_pre_process() {
         let src = r###"from in_process = {{ source('salesforce', 'in_process') }}"###;
         let (pre_proc_text, ctx) = pre_process(src).unwrap();
-        insta::assert_yaml_snapshot!(pre_proc_text, @"from in_process = _jinja_0");
-        insta::assert_yaml_snapshot!(ctx.anchor_map["_jinja_0"], @r#""{{ source('salesforce', 'in_process') }}""#);
+        insta::assert_yaml_snapshot!(pre_proc_text, @"from in_process = _jinja_0_");
+        insta::assert_yaml_snapshot!(ctx.anchor_map["_jinja_0_"], @r#""{{ source('salesforce', 'in_process') }}""#);
     }
 
     #[test]
@@ -197,8 +263,162 @@ mod test {
         // slice would land mid-character.
         let src = r###"from café = {{ source('salesforce', 'in_process') }}"###;
         let (pre_proc_text, ctx) = pre_process(src).unwrap();
-        insta::assert_yaml_snapshot!(pre_proc_text, @"from café = _jinja_0");
-        insta::assert_yaml_snapshot!(ctx.anchor_map["_jinja_0"], @r#""{{ source('salesforce', 'in_process') }}""#);
+        insta::assert_yaml_snapshot!(pre_proc_text, @"from café = _jinja_0_");
+        insta::assert_yaml_snapshot!(ctx.anchor_map["_jinja_0_"], @r#""{{ source('salesforce', 'in_process') }}""#);
+    }
+
+    fn compile_with_jinja(src: &str) -> String {
+        let (prql, ctx) = pre_process(src).unwrap();
+        let opts = prqlc::Options::default().no_signature();
+        let sql = prqlc::compile(&prql, &opts).unwrap();
+        post_process(&sql, ctx)
+    }
+
+    #[test]
+    fn test_interpolation_followed_by_digits() {
+        assert_snapshot!(compile_with_jinja("from {{ ref('orders') }}2024"), @"
+        SELECT
+          *
+        FROM
+          {{ ref('orders') }}2024
+        ");
+    }
+
+    #[test]
+    fn test_interpolation_not_quoted_on_always_quoting_target() {
+        assert_snapshot!(compile_with_jinja(
+            "prql target:sql.snowflake\nfrom {{ ref('orders') }}\nfilter amount > {{ var('min') }}"
+        ), @r#"
+        SELECT
+          *
+        FROM
+          {{ ref('orders') }}
+        WHERE
+          "amount" > {{ var('min') }}
+        "#);
+        assert_snapshot!(compile_with_jinja(
+            "prql target:sql.oracle\nfrom {{ ref('orders') }}"
+        ), @"
+        SELECT
+          *
+        FROM
+          {{ ref('orders') }}
+        ");
+    }
+
+    #[test]
+    fn test_double_quotes_in_string_literal_kept() {
+        assert_snapshot!(compile_with_jinja(
+            r#"prql target:sql.snowflake
+from orders
+filter name == "\"{{ var('n') }}\" it's""#
+        ), @r#"
+        SELECT
+          *
+        FROM
+          "orders"
+        WHERE
+          "name" = '"{{ var('n') }}" it''s'
+        "#);
+    }
+
+    #[test]
+    fn test_apostrophe_in_quoted_identifier() {
+        assert_snapshot!(compile_with_jinja(
+            r#"prql target:sql.snowflake
+from {{ ref('orders') }}
+select {`it's`, amount}
+filter amount != 'x'"#
+        ), @r#"
+        SELECT
+          "it's",
+          "amount"
+        FROM
+          {{ ref('orders') }}
+        WHERE
+          "amount" <> 'x'
+        "#);
+    }
+
+    #[test]
+    fn test_interpolation_joined_to_text_in_quoted_identifier() {
+        assert_snapshot!(compile_with_jinja(
+            "prql target:sql.snowflake\nfrom {{ ref('orders') }}2024"
+        ), @r#"
+        SELECT
+          *
+        FROM
+          "{{ ref('orders') }}2024"
+        "#);
+    }
+
+    #[test]
+    fn test_interpolation_in_string_literal_keeps_quotes() {
+        assert_snapshot!(compile_with_jinja(
+            "prql target:sql.snowflake\nfrom orders\nfilter name == '{{ var(\"n\") }}'"
+        ), @r#"
+        SELECT
+          *
+        FROM
+          "orders"
+        WHERE
+          "name" = '{{ var("n") }}'
+        "#);
+    }
+
+    #[test]
+    fn test_anchor_prefix_of_quoted_identifier() {
+        // `"_jinja_0_""suffix"` is one identifier containing an escaped quote;
+        // its quotes enclose more than the anchor, so they stay.
+        let src = r#"SELECT "_jinja_0_""suffix", `_jinja_0_``x`, "_jinja_0_" FROM t"#;
+        let mut ctx = super::JinjaContext::default();
+        ctx.anchor_map
+            .insert("_jinja_0_".to_string(), r#"{{ var("name") }}"#);
+        assert_snapshot!(post_process(src, ctx), @r#"SELECT "{{ var("name") }}""suffix", `{{ var("name") }}``x`, {{ var("name") }} FROM t"#);
+    }
+
+    #[test]
+    fn test_interpolation_in_brackets_keeps_brackets() {
+        // No target quotes identifiers with `[…]`, so brackets around an
+        // anchor come from SQL such as an s-string index, and stay.
+        let (prql, ctx) =
+            pre_process("prql target:sql.duckdb\nfrom t\nselect {x = s\"arr[{{ var('i') }}]\"}")
+                .unwrap();
+        let opts = prqlc::Options::default().no_signature().no_format();
+        let sql = prqlc::compile(&prql, &opts).unwrap();
+        assert_snapshot!(post_process(&sql, ctx), @"SELECT arr[{{ var('i') }}] AS x FROM t");
+    }
+
+    #[test]
+    fn test_double_quotes_in_dollar_quoted_literal_kept() {
+        let (prql, ctx) = pre_process(
+            "prql target:sql.postgres\nfrom t\nselect {x = s'$$\"{{ var(\"name\") }}\"$$', y = s'$q$ \"a\" $q$', z = {{ var('z') }}}",
+        )
+        .unwrap();
+        let opts = prqlc::Options::default().no_signature().no_format();
+        let sql = prqlc::compile(&prql, &opts).unwrap();
+        assert_snapshot!(post_process(&sql, ctx), @r#"SELECT $$"{{ var("name") }}"$$ AS x, $q$ "a" $q$ AS y, {{ var('z') }} AS z FROM t"#);
+    }
+
+    #[test]
+    fn test_postgres_escape_string_and_non_ascii_dollar_tag_kept() {
+        // `E'…'` takes backslash escapes, so `\'` doesn't end it, and a dollar
+        // tag can hold any letter, including non-ASCII ones such as `é`.
+        let src = r#"SELECT E'it\'s "_jinja_0_"' AS x, e'\\' AS y, $é$"_jinja_0_"$é$ AS z, "_jinja_0_" FROM t"#;
+        let mut ctx = super::JinjaContext::default();
+        ctx.anchor_map
+            .insert("_jinja_0_".to_string(), "{{ var('name') }}");
+        assert_snapshot!(post_process(src, ctx), @r#"SELECT E'it\'s "{{ var('name') }}"' AS x, e'\\' AS y, $é$"{{ var('name') }}"$é$ AS z, {{ var('name') }} FROM t"#);
+    }
+
+    #[test]
+    fn test_dollar_inside_identifier_is_not_a_dollar_quote() {
+        // PostgreSQL identifiers can contain `$`, so `a$b$` isn't a dollar quote.
+        let src = r#"SELECT a$b$, "_jinja_0_" FROM t"#;
+        let mut ctx = super::JinjaContext::default();
+        ctx.anchor_map
+            .insert("_jinja_0_".to_string(), "{{ var('name') }}");
+        assert_snapshot!(post_process(src, ctx), @"SELECT a$b$, {{ var('name') }} FROM t");
     }
 
     #[test]

@@ -52,6 +52,9 @@
   successfully without formatting anything. `lex`, `debug annotate` and
   `experimental highlight` report the same rather than claiming to have found
   multiple sources. (@prql-bot, #6587)
+- `prqlc watch` keeps a Jinja interpolation intact when digits directly follow
+  it, and no longer wraps one in identifier quotes on Snowflake and Oracle.
+  (@prql-bot, #6567)
 - `prqlc compile` on a directory with more than one root-level file starting
   with an uppercase letter reports the candidates as an error. It previously
   picked one of them at random as the root module. Files inside an uppercase
