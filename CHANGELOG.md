@@ -52,6 +52,10 @@
   successfully without formatting anything. `lex`, `debug annotate` and
   `experimental highlight` report the same rather than claiming to have found
   multiple sources. (@prql-bot, #6587)
+- A decimal integer or interval too large for a 64-bit integer, such as
+  `99999999999999999999` or `99999999999999999999days`, and a float that
+  overflows, such as `1e400`, are now errors. They previously compiled to
+  `1e20`, `INTERVAL 1 DAY` and `inf`. (@prql-bot, #6595)
 - `prqlc compile` on a directory with more than one root-level file starting
   with an uppercase letter reports the candidates as an error. It previously
   picked one of them at random as the root module. Files inside an uppercase

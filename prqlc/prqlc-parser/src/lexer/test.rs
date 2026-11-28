@@ -2,7 +2,7 @@ use chumsky::Parser;
 use insta::assert_debug_snapshot;
 use insta::assert_snapshot;
 
-use crate::lexer::lr::{Literal, TokenKind, Tokens};
+use crate::lexer::lr::{Literal, TokenKind, Tokens, ValueAndUnit};
 use crate::lexer::{lex_source, lex_source_recovery, lexer, literal, quoted_string};
 
 #[test]
@@ -74,6 +74,47 @@ fn numbers() {
     test_number_parsing(
         "0b111111111111111111111111111111111",
         Literal::Integer(0b111111111111111111111111111111111),
+    );
+}
+
+#[test]
+fn decimal_numbers_out_of_range() {
+    // A whole number or interval too large for an i64, or a float that
+    // overflows to infinity, is an error rather than a different number.
+    let found = |input: &str| {
+        lex_source(input)
+            .unwrap_err()
+            .into_iter()
+            .map(|e| format!("{:?} at {:?}", e.reason, e.span))
+            .collect::<Vec<_>>()
+    };
+    assert_debug_snapshot!(found("9223372036854775808"), @r#"
+    [
+        "Unexpected { found: \"'9223372036854775808'\" } at Some(0:0-19)",
+    ]
+    "#);
+    assert_debug_snapshot!(found("99999999999999999999days"), @r#"
+    [
+        "Unexpected { found: \"'99999999999999999999days'\" } at Some(0:0-24)",
+    ]
+    "#);
+    assert_debug_snapshot!(found("1e400"), @r#"
+    [
+        "Unexpected { found: \"'1e400'\" } at Some(0:0-5)",
+    ]
+    "#);
+
+    // The largest values that fit still lex
+    let lexes = |input: &str| literal().parse(input).into_result().unwrap();
+    assert_eq!(lexes("9223372036854775807"), Literal::Integer(i64::MAX));
+    assert_eq!(lexes("1e308"), Literal::Float(1e308));
+    assert_eq!(lexes("99999999999999999999.0"), Literal::Float(1e20));
+    assert_eq!(
+        lexes("9223372036854775807days"),
+        Literal::ValueAndUnit(ValueAndUnit {
+            n: i64::MAX,
+            unit: "days".to_string()
+        })
     );
 }
 
