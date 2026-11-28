@@ -654,6 +654,23 @@ fn test_tuple() {
 }
 
 #[test]
+fn test_tuple_parenthesized_alias() {
+    // An alias inside parentheses is kept when the parenthesized expression is
+    // an item of a tuple, as it is for `derive (y = a)`.
+    assert_yaml_snapshot!(parse_expr(r#"{(y = a), b}"#).unwrap(), @r#"
+    Tuple:
+      - Ident:
+          - a
+        span: "0:1-8"
+        alias: y
+      - Ident:
+          - b
+        span: "0:10-11"
+    span: "0:0-12"
+    "#);
+}
+
+#[test]
 fn test_number() {
     assert_yaml_snapshot!(parse_expr(r#"23"#).unwrap(), @r#"
     Literal:
