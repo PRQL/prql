@@ -6199,6 +6199,52 @@ fn test_array_01() {
 }
 
 #[test]
+fn test_relation_literal_rows_matched_by_name() {
+    // A later row's fields are matched to the first row's columns by name, so
+    // the second row is `a = 4, b = 3`.
+    assert_snapshot!(compile(r###"
+    from [{a = 1, b = 2}, {b = 3, a = 4}]
+    "###).unwrap(), @"
+    WITH
+    table_0 AS (
+      SELECT
+        1 AS a,
+        2 AS b
+      UNION ALL
+      SELECT
+        4 AS a,
+        3 AS b
+    )
+    SELECT
+      a,
+      b
+    FROM
+      table_0
+    ");
+
+    // Unnamed fields are matched by position.
+    assert_snapshot!(compile(r###"
+    from [{a = 1, b = 2}, {3, 4}]
+    "###).unwrap(), @"
+    WITH
+    table_0 AS (
+      SELECT
+        1 AS a,
+        2 AS b
+      UNION ALL
+      SELECT
+        3 AS a,
+        4 AS b
+    )
+    SELECT
+      a,
+      b
+    FROM
+      table_0
+    ");
+}
+
+#[test]
 fn test_array_02() {
     assert_snapshot!(compile(r###"
     let x = p1 -> s"x({p1})"
