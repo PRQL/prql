@@ -24,6 +24,20 @@ use crate::{Error, Reason, Result, Span, WithErrorInfo};
 /// The error for a query whose main pipeline can't be found, worded by
 /// whether the query declares anything at all.
 pub(crate) fn missing_main_error(root_mod: &RootModule, span: Option<Span>) -> Error {
+    // `from t | filter x | in 5..10` does start with `from`, but its last step
+    // applies a non-transform function to the relation and produces a value.
+    if let Ok((decl, _)) = root_mod.find_main(&[]) {
+        if let DeclKind::Expr(expr) = &decl.kind {
+            if applies_function_to_relation(expr) {
+                return Error::new_simple(
+                    "the main pipeline must produce a relation, but this step produces a value",
+                )
+                .push_hint(NESTED_PIPELINE_HINT)
+                .with_span(expr.span.or(span));
+            }
+        }
+    }
+
     let user_declared_names: Vec<_> = root_mod
         .module
         .names
@@ -43,6 +57,20 @@ pub(crate) fn missing_main_error(root_mod: &RootModule, span: Option<Span>) -> E
     };
 
     error.with_span(span)
+}
+
+pub(crate) const NESTED_PIPELINE_HINT: &str = "a function that isn't a transform was applied to a relation; a pipeline inside a transform argument requires parentheses, e.g. `filter (x | in 5..10)`";
+
+/// Whether a resolved expression is a function applied to a relation that
+/// produces a non-relational value, as `in 5..10` does in
+/// `from t | filter x | in 5..10`.
+pub(crate) fn applies_function_to_relation(expr: &pl::Expr) -> bool {
+    match &expr.kind {
+        pl::ExprKind::RqOperator { args, .. } => args
+            .iter()
+            .any(|arg| arg.lineage.is_some() || applies_function_to_relation(arg)),
+        _ => false,
+    }
 }
 
 /// Convert a resolved expression at path `main_path` relative to `root_mod`

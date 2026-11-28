@@ -7,6 +7,7 @@ use super::Resolver;
 use crate::ir::decl::{Decl, DeclKind, Module};
 use crate::ir::pl::*;
 use crate::pr::{Ty, TyFunc, TyKind};
+use crate::semantic::lowering::{applies_function_to_relation, NESTED_PIPELINE_HINT};
 use crate::semantic::resolver::types;
 use crate::semantic::{write_pl, NS_PARAM, NS_THAT, NS_THIS};
 use crate::Result;
@@ -284,12 +285,19 @@ impl Resolver<'_> {
                                 found: "an empty tuple `{}`".to_string(),
                             })
                             .with_span(arg.span),
-                            _ => Error::new(Reason::Expected {
-                                who: None,
-                                expected: "a table or query".to_string(),
-                                found: format!("`{}`", write_pl(arg.clone())),
-                            })
-                            .with_span(arg.span),
+                            _ => {
+                                let error = Error::new(Reason::Expected {
+                                    who: None,
+                                    expected: "a table or query".to_string(),
+                                    found: format!("`{}`", write_pl(arg.clone())),
+                                })
+                                .with_span(arg.span);
+                                if applies_function_to_relation(&arg) {
+                                    error.push_hint(NESTED_PIPELINE_HINT)
+                                } else {
+                                    error
+                                }
+                            }
                         }
                     })?;
                     if is_last {

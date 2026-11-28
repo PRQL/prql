@@ -5,7 +5,7 @@ use crate::ir::pl;
 use crate::ir::pl::PlFold;
 use crate::pr::{Ty, TyKind, TyTupleField};
 use crate::semantic::resolver::{flatten, types, Resolver};
-use crate::semantic::{NS_INFER, NS_SELF, NS_THAT, NS_THIS, STD_LIB_SOURCE_ID};
+use crate::semantic::{write_pl, NS_INFER, NS_SELF, NS_THAT, NS_THIS, STD_LIB_SOURCE_ID};
 use crate::utils::IdGenerator;
 use crate::Result;
 use crate::{Error, Reason, Span, WithErrorInfo};
@@ -200,8 +200,20 @@ impl pl::PlFold for Resolver<'_> {
                 self.default_namespace = None;
                 let old = self.in_func_call_name;
                 self.in_func_call_name = true;
-                let name = Box::new(self.fold_expr(*name)?);
+                // A pipeline step is a call whose name is itself a call
+                // (`select x` in `from t | select x`); keep it to explain errors.
+                let step = matches!(name.kind, pl::ExprKind::FuncCall(_)).then(|| (*name).clone());
+                let name = self.fold_expr(*name);
                 self.in_func_call_name = old;
+                let name = match name {
+                    Ok(name) => Box::new(name),
+                    Err(err) => {
+                        return Err(match step {
+                            Some(step) => self.explain_overfilled_step(step, err),
+                            None => err,
+                        })
+                    }
+                };
 
                 let func = name.try_cast(|n| n.into_func(), None, "a function")?;
 
@@ -242,6 +254,87 @@ impl pl::PlFold for Resolver<'_> {
 }
 
 impl Resolver<'_> {
+    /// Replaces the error from a pipeline step whose arguments already fill
+    /// every positional param of a transform, including the relation, which
+    /// the pipeline then supplies once more. In `select x = sum salary`, the
+    /// args are `x = sum` and `salary`, so `salary` is resolved as the
+    /// relation and fails with an unhelpful "Unknown name".
+    fn explain_overfilled_step(&mut self, step: pl::Expr, err: Error) -> Error {
+        let pl::ExprKind::FuncCall(call) = step.kind else {
+            return err;
+        };
+        if !call.name.kind.is_ident() {
+            return err;
+        }
+
+        let old = self.in_func_call_name;
+        self.in_func_call_name = true;
+        let callee = self.fold_expr(*call.name);
+        self.in_func_call_name = old;
+        let Ok(pl::Expr {
+            kind: pl::ExprKind::Func(func),
+            ..
+        }) = callee
+        else {
+            return err;
+        };
+        let Ok(func) = self.fold_function_types(func) else {
+            return err;
+        };
+
+        let takes_relation_last = (func.params.last())
+            .and_then(|p| p.ty.as_ref())
+            .is_some_and(|t| t.is_relation());
+        let remaining_params = func.params.len().saturating_sub(func.args.len());
+        if !takes_relation_last || call.args.len() < remaining_params {
+            return err;
+        }
+
+        let mut error = Error::new_simple(format!(
+            "Too many arguments to function `{}`",
+            func.as_debug_name()
+        ))
+        .with_span(step.span);
+
+        // `x = sum salary` passes `x = sum` and `salary` as two arguments
+        let split_call = (call.args.iter().tuple_windows())
+            .find(|(arg, _)| arg.kind.is_ident() && self.resolves_to_function(arg));
+        if let Some((func_arg, next)) = split_call {
+            let callee = write_pl(pl::Expr {
+                alias: None,
+                ..func_arg.clone()
+            });
+            let next = write_pl(next.clone());
+            let (written, suggested) = match &func_arg.alias {
+                Some(alias) => (
+                    format!("{alias} = {callee}"),
+                    format!("{alias} = ({callee} {next})"),
+                ),
+                None => (callee.clone(), format!("({callee} {next})")),
+            };
+            error = error.push_hint(format!(
+                "`{written}` and `{next}` are separate arguments; parentheses might be missing: `{suggested}`"
+            ));
+        } else {
+            error = error
+                .push_hint("the pipeline supplies the relation, so an argument might be extra");
+        }
+        error
+    }
+
+    /// Whether an unresolved expression names a function. Only used while
+    /// building an error, so any declarations inferred meanwhile don't matter.
+    fn resolves_to_function(&mut self, expr: &pl::Expr) -> bool {
+        let old = self.in_func_call_name;
+        self.in_func_call_name = true;
+        let resolved = self.fold_expr(pl::Expr {
+            alias: None,
+            ..expr.clone()
+        });
+        self.in_func_call_name = old;
+        resolved.is_ok_and(|e| e.kind.is_func())
+    }
+
     fn finish_expr_resolve(
         &mut self,
         expr: pl::Expr,
