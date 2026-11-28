@@ -29,6 +29,11 @@
 
 **Fixes**:
 
+- `select x = sum salary` reports too many arguments to `select`, with a hint
+  to parenthesize the call, rather than ``Unknown name `salary` ``; and
+  `filter foo | in 5..10` points at the step that turns the relation into a
+  value rather than claiming the query doesn't begin with `from`. (@prql-bot,
+  #6622)
 - The Kate, nano and Emacs grammars highlight the `append`, `intersect`, `loop`
   and `remove` transforms, and the CodeMirror demo no longer offers `every`,
   `map` or `zip`, which aren't in the standard library, as completions.
