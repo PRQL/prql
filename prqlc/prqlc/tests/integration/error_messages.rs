@@ -465,11 +465,13 @@ fn non_relation_transform_input() {
     derive x 5
     "###).unwrap_err(), @"
     Error:
-       ╭─[ :3:14 ]
+       ╭─[ :3:5 ]
        │
      3 │     derive x 5
-       │              ┬
-       │              ╰── expected a table or query, but found `5`
+       │     ─────┬────
+       │          ╰────── Too many arguments to function `derive`
+       │
+       │ Help: the pipeline supplies the relation, so an argument might be extra
     ───╯
     ");
 
@@ -478,11 +480,13 @@ fn non_relation_transform_input() {
     take 1 "a"
     "###).unwrap_err(), @r#"
     Error:
-       ╭─[ :3:12 ]
+       ╭─[ :3:5 ]
        │
      3 │     take 1 "a"
-       │            ─┬─
-       │             ╰─── expected a table or query, but found `"a"`
+       │     ─────┬────
+       │          ╰────── Too many arguments to function `take`
+       │
+       │ Help: the pipeline supplies the relation, so an argument might be extra
     ───╯
     "#);
 
@@ -491,11 +495,13 @@ fn non_relation_transform_input() {
     select lower "mooo"
     "###).unwrap_err(), @r#"
     Error:
-       ╭─[ :3:18 ]
+       ╭─[ :3:5 ]
        │
      3 │     select lower "mooo"
-       │                  ───┬──
-       │                     ╰──── expected a table or query, but found `"mooo"`
+       │     ─────────┬─────────
+       │              ╰─────────── Too many arguments to function `select`
+       │
+       │ Help: the pipeline supplies the relation, so an argument might be extra
     ───╯
     "#);
 }
@@ -1024,6 +1030,110 @@ fn test_type_annotation_errors_have_spans() {
      2 │     type a = zzz
        │              ─┬─
        │               ╰─── Unknown name `zzz`
+    ───╯
+    ");
+}
+
+#[test]
+fn test_aliased_function_call_without_parentheses() {
+    // `x = sum salary` passes `x = sum` and `salary` as separate arguments,
+    // so `salary` lands in the relation param (#648)
+    assert_snapshot!(compile(r###"
+    from employees
+    select x = sum salary
+    "###).unwrap_err(), @"
+    Error:
+       ╭─[ :3:5 ]
+       │
+     3 │     select x = sum salary
+       │     ──────────┬──────────
+       │               ╰──────────── Too many arguments to function `select`
+       │
+       │ Help: `x = sum` and `salary` are separate arguments; parentheses might be missing: `x = (sum salary)`
+    ───╯
+    ");
+
+    assert_snapshot!(compile(r###"
+    from employees
+    select a b
+    "###).unwrap_err(), @"
+    Error:
+       ╭─[ :3:5 ]
+       │
+     3 │     select a b
+       │     ─────┬────
+       │          ╰────── Too many arguments to function `select`
+       │
+       │ Help: the pipeline supplies the relation, so an argument might be extra
+    ───╯
+    ");
+    assert_snapshot!(compile(r#"
+    let f = country -> country == "Canada"
+
+    from employees
+    filter f location
+    "#).unwrap_err(), @"
+    Error:
+       ╭─[ :5:5 ]
+       │
+     5 │     filter f location
+       │     ────────┬────────
+       │             ╰────────── Too many arguments to function `filter`
+       │
+       │ Help: `f` and `location` are separate arguments; parentheses might be missing: `(f location)`
+    ───╯
+    ");
+}
+
+#[test]
+fn select_with_extra_fstr() {
+    assert_snapshot!(compile(r#"
+    from foo
+    select lower f"{x}/{y}"
+    "#).unwrap_err(), @r#"
+    Error:
+       ╭─[ :3:5 ]
+       │
+     3 │     select lower f"{x}/{y}"
+       │     ───────────┬───────────
+       │                ╰───────────── Too many arguments to function `select`
+       │
+       │ Help: the pipeline supplies the relation, so an argument might be extra
+    ───╯
+    "#);
+}
+
+#[test]
+fn test_non_transform_applied_to_relation() {
+    // `filter foo | in 5..10` pipes the relation into `in` (#648)
+    assert_snapshot!(compile(r###"
+    from employees
+    filter foo | in 5..10
+    "###).unwrap_err(), @"
+    Error:
+       ╭─[ :3:18 ]
+       │
+     3 │     filter foo | in 5..10
+       │                  ────┬───
+       │                      ╰───── the main pipeline must produce a relation, but this step produces a value
+       │
+       │ Help: a function that isn't a transform was applied to a relation; a pipeline inside a transform argument requires parentheses, e.g. `filter (x | in 5..10)`
+    ───╯
+    ");
+
+    assert_snapshot!(compile(r###"
+    from employees
+    filter foo | in 5..10
+    select a
+    "###).unwrap_err(), @"
+    Error:
+       ╭─[ :3:18 ]
+       │
+     3 │     filter foo | in 5..10
+       │                  ────┬───
+       │                      ╰───── expected a table or query, but found ``(std.and ...)``
+       │
+       │ Help: a function that isn't a transform was applied to a relation; a pipeline inside a transform argument requires parentheses, e.g. `filter (x | in 5..10)`
     ───╯
     ");
 }

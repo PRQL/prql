@@ -38,22 +38,6 @@ fn test_bad_error_messages() {
     ───╯
     ");
 
-    // This should suggest parentheses (this might not be an easy one to solve)
-    assert_snapshot!(compile(r#"
-    let f = country -> country == "Canada"
-
-    from employees
-    filter f location
-    "#).unwrap_err(), @"
-    Error:
-       ╭─[ :5:14 ]
-       │
-     5 │     filter f location
-       │              ────┬───
-       │                  ╰───── Unknown name `location`
-    ───╯
-    ");
-
     // Really complicated error message for something so fundamental
     assert_snapshot!(compile(r###"
     select tracks
@@ -106,25 +90,6 @@ fn interpolation_end() {
      1 │ from x | select f"{}
        │                     │
        │                     ╰─ unexpected end of input
-    ───╯
-    "#);
-}
-
-#[test]
-fn select_with_extra_fstr() {
-    // Should complain in the same way as `select lower "mooo"`: "expected a
-    // table or query, but found `\"mooo\"`" (see
-    // error_messages::non_relation_transform_input)
-    assert_snapshot!(compile(r#"
-    from foo
-    select lower f"{x}/{y}"
-    "#).unwrap_err(), @r#"
-    Error:
-       ╭─[ :3:21 ]
-       │
-     3 │     select lower f"{x}/{y}"
-       │                     ┬
-       │                     ╰── Unknown name `x`
     ───╯
     "#);
 }
