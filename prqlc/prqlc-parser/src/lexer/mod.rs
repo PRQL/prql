@@ -445,20 +445,24 @@ pub fn literal<'a>() -> impl Parser<'a, ParserInput<'a>, Literal, ParserError<'a
 fn parse_number_with_base<'a>(
     prefix: &'static str,
     base: u32,
-    valid_digit: impl Fn(&char) -> bool + 'a,
+    valid_digit: impl Fn(&char) -> bool + Clone + 'a,
 ) -> impl Parser<'a, ParserInput<'a>, Literal, ParserError<'a>> {
     just(prefix)
         .then_ignore(just("_").or_not()) // Optional underscore after prefix
         .ignore_then(
+            // Underscores may separate digits, as in decimal literals
             any()
-                .filter(valid_digit)
-                .repeated()
-                .at_least(1)
+                .filter(valid_digit.clone())
+                .then(
+                    any()
+                        .filter(move |c: &char| valid_digit(c) || *c == '_')
+                        .repeated(),
+                )
                 .to_slice()
                 // A value that doesn't fit in an i64 is an error rather than
                 // a silently different number.
                 .validate(move |digits: &str, extra, emitter| {
-                    i64::from_str_radix(digits, base)
+                    i64::from_str_radix(&digits.replace('_', ""), base)
                         .map(Literal::Integer)
                         .unwrap_or_else(|_| {
                             emitter.emit(Simple::new(None, extra.span()));

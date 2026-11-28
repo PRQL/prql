@@ -67,6 +67,15 @@ fn numbers() {
     // Octal notation
     test_number_parsing("0o777", Literal::Integer(511));
 
+    // Underscores between digits
+    test_number_parsing("0b1111_0000", Literal::Integer(0b1111_0000));
+    test_number_parsing(
+        "0b_1111_0000_1111_0000",
+        Literal::Integer(0b1111_0000_1111_0000),
+    );
+    test_number_parsing("0xdead_beef", Literal::Integer(0xdead_beef));
+    test_number_parsing("0o17_7", Literal::Integer(0o177));
+
     // Every digit is read, up to the largest i64
     test_number_parsing("0xffffffffffff1", Literal::Integer(0xffffffffffff1));
     test_number_parsing("0x7fffffffffffffff", Literal::Integer(i64::MAX));
