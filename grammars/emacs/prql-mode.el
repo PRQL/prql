@@ -27,7 +27,8 @@
   "List of PRQL data types.")
 
 (defconst prql-builtin-functions
-  '("aggregate" "derive" "filter" "from" "group" "join" "select" "sort" "take" "window")
+  '("aggregate" "append" "derive" "filter" "from" "group" "intersect" "join"
+    "loop" "remove" "select" "sort" "take" "window")
   "List of PRQL built-in function.")
 
 (defconst prql-operators

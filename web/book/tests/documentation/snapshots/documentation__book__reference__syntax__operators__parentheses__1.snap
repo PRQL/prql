@@ -3,9 +3,11 @@ source: web/book/tests/documentation/book.rs
 expression: "from employees\nderive total_distance = sum distance\n"
 ---
 Error:
-   ╭─[ :2:29 ]
+   ╭─[ :2:1 ]
    │
  2 │ derive total_distance = sum distance
-   │                             ────┬───
-   │                                 ╰───── Unknown name `distance`
+   │ ──────────────────┬─────────────────
+   │                   ╰─────────────────── Too many arguments to function `derive`
+   │
+   │ Help: `total_distance = sum` and `distance` are separate arguments; parentheses might be missing: `total_distance = (sum distance)`
 ───╯

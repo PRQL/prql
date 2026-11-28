@@ -5,7 +5,7 @@ use crate::ir::pl;
 use crate::ir::pl::PlFold;
 use crate::pr::{Ty, TyKind, TyTupleField};
 use crate::semantic::resolver::{flatten, types, Resolver};
-use crate::semantic::{NS_INFER, NS_SELF, NS_THAT, NS_THIS, STD_LIB_SOURCE_ID};
+use crate::semantic::{write_pl, NS_INFER, NS_SELF, NS_THAT, NS_THIS, STD_LIB_SOURCE_ID};
 use crate::utils::IdGenerator;
 use crate::Result;
 use crate::{Error, Reason, Span, WithErrorInfo};
@@ -68,6 +68,9 @@ impl pl::PlFold for Resolver<'_> {
     }
 
     fn fold_expr(&mut self, node: pl::Expr) -> Result<pl::Expr> {
+        // Only the expression folded right after the flag is set is the step.
+        let is_pipeline_step = std::mem::take(&mut self.in_pipeline_step);
+
         if node.id.is_some() && !matches!(node.kind, pl::ExprKind::Func(_)) {
             return Ok(node);
         }
@@ -200,16 +203,35 @@ impl pl::PlFold for Resolver<'_> {
                 self.default_namespace = None;
                 let old = self.in_func_call_name;
                 self.in_func_call_name = true;
-                let name = Box::new(self.fold_expr(*name)?);
+                // A pipeline step is a call whose name is itself a call
+                // (`select x` in `from t | select x`); flag the inner call so
+                // it can explain its own errors.
+                self.in_pipeline_step = matches!(name.kind, pl::ExprKind::FuncCall(_));
+                let name = self.fold_expr(*name);
+                self.in_pipeline_step = false;
                 self.in_func_call_name = old;
+                let name = Box::new(name?);
 
                 let func = name.try_cast(|n| n.into_func(), None, "a function")?;
 
+                // Keep the args only when they already fill every positional
+                // param, including the relation the pipeline supplies again.
+                // Such a step can't compile, so valid steps skip the copy.
+                let overfilled = (is_pipeline_step && step_overfills(&func, args.len()))
+                    .then(|| (func.as_debug_name().to_string(), args.clone()));
+
                 // fold function
-                let func = self
+                let folded = self
                     .apply_args_to_closure(func, args, named_args)
-                    .with_span_fallback(span)?;
-                self.fold_function(func, span)?
+                    .with_span_fallback(span)
+                    .and_then(|func| self.fold_function(func, span));
+                match (folded, overfilled) {
+                    (Ok(expr), _) => expr,
+                    (Err(_), Some((debug_name, args))) => {
+                        return Err(self.explain_overfilled_step(&debug_name, &args, span))
+                    }
+                    (Err(err), None) => return Err(err),
+                }
             }
 
             pl::ExprKind::Func(closure) => self.fold_function(closure, span)?,
@@ -242,6 +264,59 @@ impl pl::PlFold for Resolver<'_> {
 }
 
 impl Resolver<'_> {
+    /// Explains why a pipeline step whose arguments already fill every
+    /// positional param of a transform, including the relation, failed: the
+    /// pipeline supplies the relation once more. In `select x = sum salary`,
+    /// the args are `x = sum` and `salary`, so `salary` is resolved as the
+    /// relation and would fail with an unhelpful "Unknown name".
+    fn explain_overfilled_step(
+        &mut self,
+        debug_name: &str,
+        args: &[pl::Expr],
+        span: Option<Span>,
+    ) -> Error {
+        let mut error = Error::new_simple(format!("Too many arguments to function `{debug_name}`"))
+            .with_span(span);
+
+        // `x = sum salary` passes `x = sum` and `salary` as two arguments
+        let split_call = (args.iter().tuple_windows())
+            .find(|(arg, _)| arg.kind.is_ident() && self.resolves_to_function(arg));
+        if let Some((func_arg, next)) = split_call {
+            let callee = write_pl(pl::Expr {
+                alias: None,
+                ..func_arg.clone()
+            });
+            let next = write_pl(next.clone());
+            let (written, suggested) = match &func_arg.alias {
+                Some(alias) => (
+                    format!("{alias} = {callee}"),
+                    format!("{alias} = ({callee} {next})"),
+                ),
+                None => (callee.clone(), format!("({callee} {next})")),
+            };
+            error = error.push_hint(format!(
+                "`{written}` and `{next}` are separate arguments; parentheses might be missing: `{suggested}`"
+            ));
+        } else {
+            error = error
+                .push_hint("the pipeline supplies the relation, so an argument might be extra");
+        }
+        error
+    }
+
+    /// Whether an unresolved expression names a function. Only used while
+    /// building an error, so any declarations inferred meanwhile don't matter.
+    fn resolves_to_function(&mut self, expr: &pl::Expr) -> bool {
+        let old = self.in_func_call_name;
+        self.in_func_call_name = true;
+        let resolved = self.fold_expr(pl::Expr {
+            alias: None,
+            ..expr.clone()
+        });
+        self.in_func_call_name = old;
+        resolved.is_ok_and(|e| e.kind.is_func())
+    }
+
     fn finish_expr_resolve(
         &mut self,
         expr: pl::Expr,
@@ -409,4 +484,13 @@ fn ty_of_lineage(lineage: &pl::Lineage) -> Ty {
             })
             .collect(),
     )
+}
+
+/// Whether a pipeline step's explicit args fill every positional param of a
+/// function whose last param is a relation, leaving none for the pipeline.
+fn step_overfills(func: &pl::Func, n_args: usize) -> bool {
+    let takes_relation_last = (func.params.last())
+        .and_then(|p| p.ty.as_ref())
+        .is_some_and(|t| t.is_relation());
+    takes_relation_last && n_args >= func.params.len().saturating_sub(func.args.len())
 }

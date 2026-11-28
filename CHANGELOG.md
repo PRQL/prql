@@ -29,6 +29,15 @@
 
 **Fixes**:
 
+- `select x = sum salary` reports too many arguments to `select`, with a hint to
+  parenthesize the call, rather than ``Unknown name `salary` ``; and
+  `filter foo | in 5..10` points at the step that turns the relation into a
+  value rather than claiming the query doesn't begin with `from`. (@prql-bot,
+  #6622)
+- The Kate, nano and Emacs grammars highlight the `append`, `intersect`, `loop`
+  and `remove` transforms, and the CodeMirror demo no longer offers `every`,
+  `map` or `zip`, which aren't in the standard library, as completions.
+  (@prql-bot, #6611)
 - The book and website syntax highlighters, and the CotEditor and GtkSourceView
   grammars, highlight the `intersect`, `remove` and `loop` transforms and
   `tuple_map`/`tuple_zip`, and no longer highlight `union`, `every`, `map` or
@@ -495,6 +504,11 @@
   PRQL, but the grammar ran a triple-quoted body only up to the first quote
   character, and its `escape` token covered neither `\\` nor an escaped quote.
   (@prql-bot, #6288)
+
+- The lezer grammar in `grammars/prql-lezer/` now parses the bracketed
+  `case [...]` form documented in the book, and comparisons such as
+  `city == "Calgary" => 0` as a branch condition in either `case [...]` or
+  `case {...}`. (@prql-bot, #6621)
 
 - The lezer grammar in `grammars/prql-lezer/` now parses a triple-quoted string
   containing the quote character, such as `"""I said "hello"!"""`, and a string

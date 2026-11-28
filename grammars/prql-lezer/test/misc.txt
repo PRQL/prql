@@ -218,3 +218,37 @@ derive x = case {
 ==>
 
 Query(Pipeline(CallExpression(Identifier,ArgList(Declaration(DeclarationItem,Equals,CaseExpression(case,TupleExpression(CaseBranch(Identifier,Integer),CaseBranch(Boolean,Integer))))))))
+
+# Case expression with brackets
+
+derive x = case [
+  a => 1,
+  true => 2
+]
+
+==>
+
+Query(Pipeline(CallExpression(Identifier,ArgList(Declaration(DeclarationItem,Equals,CaseExpression(case,ArrayExpression(CaseBranch(Identifier,Integer),CaseBranch(Boolean,Integer))))))))
+
+# Case expression with comparison conditions
+
+derive x = case {
+  a != null => a,
+  b < 17 => 'low'
+}
+
+==>
+
+Query(Pipeline(CallExpression(Identifier,ArgList(Declaration(DeclarationItem,Equals,CaseExpression(case,TupleExpression(CaseBranch(BinaryExpression(Identifier,CompareOp,null),Identifier),CaseBranch(BinaryExpression(Identifier,CompareOp,Integer),String))))))))
+
+# Case expression with equality conditions
+
+derive x = case {
+  a == 1 => 1,
+  a == b => 2,
+  true => 3
+}
+
+==>
+
+Query(Pipeline(CallExpression(Identifier,ArgList(Declaration(DeclarationItem,Equals,CaseExpression(case,TupleExpression(CaseBranch(BinaryExpression(Identifier,CompareOp,Integer),Integer),CaseBranch(BinaryExpression(Identifier,CompareOp,Identifier),Integer),CaseBranch(Boolean,Integer))))))))

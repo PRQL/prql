@@ -23,7 +23,25 @@ use crate::{Error, Reason, Result, Span, WithErrorInfo};
 
 /// The error for a query whose main pipeline can't be found, worded by
 /// whether the query declares anything at all.
-pub(crate) fn missing_main_error(root_mod: &RootModule, span: Option<Span>) -> Error {
+pub(crate) fn missing_main_error(
+    root_mod: &RootModule,
+    main_path: &[String],
+    span: Option<Span>,
+) -> Error {
+    // `from t | filter x | in 5..10` does start with `from`, but its last step
+    // applies a non-transform function to the relation and produces a value.
+    if let Ok((decl, _)) = root_mod.find_main(main_path) {
+        if let DeclKind::Expr(expr) = &decl.kind {
+            if applies_function_to_relation(expr) {
+                return Error::new_simple(
+                    "the main pipeline must produce a relation, but this step produces a value",
+                )
+                .push_hint(NESTED_PIPELINE_HINT)
+                .with_span(expr.span.or(span));
+            }
+        }
+    }
+
     let user_declared_names: Vec<_> = root_mod
         .module
         .names
@@ -97,6 +115,20 @@ fn align_relation_literal_row(fields: Vec<pl::Expr>, columns: &[String]) -> Resu
         .collect())
 }
 
+pub(crate) const NESTED_PIPELINE_HINT: &str = "a function that isn't a transform was applied to a relation; a pipeline inside a transform argument requires parentheses, e.g. `filter (x | in 5..10)`";
+
+/// Whether a resolved expression is a function applied to a relation that
+/// produces a non-relational value, as `in 5..10` does in
+/// `from t | filter x | in 5..10`.
+pub(crate) fn applies_function_to_relation(expr: &pl::Expr) -> bool {
+    match &expr.kind {
+        pl::ExprKind::RqOperator { args, .. } => args
+            .iter()
+            .any(|arg| arg.lineage.is_some() || applies_function_to_relation(arg)),
+        _ => false,
+    }
+}
+
 /// Convert a resolved expression at path `main_path` relative to `root_mod`
 /// into RQ and make sure that:
 /// - transforms are not nested,
@@ -118,7 +150,7 @@ pub fn lower_to_ir(
     log::debug!("lookup for main pipeline in {main_path:?}");
     let (_, main_ident) = root_mod
         .find_main_rel(main_path)
-        .map_err(|(_hint, span)| missing_main_error(&root_mod, span))?;
+        .map_err(|(_hint, span)| missing_main_error(&root_mod, main_path, span))?;
 
     // find & validate query def
     let def = root_mod.find_query_def(&main_ident);
@@ -1369,5 +1401,19 @@ where
         }
 
         e.with_span(get_span())
+    }
+}
+
+#[cfg(test)]
+mod test {
+    use insta::assert_snapshot;
+
+    #[test]
+    fn test_missing_main_path_ignores_default_main() {
+        // `main` produces a value, but the requested main path `bar` doesn't
+        // exist, so the error shouldn't blame `main`
+        let pl = crate::prql_to_pl("let main = (from e | filter a | in 5..10)").unwrap();
+        let err = crate::pl_to_rq_tree(pl, &["bar".to_string()], &[]).unwrap_err();
+        assert_snapshot!(err.inner[0].reason, @"PRQL queries must begin with 'from'");
     }
 }

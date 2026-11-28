@@ -512,11 +512,11 @@ pub mod internal {
 
         let (main, _) = root_module
             .find_main_rel(&[])
-            .map_err(|(_, span)| semantic::missing_main_error(&root_module, span))?;
+            .map_err(|(_, span)| semantic::missing_main_error(&root_module, &[], span))?;
         let main = main
             .clone()
             .into_relation_var()
-            .map_err(|_| semantic::missing_main_error(&root_module, None))?;
+            .map_err(|_| semantic::missing_main_error(&root_module, &[], None))?;
         let mut fc = semantic::reporting::collect_frames(*main);
         semantic::reporting::trace_inputs_to_source_tables(&mut fc, &root_module);
         fc.ast = ast;
