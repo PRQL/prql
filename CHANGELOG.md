@@ -496,6 +496,10 @@
   character, and its `escape` token covered neither `\\` nor an escaped quote.
   (@prql-bot, #6288)
 
+- The lezer grammar in `grammars/prql-lezer/` now parses the bracketed
+  `case [...]` form documented in the book, and accepts comparisons such as
+  `total < 10 => ...` as a branch condition in either form. (@prql-bot, #6621)
+
 - The lezer grammar in `grammars/prql-lezer/` now parses a triple-quoted string
   containing the quote character, such as `"""I said "hello"!"""`, and a string
   containing an escaped quote, such as `"\"hello\""` — including the f-string
