@@ -24,6 +24,11 @@ pub struct Resolver<'a> {
     /// folded as an expression.
     in_func_call_name: bool,
 
+    /// Set while resolving the name of a pipeline step's call (`select x` in
+    /// `from t | select x`). The next `fold_expr` takes it, so it applies to
+    /// that call alone and not to its arguments.
+    in_pipeline_step: bool,
+
     /// Aliases declared by the tuples currently being resolved, innermost last.
     ///
     /// Tuple fields are resolved one at a time and each alias is inserted into
@@ -46,6 +51,7 @@ impl Resolver<'_> {
             current_module_path: Vec::new(),
             default_namespace: None,
             in_func_call_name: false,
+            in_pipeline_step: false,
             in_flight_tuple_aliases: Vec::new(),
             id: IdGenerator::new(),
         }

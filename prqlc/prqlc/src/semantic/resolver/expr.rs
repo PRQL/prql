@@ -68,6 +68,9 @@ impl pl::PlFold for Resolver<'_> {
     }
 
     fn fold_expr(&mut self, node: pl::Expr) -> Result<pl::Expr> {
+        // Only the expression folded right after the flag is set is the step.
+        let is_pipeline_step = std::mem::take(&mut self.in_pipeline_step);
+
         if node.id.is_some() && !matches!(node.kind, pl::ExprKind::Func(_)) {
             return Ok(node);
         }
@@ -201,27 +204,34 @@ impl pl::PlFold for Resolver<'_> {
                 let old = self.in_func_call_name;
                 self.in_func_call_name = true;
                 // A pipeline step is a call whose name is itself a call
-                // (`select x` in `from t | select x`); keep it to explain errors.
-                let step = matches!(name.kind, pl::ExprKind::FuncCall(_)).then(|| (*name).clone());
+                // (`select x` in `from t | select x`); flag the inner call so
+                // it can explain its own errors.
+                self.in_pipeline_step = matches!(name.kind, pl::ExprKind::FuncCall(_));
                 let name = self.fold_expr(*name);
+                self.in_pipeline_step = false;
                 self.in_func_call_name = old;
-                let name = match name {
-                    Ok(name) => Box::new(name),
-                    Err(err) => {
-                        return Err(match step {
-                            Some(step) => self.explain_overfilled_step(step, err),
-                            None => err,
-                        })
-                    }
-                };
+                let name = Box::new(name?);
 
                 let func = name.try_cast(|n| n.into_func(), None, "a function")?;
 
+                // Keep the args only when they already fill every positional
+                // param, including the relation the pipeline supplies again.
+                // Such a step can't compile, so valid steps skip the copy.
+                let overfilled = (is_pipeline_step && step_overfills(&func, args.len()))
+                    .then(|| (func.as_debug_name().to_string(), args.clone()));
+
                 // fold function
-                let func = self
+                let folded = self
                     .apply_args_to_closure(func, args, named_args)
-                    .with_span_fallback(span)?;
-                self.fold_function(func, span)?
+                    .with_span_fallback(span)
+                    .and_then(|func| self.fold_function(func, span));
+                match (folded, overfilled) {
+                    (Ok(expr), _) => expr,
+                    (Err(_), Some((debug_name, args))) => {
+                        return Err(self.explain_overfilled_step(&debug_name, &args, span))
+                    }
+                    (Err(err), None) => return Err(err),
+                }
             }
 
             pl::ExprKind::Func(closure) => self.fold_function(closure, span)?,
@@ -254,50 +264,22 @@ impl pl::PlFold for Resolver<'_> {
 }
 
 impl Resolver<'_> {
-    /// Replaces the error from a pipeline step whose arguments already fill
-    /// every positional param of a transform, including the relation, which
-    /// the pipeline then supplies once more. In `select x = sum salary`, the
-    /// args are `x = sum` and `salary`, so `salary` is resolved as the
-    /// relation and fails with an unhelpful "Unknown name".
-    fn explain_overfilled_step(&mut self, step: pl::Expr, err: Error) -> Error {
-        let pl::ExprKind::FuncCall(call) = step.kind else {
-            return err;
-        };
-        if !call.name.kind.is_ident() {
-            return err;
-        }
-
-        let old = self.in_func_call_name;
-        self.in_func_call_name = true;
-        let callee = self.fold_expr(*call.name);
-        self.in_func_call_name = old;
-        let Ok(pl::Expr {
-            kind: pl::ExprKind::Func(func),
-            ..
-        }) = callee
-        else {
-            return err;
-        };
-        let Ok(func) = self.fold_function_types(func) else {
-            return err;
-        };
-
-        let takes_relation_last = (func.params.last())
-            .and_then(|p| p.ty.as_ref())
-            .is_some_and(|t| t.is_relation());
-        let remaining_params = func.params.len().saturating_sub(func.args.len());
-        if !takes_relation_last || call.args.len() < remaining_params {
-            return err;
-        }
-
-        let mut error = Error::new_simple(format!(
-            "Too many arguments to function `{}`",
-            func.as_debug_name()
-        ))
-        .with_span(step.span);
+    /// Explains why a pipeline step whose arguments already fill every
+    /// positional param of a transform, including the relation, failed: the
+    /// pipeline supplies the relation once more. In `select x = sum salary`,
+    /// the args are `x = sum` and `salary`, so `salary` is resolved as the
+    /// relation and would fail with an unhelpful "Unknown name".
+    fn explain_overfilled_step(
+        &mut self,
+        debug_name: &str,
+        args: &[pl::Expr],
+        span: Option<Span>,
+    ) -> Error {
+        let mut error = Error::new_simple(format!("Too many arguments to function `{debug_name}`"))
+            .with_span(span);
 
         // `x = sum salary` passes `x = sum` and `salary` as two arguments
-        let split_call = (call.args.iter().tuple_windows())
+        let split_call = (args.iter().tuple_windows())
             .find(|(arg, _)| arg.kind.is_ident() && self.resolves_to_function(arg));
         if let Some((func_arg, next)) = split_call {
             let callee = write_pl(pl::Expr {
@@ -502,4 +484,13 @@ fn ty_of_lineage(lineage: &pl::Lineage) -> Ty {
             })
             .collect(),
     )
+}
+
+/// Whether a pipeline step's explicit args fill every positional param of a
+/// function whose last param is a relation, leaving none for the pipeline.
+fn step_overfills(func: &pl::Func, n_args: usize) -> bool {
+    let takes_relation_last = (func.params.last())
+        .and_then(|p| p.ty.as_ref())
+        .is_some_and(|t| t.is_relation());
+    takes_relation_last && n_args >= func.params.len().saturating_sub(func.args.len())
 }
