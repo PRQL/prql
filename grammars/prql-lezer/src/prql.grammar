@@ -87,7 +87,7 @@ expression[@isGroup=Expression] {
   Parameter |
   ParenthesizedExpression |
   RangeExpression |
-  Identifier |
+  Identifier ~eqPrefix |
   boolean |
   number |
   String | FString | RString | SString |
@@ -106,9 +106,14 @@ BinaryExpression {
 
 ParenthesizedExpression { "(" expression ")" }
 
+// `~eqPrefix` marks the one place `==` is ambiguous: after an identifier in a
+// tuple, `a ==` could start a call whose argument is the `==col` shorthand, or
+// a comparison in a case branch such as `{a == 1 => ...}`. Only the `=>` that
+// follows tells them apart, so the parser explores both and keeps the one that
+// parses.
 UnaryExpression {
   !prefix ArithOp<"+" | "-"> expression |
-  !prefix CompareOp<"=="> Identifier
+  ~eqPrefix CompareOp<"=="> Identifier
 }
 
 // Because this is outside tokens, we can't disallow whitespace.

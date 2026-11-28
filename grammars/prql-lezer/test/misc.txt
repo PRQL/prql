@@ -240,3 +240,15 @@ derive x = case {
 ==>
 
 Query(Pipeline(CallExpression(Identifier,ArgList(Declaration(DeclarationItem,Equals,CaseExpression(case,TupleExpression(CaseBranch(BinaryExpression(Identifier,CompareOp,null),Identifier),CaseBranch(BinaryExpression(Identifier,CompareOp,Integer),String))))))))
+
+# Case expression with equality conditions
+
+derive x = case {
+  a == 1 => 1,
+  a == b => 2,
+  true => 3
+}
+
+==>
+
+Query(Pipeline(CallExpression(Identifier,ArgList(Declaration(DeclarationItem,Equals,CaseExpression(case,TupleExpression(CaseBranch(BinaryExpression(Identifier,CompareOp,Integer),Integer),CaseBranch(BinaryExpression(Identifier,CompareOp,Identifier),Integer),CaseBranch(Boolean,Integer))))))))
